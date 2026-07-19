@@ -21,6 +21,7 @@ import apiService from "@/services/ApiService";
 import * as FileSystem from 'expo-file-system/legacy';
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type StreetStyleScannerScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "StreetStyleScanner">;
@@ -390,6 +391,7 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
             Upgrade to Personal Stylist for unlimited outfit scanning
           </ThemedText>
           <Pressable
+            onPress={() => navigateToSubscription(navigation, 'personal_stylist')}
             style={({ pressed }) => [
               styles.upgradeButton,
               { opacity: pressed ? 0.8 : 1 },

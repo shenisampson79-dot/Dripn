@@ -4,6 +4,7 @@
  * See docs/IAP_MIGRATION_PLAN.md
  */
 
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, {
   type CustomerInfo,
@@ -20,11 +21,19 @@ import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE } from '@/utils/voiceCred
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
 
-/** App Store Connect product IDs — must match RevenueCat offerings */
+/** Shown when Purchases.configure never ran (missing key, Expo Go, etc.) */
+export const IAP_UNAVAILABLE_MESSAGE =
+  'In-app purchases unavailable — rebuild with RevenueCat key';
+
+/**
+ * App Store Connect product IDs — must match RevenueCat offerings exactly.
+ * Personal Stylist uses the canonical `.yearly` suffix. Stylist Unlimited
+ * retains its existing `.annual` suffix.
+ */
 export const APPLE_SUBSCRIPTION_PRODUCT_IDS = {
   personal_stylist: {
     monthly: 'com.dripn.personal_stylist.monthly',
-    yearly: 'com.dripn.personal_stylist.annual',
+    yearly: 'com.dripn.personal_stylist.yearly',
   },
   stylist_unlimited: {
     monthly: 'com.dripn.stylist_unlimited.monthly',
@@ -45,7 +54,7 @@ export const APPLE_VOICE_PRODUCT_IDS = {
   weekend: 'com.dripn.voice.weekend_unlimited',
 } as const;
 
-/** Weekend unlimited consumables (48h voice) */
+/** 2-Day Unlimited consumables (48h voice) */
 export const APPLE_WEEKEND_UNLIMITED_PRODUCT_IDS = [
   'com.dripn.voice.weekend_unlimited',
   'com.dripn.voice.unlimited.weekend',
@@ -92,7 +101,8 @@ export interface VoiceCreditPriceInfo {
 
 export interface AppleIAPService {
   isAvailable(): boolean;
-  configure(appUserId: string): Promise<void>;
+  isConfigured(): boolean;
+  configure(appUserId: string): Promise<boolean>;
   getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]>;
   getDFYPrices(): Promise<DFYPriceInfo[]>;
   getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]>;
@@ -106,6 +116,10 @@ export interface AppleIAPService {
 function getRevenueCatApiKey(): string | null {
   const key = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim();
   return key || null;
+}
+
+function isExpoGo(): boolean {
+  return Constants.appOwnership === 'expo';
 }
 
 function productIdFor(tier: IAPSubscriptionTier, interval: SubscriptionInterval): string {
@@ -170,29 +184,104 @@ function isUserCancelledPurchase(error: unknown): boolean {
 
 class RevenueCatAppleIAPService implements AppleIAPService {
   private configuredForUserId: string | null = null;
+  /** In-flight configure — callers await this to avoid purchase-before-ready races */
+  private configurePromise: Promise<boolean> | null = null;
+  private lastConfigureFailure: string | null = null;
 
   isAvailable(): boolean {
     return shouldUseAppleIAP() && Platform.OS === 'ios';
   }
 
-  async configure(appUserId: string): Promise<void> {
-    if (!this.isAvailable()) return;
+  isConfigured(): boolean {
+    return this.configuredForUserId != null;
+  }
+
+  /**
+   * Configure RevenueCat for `appUserId`. Returns true only when the SDK singleton is ready.
+   * Safe to call concurrently — shares one in-flight promise.
+   */
+  async configure(appUserId: string): Promise<boolean> {
+    if (!appUserId) {
+      this.lastConfigureFailure = 'Sign in required for Apple purchases';
+      return false;
+    }
+
+    if (!this.isAvailable()) {
+      this.lastConfigureFailure = 'Apple IAP is not available on this platform';
+      return false;
+    }
+
+    if (isExpoGo()) {
+      this.lastConfigureFailure =
+        'In-app purchases require a development or production build (not Expo Go)';
+      console.warn('[AppleIAP]', this.lastConfigureFailure);
+      return false;
+    }
 
     const apiKey = getRevenueCatApiKey();
     if (!apiKey) {
+      this.lastConfigureFailure = IAP_UNAVAILABLE_MESSAGE;
       console.warn('[AppleIAP] EXPO_PUBLIC_REVENUECAT_IOS_API_KEY not set — IAP disabled');
-      return;
+      return false;
     }
 
-    if (this.configuredForUserId === appUserId) return;
+    if (this.configuredForUserId === appUserId) {
+      this.lastConfigureFailure = null;
+      return true;
+    }
 
-    Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
-    await Purchases.configure({ apiKey, appUserID: appUserId });
-    this.configuredForUserId = appUserId;
+    if (this.configurePromise) {
+      const ok = await this.configurePromise;
+      if (this.configuredForUserId === appUserId) return ok;
+      // Different user after concurrent configure — fall through to logIn / reconfigure
+    }
+
+    this.configurePromise = this.runConfigure(apiKey, appUserId);
+    try {
+      return await this.configurePromise;
+    } finally {
+      this.configurePromise = null;
+    }
+  }
+
+  private async runConfigure(apiKey: string, appUserId: string): Promise<boolean> {
+    try {
+      // Already configured for another user — switch identity without re-configure
+      if (this.configuredForUserId != null && this.configuredForUserId !== appUserId) {
+        await Purchases.logIn(appUserId);
+        this.configuredForUserId = appUserId;
+        this.lastConfigureFailure = null;
+        return true;
+      }
+
+      Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
+      // configure is sync in react-native-purchases v8+; await keeps API consistent
+      await Promise.resolve(Purchases.configure({ apiKey, appUserID: appUserId }));
+      this.configuredForUserId = appUserId;
+      this.lastConfigureFailure = null;
+      return true;
+    } catch (error) {
+      this.configuredForUserId = null;
+      this.lastConfigureFailure =
+        error instanceof Error ? error.message : IAP_UNAVAILABLE_MESSAGE;
+      console.warn('[AppleIAP] configure failed:', error);
+      return false;
+    }
+  }
+
+  /** Wait for any in-flight configure, then require a ready singleton before Purchases.* calls */
+  private async ensureReady(): Promise<void> {
+    if (this.configurePromise) {
+      await this.configurePromise;
+    }
+    if (this.isConfigured()) return;
+    throw new Error(this.lastConfigureFailure || IAP_UNAVAILABLE_MESSAGE);
   }
 
   async getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]> {
     if (!this.isAvailable()) return [];
+    if (this.configurePromise) await this.configurePromise;
+    if (!this.isConfigured()) return [];
 
     const offerings = await Purchases.getOfferings();
     const results: SubscriptionPriceInfo[] = [];
@@ -217,6 +306,8 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
   async getDFYPrices(): Promise<DFYPriceInfo[]> {
     if (!this.isAvailable()) return [];
+    if (this.configurePromise) await this.configurePromise;
+    if (!this.isConfigured()) return [];
 
     const offerings = await Purchases.getOfferings();
     const productIds = Object.values(APPLE_DFY_PRODUCT_IDS);
@@ -240,6 +331,8 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
   async getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]> {
     if (!this.isAvailable()) return [];
+    if (this.configurePromise) await this.configurePromise;
+    if (!this.isConfigured()) return [];
 
     const productIds = Object.values(APPLE_VOICE_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
@@ -267,6 +360,8 @@ class RevenueCatAppleIAPService implements AppleIAPService {
   }
 
   private async purchaseProductById(productId: string): Promise<CustomerInfo> {
+    await this.ensureReady();
+
     const offerings = await Purchases.getOfferings();
     const pkg = findPackageByProductId(offerings, productId);
 
@@ -301,6 +396,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
+    await this.ensureReady();
 
     const productId = productIdFor(tier, interval);
     const offerings = await Purchases.getOfferings();
@@ -327,24 +423,21 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
-
-    const productId = dfyProductIdFor(tier);
-    return this.purchaseProductById(productId);
+    return this.purchaseProductById(dfyProductIdFor(tier));
   }
 
   async purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
-
-    const productId = voiceProductIdFor(packId);
-    return this.purchaseProductById(productId);
+    return this.purchaseProductById(voiceProductIdFor(packId));
   }
 
   async restorePurchases(): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
+    await this.ensureReady();
     return Purchases.restorePurchases();
   }
 
@@ -352,8 +445,16 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
+    await this.ensureReady();
     return Purchases.getCustomerInfo();
   }
+}
+
+function tierFromAppleProductId(productId?: string | null): SubscriptionTier | null {
+  if (!productId) return null;
+  if (productId.includes('stylist_unlimited')) return 'stylist_unlimited';
+  if (productId.includes('personal_stylist')) return 'personal_stylist';
+  return null;
 }
 
 /** Map RevenueCat active entitlements / product IDs to app subscription tier */
@@ -363,16 +464,21 @@ export function resolveTierFromCustomerInfo(customerInfo: CustomerInfo): Subscri
   if (active.stylist_unlimited?.isActive) return 'stylist_unlimited';
   if (active.personal_stylist?.isActive) return 'personal_stylist';
 
-  const activeProductIds = Object.values(customerInfo.entitlements.active)
+  const entitlementProductIds = Object.values(customerInfo.entitlements.active)
     .map((e) => e.productIdentifier)
     .filter(Boolean);
 
-  for (const productId of activeProductIds) {
-    if (productId.includes('stylist_unlimited')) return 'stylist_unlimited';
-    if (productId.includes('personal_stylist')) return 'personal_stylist';
+  const activeSubscriptions = Array.from(customerInfo.activeSubscriptions ?? []);
+  const allProductIds = [...entitlementProductIds, ...activeSubscriptions];
+
+  let best: SubscriptionTier = 'free';
+  for (const productId of allProductIds) {
+    const mapped = tierFromAppleProductId(productId);
+    if (mapped === 'stylist_unlimited') return 'stylist_unlimited';
+    if (mapped === 'personal_stylist') best = 'personal_stylist';
   }
 
-  return 'free';
+  return best;
 }
 
 /** Map RevenueCat entitlements / purchases to DFY tier when present */

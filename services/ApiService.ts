@@ -5,18 +5,54 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, ADMIN_API_URL } from '@/config/api';
+import {
+  USER_TOKEN_KEY,
+  ADMIN_TOKEN_KEY,
+  getSecureToken,
+  setSecureToken,
+  clearSecureToken,
+} from '@/utils/secureTokenStore';
 
-const TOKEN_KEY = '@dripn_token';
-const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 const DEVICE_ID_KEY = 'dripn_device_id';
+const SESSION_BACKUP_KEY = '@dripn_session_backup';
+const PENDING_APPLE_SUB_SYNC_KEY = '@dripn_pending_apple_sub_sync';
 
 const DEFAULT_TIMEOUT = 30000;
 
 class ApiService {
   private token: string | null = null;
+  private sessionBackup: string | null = null;
+  private guestToken: string | null = null;
 
   async init() {
-    this.token = await AsyncStorage.getItem(TOKEN_KEY);
+    this.token = await getSecureToken(USER_TOKEN_KEY);
+    try {
+      this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
+    } catch {
+      this.sessionBackup = null;
+    }
+  }
+
+  private async persistSessionBackup(sessionId: string | null) {
+    this.sessionBackup = sessionId;
+    try {
+      if (sessionId) {
+        await AsyncStorage.setItem(SESSION_BACKUP_KEY, sessionId);
+      } else {
+        await AsyncStorage.removeItem(SESSION_BACKUP_KEY);
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  private captureSessionBackupFromResponse(response: Response) {
+    const header =
+      response.headers.get('X-Session-Backup') ||
+      response.headers.get('x-session-backup');
+    if (header) {
+      void this.persistSessionBackup(header);
+    }
   }
 
   private fetchWithTimeout(
@@ -70,16 +106,17 @@ class ApiService {
   async setToken(token: string | null) {
     this.token = token;
     if (token) {
-      await AsyncStorage.setItem(TOKEN_KEY, token);
+      await setSecureToken(USER_TOKEN_KEY, token);
     } else {
-      await AsyncStorage.removeItem(TOKEN_KEY);
+      await clearSecureToken(USER_TOKEN_KEY);
+      await this.persistSessionBackup(null);
     }
   }
 
   async getToken() {
-    // Always check AsyncStorage to handle cases where token was set elsewhere
+    // Always check SecureStore to handle cases where token was set elsewhere
     // or after initial load (e.g., user logged in after app start)
-    const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+    const storedToken = await getSecureToken(USER_TOKEN_KEY);
     if (storedToken !== this.token) {
       this.token = storedToken;
     }
@@ -88,8 +125,53 @@ class ApiService {
   
   // Force refresh token from storage (call after login)
   async refreshToken() {
-    this.token = await AsyncStorage.getItem(TOKEN_KEY);
+    this.token = await getSecureToken(USER_TOKEN_KEY);
     return this.token;
+  }
+
+  /** Re-issue JWT via session backup or existing Bearer when possible. */
+  async refreshAuthSession(): Promise<string | null> {
+    await this.refreshToken();
+    if (!API_URL) return this.token;
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (this.token) {
+        headers.Authorization = `Bearer ${this.token}`;
+      }
+      if (!this.sessionBackup) {
+        try {
+          this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
+        } catch {
+          // ignore
+        }
+      }
+      if (this.sessionBackup) {
+        headers['X-Session-Backup'] = this.sessionBackup;
+      }
+
+      const response = await this.fetchWithTimeout(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers,
+        timeout: 15000,
+      });
+      this.captureSessionBackupFromResponse(response);
+      if (!response.ok) return this.token;
+
+      const result = await response.json().catch(() => null);
+      if (result?.token) {
+        await this.setToken(result.token);
+        if (result.sessionBackup) {
+          await this.persistSessionBackup(String(result.sessionBackup));
+        }
+      }
+      return this.token;
+    } catch (error) {
+      console.warn('[ApiService] refreshAuthSession failed:', error);
+      return this.token;
+    }
   }
 
   private async request<T>(
@@ -108,6 +190,16 @@ class ApiService {
 
     if (token) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+    if (!this.sessionBackup) {
+      try {
+        this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
+      } catch {
+        // ignore
+      }
+    }
+    if (this.sessionBackup) {
+      (headers as Record<string, string>)['X-Session-Backup'] = this.sessionBackup;
     }
 
     try {
@@ -146,6 +238,8 @@ class ApiService {
       }
       throw error;
     }
+
+    this.captureSessionBackupFromResponse(response);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -231,7 +325,10 @@ class ApiService {
               : 'Account not found. Please check your email or sign up.';
             break;
           case 429:
-            errorMessage = 'Too many attempts. Please try again later.';
+            errorMessage =
+              (error.limitCopy && typeof error.limitCopy.message === 'string' && error.limitCopy.message) ||
+              humanMessage ||
+              'Too many attempts. Please try again later.';
             break;
           case 500:
             errorMessage = humanMessage || 'Server error. Please try again later.';
@@ -244,12 +341,20 @@ class ApiService {
       const apiError = new Error(errorMessage) as Error & {
         status?: number;
         statusCode?: number;
+        errorCode?: string;
         voiceCreditsExhausted?: boolean;
+        limitCopy?: unknown;
       };
       apiError.status = response.status;
       apiError.statusCode = response.status;
+      if (error.errorCode) {
+        apiError.errorCode = String(error.errorCode);
+      }
       if (error.voiceCreditsExhausted) {
         apiError.voiceCreditsExhausted = true;
+      }
+      if (error.limitCopy) {
+        apiError.limitCopy = error.limitCopy;
       }
       throw apiError;
     }
@@ -267,16 +372,12 @@ class ApiService {
     };
 
     // Prefer dedicated admin portal JWT; fall back to app user JWT (is_admin).
-    const adminToken = await AsyncStorage.getItem(ADMIN_TOKEN_KEY).catch(() => null);
+    // Never ship server admin secrets in the client binary — use JWT only.
+    const adminToken = await getSecureToken(ADMIN_TOKEN_KEY).catch(() => null);
     const userToken = adminToken ? null : await this.getToken().catch(() => null);
     const bearer = adminToken || userToken;
     if (bearer) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${bearer}`;
-    }
-
-    const adminSecret = process.env.EXPO_PUBLIC_ADMIN_SECRET;
-    if (adminSecret) {
-      (headers as Record<string, string>)['x-admin-secret'] = adminSecret;
     }
 
     let response: Response;
@@ -341,6 +442,14 @@ class ApiService {
       appleSubscriptionNotice?: string;
     }>('/api/auth/delete-account', {
       method: 'POST',
+    });
+  }
+
+  /** GDPR Art. 15 / 20 — personal data export (JSON). */
+  async exportMyData() {
+    return this.request<Record<string, unknown>>('/api/privacy/export', {
+      method: 'GET',
+      timeout: 90000,
     });
   }
 
@@ -1501,14 +1610,20 @@ class ApiService {
     stylistName?: string;
     stylistPersonality?: string;
   }) {
+    // Render cold starts often exceed the default 30s timeout; wake first, then allow
+    // enough time for OpenAI (same pattern as wardrobe / stylist resilient calls).
+    try {
+      await this.wakeBackend();
+    } catch {
+      // Non-fatal — request may still succeed if the backend is already warm
+    }
+
     return this.request<{ response: string; fallback?: boolean }>('/api/support/chat', {
       method: 'POST',
       body: JSON.stringify(data),
+      timeout: 90000,
     });
   }
-
-  private sessionBackup: string | null = null;
-  private guestToken: string | null = null;
 
   async sendStylistMessage(data: {
     stylistId: string;
@@ -1831,25 +1946,52 @@ class ApiService {
   }
 
   async getVoiceCreditsBalance() {
-    return this.request<{
-      success: boolean;
-      canUse?: boolean;
-      reason?: string;
-      credits: {
-        remaining: number;
-        monthlyAllowance: number;
-        monthlyHardCap?: number;
-        usedThisMonth: number;
-        monthlyRemaining: number;
-        purchasedCredits: number;
-        isUnlimited: boolean;
-        weekendUnlimitedActive?: boolean;
-        weekendUnlimitedExpiresAt?: string | null;
-        softCapWarning?: 'usage_high' | 'approaching_limit' | null;
-      };
-      tier: string;
-      tierName: string;
-    }>('/api/voice-credits/balance');
+    // Same cold-start pattern as Julia support chat — Render can sleep past the default 30s.
+    try {
+      await this.wakeBackend();
+    } catch {
+      // Non-fatal — balance request may still succeed if the backend is already warm
+    }
+
+    // Mirror Apple subscription sync — SecureStore can lag; session backup can still auth.
+    await this.refreshToken();
+    if (!(await this.getToken())) {
+      await this.refreshAuthSession();
+    }
+
+    const attempt = () =>
+      this.request<{
+        success: boolean;
+        canUse?: boolean;
+        reason?: string;
+        credits: {
+          remaining: number;
+          monthlyAllowance: number;
+          monthlyHardCap?: number;
+          usedThisMonth: number;
+          monthlyRemaining: number;
+          purchasedCredits: number;
+          isUnlimited: boolean;
+          weekendUnlimitedActive?: boolean;
+          weekendUnlimitedExpiresAt?: string | null;
+          softCapWarning?: 'usage_high' | 'approaching_limit' | null;
+        };
+        tier: string;
+        tierName: string;
+      }>('/api/voice-credits/balance', { timeout: 90000 });
+
+    try {
+      return await attempt();
+    } catch (error: unknown) {
+      const status =
+        (error as { status?: number; statusCode?: number })?.status ??
+        (error as { statusCode?: number })?.statusCode;
+      if (status === 401) {
+        await this.refreshAuthSession();
+        return await attempt();
+      }
+      throw error;
+    }
   }
 
   async getVoiceCreditPackages() {
@@ -1956,7 +2098,12 @@ class ApiService {
     }
   }
 
-  async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core', language?: string) {
+  async createDFYCheckoutSession(
+    email: string,
+    packageType: 'lite' | 'core',
+    language?: string,
+    redirects?: { successUrl?: string; cancelUrl?: string },
+  ) {
     const plan = packageType === 'core' ? 'core_wardrobe' : 'outfit_setup';
     const headers: Record<string, string> = {};
     if (this.guestToken) {
@@ -1965,7 +2112,13 @@ class ApiService {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/dfy/create-session', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, productId: plan, ...(language ? { language } : {}) }),
+      body: JSON.stringify({
+        email,
+        productId: plan,
+        ...(language ? { language } : {}),
+        ...(redirects?.successUrl ? { successUrl: redirects.successUrl } : {}),
+        ...(redirects?.cancelUrl ? { cancelUrl: redirects.cancelUrl } : {}),
+      }),
     });
   }
 
@@ -2103,15 +2256,89 @@ class ApiService {
     originalTransactionId?: string;
     customerInfo?: Record<string, unknown>;
   }) {
-    return this.request<{
-      success: boolean;
-      tier: string;
-      tierName?: string;
-      billingPlatform?: string;
-    }>('/api/subscription/apple/sync', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    await this.refreshToken();
+    if (!(await this.getToken()) && !this.sessionBackup) {
+      await this.refreshAuthSession();
+    }
+
+    const attempt = () =>
+      this.request<{
+        success: boolean;
+        tier: string;
+        tierName?: string;
+        billingPlatform?: string;
+      }>('/api/subscription/apple/sync', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+    try {
+      const result = await attempt();
+      await AsyncStorage.removeItem(PENDING_APPLE_SUB_SYNC_KEY).catch(() => {});
+      return result;
+    } catch (error: unknown) {
+      const status = (error as { status?: number; statusCode?: number })?.status
+        ?? (error as { statusCode?: number })?.statusCode;
+      const shouldQueue = !status || status === 401 || status >= 500;
+      if (status === 401) {
+        await this.refreshAuthSession();
+        try {
+          const retried = await attempt();
+          await AsyncStorage.removeItem(PENDING_APPLE_SUB_SYNC_KEY).catch(() => {});
+          return retried;
+        } catch (retryError) {
+          if (shouldQueue) {
+            await this.queuePendingAppleSubscriptionSync(payload);
+          }
+          throw retryError;
+        }
+      }
+      if (shouldQueue) {
+        await this.queuePendingAppleSubscriptionSync(payload);
+      }
+      throw error;
+    }
+  }
+
+  async queuePendingAppleSubscriptionSync(payload: {
+    tier?: string;
+    productId?: string;
+    originalTransactionId?: string;
+    customerInfo?: Record<string, unknown>;
+  }) {
+    try {
+      await AsyncStorage.setItem(
+        PENDING_APPLE_SUB_SYNC_KEY,
+        JSON.stringify({ ...payload, queuedAt: new Date().toISOString() }),
+      );
+    } catch (error) {
+      console.warn('[ApiService] Failed to queue Apple subscription sync:', error);
+    }
+  }
+
+  /** Retry a queued post-purchase Apple sync (e.g. after auth recovers). */
+  async flushPendingAppleSubscriptionSync(): Promise<boolean> {
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_APPLE_SUB_SYNC_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      if (!payload || typeof payload !== 'object') {
+        await AsyncStorage.removeItem(PENDING_APPLE_SUB_SYNC_KEY);
+        return false;
+      }
+      const { queuedAt: _queuedAt, ...syncPayload } = payload;
+      await this.refreshAuthSession();
+      await this.request('/api/subscription/apple/sync', {
+        method: 'POST',
+        body: JSON.stringify(syncPayload),
+      });
+      await AsyncStorage.removeItem(PENDING_APPLE_SUB_SYNC_KEY);
+      console.log('[ApiService] Flushed pending Apple subscription sync');
+      return true;
+    } catch (error) {
+      console.warn('[ApiService] Pending Apple subscription sync still failing:', error);
+      return false;
+    }
   }
 
   async syncAppleDFYPurchase(payload: {
@@ -2445,6 +2672,7 @@ class ApiService {
       audioBase64: string | null;
       stylist: string;
       message?: string;
+      emptyTranscript?: boolean;
       voiceCreditsExhausted?: boolean;
       voiceCredits?: {
         remaining: number | string;

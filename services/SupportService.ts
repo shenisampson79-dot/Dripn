@@ -77,6 +77,17 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
+/** Mobile chat shows plain Text — strip markdown emphasis the model often wraps around emails/URLs. */
+function stripSupportMarkdown(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/(^|[^\w])\*([^*\n]+)\*(?!\w)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+}
+
 class SupportService {
   private chatHistory: SupportMessage[] = [];
   private stylist: PersonalStylist | null = null;
@@ -131,10 +142,10 @@ class SupportService {
 
   async sendMessage(
     userMessage: string,
-    options?: { fromQuickAction?: boolean },
+    options?: { fromQuickAction?: boolean; clientMessageId?: string },
   ): Promise<SupportMessage> {
     const userMsg: SupportMessage = {
-      id: generateId(),
+      id: options?.clientMessageId || generateId(),
       role: 'user',
       content: userMessage,
       timestamp: new Date().toISOString(),
@@ -159,7 +170,7 @@ class SupportService {
     const assistantMsg: SupportMessage = {
       id: generateId(),
       role: 'assistant',
-      content: responseContent,
+      content: stripSupportMarkdown(responseContent),
       timestamp: new Date().toISOString(),
     };
     this.chatHistory.push(assistantMsg);
@@ -201,7 +212,7 @@ class SupportService {
         return this.getMockResponse(userMessage, { reason: 'ai_unavailable' });
       }
 
-      return response;
+      return stripSupportMarkdown(response);
     } catch (error) {
       console.error('Support API error:', error);
       return this.getMockResponse(userMessage, { reason: 'network_error' });
@@ -230,7 +241,7 @@ class SupportService {
 
   private connectionTroubleshooting(signOff: string, note?: string): string {
     const prefix = note ? `${note}\n\n` : '';
-    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the envelope icon to the left of the message box to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
+    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the envelope icon to the left of the message box to create a support ticket, or email support@dripnapp.com with your phone model and what screen you were on. ${signOff}`;
   }
 
   private getMockResponse(
@@ -264,7 +275,7 @@ class SupportService {
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Dripn has three tiers:\n\n- **Free**: Try the stylist — limited daily decisions and wardrobe items\n- **Personal Stylist** (~$9.99/mo): Unlimited daily decisions, more wardrobe space, AI chat, voice comments\n- **Stylist Unlimited** (~$19.99/mo): Everything unlimited — outfit calendar, event planning, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
+      return `Dripn has three tiers:\n\n- Free: Try the stylist — limited daily decisions and wardrobe items\n- Personal Stylist (~$9.99/mo): Unlimited daily decisions, outfit calendar, more wardrobe space, AI chat, voice comments\n- Stylist Unlimited (~$19.99/mo): Everything in Personal Stylist plus unlimited wardrobe, event planning, sustainability tools, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
@@ -285,11 +296,11 @@ class SupportService {
 
     // If live AI was down but the question wasn't connection-related, still be useful
     if (opts?.reason === 'ai_unavailable' || opts?.reason === 'network_error') {
-      return `I'm having a brief moment connecting to my full answer engine. Please try that question again in a few seconds.\n\nMeanwhile I can still help with subscriptions, referrals, wardrobe tips, or creating a support ticket — or email support@dripn.app. ${signOff}`;
+      return `I'm having a brief moment connecting to my full answer engine. Please try that question again in a few seconds.\n\nMeanwhile I can still help with subscriptions, referrals, wardrobe tips, or creating a support ticket — or email support@dripnapp.com. ${signOff}`;
     }
 
     if (opts?.reason === 'not_configured') {
-      return `Support chat isn't fully configured in this build. Please email support@dripn.app and we'll help right away. ${signOff}`;
+      return `Support chat isn't fully configured in this build. Please email support@dripnapp.com and we'll help right away. ${signOff}`;
     }
 
     return `Thanks for reaching out! I'm here to help with anything Dripn-related. You can ask me about:\n\n- App features and how to use them\n- Subscription plans and upgrades\n- Troubleshooting common issues\n- Creating a support ticket\n\nWhat would you like to know? ${signOff}`;
@@ -341,7 +352,7 @@ class SupportService {
     const confirmationMsg: SupportMessage = {
       id: generateId(),
       role: 'assistant',
-      content: `Your support ticket has been created successfully!\n\n**Ticket #${ticketRef.slice(-6).toUpperCase()}**\nCategory: ${TICKET_CATEGORIES.find(c => c.id === category)?.label}\n\nOur support team will review your request and get back to you within 24-48 hours. You'll receive updates via email.\n\nIs there anything else I can help you with?`,
+      content: `Your support ticket has been created successfully!\n\nTicket #${ticketRef.slice(-6).toUpperCase()}\nCategory: ${TICKET_CATEGORIES.find(c => c.id === category)?.label}\n\nOur support team will review your request and get back to you within 24-48 hours. You'll receive updates via email.\n\nIs there anything else I can help you with?`,
       timestamp: new Date().toISOString(),
       isTicketCreation: true,
     };

@@ -161,6 +161,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Compare up to 3 options',
       'Decision history & wardrobe memory',
       'Wardrobe-aware recommendations',
+      'Outfit calendar',
       '75 wardrobe items',
       'Voice styling sessions',
     ],
@@ -176,7 +177,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     popular: true,
     features: [
       'Everything in Personal Stylist',
-      'Outfit calendar & event planning',
+      'Event planning tools',
       'Unlimited wardrobe & try-on',
       'Bulk upload (20 items)',
       'Sustainability insights',

@@ -122,13 +122,10 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
         locations={[0, 0.35, 0.6, 1]}
       />
 
-      <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
+      <View style={[styles.overlay, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.lg }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <View style={styles.backButtonInner}>
-            <Feather name="arrow-left" size={20} color="#FFFFFF" />
-          </View>
+          <Feather name="arrow-left" size={20} color="#1A1A1A" />
         </Pressable>
-        <View style={styles.headerSpacer} />
         <Animated.View entering={FadeIn.duration(400)} style={styles.stepContainer}>
           <View style={styles.stepContent}>
             <View style={styles.contentCard}>
@@ -191,18 +188,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
-    position: "absolute",
-    top: 0,
-    left: Spacing.lg,
-    zIndex: 10,
-  },
-  backButtonInner: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(255,255,255,0.72)",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: Spacing.lg,
   },
   backgroundVideo: {
     position: "absolute",
@@ -221,9 +213,6 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
-  },
-  headerSpacer: {
-    height: 48,
   },
   stepContainer: {
     flex: 1,

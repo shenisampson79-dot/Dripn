@@ -2,19 +2,17 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVoicePreviewScript } from './CulturalLocalizationService';
 import { API_URL } from '@/config/api';
 import { LANGUAGE_ACCENT_MAP } from './PersonalStylistService';
+import { USER_TOKEN_KEY, getSecureToken } from '@/utils/secureTokenStore';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
 
-const TOKEN_KEY = '@dripn_token';
-
 const getAuthToken = async (): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem(TOKEN_KEY);
+    return await getSecureToken(USER_TOKEN_KEY);
   } catch {
     return null;
   }

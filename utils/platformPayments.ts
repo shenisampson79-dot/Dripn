@@ -36,8 +36,16 @@ export function shouldManageSubscriptionViaApple(options?: {
 export async function openAppleManageSubscriptions(): Promise<void> {
   try {
     const Purchases = (await import('react-native-purchases')).default;
-    await Purchases.showManageSubscriptions();
+    const configured =
+      typeof Purchases.isConfigured === 'function'
+        ? await Promise.resolve(Purchases.isConfigured())
+        : false;
+    if (configured) {
+      await Purchases.showManageSubscriptions();
+      return;
+    }
   } catch {
-    await Linking.openURL('https://apps.apple.com/account/subscriptions');
+    /* fall through to App Store URL */
   }
+  await Linking.openURL('https://apps.apple.com/account/subscriptions');
 }

@@ -78,3 +78,19 @@ export function isPaidTier(tier?: string | null): boolean {
 export function isTopTier(tier?: string | null): boolean {
   return normalizeSubscriptionTier(tier) === 'stylist_unlimited';
 }
+
+const TIER_RANK: Record<SubscriptionTier, number> = {
+  free: 0,
+  personal_stylist: 1,
+  stylist_unlimited: 2,
+};
+
+/** Prefer the higher feature tier (never let a stale free backend wipe a paid local unlock). */
+export function preferHigherSubscriptionTier(
+  a?: string | null,
+  b?: string | null,
+): SubscriptionTier {
+  const left = normalizeSubscriptionTier(a);
+  const right = normalizeSubscriptionTier(b);
+  return TIER_RANK[left] >= TIER_RANK[right] ? left : right;
+}

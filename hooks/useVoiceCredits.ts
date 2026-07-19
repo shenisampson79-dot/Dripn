@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useMemo, createContext, useContext, c
 import { Platform, Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { apiService } from '@/services/ApiService';
+import { API_URL } from '@/config/api';
 import { getBillingPlanDisplayName, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import {
   appleIAPService,
+  IAP_UNAVAILABLE_MESSAGE,
   serializeVoiceCustomerInfoForSync,
   type VoiceCreditPackId,
   type VoiceCreditPriceInfo,
@@ -48,31 +50,31 @@ const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
   ruby: {
     stylistId: 'ruby',
     stylistName: 'Ruby',
-    message: "Need more styling advice? Weekend Unlimited gives you 48 hours of voice — or grab a credit pack anytime.",
+    message: "Need more styling advice? 2-Day Unlimited gives you 48 hours of voice — or grab a credit pack anytime.",
     style: 'warm',
   },
   max: {
     stylistId: 'max',
     stylistName: 'Max',
-    message: "You've used your voice replies. Weekend Unlimited or credit packs add more instantly — text chat stays unlimited.",
+    message: "You've used your voice replies. 2-Day Unlimited or credit packs add more instantly — text chat stays unlimited.",
     style: 'direct',
   },
   ace: {
     stylistId: 'ace',
     stylistName: 'Ace',
-    message: "Cap hit. Weekend Unlimited or a credit pack fixes it. Text still unlimited.",
+    message: "Cap hit. 2-Day Unlimited or a credit pack fixes it. Text still unlimited.",
     style: 'brief',
   },
   ivy: {
     stylistId: 'ivy',
     stylistName: 'Ivy',
-    message: "Need more styling advice? Weekend Unlimited unlocks 48 hours of voice — I'm still here for unlimited text.",
+    message: "Need more styling advice? 2-Day Unlimited unlocks 48 hours of voice — I'm still here for unlimited text.",
     style: 'logical',
   },
 };
 const USAGE_NUDGES: Record<NonNullable<SoftCapWarning>, string> = {
-  usage_high: "Need more styling advice? You're making great use of voice — Weekend Unlimited or credit packs are ready when you need them.",
-  approaching_limit: "You've used your included voice replies — grace replies still available, or try Weekend Unlimited for 48 hours of voice.",
+  usage_high: "Need more styling advice? You're making great use of voice — 2-Day Unlimited or credit packs are ready when you need them.",
+  approaching_limit: "You've used your included voice replies — grace replies still available, or try 2-Day Unlimited for 48 hours of voice.",
 };
 function formatPence(pricePence?: number): string {
   return formatVoicePricePence(pricePence);
@@ -91,7 +93,7 @@ function resolvePackagePriceLabel(pkg: {
   }
   return pkg.priceLabel || '—';
 }
-function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
+function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult | WebBrowser.WebBrowserAuthSessionResult): string {
   return 'url' in result ? String((result as { url?: string }).url || '') : '';
 }
 function isVoiceCancelUrl(url: string): boolean {
@@ -100,6 +102,7 @@ function isVoiceCancelUrl(url: string): boolean {
 function isVoiceSuccessUrl(url: string): boolean {
   return url.includes('success') || url.includes('voice-credits/success');
 }
+const VOICE_CHECKOUT_SUCCESS_REDIRECT = `${API_URL}/api/voice-credits/success`;
 function throwCancelledPurchase(): never {
   const cancelled = new Error('Purchase cancelled');
   (cancelled as Error & { cancelled?: boolean }).cancelled = true;
@@ -141,7 +144,7 @@ export function getVoiceUsageNudge(
 ): string | null {
   if (!credits) return null;
   if (credits.remaining <= 0 && credits.monthlyAllowance > 0) {
-    return "Need more styling advice? Weekend Unlimited gives 48 hours of voice — or add a credit pack right away.";
+    return "Need more styling advice? 2-Day Unlimited gives 48 hours of voice — or add a credit pack right away.";
   }
   if (credits.softCapWarning && USAGE_NUDGES[credits.softCapWarning]) {
     return USAGE_NUDGES[credits.softCapWarning];
@@ -159,6 +162,25 @@ export type VoiceAccessReason =
   | 'loading'
   | 'unknown';
 
+export type VoiceBalanceErrorKind = 'auth' | 'network' | 'unknown';
+
+function classifyVoiceBalanceError(error: unknown): VoiceBalanceErrorKind {
+  const status =
+    error && typeof error === 'object'
+      ? (error as { status?: number; statusCode?: number }).status ??
+        (error as { statusCode?: number }).statusCode
+      : undefined;
+  if (status === 401 || status === 403) return 'auth';
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  if (/authentication required|please log in|please sign in|sign in required|not authenticated/i.test(message)) {
+    return 'auth';
+  }
+  if (isNetworkErrorMessage(message) || /server took too long|check your connection/i.test(message)) {
+    return 'network';
+  }
+  return 'unknown';
+}
+
 /** Human-readable why voice is blocked — never says "used up" unless they truly exhausted allowance. */
 export function getVoiceAccessDenialMessage(options: {
   reason?: string | null;
@@ -166,9 +188,16 @@ export function getVoiceAccessDenialMessage(options: {
   usedThisMonth: number;
   monthlyAllowance: number;
   balanceError?: boolean;
+  balanceErrorKind?: VoiceBalanceErrorKind | null;
 }): string {
   if (options.balanceError) {
-    return "Couldn't load your spoken-reply balance. Check your connection and try again.";
+    if (options.balanceErrorKind === 'auth') {
+      return "Couldn't verify your session for spoken replies. Sign in again, then tap Retry.";
+    }
+    if (options.balanceErrorKind === 'network') {
+      return "Couldn't load your spoken-reply balance. Check your connection and try again.";
+    }
+    return "Couldn't load your spoken-reply balance. Please try again.";
   }
   if (options.reason === 'no_allowance' || options.reason === 'upgrade_required') {
     return "Spoken replies aren't included on your plan yet. Add a voice pack, or switch to Chat for unlimited text.";
@@ -196,6 +225,7 @@ function useVoiceCreditsState() {
   const [tierName, setTierName] = useState<string>('Free');
   const [isLoading, setIsLoading] = useState(true);
   const [balanceError, setBalanceError] = useState(false);
+  const [balanceErrorKind, setBalanceErrorKind] = useState<VoiceBalanceErrorKind | null>(null);
   const [accessReason, setAccessReason] = useState<VoiceAccessReason>('loading');
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [packages, setPackages] = useState<VoiceCreditPackage[]>([]);
@@ -208,15 +238,22 @@ function useVoiceCreditsState() {
     try {
       setIsLoading(true);
       setBalanceError(false);
+      setBalanceErrorKind(null);
 
-      // Wait for auth token — early calls before login storage hydrates used to 401 and look "broken"
+      // Wait for auth — SecureStore hydrate + session-backup refresh (same as Apple sync)
       let token = await apiService.getToken();
+      if (!token) {
+        token = await apiService.refreshAuthSession();
+      }
       if (!token && user?.id) {
         await new Promise((r) => setTimeout(r, 400));
-        token = await apiService.refreshToken();
+        token = await apiService.refreshAuthSession();
       }
-      if (!token) {
+      if (!token && !user?.id) {
+        // Logged out — unknown balance, not a connection failure
+        setCredits(null);
         setBalanceError(true);
+        setBalanceErrorKind('auth');
         setAccessReason('error');
         return;
       }
@@ -245,20 +282,30 @@ function useVoiceCreditsState() {
             const reason = (response.reason || (response.canUse ? 'has_credits' : 'no_credits')) as VoiceAccessReason;
             setAccessReason(reason);
             setBalanceError(false);
+            setBalanceErrorKind(null);
             return;
           }
           lastError = new Error('Voice balance response missing credits');
         } catch (error) {
           lastError = error;
           console.log(`[useVoiceCredits] Balance fetch attempt ${attempt + 1} failed:`, error);
+          const kind = classifyVoiceBalanceError(error);
+          // Auth failure: refresh once mid-loop then retry (getVoiceCreditsBalance also retries once)
+          if (kind === 'auth' && attempt < 2) {
+            await apiService.refreshAuthSession();
+            await new Promise((r) => setTimeout(r, 400));
+            continue;
+          }
           if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
           }
         }
       }
 
       console.log('[useVoiceCredits] Balance fetch failed after retries:', lastError);
+      // Keep last known credits if any; balanceError/balanceReady gate exhausted UI
       setBalanceError(true);
+      setBalanceErrorKind(classifyVoiceBalanceError(lastError));
       setAccessReason('error');
     } finally {
       setIsLoading(false);
@@ -271,7 +318,7 @@ function useVoiceCreditsState() {
         id: pkg.id,
         credits: pkg.credits,
         name: pkg.name,
-        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? 'Weekend Unlimited' : `${pkg.credits} voice credits`),
+        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? '2-Day Unlimited' : `${pkg.credits} voice credits`),
         priceLabel: resolvePackagePriceLabel(pkg),
         priceGBP: pkg.priceGBP,
         discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
@@ -339,6 +386,7 @@ function useVoiceCreditsState() {
       ...normalized,
     } as VoiceCreditsInternal);
     setBalanceError(false);
+    setBalanceErrorKind(null);
   }, []);
   const refreshBalance = useCallback(() => {
     return fetchBalance();
@@ -351,7 +399,10 @@ function useVoiceCreditsState() {
       }
       setIsPurchasing(true);
       try {
-        await appleIAPService.configure(user.id);
+        const iapReady = await appleIAPService.configure(user.id);
+        if (!iapReady) {
+          throw new Error(IAP_UNAVAILABLE_MESSAGE);
+        }
         const customerInfo = await appleIAPService.purchaseVoiceCredits(packageId as VoiceCreditPackId);
         const syncPayload = serializeVoiceCustomerInfoForSync(customerInfo, packageId as VoiceCreditPackId);
         if (!syncPayload.originalTransactionId) {
@@ -389,12 +440,18 @@ function useVoiceCreditsState() {
         window.location.href = response.checkoutUrl;
         return response;
       }
-      const browserResult = await WebBrowser.openBrowserAsync(response.checkoutUrl);
+      // Auth session closes the browser when Stripe returns to our HTTPS success URL
+      const browserResult = await WebBrowser.openAuthSessionAsync(
+        response.checkoutUrl,
+        VOICE_CHECKOUT_SUCCESS_REDIRECT,
+      );
       const returnUrl = getBrowserReturnUrl(browserResult);
       if (isVoiceCancelUrl(returnUrl)) {
         throwCancelledPurchase();
       }
       if ((browserResult.type === 'dismiss' || browserResult.type === 'cancel') && !isVoiceSuccessUrl(returnUrl)) {
+        // User closed the sheet — payment may still have completed; refresh balance
+        await refreshBalance().catch(() => {});
         throwCancelledPurchase();
       }
       const sessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
@@ -419,6 +476,7 @@ function useVoiceCreditsState() {
           throw error;
         }
       }
+      await refreshBalance().catch(() => {});
       throwCancelledPurchase();
     } catch (error) {
       if (isPurchaseCancelledError(error)) {
@@ -454,6 +512,10 @@ function useVoiceCreditsState() {
     return STYLIST_NUDGES[stylistId] || STYLIST_NUDGES.ruby;
   }, []);
   const normalizedTier = normalizeSubscriptionTier(tier);
+  // Only treat remaining as a real number after a successful balance payload.
+  // On fetch error with no prior success, remaining defaults to 0 — callers MUST check balanceError
+  // (or balanceReady) before showing "0 spoken replies left" / top-up UI.
+  const balanceReady = !balanceError && credits != null;
   const remainingCredits = credits?.remaining ?? 0;
   const weekendUnlimitedActive = !!credits?.weekendUnlimitedActive;
   const weekendUnlimitedExpiresAt = credits?.weekendUnlimitedExpiresAt ?? null;
@@ -464,23 +526,24 @@ function useVoiceCreditsState() {
   const isStylistUnlimited = normalizedTier === 'stylist_unlimited';
   const hasHighAllowance = isStylistUnlimited;
   const usageLabel = formatVoiceUsageLabel(credits);
-  const usageNudge = getVoiceUsageNudge(credits);
-  const hasCredits = !balanceError && (weekendUnlimitedActive || remainingCredits > 0);
+  const usageNudge = balanceReady ? getVoiceUsageNudge(credits) : null;
+  const hasCredits = balanceReady && (weekendUnlimitedActive || remainingCredits > 0);
   const denialMessage = getVoiceAccessDenialMessage({
     reason: accessReason,
     hasMonthlyAllowance,
     usedThisMonth: credits?.usedThisMonth ?? 0,
     monthlyAllowance: credits?.monthlyAllowance ?? 0,
     balanceError,
+    balanceErrorKind,
   });
   const shouldShowBuyPacks = useMemo(() => {
-    if (balanceError || weekendUnlimitedActive) return false;
+    if (!balanceReady || weekendUnlimitedActive) return false;
     if (!hasMonthlyAllowance && normalizedTier === 'free') return remainingCredits <= 0;
     if (!hasMonthlyAllowance) return false;
     if (remainingCredits <= 0) return true;
     if (credits?.softCapWarning === 'usage_high' || credits?.softCapWarning === 'approaching_limit') return true;
     return false;
-  }, [balanceError, credits?.softCapWarning, hasMonthlyAllowance, normalizedTier, remainingCredits, weekendUnlimitedActive]);
+  }, [balanceReady, credits?.softCapWarning, hasMonthlyAllowance, normalizedTier, remainingCredits, weekendUnlimitedActive]);
   const displayPackages = useMemo(
     () => sortVoiceCreditPacks(packages),
     [packages],
@@ -495,6 +558,7 @@ function useVoiceCreditsState() {
     useAppleIAP,
     isLoading,
     balanceError,
+    balanceReady,
     accessReason,
     denialMessage,
     hasCredits,

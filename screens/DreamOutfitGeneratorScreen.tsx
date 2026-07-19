@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type DreamOutfitGeneratorScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "DreamOutfitGenerator">;
@@ -214,6 +215,7 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
             Upgrade to Personal Stylist to generate AI-powered outfit visualizations
           </ThemedText>
           <Pressable
+            onPress={() => navigateToSubscription(navigation, 'personal_stylist')}
             style={({ pressed }) => [
               styles.upgradeButton,
               { opacity: pressed ? 0.8 : 1 },

@@ -39,11 +39,11 @@ Do not upscale blurry images. Export at exact dimensions.
 Server seeds a review account on boot when env vars are set on Render:
 
 ```
-APP_REVIEW_EMAIL=review@dripn.app
+APP_REVIEW_EMAIL=review@dripnapp.com
 APP_REVIEW_PASSWORD=<choose a strong password, 8+ chars>
 ```
 
-- Default email if unset: `review@dripn.app`
+- Default email if unset: `review@dripnapp.com`
 - Password is **required** for seeding (`APP_REVIEW_PASSWORD`)
 - Account is created email-verified with onboarding marked complete
 - Password is reset to the env value on every boot (so you can rotate it before review)
@@ -56,7 +56,7 @@ After deploy, sign in once on a device to confirm login works, then paste creden
 Dripn is an AI-powered outfit stylist. It helps users get styling suggestions from wardrobe photos and chat — not guaranteed fashion results.
 
 DEMO ACCOUNT (required for review)
-Email: review@dripn.app
+Email: review@dripnapp.com
 Password: <SAME AS APP_REVIEW_PASSWORD ON RENDER>
 
 Please use the demo account above. New signup also works, but the demo account skips verification so the core flow is immediate.

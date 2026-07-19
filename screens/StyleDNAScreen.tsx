@@ -166,6 +166,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
       getSettingsChildScreenOptions({
         theme,
         isDark,
+        transparent: false,
         title:
           t('styleDna.title') ||
           t('navTitles.styleDna') ||

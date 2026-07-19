@@ -57,11 +57,12 @@
       "expo-dev-client",
       "expo-asset",
       "expo-video",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/dripn-logo-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 414,
           "resizeMode": "contain",
           "backgroundColor": "#FFF9F0",
           "dark": {

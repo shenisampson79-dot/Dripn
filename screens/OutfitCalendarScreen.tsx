@@ -28,6 +28,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { apiService } from '@/services/ApiService';
 import {
   completeOutfitItemIds,
@@ -659,14 +660,19 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   if (!limits.canAccessOutfitCalendar) {
+    const personalStylist =
+      t('subscription.plan.personalStylist.name') || 'Personal Stylist';
+    const tierLine =
+      t('wardrobe.outfitCalendarIsPartOfStylistUnlimited') ||
+      'Outfit Calendar is part of Personal Stylist';
     return (
       <ScreenKeyboardAwareScrollView opaqueHeader={hasStackHeader}>
         <LimitHitUpgradePrompt
           variant="card"
-          title={t('wardrobe.outfitCalendarIsPartOfStylistUnlimited') || "Outfit calendar is part of Stylist Unlimited"}
-          message="Plan looks ahead, pack for trips, and map outfits to your week. Upgrade to unlock the full planning toolkit."
-          ctaLabel="View Stylist Unlimited"
-          onUpgrade={() => navigation.navigate('Subscription' as any, { highlightPlan: 'stylist_unlimited' })}
+          title={t('stylistHub.outfitCalendar') || t('navTitles.outfitCalendar') || 'Outfit Calendar'}
+          message={`${tierLine}. Plan looks ahead, pack for trips, and map outfits to your week.`}
+          ctaLabel={`${t('common.upgrade') || 'Upgrade'} — ${personalStylist}`}
+          onUpgrade={() => navigateToSubscription(navigation, 'personal_stylist')}
         />
       </ScreenKeyboardAwareScrollView>
     );

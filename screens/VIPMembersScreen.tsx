@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import apiService from "@/services/ApiService";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { useTranslations } from "@/contexts/TranslationContext";
 
 interface VIPMember {
@@ -64,7 +65,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
       Alert.alert(t('subscription.stylistUnlimitedFeature') || "Stylist Unlimited Feature", t('subscription.memberVideoCallingIsAvailableOnTheStylis') || "Member video calling is available on the Stylist Unlimited plan. Upgrade to connect with other members through video calls.",
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
+          { text: 'View Plans', onPress: () => navigateToSubscription(navigation, 'stylist_unlimited') },
         ]
       );
       return;
@@ -238,7 +239,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
                 Stylist Unlimited members can connect with other members through video calls — share style tips, get outfit feedback, and build your fashion network.
               </ThemedText>
               <Button
-                onPress={() => navigation.navigate('Subscription')}
+                onPress={() => navigateToSubscription(navigation, 'stylist_unlimited')}
                 style={[styles.upgradeButton, { backgroundColor: theme.link }]}
               >
                 Upgrade to Stylist Unlimited

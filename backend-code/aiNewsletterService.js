@@ -173,7 +173,7 @@ function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get personalised recommendations for your style</p>
-              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
+              <a href="https://dripnapp.com" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
             </td>
           </tr>
 
@@ -181,7 +181,7 @@ function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 15px 30px; background-color: #faf9f7; text-align: center;">
               <p style="color: #999999; font-size: 11px; margin: 0;">
-                Found an issue? <a href="https://dripn.app/newsletter/report" style="color: #c9a961; text-decoration: none;">Report a typo or concern</a>
+                Found an issue? <a href="https://dripnapp.com/newsletter/report" style="color: #c9a961; text-decoration: none;">Report a typo or concern</a>
               </p>
             </td>
           </tr>
@@ -191,8 +191,8 @@ function generateNewsletterHTML(data) {
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
               <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripnapp.com/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripnapp.com/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
@@ -227,12 +227,12 @@ ${tipsText}
 ${data.closingMessage}
 
 ---
-Get personalised recommendations: https://dripn.app
+Get personalised recommendations: https://dripnapp.com
 
-Found an issue? Report it: https://dripn.app/newsletter/report
+Found an issue? Report it: https://dripnapp.com/newsletter/report
 
 You're receiving this because you subscribed to Dripn fashion updates.
-Unsubscribe: https://dripn.app/unsubscribe
+Unsubscribe: https://dripnapp.com/unsubscribe
   `.trim();
 }
 

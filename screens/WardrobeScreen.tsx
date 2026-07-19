@@ -45,6 +45,7 @@ import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/component
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { getOccasionLabel } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_GAP = Spacing.md;
@@ -1458,7 +1459,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <Pressable 
                 onPress={() => {
                   setShowAIOutfitModal(false);
-                  navigation.navigate('ProfileTab' as any, { screen: 'Subscription', params: { scrollToDFY: true } });
+                  navigateToSubscription(navigation, { scrollToDFY: true });
                 }}
                 style={[styles.dfyPromptCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
               >

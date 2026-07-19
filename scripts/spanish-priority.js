@@ -134,8 +134,8 @@ module.exports = {
   'voiceCredits.unlimited48h': 'Ilimitado 48 h',
   'voiceCredits.unlimited48hBadge': '48 h ilimitadas',
   'voiceCredits.voiceReplies': 'Respuestas de voz',
-  'voiceCredits.weekendAddedMessage': '¡Fin de semana ilimitado activado!',
-  'voiceCredits.weekendVoiceActive': 'Voz de fin de semana activa',
+  'voiceCredits.weekendAddedMessage': 'Tu ilimitado de 2 días ya está activo.',
+  'voiceCredits.weekendVoiceActive': 'Ilimitado de 2 días activo',
 
   // ─── Discover ───
   'discover.connectAnAccount': 'Conectar una cuenta',

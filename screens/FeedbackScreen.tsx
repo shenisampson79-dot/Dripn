@@ -8,7 +8,7 @@ import Constants from "expo-constants";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -290,7 +290,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const renderStarRating = () => {
     return (
       <View style={styles.ratingContainer}>
-        <ThemedText type="body" style={styles.ratingLabel}>
+        <ThemedText type="body" style={[styles.ratingLabel, { color: theme.text }]}>
           {tx(t, "feedback.ratingPrompt")}
         </ThemedText>
         <View style={styles.starsContainer}>
@@ -317,194 +317,189 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const inputSurface = isDark ? "rgba(255,255,255,0.08)" : "#FFFFFF";
 
   return (
-    <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={[
-          ScreenGradients.profile.primary[0],
-          ScreenGradients.profile.primary[1],
-          LuxuryColors.obsidian,
-        ]}
-        locations={[0, 0.35, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <ScreenKeyboardAwareScrollView style={{ backgroundColor: "transparent" }}>
-        <View style={styles.introSection}>
-          <ThemedText type="h3" style={styles.pageTitle}>
-            {tx(t, "feedback.screenTitle")}
-          </ThemedText>
-          <ThemedText type="body" style={styles.introText}>
-            {tx(t, "feedback.intro")}
-          </ThemedText>
-        </View>
+    <ScreenKeyboardAwareScrollView
+      opaqueHeader
+      style={{ backgroundColor: theme.backgroundRoot }}
+    >
+      <View style={styles.introSection}>
+        <ThemedText type="h3" style={[styles.pageTitle, { color: theme.text }]}>
+          {tx(t, "feedback.screenTitle")}
+        </ThemedText>
+        <ThemedText type="body" style={[styles.introText, { color: theme.tabIconDefault }]}>
+          {tx(t, "feedback.intro")}
+        </ThemedText>
+      </View>
 
-        <View style={styles.section}>
-          <ThemedText type="h4" style={styles.sectionTitle}>
-            {tx(t, "feedback.whatType")}
-          </ThemedText>
-          <View style={styles.optionsGrid}>
-            {feedbackTypes.map((option) => (
-              <Pressable
-                key={option.type}
-                onPress={() => setFeedbackType(option.type)}
+      <View style={styles.section}>
+        <ThemedText type="h4" style={[styles.sectionTitle, { color: theme.text }]}>
+          {tx(t, "feedback.whatType")}
+        </ThemedText>
+        <View style={styles.optionsGrid}>
+          {feedbackTypes.map((option) => (
+            <Pressable
+              key={option.type}
+              onPress={() => setFeedbackType(option.type)}
+              style={[
+                styles.optionCard,
+                {
+                  backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
+                  borderColor:
+                    feedbackType === option.type ? LUXURY_COLORS.violet : "transparent",
+                  borderWidth: 2,
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={
+                  feedbackType === option.type
+                    ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
+                    : [LUXURY_COLORS.teal + "40", LUXURY_COLORS.emerald + "40"]
+                }
+                style={styles.optionIcon}
+              >
+                <Feather name={option.icon} size={18} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="body" style={[styles.optionLabel, { color: theme.text }]}>
+                {option.label}
+              </ThemedText>
+              <ThemedText
+                type="caption"
+                style={[styles.optionDescription, { color: theme.tabIconDefault }]}
+              >
+                {option.description}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h4" style={[styles.sectionTitle, { color: theme.text }]}>
+          {tx(t, "feedback.whichArea")}
+        </ThemedText>
+        <View style={styles.categoriesRow}>
+          {categories.map((cat) => (
+            <Pressable
+              key={cat.category}
+              onPress={() => setCategory(cat.category)}
+              style={[
+                styles.categoryChip,
+                {
+                  backgroundColor:
+                    category === cat.category
+                      ? LUXURY_COLORS.violet
+                      : isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.05)",
+                },
+              ]}
+            >
+              <Feather
+                name={cat.icon}
+                size={14}
+                color={category === cat.category ? "#FFFFFF" : theme.text}
+              />
+              <ThemedText
+                type="small"
                 style={[
-                  styles.optionCard,
-                  {
-                    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
-                    borderColor:
-                      feedbackType === option.type ? LUXURY_COLORS.violet : "transparent",
-                    borderWidth: 2,
-                  },
+                  styles.categoryLabel,
+                  { color: category === cat.category ? "#FFFFFF" : theme.text },
                 ]}
               >
-                <LinearGradient
-                  colors={
-                    feedbackType === option.type
-                      ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
-                      : [LUXURY_COLORS.teal + "40", LUXURY_COLORS.emerald + "40"]
-                  }
-                  style={styles.optionIcon}
-                >
-                  <Feather name={option.icon} size={18} color="#FFFFFF" />
-                </LinearGradient>
-                <ThemedText type="body" style={styles.optionLabel}>
-                  {option.label}
-                </ThemedText>
-                <ThemedText type="caption" style={styles.optionDescription}>
-                  {option.description}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
+                {cat.label}
+              </ThemedText>
+            </Pressable>
+          ))}
         </View>
+      </View>
 
-        <View style={styles.section}>
-          <ThemedText type="h4" style={styles.sectionTitle}>
-            {tx(t, "feedback.whichArea")}
-          </ThemedText>
-          <View style={styles.categoriesRow}>
-            {categories.map((cat) => (
-              <Pressable
-                key={cat.category}
-                onPress={() => setCategory(cat.category)}
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor:
-                      category === cat.category
-                        ? LUXURY_COLORS.violet
-                        : isDark
-                          ? "rgba(255,255,255,0.08)"
-                          : "rgba(0,0,0,0.05)",
-                  },
-                ]}
-              >
-                <Feather
-                  name={cat.icon}
-                  size={14}
-                  color={category === cat.category ? "#FFFFFF" : theme.text}
-                />
-                <ThemedText
-                  type="small"
-                  style={[
-                    styles.categoryLabel,
-                    { color: category === cat.category ? "#FFFFFF" : theme.text },
-                  ]}
-                >
-                  {cat.label}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+      {feedbackType === "rating" && renderStarRating()}
 
-        {feedbackType === "rating" && renderStarRating()}
-
-        <View style={styles.section}>
-          <ThemedText type="h4" style={styles.sectionTitle}>
-            {tx(t, "feedback.titleLabel")}
-          </ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: inputSurface,
-                color: theme.text,
-              },
-            ]}
-            placeholder={tx(t, "feedback.titlePlaceholder")}
-            placeholderTextColor={theme.tabIconDefault}
-            value={title}
-            onChangeText={setTitle}
-            maxLength={100}
-            multiline={false}
-            numberOfLines={1}
-            returnKeyType="next"
-            blurOnSubmit
-          />
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="h4" style={styles.sectionTitle}>
-            {tx(t, "feedback.descriptionLabel")}
-          </ThemedText>
-          <TextInput
-            style={[
-              styles.textArea,
-              {
-                backgroundColor: inputSurface,
-                color: theme.text,
-                height: Math.max(150, descriptionHeight),
-              },
-            ]}
-            placeholder={tx(t, "feedback.descriptionPlaceholder")}
-            placeholderTextColor={theme.tabIconDefault}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            scrollEnabled
-            textAlignVertical="top"
-            blurOnSubmit={false}
-            returnKeyType="default"
-            maxLength={4000}
-            onContentSizeChange={(e) => {
-              const next = Math.min(320, Math.max(150, e.nativeEvent.contentSize.height + 24));
-              setDescriptionHeight(next);
-            }}
-          />
-        </View>
-
-        <Pressable
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          style={({ pressed }) => [
-            styles.submitButton,
-            { opacity: pressed || isSubmitting ? 0.8 : 1 },
+      <View style={styles.section}>
+        <ThemedText type="h4" style={[styles.sectionTitle, { color: theme.text }]}>
+          {tx(t, "feedback.titleLabel")}
+        </ThemedText>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: inputSurface,
+              color: theme.text,
+            },
           ]}
-        >
-          <LinearGradient
-            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-            style={styles.submitGradient}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Feather name="send" size={18} color="#FFFFFF" />
-                <ThemedText type="body" style={styles.submitText}>
-                  {tx(t, "feedback.submit")}
-                </ThemedText>
-              </>
-            )}
-          </LinearGradient>
-        </Pressable>
+          placeholder={tx(t, "feedback.titlePlaceholder")}
+          placeholderTextColor={theme.tabIconDefault}
+          value={title}
+          onChangeText={setTitle}
+          maxLength={100}
+          multiline={false}
+          numberOfLines={1}
+          returnKeyType="next"
+          blurOnSubmit
+        />
+      </View>
 
-        <View style={styles.footer}>
-          <ThemedText type="caption" style={styles.footerText}>
-            {tx(t, "feedback.footer")}
-          </ThemedText>
-        </View>
-      </ScreenKeyboardAwareScrollView>
-    </View>
+      <View style={styles.section}>
+        <ThemedText type="h4" style={[styles.sectionTitle, { color: theme.text }]}>
+          {tx(t, "feedback.descriptionLabel")}
+        </ThemedText>
+        <TextInput
+          style={[
+            styles.textArea,
+            {
+              backgroundColor: inputSurface,
+              color: theme.text,
+              height: Math.max(150, descriptionHeight),
+            },
+          ]}
+          placeholder={tx(t, "feedback.descriptionPlaceholder")}
+          placeholderTextColor={theme.tabIconDefault}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          scrollEnabled
+          textAlignVertical="top"
+          blurOnSubmit={false}
+          returnKeyType="default"
+          maxLength={4000}
+          onContentSizeChange={(e) => {
+            const next = Math.min(320, Math.max(150, e.nativeEvent.contentSize.height + 24));
+            setDescriptionHeight(next);
+          }}
+        />
+      </View>
+
+      <Pressable
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+        style={({ pressed }) => [
+          styles.submitButton,
+          { opacity: pressed || isSubmitting ? 0.8 : 1 },
+        ]}
+      >
+        <LinearGradient
+          colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          style={styles.submitGradient}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Feather name="send" size={18} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.submitText}>
+                {tx(t, "feedback.submit")}
+              </ThemedText>
+            </>
+          )}
+        </LinearGradient>
+      </Pressable>
+
+      <View style={styles.footer}>
+        <ThemedText type="caption" style={[styles.footerText, { color: theme.tabIconDefault }]}>
+          {tx(t, "feedback.footer")}
+        </ThemedText>
+      </View>
+    </ScreenKeyboardAwareScrollView>
   );
 }
 
@@ -514,12 +509,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   pageTitle: {
-    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
   introText: {
-    color: "rgba(255,255,255,0.7)",
     textAlign: "center",
   },
   section: {
@@ -527,7 +520,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    color: "#FFFFFF",
     marginBottom: Spacing.md,
   },
   optionsGrid: {
@@ -555,7 +547,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   optionDescription: {
-    opacity: 0.7,
     textAlign: "center",
   },
   categoriesRow: {
@@ -580,7 +571,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ratingLabel: {
-    color: "#FFFFFF",
     marginBottom: Spacing.md,
   },
   starsContainer: {
@@ -634,6 +624,5 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: "center",
-    opacity: 0.5,
   },
 });

@@ -22,7 +22,7 @@ import WishlistScreen from "@/screens/WishlistScreen";
 import ColourInsightsScreen from "@/screens/ColourInsightsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
-import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 export type UserStylistStackParamList = {
   StylistHub: undefined;
@@ -53,7 +53,7 @@ export default function UserStylistStackNavigator() {
   const { t } = useTranslations();
 
   return (
-    <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
+    <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark, transparent: false })}>
       <Stack.Screen
         name="StylistHub"
         component={StylistHubScreen}
@@ -65,22 +65,42 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: t('navTitles.stylistChat') }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.stylistChat'),
+        })}
       />
       <Stack.Screen
         name="StyleShuffle"
         component={StyleShuffleScreen}
-        options={{ headerTitle: t('navTitles.styleShuffle') }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.styleShuffle'),
+        })}
       />
       <Stack.Screen
         name="VisualSearch"
         component={VisualSearchScreen}
-        options={{ headerTitle: t('navTitles.visualSearch') }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.visualSearch'),
+        })}
       />
       <Stack.Screen
         name="DreamOutfitGenerator"
         component={DreamOutfitGeneratorScreen}
-        options={{ headerTitle: t('navTitles.dreamOutfitGenerator') }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.dreamOutfitGenerator'),
+        })}
       />
       <Stack.Screen
         name="Wardrobe"
@@ -100,20 +120,22 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="OutfitCalendar"
         component={OutfitCalendarScreen}
-        options={{
-          headerTitle: t('wardrobe.outfitCalendar') || t('stylistHub.outfitCalendar'),
-          headerShown: true,
-          headerTransparent: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('wardrobe.outfitCalendar') || t('stylistHub.outfitCalendar'),
+        })}
       />
       <Stack.Screen
         name="WeatherOutfit"
         component={WeatherOutfitScreen}
-        options={{
-          headerTitle: t('stylistHub.weatherOutfits'),
-          headerShown: true,
-          headerTransparent: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('stylistHub.weatherOutfits'),
+        })}
       />
       <Stack.Screen
         name="CostPerWear"
@@ -143,29 +165,32 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="FashionBlog"
         component={FashionBlogScreen}
-        options={{
-          headerTitle: t('navTitles.fashionBlog') || t('blog.title') || t('navTitles.blog'),
-          headerShown: true,
-          headerTransparent: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.fashionBlog') || t('blog.title') || t('navTitles.blog'),
+        })}
       />
       <Stack.Screen
         name="StyleRules"
         component={StyleRulesScreen}
-        options={{
-          headerTitle: t('navTitles.styleRules') || t('stylistHub.styleRules'),
-          headerShown: true,
-          headerTransparent: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.styleRules') || t('stylistHub.styleRules'),
+        })}
       />
       <Stack.Screen
         name="ColourInsights"
         component={ColourInsightsScreen}
-        options={{
-          headerTitle: t('navTitles.colourInsights') || t('stylistHub.colourInsights'),
-          headerShown: true,
-          headerTransparent: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.colourInsights') || t('stylistHub.colourInsights'),
+        })}
       />
     </Stack.Navigator>
   );

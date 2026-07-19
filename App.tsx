@@ -10,7 +10,7 @@
  * Dripn, the Dripn logo, "Style that flows", Ruby AI Stylist, and Max AI Stylist
  * are trademarks of Dripn.
  * 
- * For licensing inquiries: legal@dripn.app
+ * For licensing inquiries: legal@dripnapp.com
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -21,6 +21,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
@@ -39,7 +40,8 @@ import {
 } from "@/services/UserProfileSyncService";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { setNavigationRef } from "@/components/ErrorFallback";
+import { setNavigationRef, getNavigationRef } from "@/components/ErrorFallback";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -66,6 +68,11 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
 import * as Linking from "expo-linking";
 import { stashPendingReferralCode } from "@/contexts/ReferralContext";
+
+// Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* may fail in web / some envs */
+});
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -174,6 +181,14 @@ function AppContent() {
     setShowTour(true);
   }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading, isAuthenticating]);
 
+  // Hide native splash once auth bootstrap completes (single handoff, no dual-splash flash).
+  useEffect(() => {
+    if (isLoading) return;
+    SplashScreen.hideAsync().catch(() => {
+      /* ignore — already hidden or unsupported */
+    });
+  }, [isLoading]);
+
   const handleTourComplete = async () => {
     try {
       await persistTourSeenLocally(user?.id);
@@ -184,6 +199,7 @@ function AppContent() {
     apiService.completeTour().catch(() => {});
   };
 
+  // Native splash covers the wait; LoadingScreen is a matching safety net if splash already hid.
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -234,8 +250,27 @@ function AppContent() {
         presentationStyle="fullScreen"
         onRequestClose={() => setShowAskStylist(false)}
       >
-        <AskStylistScreen 
-          navigation={{ goBack: () => setShowAskStylist(false), navigate: () => {} } as any} 
+        <AskStylistScreen
+          navigation={{
+            goBack: () => setShowAskStylist(false),
+            // Legacy navigate('Subscription') callers — prefer dispatch via navigateToSubscription
+            navigate: (name?: string) => {
+              if (name === 'Subscription') {
+                setShowAskStylist(false);
+                const rootNav = getNavigationRef();
+                if (rootNav?.isReady()) {
+                  navigateToSubscription(rootNav, 'personal_stylist');
+                }
+              }
+            },
+            dispatch: (action: any) => {
+              setShowAskStylist(false);
+              const rootNav = getNavigationRef();
+              if (rootNav?.isReady()) {
+                rootNav.dispatch(action);
+              }
+            },
+          } as any}
         />
       </Modal>
       <AppTour 

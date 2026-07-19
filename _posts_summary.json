@@ -1,0 +1,302 @@
+[
+  {
+    "id": "fallback-color-guide",
+    "tips": 4,
+    "category": "Colour Analysis",
+    "tags": [
+      "colour-season",
+      "shopping-guide",
+      "winter",
+      "summer",
+      "spring",
+      "autumn",
+      "menswear",
+      "practical"
+    ]
+  },
+  {
+    "id": "fallback-1",
+    "tips": 4,
+    "category": "Trend Report",
+    "tags": [
+      "style-trends",
+      "fashion-forecast",
+      "style"
+    ]
+  },
+  {
+    "id": "fallback-2",
+    "tips": 4,
+    "category": "Wardrobe Essentials",
+    "tags": [
+      "capsule-wardrobe",
+      "minimalism",
+      "essentials"
+    ]
+  },
+  {
+    "id": "fallback-3",
+    "tips": 4,
+    "category": "Sustainable Style",
+    "tags": [
+      "sustainability",
+      "eco-fashion",
+      "conscious-shopping"
+    ]
+  },
+  {
+    "id": "fallback-4",
+    "tips": 4,
+    "category": "Style Tips",
+    "tags": [
+      "body-type",
+      "fit-guide",
+      "confidence"
+    ]
+  },
+  {
+    "id": "fallback-5",
+    "tips": 4,
+    "category": "Styling Secrets",
+    "tags": [
+      "accessories",
+      "jewellery",
+      "styling"
+    ]
+  },
+  {
+    "id": "fallback-6",
+    "tips": 4,
+    "category": "Style Hacks",
+    "tags": [
+      "day-to-night",
+      "office-style",
+      "quick-changes"
+    ]
+  },
+  {
+    "id": "fallback-7",
+    "tips": 4,
+    "category": "Shopping Guide",
+    "tags": [
+      "investment-pieces",
+      "luxury",
+      "quality"
+    ]
+  },
+  {
+    "id": "fallback-8",
+    "tips": 4,
+    "category": "Colour Psychology",
+    "tags": [
+      "colour",
+      "psychology",
+      "impression"
+    ]
+  },
+  {
+    "id": "fallback-9",
+    "tips": 4,
+    "category": "Dress Codes",
+    "tags": [
+      "smart-casual",
+      "office",
+      "versatile"
+    ]
+  },
+  {
+    "id": "fallback-10",
+    "tips": 4,
+    "category": "Seasonal Style",
+    "tags": [
+      "transition",
+      "layering",
+      "spring"
+    ]
+  },
+  {
+    "id": "fallback-11",
+    "tips": 4,
+    "category": "Style Confidence",
+    "tags": [
+      "confidence",
+      "mindset",
+      "self-expression"
+    ]
+  },
+  {
+    "id": "fallback-12",
+    "tips": 4,
+    "category": "Seasonal Fashion Trends",
+    "tags": [
+      "winter",
+      "wardrobe",
+      "essentials"
+    ]
+  },
+  {
+    "id": "fallback-13",
+    "tips": 4,
+    "category": "Fashion Therapy",
+    "tags": [
+      "fashion-therapy",
+      "wellness",
+      "mood-dressing",
+      "mental-health"
+    ]
+  },
+  {
+    "id": "fallback-14",
+    "tips": 4,
+    "category": "Body Confidence",
+    "tags": [
+      "body-positivity",
+      "self-love",
+      "inclusive-fashion",
+      "confidence"
+    ]
+  },
+  {
+    "id": "fallback-15",
+    "tips": 4,
+    "category": "Wellness Wardrobe",
+    "tags": [
+      "wellness",
+      "capsule-wardrobe",
+      "self-care",
+      "mental-health"
+    ]
+  },
+  {
+    "id": "fallback-16",
+    "tips": 4,
+    "category": "Mindful Fashion",
+    "tags": [
+      "affirmations",
+      "mindfulness",
+      "intention",
+      "daily-practice"
+    ]
+  },
+  {
+    "id": "fallback-17",
+    "tips": 4,
+    "category": "Inclusive Fashion",
+    "tags": [
+      "plus-size",
+      "inclusive",
+      "all-bodies",
+      "representation"
+    ]
+  },
+  {
+    "id": "fallback-18",
+    "tips": 4,
+    "category": "Colour Analysis",
+    "tags": [
+      "colour-season",
+      "colour-analysis",
+      "undertones",
+      "palette"
+    ]
+  },
+  {
+    "id": "fallback-19",
+    "tips": 4,
+    "category": "Colour Styling",
+    "tags": [
+      "colour-blocking",
+      "bold-style",
+      "colour-combinations",
+      "statement"
+    ]
+  },
+  {
+    "id": "fallback-20",
+    "tips": 4,
+    "category": "Styling Techniques",
+    "tags": [
+      "patterns",
+      "prints",
+      "mixing",
+      "styling"
+    ]
+  },
+  {
+    "id": "fallback-21",
+    "tips": 4,
+    "category": "Fabric Education",
+    "tags": [
+      "fabrics",
+      "quality",
+      "textiles",
+      "care"
+    ]
+  },
+  {
+    "id": "fallback-22",
+    "tips": 4,
+    "category": "Footwear",
+    "tags": [
+      "shoes",
+      "footwear",
+      "styling",
+      "accessories"
+    ]
+  },
+  {
+    "id": "fallback-23",
+    "tips": 4,
+    "category": "Jewellery",
+    "tags": [
+      "jewellery",
+      "accessories",
+      "styling",
+      "gold-silver"
+    ]
+  },
+  {
+    "id": "fallback-24",
+    "tips": 4,
+    "category": "Bags",
+    "tags": [
+      "handbags",
+      "bags",
+      "accessories",
+      "investment"
+    ]
+  },
+  {
+    "id": "fallback-25",
+    "tips": 4,
+    "category": "Wardrobe Organisation",
+    "tags": [
+      "organisation",
+      "closet",
+      "declutter",
+      "systems"
+    ]
+  },
+  {
+    "id": "fallback-26",
+    "tips": 4,
+    "category": "Timeless Style",
+    "tags": [
+      "ageless-style",
+      "evolution",
+      "confidence",
+      "timeless"
+    ]
+  },
+  {
+    "id": "fallback-27",
+    "tips": 4,
+    "category": "Professional Style",
+    "tags": [
+      "workwear",
+      "office",
+      "professional",
+      "hybrid"
+    ]
+  }
+]

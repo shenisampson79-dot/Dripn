@@ -1,0 +1,42 @@
+---
+description: Client security — secrets, SecureStore tokens, AI via server, Subscription nav
+alwaysApply: true
+---
+
+# StyleWise security
+
+## Secrets never in the app
+
+- Do not commit `.env`, API keys, PEM files, or Stripe/OpenAI/ElevenLabs secrets.
+- Never hardcode `sk-…`, `sk_live_…`, or `OPENAI_API_KEY = '…'` in client source.
+- Do not add secret-looking `EXPO_PUBLIC_*` names (`SECRET`, `PRIVATE_KEY`, `JWT`, `OPENAI`, `STRIPE_SECRET`, `ELEVENLABS`). Public SDK keys (e.g. RevenueCat) are OK.
+- AI / vision / TTS provider calls go through **Dripn-Server** (`API_URL`), not direct vendor SDKs with embedded keys.
+
+## Auth tokens → SecureStore
+
+- User / admin / stylist JWTs use `utils/secureTokenStore.ts` (`expo-secure-store`).
+- Do not store `@dripn_token`, `@dripn_admin_token`, or `@dripn_stylist_token` in AsyncStorage.
+- Prefer `getSecureToken` / `setSecureToken` / `clearSecureToken`; keep one-time AsyncStorage → SecureStore migration.
+
+```typescript
+// ❌ BAD
+await AsyncStorage.setItem('@dripn_token', jwt);
+
+// ✅ GOOD
+import { USER_TOKEN_KEY, setSecureToken } from '@/utils/secureTokenStore';
+await setSecureToken(USER_TOKEN_KEY, jwt);
+```
+
+## Cross-tab Subscription navigation
+
+- Subscription lives on **ProfileTab**. From Stylist / Wardrobe screens use `navigateToSubscription()` — never `navigation.navigate('Subscription')`.
+
+```typescript
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
+navigateToSubscription(navigation);
+```
+
+## Before shipping
+
+- Run `npm run security:smoke` and `npm run security:scan-secrets`.
+- See `docs/security/README.md` (points at Dripn-Server program docs).

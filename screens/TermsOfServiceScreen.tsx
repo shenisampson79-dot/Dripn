@@ -82,7 +82,6 @@ export default function TermsOfServiceScreen() {
             <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet3')}</ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet4')}</ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet5')}</ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet6')}</ThemedText>
           </View>
         </View>
 

@@ -1,8 +1,11 @@
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 
+import { API_URL } from '@/config/api';
 import { apiService } from '@/services/ApiService';
 import {
   appleIAPService,
+  IAP_UNAVAILABLE_MESSAGE,
   serializeDfyCustomerInfoForSync,
   type IAPDFYTier,
 } from '@/services/AppleIAPService';
@@ -11,7 +14,12 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 
 export type DfyCheckoutOutcome = 'success' | 'cancelled' | 'failed';
 
-function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
+const DFY_CHECKOUT_SUCCESS_REDIRECT = `${API_URL}/api/dfy/success`;
+const DFY_CHECKOUT_CANCEL_REDIRECT = `${API_URL}/api/dfy/cancel`;
+
+function getBrowserReturnUrl(
+  result: WebBrowser.WebBrowserResult | WebBrowser.WebBrowserAuthSessionResult,
+): string {
   return 'url' in result ? String((result as { url?: string }).url || '') : '';
 }
 
@@ -24,13 +32,20 @@ function isDfySuccessUrl(url: string): boolean {
 }
 
 export async function resolveDfyCheckoutOutcome(
-  result: WebBrowser.WebBrowserResult,
+  result: WebBrowser.WebBrowserResult | WebBrowser.WebBrowserAuthSessionResult,
   sessionId: string,
   checkoutEmail: string,
 ): Promise<DfyCheckoutOutcome> {
   const returnUrl = getBrowserReturnUrl(result);
 
   if (isDfyCancelUrl(returnUrl)) {
+    return 'cancelled';
+  }
+
+  if (
+    (result.type === 'dismiss' || result.type === 'cancel') &&
+    !isDfySuccessUrl(returnUrl)
+  ) {
     return 'cancelled';
   }
 
@@ -63,13 +78,26 @@ export async function runStripeDfyCheckout(options: {
     options.email,
     options.tier,
     options.language,
+    {
+      successUrl: `${DFY_CHECKOUT_SUCCESS_REDIRECT}?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: DFY_CHECKOUT_CANCEL_REDIRECT,
+    },
   );
 
   if (!response.checkoutUrl || !response.sessionId) {
     throw new Error('No checkout URL received');
   }
 
-  const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
+  if (Platform.OS === 'web') {
+    window.location.href = response.checkoutUrl;
+    return 'cancelled';
+  }
+
+  // Auth session closes on white HTTPS return pages — avoids black flash via dripn.style / comparison screen
+  const result = await WebBrowser.openAuthSessionAsync(
+    response.checkoutUrl,
+    DFY_CHECKOUT_SUCCESS_REDIRECT,
+  );
   return resolveDfyCheckoutOutcome(result, response.sessionId, options.email);
 }
 
@@ -77,7 +105,10 @@ export async function runAppleDfyCheckout(options: {
   userId: string;
   tier: DFYTier;
 }): Promise<DfyCheckoutOutcome> {
-  await appleIAPService.configure(options.userId);
+  const ready = await appleIAPService.configure(options.userId);
+  if (!ready) {
+    throw new Error(IAP_UNAVAILABLE_MESSAGE);
+  }
   const customerInfo = await appleIAPService.purchaseDFY(options.tier as IAPDFYTier);
   const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
   if (!syncPayload.tier) {

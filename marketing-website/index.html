@@ -8,7 +8,7 @@
   
   Dripn, the Dripn logo, and "Style that flows" are trademarks of Dripn.
   
-  For inquiries: legal@dripn.app
+  For inquiries: legal@dripnapp.com
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -423,7 +423,7 @@
       </div>
       <div class="investor-cta">
         <p>Interested in learning more about Dripn's investment opportunity?</p>
-        <a href="mailto:investors@dripn.app?subject=Investment%20Inquiry" class="store-button primary-cta">
+        <a href="mailto:investors@dripnapp.com?subject=Investment%20Inquiry" class="store-button primary-cta">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
           </svg>
@@ -491,9 +491,9 @@
         <div class="footer-column">
           <h4>Company</h4>
           <ul>
-            <li><a href="mailto:support@dripn.app">Support</a></li>
-            <li><a href="mailto:press@dripn.app">Press</a></li>
-            <li><a href="mailto:investors@dripn.app">Investors</a></li>
+            <li><a href="mailto:support@dripnapp.com">Support</a></li>
+            <li><a href="mailto:press@dripnapp.com">Press</a></li>
+            <li><a href="mailto:investors@dripnapp.com">Investors</a></li>
             <li><a href="partner.html">Partner With Us</a></li>
           </ul>
         </div>
@@ -510,10 +510,37 @@
         <div class="footer-links">
           <a href="privacy.html">Privacy</a>
           <a href="terms.html">Terms</a>
-          <a href="mailto:support@dripn.app">Contact</a>
+          <a href="mailto:support@dripnapp.com">Contact</a>
         </div>
       </div>
     </div>
   </footer>
+
+  <div id="cookie-banner" class="cookie-banner" hidden>
+    <div class="cookie-banner-inner">
+      <p>We use a preference cookie only to remember your choice. We do not currently load non-essential analytics cookies. <a href="privacy.html">Privacy Policy</a></p>
+      <div class="cookie-banner-actions">
+        <button type="button" id="cookie-reject" class="cookie-btn cookie-btn-secondary">Reject</button>
+        <button type="button" id="cookie-accept" class="cookie-btn cookie-btn-primary">Accept</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'dripn_cookie_consent';
+      var banner = document.getElementById('cookie-banner');
+      if (!banner) return;
+      try {
+        if (localStorage.getItem(KEY)) return;
+      } catch (e) { /* private mode */ }
+      banner.hidden = false;
+      function save(value) {
+        try { localStorage.setItem(KEY, value); } catch (e) {}
+        banner.hidden = true;
+      }
+      document.getElementById('cookie-accept').addEventListener('click', function () { save('accepted'); });
+      document.getElementById('cookie-reject').addEventListener('click', function () { save('rejected'); });
+    })();
+  </script>
 </body>
 </html>

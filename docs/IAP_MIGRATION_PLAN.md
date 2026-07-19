@@ -9,7 +9,7 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 | Product ID | Type | Tier mapping | Notes |
 |---|---|---|---|
 | `com.dripn.personal_stylist.monthly` | Auto-renewable | `personal_stylist` | ~$9.99/mo |
-| `com.dripn.personal_stylist.annual` | Auto-renewable | `personal_stylist` | Annual discount |
+| `com.dripn.personal_stylist.yearly` | Auto-renewable | `personal_stylist` | Annual discount |
 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable | `stylist_unlimited` | ~$19.99/mo |
 | `com.dripn.stylist_unlimited.annual` | Auto-renewable | `stylist_unlimited` | Annual discount |
 
@@ -28,7 +28,7 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 | `com.dripn.voice.pro.80` | Consumable | 80 spoken replies | `pro` |
 | `com.dripn.voice.weekend_unlimited` | Consumable | Unlimited voice for 48 hours | `weekend` |
 
-Legacy IDs (`credits_10`, `credits_40`, etc.) remain honoured server-side for existing purchases.
+Legacy IDs (`com.dripn.personal_stylist.annual`, `credits_10`, `credits_40`, etc.) remain honoured server-side for existing purchases. New Personal Stylist purchases use the canonical `.yearly` product.
 
 Create all products in App Store Connect → Subscriptions / In-App Purchases, with localized display names matching in-app copy.
 
@@ -186,7 +186,7 @@ Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscri
 | Product ID | Type | RevenueCat entitlement | Server plan |
 |---|---|---|---|
 | `com.dripn.personal_stylist.monthly` | Auto-renewable | `personal_stylist` | `style_chat` |
-| `com.dripn.personal_stylist.annual` | Auto-renewable | `personal_stylist` | `style_chat` |
+| `com.dripn.personal_stylist.yearly` | Auto-renewable | `personal_stylist` | `style_chat` |
 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable | `stylist_unlimited` | `stylist_unlimited` |
 | `com.dripn.stylist_unlimited.annual` | Auto-renewable | `stylist_unlimited` | `stylist_unlimited` |
 

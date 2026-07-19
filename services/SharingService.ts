@@ -17,7 +17,7 @@ const DRIPN_BRANDING = {
   positioning: "Dripn — your AI Outfit Stylist",
   tagline: "Dripn — your AI Outfit Stylist. Get personalized fashion advice from AI and real people",
   downloadCTA: "Download Dripn free",
-  /** Public web host (Vercel). Not dripn.app — that domain is unrelated IONOS hosting. */
+  /** Public web host (Vercel). Not dripn.app (IONOS); public site/contact is dripnapp.com. */
   appStoreUrl: "https://dripnapp.com",
   deepLinkScheme: "dripn://",
 };

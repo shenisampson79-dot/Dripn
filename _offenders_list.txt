@@ -1,0 +1,665 @@
+﻿count 664
+aiStylist.noted	Noted
+aiStylist.skip	Skip
+aiStylist.tooWestern	Too Western
+aiStylist.upgradeNow	Upgrade Now
+auth.createAccount	Create Account
+auth.email	Email
+auth.fullName	Full Name
+auth.password	Password
+auth.privacyPolicy	Privacy Policy
+auth.signIn	Sign In
+auth.signUp	Sign Up
+auth.welcomeBack	Welcome Back
+bargains.error	Error
+bargains.shared	Shared
+blog.retry	Retry
+blog.subscribe	Subscribe
+blog.subscribed	Subscribed
+blog.unsubscribe	Unsubscribe
+bodyScan.captureFailed	Capture Failed
+bodyScan.error	Error
+bodyScan.manuallyEntered	Manually Entered
+bodyScan.rescanBody	Rescan Body
+bodyScan.retakePhoto	Retake Photo
+bodyScan.saved	Saved
+bodyScan.scanComplete	Scan Complete
+bodyScan.scanIssue	Scan Issue
+bodyScan.styleRecommendations	Style Recommendations
+bodyScan.yourMeasurements	Your Measurements
+bodyShapes.apple	Apple
+bodyShapes.athletic	Athletic
+bodyShapes.hourglass	Hourglass
+bodyShapes.pear	Pear
+bodyShapes.petite	Petite
+bodyShapes.rectangle	Rectangle
+bodyShapes.tall	Tall
+cancelFlow.confirmCancel	Confirm Cancel
+cancelFlow.continue	Continue
+cancelFlow.keepSubscription	Keep Subscription
+coldOpen.casual	Casual
+coldOpen.continue	Continue
+coldOpen.event	Event
+coldOpen.holiday	Holiday
+coldOpen.justBrowsing	Just Browsing
+coldOpen.skip	Skip
+coldOpen.work	Work
+colorAnalysis.analysisComplete	Analysis Complete
+colorAnalysis.analysisCompleteTitle	Analysis Complete Title
+colorAnalysis.analysisIssue	Analysis Issue
+colorAnalysis.analysisIssueTitle	Analysis Issue Title
+colorAnalysis.analyzeFailed	Analyze Failed
+colorAnalysis.cameraNotReady	Camera Not Ready
+colorAnalysis.captureFailed	Capture Failed
+colorAnalysis.captureFailedUpload	Capture Failed Upload
+colorAnalysis.selectImageFailed	Select Image Failed
+colorAnalysis.viewResults	View Results
+colorSeasons.autumn	Autumn
+colorSeasons.spring	Spring
+colorSeasons.summer	Summer
+colorSeasons.winter	Winter
+common.accessories	Accessories
+common.addAll	Add All
+common.addAnyway	Add Anyway
+common.adminPortal	Admin Portal
+common.alreadyVoted	Already Voted
+common.analysisFailed	Analysis Failed
+common.back	Back
+common.block	Block
+common.bodyScanRequired	Body Scan Required
+common.cancel	Cancel
+common.captionRequired	Caption Required
+common.captureFailed	Capture Failed
+common.changePhoto	Change Photo
+common.clearAllNotifications	Clear All Notifications
+common.close	Close
+common.clothing	Clothing
+common.complete	Complete
+common.completeSession	Complete Session
+common.connectionRequired	Connection Required
+common.continue	Continue
+common.continueAnyway	Continue Anyway
+common.dailyLimitReached	Daily Limit Reached
+common.delete	Delete
+common.deleteConversation	Delete Conversation
+common.disconnect	Disconnect
+common.done	Done
+common.emailRequired	Email Required
+common.enable	Enable
+common.enableLocation	Enable Location
+common.enterManually	Enter Manually
+common.entrySubmitted	Entry Submitted
+common.error	Error
+common.errorDetails	Error Details
+common.findEventsNearYou	Find Events Near You
+common.generationFailed	Generation Failed
+common.imageRequired	Image Required
+common.invalidPrice	Invalid Price
+common.locationRequired	Location Required
+common.loginFailed	Login Failed
+common.logoPreview	Logo Preview
+common.mute	Mute
+common.next	Next
+common.notAvailable	Not Available
+common.notNow	Not Now
+common.openSettings	Open Settings
+common.permissionRequired	Permission Required
+common.photoError	Photo Error
+common.postAnyway	Post Anyway
+common.profilePhoto	Profile Photo
+common.recordingError	Recording Error
+common.recordingTooShort	Recording Too Short
+common.refreshMyLook	Refresh My Look
+common.remove	Remove
+common.removePhoto	Remove Photo
+common.reportFailed	Report Failed
+common.reportIssue	Report Issue
+common.reportSubmitted	Report Submitted
+common.retentionAnalytics	Retention Analytics
+common.retry	Retry
+common.retryFailed	Retry Failed
+common.reviewItems	Review Items
+common.save	Save
+common.saved	Saved
+common.searchFailed	Search Failed
+common.setupFailed	Setup Failed
+common.share	Share
+common.shareFailed	Share Failed
+common.sharingFailed	Sharing Failed
+common.signInRequired	Sign In Required
+common.signOut	Sign Out
+common.signUp	Sign Up
+common.skip	Skip
+common.skipDuplicates	Skip Duplicates
+common.stylistPortal	Stylist Portal
+common.submissionFailed	Submission Failed
+common.subscribed	Subscribed
+common.subscriptionFailed	Subscription Failed
+common.success	Success
+common.tryAgain	Try Again
+common.unblock	Unblock
+common.unmute	Unmute
+common.unsubscribed	Unsubscribed
+common.upgrade	Upgrade
+common.upgradeRequired	Upgrade Required
+common.viewCalendar	View Calendar
+common.viewPlans	View Plans
+common.viewResults	View Results
+common.you	You
+community.blockUser	Block User
+community.descriptionRequired	Description Required
+community.error	Error
+community.limitReached	Limit Reached
+community.mediaRequired	Media Required
+community.option	Option
+community.permissionRequired	Permission Required
+community.pollClosed	Poll Closed
+community.pollLimitReached	Poll Limit Reached
+community.reportFailed	Report Failed
+community.reportSubmitted	Report Submitted
+community.styleAdvice	Style Advice
+community.stylistAdviceLimitReached	Stylist Advice Limit Reached
+community.submitReport	Submit Report
+community.twoOptionsRequired	Two Options Required
+community.unblockUser	Unblock User
+community.upgradeRequired	Upgrade Required
+community.uploadLimitReached	Upload Limit Reached
+community.videoTooLong	Video Too Long
+community.vote	Vote
+community.you	You
+countries.unitedArabEmirates	United Arab Emirates
+countries.unitedKingdom	United Kingdom
+countries.unitedStates	United States
+decideForMe.occasion.casual	Casual
+decideForMe.occasion.date	Date
+decideForMe.occasion.event	Event
+decideForMe.occasion.work	Work
+decideForMe.style.androgynous	Androgynous
+decideForMe.style.feminine	Feminine
+decideForMe.style.masculine	Masculine
+decideForMe.styleRule	Style Rule
+dfy.comparison.applePurchaseFailed	Apple Purchase Failed
+dfy.comparison.checkoutCancelledMessage	Checkout Cancelled Message
+dfy.comparison.checkoutCancelledTitle	Checkout Cancelled Title
+dfy.comparison.checkoutStartFailed	Checkout Start Failed
+dfy.comparison.comparisonNoteFull	Comparison Note Full
+dfy.comparison.comparisonNoteOccasion	Comparison Note Occasion
+dfy.comparison.continueSetup	Continue Setup
+dfy.comparison.continueToCheckout	Continue To Checkout
+dfy.comparison.emailInvalid	Email Invalid
+dfy.comparison.emailPlaceholder	Email Placeholder
+dfy.comparison.emailReceiptNote	Email Receipt Note
+dfy.comparison.emailRequired	Email Required
+dfy.comparison.enterEmail	Enter Email
+dfy.comparison.fullSetupLabel	Full Setup Label
+dfy.comparison.getPersonalStylist	Get Personal Stylist
+dfy.comparison.noDfyPurchaseMessage	No Dfy Purchase Message
+dfy.comparison.noDfyPurchaseTitle	No Dfy Purchase Title
+dfy.comparison.occasionReadyLabel	Occasion Ready Label
+dfy.comparison.paymentErrorTitle	Payment Error Title
+dfy.comparison.paymentNotCompletedMessage	Payment Not Completed Message
+dfy.comparison.paymentNotCompletedTitle	Payment Not Completed Title
+dfy.comparison.paymentSuccessCoreMessage	Payment Success Core Message
+dfy.comparison.paymentSuccessLiteMessage	Payment Success Lite Message
+dfy.comparison.paymentSuccessTitle	Payment Success Title
+dfy.comparison.purchaseCancelledMessage	Purchase Cancelled Message
+dfy.comparison.purchaseCancelledTitle	Purchase Cancelled Title
+dfy.comparison.purchaseVerifyFailed	Purchase Verify Failed
+dfy.comparison.restoredMessage	Restored Message
+dfy.comparison.restoredTitle	Restored Title
+dfy.comparison.restoreFailedMessage	Restore Failed Message
+dfy.comparison.restoreFailedTitle	Restore Failed Title
+dfy.comparison.restorePurchases	Restore Purchases
+dfy.comparison.selected	Selected
+dfy.comparison.selectOption	Select Option
+dfy.comparison.signInRequiredApple	Sign In Required Apple
+dfy.comparison.signInRequiredRestore	Sign In Required Restore
+dfy.comparison.signInRequiredTitle	Sign In Required Title
+dfy.comparison.startFullSetup	Start Full Setup
+dfy.comparison.startQuickSetup	Start Quick Setup
+dfy.comparison.structural	Structural
+dfy.comparison.subtitleDefault	Subtitle Default
+dfy.comparison.subtitlePaidAddOn	Subtitle Paid Add On
+dfy.comparison.tactical	Tactical
+dfy.comparison.titleDefault	Title Default
+dfy.comparison.titlePaidAddOn	Title Paid Add On
+dfy.expiry.accessEndsNote	Access Ends Note
+dfy.expiry.buildIt	Build It
+dfy.expiry.buildWardrobeDesc	Build Wardrobe Desc
+dfy.expiry.buildWardrobeTitle	Build Wardrobe Title
+dfy.expiry.daysRemaining	Days Remaining
+dfy.expiry.expiredSubtitleCore	Expired Subtitle Core
+dfy.expiry.expiredSubtitleLite	Expired Subtitle Lite
+dfy.expiry.keepStylistActive	Keep Stylist Active
+dfy.expiry.keepStylistDesc	Keep Stylist Desc
+dfy.expiry.planCompleteLite	Plan Complete Lite
+dfy.expiry.subscribe	Subscribe
+dfy.expiry.warningCapsule	Warning Capsule
+dfy.expiry.whatStayed	What Stayed
+dfy.expiry.whatStays	What Stays
+dfy.expiry.whatStopped	What Stopped
+dfy.expiry.whatStops	What Stops
+dfy.expiry.windowEnded	Window Ended
+dfy.lookbook.buildFailed	Build Failed
+dfy.lookbook.love	Love
+dfy.lookbook.today	Today
+dfy.partialUpload	Partial Upload
+dfy.permissionRequired	Permission Required
+dfy.start.activeWindow	Active Window
+dfy.start.cantStartTitle	Cant Start Title
+dfy.start.chooseIncludedPath	Choose Included Path
+dfy.start.chooseIncludedPathDesc	Choose Included Path Desc
+dfy.start.choosePlanUnlock	Choose Plan Unlock
+dfy.start.compareStylistUnlimited	Compare Stylist Unlimited
+dfy.start.dressBetterPurchase	Dress Better Purchase
+dfy.start.fullSetupIncludedNote	Full Setup Included Note
+dfy.start.headerDefault	Header Default
+dfy.start.heroIncluded	Hero Included
+dfy.start.heroUnlock	Hero Unlock
+dfy.start.includedSetup	Included Setup
+dfy.start.lookReadyPurchase	Look Ready Purchase
+dfy.start.noBenefitSubtitle	No Benefit Subtitle
+dfy.start.oneSetupNote	One Setup Note
+dfy.start.oneTime	One Time
+dfy.start.personalStylist	Personal Stylist
+dfy.start.personalStylistIncludes	Personal Stylist Includes
+dfy.start.purchaseAnother	Purchase Another
+dfy.start.purchaseAnotherDesc	Purchase Another Desc
+dfy.start.quickVsFullNote	Quick Vs Full Note
+dfy.start.recommended	Recommended
+dfy.start.startPath	Start Path
+dfy.start.stylistUnlimited	Stylist Unlimited
+dfy.start.stylistUnlimitedIncludes	Stylist Unlimited Includes
+dfy.start.tryAgain	Try Again
+dfy.styleMeProperly.doItMyself	Do It Myself
+dfy.styleMeProperly.fastest	Fastest
+dfy.styleMeProperly.footerReassurance	Footer Reassurance
+dfy.styleMeProperly.subtitle	Subtitle
+dfy.styleMeProperly.title	Title
+dfy.uploadFailed	Upload Failed
+discover.blog	Blog
+discover.celebrity	Celebrity
+discover.ecoStyle	Eco Style
+discover.error	Error
+discover.events	Events
+discover.fashionReads	Fashion Reads
+discover.highlights	Highlights
+discover.influencers	Influencers
+discover.joinChallenge	Join Challenge
+discover.joinNow	Join Now
+discover.luxury	Luxury
+discover.magazines	Magazines
+discover.offers	Offers
+discover.open	Open
+discover.people	People
+discover.shareChallenge	Share Challenge
+discover.signInRequired	Sign In Required
+discover.styleDiplomat	Style Diplomat
+discover.styleIcons	Style Icons
+discover.styleTherapy	Style Therapy
+discover.styleUpdated	Style Updated
+discover.trends	Trends
+fashionBlog.alreadySubscribed	Already Subscribed
+fashionBlog.getWeeklyUpdates	Get Weekly Updates
+fashionBlog.noArticlesYet	No Articles Yet
+fashionBlog.report	Report
+fashionBlog.subscribe	Subscribe
+feedback.category.other	Other
+feedback.category.wardrobe	Wardrobe
+feedback.rating.fair	Fair
+feedback.rating.good	Good
+feedback.rating.poor	Poor
+feedback.titleLabel	Title
+gamification.spinResult	Spin Result
+help.category.account	Account
+help.category.general	General
+help.category.troubleshooting	Troubleshooting
+home.global	Global
+home.myRegion	My Region
+home.yourStory	Your Story
+nav.chat	Chat
+nav.home	Home
+nav.profile	Profile
+nav.settings	Settings
+nav.stylist	Stylist
+nav.wardrobe	Wardrobe
+navTitles.accessStatus	Access Status
+navTitles.addItem	Add Item
+navTitles.analytics	Analytics
+navTitles.bargains	Bargains
+navTitles.blog	Blog
+navTitles.bodyScanner	Body Scanner
+navTitles.chat	Chat
+navTitles.chooseYourSetup	Choose Your Setup
+navTitles.colorAnalysis	Color Analysis
+navTitles.colourAnalysis	Colour Analysis
+navTitles.colourInsights	Colour Insights
+navTitles.community	Community
+navTitles.communityVote	Community Vote
+navTitles.discoverPeople	Discover People
+navTitles.dreamOutfitGenerator	Dream Outfit Generator
+navTitles.events	Events
+navTitles.eventsNearYou	Events Near You
+navTitles.fashionBlog	Fashion Blog
+navTitles.fashionIntelligence	Fashion Intelligence
+navTitles.fashionTherapy	Fashion Therapy
+navTitles.friendRequests	Friend Requests
+navTitles.friendsActivity	Friends Activity
+navTitles.messages	Messages
+navTitles.modularWardrobe	Modular Wardrobe
+navTitles.myLookbook	My Lookbook
+navTitles.myWardrobe	My Wardrobe
+navTitles.offers	Offers
+navTitles.outfitBuilder	Outfit Builder
+navTitles.outfitCalendar	Outfit Calendar
+navTitles.post	Post
+navTitles.presenceAnalysis	Presence Analysis
+navTitles.privacyPolicy	Privacy Policy
+navTitles.profile	Profile
+navTitles.quickAddItems	Quick Add Items
+navTitles.smartNotifications	Smart Notifications
+navTitles.socialStyleSync	Social Style Sync
+navTitles.streetStyleScanner	Street Style Scanner
+navTitles.styleDiplomat	Style Diplomat
+navTitles.styleRules	Style Rules
+navTitles.styleShuffle	Style Shuffle
+navTitles.styleSoulmates	Style Soulmates
+navTitles.styleStories	Style Stories
+navTitles.stylingGuide	Styling Guide
+navTitles.stylist	Stylist
+navTitles.stylistChat	Stylist Chat
+navTitles.stylistSetup	Stylist Setup
+navTitles.subscription	Subscription
+navTitles.sustainability	Sustainability
+navTitles.uploadWardrobe	Upload Wardrobe
+navTitles.visualSearch	Visual Search
+navTitles.wardrobeFilter	Wardrobe Filter
+navTitles.wardrobeTwin	Wardrobe Twin
+navTitles.weatherOutfits	Weather Outfits
+navTitles.yourStylePlan	Your Style Plan
+onboarding.allRegions	All Regions
+onboarding.bodyScanComplete	Body Scan Complete
+onboarding.colorAnalysisComplete	Color Analysis Complete
+onboarding.countryNotFound	Country Not Found
+onboarding.findYourCountry	Find Your Country
+onboarding.getStarted	Get Started
+onboarding.measurements.height	Height
+onboarding.measurements.weight	Weight
+onboarding.namePronunciationQuestion	Name Pronunciation Question
+onboarding.quickSelect	Quick Select
+onboarding.quiz.next	Next
+onboarding.quiz.previous	Previous
+onboarding.quiz.question	Question
+onboarding.quiz.submit	Submit
+onboarding.quizUnavailable	Quiz Unavailable
+onboarding.retailers.add	Add
+onboarding.retailers.aiCurated	Ai Curated
+onboarding.retailers.findingStores	Finding Stores
+onboarding.retailers.selected	Selected
+onboarding.selectManually	Select Manually
+onboarding.signInRequired	Sign In Required
+onboarding.skipTour	Skip Tour
+onboarding.styleQuizComplete	Style Quiz Complete
+onboarding.stylist.language	Language
+onboarding.tellMore.bodyScanComplete	Body Scan Complete
+onboarding.tellMore.bodyShape	Body Shape
+onboarding.tellMore.colorAnalysisComplete	Color Analysis Complete
+onboarding.tellMore.favoriteColors	Favorite Colors
+onboarding.useLocation	Use Location
+onboardingProfile.continue	Continue
+outfitOccasions.casualDay	Casual Day
+outfitOccasions.dateNight	Date Night
+outfitOccasions.eveningOut	Evening Out
+outfitOccasions.gym	Gym
+outfitOccasions.smartCasual	Smart Casual
+outfitOccasions.travel	Travel
+outfitOccasions.weekend	Weekend
+outfitOccasions.workOutfit	Work Outfit
+partner.emailAppNotFound	Email App Not Found
+partner.emailNotAvailable	Email Not Available
+preSignupQuiz.continue	Continue
+preSignupQuiz.men	Men
+preSignupQuiz.occasionTag.ceremony	Ceremony
+preSignupQuiz.occasionTag.date	Date
+preSignupQuiz.occasionTag.everyday	Everyday
+preSignupQuiz.occasionTag.festival	Festival
+preSignupQuiz.occasionTag.wedding	Wedding
+preSignupQuiz.occasionTag.work	Work
+preSignupQuiz.styleTag.boho	Boho
+preSignupQuiz.styleTag.business	Business
+preSignupQuiz.styleTag.businessCasual	Business Casual
+preSignupQuiz.styleTag.chic	Chic
+preSignupQuiz.styleTag.classic	Classic
+preSignupQuiz.styleTag.creative	Creative
+preSignupQuiz.styleTag.luxury	Luxury
+preSignupQuiz.styleTag.smartCasual	Smart Casual
+preSignupQuiz.styleTag.sporty	Sporty
+preSignupQuiz.styleTag.streetwear	Streetwear
+preSignupQuiz.women	Women
+profile.adminDashboard	Admin Dashboard
+profile.bodyProfile	Body Profile
+profile.colorAnalysis	Color Analysis
+profile.guestUser	Guest User
+profile.likedOutfits	Liked Outfits
+profile.lovedOutfit	Loved Outfit
+profile.manageSubscription	Manage Subscription
+profile.myOutfit	My Outfit
+profile.profile	Profile
+profile.savedOutfits	Saved Outfits
+profile.similarOutfit	Similar Outfit
+profile.viewDetails	View Details
+profile.yourStyleProfile	Your Style Profile
+savedOutfits.couldNotSaveMessage	Could Not Save Message
+savedOutfits.couldNotSaveTitle	Could Not Save Title
+savedOutfits.defaultTitle	Default Title
+savedOutfits.descriptionOptional	Description Optional
+savedOutfits.descriptionPlaceholder	Description Placeholder
+savedOutfits.itemCount	Item Count
+savedOutfits.itemPlaceholder	Item Placeholder
+savedOutfits.loveThisOutfit	Love This Outfit
+savedOutfits.namePrompt	Name Prompt
+savedOutfits.nothingToSaveMessage	Nothing To Save Message
+savedOutfits.nothingToSaveTitle	Nothing To Save Title
+savedOutfits.outfitColumn	Outfit Column
+savedOutfits.outfitDetails	Outfit Details
+savedOutfits.outfitSavedMessage	Outfit Saved Message
+savedOutfits.outfitSavedTitle	Outfit Saved Title
+savedOutfits.previewColumn	Preview Column
+savedOutfits.savedToFavoritesMessage	Saved To Favorites Message
+savedOutfits.savedToFavoritesTitle	Saved To Favorites Title
+savedOutfits.saveOutfit	Save Outfit
+savedOutfits.scrollHint	Scroll Hint
+savedOutfits.titleLabel	Title Label
+savedOutfits.titlePlaceholder	Title Placeholder
+secondOpinion.send	Send
+settings.account	Account
+settings.accountActions	Account Actions
+settings.bodyMeasurements	Body Measurements
+settings.colorful	Colorful
+settings.colourScheme	Colour Scheme
+settings.company	Company
+settings.country	Country
+settings.deleteAccount	Delete Account
+settings.deleteAccountConfirm	Delete Account Confirm
+settings.deleteAccountConfirmButton	Delete Account Confirm Button
+settings.deleteAccountDelete	Delete Account Delete
+settings.deleteAccountDeletedTitle	Delete Account Deleted Title
+settings.deleteAccountFailed	Delete Account Failed
+settings.deleteAccountFinalMessage	Delete Account Final Message
+settings.deleteAccountFinalTitle	Delete Account Final Title
+settings.editProfile	Edit Profile
+settings.email	Email
+settings.fast	Fast
+settings.inviteFriends	Invite Friends
+settings.language	Language
+settings.maximum	Maximum
+settings.minimalist	Minimalist
+settings.normal	Normal
+settings.partnerWithUs	Partner With Us
+settings.plan	Plan
+settings.preferences	Preferences
+settings.privacyPolicy	Privacy Policy
+settings.searchCountries	Search Countries
+settings.selectCountry	Select Country
+settings.selectLanguage	Select Language
+settings.sendFeedback	Send Feedback
+settings.shareYourCode	Share Your Code
+settings.showTranscriptions	Show Transcriptions
+settings.signOut	Sign Out
+settings.signOutConfirm	Sign Out Confirm
+settings.slow	Slow
+settings.styleSuggestions	Style Suggestions
+settings.styleTheme	Style Theme
+settings.subscription	Subscription
+settings.support	Support
+settings.turnOff	Turn Off
+settings.turnOn	Turn On
+settings.veryFast	Very Fast
+settings.verySlow	Very Slow
+settings.voiceSpeed	Voice Speed
+shoppable.shopNow	Shop Now
+socialStyle.disconnectAccount	Disconnect Account
+styleDna.buildWardrobe	Build Wardrobe
+styleDna.colorPalette	Color Palette
+styleDna.dominantStyle	Dominant Style
+styleDna.emptySubtitle	Empty Subtitle
+styleDna.emptyTitle	Empty Title
+styleDna.evolvingHeadline	Evolving Headline
+styleDna.learnedFromSwipes	Learned From Swipes
+styleDna.percentOfWardrobe	Percent Of Wardrobe
+styleDna.secondaryStyle	Secondary Style
+styleDna.styleBreakdown	Style Breakdown
+styleThemes.active	Active
+styleThemes.casual	Casual
+styleThemes.creative	Creative
+styleThemes.minimalist	Minimalist
+styleThemes.professional	Professional
+styleThemes.smartCasual	Smart Casual
+styleThemes.trendsetter	Trendsetter
+stylistHub.blog	Blog
+stylistHub.colourInsights	Colour Insights
+stylistHub.outfitCalendar	Outfit Calendar
+stylistHub.styleRules	Style Rules
+stylistHub.weatherOutfits	Weather Outfits
+subscription.dfy.structural	Structural
+subscription.dfy.tactical	Tactical
+subscription.inviteFriends	Invite Friends
+subscription.manageBilling	Manage Billing
+subscription.manageSubscription	Manage Subscription
+subscription.mostPopular	Most Popular
+subscription.privacyPolicy	Privacy Policy
+subscription.refresh	Refresh
+subscription.restorePurchases	Restore Purchases
+subscription.save	Save
+subscription.starter	Starter
+subscription.startPlan	Start Plan
+subscription.stylistUnlimitedFeature	Stylist Unlimited Feature
+subscription.success.goUnlimited	Go Unlimited
+support.clear	Clear
+support.commonIssues	Common Issues
+support.selectCategory	Select Category
+support.submitTicket	Submit Ticket
+support.ticketCategory.other	Other
+sustainability.goalRequired	Goal Required
+sustainability.invalidTarget	Invalid Target
+upgrade.limitHit.cta	Cta
+upgrade.limitHit.message	Message
+upgrade.limitHit.title	Title
+upgrade.path.benefitDigitization	Benefit Digitization
+upgrade.path.benefitPhotography	Benefit Photography
+upgrade.path.benefitRemix	Benefit Remix
+upgrade.path.benefitSwap	Benefit Swap
+upgrade.path.coreBenefitsTitle	Core Benefits Title
+upgrade.path.notNow	Not Now
+upgrade.path.requiresCore	Requires Core
+upgrade.path.stylistDefault	Stylist Default
+upgrade.path.stylistMax	Stylist Max
+upgrade.path.stylistRuby	Stylist Ruby
+upgrade.path.upgradeButton	Upgrade Button
+vip.memberOffline	Member Offline
+virtualTryOn.missingImages	Missing Images
+virtualTryOn.upgradeRequired	Upgrade Required
+visualSearch.cameraAccessRequired	Camera Access Required
+visualSearch.searchLimitReached	Search Limit Reached
+voiceComment.notAvailable	Not Available
+voiceComment.recordingError	Recording Error
+voiceCredits.balanceUpdated	Balance Updated
+voiceCredits.buyTitle	Buy Title
+voiceCredits.creditsAdded	Credits Added
+voiceCredits.creditsAddedMessage	Credits Added Message
+voiceCredits.expires	Expires
+voiceCredits.loadingBalance	Loading Balance
+voiceCredits.mostPopular	Most Popular
+voiceCredits.needMore	Need More
+voiceCredits.partialTranslationNote	Partial Translation Note
+voiceCredits.purchased	Purchased
+voiceCredits.purchaseFailed	Purchase Failed
+voiceCredits.spokenReplies	Spoken Replies
+voiceCredits.spokenReply	Spoken Reply
+voiceCredits.thisMonth	This Month
+voiceCredits.topUpApple	Top Up Apple
+voiceCredits.topUpStripe	Top Up Stripe
+voiceCredits.topUpVoiceReplies	Top Up Voice Replies
+voiceCredits.unlimited48h	Unlimited48h
+voiceCredits.unlimited48hBadge	Unlimited48h Badge
+voiceCredits.voiceReplies	Voice Replies
+voiceCredits.weekendAddedMessage	Weekend Added Message
+voiceCredits.weekendVoiceActive	Weekend Voice Active
+wardrobe.active	Active
+wardrobe.addItem	Add Item
+wardrobe.addSingleItem	Add Single Item
+wardrobe.alreadyClean	Already Clean
+wardrobe.analysisIssue	Analysis Issue
+wardrobe.bulkAdd	Bulk Add
+wardrobe.cancel	Cancel
+wardrobe.completeYourItem	Complete Your Item
+wardrobe.couldNotExtract	Could Not Extract
+wardrobe.delete	Delete
+wardrobe.deleteItem	Delete Item
+wardrobe.deleteItems	Delete Items
+wardrobe.deleteOutfitPlan	Delete Outfit Plan
+wardrobe.deselectAll	Deselect All
+wardrobe.duplicateItemsFound	Duplicate Items Found
+wardrobe.error	Error
+wardrobe.fashionItem	Fashion Item
+wardrobe.fixAllBackgrounds	Fix All Backgrounds
+wardrobe.fixBackground	Fix Background
+wardrobe.freeScansUsed	Free Scans Used
+wardrobe.fullWardrobeSetup	Full Wardrobe Setup
+wardrobe.incompleteOutfit	Incomplete Outfit
+wardrobe.itemAdded	Item Added
+wardrobe.itemDetails	Item Details
+wardrobe.itemsAdded	Items Added
+wardrobe.itemsDetected	Items Detected
+wardrobe.missingCategory	Missing Category
+wardrobe.missingColor	Missing Color
+wardrobe.missingName	Missing Name
+wardrobe.missingOccasion	Missing Occasion
+wardrobe.missingPhoto	Missing Photo
+wardrobe.missingSeason	Missing Season
+wardrobe.modularWardrobe	Modular Wardrobe
+wardrobe.moreItemsNeeded	More Items Needed
+wardrobe.myLookbook	My Lookbook
+wardrobe.myWardrobe	My Wardrobe
+wardrobe.needMoreItems	Need More Items
+wardrobe.never	Never
+wardrobe.noItemsDetected	No Items Detected
+wardrobe.noItemsSelected	No Items Selected
+wardrobe.noOutfitsCreated	No Outfits Created
+wardrobe.occasionReady	Occasion Ready
+wardrobe.outfitMix	Outfit Mix
+wardrobe.partialSuccess	Partial Success
+wardrobe.permissionRequired	Permission Required
+wardrobe.planOutfit	Plan Outfit
+wardrobe.select	Select
+wardrobe.selectAll	Select All
+wardrobe.sessionExpired	Session Expired
+wardrobe.someOutfitsCreated	Some Outfits Created
+wardrobe.timesWorn	Times Worn
+wardrobe.tooManyImages	Too Many Images
+wardrobe.yourPerfectOutfit	Your Perfect Outfit
+weeklyPlanner.today	Today
+welcome.getStyled	Get Styled
+welcome.signIn	Sign In
+wishlist.added	Added
+wishlist.product	Product

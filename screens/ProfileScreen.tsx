@@ -471,6 +471,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         colors={headerGradientColors}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.header}>
@@ -576,7 +577,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 {voiceCreditsLoading
                   ? (t('profile.loadingBalance') || 'Loading balance…')
                   : weekendUnlimitedActive
-                    ? `Weekend voice active — expires ${weekendExpiryLabel}`
+                    ? `${t('voiceCredits.weekendVoiceActive') || '2-day unlimited active'} — expires ${weekendExpiryLabel}`
                     : usageLabel
                       ? `${usageLabel} this month`
                       : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}

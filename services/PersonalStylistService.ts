@@ -219,11 +219,11 @@ function tx(t: ((key: string) => string) | undefined, key: string, fallback: str
   return value && value.trim() && value !== key ? value : fallback;
 }
 
-function formatGapsList(parts: string[]): string {
+function formatGapsList(parts: string[], andWord = 'and'): string {
   if (parts.length === 0) return '';
   if (parts.length === 1) return parts[0];
-  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
-  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+  if (parts.length === 2) return `${parts[0]} ${andWord} ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, ${andWord} ${parts[parts.length - 1]}`;
 }
 
 /** Honest, wardrobe-aware first message — never invents a wardrobe that isn't there. */
@@ -284,10 +284,29 @@ export function getStylistGreeting(
     const needBottoms = Math.max(0, 3 - bottoms);
     const needShoes = Math.max(0, 3 - shoes);
     const gaps: string[] = [];
-    if (needTops > 0) gaps.push(needTops === 1 ? '1 more top' : `${needTops} more tops`);
-    if (needBottoms > 0) gaps.push(needBottoms === 1 ? '1 more bottom' : `${needBottoms} more bottoms`);
-    if (needShoes > 0) gaps.push(needShoes === 1 ? '1 more pair of shoes' : `${needShoes} more pairs of shoes`);
-    const gapsText = formatGapsList(gaps);
+    if (needTops > 0) {
+      gaps.push(
+        needTops === 1
+          ? tx(t, 'aiStylist.gapOneTop', '1 more top')
+          : tx(t, 'aiStylist.gapMoreTops', '{n} more tops').replace(/\{n\}/g, String(needTops)),
+      );
+    }
+    if (needBottoms > 0) {
+      gaps.push(
+        needBottoms === 1
+          ? tx(t, 'aiStylist.gapOneBottom', '1 more bottom')
+          : tx(t, 'aiStylist.gapMoreBottoms', '{n} more bottoms').replace(/\{n\}/g, String(needBottoms)),
+      );
+    }
+    if (needShoes > 0) {
+      gaps.push(
+        needShoes === 1
+          ? tx(t, 'aiStylist.gapOneShoes', '1 more pair of shoes')
+          : tx(t, 'aiStylist.gapMoreShoes', '{n} more pairs of shoes').replace(/\{n\}/g, String(needShoes)),
+      );
+    }
+    const andWord = tx(t, 'aiStylist.gapsJoinAnd', 'and');
+    const gapsText = formatGapsList(gaps, andWord);
 
     const sparseFallback = direct
       ? `{name}. {stylist}. You've got {count} piece${owned === 1 ? '' : 's'} — {tops} top${tops === 1 ? '' : 's'}, {bottoms} bottom${bottoms === 1 ? '' : 's'}, {shoes} pair${shoes === 1 ? '' : 's'} of shoes. That's not enough for solid outfit planning yet. Still need ${gapsText}. Add those and I can work with what you own.`

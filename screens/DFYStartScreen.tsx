@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useLayoutEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -11,7 +11,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -35,8 +34,18 @@ import {
 import { navigateAfterDfyActivation } from "@/utils/dfyNavigation";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { currencyService } from "@/services/CurrencyService";
-import { appleIAPService } from "@/services/AppleIAPService";
+import { apiService } from "@/services/ApiService";
+import {
+  appleIAPService,
+  IAP_UNAVAILABLE_MESSAGE,
+  serializeDfyCustomerInfoForSync,
+} from "@/services/AppleIAPService";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
+import {
+  finalizeDfyPurchase,
+  isApplePurchaseCancelled,
+  runDfyCheckout,
+} from "@/utils/dfyCheckout";
 
 type DFYStartScreenProps = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -52,10 +61,10 @@ const LUXURY_COLORS = {
 
 export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
-  const { user } = useAuth();
-  const insets = useSafeAreaInsets();
+  const { t, currentLanguage } = useTranslations();
+  const { user, refreshSubscriptionFromBackend } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [purchasingTier, setPurchasingTier] = useState<DFYTier | null>(null);
   const [accessStatus, setAccessStatus] = useState<DFYAccessStatus | null>(null);
   const [activationBlockedReason, setActivationBlockedReason] = useState<string | null>(null);
   const [activationBlockCode, setActivationBlockCode] = useState<DfyActivationBlockCode | null>(null);
@@ -70,15 +79,19 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const headerTitle = hasActiveWindow && activeTier
     ? getDfyActivePathTitle(activeTier)
     : benefit === 'none'
-      ? t('dfy.start.headerDefault')
+      ? (t('dfy.start.headerDefault') || 'Done-For-You Setup')
       : benefitTitle;
   const heroTitle = hasActiveWindow && activeTier
     ? getDfyActivePathTitle(activeTier)
     : benefit === 'none'
-      ? t('dfy.start.heroUnlock')
-      : t('dfy.start.heroIncluded').replace('{plan}', subscriptionTierDisplayName(subscriptionTier));
+      ? (t('dfy.start.heroUnlock') || 'Unlock your stylist setup')
+      : (t('dfy.start.heroIncluded') || 'Included with {plan}').replace('{plan}', subscriptionTierDisplayName(subscriptionTier));
   const includedBlocked = activationBlockCode === 'included_used' || activationBlockCode === 'active_window';
   const showPaidAddOn = activationBlockCode === 'included_used' && benefit !== 'none';
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: headerTitle });
+  }, [navigation, headerTitle]);
 
   useEffect(() => {
     const initCurrency = async () => {
@@ -150,13 +163,127 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     }
   };
 
-  const openPaidCheckout = (tier: DFYTier) => {
+  const handleRestoreDfyPurchases = async () => {
+    if (!useAppleIAP) return;
+    if (!user?.id) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredRestore'));
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsProcessing(true);
+    try {
+      const iapReady = await appleIAPService.configure(user.id);
+      if (!iapReady) throw new Error(IAP_UNAVAILABLE_MESSAGE);
+      const customerInfo = await appleIAPService.restorePurchases();
+      const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
+      if (!syncPayload.tier) {
+        Alert.alert(t('dfy.comparison.noDfyPurchaseTitle'), t('dfy.comparison.noDfyPurchaseMessage'));
+        return;
+      }
+      await apiService.syncAppleDFYPurchase(syncPayload);
+      await refreshSubscriptionFromBackend();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(t('dfy.comparison.restoredTitle'), t('dfy.comparison.restoredMessage'), [
+        { text: t('common.continue'), onPress: () => refreshState() },
+      ]);
+    } catch (error: unknown) {
+      Alert.alert(
+        t('dfy.comparison.restoreFailedTitle'),
+        error instanceof Error ? error.message : t('dfy.comparison.restoreFailedMessage'),
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openPaidCheckout = async (tier: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('DFYComparison', {
-      selectedTier: tier,
-      paidAddOn: true,
-      autoCheckout: true,
-    });
+
+    if (useAppleIAP && !user?.id) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
+      return;
+    }
+    if (!useAppleIAP && !user?.email) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.emailRequired'));
+      return;
+    }
+
+    setIsProcessing(true);
+    setPurchasingTier(tier);
+    try {
+      const outcome = await runDfyCheckout({
+        tier,
+        email: user?.email,
+        userId: user?.id,
+        language: currentLanguage,
+      });
+
+      if (outcome === 'success') {
+        await finalizeDfyPurchase(tier);
+        refreshSubscriptionFromBackend().catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTimeout(() => {
+          if (tier === 'lite') {
+            Alert.alert(
+              t('dfy.comparison.paymentSuccessTitle'),
+              t('dfy.comparison.paymentSuccessLiteMessage'),
+              [
+                {
+                  text: t('dfy.comparison.getPersonalStylist'),
+                  onPress: () => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' }),
+                },
+                {
+                  text: t('dfy.comparison.continueSetup'),
+                  onPress: () => navigation.navigate('DFYStylePlan'),
+                  style: 'cancel',
+                },
+              ],
+            );
+          } else {
+            Alert.alert(
+              t('dfy.comparison.paymentSuccessTitle'),
+              t('dfy.comparison.paymentSuccessCoreMessage'),
+              [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }],
+            );
+          }
+        }, 400);
+        await refreshState();
+        return;
+      }
+
+      if (outcome === 'failed') {
+        setTimeout(() => {
+          Alert.alert(
+            t('dfy.comparison.paymentNotCompletedTitle'),
+            t('dfy.comparison.paymentNotCompletedMessage'),
+            [{ text: t('common.done') }],
+          );
+        }, 400);
+      }
+      // cancelled: stay on screen quietly
+    } catch (error: unknown) {
+      if (isApplePurchaseCancelled(error)) {
+        setTimeout(() => {
+          Alert.alert(
+            t('dfy.comparison.purchaseCancelledTitle'),
+            t('dfy.comparison.purchaseCancelledMessage'),
+            [{ text: t('common.done') }],
+          );
+        }, 400);
+        return;
+      }
+      console.error('[DFYStart] checkout error:', error);
+      setTimeout(() => {
+        Alert.alert(
+          t('dfy.comparison.paymentErrorTitle'),
+          error instanceof Error ? error.message : t('dfy.comparison.checkoutStartFailed'),
+          [{ text: t('common.done') }],
+        );
+      }, 400);
+    } finally {
+      setIsProcessing(false);
+      setPurchasingTier(null);
+    }
   };
 
   const renderPathCard = (
@@ -207,66 +334,91 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     const selectedGradient = isLite
       ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
       : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold];
+    const titleColor = isLite ? '#FFFFFF' : LUXURY_COLORS.midnight;
+    const mutedColor = isLite ? 'rgba(255,255,255,0.9)' : 'rgba(26,26,46,0.85)';
+    const buttonBg = isLite ? 'rgba(255,255,255,0.22)' : 'rgba(26,26,46,0.18)';
 
     return (
-      <Pressable
-        key={`paid-${tier}`}
-        disabled={isProcessing}
-        onPress={() => openPaidCheckout(tier)}
-        style={({ pressed }) => [styles.pathCard, { opacity: pressed ? 0.9 : 1 }]}
-      >
+      <View key={`paid-${tier}`} style={styles.pathCard}>
         <LinearGradient colors={selectedGradient} style={styles.pathCardGradient}>
           <View style={styles.pathCardHeader}>
-            <Feather name={isLite ? "shopping-bag" : "shopping-bag"} size={22} color="#FFFFFF" />
-            <ThemedText type="h3" style={styles.pathTitle}>
-              {getDfyPathLabel(tier)}
+            <Feather name="shopping-bag" size={22} color={titleColor} />
+            <ThemedText type="h3" style={[styles.pathTitle, { color: titleColor }]}>
+              {isLite
+                ? (t('subscription.dfy.occasion.title') || 'Occasion Ready')
+                : (t('subscription.dfy.wardrobe.title') || 'Full Wardrobe Setup')}
             </ThemedText>
-            <ThemedText type="h3" style={[styles.pathTitle, { marginLeft: 'auto' }]}>
+            <ThemedText type="h3" style={[styles.pathTitle, { marginLeft: 'auto', color: titleColor }]}>
               {price}
             </ThemedText>
           </View>
-          <ThemedText type="body" style={styles.pathDescription}>
-            {getDfyPathDescription(tier)} · {t('dfy.start.oneTime')}
+          <ThemedText type="body" style={[styles.pathDescription, { color: mutedColor }]}>
+            {getDfyPathDescription(tier)} · {t('dfy.start.oneTime') || 'one-time'}
           </ThemedText>
-          <View style={styles.pathCtaRow}>
-            <ThemedText type="small" style={styles.pathCtaText}>
-              {isLite ? t('dfy.start.lookReadyPurchase') : t('dfy.start.dressBetterPurchase')}
-            </ThemedText>
-            <Feather name="arrow-right" size={16} color="#FFFFFF" />
-          </View>
+          <Pressable
+            disabled={isProcessing}
+            onPress={() => openPaidCheckout(tier)}
+            style={({ pressed }) => [
+              styles.purchaseButton,
+              { backgroundColor: buttonBg, opacity: pressed || isProcessing ? 0.85 : 1 },
+            ]}
+          >
+            {purchasingTier === tier ? (
+              <ActivityIndicator size="small" color={titleColor} />
+            ) : (
+              <ThemedText type="body" style={[styles.purchaseButtonText, { color: titleColor }]}>
+                {t('dfy.start.purchase') || 'Purchase'}
+              </ThemedText>
+            )}
+          </Pressable>
         </LinearGradient>
-      </Pressable>
+      </View>
     );
   };
 
-  const renderPaidAddOnSection = () => (
-    <View style={styles.paidAddOnSection}>
-      <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.purchaseAnother')}</ThemedText>
-      <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        {t('dfy.start.purchaseAnotherDesc')}
-      </ThemedText>
-      {renderPaidAddOnCard('lite')}
-      {benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint' ? renderPaidAddOnCard('core') : null}
-      {benefit === 'styling_sprint' ? (
-        <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-          {t('dfy.start.fullSetupIncludedNote')}
+  const renderPaidAddOnSection = (options?: { bothPaths?: boolean }) => {
+    const showBoth = options?.bothPaths || benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint';
+    const isStandalonePurchase = benefit === 'none' || options?.bothPaths;
+    return (
+      <View style={styles.paidAddOnSection}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
+          {isStandalonePurchase
+            ? (t('dfy.start.chooseSetup') || 'Choose your setup')
+            : (t('dfy.start.purchaseAnother') || 'Purchase another setup')}
         </ThemedText>
-      ) : null}
-    </View>
-  );
+        {!isStandalonePurchase ? (
+          <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
+            {t('dfy.start.purchaseAnotherDesc') ||
+              "You've used your included setup — run another whenever you want to look and feel your best."}
+          </ThemedText>
+        ) : null}
+        {renderPaidAddOnCard('lite')}
+        {showBoth ? renderPaidAddOnCard('core') : null}
+        {benefit === 'styling_sprint' && !isStandalonePurchase ? (
+          <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
+            {t('dfy.start.fullSetupIncludedNote') ||
+              'Full Setup is included with Stylist Unlimited, or buy it here anytime.'}
+          </ThemedText>
+        ) : null}
+        {isStandalonePurchase ? (
+          <Pressable
+            onPress={() => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' })}
+            style={styles.membershipLink}
+          >
+            <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
+              {t('dfy.start.orUnlockWithPlan') || 'Or unlock a setup free with a membership'}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
-    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : theme.backgroundRoot }}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backButton}>
-          <Feather name="arrow-left" size={22} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h3" style={styles.headerTitle}>
-          {headerTitle}
-        </ThemedText>
-        <View style={styles.backButton} />
-      </View>
-
+    <ScreenScrollView
+      opaqueHeader
+      style={{ backgroundColor: isDark ? '#0D0B09' : theme.backgroundRoot }}
+    >
       <View style={styles.hero}>
         <LinearGradient
           colors={isDark ? [LUXURY_COLORS.deepGold, '#0D0B09'] : [LUXURY_COLORS.gold, '#FAF8F5']}
@@ -281,7 +433,8 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {accessStatus?.hasAccess && accessStatus.tier
             ? getDfyActiveWindowSubtitle(accessStatus.tier)
             : benefit === 'none'
-              ? t('dfy.start.noBenefitSubtitle')
+              ? (t('dfy.start.noBenefitSubtitle') ||
+                'Buy a one-time stylist setup — Occasion Ready for an upcoming event, or Full Setup to digitise your wardrobe.')
               : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
@@ -291,7 +444,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           <Feather name="clock" size={18} color={LUXURY_COLORS.gold} />
           <View style={styles.statusTextWrap}>
             <ThemedText type="body" style={{ fontWeight: '600' }}>
-              {t('dfy.start.activeWindow')}
+              {t('dfy.start.activeWindow') || 'Active styling window'}
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
               {formatDfyDaysRemaining(accessStatus.daysRemaining, accessStatus.windowDays)} ·{' '}
@@ -304,33 +457,17 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         </View>
       ) : null}
 
-      {benefit === 'none' ? (
-        <View style={styles.upgradeSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.choosePlanUnlock')}</ThemedText>
-          <Pressable
-            onPress={() => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' })}
-            style={[styles.planTeaser, { borderColor: LUXURY_COLORS.teal }]}
-          >
-            <ThemedText type="h4">{t('dfy.start.personalStylist')}</ThemedText>
-            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              {t('dfy.start.personalStylistIncludes')}
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}
-            style={[styles.planTeaser, { borderColor: LUXURY_COLORS.gold }]}
-          >
-            <ThemedText type="h4">{t('dfy.start.stylistUnlimited')}</ThemedText>
-            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              {t('dfy.start.stylistUnlimitedIncludes')}
-            </ThemedText>
-          </Pressable>
+      {benefit === 'none' && !accessStatus?.hasAccess ? (
+        <View style={styles.pathSection}>
+          {renderPaidAddOnSection({ bothPaths: true })}
         </View>
       ) : null}
 
       {benefit === 'styling_sprint' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.includedSetup')}</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            {t('dfy.start.includedSetup') || 'Your included setup'}
+          </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
               {activationBlockedReason}
@@ -340,11 +477,12 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-                {t('dfy.start.oneSetupNote')}
+                {t('dfy.start.oneSetupNote') ||
+                  'Your plan includes one setup. Ready for the full wardrobe experience? Stylist Unlimited has you.'}
               </ThemedText>
               <Pressable onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}>
                 <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
-                  {t('dfy.start.compareStylistUnlimited')}
+                  {t('dfy.start.compareStylistUnlimited') || 'Compare Stylist Unlimited'}
                 </ThemedText>
               </Pressable>
             </>
@@ -354,9 +492,12 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
       {benefit === 'full_wardrobe_setup' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.chooseIncludedPath')}</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            {t('dfy.start.chooseIncludedPath') || 'Choose your included path'}
+          </ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            {t('dfy.start.chooseIncludedPathDesc')}
+            {t('dfy.start.chooseIncludedPathDesc') ||
+              'Your plan includes one setup — pick Quick Start or Full Setup to begin.'}
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
@@ -371,39 +512,40 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           ) : null}
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-              {t('dfy.start.quickVsFullNote')}
+              {t('dfy.start.quickVsFullNote') ||
+                'Quick Start is a fast win when you’re short on time. Full Setup is for when you want your whole closet digitised.'}
             </ThemedText>
           )}
         </View>
       ) : null}
 
-      {isProcessing ? (
-        <View style={styles.processingOverlay}>
-          <ActivityIndicator size="large" color={LUXURY_COLORS.gold} />
-        </View>
+      {useAppleIAP ? (
+        <Pressable
+          onPress={handleRestoreDfyPurchases}
+          disabled={isProcessing}
+          accessibilityRole="button"
+          accessibilityLabel={t('dfy.comparison.restorePurchases')}
+          style={({ pressed }) => [
+            styles.restorePurchasesButton,
+            {
+              opacity: pressed ? 0.85 : 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)',
+            },
+          ]}
+        >
+          <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
+          <ThemedText type="small" style={styles.restorePurchasesText}>
+            {isProcessing
+              ? (t('subscription.restoring') || 'Restoring...')
+              : t('dfy.comparison.restorePurchases')}
+          </ThemedText>
+        </Pressable>
       ) : null}
     </ScreenScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    textAlign: 'center',
-    flex: 1,
-  },
   hero: {
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
@@ -438,17 +580,6 @@ const styles = StyleSheet.create({
   continueButton: {
     alignSelf: 'stretch',
   },
-  upgradeSection: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-    paddingBottom: Spacing.xl,
-  },
-  planTeaser: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    gap: Spacing.xs,
-  },
   pathSection: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
@@ -457,9 +588,9 @@ const styles = StyleSheet.create({
   paidAddOnSection: {
     gap: Spacing.md,
     marginTop: Spacing.sm,
-    paddingTop: Spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128,128,128,0.35)',
+  },
+  membershipLink: {
+    paddingVertical: Spacing.sm,
   },
   sectionTitle: {
     marginBottom: Spacing.xs,
@@ -514,13 +645,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  purchaseButton: {
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  purchaseButtonText: {
+    fontWeight: '700',
+  },
+  restorePurchasesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  restorePurchasesText: {
+    color: LUXURY_COLORS.teal,
+    fontWeight: '600',
+  },
   fineNote: {
     textAlign: 'center',
     lineHeight: 18,
     marginTop: Spacing.sm,
-  },
-  processingOverlay: {
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
   },
 });

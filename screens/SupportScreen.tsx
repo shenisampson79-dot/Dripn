@@ -13,7 +13,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
@@ -124,17 +124,18 @@ export default function SupportScreen() {
     if (!inputText.trim() || isLoading || sendingRef.current) return;
 
     const userMessage = inputText.trim();
+    const clientMessageId = `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     sendingRef.current = true;
     setIsLoading(true);
     setInputText('');
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Optimistic bubble — replaced by canonical history after send (prevents duplicates)
+    // Same id as SupportService will store — avoids remount / double-bubble flash
     setMessages((prev) => [
       ...prev,
       {
-        id: `pending-${Date.now()}`,
+        id: clientMessageId,
         role: 'user',
         content: userMessage,
         timestamp: new Date().toISOString(),
@@ -143,7 +144,7 @@ export default function SupportScreen() {
     scrollToEnd();
 
     try {
-      await supportService.sendMessage(userMessage);
+      await supportService.sendMessage(userMessage, { clientMessageId });
       setMessages(supportService.getChatHistory());
       scrollToEnd();
     } catch (error) {
@@ -160,6 +161,7 @@ export default function SupportScreen() {
     if (!action || isLoading || sendingRef.current) return;
 
     const label = getQuickActionLabel(actionId);
+    const clientMessageId = `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     sendingRef.current = true;
     setIsLoading(true);
@@ -169,7 +171,7 @@ export default function SupportScreen() {
     setMessages((prev) => [
       ...prev,
       {
-        id: `pending-${Date.now()}`,
+        id: clientMessageId,
         role: 'user',
         content: label,
         timestamp: new Date().toISOString(),
@@ -180,6 +182,7 @@ export default function SupportScreen() {
     try {
       await supportService.sendMessage(action.label, {
         fromQuickAction: true,
+        clientMessageId,
       });
       setMessages(supportService.getChatHistory());
       scrollToEnd();
@@ -250,7 +253,8 @@ export default function SupportScreen() {
 
     return (
       <Animated.View
-        entering={isFirst ? undefined : FadeInUp.duration(300).springify()}
+        // User bubbles keep a stable id — animating them remounts as a second bubble briefly
+        entering={isUser || isFirst ? undefined : FadeInUp.duration(300).springify()}
         style={[
           styles.messageContainer,
           isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
@@ -499,8 +503,8 @@ export default function SupportScreen() {
             </ThemedText>
           </View>
         </View>
-        <Pressable onPress={handleClearChat} hitSlop={12}>
-          <Feather name="trash-2" size={20} color={theme.tabIconDefault} />
+        <Pressable onPress={handleClearChat} hitSlop={12} accessibilityLabel={t('support.clear') || 'Clear chat'}>
+          <MaterialCommunityIcons name="recycle" size={22} color={theme.tabIconDefault} />
         </Pressable>
       </View>
 

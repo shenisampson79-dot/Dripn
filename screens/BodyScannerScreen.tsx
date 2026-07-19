@@ -126,6 +126,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       getSettingsChildScreenOptions({
         theme,
         isDark,
+        transparent: false,
         title: t('bodyScan.title'),
       }),
     );

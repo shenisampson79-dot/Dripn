@@ -22,6 +22,7 @@ import { sharePost, generateHashtags } from "@/services/SharingService";
 import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type PostDetailScreenProps = {
   navigation: NativeStackNavigationProp<HomeStackParamList, "PostDetail">;
@@ -159,7 +160,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
         t('community.youveUsedAllYourStylistAdviceRequests') || "You've used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
         [
           { text: t('common.maybeLater') || "Maybe Later", style: "cancel" },
-          { text: t('common.viewPlans') || "View Plans", onPress: () => navigation.navigate("Subscription") },
+          { text: t('common.viewPlans') || "View Plans", onPress: () => navigateToSubscription(navigation, 'personal_stylist') },
         ]
       );
       return;

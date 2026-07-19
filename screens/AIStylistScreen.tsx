@@ -20,7 +20,7 @@ import {
   ScrollView,
   Modal,
 } from 'react-native';
-import { KeyboardStickyView, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import { KeyboardStickyView, useKeyboardState, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -64,7 +64,8 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
-import { resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
+import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
@@ -1304,6 +1305,9 @@ export default function AIStylistScreen() {
     remainingCredits: voiceRemainingCredits,
     credits: voiceCreditsBalance,
     isLoading: voiceCreditsLoading,
+    balanceError: voiceBalanceError,
+    balanceReady: voiceBalanceReady,
+    denialMessage: voiceDenialMessage,
     weekendUnlimitedActive,
     shouldShowBuyPacks,
   } = useVoiceCredits();
@@ -1320,11 +1324,13 @@ export default function AIStylistScreen() {
   const headerHeightContext = useContext(HeaderHeightContext);
   const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const inputBottomPadStyle = useAnimatedStyle(() => ({
     paddingBottom: keyboardHeight.value === 0 ? tabBarHeight : 0,
   }));
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const isNearBottomRef = useRef(true);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
 
@@ -1339,11 +1345,6 @@ export default function AIStylistScreen() {
     };
   }, [wardrobeItems]);
 
-  const buildSeedGreeting = useCallback(() => {
-    const userName = user?.name ? user.name.split(' ')[0] : null;
-    return getStylistGreeting(stylist, userName, t, greetingWardrobe);
-  }, [stylist, user?.name, t, greetingWardrobe]);
-
   // Stylist chat/voice language is independent of app UI language (welcome / Settings).
   // Priority: onboarding / Settings stylist language → preferredLanguage → UI fallback.
   const effectiveLanguage = resolveStylistSpeakLanguage({
@@ -1351,6 +1352,13 @@ export default function AIStylistScreen() {
     preferredLanguageCode: voiceSettings.preferredLanguage,
     uiLanguageCode: currentLanguage,
   });
+
+  const buildSeedGreeting = useCallback(() => {
+    const userName = user?.name ? user.name.split(' ')[0] : null;
+    // Seed welcome must follow stylist speak language, not app UI `t`.
+    const speakT = getStylistSpeakTranslator(effectiveLanguage);
+    return getStylistGreeting(stylist, userName, speakT, greetingWardrobe);
+  }, [stylist, user?.name, effectiveLanguage, greetingWardrobe]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -1379,13 +1387,34 @@ export default function AIStylistScreen() {
   const isRecordingActiveRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  const scrollChatToEnd = useCallback((force = false) => {
+    if (!force && !isNearBottomRef.current) return;
+    if (force) isNearBottomRef.current = true;
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
+
+  const onChatScroll = useCallback((event: {
+    nativeEvent: {
+      contentOffset: { y: number };
+      contentSize: { height: number };
+      layoutMeasurement: { height: number };
+    };
+  }) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    isNearBottomRef.current =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
+  }, []);
+
+  // Tab bar hides while keyboard is open — don't reserve tab height in list padding then.
   const listBottomInset = useMemo(
     () =>
       INPUT_CONTAINER_HEIGHT
       + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
-      + tabBarHeight
+      + (isKeyboardVisible ? 0 : tabBarHeight)
       + Spacing.md,
-    [showQuickPrompts, isTyping, messages.length, tabBarHeight],
+    [showQuickPrompts, isTyping, messages.length, tabBarHeight, isKeyboardVisible],
   );
   
   const pulseScale = useSharedValue(1);
@@ -1401,15 +1430,8 @@ export default function AIStylistScreen() {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  const navigateToSubscription = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'ProfileTab',
-        params: {
-          screen: 'Subscription',
-        },
-      })
-    );
+  const navigateToSubscriptionScreen = useCallback(() => {
+    navigateToSubscription(navigation);
   }, [navigation]);
   
   const navigateToWardrobe = useCallback(() => {
@@ -1507,7 +1529,7 @@ export default function AIStylistScreen() {
     }
   }, [stylist, buildSeedGreeting, messages.length]);
 
-  // Refresh seed welcome when language or wardrobe counts change (only if chat is still just the greeting).
+  // Refresh seed welcome when stylist speak language or wardrobe counts change (only if chat is still just the greeting).
   useEffect(() => {
     const nextGreeting = buildSeedGreeting();
     setMessages((prev) => {
@@ -1515,7 +1537,7 @@ export default function AIStylistScreen() {
       if (prev[0].content === nextGreeting) return prev;
       return [{ ...prev[0], content: nextGreeting }];
     });
-  }, [currentLanguage, buildSeedGreeting]);
+  }, [effectiveLanguage, buildSeedGreeting]);
 
   useEffect(() => {
     if (isRecording) {
@@ -1709,7 +1731,14 @@ export default function AIStylistScreen() {
     }
 
     if (!canSendMessage()) {
-      Alert.alert(t('common.dailyLimitReached'), t('aiStylist.dailyLimitUpgrade'));
+      Alert.alert(
+        t('common.dailyLimitReached'),
+        t('aiStylist.dailyLimitUpgrade'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('aiStylist.upgradeNow') || 'Upgrade Now', onPress: navigateToSubscriptionScreen },
+        ],
+      );
       return;
     }
 
@@ -1844,7 +1873,7 @@ export default function AIStylistScreen() {
     await incrementDailyMessages();
 
     setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      scrollChatToEnd(true);
     }, 100);
 
     try {
@@ -1940,7 +1969,7 @@ export default function AIStylistScreen() {
       }
 
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        scrollChatToEnd(false);
       }, 100);
     } catch (error: any) {
       console.log('API call failed for voice:', error);
@@ -1981,7 +2010,7 @@ export default function AIStylistScreen() {
       }
 
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        scrollChatToEnd(false);
       }, 100);
     }
   };
@@ -2004,8 +2033,14 @@ export default function AIStylistScreen() {
           .slice(-20);
 
         if (recentMessages.length > 0) {
-          setMessages(recentMessages);
-          setShowQuickPrompts(false);
+          // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
+          if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
+            setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
+            setShowQuickPrompts(true);
+          } else {
+            setMessages(recentMessages);
+            setShowQuickPrompts(false);
+          }
         }
       }
     } catch (error) {
@@ -2121,7 +2156,7 @@ export default function AIStylistScreen() {
     await incrementDailyMessages();
     
     setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      scrollChatToEnd(true);
     }, 100);
     
     try {
@@ -2241,7 +2276,7 @@ export default function AIStylistScreen() {
       }
       
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        scrollChatToEnd(false);
       }, 100);
     } catch (error: any) {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -2273,7 +2308,7 @@ export default function AIStylistScreen() {
       await saveChatHistory(finalMessages);
       
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        scrollChatToEnd(false);
       }, 100);
     }
   };
@@ -2323,7 +2358,7 @@ export default function AIStylistScreen() {
     await incrementDailyMessages();
 
     setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      scrollChatToEnd(true);
     }, 100);
 
     try {
@@ -2382,7 +2417,7 @@ export default function AIStylistScreen() {
       setGeneratingOccasionId(null);
       setIsTyping(false);
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        scrollChatToEnd(false);
       }, 100);
     }
   };
@@ -2940,6 +2975,32 @@ export default function AIStylistScreen() {
   const upgradeTeaserData = useMemo(() => {
     // Voice mode: show spoken-reply usage (more relevant than text-chat daily limit)
     if (chatMode === 'voice') {
+      // Balance fetch failed — never treat unknown remaining as exhausted (0 + top-up)
+      if (voiceBalanceError) {
+        return {
+          showWarning: false,
+          showTeaser: !voiceCreditsLoading,
+          teaserTitle: t('aiStylist.voiceBalanceLoadFailed') || "Couldn't load spoken-reply balance",
+          teaserMsg:
+            voiceDenialMessage ||
+            "Couldn't load your spoken-reply balance. Check your connection and try again.",
+          teaserIcon: 'mic' as const,
+          teaserCta: 'retry' as const,
+          teaserButtonLabel: t('common.retry') || 'Retry',
+        };
+      }
+      if (voiceCreditsLoading || !voiceBalanceReady) {
+        return {
+          showWarning: false,
+          showTeaser: false,
+          teaserTitle: '',
+          teaserMsg: '',
+          teaserIcon: 'mic' as const,
+          teaserCta: 'topup' as const,
+          teaserButtonLabel: '',
+        };
+      }
+
       const allowance = voiceCreditsBalance?.monthlyAllowance ?? 0;
       const remaining = voiceRemainingCredits;
       const used = Math.max(
@@ -2947,7 +3008,6 @@ export default function AIStylistScreen() {
         Number(voiceCreditsBalance?.usedThisMonth ?? Math.max(0, allowance - remaining)),
       );
       const showTeaser =
-        !voiceCreditsLoading &&
         !weekendUnlimitedActive &&
         (allowance > 0 || tier === 'free');
 
@@ -2962,29 +3022,27 @@ export default function AIStylistScreen() {
             );
 
       let teaserMsg = (t('aiStylist.voiceUnlockMore') ||
-        'Hands-free spoken replies are limited each month. Upgrade or add a voice pack to keep talking with {name}.')
+        'Hands-free spoken replies are limited each month. Add a voice pack to keep talking with {name}.')
         .replace('{name}', stylist.name);
       let teaserIcon: 'star' | 'heart' | 'zap' | 'mic' = 'mic';
-      let teaserCta: 'upgrade' | 'topup' = shouldShowBuyPacks || remaining <= 0 ? 'topup' : 'upgrade';
-      let teaserButtonLabel = teaserCta === 'topup'
-        ? (t('voiceCredits.topUpVoiceReplies') || 'Top up voice')
-        : (t('aiStylist.upgradeNow') || 'Upgrade Now');
+      // Voice mode card always tops up spoken replies (packs modal) — not subscription plans
+      let teaserCta: 'upgrade' | 'topup' | 'retry' = 'topup';
+      let teaserButtonLabel = t('voiceCredits.topUpVoiceReplies') || 'Top up voice';
 
       if (weekendUnlimitedActive) {
-        return { showWarning: false, showTeaser: false, teaserTitle: '', teaserMsg: '', teaserIcon: 'star' as const, teaserCta: 'upgrade' as const, teaserButtonLabel: '' };
+        return { showWarning: false, showTeaser: false, teaserTitle: '', teaserMsg: '', teaserIcon: 'star' as const, teaserCta: 'topup' as const, teaserButtonLabel: '' };
       }
 
       if (remaining <= 0 && allowance > 0) {
         teaserTitle = t('aiStylist.voiceRepliesUsedUp') || "This month's spoken replies are used up";
         teaserMsg = (t('aiStylist.voiceUnlockMore') ||
-          'Add a voice pack or upgrade so {name} can keep speaking with you. Text chat stays unlimited.')
+          'Add a voice pack so {name} can keep speaking with you. Text chat stays unlimited.')
           .replace('{name}', stylist.name);
         teaserIcon = 'heart';
-        teaserCta = 'topup';
-        teaserButtonLabel = t('voiceCredits.topUpVoiceReplies') || 'Top up voice';
+        teaserButtonLabel = t('voiceCredits.buyTitle') || 'Buy Voice Package';
       } else if (allowance > 0 && remaining <= Math.max(1, Math.floor(allowance * 0.25))) {
         teaserMsg = (t('aiStylist.voiceRunningLow') ||
-          'Running low on spoken replies with {name}. Top up or upgrade before you hit the cap.')
+          'Running low on spoken replies with {name}. Top up before you hit the cap.')
           .replace('{name}', stylist.name);
         teaserIcon = 'zap';
       }
@@ -3037,8 +3095,10 @@ export default function AIStylistScreen() {
     voiceCreditsBalance?.monthlyAllowance,
     voiceRemainingCredits,
     voiceCreditsLoading,
+    voiceBalanceError,
+    voiceBalanceReady,
+    voiceDenialMessage,
     weekendUnlimitedActive,
-    shouldShowBuyPacks,
   ]);
   
   const { showLimitWarning, showUpgradeTeaser } = {
@@ -3161,10 +3221,14 @@ export default function AIStylistScreen() {
             </View>
             <Pressable 
               onPress={() => {
-                if (chatMode === 'voice' && upgradeTeaserData.teaserCta === 'topup') {
-                  setShowVoiceCreditsModal(true);
+                if (chatMode === 'voice') {
+                  if (upgradeTeaserData.teaserCta === 'retry' || voiceBalanceError) {
+                    void refreshVoiceCredits();
+                  } else {
+                    setShowVoiceCreditsModal(true);
+                  }
                 } else {
-                  navigateToSubscription();
+                  navigateToSubscriptionScreen();
                 }
               }}
               style={({ pressed }) => [
@@ -3337,7 +3401,7 @@ export default function AIStylistScreen() {
             title={t('common.dailyMessageLimitReached') || "Daily message limit reached"}
             message="Upgrade to Personal Stylist for unlimited AI styling conversations."
             ctaLabel="Upgrade"
-            onUpgrade={navigateToSubscription}
+            onUpgrade={navigateToSubscriptionScreen}
           />
         ) : null}
         {selectedImageUri ? (
@@ -3508,7 +3572,9 @@ export default function AIStylistScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
+          onScroll={onChatScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={() => scrollChatToEnd(false)}
           style={styles.flatList}
         />
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={styles.inputSticky}>

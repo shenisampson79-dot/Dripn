@@ -25,6 +25,11 @@ export function setNavigationRef(ref: NavigationContainerRef<any> | null) {
   navigationRef = ref;
 }
 
+/** Root NavigationContainer ref — used when a screen is shown outside the tab tree (e.g. Ask Stylist modal). */
+export function getNavigationRef(): NavigationContainerRef<any> | null {
+  return navigationRef;
+}
+
 export function setCurrentOnboardingStep(step: number | null) {
   currentOnboardingStep = step;
 }

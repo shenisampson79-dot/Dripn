@@ -12,12 +12,18 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://dripn-server.onrender.com"
+      }
     },
     "production": {
       "channel": "production",
       "distribution": "store",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://dripn-server.onrender.com"
+      }
     }
   },
   "submit": {

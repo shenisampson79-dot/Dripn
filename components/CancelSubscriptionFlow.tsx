@@ -110,10 +110,11 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     { value: "other", label: t('subscription.cancel.reasonOther') },
   ];
 
-  // Aligned with TIER_MATRIX — Personal Stylist has no outfit calendar
+  // Aligned with TIER_MATRIX — Personal Stylist includes outfit calendar
   const tierLosses: Record<string, string[]> = {
     free: [],
     personal_stylist: [
+      t('subscription.cancel.lossOutfitCalendar'),
       t('subscription.cancel.lossVoiceConversations'),
       t('subscription.cancel.lossUnlimitedDecisions'),
       t('subscription.cancel.lossExtendedWardrobe'),

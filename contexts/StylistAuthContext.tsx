@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL as API_BASE_URL } from '@/config/api';
+import {
+  STYLIST_TOKEN_KEY,
+  getSecureToken,
+  setSecureToken,
+  clearSecureToken,
+} from '@/utils/secureTokenStore';
 
 export interface StylistProfile {
   id: string;
@@ -46,7 +52,6 @@ interface StylistAuthContextType {
 const StylistAuthContext = createContext<StylistAuthContextType | null>(null);
 
 const STYLIST_STORAGE_KEY = '@dripn_stylist';
-const STYLIST_TOKEN_KEY = '@dripn_stylist_token';
 
 export function StylistAuthProvider({ children }: { children: ReactNode }) {
   const [stylist, setStylist] = useState<StylistProfile | null>(null);
@@ -61,7 +66,7 @@ export function StylistAuthProvider({ children }: { children: ReactNode }) {
     try {
       const [stylistData, tokenData] = await Promise.all([
         AsyncStorage.getItem(STYLIST_STORAGE_KEY),
-        AsyncStorage.getItem(STYLIST_TOKEN_KEY),
+        getSecureToken(STYLIST_TOKEN_KEY),
       ]);
       if (stylistData && tokenData) {
         setStylist(JSON.parse(stylistData));
@@ -78,7 +83,7 @@ export function StylistAuthProvider({ children }: { children: ReactNode }) {
     try {
       await Promise.all([
         AsyncStorage.setItem(STYLIST_STORAGE_KEY, JSON.stringify(stylistData)),
-        AsyncStorage.setItem(STYLIST_TOKEN_KEY, tokenData),
+        setSecureToken(STYLIST_TOKEN_KEY, tokenData),
       ]);
       setStylist(stylistData);
       setToken(tokenData);
@@ -115,7 +120,7 @@ export function StylistAuthProvider({ children }: { children: ReactNode }) {
     try {
       await Promise.all([
         AsyncStorage.removeItem(STYLIST_STORAGE_KEY),
-        AsyncStorage.removeItem(STYLIST_TOKEN_KEY),
+        clearSecureToken(STYLIST_TOKEN_KEY),
       ]);
       setStylist(null);
       setToken(null);

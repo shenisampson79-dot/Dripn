@@ -99,7 +99,7 @@ const newsletters = [
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get personalised recommendations for your style</p>
-              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
+              <a href="https://dripnapp.com" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
             </td>
           </tr>
 
@@ -108,8 +108,8 @@ const newsletters = [
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
               <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripnapp.com/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripnapp.com/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
@@ -151,10 +151,10 @@ A slim-fit gilet, lightweight puffer, or classic cardigan that you can add or re
 Pro Tip: Match your layers in similar tones for an elevated, cohesive look.
 
 ---
-Get personalised recommendations: https://dripn.app
+Get personalised recommendations: https://dripnapp.com
 
 You're receiving this because you subscribed to Dripn fashion updates.
-Unsubscribe: https://dripn.app/unsubscribe
+Unsubscribe: https://dripnapp.com/unsubscribe
     `
   },
 
@@ -263,7 +263,7 @@ Unsubscribe: https://dripn.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get AI-powered colour analysis for your outfits</p>
-              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">TRY DRIPN FREE</a>
+              <a href="https://dripnapp.com" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">TRY DRIPN FREE</a>
             </td>
           </tr>
 
@@ -272,8 +272,8 @@ Unsubscribe: https://dripn.app/unsubscribe
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
               <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripnapp.com/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripnapp.com/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
@@ -318,9 +318,9 @@ QUICK TIPS
 - Your makeup should follow the same warm/cool rules
 
 ---
-Get AI-powered colour analysis: https://dripn.app
+Get AI-powered colour analysis: https://dripnapp.com
 
-Unsubscribe: https://dripn.app/unsubscribe
+Unsubscribe: https://dripnapp.com/unsubscribe
     `
   },
 
@@ -458,7 +458,7 @@ Unsubscribe: https://dripn.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Post your outfit and get instant feedback</p>
-              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">GET STYLE ADVICE</a>
+              <a href="https://dripnapp.com" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">GET STYLE ADVICE</a>
             </td>
           </tr>
 
@@ -467,8 +467,8 @@ Unsubscribe: https://dripn.app/unsubscribe
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
               <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripnapp.com/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripnapp.com/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
@@ -519,9 +519,9 @@ CONTEXT IS EVERYTHING
 THE SECRET: When in doubt, slightly overdress. It shows respect and you can always dress it down.
 
 ---
-Get style advice: https://dripn.app
+Get style advice: https://dripnapp.com
 
-Unsubscribe: https://dripn.app/unsubscribe
+Unsubscribe: https://dripnapp.com/unsubscribe
     `
   },
 
@@ -675,7 +675,7 @@ Unsubscribe: https://dripn.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Share your wardrobe refresh and get community feedback</p>
-              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">POST YOUR OUTFIT</a>
+              <a href="https://dripnapp.com" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">POST YOUR OUTFIT</a>
             </td>
           </tr>
 
@@ -684,8 +684,8 @@ Unsubscribe: https://dripn.app/unsubscribe
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
               <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripnapp.com/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripnapp.com/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
@@ -727,9 +727,9 @@ THIS WEEK'S CHALLENGE
 Take 15 minutes this weekend to try just one of these techniques. Share your before/after on Dripn!
 
 ---
-Share your outfit: https://dripn.app
+Share your outfit: https://dripnapp.com
 
-Unsubscribe: https://dripn.app/unsubscribe
+Unsubscribe: https://dripnapp.com/unsubscribe
     `
   }
 ];

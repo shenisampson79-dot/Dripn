@@ -41,6 +41,7 @@ import {
 } from "@/utils/dfyCheckout";
 import {
   appleIAPService,
+  IAP_UNAVAILABLE_MESSAGE,
   serializeDfyCustomerInfoForSync,
 } from "@/services/AppleIAPService";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
@@ -383,7 +384,8 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     }
     setIsProcessing(true);
     try {
-      await appleIAPService.configure(user.id);
+      const iapReady = await appleIAPService.configure(user.id);
+      if (!iapReady) throw new Error(IAP_UNAVAILABLE_MESSAGE);
       const customerInfo = await appleIAPService.restorePurchases();
       const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
       if (!syncPayload.tier) {
@@ -625,6 +627,8 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             <Pressable
               onPress={handleRestoreDfyPurchases}
               disabled={isProcessing}
+              accessibilityRole="button"
+              accessibilityLabel={t('dfy.comparison.restorePurchases')}
               style={({ pressed }) => [
                 styles.restorePurchasesButton,
                 { opacity: pressed ? 0.85 : 1 },

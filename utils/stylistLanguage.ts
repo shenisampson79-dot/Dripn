@@ -3,6 +3,8 @@
  * App UI language (welcome / Settings) is separate from stylist chat + voice language.
  */
 
+import { LOCAL_TRANSLATION_BUNDLES } from '@/services/localeBundles';
+
 export const STYLIST_LANGUAGE_NAME_TO_CODE: Record<string, string> = {
   English: 'en',
   Spanish: 'es',
@@ -76,4 +78,20 @@ export function resolveStylistSpeakLanguage(options: {
     return options.preferredLanguageCode;
   }
   return options.uiLanguageCode || 'en';
+}
+
+/**
+ * Translator for stylist speak language (chat seed greetings, etc.).
+ * Independent of app UI `t` — looks up offline locale bundles by speak-language code.
+ */
+export function getStylistSpeakTranslator(langCode?: string | null): (key: string) => string {
+  const code = (langCode || 'en').toLowerCase();
+  const bundle = LOCAL_TRANSLATION_BUNDLES[code] || LOCAL_TRANSLATION_BUNDLES.en;
+  const en = LOCAL_TRANSLATION_BUNDLES.en;
+  return (key: string) => {
+    const value = bundle?.[key];
+    if (typeof value === 'string' && value.trim()) return value;
+    const fallback = en?.[key];
+    return typeof fallback === 'string' && fallback.trim() ? fallback : key;
+  };
 }

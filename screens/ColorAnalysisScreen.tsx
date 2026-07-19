@@ -146,6 +146,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
       getSettingsChildScreenOptions({
         theme,
         isDark,
+        transparent: false,
         title: colorAnalysisTitle,
       }),
     );

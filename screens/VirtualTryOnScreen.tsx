@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInUp, FadeIn, SlideInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp, CommonActions } from '@react-navigation/native';
+import { RouteProp } from '@react-navigation/native';
 
 import { ScreenScrollView } from '@/components/ScreenScrollView';
 import { ThemedText } from '@/components/ThemedText';
@@ -33,6 +33,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { virtualTryOnService } from '@/services/VirtualTryOnService';
 import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator';
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -95,7 +96,7 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
           : t('virtualTryOn.upgradeUsedUp'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.upgrade'), onPress: () => navigation.dispatch(CommonActions.navigate({ name: 'ProfileTab', params: { screen: 'Subscription' } })) },
+          { text: t('common.upgrade'), onPress: () => navigateToSubscription(navigation, 'personal_stylist') },
         ]
       );
       return;

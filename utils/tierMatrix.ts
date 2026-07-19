@@ -103,7 +103,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
     voiceCommentsPerMonth: 20,
     virtualTryOnPerMonth: 5,
 
-    hasOutfitCalendar: false,
+    hasOutfitCalendar: true,
     hasEventPlanning: false,
     hasSustainabilityFeatures: false,
     canAccessChallenges: true,

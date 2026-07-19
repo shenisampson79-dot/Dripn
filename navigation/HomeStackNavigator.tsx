@@ -69,10 +69,12 @@ export default function HomeStackNavigator() {
       <Stack.Screen
         name="DFYStart"
         component={DFYStartScreen}
-        options={{
-          title: t('navTitles.stylistSetup') || "Stylist Setup",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.stylistSetup') || t('dfy.start.headerDefault') || 'Done-For-You Setup',
+        })}
       />
       <Stack.Screen
         name="DFYUpload"

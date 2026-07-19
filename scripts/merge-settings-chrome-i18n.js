@@ -46,7 +46,7 @@ const EN_KEYS = {
   'stylistHub.holdToRearrange': 'Hold to rearrange',
   'stylistHub.customizeLayout': 'Long press any tile to customise your layout',
   'stylistHub.unlimitedBadge': '· Unlimited',
-  'stylistHub.outfitCalendarLockedDesc': 'Plan outfits ahead — Stylist Unlimited',
+  'stylistHub.outfitCalendarLockedDesc': 'Plan outfits ahead — Personal Stylist',
 
   'profile.guestUser': 'Guest User',
   'profile.upgradeToPersonal': 'Upgrade to Personal Stylist',

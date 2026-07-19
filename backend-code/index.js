@@ -5169,7 +5169,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       try {
         await sgMail.send({
           to: email,
-          from: 'noreply@dripn.app',
+          from: 'noreply@dripnapp.com',
           subject: 'Welcome to Dripn Weekly Style Tips!',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -12337,7 +12337,7 @@ app.post('/api/support/chat', authMiddleware, async (req, res) => {
   } catch (e) {
     console.error('[Support/Chat] Error:', e.message);
     res.json({
-      response: "I'm having trouble connecting right now. Please try again or email support@dripn.app.",
+      response: "I'm having trouble connecting right now. Please try again or email support@dripnapp.com.",
       fallback: true,
     });
   }

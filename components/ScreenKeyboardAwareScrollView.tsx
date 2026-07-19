@@ -1,7 +1,9 @@
+import React, { forwardRef } from "react";
 import { Platform, StyleSheet } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardAwareScrollViewProps,
+  KeyboardAwareScrollViewRef,
 } from "react-native-keyboard-controller";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -17,14 +19,20 @@ type Props = KeyboardAwareScrollViewProps & {
   opaqueHeader?: boolean;
 };
 
-export function ScreenKeyboardAwareScrollView({
-  children,
-  contentContainerStyle,
-  style,
-  keyboardShouldPersistTaps = "handled",
-  opaqueHeader = false,
-  ...scrollViewProps
-}: Props) {
+export const ScreenKeyboardAwareScrollView = forwardRef<
+  KeyboardAwareScrollViewRef,
+  Props
+>(function ScreenKeyboardAwareScrollView(
+  {
+    children,
+    contentContainerStyle,
+    style,
+    keyboardShouldPersistTaps = "handled",
+    opaqueHeader = false,
+    ...scrollViewProps
+  },
+  ref
+) {
   const { theme } = useTheme();
   const { paddingTop, paddingBottom, scrollInsetBottom } = useScreenInsets();
   const topPad = opaqueHeader ? Spacing.md : paddingTop;
@@ -35,6 +43,7 @@ export function ScreenKeyboardAwareScrollView({
   if (Platform.OS === "web") {
     return (
       <ScreenScrollView
+        ref={ref as React.Ref<any>}
         style={style}
         contentContainerStyle={contentContainerStyle}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
@@ -48,6 +57,7 @@ export function ScreenKeyboardAwareScrollView({
 
   return (
     <KeyboardAwareScrollView
+      ref={ref}
       style={[
         styles.container,
         { backgroundColor: theme.backgroundRoot },
@@ -68,7 +78,7 @@ export function ScreenKeyboardAwareScrollView({
       {children}
     </KeyboardAwareScrollView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -31,6 +31,7 @@ import {
   isCompleteOutfit,
   MIN_OUTFIT_ITEMS,
 } from '@/utils/completeOutfit';
+import { computeLocalOutfitScore } from '@/utils/outfitCompatibilityScore';
 
 function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'imageProcessed'>): boolean {
   const urls = [item.enhancedImageUri, item.imageUri].filter(Boolean) as string[];
@@ -1586,14 +1587,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         }
         const itemIds = completeOutfitItemIds(baseIds, items);
         if (!isCompleteOutfit(itemIds, items)) continue;
+        const selectedItems = itemIds
+          .map((id) => items.find((item) => String(item.id) === String(id)))
+          .filter((item): item is WardrobeItem => Boolean(item));
+        const editorial = computeLocalOutfitScore(selectedItems);
+        if (editorial.score < 55) continue;
         newSuggestions.push({
           id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           itemIds,
           occasion: occasion || 'everyday',
           season: season || 'all-season',
           reason: `This ${top.name} pairs well with your ${bottom.name}`,
-          styleNotes: `A balanced combination of ${top.color} and ${bottom.color}`,
-          matchScore: Math.random() * 0.3 + 0.7,
+          styleNotes: editorial.hint,
+          matchScore: editorial.score / 100,
           generatedAt: new Date().toISOString(),
         });
       }
@@ -1607,14 +1613,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       if (matchingShoe) baseIds.push(matchingShoe.id);
       const itemIds = completeOutfitItemIds(baseIds, items);
       if (!isCompleteOutfit(itemIds, items)) continue;
+      const selectedItems = itemIds
+        .map((id) => items.find((item) => String(item.id) === String(id)))
+        .filter((item): item is WardrobeItem => Boolean(item));
+      const editorial = computeLocalOutfitScore(selectedItems);
+      if (editorial.score < 55) continue;
       newSuggestions.push({
         id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         itemIds,
         occasion: occasion || 'everyday',
         season: season || 'all-season',
         reason: `Your ${dress.name} is perfect for this occasion`,
-        styleNotes: `An elegant single-piece look in ${dress.color}`,
-        matchScore: Math.random() * 0.3 + 0.7,
+        styleNotes: editorial.hint,
+        matchScore: editorial.score / 100,
         generatedAt: new Date().toISOString(),
       });
     }
@@ -1638,14 +1649,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const randomShoe = shoes[Math.floor(Math.random() * shoes.length)];
     const itemIds = completeOutfitItemIds([randomTop.id, randomBottom.id, randomShoe.id], filteredItems);
     if (!isCompleteOutfit(itemIds, filteredItems)) return null;
+    const selectedItems = itemIds
+      .map((id) => filteredItems.find((item) => String(item.id) === String(id)))
+      .filter((item): item is WardrobeItem => Boolean(item));
+    const editorial = computeLocalOutfitScore(selectedItems);
+    if (editorial.score < 55) return null;
     return {
       id: `shuffle_${Date.now()}`,
       itemIds,
       occasion: occasion || 'everyday',
       season: 'all-season',
-      reason: 'Random outfit suggestion from your wardrobe',
-      styleNotes: `Try this ${randomTop.color} ${randomTop.name} with your ${randomBottom.name}`,
-      matchScore: 0.75,
+      reason: 'Shuffled wardrobe option, checked for category and formality clashes',
+      styleNotes: editorial.hint,
+      matchScore: editorial.score / 100,
       generatedAt: new Date().toISOString(),
     };
   }, [items]);

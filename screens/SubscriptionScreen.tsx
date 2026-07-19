@@ -19,7 +19,14 @@ import {
 } from "@/utils/dfyEntitlements";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
-import { appleIAPService, serializeCustomerInfoForSync, serializeDfyCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
+import {
+  appleIAPService,
+  IAP_UNAVAILABLE_MESSAGE,
+  resolveTierFromCustomerInfo,
+  serializeCustomerInfoForSync,
+  serializeDfyCustomerInfoForSync,
+  type IAPSubscriptionTier,
+} from "@/services/AppleIAPService";
 import {
   openAppleManageSubscriptions,
   shouldManageSubscriptionViaApple,
@@ -105,14 +112,15 @@ const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFe
       { text: tx('subscription.features.personalStylist.looksGood', 'Know what actually looks good on you'), included: true },
       { text: tx('subscription.features.personalStylist.confidence', 'Build confidence before you leave the house'), included: true },
       { text: tx('subscription.features.personalStylist.voiceAnswers', 'Voice your outfit and get instant answers'), included: true },
+      { text: tx('subscription.features.personalStylist.outfitCalendar', 'Outfit calendar'), included: true },
       { text: tx('subscription.features.personalStylist.learnsStyle', 'Stylists learn your style over time'), included: true },
     ],
     stylist_unlimited: [
       { text: tx('subscription.features.stylistUnlimited.everythingPersonal', 'Everything in Personal Stylist'), included: true, bold: true },
-      { text: tx('subscription.features.stylistUnlimited.planAhead', 'Plan outfits days or weeks ahead'), included: true },
       { text: tx('subscription.features.stylistUnlimited.fullWardrobe', 'See your full wardrobe instantly'), included: true },
       { text: tx('subscription.features.stylistUnlimited.systemWorks', 'Build a system that always works'), included: true },
       { text: tx('subscription.features.stylistUnlimited.voiceAnytime', 'Talk to your stylist by voice, anytime'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.eventPlanning', 'Event planning & sustainability tools'), included: true },
     ],
   };
 };
@@ -161,10 +169,11 @@ const buildPlanPricing = (
       period: t('subscription.period.year'),
     };
   }
+  // Monthly: price + period only — no save labels or annual alternate lines
   return {
     price: monthly,
-    altPrice: `${yearly}${t('subscription.perYear')}`,
-    savingsLabel: savings.save ? `${t('subscription.save')} ${savings.save}` : '',
+    altPrice: '',
+    savingsLabel: '',
     period: t('subscription.period.month'),
   };
 };
@@ -243,7 +252,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
-  const { user, refreshSubscriptionFromBackend } = useAuth();
+  const { user, refreshSubscriptionFromBackend, applyLocalSubscriptionTier } = useAuth();
   const scrollViewRef = useRef<any>(null);
   const plansSectionY = useRef(0);
   const checkoutInProgressRef = useRef(false);
@@ -312,6 +321,37 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
     initAppleIAP();
   }, [useAppleIAP, user?.id]);
+
+  // Recover sandbox / failed-sync purchases: if RC already has an active entitlement, unlock locally.
+  useEffect(() => {
+    if (!useAppleIAP || !user?.id) return;
+    if (normalizeTier(user.subscriptionTier) !== 'free') return;
+
+    let cancelled = false;
+    const recoverFromRevenueCat = async () => {
+      try {
+        const ready = await appleIAPService.configure(user.id);
+        if (!ready || cancelled) return;
+        const customerInfo = await appleIAPService.getCustomerInfo();
+        const tier = resolveTierFromCustomerInfo(customerInfo);
+        if (cancelled || tier === 'free') return;
+        await applyLocalSubscriptionTier(tier);
+        const syncPayload = serializeCustomerInfoForSync(customerInfo);
+        if (!syncPayload.tier || syncPayload.tier === 'free') {
+          syncPayload.tier = tier;
+        }
+        await apiService.syncAppleSubscription(syncPayload).catch(() => {});
+        await refreshSubscriptionFromBackend().catch(() => {});
+      } catch (error) {
+        console.warn('[Subscription] RC entitlement recovery skipped:', error);
+      }
+    };
+
+    recoverFromRevenueCat();
+    return () => {
+      cancelled = true;
+    };
+  }, [useAppleIAP, user?.id, user?.subscriptionTier, applyLocalSubscriptionTier, refreshSubscriptionFromBackend]);
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
   const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
   const [highlightPlans, setHighlightPlans] = useState(false);
@@ -478,9 +518,31 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
     const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
+    // Apple / StoreKit already charged — unlock immediately even if backend sync fails.
+    const fromRc = resolveTierFromCustomerInfo(customerInfo);
+    const unlockedTier = fromRc !== 'free' ? fromRc : normalizeSubscriptionTier(tier);
+    await applyLocalSubscriptionTier(unlockedTier);
+
     const syncPayload = serializeCustomerInfoForSync(customerInfo);
-    await apiService.syncAppleSubscription(syncPayload);
-    await refreshSubscriptionFromBackend();
+    // Ensure sync payload carries the purchased tier when RC entitlement mapping is delayed
+    if (!syncPayload.tier || syncPayload.tier === 'free') {
+      syncPayload.tier = unlockedTier;
+    }
+
+    try {
+      await apiService.syncAppleSubscription(syncPayload);
+      await refreshSubscriptionFromBackend().catch(() => {});
+    } catch (syncError) {
+      console.warn(
+        '[Subscription] Backend sync failed after successful Apple purchase — local unlock kept; retry queued',
+        syncError,
+      );
+      // Background retry (auth may recover shortly after the long StoreKit sheet)
+      setTimeout(() => {
+        apiService.flushPendingAppleSubscriptionSync().catch(() => {});
+      }, 2500);
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(
       t('subscription.subscriptionActiveTitle'),
@@ -495,20 +557,36 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     setIsProcessing(true);
     try {
       if (!user?.id) throw new Error(t('subscription.signInToRestore'));
-      await appleIAPService.configure(user.id);
+      const iapReady = await appleIAPService.configure(user.id);
+      if (!iapReady) throw new Error(IAP_UNAVAILABLE_MESSAGE);
       const customerInfo = await appleIAPService.restorePurchases();
       const subscriptionPayload = serializeCustomerInfoForSync(customerInfo);
       const dfyPayload = serializeDfyCustomerInfoForSync(customerInfo);
 
       let restoredSomething = false;
+      const restoredTier = resolveTierFromCustomerInfo(customerInfo);
+
+      // Unlock locally first so sandbox restores recover even if backend returns 401
+      if (restoredTier !== 'free') {
+        await applyLocalSubscriptionTier(restoredTier);
+        restoredSomething = true;
+      }
 
       if (subscriptionPayload.tier !== 'free') {
-        await apiService.syncAppleSubscription(subscriptionPayload);
+        try {
+          await apiService.syncAppleSubscription(subscriptionPayload);
+        } catch (syncError) {
+          console.warn('[Subscription] Restore sync failed; local unlock kept', syncError);
+        }
         restoredSomething = true;
       }
 
       if (dfyPayload.tier) {
-        await apiService.syncAppleDFYPurchase(dfyPayload);
+        try {
+          await apiService.syncAppleDFYPurchase(dfyPayload);
+        } catch (syncError) {
+          console.warn('[Subscription] DFY restore sync failed', syncError);
+        }
         restoredSomething = true;
       }
 
@@ -517,7 +595,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         return;
       }
 
-      await refreshSubscriptionFromBackend();
+      await refreshSubscriptionFromBackend().catch(() => {});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t('subscription.restoredTitle'), t('subscription.restoredMessage'));
     } catch (error: unknown) {
@@ -576,7 +654,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           if (!user?.id) {
             throw new Error(t('subscription.signInToSubscribe'));
           }
-          await appleIAPService.configure(user.id);
+          const iapReady = await appleIAPService.configure(user.id);
+          if (!iapReady) {
+            throw new Error(IAP_UNAVAILABLE_MESSAGE);
+          }
           try {
             await completeApplePurchase(planId as IAPSubscriptionTier, billingCycle, planName);
           } catch (error: unknown) {
@@ -923,16 +1004,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               {plan.price}
             </ThemedText>
             <ThemedText type="body" style={[styles.period, { color: 'rgba(255,255,255,0.7)' }]}>
-              {plan.period}
+              {plan.period?.startsWith('/') ? ` ${plan.period.trimStart()}` : plan.period}
             </ThemedText>
           </View>
 
-          {plan.savingsLabel ? (
+          {isYearly && plan.savingsLabel ? (
             <View style={styles.savingsRow}>
               <ThemedText type="small" style={styles.savingsLabel}>
                 ({plan.savingsLabel})
               </ThemedText>
-              {plan.bestValue && isYearly && savingsInfo.badge ? (
+              {plan.bestValue && savingsInfo.badge ? (
                 <View style={styles.bestValueBadge}>
                   <ThemedText type="caption" style={styles.bestValueText}>
                     {savingsInfo.badge}
@@ -940,12 +1021,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 </View>
               ) : null}
             </View>
-          ) : null}
-
-          {!isYearly ? (
-            <ThemedText type="caption" style={styles.altPriceText}>
-              {t('subscription.orAltPrice')} {plan.altPrice}{plan.savingsLabel ? ` (${plan.savingsLabel})` : ''}
-            </ThemedText>
           ) : null}
 
           {plan.description ? (
@@ -1205,9 +1280,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         <Pressable
           onPress={handleRestorePurchases}
           disabled={isProcessing}
+          accessibilityRole="button"
+          accessibilityLabel={t('subscription.restorePurchases')}
           style={({ pressed }) => [
             styles.restorePurchasesButton,
-            { opacity: pressed ? 0.85 : 1, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' },
+            {
+              opacity: pressed ? 0.85 : 1,
+              borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)',
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+            },
           ]}
         >
           <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
@@ -1216,6 +1297,28 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           </ThemedText>
         </Pressable>
       ) : null}
+
+      <View style={styles.finePrint}>
+        <ThemedText type="small" style={styles.finePrintText}>
+          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('TermsOfService')}
+          >
+            {t('subscription.termsOfService')}
+          </ThemedText>
+          {' '}{t('subscription.finePrintAnd')}{' '}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            {t('subscription.privacyPolicy')}
+          </ThemedText>
+          .
+        </ThemedText>
+      </View>
 
       <View style={styles.dfySection}>
         <View style={styles.dfySectionHeader}>
@@ -1243,11 +1346,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             end={{ x: 1, y: 1 }}
             style={[styles.dfyCard, dfyBenefit === 'full_wardrobe_setup' && styles.dfyCardFeatured]}
           >
-            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                {dfyBenefit === 'none' ? t('subscription.dfy.includedWithPlan') : t('subscription.dfy.yourBenefit')}
-              </ThemedText>
-            </View>
+            {dfyBenefit !== 'none' ? (
+              <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  {t('subscription.dfy.yourBenefit')}
+                </ThemedText>
+              </View>
+            ) : null}
             <View style={styles.dfyCardHeader}>
               <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Feather name="gift" size={18} color="#FFFFFF" />
@@ -1410,28 +1515,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </View>
           </LinearGradient>
         </Pressable>
-      </View>
-
-      <View style={styles.finePrint}>
-        <ThemedText type="small" style={styles.finePrintText}>
-          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
-          <ThemedText
-            type="small"
-            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
-            onPress={() => navigation.navigate('TermsOfService')}
-          >
-            {t('subscription.termsOfService')}
-          </ThemedText>
-          {' '}{t('subscription.finePrintAnd')}{' '}
-          <ThemedText
-            type="small"
-            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
-            onPress={() => navigation.navigate('PrivacyPolicy')}
-          >
-            {t('subscription.privacyPolicy')}
-          </ThemedText>
-          .
-        </ThemedText>
       </View>
 
       {normalizedTier !== 'free' ? (
@@ -1862,11 +1945,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   finePrint: {
-    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.xl,
   },
   finePrintText: {
-    opacity: 0.5,
+    opacity: 0.75,
     textAlign: "center",
+    lineHeight: 18,
   },
 });

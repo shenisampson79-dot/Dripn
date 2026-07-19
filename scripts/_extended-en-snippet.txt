@@ -467,7 +467,7 @@
       title: '5. Data Retention',
     },
     section06: {
-      body: 'To exercise these rights, contact us at privacy@dripn.app or use the in-app Settings.',
+      body: 'To exercise these rights, contact us at privacy@dripnapp.com or use the in-app Settings.',
       bullet1: 'Access: Request a copy of your personal data.',
       bullet2: 'Correction: Update or correct inaccurate information.',
       bullet3: 'Deletion: Request deletion of your account and data.',
@@ -503,8 +503,8 @@
       title: '11. Updates to This Policy',
     },
     section12: {
-      emailPrivacy: 'Email: privacy@dripn.app',
-      emailSupport: 'Support: support@dripn.app',
+      emailPrivacy: 'Email: privacy@dripnapp.com',
+      emailSupport: 'Support: support@dripnapp.com',
       intro: 'If you have questions about this Privacy Policy or our data practices, please contact us:',
       title: '12. Contact Us',
     },
@@ -514,7 +514,7 @@
         title: 'For European Users (GDPR)',
       },
       sub02: {
-        body: 'California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, email privacy@dripn.app.',
+        body: 'California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, email privacy@dripnapp.com.',
         title: 'For California Users (CCPA/CPRA)',
       },
       sub03: {
@@ -836,7 +836,7 @@
     selectCategory: 'Select Category',
     sendFailed: 'Could not send your message. Please try again.',
     submitTicket: 'Submit Ticket',
-    ticketFailed: 'Could not create your ticket. Please try again or email support@dripn.app.',
+    ticketFailed: 'Could not create your ticket. Please try again or email support@dripnapp.com.',
   },
   terms: {
     effectiveDate: 'Effective Date: December 7, 2025',
@@ -922,7 +922,7 @@
         title: '5.3 Content Moderation',
       },
       sub04: {
-        body: 'Your content may be featured in curated style highlights, trend showcases, or "best of" compilations. We may overlay text, apply filters, or edit content for promotional purposes while maintaining the integrity of the original. You will be credited where reasonably practical. If you wish to opt out of promotional use, you may contact us at privacy@dripn.app to request removal from future promotional materials.',
+        body: 'Your content may be featured in curated style highlights, trend showcases, or "best of" compilations. We may overlay text, apply filters, or edit content for promotional purposes while maintaining the integrity of the original. You will be credited where reasonably practical. If you wish to opt out of promotional use, you may contact us at privacy@dripnapp.com to request removal from future promotional materials.',
         bullet1: 'Social media promotional reels and posts.',
         bullet2: 'Marketing campaigns and advertisements.',
         bullet3: 'App Store and Google Play Store promotional materials.',
@@ -954,7 +954,7 @@
         title: '7.2 License to Use',
       },
       sub03: {
-        body: 'If you believe content on Dripn infringes your copyright, please contact us at copyright@dripn.app with the required information for a DMCA takedown notice.',
+        body: 'If you believe content on Dripn infringes your copyright, please contact us at copyright@dripnapp.com with the required information for a DMCA takedown notice.',
         title: '7.3 Copyright Claims',
       },
       title: '7. Intellectual Property',
@@ -1012,8 +1012,8 @@
       title: '16. General Provisions',
     },
     section17: {
-      emailLegal: 'Email: legal@dripn.app',
-      emailSupport: 'Support: support@dripn.app',
+      emailLegal: 'Email: legal@dripnapp.com',
+      emailSupport: 'Support: support@dripnapp.com',
       intro: 'If you have questions about these Terms, please contact us:',
       title: '17. Contact Us',
     },

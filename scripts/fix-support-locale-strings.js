@@ -17,7 +17,7 @@ const enFixes = {
   'support.screenTitle': 'Ask Julia',
   'support.sendFailed': 'Could not send your message. Please try again.',
   'support.ticketFailed':
-    'Could not create your ticket. Please try again or email support@dripn.app.',
+    'Could not create your ticket. Please try again or email support@dripnapp.com.',
   'support.quickAction.app-slow': 'App is running slow',
   'support.quickAction.login-issues': 'Cannot log in',
   'support.quickAction.subscription-not-working': 'Subscription features not working',

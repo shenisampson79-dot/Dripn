@@ -31,10 +31,11 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/services/ApiService';
 import * as FileSystem from 'expo-file-system/legacy';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SPACING = Spacing.sm;
@@ -85,15 +86,8 @@ export default function VisualSearchScreen() {
   const [searchesThisMonth, setSearchesThisMonth] = useState(0);
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
-  const navigateToSubscription = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'ProfileTab',
-        params: {
-          screen: 'Subscription',
-        },
-      })
-    );
+  const openSubscription = useCallback(() => {
+    navigateToSubscription(navigation);
   }, [navigation]);
 
   useEffect(() => {
@@ -144,7 +138,7 @@ export default function VisualSearchScreen() {
       Alert.alert(t('visualSearch.searchLimitReached'), t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.upgrade'), onPress: navigateToSubscription },
+          { text: t('common.upgrade'), onPress: openSubscription },
         ]
       );
       return;
@@ -207,7 +201,7 @@ export default function VisualSearchScreen() {
       Alert.alert(t('visualSearch.searchLimitReached'), t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.upgrade'), onPress: navigateToSubscription },
+          { text: t('common.upgrade'), onPress: openSubscription },
         ]
       );
       return;
@@ -437,7 +431,7 @@ export default function VisualSearchScreen() {
               : 'No searches remaining this month'}
           </ThemedText>
           {remainingSearches === 0 ? (
-            <Pressable onPress={navigateToSubscription}>
+            <Pressable onPress={openSubscription}>
               <ThemedText style={[styles.upgradeLink, { color: theme.link }]}>
                 Upgrade
               </ThemedText>
@@ -611,7 +605,7 @@ export default function VisualSearchScreen() {
               Upgrade to Personal Stylist to unlock AI-powered visual search and find similar items from top retailers
             </ThemedText>
             <Pressable
-              onPress={navigateToSubscription}
+              onPress={openSubscription}
               style={({ pressed }) => [styles.premiumUpgradeButton, { opacity: pressed ? 0.8 : 1 }]}
             >
               <LinearGradient

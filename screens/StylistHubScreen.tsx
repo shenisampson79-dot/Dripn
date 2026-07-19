@@ -168,12 +168,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const handleFeaturePress = (feature: StylistFeature) => {
     if (isEditMode) return;
 
-    if (feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      navigation.navigate('Subscription' as any, { highlightPlan: 'stylist_unlimited' });
-      return;
-    }
-    
+    // Outfit Calendar: always open the screen — gated users see LimitHitUpgradePrompt there
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate(feature.screen);
   };
@@ -300,12 +295,12 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
                 <ThemedText type="body" style={styles.tileTitle}>
                   {feature.title}
                   {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
-                    ? ` ${t('stylistHub.unlimitedBadge') || '· Unlimited'}`
+                    ? ` · ${t('subscription.plan.personalStylist.name') || 'Personal Stylist'}`
                     : ''}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.tileDescription}>
                   {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
-                    ? (t('stylistHub.outfitCalendarLockedDesc') || 'Plan outfits ahead — Stylist Unlimited')
+                    ? (t('stylistHub.outfitCalendarLockedDesc') || 'Plan outfits ahead — Personal Stylist')
                     : feature.description}
                 </ThemedText>
               </View>

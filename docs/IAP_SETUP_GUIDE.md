@@ -12,14 +12,14 @@ Complete setup guide for all **9** in-app purchase products used by Dripn (Style
 | # | Product ID | Type | Display Name (UK, ≤30) | Description (UK, ≤45) | UK Price Target (GBP) | Subscription Group | RevenueCat Entitlement | App Feature |
 |---|------------|------|------------------------|----------------------|----------------------|--------------------|------------------------|-------------|
 | 1 | `com.dripn.personal_stylist.monthly` | Auto-renewable subscription | Look Better Every Day | Feel confident — less outfit stress | **£9.99/mo** | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — daily styling confidence, faster decisions |
-| 2 | `com.dripn.personal_stylist.annual` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
+| 2 | `com.dripn.personal_stylist.yearly` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
 | 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Plan Ahead, Dress Better | Less fatigue — always know what to wear | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — life planning, less decision fatigue |
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
 | 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
 | 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
 | 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
-| 9 | `com.dripn.voice.weekend_unlimited` | Consumable | Weekend Unlimited | Get styled for every event this weekend | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
+| 9 | `com.dripn.voice.weekend_unlimited` | Consumable | 2-Day Unlimited | Unlimited voice for 48 hours — buy any day | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
 
 ### Price sources (server code)
 
@@ -41,7 +41,7 @@ Copy into each product's **Subscription Localization** fields:
 - Display name: `Look Better Every Day`
 - Description: `Feel confident — less outfit stress`
 
-**`com.dripn.personal_stylist.annual`**
+**`com.dripn.personal_stylist.yearly`**
 - Display name: `Year of Style Confidence`
 - Description: `Save 20% — confident looks all year long`
 
@@ -78,8 +78,8 @@ Copy into each **Consumable** product's localization fields:
 - Description: `Perfect for daily outfit planning` (33 chars)
 
 **`com.dripn.voice.weekend_unlimited`**
-- Display name: `Weekend Unlimited` (17 chars)
-- Description: `Get styled for every event this weekend` (39 chars)
+- Display name: `2-Day Unlimited` (15 chars)
+- Description: `Unlimited voice for 48 hours — buy any day` (43 chars)
 
 > **Legacy voice IDs** (`credits_10`, `credits_40`, `credits_80`, `credits_150`, `credits_25`, `credits_50`, `credits_100`) remain honoured server-side for existing purchases. Create the three canonical IDs above in ASC for new submissions.
 
@@ -99,6 +99,7 @@ Apple product IDs use `personal_stylist`, but the server maps them to the canoni
 
 The server accepts these aliases but the app uses the 10 IDs above:
 
+- `com.dripn.personal_stylist.annual` → same as canonical `com.dripn.personal_stylist.yearly`
 - `com.dripn.dfy.styling_sprint` → same as `dfy.lite`
 - `com.dripn.dfy.wardrobe_setup` → same as `dfy.core`
 - `com.dripn.voice.10`, `.30`, `.60` → old voice IDs
@@ -127,7 +128,7 @@ The server accepts these aliases but the app uses the 10 IDs above:
 | Product ID | Duration | Suggested reference name |
 |------------|----------|--------------------------|
 | `com.dripn.personal_stylist.monthly` | 1 month | Personal Stylist Monthly |
-| `com.dripn.personal_stylist.annual` | 1 year | Personal Stylist Annual |
+| `com.dripn.personal_stylist.yearly` | 1 year | Personal Stylist Annual |
 | `com.dripn.stylist_unlimited.monthly` | 1 month | Stylist Unlimited Monthly |
 | `com.dripn.stylist_unlimited.annual` | 1 year | Stylist Unlimited Annual |
 
@@ -158,7 +159,7 @@ The server accepts these aliases but the app uses the 10 IDs above:
 |------------|--------------|----------------|------------|
 | `com.dripn.voice.boost.30` | Voice Boost | 30 spoken replies | £2.99 |
 | `com.dripn.voice.pro.80` | Pro Pack | 80 spoken replies | £5.99 |
-| `com.dripn.voice.weekend_unlimited` | Weekend Unlimited | Unlimited voice for 48 hours | £8.99 |
+| `com.dripn.voice.weekend_unlimited` | 2-Day Unlimited | Unlimited voice for 48 hours — buy any day | £8.99 |
 
 2. Add localized descriptions from §1 voice paste blocks (benefit-led; ≤30 / ≤45 chars).
 
@@ -242,7 +243,7 @@ RevenueCat → **Products** → for each App Store product, attach the entitleme
 | Product ID | Attach to entitlement |
 |------------|----------------------|
 | `com.dripn.personal_stylist.monthly` | `personal_stylist` |
-| `com.dripn.personal_stylist.annual` | `personal_stylist` |
+| `com.dripn.personal_stylist.yearly` | `personal_stylist` |
 | `com.dripn.stylist_unlimited.monthly` | `stylist_unlimited` |
 | `com.dripn.stylist_unlimited.annual` | `stylist_unlimited` |
 | `com.dripn.dfy.lite` | `dfy_lite` |
@@ -263,7 +264,7 @@ The app reads **`offerings.current`** and matches packages by **product identifi
 | Package ID | Product |
 |------------|---------|
 | `personal_stylist_monthly` | `com.dripn.personal_stylist.monthly` |
-| `personal_stylist_annual` | `com.dripn.personal_stylist.annual` |
+| `personal_stylist_yearly` | `com.dripn.personal_stylist.yearly` |
 | `stylist_unlimited_monthly` | `com.dripn.stylist_unlimited.monthly` |
 | `stylist_unlimited_annual` | `com.dripn.stylist_unlimited.annual` |
 | `dfy_lite` | `com.dripn.dfy.lite` |
@@ -299,7 +300,25 @@ The app reads **`offerings.current`** and matches packages by **product identifi
 |----------|-------|---------|
 | `REVENUECAT_WEBHOOK_SECRET` | **Dripn-Server** (Render) | Must match RevenueCat webhook bearer token |
 | `REVENUECAT_REST_API_KEY` | **Dripn-Server** (Render) | Secret API key for server-side purchase validation + subscriber delete on account removal |
-| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | **StyleWise** `.env` / EAS secrets | iOS **public** SDK key for `react-native-purchases` |
+| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | **StyleWise** `.env` / **EAS** `preview`+`production` env | iOS **public** SDK key for `react-native-purchases` (baked at build time) |
+
+**EAS builds (required for TestFlight / App Store):** `EXPO_PUBLIC_*` values are inlined at build time. If this key is missing from the build, `Purchases.configure` never runs and purchases show *"In-app purchases unavailable — rebuild with RevenueCat key"*.
+
+Set it for **preview** and **production** (pick one):
+
+```bash
+# EAS environment variable (recommended — not committed)
+eas env:create --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY --value appl_YOUR_IOS_PUBLIC_KEY --environment production
+eas env:create --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY --value appl_YOUR_IOS_PUBLIC_KEY --environment preview
+```
+
+Or add to `eas.json` under `build.preview.env` and `build.production.env`:
+
+```json
+"EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_YOUR_IOS_PUBLIC_KEY"
+```
+
+Then create a **new** native build (`eas build --platform ios --profile preview` / `production`). OTA updates alone will not pick up a newly added `EXPO_PUBLIC_` key unless that key was already present in a previous binary’s env at build time — always rebuild after adding the key.
 
 Optional (supplemental Apple validation on server):
 
@@ -314,17 +333,20 @@ For local/sandbox IAP testing in dev builds, also set in StyleWise:
 
 ```
 EXPO_PUBLIC_FORCE_APPLE_IAP=true
+EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=appl_YOUR_IOS_PUBLIC_KEY
 ```
 
-(Production iOS uses IAP automatically when `Platform.OS === 'ios' && !__DEV__`.)
+(Production iOS uses IAP automatically when `Platform.OS === 'ios' && !__DEV__`. Expo Go cannot run StoreKit / RevenueCat native purchases.)
 
 ### G. iOS SDK API key location
 
 RevenueCat dashboard → **Project Settings → API keys → App specific keys**
 
 - Copy the **iOS public API key** (starts with `appl_`).
-- Paste into StyleWise as `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`.
+- Paste into StyleWise as `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (local `.env` and EAS env as above).
 - Do **not** use the secret key (`sk_`) in the mobile app.
+
+`AppleIAPService.configure()` is awaited before every purchase/restore. If the key is missing or the SDK is not ready, the app surfaces a friendly error instead of RevenueCat’s raw “no singleton instance” message.
 
 ### H. App user ID wiring
 
@@ -339,7 +361,7 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 - [ ] All 10 IAPs show **Ready to Submit** or **Approved** in App Store Connect.
 - [ ] RevenueCat → Products shows all 10 imported/linked with green status.
 - [ ] Default offering is **Current** and contains subscription packages.
-- [ ] `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` set in StyleWise; rebuild native app.
+- [ ] `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` set in StyleWise **and** in EAS preview/production env (`eas env:create` or `eas.json`); then **new** native iOS build.
 - [ ] Sandbox Apple ID signed in on device (Settings → App Store → Sandbox Account).
 - [ ] For dev builds: `EXPO_PUBLIC_FORCE_APPLE_IAP=true`.
 
@@ -365,7 +387,10 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 
 | Mistake | Symptom | Fix |
 |---------|---------|-----|
+| **`yearly` vs `annual`** — RevenueCat offering still uses `com.dripn.personal_stylist.annual` | App error *"None of the products… could be fetched from App Store Connect"* / empty offerings | **Canonical ID is `.yearly`** (ASC + app + docs + RC). Keep `.annual` only as a server-side legacy alias for old receipts/webhooks. |
 | Product ID typo (even one character) | "Product not found" / `UNKNOWN_VOICE_PRODUCT` | Copy IDs exactly from table above |
+| IAPs still "Prepare for Submission" + first sub group not with a version | RC **Missing Metadata**; StoreKit returns no products → empty offerings | Sign Paid Apps Agreement; complete pricing/localizations; attach IAPs to version 1.0 → **Add for Review** / submit with the app (banner: first subscription group must ship with a new app version). Sandbox usually works once metadata + agreements are complete. |
+| Products in RC with no entitlements / empty Current offering | Purchases may load but unlock fails, or packages missing | Attach entitlements (`personal_stylist`, `stylist_unlimited`, `dfy_lite`, `dfy_core`); put all 9 products in the **Current** offering |
 | Subscriptions not in RevenueCat **current** offering | `Subscription package not found for com.dripn...` | Add all 4 subs to default offering; mark Current |
 | Wrong entitlement ID (e.g. `style_chat` instead of `personal_stylist`) | Purchase works but tier doesn't sync | Use `personal_stylist` and `stylist_unlimited` exactly |
 | Using Expo Go | IAP never initializes | Use EAS dev client or production build |

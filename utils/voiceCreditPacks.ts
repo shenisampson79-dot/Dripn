@@ -2,10 +2,10 @@
 export const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: string }> = {
   boost: { label: 'Voice Boost', subtitle: 'For when you want more personalised advice' },
   pro: { label: 'Pro Pack', subtitle: 'Perfect for daily outfit planning' },
-  weekend: { label: 'Weekend Unlimited', subtitle: 'Unlimited voice for 48 hours' },
+  weekend: { label: '2-Day Unlimited', subtitle: 'Unlimited voice for 48 hours — buy any day' },
 };
 
-/** Display order in the buy-credits modal: Weekend → Pro (most popular) → Boost */
+/** Display order in the buy-credits modal: 2-Day Unlimited → Pro (most popular) → Boost */
 export const VOICE_PACK_DISPLAY_ORDER = ['weekend', 'pro', 'boost'] as const;
 
 const VOICE_PACK_ORDER_RANK: Record<string, number> = Object.fromEntries(

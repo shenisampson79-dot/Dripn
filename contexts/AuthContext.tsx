@@ -14,7 +14,7 @@ import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { normalizeSubscriptionTier, preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 WebBrowser.maybeCompleteAuthSession();
 
@@ -182,6 +182,8 @@ interface AuthContextType {
   switchBackToActualLocation: () => Promise<void>;
   detectActualLocation: () => Promise<void>;
   refreshSubscriptionFromBackend: (sessionId?: string) => Promise<void>;
+  /** Unlock subscription locally from StoreKit/RC without waiting for backend sync. */
+  applyLocalSubscriptionTier: (tier: SubscriptionTier) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -465,6 +467,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const updatedUser = {
               ...hydrated,
               hasSeenTour,
+              subscriptionTier: preferHigherSubscriptionTier(
+                localUser.subscriptionTier,
+                hydrated.subscriptionTier,
+              ),
             };
             if (await shouldApplyTestingUnlock(updatedUser)) {
               updatedUser.subscriptionTier = 'stylist_unlimited';
@@ -472,6 +478,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
             setUser(updatedUser);
             await syncHydratedProfileToBackendSafe(updatedUser);
+            // Retry any Apple IAP sync that failed after purchase (e.g. missing JWT)
+            apiService.flushPendingAppleSubscriptionSync().catch(() => {});
             console.log('[Auth] loadUser refresh:', { hasSeenTour, hasCompletedOnboarding: updatedUser.hasCompletedOnboarding });
           }
         } catch (backendErr) {
@@ -949,8 +957,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (subStatus?.plan && subStatus.plan !== 'free') {
         const mappedTier = normalizeSubscriptionTier(subStatus.plan);
-        if (mappedTier !== normalizeSubscriptionTier(user.subscriptionTier)) {
-          const updatedUser = { ...user, subscriptionTier: mappedTier };
+        const nextTier = preferHigherSubscriptionTier(user.subscriptionTier, mappedTier);
+        if (nextTier !== normalizeSubscriptionTier(user.subscriptionTier)) {
+          const updatedUser = { ...user, subscriptionTier: nextTier };
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
           setUser(updatedUser);
         }
@@ -960,11 +969,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const applyLocalSubscriptionTier = useCallback(async (tier: SubscriptionTier) => {
+    if (!user) return;
+    const nextTier = preferHigherSubscriptionTier(user.subscriptionTier, tier);
+    if (nextTier === normalizeSubscriptionTier(user.subscriptionTier)) return;
+    await saveUserLocalOnly({ ...user, subscriptionTier: nextTier });
+  }, [user]);
+
   useEffect(() => {
     const appStateRef = { current: AppState.currentState };
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
         refreshSubscriptionFromBackend();
+        apiService.flushPendingAppleSubscriptionSync().catch(() => {});
       }
       appStateRef.current = nextAppState;
     });
@@ -1040,6 +1057,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         switchBackToActualLocation,
         detectActualLocation,
         refreshSubscriptionFromBackend,
+        applyLocalSubscriptionTier,
       }}
     >
       {children}

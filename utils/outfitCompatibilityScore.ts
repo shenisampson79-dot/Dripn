@@ -123,21 +123,27 @@ export function computeLocalOutfitScore(
   if (hasDress && hasBottom) score -= 22;
   if (categories.has('formal') && [...categories].some((cat) => CASUAL_CATEGORIES.has(cat))) score -= 26;
 
-  const fingerprint = selected
-    .map((item) => `${item.category}:${item.color}:${(item.name || '').length % 7}`)
-    .join('|');
-  const variance = fingerprint.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 9;
-  score += variance - 4;
-
   if (isIntentionalSmartCasualTrainerLook(selected, regional)) {
     score += 14;
   }
 
-  score = Math.max(5, Math.min(100, Math.round(score)));
+  // Local metadata cannot verify actual fit, drape, condition, or visible
+  // material harmony, so it must not award an "exceptional" 95–100.
+  score = Math.max(5, Math.min(94, Math.round(score)));
 
-  const smartCasualHint = isIntentionalSmartCasualTrainerLook(selected, regional)
-    ? 'Smart-casual look — tailored pieces with fashion trainers read intentional'
-    : scoreHintForValue(score);
+  let smartCasualHint: string;
+  if (!hasShoes) smartCasualHint = 'Add occasion-appropriate footwear to resolve the look';
+  else if (!(hasDress || (hasTop && hasBottom))) {
+    smartCasualHint = 'Add the missing top or bottom so the silhouette reads as a complete outfit';
+  } else if (uniqueColors.size >= 4) {
+    smartCasualHint = 'Reduce competing colours or repeat one accent to unify the palette';
+  } else if (isIntentionalSmartCasualTrainerLook(selected, regional)) {
+    smartCasualHint = 'Smart-casual look — tailored pieces with clean fashion trainers read intentional';
+  } else if (score < 82) {
+    smartCasualHint = 'Refine one finishing detail—shoe, layer, or accessory—to resolve the look';
+  } else {
+    smartCasualHint = scoreHintForValue(score);
+  }
 
   return {
     score,

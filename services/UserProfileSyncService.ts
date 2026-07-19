@@ -5,6 +5,7 @@ import {
   onboardingProfileService,
   type OnboardingProfile,
 } from '@/services/OnboardingProfileService';
+import { preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
 
 const TOUR_SEEN_KEY = '@dripn_tour_seen';
 
@@ -209,7 +210,11 @@ export async function hydrateUserProfileAfterAuth(
     merged.hasCompletedOnboarding = !!options.backendLoginUser.hasCompletedOnboarding;
   }
   if (options.backendLoginUser?.subscriptionTier) {
-    merged.subscriptionTier = options.backendLoginUser.subscriptionTier;
+    // Never let a stale free backend wipe a local paid unlock (e.g. Apple IAP before sync).
+    merged.subscriptionTier = preferHigherSubscriptionTier(
+      baseProfile.subscriptionTier,
+      options.backendLoginUser.subscriptionTier,
+    );
   }
   if (options.backendLoginUser?.isAdmin !== undefined) {
     merged.isAdmin = Boolean(options.backendLoginUser.isAdmin);
@@ -266,6 +271,12 @@ export async function hydrateUserProfileAfterAuth(
     deviceTourSeen
     || backendTourSeen
     || merged.hasSeenTour === true;
+
+  // Keep the higher of local vs merged tier so Apple unlocks survive hydrate.
+  merged.subscriptionTier = preferHigherSubscriptionTier(
+    baseProfile.subscriptionTier,
+    merged.subscriptionTier,
+  );
 
   if (merged.hasSeenTour) {
     await persistTourSeenLocally(merged.id);

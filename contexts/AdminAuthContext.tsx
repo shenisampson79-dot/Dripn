@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL as API_BASE_URL, ADMIN_API_URL } from '@/config/api';
+import {
+  ADMIN_TOKEN_KEY,
+  getSecureToken,
+  setSecureToken,
+  clearSecureToken,
+} from '@/utils/secureTokenStore';
 
 export interface AdminProfile {
   id: string;
@@ -44,7 +50,6 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
 const ADMIN_STORAGE_KEY = '@dripn_admin';
-const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
 async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
   const text = await response.text();
@@ -79,7 +84,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       const [adminData, tokenData] = await Promise.all([
         AsyncStorage.getItem(ADMIN_STORAGE_KEY),
-        AsyncStorage.getItem(ADMIN_TOKEN_KEY),
+        getSecureToken(ADMIN_TOKEN_KEY),
       ]);
       if (adminData && tokenData) {
         // Validate the token is still accepted by the backend
@@ -91,7 +96,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           // Stale / invalid token — clear it so login screen appears
           await Promise.all([
             AsyncStorage.removeItem(ADMIN_STORAGE_KEY),
-            AsyncStorage.removeItem(ADMIN_TOKEN_KEY),
+            clearSecureToken(ADMIN_TOKEN_KEY),
           ]).catch(() => {});
         }
       }
@@ -119,7 +124,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       await Promise.all([
         AsyncStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(adminData)),
-        AsyncStorage.setItem(ADMIN_TOKEN_KEY, tokenData),
+        setSecureToken(ADMIN_TOKEN_KEY, tokenData),
       ]);
       setAdmin(adminData);
       setToken(tokenData);
@@ -179,7 +184,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       await Promise.all([
         AsyncStorage.removeItem(ADMIN_STORAGE_KEY),
-        AsyncStorage.removeItem(ADMIN_TOKEN_KEY),
+        clearSecureToken(ADMIN_TOKEN_KEY),
       ]);
       setAdmin(null);
       setToken(null);

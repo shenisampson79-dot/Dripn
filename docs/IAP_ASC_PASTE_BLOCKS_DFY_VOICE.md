@@ -154,11 +154,11 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-- **Display name:** `Weekend Unlimited` **(17 chars)**
+- **Display name:** `2-Day Unlimited` **(15 chars)**
 
 
 
-- **Description:** `Get styled for every event this weekend` **(39 chars)**
+- **Description:** `Unlimited voice for 48 hours — buy any day` **(43 chars)**
 
 
 
@@ -279,11 +279,11 @@ com.dripn.voice.weekend_unlimited
 
 
 
-Display name: Weekend Unlimited
+Display name: 2-Day Unlimited
 
 
 
-Description: Get styled for every event this weekend
+Description: Unlimited voice for 48 hours — buy any day
 
 
 

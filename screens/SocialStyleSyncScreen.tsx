@@ -184,7 +184,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
     }
 
     try {
-      await WebBrowser.openBrowserAsync(`https://dripn.app/oauth/${accountId}`);
+      await WebBrowser.openBrowserAsync(`https://dripnapp.com/oauth/${accountId}`);
       setAccounts(prev =>
         prev.map(a =>
           a.id === accountId

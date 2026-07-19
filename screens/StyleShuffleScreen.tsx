@@ -38,10 +38,11 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator';
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing['3xl'] * 2;
@@ -126,7 +127,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
     image: require('../assets/images/celebrity-looks/trendy_athleisure_look.png'),
     name: 'Athleisure Vibes',
     style: 'Sporty',
-    occasion: 'Casual',
+    occasion: 'Gym',
     season: 'Summer',
     items: [
       { name: 'Workout Set', category: 'Activewear' },
@@ -171,7 +172,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
     image: require('../assets/images/celebrity-looks/trendy_athleisure_look_male.png'),
     name: 'Sport Luxe',
     style: 'Sporty',
-    occasion: 'Casual',
+    occasion: 'Gym',
     season: 'Spring',
     items: [
       { name: 'Tech Joggers', category: 'Bottoms' },
@@ -184,14 +185,15 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_7',
     image: require('../assets/images/styles/boho/female/african.png'),
-    name: 'Bohemian Spirit',
-    style: 'Boho',
-    occasion: 'Festival',
+    name: 'Print-Led Summer Dress',
+    style: 'Global Print',
+    occasion: 'Outdoor Event',
     season: 'Summer',
     items: [
-      { name: 'Flowing Maxi Dress', category: 'Dresses' },
-      { name: 'Layered Necklaces', category: 'Accessories' },
-      { name: 'Strappy Sandals', category: 'Shoes' },
+      { name: 'Dashiki-Print Maxi Dress', category: 'Dresses' },
+      { name: 'Coordinating Headwrap', category: 'Accessories' },
+      { name: 'Layered Gold Jewellery', category: 'Accessories' },
+      { name: 'Flat Sandals', category: 'Shoes' },
     ],
     matchScore: 89,
     gender: 'female',
@@ -199,14 +201,14 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_8',
     image: require('../assets/images/styles/boho/female/asian.png'),
-    name: 'Free Spirit Look',
-    style: 'Boho',
-    occasion: 'Brunch',
+    name: 'Romantic Print Maxi',
+    style: 'Romantic Boho',
+    occasion: 'Garden / Festival',
     season: 'Spring',
     items: [
-      { name: 'Embroidered Top', category: 'Tops' },
-      { name: 'Wide-Leg Pants', category: 'Bottoms' },
-      { name: 'Woven Bag', category: 'Accessories' },
+      { name: 'Printed Maxi Dress', category: 'Dresses' },
+      { name: 'Layered Necklaces', category: 'Accessories' },
+      { name: 'Flat Lace-Up Sandals', category: 'Shoes' },
     ],
     matchScore: 91,
     gender: 'female',
@@ -259,14 +261,14 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_12',
     image: require('../assets/images/styles/boho/male/asian.png'),
-    name: 'Coastal Casual',
-    style: 'Boho',
-    occasion: 'Beach',
+    name: 'Relaxed Print',
+    style: 'Artful Casual',
+    occasion: 'Warm-Weather Casual',
     season: 'Summer',
     items: [
-      { name: 'Open Weave Shirt', category: 'Tops' },
-      { name: 'Drawstring Pants', category: 'Bottoms' },
-      { name: 'Woven Belt', category: 'Accessories' },
+      { name: 'Printed Relaxed Shirt', category: 'Tops' },
+      { name: 'Brown Pleated Trousers', category: 'Bottoms' },
+      { name: 'Leather Sandals', category: 'Shoes' },
     ],
     matchScore: 85,
     gender: 'male',
@@ -274,14 +276,15 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_13',
     image: require('../assets/images/styles/smart-casual/female/african.png'),
-    name: 'Polished Ease',
-    style: 'Smart Casual',
-    occasion: 'Office',
+    name: 'Creative Office Denim',
+    style: 'Business Casual',
+    occasion: 'Casual Office',
     season: 'All Season',
     items: [
-      { name: 'Tailored Blouse', category: 'Tops' },
-      { name: 'Ankle Pants', category: 'Bottoms' },
-      { name: 'Pointed Flats', category: 'Shoes' },
+      { name: 'Camel Blazer', category: 'Outerwear' },
+      { name: 'White Button-Down', category: 'Tops' },
+      { name: 'Dark Jeans', category: 'Bottoms' },
+      { name: 'White Sneakers', category: 'Shoes' },
     ],
     matchScore: 94,
     gender: 'female',
@@ -289,14 +292,15 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_14',
     image: require('../assets/images/styles/smart-casual/female/asian.png'),
-    name: 'Chic Professional',
-    style: 'Smart Casual',
-    occasion: 'Meeting',
+    name: 'Modern Office Casual',
+    style: 'Business Casual',
+    occasion: 'Creative Office',
     season: 'Spring',
     items: [
-      { name: 'Structured Blazer', category: 'Outerwear' },
-      { name: 'Silk Camisole', category: 'Tops' },
-      { name: 'Slim Trousers', category: 'Bottoms' },
+      { name: 'Beige Blazer', category: 'Outerwear' },
+      { name: 'White Camisole', category: 'Tops' },
+      { name: 'Black Slim Trousers', category: 'Bottoms' },
+      { name: 'White Canvas Sneakers', category: 'Shoes' },
     ],
     matchScore: 92,
     gender: 'female',
@@ -304,14 +308,16 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_15',
     image: require('../assets/images/styles/smart-casual/female/middle-eastern.png'),
-    name: 'Effortless Elegance',
-    style: 'Smart Casual',
-    occasion: 'Dinner',
+    name: 'Olive Blazer Casual',
+    style: 'Elevated Casual',
+    occasion: 'Lunch / Errands',
     season: 'Autumn',
     items: [
-      { name: 'Wrap Dress', category: 'Dresses' },
-      { name: 'Statement Belt', category: 'Accessories' },
-      { name: 'Block Heels', category: 'Shoes' },
+      { name: 'Olive Blazer', category: 'Outerwear' },
+      { name: 'Ivory Camisole', category: 'Tops' },
+      { name: 'Dark Skinny Jeans', category: 'Bottoms' },
+      { name: 'White Sneakers', category: 'Shoes' },
+      { name: 'Taupe Shoulder Bag', category: 'Accessories' },
     ],
     matchScore: 90,
     gender: 'female',
@@ -319,14 +325,13 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_16',
     image: require('../assets/images/styles/smart-casual/male/african.png'),
-    name: 'Modern Gentleman',
+    name: 'Navy Blazer Layer',
     style: 'Smart Casual',
-    occasion: 'Office',
+    occasion: 'Smart Casual',
     season: 'All Season',
     items: [
-      { name: 'Button-Down Shirt', category: 'Tops' },
-      { name: 'Chinos', category: 'Bottoms' },
-      { name: 'Leather Loafers', category: 'Shoes' },
+      { name: 'Navy Blazer', category: 'Outerwear' },
+      { name: 'White Crew-Neck Tee', category: 'Tops' },
     ],
     matchScore: 91,
     gender: 'male',
@@ -334,14 +339,13 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_17',
     image: require('../assets/images/styles/smart-casual/male/asian.png'),
-    name: 'Refined Casual',
+    name: 'Navy Blazer Layer',
     style: 'Smart Casual',
-    occasion: 'Brunch',
-    season: 'Spring',
+    occasion: 'Smart Casual',
+    season: 'All Season',
     items: [
-      { name: 'Polo Shirt', category: 'Tops' },
-      { name: 'Tailored Shorts', category: 'Bottoms' },
-      { name: 'White Sneakers', category: 'Shoes' },
+      { name: 'Navy Blazer', category: 'Outerwear' },
+      { name: 'White Crew-Neck Tee', category: 'Tops' },
     ],
     matchScore: 88,
     gender: 'male',
@@ -349,14 +353,13 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_18',
     image: require('../assets/images/styles/smart-casual/male/middle-eastern.png'),
-    name: 'Urban Professional',
+    name: 'Navy Blazer Layer',
     style: 'Smart Casual',
-    occasion: 'Meeting',
-    season: 'Autumn',
+    occasion: 'Smart Casual',
+    season: 'All Season',
     items: [
-      { name: 'Knit Sweater', category: 'Tops' },
-      { name: 'Dark Jeans', category: 'Bottoms' },
-      { name: 'Chelsea Boots', category: 'Shoes' },
+      { name: 'Navy Blazer', category: 'Outerwear' },
+      { name: 'White Crew-Neck Tee', category: 'Tops' },
     ],
     matchScore: 89,
     gender: 'male',
@@ -394,14 +397,14 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_21',
     image: require('../assets/images/styles/sporty/female/nordic.png'),
-    name: 'Weekend Active',
+    name: 'Studio Session',
     style: 'Sporty',
-    occasion: 'Casual',
+    occasion: 'Gym',
     season: 'Spring',
     items: [
-      { name: 'Zip-Up Jacket', category: 'Outerwear' },
-      { name: 'Joggers', category: 'Bottoms' },
-      { name: 'Chunky Trainers', category: 'Shoes' },
+      { name: 'Sports Bra', category: 'Tops' },
+      { name: 'High-Waist Leggings', category: 'Bottoms' },
+      { name: 'Training Shoes', category: 'Shoes' },
     ],
     matchScore: 91,
     gender: 'female',
@@ -424,14 +427,14 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_23',
     image: require('../assets/images/styles/sporty/male/latin-american.png'),
-    name: 'Street Athletics',
+    name: 'Track Session',
     style: 'Sporty',
-    occasion: 'Casual',
+    occasion: 'Running',
     season: 'Summer',
     items: [
-      { name: 'Tank Top', category: 'Tops' },
-      { name: 'Track Pants', category: 'Bottoms' },
-      { name: 'Retro Sneakers', category: 'Shoes' },
+      { name: 'Performance Tank', category: 'Tops' },
+      { name: 'Training Joggers', category: 'Bottoms' },
+      { name: 'Running Sneakers', category: 'Shoes' },
     ],
     matchScore: 90,
     gender: 'male',
@@ -439,14 +442,14 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   {
     id: 'outfit_24',
     image: require('../assets/images/styles/sporty/male/nordic.png'),
-    name: 'Active Lifestyle',
+    name: 'Training Day',
     style: 'Sporty',
-    occasion: 'Weekend',
+    occasion: 'Workout',
     season: 'Spring',
     items: [
-      { name: 'Windbreaker', category: 'Outerwear' },
-      { name: 'Compression Tights', category: 'Bottoms' },
-      { name: 'Running Shoes', category: 'Shoes' },
+      { name: 'Compression Tee', category: 'Tops' },
+      { name: 'Training Shorts', category: 'Bottoms' },
+      { name: 'Training Shoes', category: 'Shoes' },
     ],
     matchScore: 88,
     gender: 'male',
@@ -543,6 +546,20 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   },
 ];
 
+function getEditorialAssessment(outfit: ShuffleOutfit): { score: number; note: string } {
+  const categories = new Set(outfit.items.map((item) => item.category.toLowerCase()));
+  const hasShoes = categories.has('shoes');
+  const hasDress = categories.has('dresses');
+  const hasTop = categories.has('tops') || categories.has('activewear');
+  const hasBottom = categories.has('bottoms') || categories.has('activewear');
+  const complete = hasShoes && (hasDress || (hasTop && hasBottom));
+  const score = Math.min(outfit.matchScore, complete ? 92 : 76);
+  const note = complete
+    ? 'Editorial score: the visible pieces form a coherent, occasion-specific look. Final fit and fabric quality still need an in-person check.'
+    : 'Editorial score is capped because the image or item list does not show a complete head-to-toe look.';
+  return { score, note };
+}
+
 type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
 
 export default function StyleShuffleScreen() {
@@ -555,15 +572,8 @@ export default function StyleShuffleScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
 
-  const navigateToSubscription = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'ProfileTab',
-        params: {
-          screen: 'Subscription',
-        },
-      })
-    );
+  const openSubscription = useCallback(() => {
+    navigateToSubscription(navigation);
   }, [navigation]);
 
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('forme');
@@ -613,10 +623,10 @@ export default function StyleShuffleScreen() {
       t('styleShuffle.dailyLimitMessage').replace('{n}', String(dailyLimit)),
       [
         { text: t('common.ok'), style: 'cancel' },
-        { text: t('common.upgrade'), onPress: navigateToSubscription },
+        { text: t('common.upgrade'), onPress: openSubscription },
       ]
     );
-  }, [t, dailyLimit, navigateToSubscription]);
+  }, [t, dailyLimit, openSubscription]);
 
   const showDailyLimitShortAlert = useCallback(() => {
     Alert.alert(
@@ -770,7 +780,7 @@ export default function StyleShuffleScreen() {
       apiService.recordOutfitEngagement({
         items: engageItems,
         signal: direction === 'right' ? 'liked' : 'skipped',
-        outfitScore: currentOutfit.matchScore,
+        outfitScore: getEditorialAssessment(currentOutfit).score,
         occasion: currentOutfit.occasion,
         contextSnapshot: {
           source: 'style_shuffle',
@@ -1132,7 +1142,9 @@ export default function StyleShuffleScreen() {
               >
                 <View style={styles.cardInfo}>
                   <View style={styles.matchBadge}>
-                    <ThemedText style={styles.matchScore}>{nextOutfit.matchScore}% Match</ThemedText>
+                    <ThemedText style={styles.matchScore}>
+                      {getEditorialAssessment(nextOutfit).score}/100 Editorial
+                    </ThemedText>
                   </View>
                   <ThemedText style={styles.outfitName}>{nextOutfit.name}</ThemedText>
                   <View style={styles.tagRow}>
@@ -1179,7 +1191,9 @@ export default function StyleShuffleScreen() {
                 >
                   <View style={styles.cardInfo}>
                     <View style={styles.matchBadge}>
-                      <ThemedText style={styles.matchScore}>{currentOutfit.matchScore}% Match</ThemedText>
+                      <ThemedText style={styles.matchScore}>
+                        {getEditorialAssessment(currentOutfit).score}/100 Editorial
+                      </ThemedText>
                     </View>
                     <ThemedText style={styles.outfitName}>{currentOutfit.name}</ThemedText>
                     <View style={styles.tagRow}>
@@ -1275,7 +1289,10 @@ export default function StyleShuffleScreen() {
                   .replace('{occasion}', currentOutfit.occasion)
                   .replace('{season}', currentOutfit.season)
                   .replace('{items}', items);
-                Alert.alert(currentOutfit.name, message);
+                Alert.alert(
+                  currentOutfit.name,
+                  `${message}\n\n${getEditorialAssessment(currentOutfit).note}`,
+                );
               }
             }}
           >

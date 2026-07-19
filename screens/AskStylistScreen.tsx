@@ -48,6 +48,7 @@ import { getCurrentFashionYear } from "@/utils/fashionSeason";
 import { convertImageToBase64 } from "@/services/VisionAnalysisService";
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from "@/utils/tierMatrix";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const OUTFIT_THUMB_COLUMNS = 3;
@@ -284,20 +285,37 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     }
   };
 
-  const checkAccess = async () => {
-    if (!user?.id) return;
+  const checkAccess = async (opts?: { showPaywallIfBlocked?: boolean }) => {
+    if (!user?.id) return null;
     const status = await decisionService.checkDecisionAccess(
       user.id,
       user.subscriptionTier || 'free'
     );
     setAccessStatus(status);
 
-    if (!status.canMakeDecision) {
+    if (!status.canMakeDecision && opts?.showPaywallIfBlocked !== false) {
       setShowUpgradeModal(true);
     }
+    return status;
+  };
+
+  const openSubscriptionFromPaywall = () => {
+    // Close UI only — do NOT reset daily decision count / accessStatus
+    setShowUpgradeModal(false);
+    navigateToSubscription(navigation, 'personal_stylist');
+  };
+
+  const dismissPaywallWithoutUnlock = () => {
+    // Dismiss is fine; gating below still blocks another free decision
+    setShowUpgradeModal(false);
   };
 
   const handleTypeSelect = (type: DecisionType) => {
+    if (accessStatus && !accessStatus.canMakeDecision) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setShowUpgradeModal(true);
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(type);
     setIsSurpriseMe(false);
@@ -345,6 +363,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   };
 
   const submitWithSurpriseMe = async () => {
+    if (accessStatus && !accessStatus.canMakeDecision) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setIsLoading(true);
     setIsSurpriseMe(true);
 
@@ -425,12 +447,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           };
           await decisionService.saveToHistory(user.id, historyRequest, result, user.subscriptionTier);
         }
+        await checkAccess({ showPaywallIfBlocked: true });
       }
 
       setResponse(result);
       setStep('response');
     } catch (error: any) {
-      if (error.limitCopy || error.message?.includes("your decision for today")) {
+      if (error.limitCopy || error.message?.includes("your decision for today") || error.status === 429) {
+        await checkAccess({ showPaywallIfBlocked: true });
         Alert.alert(
           t('askStylist.unableToSubmit'),
           error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
@@ -441,14 +465,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             },
             {
               text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
-              onPress: () => {
-                const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
-                if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
-                  navigation.navigate('Subscription' as never);
-                } else {
-                  navigation.navigate(redirectUrl.replace('/', '') as never);
-                }
-              },
+              onPress: openSubscriptionFromPaywall,
             },
           ]
         );
@@ -528,6 +545,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     if (!selectedType) return;
     // Images are only required when NOT using Surprise Me
     if (!isSurpriseMe && images.length === 0) return;
+    if (accessStatus && !accessStatus.canMakeDecision) {
+      setShowUpgradeModal(true);
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
@@ -619,12 +640,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           };
           await decisionService.saveToHistory(user.id, historyRequest, result, user.subscriptionTier);
         }
+        await checkAccess({ showPaywallIfBlocked: true });
       }
 
       setResponse(result);
       setStep('response');
     } catch (error: any) {
-      if (error.limitCopy || error.message?.includes("your decision for today")) {
+      if (error.limitCopy || error.message?.includes("your decision for today") || error.status === 429) {
+        await checkAccess({ showPaywallIfBlocked: true });
         Alert.alert(
           t('askStylist.unableToSubmit'),
           error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
@@ -635,14 +658,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             },
             {
               text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
-              onPress: () => {
-                const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
-                if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
-                  navigation.navigate('Subscription' as never);
-                } else {
-                  navigation.navigate(redirectUrl.replace('/', '') as never);
-                }
-              },
+              onPress: openSubscriptionFromPaywall,
             },
           ]
         );
@@ -1800,11 +1816,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         visible={showUpgradeModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowUpgradeModal(false)}
+        onRequestClose={dismissPaywallWithoutUnlock}
       >
         <Pressable
           style={styles.modalOverlay}
-          onPress={() => setShowUpgradeModal(false)}
+          onPress={dismissPaywallWithoutUnlock}
         >
           <Pressable style={styles.upgradeModal} onPress={e => e.stopPropagation()}>
             <LinearGradient
@@ -1821,10 +1837,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 {accessStatus?.reason || "Upgrade for unlimited stylist decisions."}
               </ThemedText>
               <Pressable
-                onPress={() => {
-                  setShowUpgradeModal(false);
-                  navigation.navigate('Subscription');
-                }}
+                onPress={openSubscriptionFromPaywall}
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
@@ -1832,7 +1845,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 </ThemedText>
               </Pressable>
               <Pressable
-                onPress={() => setShowUpgradeModal(false)}
+                onPress={dismissPaywallWithoutUnlock}
                 style={styles.maybeLaterButton}
               >
                 <ThemedText style={styles.maybeLaterText}>

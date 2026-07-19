@@ -1,14 +1,26 @@
-import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, Alert, Image, ScrollView, Modal } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Pressable,
+  Alert,
+  Image,
+  ScrollView,
+  Modal,
+  InteractionManager,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
+import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness, Gender, StylistId, VoicePitch } from "@/contexts/AuthContext";
 import { getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
@@ -48,6 +60,7 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
 ];
 
 const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string }[] = [
+  { id: "none", name: "None / Doesn't apply" },
   { id: "hijab-friendly", name: "Hijab-Friendly" },
   { id: "tzniut", name: "Tzniut" },
   { id: "lds-modest", name: "LDS Modest" },
@@ -58,6 +71,7 @@ const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string }[] = [
 ];
 
 const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string }[] = [
+  { id: "none", name: "None / Doesn't apply" },
   { id: "goth", name: "Goth" },
   { id: "emo", name: "Emo" },
   { id: "punk", name: "Punk" },
@@ -117,10 +131,48 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const [showSubculturePicker, setShowSubculturePicker] = useState(false);
   const [showStylistPicker, setShowStylistPicker] = useState(false);
 
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
+  const scrollYRef = useRef(0);
+
   const stylists = getAllStylists();
   const selectedStylist = stylists.find((s) => s.id === selectedStylistId);
 
   const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage, t);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  /** Page-sheet modals + KeyboardAwareScrollView often jump to top on dismiss; restore scrollY. */
+  const restoreScrollPosition = useCallback(() => {
+    const y = scrollYRef.current;
+    InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo?.({ y, animated: false });
+      });
+    });
+  }, []);
+
+  const closeDressCodePicker = useCallback(() => {
+    setShowDressCodePicker(false);
+    restoreScrollPosition();
+  }, [restoreScrollPosition]);
+
+  const closeSubculturePicker = useCallback(() => {
+    setShowSubculturePicker(false);
+    restoreScrollPosition();
+  }, [restoreScrollPosition]);
+
+  const closeStylistPicker = useCallback(() => {
+    setShowStylistPicker(false);
+    restoreScrollPosition();
+  }, [restoreScrollPosition]);
+
+  const closeCountryPicker = useCallback(() => {
+    setShowCountryPicker(false);
+    setCountrySearch("");
+    restoreScrollPosition();
+  }, [restoreScrollPosition]);
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -211,10 +263,13 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         extendedPreferences: {
           ...user?.extendedPreferences,
           culturalStyle: {
-            dressCodePreference,
+            dressCodePreference:
+              !dressCodePreference || dressCodePreference === "none" ? null : dressCodePreference,
             religiousOrCulturalDressCode: religiousOrCulturalDressCode.trim() || null,
-            subcultureStyle,
-            dressCodeStrictness,
+            subcultureStyle:
+              !subcultureStyle || subcultureStyle === "none" ? null : subcultureStyle,
+            dressCodeStrictness:
+              !dressCodePreference || dressCodePreference === "none" ? null : dressCodeStrictness,
           },
         },
       } as any);
@@ -243,8 +298,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
   const handleSelectCountry = (selectedCountry: string) => {
     setCountry(selectedCountry);
-    setShowCountryPicker(false);
-    setCountrySearch("");
+    closeCountryPicker();
   };
 
   const inputStyle = [
@@ -256,7 +310,13 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   ];
 
   return (
-    <ScreenKeyboardAwareScrollView>
+    <>
+    <ScreenKeyboardAwareScrollView
+      ref={scrollRef}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      disableScrollOnKeyboardHide
+    >
       <View style={styles.avatarSection}>
         <Pressable onPress={handleAvatarPress}>
           <View style={[styles.avatarContainer, { backgroundColor: theme.backgroundDefault }]}>
@@ -277,7 +337,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
       <View style={styles.fieldContainer}>
         <ThemedText type="small" style={styles.label}>
-          Display Name
+          {t('editProfile.displayName') || 'Display Name'}
         </ThemedText>
         <TextInput
           style={inputStyle}
@@ -288,6 +348,29 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           autoCapitalize="words"
           returnKeyType="done"
         />
+      </View>
+
+      <View style={styles.fieldContainer}>
+        <ThemedText type="small" style={styles.label}>
+          {t('editProfile.email') || t('settings.email') || 'Email'}
+        </ThemedText>
+        <View
+          style={[
+            styles.readOnlyField,
+            {
+              backgroundColor: theme.backgroundDefault,
+              opacity: 0.85,
+            },
+          ]}
+        >
+          <ThemedText type="body" style={styles.readOnlyFieldText} numberOfLines={1}>
+            {user?.email || (t('settings.notSet') || 'Not set')}
+          </ThemedText>
+        </View>
+        <ThemedText type="small" style={[styles.sectionHint, styles.emailReadOnlyHint]}>
+          {t('editProfile.emailReadOnlyHint') ||
+            "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it."}
+        </ThemedText>
       </View>
 
       <View style={styles.fieldContainer}>
@@ -314,64 +397,6 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
         </Pressable>
       </View>
-
-      <Modal
-        visible={showCountryPicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowCountryPicker(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={styles.modalHeader}>
-            <ThemedText type="h2">Select Country</ThemedText>
-            <Pressable
-              onPress={() => {
-                setShowCountryPicker(false);
-                setCountrySearch("");
-              }}
-              style={styles.closeButton}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-          </View>
-          <View style={styles.searchContainer}>
-            <Feather name="search" size={18} color={theme.tabIconDefault} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
-              value={countrySearch}
-              onChangeText={setCountrySearch}
-              placeholder={t('common.searchCountries') || "Search countries..."}
-              placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-              autoCapitalize="none"
-            />
-          </View>
-          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-            {filteredCountries.map((c) => (
-              <Pressable
-                key={c}
-                onPress={() => handleSelectCountry(c)}
-                style={({ pressed }) => [
-                  styles.countryItem,
-                  {
-                    backgroundColor: country === c ? theme.link : theme.backgroundDefault,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  type="body"
-                  style={{ color: country === c ? "#FFFFFF" : theme.text }}
-                >
-                  {getLocalizedCountryName(c, currentLanguage, t)}
-                </ThemedText>
-                {country === c ? (
-                  <Feather name="check" size={18} color="#FFFFFF" />
-                ) : null}
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
@@ -426,67 +451,6 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           </ThemedText>
         ) : null}
       </View>
-
-      <Modal
-        visible={showStylistPicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowStylistPicker(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={styles.modalHeader}>
-            <ThemedText type="h2">Personal Stylist</ThemedText>
-            <Pressable
-              onPress={() => setShowStylistPicker(false)}
-              style={styles.closeButton}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-          </View>
-          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-            {stylists.map((stylist) => (
-              <Pressable
-                key={stylist.id}
-                onPress={() => {
-                  setSelectedStylistId(stylist.id as StylistId);
-                  setShowStylistPicker(false);
-                }}
-                style={({ pressed }) => [
-                  styles.stylistPickerItem,
-                  {
-                    backgroundColor: selectedStylistId === stylist.id ? theme.link : theme.backgroundDefault,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <View style={[styles.stylistPickerDot, { backgroundColor: stylist.color }]} />
-                <View style={styles.stylistPickerInfo}>
-                  <ThemedText
-                    type="body"
-                    style={{
-                      color: selectedStylistId === stylist.id ? "#FFFFFF" : theme.text,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {stylist.name}
-                  </ThemedText>
-                  <ThemedText
-                    type="small"
-                    style={{
-                      color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.85)" : theme.tabIconDefault,
-                    }}
-                  >
-                    {stylist.tagline}
-                  </ThemedText>
-                </View>
-                {selectedStylistId === stylist.id ? (
-                  <Feather name="check" size={18} color="#FFFFFF" />
-                ) : null}
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
@@ -584,7 +548,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           Cultural & Style Preferences
         </ThemedText>
         <ThemedText type="small" style={styles.sectionHint}>
-          Help Ruby and Max respect your dress code in all recommendations
+          Help the stylists respect your dress code in all recommendations
         </ThemedText>
       </View>
 
@@ -599,61 +563,19 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           onPress={() => setShowDressCodePicker(true)}
           style={[styles.pickerButton, { backgroundColor: theme.backgroundDefault }]}
         >
-          <ThemedText type="body" style={{ color: dressCodePreference ? theme.text : theme.tabIconDefault }}>
-            {dressCodePreference 
-              ? DRESS_CODE_OPTIONS.find(d => d.id === dressCodePreference)?.name || "Select..." 
+          <ThemedText
+            type="body"
+            style={{
+              color: dressCodePreference ? theme.text : theme.tabIconDefault,
+            }}
+          >
+            {dressCodePreference
+              ? DRESS_CODE_OPTIONS.find((d) => d.id === dressCodePreference)?.name || "Select..."
               : "Select dress code preference..."}
           </ThemedText>
           <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
         </Pressable>
       </View>
-
-      <Modal
-        visible={showDressCodePicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowDressCodePicker(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={styles.modalHeader}>
-            <ThemedText type="h2">Dress Code Preference</ThemedText>
-            <Pressable
-              onPress={() => setShowDressCodePicker(false)}
-              style={styles.closeButton}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-          </View>
-          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-            {DRESS_CODE_OPTIONS.map((option) => (
-              <Pressable
-                key={option.id}
-                onPress={() => {
-                  setDressCodePreference(option.id === "none" ? null : option.id);
-                  setShowDressCodePicker(false);
-                }}
-                style={({ pressed }) => [
-                  styles.countryItem,
-                  {
-                    backgroundColor: dressCodePreference === option.id ? theme.link : theme.backgroundDefault,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  type="body"
-                  style={{ color: dressCodePreference === option.id ? "#FFFFFF" : theme.text }}
-                >
-                  {option.name}
-                </ThemedText>
-                {dressCodePreference === option.id ? (
-                  <Feather name="check" size={18} color="#FFFFFF" />
-                ) : null}
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
 
       <View style={styles.fieldContainer}>
         <ThemedText type="small" style={styles.label}>
@@ -685,61 +607,19 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           onPress={() => setShowSubculturePicker(true)}
           style={[styles.pickerButton, { backgroundColor: theme.backgroundDefault }]}
         >
-          <ThemedText type="body" style={{ color: subcultureStyle ? theme.text : theme.tabIconDefault }}>
-            {subcultureStyle 
-              ? SUBCULTURE_OPTIONS.find(s => s.id === subcultureStyle)?.name || "Select..." 
+          <ThemedText
+            type="body"
+            style={{
+              color: subcultureStyle ? theme.text : theme.tabIconDefault,
+            }}
+          >
+            {subcultureStyle
+              ? SUBCULTURE_OPTIONS.find((s) => s.id === subcultureStyle)?.name || "Select..."
               : "Select subculture style..."}
           </ThemedText>
           <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
         </Pressable>
       </View>
-
-      <Modal
-        visible={showSubculturePicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowSubculturePicker(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={styles.modalHeader}>
-            <ThemedText type="h2">Subculture Style</ThemedText>
-            <Pressable
-              onPress={() => setShowSubculturePicker(false)}
-              style={styles.closeButton}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-          </View>
-          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-            {SUBCULTURE_OPTIONS.map((option) => (
-              <Pressable
-                key={option.id}
-                onPress={() => {
-                  setSubcultureStyle(option.id === "none" ? null : option.id);
-                  setShowSubculturePicker(false);
-                }}
-                style={({ pressed }) => [
-                  styles.countryItem,
-                  {
-                    backgroundColor: subcultureStyle === option.id ? theme.link : theme.backgroundDefault,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  type="body"
-                  style={{ color: subcultureStyle === option.id ? "#FFFFFF" : theme.text }}
-                >
-                  {option.name}
-                </ThemedText>
-                {subcultureStyle === option.id ? (
-                  <Feather name="check" size={18} color="#FFFFFF" />
-                ) : null}
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
@@ -802,6 +682,216 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         {isSaving ? "Saving..." : "Save Changes"}
       </Button>
     </ScreenKeyboardAwareScrollView>
+
+    <Modal
+      visible={showCountryPicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={closeCountryPicker}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={styles.modalHeader}>
+          <ThemedText type="h2">Select Country</ThemedText>
+          <Pressable onPress={closeCountryPicker} style={styles.closeButton}>
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+        </View>
+        <View style={styles.searchContainer}>
+          <Feather name="search" size={18} color={theme.tabIconDefault} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            value={countrySearch}
+            onChangeText={setCountrySearch}
+            placeholder={t('common.searchCountries') || "Search countries..."}
+            placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+            autoCapitalize="none"
+          />
+        </View>
+        <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+          {filteredCountries.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => handleSelectCountry(c)}
+              style={({ pressed }) => [
+                styles.countryItem,
+                {
+                  backgroundColor: country === c ? theme.link : theme.backgroundDefault,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <ThemedText
+                type="body"
+                style={{ color: country === c ? "#FFFFFF" : theme.text }}
+              >
+                {getLocalizedCountryName(c, currentLanguage, t)}
+              </ThemedText>
+              {country === c ? (
+                <Feather name="check" size={18} color="#FFFFFF" />
+              ) : null}
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+
+    <Modal
+      visible={showStylistPicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={closeStylistPicker}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={styles.modalHeader}>
+          <ThemedText type="h2">Personal Stylist</ThemedText>
+          <Pressable onPress={closeStylistPicker} style={styles.closeButton}>
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+        </View>
+        <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+          {stylists.map((stylist) => (
+            <Pressable
+              key={stylist.id}
+              onPress={() => {
+                setSelectedStylistId(stylist.id as StylistId);
+                closeStylistPicker();
+              }}
+              style={({ pressed }) => [
+                styles.stylistPickerItem,
+                {
+                  backgroundColor: selectedStylistId === stylist.id ? theme.link : theme.backgroundDefault,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <View style={[styles.stylistPickerDot, { backgroundColor: stylist.color }]} />
+              <View style={styles.stylistPickerInfo}>
+                <ThemedText
+                  type="body"
+                  style={{
+                    color: selectedStylistId === stylist.id ? "#FFFFFF" : theme.text,
+                    fontWeight: "600",
+                  }}
+                >
+                  {stylist.name}
+                </ThemedText>
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.85)" : theme.tabIconDefault,
+                  }}
+                >
+                  {stylist.tagline}
+                </ThemedText>
+              </View>
+              {selectedStylistId === stylist.id ? (
+                <Feather name="check" size={18} color="#FFFFFF" />
+              ) : null}
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+
+    <Modal
+      visible={showDressCodePicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={closeDressCodePicker}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={styles.modalHeader}>
+          <ThemedText type="h2">Dress Code Preference</ThemedText>
+          <Pressable onPress={closeDressCodePicker} style={styles.closeButton}>
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+        </View>
+        <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+          {DRESS_CODE_OPTIONS.map((option) => {
+            const isSelected = dressCodePreference === option.id;
+            return (
+              <Pressable
+                key={String(option.id)}
+                onPress={() => {
+                  if (option.id === "none") {
+                    setDressCodePreference("none");
+                    setDressCodeStrictness(null);
+                  } else {
+                    setDressCodePreference(option.id);
+                  }
+                  closeDressCodePicker();
+                }}
+                style={({ pressed }) => [
+                  styles.countryItem,
+                  {
+                    backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="body"
+                  style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                >
+                  {option.name}
+                </ThemedText>
+                {isSelected ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
+
+    <Modal
+      visible={showSubculturePicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={closeSubculturePicker}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={styles.modalHeader}>
+          <ThemedText type="h2">Subculture Style</ThemedText>
+          <Pressable onPress={closeSubculturePicker} style={styles.closeButton}>
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+        </View>
+        <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+          {SUBCULTURE_OPTIONS.map((option) => {
+            const isSelected = subcultureStyle === option.id;
+            return (
+              <Pressable
+                key={String(option.id)}
+                onPress={() => {
+                  setSubcultureStyle(option.id === "none" ? "none" : option.id);
+                  closeSubculturePicker();
+                }}
+                style={({ pressed }) => [
+                  styles.countryItem,
+                  {
+                    backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="body"
+                  style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                >
+                  {option.name}
+                </ThemedText>
+                {isSelected ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -850,6 +940,19 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     fontSize: Typography.body.fontSize,
+  },
+  readOnlyField: {
+    height: Spacing.inputHeight,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    justifyContent: "center",
+  },
+  readOnlyFieldText: {
+    opacity: 0.85,
+  },
+  emailReadOnlyHint: {
+    marginTop: Spacing.sm,
+    marginBottom: 0,
   },
   section: {
     marginBottom: Spacing.xl,

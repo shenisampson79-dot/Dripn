@@ -165,7 +165,12 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: t('feedback.screenTitle') })}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('feedback.screenTitle'),
+        })}
       />
       <Stack.Screen
         name="CommunityVoting"
@@ -188,10 +193,12 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="DFYStart"
         component={DFYStartScreen}
-        options={{
-          title: t('dfy.start.headerDefault'),
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('dfy.start.headerDefault') || 'Done-For-You Setup',
+        })}
       />
       <Stack.Screen
         name="DFYUpload"

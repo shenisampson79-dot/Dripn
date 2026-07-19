@@ -16,6 +16,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, PostType, PostMedia, POLL_TIME_FRAMES } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { getNavigationRef } from "@/components/ErrorFallback";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 interface CreatePostScreenProps {
   onClose: () => void;
@@ -27,6 +29,16 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
   const { t } = useTranslations();
   const { user } = useAuth();
   const { createPost } = usePosts();
+
+  const openSubscriptionFromPaywall = () => {
+    // Close modal only — do NOT clear usage counters / unlock gated actions
+    onClose();
+    const rootNav = getNavigationRef();
+    if (rootNav?.isReady()) {
+      navigateToSubscription(rootNav, "personal_stylist");
+    }
+  };
+
   const { 
     tier, 
     limits, 
@@ -80,7 +92,10 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       const isVideo = asset.type === 'video';
       
       if (isVideo && !limits.canUploadVideo) {
-        Alert.alert(t('community.upgradeRequired'), t('community.videoUploadsAreAvailableOnPersonalStylis'));
+        Alert.alert(t('community.upgradeRequired'), t('community.videoUploadsAreAvailableOnPersonalStylis'), [
+          { text: t('common.cancel'), style: "cancel" },
+          { text: t('common.upgrade'), onPress: openSubscriptionFromPaywall },
+        ]);
         return;
       }
 
@@ -132,7 +147,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     if (!limits.canUploadVideo) {
       Alert.alert(t('community.upgradeRequired'), t('community.videoRecordingIsAvailableOnPersonalStyli'), [
         { text: t('common.cancel'), style: "cancel" },
-        { text: t('common.upgrade'), onPress: () => onClose() },
+        { text: t('common.upgrade'), onPress: openSubscriptionFromPaywall },
       ]);
       return;
     }
@@ -179,7 +194,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         t('community.uploadLimitMessage').replace('{n}', String(limits.uploadsPerMonth)),
         [
           { text: t('common.cancel'), style: "cancel" },
-          { text: t('common.upgrade'), onPress: () => onClose() },
+          { text: t('common.upgrade'), onPress: openSubscriptionFromPaywall },
         ]
       );
       return;
@@ -197,7 +212,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
           t('community.pollLimitMessage').replace('{n}', String(limits.comparisonPollsPerMonth)),
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: t('common.upgrade'), onPress: () => onClose() },
+            { text: t('common.upgrade'), onPress: openSubscriptionFromPaywall },
           ]
         );
         return;
@@ -219,7 +234,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         t('community.stylistAdviceLimitMessage').replace('{n}', String(limits.aiAdvicePerMonth)),
         [
           { text: t('common.postAnyway'), onPress: () => setRequestAIAdvice(false) },
-          { text: t('common.upgrade'), onPress: () => onClose() },
+          { text: t('common.upgrade'), onPress: openSubscriptionFromPaywall },
         ]
       );
       return;

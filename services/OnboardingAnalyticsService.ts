@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_URL } from '@/config/api';
+import { hasAnalyticsConsent } from '@/utils/analyticsConsent';
 const SESSION_ID_KEY = '@dripn_onboarding_session_id';
 
 type VariationType = 'positioning' | 'trust' | 'control';
@@ -48,6 +49,9 @@ class OnboardingAnalyticsService {
     initialContext?: InitialContext
   ): Promise<void> {
     try {
+      // Optional first-party analytics — do not send without consent
+      if (!(await hasAnalyticsConsent())) return;
+
       const sessionId = await this.getSessionId();
       
       const payload: AnalyticsPayload = {

@@ -41,7 +41,7 @@ const PARTNER_OPTIONS: PartnerOption[] = [
       "Connect with fashion-forward clients",
     ],
     gradientColors: ["#E91E63", "#9C27B0"],
-    email: "stylists@dripn.app",
+    email: "stylists@dripnapp.com",
   },
   {
     id: "brand",
@@ -56,7 +56,7 @@ const PARTNER_OPTIONS: PartnerOption[] = [
       "Exclusive brand showcase events",
     ],
     gradientColors: ["#2196F3", "#00BCD4"],
-    email: "partnerships@dripn.app",
+    email: "partnerships@dripnapp.com",
   },
   {
     id: "influencer",
@@ -71,7 +71,7 @@ const PARTNER_OPTIONS: PartnerOption[] = [
       "Monetization opportunities",
     ],
     gradientColors: ["#FF9800", "#FF5722"],
-    email: "influencers@dripn.app",
+    email: "influencers@dripnapp.com",
   },
 ];
 
@@ -171,7 +171,7 @@ export default function PartnerScreen({ navigation }: PartnerScreenProps) {
           Have Questions?
         </ThemedText>
         <ThemedText type="body" style={[styles.footerText, { color: theme.tabIconDefault }]}>
-          Our partnership team is here to help. Reach out to us at partnerships@dripn.app and we'll get back to you within 24 hours.
+          Our partnership team is here to help. Reach out to us at partnerships@dripnapp.com and we'll get back to you within 24 hours.
         </ThemedText>
       </View>
     </ScreenScrollView>

@@ -55,6 +55,7 @@ export function resolveGeneratedOutfitItemIds(
     hydratedItems?: Array<{ id?: string | number }>;
   },
   wardrobeItems: WardrobeItem[],
+  occasionType?: OutfitOccasionId | 'todays_look',
 ): string[] {
   const wardrobeIds = new Set(wardrobeItems.map((item) => String(item.id)));
   const pickIds = (rows?: Array<{ id?: string | number }>) =>
@@ -65,7 +66,7 @@ export function resolveGeneratedOutfitItemIds(
   const fromHydrated = pickIds(result.hydratedItems);
   const rawIds = fromHydrated.length > 0 ? fromHydrated : pickIds(result.outfit?.items);
   return orderItemIdsByVisualOrder(
-    completeOutfitItemIds([...new Set(rawIds)], wardrobeItems),
+    completeOutfitItemIds([...new Set(rawIds)], wardrobeItems, occasionType),
     wardrobeItems,
   );
 }
@@ -113,7 +114,7 @@ export async function generateWardrobeOutfit(params: {
     throw new Error(result.message || 'Unable to generate outfit');
   }
 
-  const completedIds = resolveGeneratedOutfitItemIds(result, wardrobeItems);
+  const completedIds = resolveGeneratedOutfitItemIds(result, wardrobeItems, occasionType);
   const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
   const displayItems = sortOutfitItemsByVisualOrder(
     completedIds

@@ -1,4 +1,6 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
 
 export const MIN_OUTFIT_ITEMS = 4;
 
@@ -64,6 +66,7 @@ export function wardrobeCanBuildCompleteOutfit(wardrobe: OutfitItemLike[]): bool
 export function completeOutfitItemIds(
   selectedIds: string[],
   wardrobe: OutfitItemLike[],
+  occasion?: OutfitOccasionId | 'todays_look',
 ): string[] {
   const byId = new Map(wardrobe.map((item) => [String(item.id), item]));
   const result: string[] = [];
@@ -75,7 +78,10 @@ export function completeOutfitItemIds(
     return true;
   };
 
-  for (const id of selectedIds) add(String(id));
+  for (const id of selectedIds) {
+    const item = byId.get(String(id));
+    if (item && passesEditorialOccasionGate(item, occasion)) add(String(id));
+  }
 
   const inOutfit = (): OutfitItemLike[] =>
     result.map((id) => byId.get(id)).filter(Boolean) as OutfitItemLike[];
@@ -83,7 +89,9 @@ export function completeOutfitItemIds(
   const available = () => wardrobe.filter((item) => !result.includes(String(item.id)));
 
   const pickFirst = (predicate: (item: OutfitItemLike) => boolean): boolean => {
-    const found = available().find(predicate);
+    const found = available().find(
+      (item) => predicate(item) && passesEditorialOccasionGate(item, occasion),
+    );
     return found ? add(String(found.id)) : false;
   };
 

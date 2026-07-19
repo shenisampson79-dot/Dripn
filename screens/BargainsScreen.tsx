@@ -25,6 +25,7 @@ import {
 import { shareDeal, getDealShareMessage, DealShareInfo, ShareResult } from "@/services/SharingService";
 import type { BargainsStackParamList } from "@/navigation/BargainsStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type BargainsScreenProps = {
   navigation: NativeStackNavigationProp<BargainsStackParamList, 'Bargains'>;
@@ -229,17 +230,24 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
         ) : null}
 
         {!isPremium ? (
-          <Card style={styles.upgradeCard}>
-            <View style={styles.upgradeContent}>
-              <Feather name="star" size={24} color={theme.link} />
-              <View style={styles.upgradeText}>
-                <ThemedText type="h3">Unlock All Deals</ThemedText>
-                <ThemedText type="small" style={{ opacity: 0.7 }}>
-                  Upgrade to Personal Stylist for exclusive luxury bargains up to 90% off
-                </ThemedText>
+          <Pressable
+            onPress={() => navigateToSubscription(navigation, 'personal_stylist')}
+            accessibilityRole="button"
+            accessibilityLabel="Upgrade to Personal Stylist"
+          >
+            <Card style={styles.upgradeCard}>
+              <View style={styles.upgradeContent}>
+                <Feather name="star" size={24} color={theme.link} />
+                <View style={styles.upgradeText}>
+                  <ThemedText type="h3">Unlock All Deals</ThemedText>
+                  <ThemedText type="small" style={{ opacity: 0.7 }}>
+                    Upgrade to Personal Stylist for exclusive luxury bargains up to 90% off
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
               </View>
-            </View>
-          </Card>
+            </Card>
+          </Pressable>
         ) : null}
 
         <View style={styles.dealsContainer}>

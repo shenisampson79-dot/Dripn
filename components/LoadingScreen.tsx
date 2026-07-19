@@ -5,12 +5,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { Spacing } from '@/constants/theme';
 import { useTranslations } from "@/contexts/TranslationContext";
 
+/** Matches expo-splash-screen backgroundColor in app.json (seamless handoff fallback). */
+const SPLASH_BG_LIGHT = '#FFF9F0';
+const SPLASH_BG_DARK = '#0D0B09';
+
 export function LoadingScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? SPLASH_BG_DARK : SPLASH_BG_LIGHT }]}>
       <ThemedText style={styles.appName}>Dripn</ThemedText>
       
       <Image

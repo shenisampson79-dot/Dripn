@@ -128,7 +128,7 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color="#FFFFFF" />
+          <Feather name="arrow-left" size={20} color="#1A1A1A" />
         </Pressable>
       </View>
 
@@ -188,6 +188,8 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.72)",
     alignItems: "center",
     justifyContent: "center",
   },

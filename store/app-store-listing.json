@@ -84,7 +84,7 @@
     ]
   },
   "reviewNotes": {
-    "demoEmailEnv": "APP_REVIEW_EMAIL (default review@dripn.app)",
+    "demoEmailEnv": "APP_REVIEW_EMAIL (default review@dripnapp.com)",
     "demoPasswordEnv": "APP_REVIEW_PASSWORD",
     "privacyUrl": "https://dripnapp.com/privacy",
     "termsUrl": "https://dripnapp.com/terms",

@@ -21,6 +21,7 @@ import { dfyService } from "@/services/DFYService";
 import { currencyService } from "@/services/CurrencyService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 interface SecondOpinionButtonProps {
   outfitOptions: OutfitOption[];
@@ -149,7 +150,7 @@ export function SecondOpinionButton({
 
   const handleUpgradePress = () => {
     setShowLockedModal(false);
-    navigation.navigate("ProfileStack", { screen: "Subscription" });
+    navigateToSubscription(navigation, 'personal_stylist');
   };
 
   const renderLockedModal = () => {

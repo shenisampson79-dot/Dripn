@@ -27,7 +27,7 @@
     <div class="container">
       <div class="legal-content">
         <h1>Privacy Policy</h1>
-        <p class="legal-meta">Effective Date: December 7, 2025 | Last Updated: December 7, 2025</p>
+        <p class="legal-meta">Effective Date: December 7, 2025 | Last Updated: July 16, 2026</p>
 
         <p>Welcome to Dripn. Your privacy is important to us. This Privacy Policy explains how Dripn ("we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our mobile application and related services (collectively, the "Service").</p>
         
@@ -40,7 +40,7 @@
         <ul>
           <li>Account information: name, email address, password, gender, and country</li>
           <li>Profile information: profile photo, style preferences, body measurements, and fashion interests</li>
-          <li>Content: photos, videos, outfit posts, comments, and voice recordings you share</li>
+          <li>Content: photos, wardrobe images, comments, and voice recordings you share</li>
           <li>Communications: messages, feedback, and support requests</li>
           <li>Payment information: billing details processed securely through Stripe</li>
         </ul>
@@ -55,7 +55,7 @@
         </ul>
 
         <h3>1.3 Information from Third Parties</h3>
-        <p>We may receive information from third-party services you connect, such as social media platforms for login or sharing purposes.</p>
+        <p>We may receive information from third-party services you connect, such as Apple or Google for sign-in, or other services you choose to link.</p>
 
         <h2>2. How We Use Your Information</h2>
         <p>We use the information we collect to:</p>
@@ -64,7 +64,7 @@
           <li>Personalize your experience with AI-powered fashion recommendations</li>
           <li>Process subscriptions and payments securely</li>
           <li>Display regionally and gender-appropriate fashion content</li>
-          <li>Send notifications about your account, posts, and community activity</li>
+          <li>Send notifications about your account and styling updates</li>
           <li>Respond to your inquiries and provide customer support</li>
           <li>Detect, prevent, and address fraud, abuse, and security issues</li>
           <li>Comply with legal obligations and enforce our Terms of Service</li>
@@ -107,7 +107,7 @@
           <li>Opt-out: Disable marketing communications and AI suggestions</li>
           <li>Restriction: Limit how we process your data</li>
         </ul>
-        <p>To exercise these rights, contact us at privacy@dripn.app or use the in-app Settings.</p>
+        <p>To exercise these rights: use <strong>Settings → Download my data</strong> in the app for access/portability, <strong>Settings → Account Actions → Delete Account</strong> for erasure, or contact us at privacy@dripnapp.com.</p>
 
         <h2>7. Data Security</h2>
         <p>We implement industry-standard security measures to protect your information, including:</p>
@@ -134,20 +134,20 @@
         <h2>12. Contact Us</h2>
         <p>If you have questions about this Privacy Policy or our data practices, please contact us:</p>
         <div class="contact-info">
-          <p><strong>Email:</strong> privacy@dripn.app</p>
-          <p><strong>Support:</strong> support@dripn.app</p>
+          <p><strong>Email:</strong> privacy@dripnapp.com</p>
+          <p><strong>Support:</strong> support@dripnapp.com</p>
         </div>
 
         <h2>13. Region-Specific Provisions</h2>
 
         <h3>For European Users (GDPR)</h3>
-        <p>If you are in the European Economic Area, you have additional rights under GDPR including the right to lodge a complaint with your local data protection authority. Our legal bases for processing include consent, contract performance, and legitimate interests.</p>
+        <p>If you are in the European Economic Area, you have additional rights under GDPR including the right to lodge a complaint with your local data protection authority. Our legal bases for processing include consent, contract performance, and legitimate interests. You can download your data in-app (Settings → Download my data) and delete your account in Settings. Operational privacy controls are implemented in our product; contracts with processors (DPAs) are maintained separately. We do not claim third-party “GDPR certification.”</p>
 
         <h3>For California Users (CCPA/CPRA)</h3>
-        <p>California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, email privacy@dripn.app.</p>
+        <p>California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, use in-app Download my data / Delete Account, or email privacy@dripnapp.com.</p>
 
         <h3>For UK Users</h3>
-        <p>UK residents have rights under UK GDPR similar to those in the EEA. You may contact the Information Commissioner's Office (ICO) with any concerns.</p>
+        <p>UK residents have rights under UK GDPR similar to those in the EEA. You may contact the Information Commissioner's Office (ICO) with any concerns. We aim to notify the ICO of qualifying personal data breaches within 72 hours of becoming aware.</p>
       </div>
     </div>
   </section>
@@ -170,9 +170,9 @@
         <div class="footer-column">
           <h4>Company</h4>
           <ul>
-            <li><a href="mailto:support@dripn.app">Support</a></li>
-            <li><a href="mailto:press@dripn.app">Press</a></li>
-            <li><a href="mailto:careers@dripn.app">Careers</a></li>
+            <li><a href="mailto:support@dripnapp.com">Support</a></li>
+            <li><a href="mailto:press@dripnapp.com">Press</a></li>
+            <li><a href="mailto:careers@dripnapp.com">Careers</a></li>
           </ul>
         </div>
         <div class="footer-column">
@@ -188,10 +188,34 @@
         <div class="footer-links">
           <a href="privacy.html">Privacy</a>
           <a href="terms.html">Terms</a>
-          <a href="mailto:support@dripn.app">Contact</a>
+          <a href="mailto:support@dripnapp.com">Contact</a>
         </div>
       </div>
     </div>
   </footer>
+  <div id="cookie-banner" class="cookie-banner" hidden>
+    <div class="cookie-banner-inner">
+      <p>We use a preference cookie only to remember your choice. We do not currently load non-essential analytics cookies. <a href="privacy.html">Privacy Policy</a></p>
+      <div class="cookie-banner-actions">
+        <button type="button" id="cookie-reject" class="cookie-btn cookie-btn-secondary">Reject</button>
+        <button type="button" id="cookie-accept" class="cookie-btn cookie-btn-primary">Accept</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var KEY = 'dripn_cookie_consent';
+      var banner = document.getElementById('cookie-banner');
+      if (!banner) return;
+      try { if (localStorage.getItem(KEY)) return; } catch (e) {}
+      banner.hidden = false;
+      function save(value) {
+        try { localStorage.setItem(KEY, value); } catch (e) {}
+        banner.hidden = true;
+      }
+      document.getElementById('cookie-accept').addEventListener('click', function () { save('accepted'); });
+      document.getElementById('cookie-reject').addEventListener('click', function () { save('rejected'); });
+    })();
+  </script>
 </body>
 </html>

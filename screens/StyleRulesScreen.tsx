@@ -386,6 +386,7 @@ const styles = StyleSheet.create({
   },
   contextCard: {
     marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.md,
   },

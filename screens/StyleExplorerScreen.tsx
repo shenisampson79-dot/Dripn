@@ -393,11 +393,6 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
     setIsUpdating(true);
     try {
       await updateProfile({ stylePreference: styleToSave });
-      Alert.alert(
-        t('discover.styleUpdated'),
-        t('discover.styleUpdatedMessage').replace('{name}', currentStyle.name),
-        [{ text: t('common.great'), onPress: () => navigation.goBack() }]
-      );
     } catch (error) {
       Alert.alert(t('common.error'), t('discover.couldNotUpdateYourStylePleaseTryAgain'));
     } finally {

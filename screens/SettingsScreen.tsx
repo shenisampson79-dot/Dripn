@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView, TextInput } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView, TextInput, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Clipboard from "expo-clipboard";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -40,6 +42,10 @@ import {
   type TodaysOutfitOccasionPref,
   type TodaysOutfitPopupPrefs,
 } from "@/utils/todaysOutfitPrefs";
+import {
+  getAnalyticsConsent,
+  setAnalyticsConsent,
+} from "@/utils/analyticsConsent";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -154,6 +160,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
   
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
+  const [analyticsConsentEnabled, setAnalyticsConsentEnabled] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
   const [pickerModal, setPickerModal] = useState<{ type: 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
   const [stylistLanguagePickerVisible, setStylistLanguagePickerVisible] = useState(false);
@@ -316,6 +324,33 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     if (result.success) setReferralCodeInput('');
   };
 
+  const handleEmailPress = () => {
+    const supportEmail = 'support@dripnapp.com';
+    Alert.alert(
+      t('settings.emailChangeTitle') || 'Change email',
+      t('settings.emailChangeMessage') ||
+        "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
+      [
+        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+        {
+          text: t('settings.emailContactSupport') || 'Email support',
+          onPress: () => {
+            const mailtoUrl = `mailto:${supportEmail}?subject=${encodeURIComponent('Change account email')}`;
+            Linking.openURL(mailtoUrl).catch(() => {
+              Alert.alert(
+                t('common.error') || 'Error',
+                (t('settings.emailSupportFallback') || 'Could not open your email app. Please write to {email}.').replace(
+                  '{email}',
+                  supportEmail,
+                ),
+              );
+            });
+          },
+        },
+      ],
+    );
+  };
+
   const handleNewsletterToggle = async (value: boolean) => {
     if (!user?.email) {
       Alert.alert(t('common.error') || "Error", t('common.pleaseAddAnEmailToYourAccountFirst') || "Please add an email to your account first.");
@@ -363,6 +398,62 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         },
       ]
     );
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const consent = await getAnalyticsConsent();
+      if (!cancelled) setAnalyticsConsentEnabled(consent === 'accepted');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleExportMyData = async () => {
+    if (exportingData) return;
+    setExportingData(true);
+    try {
+      await apiService.init();
+      const data = await apiService.exportMyData();
+      const json = JSON.stringify(data, null, 2);
+      const fileName = `dripn-data-export-${Date.now()}.json`;
+      const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (dir) {
+        const path = `${dir}${fileName}`;
+        await FileSystem.writeAsStringAsync(path, json);
+        try {
+          await Share.share({
+            title: t('settings.downloadMyData') || 'Download my data',
+            message: Platform.OS === 'android' ? json.slice(0, 50000) : (t('settings.downloadMyDataShareMessage') || 'My Dripn data export'),
+            url: Platform.OS === 'ios' ? path : undefined,
+          });
+        } catch {
+          await Clipboard.setStringAsync(json.slice(0, 100000));
+          Alert.alert(
+            t('settings.downloadMyData') || 'Download my data',
+            t('settings.downloadMyDataCopied') || 'Export ready. A copy was saved to your clipboard (large exports may be truncated).',
+          );
+        }
+      } else {
+        await Clipboard.setStringAsync(json.slice(0, 100000));
+        Alert.alert(
+          t('settings.downloadMyData') || 'Download my data',
+          t('settings.downloadMyDataCopied') || 'Export copied to clipboard.',
+        );
+      }
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      Alert.alert(t('common.error'), t('settings.downloadMyDataFailed') || 'Could not export your data. Please try again.');
+    } finally {
+      setExportingData(false);
+    }
+  };
+
+  const handleAnalyticsConsentToggle = async (enabled: boolean) => {
+    setAnalyticsConsentEnabled(enabled);
+    await setAnalyticsConsent(enabled ? 'accepted' : 'rejected');
   };
 
   const handleDeleteAccount = () => {
@@ -680,8 +771,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="mail"
             title={t('settings.email')}
-            subtitle={user?.email}
-            onPress={() => {}}
+            subtitle={user?.email || (t('settings.notSet') || 'Not set')}
+            onPress={handleEmailPress}
             showChevron={false}
             theme={theme}
             isDark={isDark}
@@ -1039,6 +1130,35 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
             isDark={isDark}
           />
+          <SettingItem
+            icon="download"
+            title={exportingData ? (t('settings.downloadMyDataLoading') || 'Preparing export…') : (t('settings.downloadMyData') || 'Download my data')}
+            subtitle={t('settings.downloadMyDataSubtitle') || 'Export your account data as JSON'}
+            onPress={handleExportMyData}
+            theme={theme}
+            isDark={isDark}
+            showChevron={!exportingData}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          />
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <View style={[styles.settingIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+              <Feather name="bar-chart-2" size={16} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                {t('settings.optionalAnalytics') || 'Optional analytics'}
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {t('settings.optionalAnalyticsSubtitle') || 'Help improve onboarding. Off by default. Core app works either way.'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={analyticsConsentEnabled}
+              onValueChange={handleAnalyticsConsentToggle}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
+              thumbColor={analyticsConsentEnabled ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
         </View>
       </View>
 

@@ -81,6 +81,21 @@ function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wa
   return 'audio/m4a';
 }
 
+/** Whisper often invents these when the mic captures silence / near-silence. */
+const WHISPER_HALLUCINATION_RE =
+  /^(thanks?\s+for\s+(watching|listening|tuning\s+in)|thank\s+you\s+for\s+(watching|listening)|please\s+subscribe|subscribe\s+now|like\s+and\s+subscribe|bye\.?|goodbye\.?|see\s+you\s+(next\s+time|later)|you'?ve?\s+been\s+watching)[\s!.]*$/i;
+
+function isLikelyEmptyOrHallucinatedTranscript(text: string | null | undefined): boolean {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return true;
+  if (trimmed.length < 2) return true;
+  if (WHISPER_HALLUCINATION_RE.test(trimmed)) return true;
+  return false;
+}
+
+const MIN_VOICE_RECORDING_MS = 700;
+const MIN_AUDIO_BASE64_CHARS = 2800;
+
 /**
  * ApiService.request throws plain Error(message) without status codes.
  * Only retry the slow STT + resilient-chat path on transport / 5xx style failures —
@@ -176,6 +191,7 @@ export function PersonalStylistVoicePanel({
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const listeningStartedAtRef = useRef<number>(0);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   useEffect(() => {
@@ -189,8 +205,28 @@ export function PersonalStylistVoicePanel({
     refreshBalance();
   }, [refreshBalance]);
 
+  // Surface connection/balance errors immediately — never wait for a mic tap that then
+  // looks like "0 credits" because hasCredits is false while remaining defaults to 0.
+  useEffect(() => {
+    if (creditsLoading) return;
+    if (balanceError) {
+      setError(denialMessage);
+      setShowCreditsModal(false);
+      return;
+    }
+    // Drop stale connection/auth-error copy after a successful refresh
+    setError((prev) =>
+      prev && /spoken-reply balance|check your connection|verify your session/i.test(prev) ? null : prev,
+    );
+  }, [balanceError, creditsLoading, denialMessage]);
+
   const playVoiceAudio = async (base64Audio: string) => {
     try {
+      // iOS silent switch / post-record mode — must allow playback before createAudioPlayer
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+      });
       const fileUri = `${FileSystem.cacheDirectory}stylist_voice_${Date.now()}.mp3`;
       await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: 'base64' });
       const player = createAudioPlayer({ uri: fileUri });
@@ -202,8 +238,23 @@ export function PersonalStylistVoicePanel({
           setConversationState('idle');
         }
       });
-    } catch {
-      setConversationState('idle');
+    } catch (playErr) {
+      console.warn('[VoicePanel] Audio playback failed:', playErr);
+      // Fallback: data-URI play (same path chat TTS uses)
+      try {
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        const player = createAudioPlayer({ uri: `data:audio/mp3;base64,${base64Audio}` });
+        player.play();
+        const subscription = player.addListener('playbackStatusUpdate', (status) => {
+          if (status.didJustFinish) {
+            subscription.remove();
+            player.remove();
+            setConversationState('idle');
+          }
+        });
+      } catch {
+        setConversationState('idle');
+      }
     }
   };
 
@@ -243,15 +294,23 @@ export function PersonalStylistVoicePanel({
         throw new Error(denialMessage);
       }
 
+      const recordedMs = Date.now() - (listeningStartedAtRef.current || Date.now());
       await audioRecorder.stop();
-      await setAudioModeAsync({ allowsRecording: false });
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
 
       const uri = audioRecorder.uri;
       if (!uri) throw new Error('No recording found.');
 
+      if (recordedMs < MIN_VOICE_RECORDING_MS) {
+        throw new Error("That was too short — hold the mic and speak, then tap when you're done.");
+      }
+
       setProcessingPhase('transcribing');
       setTranscript('Transcribing…');
       const audioBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+      if (!audioBase64 || audioBase64.length < MIN_AUDIO_BASE64_CHARS) {
+        throw new Error("I couldn't hear anything — try speaking a bit louder.");
+      }
       const mimeType = getMimeTypeFromUri(uri);
       const voiceRange = stylist.gender === 'female' ? 'mezzo-soprano' : 'baritone';
 
@@ -280,8 +339,15 @@ export function PersonalStylistVoicePanel({
           throw creditErr;
         }
 
+        if (response.emptyTranscript || isLikelyEmptyOrHallucinatedTranscript(response.userMessage)) {
+          throw new Error(response.message || "I couldn't catch that — try speaking again.");
+        }
+
         if (response.success !== false && response.aiResponse) {
-          userMessage = response.userMessage || 'Voice message';
+          userMessage = (response.userMessage || '').trim();
+          if (!userMessage) {
+            throw new Error("I couldn't catch that — try speaking again.");
+          }
           aiResponse = response.aiResponse;
           audioBase64Out = response.audioBase64;
           if (response.voiceCredits) {
@@ -294,6 +360,14 @@ export function PersonalStylistVoicePanel({
         if (isNonRetryableVoiceError(primaryErr)) {
           throw primaryErr;
         }
+        if (
+          primaryErr instanceof Error &&
+          (primaryErr.message.includes("couldn't catch") ||
+            primaryErr.message.includes("couldn't hear") ||
+            primaryErr.message.includes('too short'))
+        ) {
+          throw primaryErr;
+        }
 
         // Transport / 5xx only — avoid silently doubling STT+LLM+TTS on credit/auth errors
         console.log('[VoicePanel] Primary voice-chat failed, trying resilient fallback:', primaryErr);
@@ -301,14 +375,14 @@ export function PersonalStylistVoicePanel({
         setTranscript(`${stylistName} is answering…`);
         const transcriptRes = await apiService.transcribeAudio(audioBase64, mimeType, effectiveLanguage);
         const transcribedText = transcriptRes.text?.trim();
-        if (!transcribedText) {
-          throw new Error('Could not understand that — try again.');
+        if (isLikelyEmptyOrHallucinatedTranscript(transcribedText)) {
+          throw new Error("I couldn't catch that — try speaking again.");
         }
 
-        userMessage = transcribedText;
+        userMessage = transcribedText!;
         const chatResponse = await apiService.sendVoiceChatMessage({
           stylistId: stylist.id,
-          message: transcribedText,
+          message: transcribedText!,
           generateVoice: true,
           accent,
           voiceRange,
@@ -336,6 +410,23 @@ export function PersonalStylistVoicePanel({
 
       if (audioBase64Out) {
         await playVoiceAudio(audioBase64Out);
+      } else if (aiResponse) {
+        // Server returned text without audio — synthesize so the user still hears Ace
+        try {
+          const speakRes = await apiService.synthesizeSpeech(aiResponse, {
+            stylistId: stylist.id,
+          });
+          const buf = speakRes.audio?.audioBuffer;
+          if (buf) {
+            await playVoiceAudio(buf);
+          } else {
+            console.warn('[VoicePanel] Speak fallback returned no audio');
+            setConversationState('idle');
+          }
+        } catch (speakErr) {
+          console.warn('[VoicePanel] Speak fallback failed:', speakErr);
+          setConversationState('idle');
+        }
       } else {
         setConversationState('idle');
       }
@@ -374,6 +465,7 @@ export function PersonalStylistVoicePanel({
       }
       setHasPermission(true);
       setConversationState('listening');
+      listeningStartedAtRef.current = Date.now();
 
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       await audioRecorder.prepareToRecordAsync();
@@ -490,10 +582,12 @@ export function PersonalStylistVoicePanel({
           >
             {conversationState === 'processing' ? (
               <ActivityIndicator color="#FFFFFF" size="large" />
+            ) : conversationState === 'speaking' ? (
+              <Feather name="volume-2" size={32} color="#FFFFFF" />
             ) : (
               <Feather
-                name={conversationState === 'listening' ? 'check' : 'mic'}
-                size={32}
+                name={conversationState === 'listening' ? 'square' : 'mic'}
+                size={conversationState === 'listening' ? 28 : 32}
                 color="#FFFFFF"
               />
             )}
