@@ -68,6 +68,8 @@ interface StyleAdvice {
 const CACHED_OUTFITS_KEY = "dripn_cached_outfits";
 const RECOMMENDATION_COUNT_KEY = "dripn_recommendation_count";
 const STYLE_DIRECTION_SET_KEY = "dripn_style_direction_set";
+/** Free browsing picks per Decide-for-me visit before soft signup gate. */
+const FREE_RECOMMENDATION_LIMIT = 3;
 
 const OCCASION_LABEL_KEYS: Record<string, string> = {
   work: "decideForMe.occasion.work",
@@ -252,7 +254,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const { t, currentLanguage } = useTranslations();
   const { user } = useAuth();
   
-  const [step, setStep] = useState<"occasion" | "loading" | "result">("loading");
+  const [step, setStep] = useState<"occasion" | "loading" | "result">("occasion");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -269,8 +271,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     skipOccasion?: boolean;
   } | null>(null);
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
-  const autoStartedRef = useRef(false);
   const recommendationCountRef = useRef(0);
+  const hasSeenResultThisVisitRef = useRef(false);
   const outfitIndexRef = useRef(0);
   const scrollRef = useRef<RNScrollView>(null);
   const expressionInputRef = useRef<TextInput>(null);
@@ -287,17 +289,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   useEffect(() => {
     fetchWeather();
     loadCachedOutfitsCount();
-    loadRecommendationCount();
+    // Fresh Decide-for-me visit: clear stale free-trial count so prior sessions
+    // don't immediately farewell over the first unread recommendation.
+    void resetRecommendationCountForVisit();
     checkStyleDirectionStatus();
     onboardingProfileService.getProfile().then(async (profile) => {
       const synced = await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
       const resolved = { ...profile, ...synced };
       setOnboardingProfile(resolved);
+      // Always land on occasion/context first. Pre-select dressFor if known —
+      // do not auto-generate (user taps Decide).
       if (resolved.dressFor) {
         setSelectedOccasion(DRESS_FOR_TO_OCCASION[resolved.dressFor] || null);
-      } else {
-        setStep("occasion");
       }
+      setStep("occasion");
       if (resolved.quizGender) {
         const direction: StyleDirection =
           resolved.quizGender === 'female' ? 'feminine' : 'masculine';
@@ -355,12 +360,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
-  const loadRecommendationCount = async () => {
+  const resetRecommendationCountForVisit = async () => {
     try {
-      const count = await AsyncStorage.getItem(RECOMMENDATION_COUNT_KEY);
-      recommendationCountRef.current = count ? parseInt(count, 10) : 0;
+      recommendationCountRef.current = 0;
+      hasSeenResultThisVisitRef.current = false;
+      await AsyncStorage.setItem(RECOMMENDATION_COUNT_KEY, "0");
     } catch (error) {
-      console.log("Failed to load recommendation count");
+      console.log("Failed to reset recommendation count");
     }
   };
 
@@ -368,14 +374,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     try {
       recommendationCountRef.current += 1;
       await AsyncStorage.setItem(RECOMMENDATION_COUNT_KEY, recommendationCountRef.current.toString());
-      
+
       if (recommendationCountRef.current === 1 && !styleDirectionSet) {
         setTimeout(() => setShowStyleChips(true), 1500);
       }
-      
-      if (recommendationCountRef.current >= 3) {
-        checkGate();
-      }
+      // Do not show farewell on top of the first unread result — gate on
+      // "Another option" once the free allowance is exhausted.
     } catch (error) {
       console.log("Failed to increment recommendation count");
     }
@@ -413,6 +417,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             onPress: () => {
               setStep("occasion");
               setRecommendation(null);
+              hasSeenResultThisVisitRef.current = false;
+              void resetRecommendationCountForVisit();
             },
           });
         }
@@ -426,6 +432,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           onPress: () => {
             setStep("occasion");
             setRecommendation(null);
+            hasSeenResultThisVisitRef.current = false;
+            void resetRecommendationCountForVisit();
           },
         },
       );
@@ -439,6 +447,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const checkGate = async () => {
+    // Never farewell before the user has had a chance to read a result this visit.
+    if (!hasSeenResultThisVisitRef.current) return;
     try {
       const farewell = await apiService.get<FarewellResponse>("/api/onboarding/farewell?stylist=ruby");
       if (farewell?.browsingEnded) {
@@ -561,6 +571,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           stylistName: "Ruby",
         });
       }
+      hasSeenResultThisVisitRef.current = true;
       setStep("result");
       incrementRecommendationCount();
       generateOutfitImageAsync(outfitDescription, occasionId);
@@ -570,26 +581,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         reasoning: fallbackOutfit.reasoning,
         stylistName: "Ruby",
       });
+      hasSeenResultThisVisitRef.current = true;
       setStep("result");
       incrementRecommendationCount();
       generateOutfitImageAsync(outfitDescription, occasionId);
     }
   }, [onboardingProfile, weather, expressionText, currentLanguage, t]);
 
-  useEffect(() => {
-    if (autoStartedRef.current) return;
-    if (!onboardingProfile?.dressFor || isLoadingWeather) return;
-
-    const occasionId = DRESS_FOR_TO_OCCASION[onboardingProfile.dressFor];
-    if (!occasionId) return;
-
-    autoStartedRef.current = true;
-    void generateRecommendation(occasionId, onboardingProfile);
-  }, [onboardingProfile, isLoadingWeather, generateRecommendation]);
-
   const handleOccasionSelect = (occasionId: string) => {
-    autoStartedRef.current = true;
-    void generateRecommendation(occasionId);
+    setSelectedOccasion(occasionId);
+  };
+
+  const handleDecideOutfit = () => {
+    if (!selectedOccasion) return;
+    void generateRecommendation(selectedOccasion);
   };
 
   const generateOutfitImageAsync = async (outfitDescription: string, occasionId: string) => {
@@ -684,6 +689,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const handleAnotherOption = async () => {
+    // Soft-gate after free allowance: user has already seen the current pick;
+    // farewell on the next "Another option" attempt (never covering first paint).
+    if (recommendationCountRef.current >= FREE_RECOMMENDATION_LIMIT) {
+      void checkGate();
+      return;
+    }
+
     setIsLoadingAnotherOption(true);
     await recordInteraction("another_option");
     
@@ -1005,6 +1017,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             );
           })}
         </View>
+
+        {selectedOccasion ? (
+          <Animated.View entering={FadeInUp.delay(350)} style={styles.decideCtaWrap}>
+            <Button
+              onPress={handleDecideOutfit}
+              style={[styles.decideCtaButton, { backgroundColor: '#4A3428' }]}
+            >
+              {t("decideForMe.decideCta") || "Decide my outfit"}
+            </Button>
+          </Animated.View>
+        ) : null}
       </Animated.View>
     );
   };
@@ -1415,6 +1438,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.md,
+  },
+  decideCtaWrap: {
+    marginTop: Spacing.xl,
+    width: "100%",
+  },
+  decideCtaButton: {
+    width: "100%",
   },
   optionWrapper: {
     width: "47%",
