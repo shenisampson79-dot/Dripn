@@ -399,9 +399,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     if (farewell?.nextSteps) {
       farewell.nextSteps.forEach(step => {
         if (step.id === "signup") {
+          // User already chose "Create account" — go straight to signup,
+          // don't show the SoftSignupGate "save picks" interstitial.
           buttons.push({
             text: step.label,
-            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }),
+            onPress: () => navigation.navigate("Auth", { mode: "signup" }),
             style: step.primary ? "default" : "cancel",
           });
         } else if (step.id === "restart") {
@@ -417,8 +419,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
     } else {
       buttons.push(
-        { text: t('common.saveMyPicks'), onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
-        { text: t('common.signUp'), onPress: () => navigation.navigate("Auth", { mode: 'signup' }) }
+        { text: t('common.signUp') || "Create account", onPress: () => navigation.navigate("Auth", { mode: "signup" }) },
+        {
+          text: t('decideForMe.maybeLater') || "Maybe later",
+          style: "cancel",
+          onPress: () => {
+            setStep("occasion");
+            setRecommendation(null);
+          },
+        },
       );
     }
     
