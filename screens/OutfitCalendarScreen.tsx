@@ -34,7 +34,6 @@ import {
   completeOutfitItemIds,
   isCompleteOutfit,
   MIN_OUTFIT_ITEMS,
-  outfitHasRequiredShoes,
   wardrobeCanBuildCompleteOutfit,
 } from '@/utils/completeOutfit';
 import { WeeklyOutfitPlannerPanel } from '@/components/outfit/WeeklyOutfitPlannerPanel';
@@ -387,12 +386,50 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     setIsGeneratingAI(true);
     setAiGenerateProgress({ current: 0, total: generatingDays });
     try {
+      if (!wardrobeCanBuildCompleteOutfit(items)) {
+        Alert.alert(
+          t('wardrobe.needMoreItems') || 'Need more wardrobe pieces',
+          t('wardrobe.needMoreItemsAi')?.replace('{n}', String(MIN_OUTFIT_ITEMS))
+            || `Add at least ${MIN_OUTFIT_ITEMS} items including tops, bottoms, and shoes so we can build full outfits.`,
+        );
+        setShowAIModal(false);
+        return;
+      }
+
       const occasionTypes = buildWeekOccasionRotation(generatingDays, focusOccasionId);
+      const ownedItems = items.filter((item) => !item.origin || item.origin === 'owned');
+      const wardrobeForGen = ownedItems.length >= MIN_OUTFIT_ITEMS ? ownedItems : items;
       
       const today = new Date();
       today.setHours(12, 0, 0, 0);
       let successCount = 0;
       let firstPlannedDate: Date | null = null;
+      let lastFailureReason = '';
+      const usedSignatures = new Set<string>();
+
+      const buildLocalDayOutfit = (occasionType: OutfitOccasionId, dayIndex: number): string[] => {
+        // Rotate wardrobe so mixed weeks don't reuse the exact same first picks every day
+        const rotated = [
+          ...wardrobeForGen.slice(dayIndex % wardrobeForGen.length),
+          ...wardrobeForGen.slice(0, dayIndex % wardrobeForGen.length),
+        ];
+        let ids = orderItemIdsByVisualOrder(
+          completeOutfitItemIds([], rotated, occasionType),
+          wardrobeForGen,
+        );
+        const signature = ids.slice().sort().join('|');
+        if (usedSignatures.has(signature) && wardrobeForGen.length > MIN_OUTFIT_ITEMS) {
+          const reshuffle = [
+            ...rotated.slice(1),
+            rotated[0],
+          ];
+          ids = orderItemIdsByVisualOrder(
+            completeOutfitItemIds([], reshuffle, occasionType),
+            wardrobeForGen,
+          );
+        }
+        return ids;
+      };
       
       for (let i = 0; i < generatingDays; i++) {
         setAiGenerateProgress({ current: i, total: generatingDays });
@@ -400,6 +437,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         targetDate.setDate(today.getDate() + i);
         
         const occasionType = occasionTypes[i % occasionTypes.length];
+        let itemIds: string[] = [];
         
         try {
           const regional = resolveRegionalStyleContext(user);
@@ -408,7 +446,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
             countryCode: regional.countryCode || undefined,
             preferredStyles: regional.styleTags,
-            localItems: items.map(i => ({
+            localItems: wardrobeForGen.map(i => ({
               id: String(i.id),
               name: i.name,
               category: i.category,
@@ -417,23 +455,41 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             })),
           });
           
-          const itemIds = resolveGeneratedOutfitItemIds(result, items);
+          itemIds = resolveGeneratedOutfitItemIds(result, wardrobeForGen, occasionType);
           
-          if (result.success && isCompleteOutfit(itemIds, items)) {
-            const eventType = (OCCASION_TO_PLANNED_EVENT[occasionType] || 'casual') as PlannedEventType;
-
-            await planOutfit({
-              date: toPlannedOutfitDateIso(targetDate),
-              itemIds,
-              eventName: result.vibeLabel || result.outfit?.vibe || `AI ${occasionType.replace('_', ' ')}`,
-              eventType,
-              notes: 'Created by AI Stylist',
-            });
-            successCount++;
-            if (!firstPlannedDate) firstPlannedDate = targetDate;
+          if (!(result.success && isCompleteOutfit(itemIds, wardrobeForGen))) {
+            lastFailureReason = 'AI returned an incomplete outfit';
+            itemIds = buildLocalDayOutfit(occasionType, i);
           }
         } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          lastFailureReason = message || 'AI request failed';
           console.log(`Failed to generate outfit for day ${i + 1}:`, err);
+          itemIds = buildLocalDayOutfit(occasionType, i);
+        }
+
+        if (!isCompleteOutfit(itemIds, wardrobeForGen)) {
+          lastFailureReason =
+            lastFailureReason
+            || 'Could not assemble a full outfit (need tops, bottoms, and shoes).';
+          continue;
+        }
+
+        try {
+          const eventType = (OCCASION_TO_PLANNED_EVENT[occasionType] || 'casual') as PlannedEventType;
+          await planOutfit({
+            date: toPlannedOutfitDateIso(targetDate),
+            itemIds,
+            eventName: `AI ${occasionType.replace(/_/g, ' ')}`,
+            eventType,
+            notes: 'Created by AI Stylist',
+          });
+          usedSignatures.add(itemIds.slice().sort().join('|'));
+          successCount++;
+          if (!firstPlannedDate) firstPlannedDate = targetDate;
+        } catch (planErr) {
+          lastFailureReason = planErr instanceof Error ? planErr.message : 'Failed to save planned outfit';
+          console.log(`Failed to save outfit for day ${i + 1}:`, planErr);
         }
       }
       
@@ -456,14 +512,22 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           [{ text: t('common.viewCalendar'), onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
         );
       } else {
+        const detail = lastFailureReason
+          ? `\n\n${lastFailureReason}`
+          : '';
         Alert.alert(
           t('wardrobe.noOutfitsCreated') || "No Outfits Created",
-          t('wardrobe.aiCouldntMatchYourWardrobeItems') || "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.",
+          (t('wardrobe.aiCouldntMatchYourWardrobeItems')
+            || "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.")
+            + detail,
         );
       }
     } catch (error) {
       console.error('AI outfit generation error:', error);
-      Alert.alert(t('common.error'), t('wardrobe.failedToGenerateAiOutfits'));
+      Alert.alert(
+        t('common.error'),
+        error instanceof Error ? error.message : t('wardrobe.failedToGenerateAiOutfits'),
+      );
     } finally {
       setIsGeneratingAI(false);
       setAiGenerateProgress({ current: 0, total: 0 });
