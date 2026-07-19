@@ -68,7 +68,9 @@ export default function UserStylistStackNavigator() {
         options={getSettingsChildScreenOptions({
           theme,
           isDark,
-          transparent: false,
+          // Must stay transparent: AIStylistScreen pads its content by headerHeight,
+          // so an opaque header doubles the gap above the chat.
+          transparent: true,
           title: t('navTitles.stylistChat'),
         })}
       />

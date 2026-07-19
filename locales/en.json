@@ -47,6 +47,7 @@
   "aiStylist.upgradeForUnlimited": "{name} has so much more to share with you. Upgrade now for unlimited styling sessions.",
   "aiStylist.upgradeNow": "Upgrade Now",
   "aiStylist.voiceModeLabel": "Voice mode — spoken replies",
+  "aiStylist.voiceVisualsHint": "To see this outfit, switch to Chat mode — tap the chat bubble at the top.",
   "aiStylist.voiceNotAvailable": "Voice commands are available in Expo Go on your mobile device",
   "aiStylist.weatherLook": "Weather look",
   "aiStylist.welcomeMessage": "Hello {name}! I'm {stylist}, your personal stylist. What brings you here today?",

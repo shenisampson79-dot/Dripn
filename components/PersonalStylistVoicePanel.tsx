@@ -96,6 +96,15 @@ function isLikelyEmptyOrHallucinatedTranscript(text: string | null | undefined):
 const MIN_VOICE_RECORDING_MS = 700;
 const MIN_AUDIO_BASE64_CHARS = 2800;
 
+/** Outfit visuals only render in Chat mode — flag replies that likely have one waiting there. */
+const OUTFIT_CUE_RE = /\b(outfit|wear|pair|layer|combo|look)\w*\b/i;
+const CLOTHING_ITEM_RE =
+  /\b(top|shirt|tee|t-shirt|blouse|sweater|jumper|hoodie|cardigan|jacket|coat|blazer|jeans|trousers|pants|chinos|skirt|dress|shorts|leggings|shoes|trainers|sneakers|boots|heels|loafers|sandals)\b/i;
+
+function isLikelyOutfitRecommendation(text: string): boolean {
+  return OUTFIT_CUE_RE.test(text) && CLOTHING_ITEM_RE.test(text);
+}
+
 /**
  * ApiService.request throws plain Error(message) without status codes.
  * Only retry the slow STT + resilient-chat path on transport / 5xx style failures —
@@ -545,6 +554,15 @@ export function PersonalStylistVoicePanel({
                 {stylist.name}
               </ThemedText>
               <ThemedText type="body">{line.assistantText}</ThemedText>
+              {index === recentLines.length - 1 && isLikelyOutfitRecommendation(line.assistantText) ? (
+                <View style={styles.visualsHintRow}>
+                  <Feather name="image" size={14} color={theme.link} />
+                  <ThemedText type="caption" style={{ color: theme.link, flex: 1 }}>
+                    {t('aiStylist.voiceVisualsHint')
+                      || 'To see this outfit, switch to Chat mode — tap the chat bubble at the top.'}
+                  </ThemedText>
+                </View>
+              ) : null}
             </View>
           ))
         )}
@@ -652,6 +670,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: 4,
+  },
+  visualsHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   controls: {
     alignItems: 'center',
