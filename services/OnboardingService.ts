@@ -231,6 +231,15 @@ class OnboardingServiceClass {
         }
       }
       console.error('Body scan API error:', response.status, serverMessage);
+      if (response.status === 413) {
+        throw new Error(
+          serverMessage ||
+            'Photo is too large. Please retake with slightly lower quality or better lighting.',
+        );
+      }
+      if (response.status === 401) {
+        throw new Error('Please sign in again, then retry the body scan.');
+      }
       throw new Error(
         serverMessage ||
           "We couldn't complete your body scan. Please try again with a clearer full-body photo."
@@ -252,8 +261,31 @@ class OnboardingServiceClass {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Color scan failed: ${error}`);
+      let serverMessage = '';
+      try {
+        const errBody = await response.json();
+        serverMessage = errBody.message || errBody.error || '';
+      } catch {
+        try {
+          serverMessage = await response.text();
+        } catch {
+          // ignore
+        }
+      }
+      console.error('Color scan API error:', response.status, serverMessage);
+      if (response.status === 413) {
+        throw new Error(
+          serverMessage ||
+            'Photo is too large. Please retake with slightly lower quality or better lighting.',
+        );
+      }
+      if (response.status === 401) {
+        throw new Error('Please sign in again, then retry colour analysis.');
+      }
+      throw new Error(
+        serverMessage ||
+          "We couldn't complete colour analysis. Please try again with a clear, well-lit selfie.",
+      );
     }
 
     return response.json();

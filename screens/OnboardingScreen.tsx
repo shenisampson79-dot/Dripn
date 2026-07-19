@@ -1101,6 +1101,16 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               [{ text: t('common.ok') }]
             );
           }
+        } catch (scanErr) {
+          progressTimers.forEach(timer => clearTimeout(timer));
+          setColorScanProgress("");
+          console.error('Onboarding color scan failed:', scanErr);
+          Alert.alert(
+            t('common.error') || 'Scan Issue',
+            scanErr instanceof Error
+              ? scanErr.message
+              : "We couldn't complete colour analysis. Please try again with a clear, well-lit selfie.",
+          );
         } finally {
           progressTimers.forEach(timer => clearTimeout(timer));
           setColorScanProgress("");
