@@ -16,6 +16,12 @@ import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier, preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
+import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import {
+  appleIAPService,
+  resolveTierFromCustomerInfo,
+  serializeCustomerInfoForSync,
+} from '@/services/AppleIAPService';
 WebBrowser.maybeCompleteAuthSession();
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
@@ -945,10 +951,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveUser(updatedUser);
   };
 
+  const applyLocalSubscriptionTier = useCallback(async (tier: SubscriptionTier) => {
+    if (!user) return;
+    const nextTier = preferHigherSubscriptionTier(user.subscriptionTier, tier);
+    if (nextTier === normalizeSubscriptionTier(user.subscriptionTier)) return;
+    await saveUserLocalOnly({ ...user, subscriptionTier: nextTier });
+  }, [user]);
+
   const refreshSubscriptionFromBackend = useCallback(async (sessionId?: string) => {
     if (!user) return;
     if (await shouldApplyTestingUnlock(user)) return;
     try {
+      // Apple IAP: push RevenueCat entitlements to server (Stripe verify alone stays free)
+      if (shouldUseAppleIAP()) {
+        try {
+          const ready = await appleIAPService.configure(user.id);
+          if (ready) {
+            const customerInfo = await appleIAPService.getCustomerInfo();
+            const tier = resolveTierFromCustomerInfo(customerInfo);
+            if (tier !== 'free') {
+              await applyLocalSubscriptionTier(tier);
+              const syncPayload = serializeCustomerInfoForSync(customerInfo);
+              if (!syncPayload.tier || syncPayload.tier === 'free') {
+                syncPayload.tier = tier;
+              }
+              await apiService.syncAppleSubscription(syncPayload).catch((err) => {
+                console.warn('[Auth] Apple subscription sync failed:', err);
+              });
+            }
+          }
+        } catch (appleErr) {
+          console.warn('[Auth] Apple entitlement refresh skipped:', appleErr);
+        }
+      }
+
       // First try direct verification (checks Stripe directly, bypasses webhook delays)
       let subStatus = await apiService.verifySubscription(sessionId).catch(async () => {
         // Fall back to status if verification fails
@@ -967,14 +1003,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Silently fail — stale data is preferable to a crash
     }
-  }, [user]);
-
-  const applyLocalSubscriptionTier = useCallback(async (tier: SubscriptionTier) => {
-    if (!user) return;
-    const nextTier = preferHigherSubscriptionTier(user.subscriptionTier, tier);
-    if (nextTier === normalizeSubscriptionTier(user.subscriptionTier)) return;
-    await saveUserLocalOnly({ ...user, subscriptionTier: nextTier });
-  }, [user]);
+  }, [user, applyLocalSubscriptionTier]);
 
   useEffect(() => {
     const appStateRef = { current: AppState.currentState };

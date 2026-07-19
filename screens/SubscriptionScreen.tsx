@@ -571,6 +571,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const dfyPayload = serializeDfyCustomerInfoForSync(customerInfo);
 
       let restoredSomething = false;
+      let serverSynced = false;
       const restoredTier = resolveTierFromCustomerInfo(customerInfo);
 
       // Unlock locally first so sandbox restores recover even if backend returns 401
@@ -582,19 +583,29 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       if (subscriptionPayload.tier !== 'free') {
         try {
           await apiService.syncAppleSubscription(subscriptionPayload);
+          serverSynced = true;
+          restoredSomething = true;
         } catch (syncError) {
           console.warn('[Subscription] Restore sync failed; local unlock kept', syncError);
+          const detail = syncError instanceof Error ? syncError.message : String(syncError);
+          Alert.alert(
+            t('subscription.restoreFailedTitle') || 'Could not sync subscription',
+            (t('subscription.restoreSyncFailedMessage')
+              || 'Apple restored your purchase on this phone, but we could not update your account on the server. Voice and outfit features may stay limited until this succeeds. Try again in a moment.')
+              + (detail ? `\n\n${detail}` : ''),
+          );
+          return;
         }
-        restoredSomething = true;
       }
 
       if (dfyPayload.tier) {
         try {
           await apiService.syncAppleDFYPurchase(dfyPayload);
+          restoredSomething = true;
         } catch (syncError) {
           console.warn('[Subscription] DFY restore sync failed', syncError);
+          restoredSomething = true;
         }
-        restoredSomething = true;
       }
 
       if (!restoredSomething) {
@@ -604,7 +615,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       await refreshSubscriptionFromBackend().catch(() => {});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t('subscription.restoredTitle'), t('subscription.restoredMessage'));
+      Alert.alert(
+        t('subscription.restoredTitle'),
+        serverSynced
+          ? t('subscription.restoredMessage')
+          : (t('subscription.restoredLocalOnlyMessage')
+            || 'Your plan badge was restored. Open this screen again if voice limits still look wrong.'),
+      );
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('subscription.restoreFailedMessage');
       Alert.alert(t('subscription.restoreFailedTitle'), message);
