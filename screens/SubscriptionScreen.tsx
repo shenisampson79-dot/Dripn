@@ -12,7 +12,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
-import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
+import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
 import {
   getDfyBenefitForSubscription,
   subscriptionTierDisplayName,
@@ -322,10 +322,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     initAppleIAP();
   }, [useAppleIAP, user?.id]);
 
-  // Recover sandbox / failed-sync purchases: if RC already has an active entitlement, unlock locally.
+  // Recover sandbox / failed-sync purchases: if RevenueCat has a paid entitlement, push it
+  // to the server even when local UI already shows a paid badge (local unlock can succeed
+  // while /api/subscription/apple/sync fails — leaving voice credits stuck on free).
   useEffect(() => {
     if (!useAppleIAP || !user?.id) return;
-    if (normalizeTier(user.subscriptionTier) !== 'free') return;
 
     let cancelled = false;
     const recoverFromRevenueCat = async () => {
@@ -335,13 +336,19 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         const customerInfo = await appleIAPService.getCustomerInfo();
         const tier = resolveTierFromCustomerInfo(customerInfo);
         if (cancelled || tier === 'free') return;
-        await applyLocalSubscriptionTier(tier);
+
+        const localTier = normalizeTier(user.subscriptionTier);
+        if (localTier === 'free' || preferHigherSubscriptionTier(localTier, tier) === tier) {
+          await applyLocalSubscriptionTier(tier);
+        }
+
         const syncPayload = serializeCustomerInfoForSync(customerInfo);
         if (!syncPayload.tier || syncPayload.tier === 'free') {
           syncPayload.tier = tier;
         }
-        await apiService.syncAppleSubscription(syncPayload).catch(() => {});
+        await apiService.syncAppleSubscription(syncPayload);
         await refreshSubscriptionFromBackend().catch(() => {});
+        await apiService.flushPendingAppleSubscriptionSync().catch(() => {});
       } catch (error) {
         console.warn('[Subscription] RC entitlement recovery skipped:', error);
       }
