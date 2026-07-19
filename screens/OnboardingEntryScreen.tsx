@@ -117,7 +117,8 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
         <LanguageEntryButton light={isDark} onPress={() => setLanguagePickerVisible(true)} />
       </View>
 
-      <View style={[styles.content, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
+      {/* Top padding clears the absolute back/language buttons (top: insets.top + md, ~40px tall) */}
+      <View style={[styles.content, { paddingTop: insets.top + Spacing.md + 40 + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <ThemedText type="h1" style={[styles.title, { color: ui.title }, !isDark && styles.titleLight]}>
             {copy.title}
