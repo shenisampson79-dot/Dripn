@@ -724,13 +724,23 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const handleManageSubscription = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Apple's manage sheet owns the UI and only resolves when dismissed — don't lock
+    // our buttons / swap labels to "Processing" for the whole visit (felt like shaking + lag).
+    if (useAppleIAP && normalizedTier !== 'free') {
+      try {
+        await openAppleManageSubscriptions();
+      } catch (error: unknown) {
+        console.error('Apple manage subscriptions error:', error);
+        Alert.alert(
+          t('subscription.billingUnavailableTitle'),
+          getErrorMessage(error, t('subscription.billingUnavailableMessage')),
+        );
+      }
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      if (useAppleIAP && normalizedTier !== 'free') {
-        await openAppleManageSubscriptions();
-        return;
-      }
-
       const devTesting = await shouldApplyTestingUnlock(user);
       if (devTesting) {
         Alert.alert(t('subscription.testingModeTitle'), t('subscription.testingModeMessage'));
@@ -1194,6 +1204,26 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               <ActivityIndicator size="small" color={currentTierAccent} style={{ marginLeft: Spacing.sm }} />
             ) : null}
           </Pressable>
+          {useAppleIAP ? (
+            <Pressable
+              onPress={handleRestorePurchases}
+              disabled={isProcessing}
+              accessibilityRole="button"
+              accessibilityLabel={t('subscription.restorePurchases')}
+              style={[
+                styles.manageButton,
+                {
+                  borderColor: LUXURY_COLORS.teal + (isDark ? '55' : '35'),
+                  backgroundColor: isDark ? 'rgba(61, 153, 148, 0.12)' : 'rgba(61, 153, 148, 0.08)',
+                },
+              ]}
+            >
+              <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
+              <ThemedText type="body" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
+                {isProcessing ? t('subscription.restoring') : t('subscription.restorePurchases')}
+              </ThemedText>
+            </Pressable>
+          ) : null}
           {normalizedTier !== 'free' ? (
             <ThemedText type="caption" style={[styles.billingHint, { color: theme.tabIconDefault }]}>
               {useAppleIAP
@@ -1275,28 +1305,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         <ThemedText type="h2" style={styles.sectionTitle}>{t('subscription.chooseYourPlan')}</ThemedText>
         {PLANS.map(renderPlanCard)}
       </View>
-
-      {useAppleIAP ? (
-        <Pressable
-          onPress={handleRestorePurchases}
-          disabled={isProcessing}
-          accessibilityRole="button"
-          accessibilityLabel={t('subscription.restorePurchases')}
-          style={({ pressed }) => [
-            styles.restorePurchasesButton,
-            {
-              opacity: pressed ? 0.85 : 1,
-              borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
-            },
-          ]}
-        >
-          <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
-          <ThemedText type="body" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
-            {isProcessing ? t('subscription.restoring') : t('subscription.restorePurchases')}
-          </ThemedText>
-        </Pressable>
-      ) : null}
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
