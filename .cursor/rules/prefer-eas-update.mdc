@@ -1,0 +1,25 @@
+---
+description: Prefer EAS Update (OTA) over full native builds when advising ship steps
+alwaysApply: true
+---
+
+# Prefer EAS Update over full builds
+
+When the user asks how to start a new build (EAS / TestFlight / production), **first** decide Update vs Build.
+
+## Prefer `eas update` when changes are
+
+- JS/TS app code, styles, locales
+- Assets already in the JS bundle (no new native asset pipeline)
+- Config that does **not** change native binaries
+
+## Recommend `eas build` only when native changed
+
+- New/changed native modules or Expo plugins
+- Native fields in `app.json` / `app.config.*` / `eas.json`
+- Icons, splash, permissions, or other changes that require a native rebuild
+
+## Reply format
+
+1. Briefly say **why** Update or Build fits.
+2. Give the **exact commands** for that path (channel/profile as used in this project).
