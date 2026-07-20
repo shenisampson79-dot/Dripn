@@ -33,9 +33,11 @@ import {
   getTodaysOutfitPopupPrefs,
   isWithinTodaysOutfitPopupWindow,
 } from '@/utils/todaysOutfitPrefs';
+import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import {
   countWardrobeOutfitBasics,
   describeOutfitPlanningGap,
+  wardrobeReadyForTodaysOutfitAutoPopup,
 } from '@/utils/wardrobeOutfitReadiness';
 
 type Props = {
@@ -44,6 +46,13 @@ type Props = {
 };
 
 const DISMISS_KEY_PREFIX = '@dripn_todays_outfit_dismissed_';
+const PAID_PLAN_REQUIRED_MESSAGE =
+  'A paid stylist plan is required for this feature.';
+
+function hasPaidTodaysOutfitAccess(subscriptionTier?: string | null): boolean {
+  const tier = normalizeSubscriptionTier(subscriptionTier);
+  return tier === 'personal_stylist' || tier === 'stylist_unlimited';
+}
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.4;
 
@@ -205,12 +214,42 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
   const load = useCallback(
     async (forceRefresh = false) => {
+      const isManual = forceRefresh;
       setLoading(!forceRefresh);
       setGenerating(forceRefresh);
       if (forceRefresh) {
         setGapVisible(false);
       }
       setErrorMessage(null);
+
+      const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
+      const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
+
+      // Auto path after onboarding: never nag with paid/wardrobe modals.
+      // Daily popup only starts once the wardrobe can build 7 distinct outfits
+      // and the account has a paid stylist plan.
+      if (!isManual) {
+        if (!paid || !readyForAuto) {
+          setOutfit(null);
+          setPieces([]);
+          setVisible(false);
+          setGapVisible(false);
+          setLoading(false);
+          setGenerating(false);
+          return;
+        }
+      }
+
+      if (isManual && !paid) {
+        setOutfit(null);
+        setPieces([]);
+        setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
+        setVisible(false);
+        setGapVisible(true);
+        setLoading(false);
+        setGenerating(false);
+        return;
+      }
 
       await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
       const profile = await onboardingProfileService.getProfile();
@@ -231,8 +270,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
             : result.message;
         setErrorMessage(message);
         setVisible(false);
-        // Always show guidance when wardrobe isn't ready (initial load or chip tap).
-        setGapVisible(true);
+        // Only open the explanation sheet when the user asked for Today's outfit.
+        setGapVisible(isManual);
         setLoading(false);
         setGenerating(false);
         return;
@@ -249,7 +288,11 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         const prefs = await getTodaysOutfitPopupPrefs();
         const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
         setDismissed(wasDismissed);
-        setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
+        if (isManual) {
+          setVisible(true);
+        } else {
+          setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
+        }
       } catch {
         setDismissed(false);
         setVisible(true);
@@ -317,8 +360,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       setVisible(true);
       return;
     }
-    if (errorMessage) {
-      // Re-show empty-wardrobe guidance — do not depend on outfit dismiss flags.
+    if (!hasPaidTodaysOutfitAccess(user?.subscriptionTier)) {
+      setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
       setGapVisible(true);
       return;
     }
@@ -337,8 +380,9 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   );
 
   const itemIds = useMemo(() => pieces.map((p) => String(p.id)), [pieces]);
+  // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
   const showReopenChip =
-    Boolean(user) && !loading && ((dismissed && !visible && outfit) || (!outfit && Boolean(errorMessage)));
+    Boolean(user) && !loading && !visible && !gapVisible && !generating;
 
   if (!user) return null;
   if (loading && !outfit && !errorMessage) return null;

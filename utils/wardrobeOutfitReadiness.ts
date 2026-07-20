@@ -32,6 +32,24 @@ export function canOfferOutfitPlanning(counts: WardrobeOutfitBasicCounts): boole
   );
 }
 
+/** How many fully distinct outfits (no shared top/bottom/shoes) the wardrobe can form. */
+export function countDistinctOutfitCapacity(counts: WardrobeOutfitBasicCounts): number {
+  return Math.min(counts.tops, counts.bottoms, counts.shoes);
+}
+
+/**
+ * Daily auto-popup should wait until the wardrobe can make this many different outfits.
+ * Matches product copy: "enough items to make 7 completely different outfits".
+ */
+export const MIN_DISTINCT_OUTFITS_FOR_AUTO_POPUP = 7;
+
+export function wardrobeReadyForTodaysOutfitAutoPopup(
+  items: Array<{ category: ClothingCategory; origin?: string }>,
+): boolean {
+  return countDistinctOutfitCapacity(countWardrobeOutfitBasics(items))
+    >= MIN_DISTINCT_OUTFITS_FOR_AUTO_POPUP;
+}
+
 function remaining(have: number): number {
   return Math.max(0, MIN_WARDROBE_PIECES_FOR_OUTFIT_PLANNING - have);
 }

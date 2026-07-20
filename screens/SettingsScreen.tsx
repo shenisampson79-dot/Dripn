@@ -860,7 +860,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 {t('settings.showOutfitPopup') || 'Show daily outfit popup'}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                {t('settings.showOutfitPopupDesc') || "Auto-open today's look on Stylist from your chosen time until you act on it"}
+                {t('settings.showOutfitPopupDesc') || "Auto-open today's look on Stylist once your wardrobe can make 7 different outfits, from your chosen time until you act on it"}
               </ThemedText>
             </View>
             <Switch

@@ -52,12 +52,12 @@ const TOUR_STEP_FALLBACKS = [
   },
   {
     title: "Build Your Wardrobe",
-    description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces.",
+    description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces. Aim for at least 7 tops, 7 bottoms, and 7 pairs of shoes so we can rotate a full week of different looks.",
     highlight: "Tap Wardrobe to get started",
   },
   {
     title: "You're All Set!",
-    description: "Manage your Wardrobe, get outfit decisions, and chat with your stylist anytime. Welcome to effortless style decisions!",
+    description: "Manage your Wardrobe, get outfit decisions, and chat with your stylist anytime. Once your wardrobe can make 7 completely different outfits, Today's outfit can pop up each morning on the Stylist tab — until then it only opens if you tap it.",
     highlight: "Let's get you sorted",
   },
 ];
