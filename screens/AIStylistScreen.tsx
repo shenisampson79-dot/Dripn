@@ -1362,6 +1362,7 @@ export default function AIStylistScreen() {
   const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
+  const keyboardHeightPx = useKeyboardState((state) => state.height);
   const inputBottomPadStyle = useAnimatedStyle(() => ({
     paddingBottom: keyboardHeight.value === 0 ? tabBarHeight : 0,
   }));
@@ -1427,9 +1428,14 @@ export default function AIStylistScreen() {
   const scrollChatToEnd = useCallback((force = false) => {
     if (!force && !isNearBottomRef.current) return;
     if (force) isNearBottomRef.current = true;
-    requestAnimationFrame(() => {
+    const run = () => {
       flatListRef.current?.scrollToEnd({ animated: true });
-    });
+    };
+    // Layout + keyboard animation often settle after the first frame — retry so the
+    // latest bubble isn't left tucked under the input/keyboard (WhatsApp-style).
+    requestAnimationFrame(run);
+    setTimeout(run, 80);
+    setTimeout(run, 280);
   }, []);
 
   const onChatScroll = useCallback((event: {
@@ -1441,17 +1447,18 @@ export default function AIStylistScreen() {
   }) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     isNearBottomRef.current =
-      contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - 120;
   }, []);
 
-  // Tab bar hides while keyboard is open — don't reserve tab height in list padding then.
+  // Tab bar hides while keyboard is open — reserve keyboard height instead so
+  // the last messages stay above the sticky input (same idea as WhatsApp).
   const listBottomInset = useMemo(
     () =>
       INPUT_CONTAINER_HEIGHT
       + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
-      + (isKeyboardVisible ? 0 : tabBarHeight)
+      + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarHeight)
       + Spacing.md,
-    [showQuickPrompts, isTyping, messages.length, tabBarHeight, isKeyboardVisible],
+    [showQuickPrompts, isTyping, messages.length, tabBarHeight, isKeyboardVisible, keyboardHeightPx],
   );
   
   const pulseScale = useSharedValue(1);
@@ -2009,7 +2016,7 @@ export default function AIStylistScreen() {
       }
 
       setTimeout(() => {
-        scrollChatToEnd(false);
+        scrollChatToEnd(true);
       }, 100);
     } catch (error: any) {
       console.log('API call failed for voice:', error);
@@ -2050,7 +2057,7 @@ export default function AIStylistScreen() {
       }
 
       setTimeout(() => {
-        scrollChatToEnd(false);
+        scrollChatToEnd(true);
       }, 100);
     }
   };
@@ -2352,7 +2359,7 @@ export default function AIStylistScreen() {
       }
       
       setTimeout(() => {
-        scrollChatToEnd(false);
+        scrollChatToEnd(true);
       }, 100);
     } catch (error: any) {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -2363,12 +2370,31 @@ export default function AIStylistScreen() {
       const isMale = stylist.id === 'max';
       const isAce = stylist.id === 'ace';
       
-      // Simple connection error message - backend handles all AI including guest mode
-      const errorContent = isMale
-        ? "Hey, I'm having some trouble connecting right now. Give it another shot in a moment - I'll be right here when you're ready."
-        : isAce
-        ? "I apologize, but I'm experiencing a brief connection issue. Please try again in a moment - I'll be here."
-        : "Oh darling, I'm having a little trouble connecting right now. Give it another try in just a moment, gorgeous - I'll be right here waiting!";
+      // Any failure here — timeout, server error, cellular blip — previously read as
+      // "trouble connecting", which sounded like home Wi‑Fi was required. Clarify.
+      const rawMessage = String(error?.message || '');
+      const isNetwork =
+        /network|internet|offline|failed to fetch|timed?\s*out|took too long/i.test(rawMessage);
+      const isServer =
+        /5\d{2}|server error|service unavailable|empty response/i.test(rawMessage);
+
+      const errorContent = isNetwork
+        ? (isMale
+          ? "I couldn't reach the styling servers just now — mobile data is fine, but the link dropped. Try again in a moment."
+          : isAce
+            ? "I couldn't reach the styling servers just now. Mobile data works — please try again in a moment."
+            : "I couldn't reach the styling servers just now, gorgeous — mobile data is fine, the link just dropped. Try again in a moment.")
+        : isServer
+          ? (isMale
+            ? "My styling brain hiccupped on the server side. Give it another shot in a moment."
+            : isAce
+              ? "There was a brief server issue on my end. Please try again in a moment."
+              : "My styling brain hiccupped on the server side, darling. Give it another try in just a moment.")
+          : (isMale
+            ? "Hey, I hit a snag answering that. Give it another shot in a moment — I'll be right here."
+            : isAce
+              ? "I hit a snag answering that. Please try again in a moment — I'll be here."
+              : "Oh darling, I hit a snag answering that. Give it another try in just a moment, gorgeous — I'll be right here waiting!");
       
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -2384,7 +2410,7 @@ export default function AIStylistScreen() {
       await saveChatHistory(finalMessages);
       
       setTimeout(() => {
-        scrollChatToEnd(false);
+        scrollChatToEnd(true);
       }, 100);
     }
   };
@@ -2395,6 +2421,16 @@ export default function AIStylistScreen() {
       initialPromptSentRef.current = false;
     }
   }, [route.params?.initialPrompt]);
+
+  // When the keyboard rises, re-stick to the latest message so it isn't covered.
+  useEffect(() => {
+    if (!isKeyboardVisible || chatMode !== 'text') return;
+    scrollChatToEnd(true);
+  }, [isKeyboardVisible, keyboardHeightPx, chatMode, scrollChatToEnd]);
+
+  useEffect(() => {
+    if (isTyping) scrollChatToEnd(true);
+  }, [isTyping, scrollChatToEnd]);
 
   useEffect(() => {
     const prompt = pendingInitialPromptRef.current;
@@ -2493,7 +2529,7 @@ export default function AIStylistScreen() {
       setGeneratingOccasionId(null);
       setIsTyping(false);
       setTimeout(() => {
-        scrollChatToEnd(false);
+        scrollChatToEnd(true);
       }, 100);
     }
   };
@@ -3662,7 +3698,11 @@ export default function AIStylistScreen() {
           keyboardDismissMode="interactive"
           onScroll={onChatScroll}
           scrollEventThrottle={16}
-          onContentSizeChange={() => scrollChatToEnd(false)}
+          onContentSizeChange={() => {
+            // Keep WhatsApp-style stickiness while reading the live reply; don't yank
+            // someone who scrolled up into history.
+            if (isNearBottomRef.current || isTyping) scrollChatToEnd(true);
+          }}
           style={styles.flatList}
         />
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={styles.inputSticky}>
