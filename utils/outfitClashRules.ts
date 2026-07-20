@@ -1,6 +1,7 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import {
   isIntentionalSmartCasualTrainerLook,
+  DEFAULT_SMART_CASUAL_REGIONAL,
   type RegionalStyleContext,
 } from '@/utils/outfitRegionalContext';
 
@@ -31,6 +32,7 @@ export type ItemSignals = {
   isGown: boolean;
   isJoggers: boolean;
   isDressShirt: boolean;
+  isDressyBoots: boolean;
 };
 
 export type OutfitClash = {
@@ -109,6 +111,17 @@ export function isBootFootwear(item: WardrobeItem): boolean {
   return /boot|chelsea|combat|hiking|work boot|lace-up boot|timberland|dr\.? ?martens|ugg/.test(t);
 }
 
+/** Polished leather / Chelsea / dress boots — not combat, hiking, or UGGs. */
+export function isDressyBootFootwear(item: WardrobeItem): boolean {
+  if (!isBootFootwear(item)) return false;
+  const t = itemText(item);
+  if (/combat|hiking|work boot|timberland|ugg|shearling|doc\b|dr\.? ?marten|chukka|desert boot/.test(t)) {
+    return false;
+  }
+  return /chelsea|dress boot|riding boot|heeled boot|ankle boot|leather boot|leather chelsea/.test(t)
+    || (/leather/.test(t) && /boot/.test(t));
+}
+
 export function isCasualTrainer(item: WardrobeItem): boolean {
   if (item.category !== 'shoes') return false;
   const t = itemText(item);
@@ -141,6 +154,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const athleticShoes = isAthleticFootwear(item);
   const formalShoes = isFormalFootwear(item);
   const boots = isBootFootwear(item);
+  const dressyBoots = isDressyBootFootwear(item);
   const heels = /heel|pump|stiletto/.test(t) && cat === 'shoes';
   const casualTrainer = isCasualTrainer(item);
   const isUggs = /\bugg|shearling boot|sheepskin/.test(t);
@@ -151,15 +165,15 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     formalityTier = 1;
   } else if (isSleepwear || isHoodie || isShorts || casualTrainer || athleticShoes) {
     formalityTier = 2;
-  } else if (isJeans || boots) {
+  } else if (isJeans || (boots && !dressyBoots)) {
     formalityTier = 3;
-  } else if (isDressShirt || isTie || isSuitPiece || isBlazer) {
+  } else if (isDressShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
     formalityTier = 4;
   }
 
   if (isEveningWear || isGown || (isTie && isSuitPiece)) formalityTier = 5;
   if (athleticTop || athleticBottom) formalityTier = Math.min(formalityTier, 1) as FormalityTier;
-  if (formalShoes || heels) formalityTier = Math.max(formalityTier, 4) as FormalityTier;
+  if (formalShoes || heels || dressyBoots) formalityTier = Math.max(formalityTier, 4) as FormalityTier;
   if (athleticShoes && !formalShoes) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
 
   return {
@@ -186,6 +200,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isGown,
     isJoggers,
     isDressShirt,
+    isDressyBoots: dressyBoots,
   };
 }
 
@@ -197,7 +212,8 @@ export function buildOutfitContext(
   const tiers = signals.map((s) => s.formalityTier);
   const maxTier = Math.max(...tiers, 1) as FormalityTier;
   const minTier = Math.min(...tiers, 5) as FormalityTier;
-  const isSmartCasualLook = isIntentionalSmartCasualTrainerLook(items, regional);
+  const isSmartCasualLook = isIntentionalSmartCasualTrainerLook(items, regional)
+    || (regional == null && isIntentionalSmartCasualTrainerLook(items, DEFAULT_SMART_CASUAL_REGIONAL));
 
   return {
     items,
@@ -240,7 +256,9 @@ const CLASH_RULES: Array<{
     penalty: 86,
     hint: 'Tie needs a dress shirt collar — not a tee or casual top',
     severity: 'fatal',
-    when: (ctx) => ctx.any('isTie') && /t-shirt|tee\b|graphic top/.test(ctx.text) && !ctx.any('isDressShirt'),
+    when: (ctx) => ctx.any('isTie')
+      && /t-shirt|tee\b|graphic top|crew[\s-]?neck|polo\b/.test(ctx.text)
+      && !ctx.any('isDressShirt'),
   },
   {
     id: 'swimwear_formal',
@@ -343,13 +361,24 @@ const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isFormalShoes') && (ctx.any('isAthleticTop') || ctx.any('isAthleticBottom') || ctx.any('isJoggers')),
   },
   {
+    id: 'joggers_dressy_boots',
+    penalty: 74,
+    hint: 'Sweatpants or joggers with leather Chelsea/dress boots clash — keep athleisure with trainers, or boots with jeans/chinos',
+    severity: 'major',
+    when: (ctx) => (ctx.any('isJoggers') || ctx.any('isAthleticBottom')) && ctx.any('isDressyBoots'),
+  },
+  {
     id: 'trainers_suit',
     penalty: 70,
     hint: 'Trainers with suit-level formality',
     severity: 'major',
     when: (ctx) => !ctx.isSmartCasualLook
       && ctx.any('isCasualTrainer')
-      && (ctx.any('isSuitPiece') || (ctx.any('isBlazer') && ctx.any('isTie'))),
+      && (
+        ctx.any('isTie')
+        || (ctx.any('isSuitPiece') && /dress shirt|button-down|button down|oxford shirt|blouse/.test(ctx.text))
+        || (ctx.any('isBlazer') && /dress shirt|button-down|button down|oxford shirt|blouse/.test(ctx.text))
+      ),
   },
   {
     id: 'hoodie_formal_trousers',
@@ -434,11 +463,61 @@ const CLASH_RULES: Array<{
       && ctx.items.some((i) => i.category === 'shoes'),
   },
   {
+    id: 'cargo_hoodie_formal_shoes',
+    penalty: 45,
+    hint: 'Cargo and hoodie need trainers — loafers fight the casual lane',
+    severity: 'moderate',
+    when: (ctx) => /cargo/.test(ctx.text) && ctx.any('isHoodie')
+      && (ctx.any('isFormalShoes') || ctx.any('isDressyBoots'))
+      && !ctx.any('isCasualTrainer'),
+  },
+  {
+    id: 'denim_jacket_dress_shirt',
+    penalty: 48,
+    hint: 'Denim jacket over a dress shirt splits casual and smart lanes — wear a tee under denim or drop the shirt collar',
+    severity: 'moderate',
+    when: (ctx) => /denim jacket/.test(ctx.text) && ctx.any('isDressShirt') && !ctx.any('isBlazer'),
+  },
+  {
+    id: 'blazer_hoodie_jeans_formal_shoes',
+    penalty: 50,
+    hint: 'Blazer-over-hoodie with denim needs fashion trainers — loafers fight the casual lane',
+    severity: 'moderate',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isHoodie') && ctx.any('isJeans')
+      && (ctx.any('isFormalShoes') || ctx.any('isDressyBoots'))
+      && !ctx.any('isCasualTrainer'),
+  },
+  {
+    id: 'slides_tailored_bottoms',
+    penalty: 55,
+    hint: 'Pool slides with chinos or trousers reads too casual — trainers or loafers finish the look',
+    severity: 'moderate',
+    when: (ctx) => ctx.items.some((i) => i.category === 'shoes' && /slides?|flip.?flop|pool slide/.test(itemText(i)))
+      && /chino|trouser|slack/.test(ctx.text)
+      && !ctx.any('isShorts'),
+  },
+  {
+    id: 'hoodie_dress_shirt',
+    penalty: 58,
+    hint: 'Hoodie over a dress shirt reads accidental — wear one or the other, or add a blazer for intentional layering',
+    severity: 'moderate',
+    when: (ctx) => ctx.any('isHoodie') && ctx.any('isDressShirt') && !ctx.any('isBlazer'),
+  },
+  {
+    id: 'hoodie_blazer_cargo',
+    penalty: 38,
+    hint: 'Hoodie + blazer + cargo pulls three style lanes — pick one anchor piece',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isHoodie')
+      && ctx.items.some((i) => /cargo/.test(itemText(i))),
+  },
+  {
     id: 'blazer_hoodie_no_jeans',
     penalty: 28,
     hint: 'Blazer over hoodie works best with denim to anchor the casual lane',
     severity: 'minor',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isHoodie') && !ctx.any('isJeans'),
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isHoodie') && !ctx.any('isJeans')
+      && !ctx.items.some((i) => /cargo/.test(itemText(i))),
   },
 ];
 
@@ -449,6 +528,20 @@ export function detectOutfitClashes(
   const matched = detectAllOutfitClashes(items, regional);
   if (matched.length === 0) return null;
   return matched[0];
+}
+
+/**
+ * Hard validity gate for candidate outfits.
+ * Fatal/major clashes make an outfit impossible — not merely low-scored.
+ * Moderate/minor stay as soft score pressure elsewhere.
+ */
+export function isOutfitValid(
+  items: WardrobeItem[],
+  regional: RegionalStyleContext | null = null,
+): boolean {
+  if (!items || items.length < 2) return true;
+  const clashes = detectAllOutfitClashes(items, regional);
+  return !clashes.some((c) => c.severity === 'fatal' || c.severity === 'major');
 }
 
 /** All clash rules that match, sorted by severity then penalty (highest first). */
