@@ -5089,6 +5089,43 @@ class ApiService {
     });
   }
 
+  /** After signup/login: attach guest stylist chat histories to the authenticated user. */
+  async claimGuestConversations(
+    guestToken: string | null | undefined,
+    conversations: Array<{
+      stylist: string;
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    }>,
+  ) {
+    return this.request<{
+      success: boolean;
+      messagesClaimed: number;
+      stylistsClaimed?: string[];
+      message?: string;
+    }>('/api/guest/claim-conversations', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(guestToken ? { guestToken } : {}),
+        conversations,
+      }),
+    });
+  }
+
+  async getChatHistory(stylist: string, limit = 50) {
+    const qs = new URLSearchParams({
+      stylist,
+      limit: String(limit),
+    });
+    return this.request<Array<{
+      id: number;
+      userId: number;
+      stylist: string;
+      role: 'user' | 'assistant';
+      content: string;
+      createdAt?: string;
+    }>>(`/api/chat/history?${qs.toString()}`);
+  }
+
   async getAdminDashboard() {
     return this.adminRequest<{
       users: {

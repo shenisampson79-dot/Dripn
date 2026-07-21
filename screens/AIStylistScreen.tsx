@@ -2108,26 +2108,52 @@ export default function AIStylistScreen() {
         const parsed = JSON.parse(data);
         if (!Array.isArray(parsed)) {
           await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
-          return;
-        }
+        } else {
+          const today = new Date().toDateString();
+          const recentMessages = parsed
+            .map(normalizeChatMessage)
+            .filter((msg): msg is ChatMessage => msg !== null)
+            .filter((msg) => new Date(msg.timestamp).toDateString() === today)
+            .slice(-20);
 
-        const today = new Date().toDateString();
-        const recentMessages = parsed
-          .map(normalizeChatMessage)
-          .filter((msg): msg is ChatMessage => msg !== null)
-          .filter((msg) => new Date(msg.timestamp).toDateString() === today)
-          .slice(-20);
-
-        if (recentMessages.length > 0) {
-          // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
-          if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
-            setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
-            setShowQuickPrompts(true);
-          } else {
-            setMessages(recentMessages);
-            setShowQuickPrompts(false);
+          if (recentMessages.length > 0) {
+            // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
+            if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
+              setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
+              setShowQuickPrompts(true);
+            } else {
+              setMessages(recentMessages);
+              setShowQuickPrompts(false);
+            }
+            return;
           }
         }
+      }
+
+      // Fall back to server history (e.g. conversations claimed from guest signup)
+      try {
+        const serverHistory = await apiService.getChatHistory(stylist.id, 40);
+        if (Array.isArray(serverHistory) && serverHistory.length > 0) {
+          const mapped = serverHistory
+            .filter((m) => m?.role === 'user' || m?.role === 'assistant')
+            .map((m, index) => ({
+              id: `server_${m.id ?? index}`,
+              role: m.role as 'user' | 'assistant',
+              content: typeof m.content === 'string' ? m.content : '',
+              timestamp: m.createdAt
+                ? new Date(m.createdAt).toISOString()
+                : new Date().toISOString(),
+            }))
+            .filter((m) => m.content.trim().length > 0)
+            .slice(-20);
+          if (mapped.some((m) => m.role === 'user')) {
+            setMessages(mapped);
+            setShowQuickPrompts(false);
+            await saveChatHistory(mapped);
+          }
+        }
+      } catch {
+        /* server history optional */
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);

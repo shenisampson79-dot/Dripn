@@ -31,12 +31,20 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { useVoiceSettings } from "@/contexts/VoiceSettingsContext";
 import { onboardingProfileService } from "@/services/OnboardingProfileService";
 import {
+  GUEST_TOKEN_KEY,
+  clearGuestChatMap,
+  hydrateChatMap,
+  loadGuestChatMap,
+  saveGuestChatMap,
+  toStoredChatMap,
+  type GuestStoredMessage,
+} from "@/services/GuestChatStorage";
+import {
   getStylistSpeakTranslator,
   resolveStylistSpeakLanguage,
 } from "@/utils/stylistLanguage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const GUEST_TOKEN_KEY = "@dripn_guest_token";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, "GuestBrowse">;
 
@@ -128,6 +136,9 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const { settings: voiceSettings } = useVoiceSettings();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  /** Per-stylist threads for this guest session (survives stylist switches). */
+  const messagesByStylistRef = useRef<Record<string, ChatMessage[]>>({});
+  const sessionTokenRef = useRef<string | null>(null);
 
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [stylists, setStylists] = useState<GuestStylist[]>(DEFAULT_STYLISTS);
@@ -144,6 +155,40 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
   const lastOutfitVisualRef = useRef<OutfitVisualContext | null>(null);
 
+  const persistGuestChats = async (token?: string | null) => {
+    const active = token ?? sessionTokenRef.current;
+    if (!active) return;
+    await saveGuestChatMap(active, toStoredChatMap(messagesByStylistRef.current));
+  };
+
+  const storedToChatMessages = (stored: GuestStoredMessage[]): ChatMessage[] =>
+    stored.map((m) => ({
+      id: m.id,
+      content: m.content,
+      isUser: m.isUser,
+      timestamp: new Date(m.timestamp || Date.now()),
+      imageUrl: m.imageUrl,
+      outfitContext: m.outfitContext,
+      outfitOccasion: m.outfitOccasion,
+      showVisualizeButton: false,
+      isGeneratingImage: false,
+    }));
+
+  const setMessagesForStylist = (
+    stylistId: string,
+    updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[]),
+  ) => {
+    setMessages((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      messagesByStylistRef.current = {
+        ...messagesByStylistRef.current,
+        [stylistId]: next,
+      };
+      void persistGuestChats();
+      return next;
+    });
+  };
+
   const stylistSpeakCode = resolveStylistSpeakLanguage({
     preferredLanguageCode: voiceSettings.preferredLanguage,
     uiLanguageCode: currentLanguage,
@@ -157,6 +202,28 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     });
   }, []);
 
+  useEffect(() => {
+    sessionTokenRef.current = sessionToken;
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (!selectedStylist || messages.length === 0) return;
+    const t = setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [selectedStylist?.id]);
+
+  const hydrateThreadsForToken = async (token: string) => {
+    const stored = await loadGuestChatMap(token);
+    const hydrated = hydrateChatMap(stored);
+    const next: Record<string, ChatMessage[]> = {};
+    for (const [stylistId, msgs] of Object.entries(hydrated)) {
+      next[stylistId] = storedToChatMessages(msgs);
+    }
+    messagesByStylistRef.current = next;
+  };
+
   const initializeGuestSession = async () => {
     setIsLoading(true);
     try {
@@ -166,19 +233,25 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         try {
           const status = await apiService.getGuestStatus(cachedToken) as any;
           setSessionToken(cachedToken);
+          sessionTokenRef.current = cachedToken;
           const remaining = status?.session?.messagesRemaining ?? status?.messagesRemaining ?? 5;
           setMessagesRemaining(remaining);
+          await hydrateThreadsForToken(cachedToken);
           await loadStylists(cachedToken);
           setIsLoading(false);
           return;
         } catch (e) {
+          await clearGuestChatMap(cachedToken);
           await AsyncStorage.removeItem(GUEST_TOKEN_KEY);
+          messagesByStylistRef.current = {};
         }
       }
 
       const session = await apiService.createGuestSession();
       await AsyncStorage.setItem(GUEST_TOKEN_KEY, session.sessionToken);
       setSessionToken(session.sessionToken);
+      sessionTokenRef.current = session.sessionToken;
+      messagesByStylistRef.current = {};
       await loadStylists(session.sessionToken);
     } catch (error) {
       console.log("Failed to create guest session:", error);
@@ -199,19 +272,34 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     }
   };
 
-  const handleSelectStylist = (stylist: GuestStylist) => {
-    setSelectedStylist(stylist);
+  const buildGreetingMessage = (stylist: GuestStylist): ChatMessage => {
     const greeting =
       stylistT(`guestBrowse.greeting.${stylist.id}`)
       || t(`guestBrowse.greeting.${stylist.id}`)
       || STYLIST_GREETINGS[stylist.id]
       || `Hi! I'm ${stylist.name}. What can I help you with today?`;
-    setMessages([{
+    return {
       id: "greeting",
       content: greeting,
       isUser: false,
       timestamp: new Date(),
-    }]);
+    };
+  };
+
+  const handleSelectStylist = (stylist: GuestStylist) => {
+    setSelectedStylist(stylist);
+    const existing = messagesByStylistRef.current[stylist.id];
+    if (existing && existing.length > 0) {
+      setMessages(existing);
+      return;
+    }
+    const greetingMessage = buildGreetingMessage(stylist);
+    messagesByStylistRef.current = {
+      ...messagesByStylistRef.current,
+      [stylist.id]: [greetingMessage],
+    };
+    setMessages([greetingMessage]);
+    void persistGuestChats();
   };
 
   const handleSendMessage = async () => {
@@ -235,7 +323,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           isUser: false,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
+        if (selectedStylist) {
+          setMessagesForStylist(selectedStylist.id, prev => [...prev, errorMessage]);
+        } else {
+          setMessages(prev => [...prev, errorMessage]);
+        }
         setIsSending(false);
         return;
       }
@@ -254,15 +346,17 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const historyForApi = messages.map(msg => ({
+      role: msg.isUser ? 'user' as const : 'assistant' as const,
+      content: msg.content
+    }));
+
+    setMessagesForStylist(selectedStylist.id, prev => [...prev, userMessage]);
     setInputText("");
     setIsSending(true);
 
     try {
-      const conversationHistory = messages.map(msg => ({
-        role: msg.isUser ? 'user' as const : 'assistant' as const,
-        content: msg.content
-      }));
+      const conversationHistory = historyForApi;
 
       const rawResponse = await apiService.guestChat(
         activeToken,
@@ -354,7 +448,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           : undefined,
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      setMessagesForStylist(selectedStylist.id, prev => [...prev, aiMessage]);
       if (shouldVisualize && visualContext) {
         void handleGenerateOutfitImage(
           aiMessage.id,
@@ -383,13 +477,14 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessagesForStylist(selectedStylist.id, prev => [...prev, errorMessage]);
     } finally {
       setIsSending(false);
     }
   };
 
   const handleSignUp = () => {
+    void persistGuestChats();
     navigation.navigate("Auth", { mode: "signup" });
   };
 
@@ -401,9 +496,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   ) => {
     const activeToken = tokenOverride || sessionToken;
     if (!activeToken || !selectedStylist) return;
+    const stylistId = selectedStylist.id;
 
     if (imageGenUsed >= GUEST_VISUAL_LIMIT) {
-      setMessages(prev => prev.map(m => m.id === messageId
+      setMessagesForStylist(stylistId, prev => prev.map(m => m.id === messageId
         ? {
             ...m,
             isGeneratingImage: false,
@@ -420,7 +516,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       pieces: extras?.pieces?.length ? extras.pieces : lastOutfitVisualRef.current?.pieces,
       occasion: extras?.occasion ?? lastOutfitVisualRef.current?.occasion ?? null,
     };
-    setMessages(prev => prev.map(m => m.id === messageId
+    setMessagesForStylist(stylistId, prev => prev.map(m => m.id === messageId
       ? {
           ...m,
           isGeneratingImage: true,
@@ -433,7 +529,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         activeToken,
         outfitContext,
         "smart casual",
-        selectedStylist.id,
+        stylistId,
         userGender,
         {
           pieces: extras?.pieces,
@@ -443,7 +539,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
       if (result?.limitReached === true) {
         setImageGenUsed(GUEST_VISUAL_LIMIT);
-        setMessages(prev => prev.map(m => m.id === messageId
+        setMessagesForStylist(stylistId, prev => prev.map(m => m.id === messageId
           ? {
               ...m,
               isGeneratingImage: false,
@@ -465,7 +561,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
       if (hasRealImage) {
         setImageGenUsed((used) => Math.min(GUEST_VISUAL_LIMIT, used + 1));
-        setMessages(prev => prev.map(m => m.id === messageId
+        setMessagesForStylist(stylistId, prev => prev.map(m => m.id === messageId
           ? {
               ...m,
               isGeneratingImage: false,
@@ -485,7 +581,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           ? 'Outfit visuals are temporarily unavailable. Tap retry to try again.'
           : GUEST_VISUAL_FAIL_MSG);
       const canRetry = imageGenUsed < GUEST_VISUAL_LIMIT && result?.limitReached !== true;
-      setMessages(prev => prev.map(m => m.id === messageId
+      setMessagesForStylist(stylistId, prev => prev.map(m => m.id === messageId
         ? {
             ...m,
             isGeneratingImage: false,
@@ -500,7 +596,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         (typeof error?.message === 'string' && error.message && !/^HTTP\s*\d+/i.test(error.message))
           ? error.message
           : GUEST_VISUAL_FAIL_MSG;
-      setMessages(prev => prev.map(m =>
+      setMessagesForStylist(stylistId, prev => prev.map(m =>
         m.id === messageId
           ? {
               ...m,
@@ -516,6 +612,12 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const handleBack = () => {
     if (selectedStylist) {
+      // Keep per-stylist map; only leave the chat view
+      messagesByStylistRef.current = {
+        ...messagesByStylistRef.current,
+        [selectedStylist.id]: messages,
+      };
+      void persistGuestChats();
       setSelectedStylist(null);
       setMessages([]);
     } else {
@@ -656,7 +758,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                 style={styles.outfitImage}
                 resizeMode="cover"
                 onError={() => {
-                  setMessages(prev => prev.map(m =>
+                  if (!selectedStylist) return;
+                  setMessagesForStylist(selectedStylist.id, prev => prev.map(m =>
                     m.id === item.id
                       ? {
                           ...m,

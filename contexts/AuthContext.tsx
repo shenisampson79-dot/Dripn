@@ -13,6 +13,11 @@ import { Platform, AppState } from 'react-native';
 import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
+import {
+  clearGuestSessionLocal,
+  readGuestConversationsForClaim,
+  seedAiStylistChatFromGuest,
+} from '@/services/GuestChatStorage';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier, preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
@@ -545,6 +550,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /** Upload guest stylist threads to the new account; clear local guest session. Non-fatal. */
+  const claimGuestConversationsAfterAuth = async () => {
+    try {
+      const { guestToken, conversations, seedMessages } = await readGuestConversationsForClaim();
+      if (conversations.length === 0) {
+        if (guestToken) await clearGuestSessionLocal();
+        return;
+      }
+      try {
+        await apiService.claimGuestConversations(guestToken, conversations);
+      } catch (claimErr) {
+        console.log('Guest conversation claim failed (non-fatal):', claimErr);
+        // Still seed local chat + clear guest token so user isn't stuck in limbo
+      }
+      await seedAiStylistChatFromGuest(seedMessages);
+      await clearGuestSessionLocal();
+    } catch (error) {
+      console.log('Guest conversation migration skipped:', error);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     setIsAuthenticating(true);
     try {
@@ -593,6 +619,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       await saveUserLocalOnly(userProfile);
+      await claimGuestConversationsAfterAuth();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
       throw new Error(errorMessage);
@@ -633,6 +660,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (dfyError) {
         console.log('No pending DFY payment to link');
       }
+
+      await claimGuestConversationsAfterAuth();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
       throw new Error(errorMessage);
@@ -692,6 +721,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           preserveLocalEmail: backendUser.email || userEmail || newUser.email,
         });
         await saveUserLocalOnly(newUser);
+        await claimGuestConversationsAfterAuth();
         return;
       } else if (provider === 'google') {
         const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
@@ -788,6 +818,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (dfyError) {
         console.log('No pending DFY payment to link');
       }
+
+      await claimGuestConversationsAfterAuth();
     } finally {
       setIsAuthenticating(false);
     }
@@ -830,6 +862,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (_) {}
+
+      await claimGuestConversationsAfterAuth();
     } finally {
       setIsAuthenticating(false);
     }
