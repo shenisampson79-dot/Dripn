@@ -9,6 +9,28 @@ const MATCH_STOP_WORDS = new Set([
   'carry', 'this', 'works', 'because', 'optional',
 ]);
 
+/** Phrases that name garments to exclude from wardrobe visuals. */
+const AVOIDANCE_CLAUSE_PATTERNS = [
+  /\bbe\s+careful\s+with\s+(?:the\s+|your\s+)?([^.!?\n]+)/gi,
+  /\b(?:avoid|skip|steer\s+clear\s+of)\s+(?:the\s+|your\s+|wearing\s+)?([^.!?\n]+)/gi,
+  /\bdon'?t\s+wear\s+(?:the\s+|your\s+)?([^.!?\n]+)/gi,
+  /\bdo\s+not\s+wear\s+(?:the\s+|your\s+)?([^.!?\n]+)/gi,
+  /\bkeep\s+(?:the\s+|your\s+)?([^.!?\n]+?)\s+for\s+(?:running|gym|sport|workouts?|training|exercise)\b/gi,
+  /\b(?:not\s+for\s+outfits?|rather\s+than\s+wearing)\s+(?:the\s+|your\s+)?([^.!?\n]+)/gi,
+];
+
+const AVOIDANCE_SENTENCE_STRIP = new RegExp(
+  [
+    String.raw`[^.!?\n]*\bbe\s+careful\s+with\b[^.!?\n]*[.!?]?`,
+    String.raw`[^.!?\n]*\b(?:avoid|skip|steer\s+clear\s+of)\b[^.!?\n]*[.!?]?`,
+    String.raw`[^.!?\n]*\bdon'?t\s+wear\b[^.!?\n]*[.!?]?`,
+    String.raw`[^.!?\n]*\bdo\s+not\s+wear\b[^.!?\n]*[.!?]?`,
+    String.raw`[^.!?\n]*\bkeep\b[^.!?\n]*\bfor\s+(?:running|gym|sport|workouts?|training|exercise)\b[^.!?\n]*[.!?]?`,
+    String.raw`[^.!?\n]*\b(?:clashes?|not\s+for\s+outfits?)\b[^.!?\n]*[.!?]?`,
+  ].join('|'),
+  'gi',
+);
+
 function normalizeForMatch(value: string) {
   return String(value || '')
     .toLowerCase()
@@ -43,6 +65,49 @@ function scoreItemMatch(itemName: string, text: string) {
     return matched[0].length;
   }
   return 0;
+}
+
+/** Collect raw avoidance clause text (garments the stylist told the user not to use). */
+export function collectAvoidanceMatchText(text = '') {
+  const source = String(text || '');
+  if (!source.trim()) return '';
+
+  const chunks: string[] = [];
+  for (const pattern of AVOIDANCE_CLAUSE_PATTERNS) {
+    pattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(source))) {
+      const clause = String(match[1] || '').trim();
+      if (clause.length >= 3) chunks.push(clause);
+    }
+  }
+  return chunks.join(' ');
+}
+
+/** Remove avoidance sentences so positive matching cannot pick excluded pieces. */
+export function stripAvoidanceClauses(text = '') {
+  return String(text || '')
+    .replace(AVOIDANCE_SENTENCE_STRIP, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function collectExcludedWardrobeItemIdsFromMentions(
+  text = '',
+  wardrobeItems: WardrobeItem[] = [],
+) {
+  const avoidanceText = collectAvoidanceMatchText(text);
+  if (!avoidanceText || wardrobeItems.length === 0) {
+    return new Set<string>();
+  }
+
+  const excluded = new Set<string>();
+  for (const item of wardrobeItems) {
+    if (scoreItemMatch(item.name || '', avoidanceText) > 0) {
+      excluded.add(item.id);
+    }
+  }
+  return excluded;
 }
 
 export function categoryToVisualRole(category?: string): string {
@@ -129,12 +194,15 @@ export function matchWardrobeItemsInText(
 ): WardrobeItem[] {
   if (!text || wardrobeItems.length === 0) return [];
 
+  const excludedIds = collectExcludedWardrobeItemIdsFromMentions(text, wardrobeItems);
+  const positiveText = stripAvoidanceClauses(text) || text;
+
   const scored = wardrobeItems
     .map((item) => ({
       item,
-      score: scoreItemMatch(item.name || '', text),
+      score: scoreItemMatch(item.name || '', positiveText),
     }))
-    .filter((entry) => entry.score > 0)
+    .filter((entry) => entry.score > 0 && !excludedIds.has(entry.item.id))
     .sort((a, b) => b.score - a.score);
 
   const seen = new Set<string>();
