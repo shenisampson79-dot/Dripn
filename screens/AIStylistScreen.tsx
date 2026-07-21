@@ -79,7 +79,7 @@ import { getStylistForUser, getStylistGreeting, PersonalStylist, type StylistGre
 import type { SharedValue } from 'react-native-reanimated';
 import type { UserStylistStackParamList } from '@/navigation/UserStylistStackNavigator';
 import {
-  buildWardrobeVisualFromChat,
+  hydrateWardrobeVisualImagesByIds,
   capWardrobeVisualForAccess,
   inferOutfitCountFromText,
   normalizeWardrobeVisual,
@@ -288,48 +288,31 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
 
 function attachWardrobeVisualToMessage(
   message: ChatMessage,
-  userMessage: string,
+  _userMessage: string,
   response: {
     content: string;
-  wardrobeVisual?: WardrobeVisualPayload | null;
-  outfitVisualSuggestion?: {
-    source: 'generated';
-    outfitDescription: string;
-    occasion: string;
-    pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
-  } | null;
-  /** Server owns strip authority — client must not rebuild from prose. */
-  visualAuthority?: 'server' | null;
-  hasOutfitRecommendation?: boolean;
-  isVisualizingOutfit?: boolean;
-    hasOutfitRecommendation?: boolean;
+    wardrobeVisual?: WardrobeVisualPayload | null;
+    outfitVisualSuggestion?: {
+      source: 'generated';
+      outfitDescription: string;
+      occasion: string;
+      pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
+    } | null;
+    /** Server owns strip authority — client must not rebuild from prose. */
     visualAuthority?: 'server' | string | null;
+    hasOutfitRecommendation?: boolean;
+    isVisualizingOutfit?: boolean;
   },
   wardrobeItems: WardrobeItem[],
   subscriptionTier?: string | null,
 ): ChatMessage {
-  const serverOwnsVisual =
-    response.visualAuthority === 'server'
-    || typeof response.hasOutfitRecommendation === 'boolean';
-
-  // Server architectural lock: never rebuild the strip from prose when the server decided.
-  const rawVisual = serverOwnsVisual
-    ? (response.wardrobeVisual ?? null)
-    : (response.wardrobeVisual
-      ?? buildWardrobeVisualFromChat(userMessage, response.content, wardrobeItems, subscriptionTier));
-
-  const clientVisual = normalizeWardrobeVisual(
-    rawVisual ? capWardrobeVisualForAccess(rawVisual, subscriptionTier) : null,
+  // Server owns strip authority for stylist chat — never rebuild from prose.
+  const rawVisual = response.wardrobeVisual ?? null;
+  const capped = rawVisual ? capWardrobeVisualForAccess(rawVisual, subscriptionTier) : null;
+  const wardrobeVisual = hydrateWardrobeVisualImagesByIds(
+    normalizeWardrobeVisual(capped),
+    wardrobeItems,
   );
-  const serverVisual = normalizeWardrobeVisual(response.wardrobeVisual ?? null);
-  const serverHasImages = (serverVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-  const clientHasImages = (clientVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-
-  const wardrobeVisual = serverOwnsVisual
-    ? (serverVisual ?? clientVisual)
-    : ((serverHasImages && !clientHasImages)
-      ? serverVisual
-      : (clientVisual ?? serverVisual));
 
   const hasVisual = Boolean(
     wardrobeVisual
@@ -341,6 +324,8 @@ function attachWardrobeVisualToMessage(
   const enriched: ChatMessage = {
     ...message,
     content: stripStructuredOutfitMarkers(message.content),
+    visualAuthority: 'server',
+    hasOutfitRecommendation: response.hasOutfitRecommendation,
   };
 
   if (response.outfitVisualSuggestion?.source === 'generated') {
@@ -1563,64 +1548,25 @@ export default function AIStylistScreen() {
 
     setMessages((prev) => {
       let changed = false;
-      const next = prev.map((msg, index) => {
+      const next = prev.map((msg) => {
         if (msg.role !== 'assistant') return msg;
-
-        // Server architectural lock: never overwrite or invent strip from prose.
-        if (msg.visualAuthority === 'server' || typeof msg.hasOutfitRecommendation === 'boolean') {
-          const serverVisual = normalizeWardrobeVisual(msg.wardrobeVisual);
-          if (!serverVisual) return msg;
-          const existingHasImages = (serverVisual.pieces ?? []).some((piece) => piece?.imageUrl);
-          if (existingHasImages) return msg;
-          // Allow image hydration only: rebuild may supply local image URLs for same IDs.
-          const priorUser = [...prev.slice(0, index)].reverse().find((entry) => entry.role === 'user');
-          const rebuilt = buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            msg.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          );
-          const rebuiltVisual = normalizeWardrobeVisual(
-            capWardrobeVisualForAccess(rebuilt, user?.subscriptionTier),
-          );
-          if (!rebuiltVisual?.pieces?.length) return msg;
-          const serverIds = new Set((serverVisual.pieces ?? []).map((p) => String(p.wardrobeItemId)));
-          const rebuiltIds = new Set((rebuiltVisual.pieces ?? []).map((p) => String(p.wardrobeItemId)));
-          const sameSet = serverIds.size === rebuiltIds.size
-            && [...serverIds].every((id) => rebuiltIds.has(id));
-          if (!sameSet) return msg;
-          const rebuiltHasImages = (rebuiltVisual.pieces ?? []).some((piece) => piece?.imageUrl);
-          if (!rebuiltHasImages) return msg;
-          changed = true;
-          return { ...msg, wardrobeVisual: rebuiltVisual };
-        }
-
-        const priorUser = [...prev.slice(0, index)].reverse().find((entry) => entry.role === 'user');
-        const rebuilt = buildWardrobeVisualFromChat(
-          priorUser?.content || '',
-          msg.content,
-          wardrobeItems,
-          user?.subscriptionTier,
-        );
         const serverVisual = normalizeWardrobeVisual(msg.wardrobeVisual);
-        const rebuiltVisual = normalizeWardrobeVisual(
-          capWardrobeVisualForAccess(rebuilt, user?.subscriptionTier),
-        );
-        const visual = rebuiltVisual
-          ?? serverVisual
-          ?? null;
-        if (!visual) return msg;
+        if (!serverVisual) return msg;
 
-        const existing = serverVisual;
-        if (existing?.layout === 'multi' && (existing.outfits?.length ?? 0) >= 2) return msg;
-        if (existing?.pieces?.length && !rebuiltVisual) return msg;
+        // ID-only hydration — never invent / reorder pieces from prose.
+        const hydrated = hydrateWardrobeVisualImagesByIds(serverVisual, wardrobeItems);
+        if (!hydrated) return msg;
 
-        const existingHasImages = (existing?.pieces ?? []).some((piece) => piece?.imageUrl);
-        const rebuiltHasImages = (rebuiltVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-        if (existingHasImages && !rebuiltHasImages) return msg;
+        const before = JSON.stringify(serverVisual);
+        const after = JSON.stringify(hydrated);
+        if (before === after) return msg;
 
         changed = true;
-        return { ...msg, wardrobeVisual: visual };
+        return {
+          ...msg,
+          wardrobeVisual: hydrated,
+          visualAuthority: msg.visualAuthority || 'server',
+        };
       });
 
       return changed ? next : prev;
@@ -2622,6 +2568,8 @@ export default function AIStylistScreen() {
         content,
         timestamp: new Date().toISOString(),
         wardrobeVisual: cappedVisual ?? undefined,
+        visualAuthority: 'server',
+        hasOutfitRecommendation: Boolean(generated.items.length),
         outfitSuggestion: generated.items.length
           ? { items: generated.items, occasion: label, reason: '' }
           : undefined,
@@ -2739,6 +2687,8 @@ export default function AIStylistScreen() {
         content,
         timestamp: new Date().toISOString(),
         wardrobeVisual: cappedVisual ?? undefined,
+        visualAuthority: 'server',
+        hasOutfitRecommendation: Boolean(generated.items.length),
         outfitSuggestion: generated.items.length
           ? { items: generated.items, occasion: label, reason: '' }
           : undefined,
@@ -2855,42 +2805,13 @@ export default function AIStylistScreen() {
     });
   };
 
-  const resolveAssistantWardrobeVisual = (message: ChatMessage, messageIndex: number) => {
-    const priorUser = [...messages.slice(0, messageIndex)].reverse().find((entry) => entry.role === 'user');
-    const outfitCount = inferOutfitCountFromText(message.content);
+  const resolveAssistantWardrobeVisual = (message: ChatMessage, _messageIndex: number) => {
+    let visual = hydrateWardrobeVisualImagesByIds(
+      normalizeWardrobeVisual(message.wardrobeVisual),
+      wardrobeItems,
+    );
 
-    let visual = normalizeWardrobeVisual(message.wardrobeVisual);
-    if (!visual && wardrobeItems.length > 0) {
-      visual = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
-      );
-    }
-
-    if (outfitCount >= 2 && wardrobeItems.length > 0) {
-      const rebuilt = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
-      );
-      if (rebuilt?.layout === 'multi') {
-        visual = rebuilt;
-      }
-    }
-
+    // Allocator / occasion chip paths already supply ID-backed pieces via outfitSuggestion.
     if (!visual && message.outfitSuggestion?.items?.length) {
       visual = normalizeWardrobeVisual(
         wardrobeVisualFromOutfitSuggestion(message.outfitSuggestion.items),
@@ -3001,39 +2922,17 @@ export default function AIStylistScreen() {
   };
 
   const renderAssistantContent = (message: ChatMessage, messageIndex: number) => {
-    const priorUser = [...messages.slice(0, messageIndex)].reverse().find((entry) => entry.role === 'user');
     const outfitCount = inferOutfitCountFromText(message.content);
 
-    let visual = normalizeWardrobeVisual(message.wardrobeVisual);
-    if (!visual && wardrobeItems.length > 0) {
-      visual = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
-      );
-    }
+    let visual = hydrateWardrobeVisualImagesByIds(
+      normalizeWardrobeVisual(message.wardrobeVisual),
+      wardrobeItems,
+    );
 
-    if (outfitCount >= 2 && wardrobeItems.length > 0) {
-      const rebuilt = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
+    if (!visual && message.outfitSuggestion?.items?.length) {
+      visual = normalizeWardrobeVisual(
+        wardrobeVisualFromOutfitSuggestion(message.outfitSuggestion.items),
       );
-      if (rebuilt?.layout === 'multi') {
-        visual = rebuilt;
-      }
     }
 
     const renderOutfitVisual = (

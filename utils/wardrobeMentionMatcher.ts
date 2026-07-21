@@ -342,6 +342,18 @@ export function getPrimaryOutfitMatchText(assistantText: string): string {
 }
 
 export function buildWardrobeVisualFromChat(
+  _userMessage: string,
+  _assistantText: string,
+  _wardrobeItems: WardrobeItem[],
+  _subscriptionTier?: string | null,
+): WardrobeVisualPayload | null {
+  // Retired: stylist chat wardrobe strips are server-authority only (DRIPN_OUTFIT / allocator IDs).
+  // Never rebuild chips from prose — prevents avoid∩outfit drift (e.g. Asics in strip).
+  return null;
+}
+
+/** @deprecated Internal legacy matcher — do not use for chat strips. Kept for reference/tests only. */
+export function legacyBuildWardrobeVisualFromChatProse(
   userMessage: string,
   assistantText: string,
   wardrobeItems: WardrobeItem[],
@@ -377,6 +389,45 @@ export function buildWardrobeVisualFromChat(
     layout: matched.length === 1 ? 'highlight' : 'stacked',
     pieces,
   };
+}
+
+/**
+ * ID-only image hydration: fill missing imageUrl from local wardrobe by wardrobeItemId.
+ * Never adds, removes, reorders, or invents pieces from prose.
+ */
+export function hydrateWardrobeVisualImagesByIds(
+  visual: WardrobeVisualPayload | null | undefined,
+  wardrobeItems: WardrobeItem[],
+): WardrobeVisualPayload | null {
+  const normalized = normalizeWardrobeVisual(visual);
+  if (!normalized || wardrobeItems.length === 0) return normalized;
+
+  const hydratePiece = (piece: OutfitPieceVisual): OutfitPieceVisual => {
+    if (piece?.imageUrl) return piece;
+    const item = wardrobeItems.find((row) => String(row.id) === String(piece.wardrobeItemId));
+    if (!item) return piece;
+    const localUrl = resolveWardrobeImageUri(item) || (item.id ? buildWardrobeImageProxyUrl(item.id) : null);
+    if (!localUrl) return piece;
+    return { ...piece, imageUrl: localUrl };
+  };
+
+  if (normalized.layout === 'multi' && normalized.outfits?.length) {
+    return {
+      ...normalized,
+      outfits: normalized.outfits.map((outfit) => ({
+        ...outfit,
+        pieces: (outfit.pieces || []).map(hydratePiece),
+      })),
+    };
+  }
+
+  if (normalized.pieces?.length) {
+    return {
+      ...normalized,
+      pieces: normalized.pieces.map(hydratePiece),
+    };
+  }
+  return normalized;
 }
 
 export function wardrobeVisualFromOutfitSuggestion(
