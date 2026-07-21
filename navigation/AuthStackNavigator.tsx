@@ -66,6 +66,7 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="TrustOnboarding" component={TrustOnboardingScreen} />
       <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
+      {/* Kept registered for later reintroduction; simplified Get Styled skips to GuestBrowse */}
       <Stack.Screen name="PreSignupStyleQuiz" component={PreSignupStyleQuizScreen} />
       <Stack.Screen name="OnboardingEntry" component={OnboardingEntryScreen} />
       <Stack.Screen name="DecideForMe" component={DecideForMeScreen} />

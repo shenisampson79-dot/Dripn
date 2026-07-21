@@ -18,11 +18,19 @@ import {
   DressFor,
 } from '@/services/OnboardingProfileService';
 import { videoRandomizer } from '@/services/VideoRandomizerService';
-import { useTranslations } from "@/contexts/TranslationContext";
+import { useTranslations } from '@/contexts/TranslationContext';
+import { apiService } from '@/services/ApiService';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'OnboardingProfile'>;
 };
+
+/**
+ * Simplified Get Styled path (frontend only).
+ * When false, restores occasion → PreSignupStyleQuiz → OnboardingEntry
+ * (Decide for me / Style me properly). Screens + backend routes stay registered.
+ */
+const SHOW_FULL_PRE_STYLIST_FLOW = false;
 
 const IDENTITY_IDS: {
   id: StyleIdentity;
@@ -119,7 +127,33 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
     [t]
   );
 
+  /** Same destination as OnboardingEntry "See how it works before signing up". */
+  const goToChooseStylist = async () => {
+    await onboardingProfileService.saveProfile({
+      identity: identity || undefined,
+      dressFor: dressFor || 'myself',
+      quizLikes: [],
+      likedStyles: [],
+      quizComplete: false,
+    });
+    try {
+      await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>(
+        '/api/onboarding/entry-choice',
+        { choice: 'just_browsing' },
+      );
+    } catch {
+      console.log('Failed to track browsing choice');
+    }
+    navigation.navigate('GuestBrowse');
+  };
+
   const handleContinue = async () => {
+    if (!SHOW_FULL_PRE_STYLIST_FLOW) {
+      if (!identity) return;
+      await goToChooseStylist();
+      return;
+    }
+
     if (step === 0 && identity) {
       setStep(1);
       return;
@@ -136,6 +170,8 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
     }
   };
 
+  const showingOccasion = SHOW_FULL_PRE_STYLIST_FLOW && step === 1;
+
   return (
     <View style={[styles.container, { backgroundColor: ui.rootBg }]}>
       <LoopingBackgroundVideo source={backgroundVideo} style={StyleSheet.absoluteFill} />
@@ -147,19 +183,19 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
       <View style={[styles.inner, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.lg }]}>
         <Pressable
-          onPress={() => (step > 0 ? setStep(0) : navigation.goBack())}
+          onPress={() => (showingOccasion ? setStep(0) : navigation.goBack())}
           style={[styles.back, { backgroundColor: ui.backBg }]}
         >
           <Feather name="arrow-left" size={20} color={ui.backIcon} />
         </Pressable>
 
         <Animated.View
-          key={step}
+          key={showingOccasion ? 1 : 0}
           entering={FadeInRight.duration(280)}
           exiting={FadeOutLeft.duration(200)}
           style={styles.body}
         >
-          {step === 0 ? (
+          {!showingOccasion ? (
             <>
               <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
                 {t('onboardingProfile.identityTitle') || 'Which sounds most like you?'}
@@ -237,10 +273,10 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
         <Button
           onPress={handleContinue}
-          disabled={step === 0 ? !identity : false}
+          disabled={!identity && !showingOccasion}
           style={styles.cta}
         >
-          {step === 0
+          {!showingOccasion
             ? t('onboardingProfile.continue') || t('common.continue') || 'Continue'
             : dressFor
               ? t('onboardingProfile.pickOutfits') || 'Pick outfits I like'
