@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useContext } from 'react';
+import React, { useState, useMemo, useContext, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,18 +15,22 @@ import { HeaderHeightContext } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Location from 'expo-location';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/Card';
+import { ZoomableWardrobeImage } from '@/components/ZoomableWardrobeImage';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
-import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
+import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType, CATEGORY_LABELS } from '@/contexts/WardrobeContext';
+import { onboardingProfileService, type OnboardingProfile } from '@/services/OnboardingProfileService';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { apiService } from '@/services/ApiService';
@@ -42,9 +46,16 @@ import {
   OCCASION_TO_PLANNED_EVENT,
   type OutfitOccasionId,
 } from '@/constants/outfitOccasions';
-import { resolveGeneratedOutfitItemIds } from '@/utils/generatedOutfit';
+import {
+  allocateMultiDayPlan,
+} from '@/utils/wardrobeAllocationEngine';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
-import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
+import {
+  orderItemIdsByVisualOrder,
+  sortOutfitItemsByVisualOrder,
+  sortWardrobeItemsByCategoryOrder,
+} from '@/utils/outfitItemOrder';
+import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
 
 type OutfitCalendarScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'OutfitCalendar'>;
@@ -64,6 +75,27 @@ const EVENT_TYPES: { value: PlannedEventType; label: string; icon: keyof typeof 
   { value: 'travel', label: 'Travel', icon: 'map-pin' },
   { value: 'everyday', label: 'Everyday', icon: 'sun' },
 ];
+
+const OCCASION_SCORE_MAP: Record<PlannedEventType, string> = {
+  casual: 'casual-hangout',
+  work: 'job-interview',
+  'date-night': 'first-date',
+  party: 'casual-hangout',
+  formal: 'wedding',
+  everyday: 'casual-hangout',
+  workout: 'gym-active',
+  travel: 'casual-hangout',
+  wedding: 'wedding',
+};
+
+const DIMENSION_LABELS: Record<string, string> = {
+  fit: 'Fit',
+  colorHarmony: 'Colour',
+  trendAlignment: 'Trend',
+  bodyTypeMatch: 'Body',
+  occasionRelevance: 'Occasion',
+  uniqueness: 'Edge',
+};
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -89,57 +121,82 @@ function dedupeWardrobeItems(items: WardrobeItem[]): WardrobeItem[] {
   return unique;
 }
 
-// ── Flat-lay stacked outfit preview (Indyx style) ──────────────────────────
+function normalizeItemIds(ids: Array<string | number> | null | undefined): string[] {
+  if (!Array.isArray(ids)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (id == null) continue;
+    const key = String(id);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+function isSameItemId(a: string | number, b: string | number): boolean {
+  return String(a) === String(b);
+}
+
+// ── Flat-lay outfit preview (equal-size tiles, category order) ─────────────
 type StackedOutfitPreviewProps = {
   outfitItems: WardrobeItem[];
+  onItemPress?: (item: WardrobeItem) => void;
+  onOpenFullPreview?: () => void;
 };
 
-function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
+function StackedOutfitPreview({
+  outfitItems,
+  onItemPress,
+  onOpenFullPreview,
+}: StackedOutfitPreviewProps) {
   const { isDark } = useTheme();
   const uniqueItems = sortOutfitItemsByVisualOrder(dedupeWardrobeItems(outfitItems));
 
   const slotBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const canvasBg = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)';
 
-  const renderSlot = (item: WardrobeItem, slotStyle?: object) => (
-    <View key={item.id} style={[styles.flatLaySlot, { backgroundColor: slotBg }, slotStyle]}>
-      {item.imageUri ? (
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.flatLayImage}
-          contentFit="contain"
-        />
-      ) : (
-        <Feather name="image" size={28} color={isDark ? '#555' : '#ccc'} />
-      )}
-    </View>
-  );
-
   if (uniqueItems.length === 0) return null;
-
-  const rows: WardrobeItem[][] = [];
-  for (let i = 0; i < uniqueItems.length; i += 2) {
-    rows.push(uniqueItems.slice(i, i + 2));
-  }
 
   return (
     <View style={[styles.flatLayCanvas, { backgroundColor: canvasBg }]}>
-      {rows.map((row, rowIndex) => (
-        <View
-          key={`row-${rowIndex}`}
-          style={row.length === 1 ? styles.flatLayCenterRow : styles.flatLayRow}
-        >
-          {row.map((item) =>
-            renderSlot(item, row.length === 1 ? styles.flatLayCenterSlot : styles.flatLayHalfSlot),
-          )}
-        </View>
-      ))}
-
-      <View style={styles.flatLayItemCount}>
-        <ThemedText type="caption" style={{ color: isDark ? '#888' : '#999', fontSize: 11 }}>
-          {uniqueItems.length} {uniqueItems.length === 1 ? 'item' : 'items'}
-        </ThemedText>
+      <View style={styles.flatLayGrid}>
+        {uniqueItems.map((item) => (
+          <Pressable
+            key={item.id}
+            onPress={() => {
+              if (onItemPress) onItemPress(item);
+              else onOpenFullPreview?.();
+            }}
+            style={[styles.flatLaySlot, styles.flatLayEqualSlot, { backgroundColor: slotBg }]}
+          >
+            {item.imageUri ? (
+              <Image
+                source={{ uri: item.imageUri }}
+                style={styles.flatLayImage}
+                contentFit="contain"
+              />
+            ) : (
+              <Feather name="image" size={28} color={isDark ? '#555' : '#ccc'} />
+            )}
+          </Pressable>
+        ))}
       </View>
+
+      {onOpenFullPreview ? (
+        <Pressable onPress={onOpenFullPreview} style={styles.flatLayItemCount}>
+          <ThemedText type="caption" style={{ color: isDark ? '#888' : '#999', fontSize: 11 }}>
+            {uniqueItems.length} {uniqueItems.length === 1 ? 'item' : 'items'} · tap to enlarge
+          </ThemedText>
+        </Pressable>
+      ) : (
+        <View style={styles.flatLayItemCount}>
+          <ThemedText type="caption" style={{ color: isDark ? '#888' : '#999', fontSize: 11 }}>
+            {uniqueItems.length} {uniqueItems.length === 1 ? 'item' : 'items'}
+          </ThemedText>
+        </View>
+      )}
     </View>
   );
 }
@@ -151,7 +208,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const headerHeightCtx = useContext(HeaderHeightContext);
   const hasStackHeader = typeof headerHeightCtx === 'number' && headerHeightCtx > 0;
   const { t, translations } = useTranslations();
-  const { user } = useAuth();
+  const { user, actualCountry } = useAuth();
   const { limits } = useSubscription();
   const secondaryTextColor = getSecondaryTextColor(isDark);
   const tertiaryTextColor = getTertiaryTextColor(isDark);
@@ -162,7 +219,6 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     planOutfit,
     updatePlannedOutfit,
     deletePlannedOutfit,
-    removeItemFromPlannedOutfit,
     markPlannedOutfitWorn,
     getItemsByCategory 
   } = useWardrobe();
@@ -179,6 +235,19 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [notes, setNotes] = useState('');
   
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
+  const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [showOutfitLookPreview, setShowOutfitLookPreview] = useState(false);
+
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
+  const scoringLocationRef = useRef<{ lat?: number; lon?: number }>({});
+  const scoreRequestRef = useRef(0);
+  const [styleScore, setStyleScore] = useState(0);
+  const [styleHint, setStyleHint] = useState('Select items to rate this outfit');
+  const [scoreDimensions, setScoreDimensions] = useState<Record<string, number> | null>(null);
+  const [scoreExplanations, setScoreExplanations] = useState<string[]>([]);
+  const [scoreHeadline, setScoreHeadline] = useState<string | null>(null);
+  const [isAiScoring, setIsAiScoring] = useState(false);
+  const [aiScoreApplied, setAiScoreApplied] = useState(false);
 
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -209,6 +278,170 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     });
     return map;
   }, [plannedOutfits]);
+
+  const sortedWardrobeItems = useMemo(
+    () => sortWardrobeItemsByCategoryOrder(items),
+    [items],
+  );
+
+  const regionalContext = useMemo(
+    () => resolveRegionalStyleContext(user, onboardingProfile),
+    [user, onboardingProfile, actualCountry],
+  );
+
+  const selectedWardrobeItems = useMemo(
+    () => selectedItems
+      .map((id) => items.find((item) => isSameItemId(item.id, id)))
+      .filter((item): item is WardrobeItem => Boolean(item)),
+    [selectedItems, items],
+  );
+
+  const selectionKey = useMemo(
+    () => selectedItems.slice().sort().join('|'),
+    [selectedItems],
+  );
+
+  const previewItem = useMemo(
+    () => (previewItemId
+      ? items.find((item) => String(item.id) === String(previewItemId)) || null
+      : null),
+    [previewItemId, items],
+  );
+
+  useEffect(() => {
+    onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        scoringLocationRef.current = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      } catch {
+        // Location is optional for scoring.
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!showAddModal) {
+      setStyleScore(0);
+      setStyleHint('Select items to rate this outfit');
+      setScoreDimensions(null);
+      setScoreExplanations([]);
+      setScoreHeadline(null);
+      setAiScoreApplied(false);
+      setIsAiScoring(false);
+      return;
+    }
+
+    const local = computeLocalOutfitScore(
+      selectedWardrobeItems,
+      regionalContext,
+      user?.colorScanData?.colorSeasonType ?? null,
+    );
+    setStyleScore(local.score);
+    setStyleHint(local.hint);
+    setAiScoreApplied(false);
+    setScoreDimensions(null);
+    setScoreExplanations([]);
+    setScoreHeadline(null);
+
+    if (selectedWardrobeItems.length < 2) {
+      setIsAiScoring(false);
+      return;
+    }
+
+    const requestId = ++scoreRequestRef.current;
+    setIsAiScoring(true);
+    const itemIdsForRequest = selectedWardrobeItems.map((item) => item.id);
+    const { lat, lon } = scoringLocationRef.current;
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await apiService.checkOutfitCompatibility({
+          items: itemIdsForRequest,
+          stylistId: 'ruby',
+          occasion: OCCASION_SCORE_MAP[newEventType] || 'casual-hangout',
+          countryCode: regionalContext.countryCode || undefined,
+          preferredStyles: regionalContext.styleTags,
+          lat,
+          lon,
+          location: user?.country || actualCountry || undefined,
+        });
+
+        if (scoreRequestRef.current !== requestId) return;
+
+        if (result.success && typeof result.score === 'number') {
+          const merged = mergeOutfitScores(local, {
+            score: result.score,
+            hardRuleViolations: result.hardRuleViolations,
+            hardCapApplied: result.hardCapApplied,
+            verdict: result.verdict,
+            analysis: result.analysis,
+            headline: result.headline,
+            unifiedScoreApplied: (result as any).unifiedScoreApplied,
+            explanations: result.explanations,
+            improvements: result.improvements,
+            dimensions: result.dimensions,
+          }, {
+            allowsSmartCasualTrainers: regionalContext.allowsSmartCasualTrainers,
+          });
+          setStyleScore(merged.score);
+          setStyleHint(merged.hint);
+          setScoreDimensions(merged.dimensions);
+          setScoreExplanations(merged.explanations);
+          setScoreHeadline(merged.headline);
+          setAiScoreApplied(merged.aiApplied);
+        }
+      } catch {
+        // Keep instant local score when AI is unavailable.
+      } finally {
+        if (scoreRequestRef.current === requestId) {
+          setIsAiScoring(false);
+        }
+      }
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [
+    showAddModal,
+    selectionKey,
+    newEventType,
+    selectedWardrobeItems,
+    regionalContext,
+    user?.country,
+    actualCountry,
+  ]);
+
+  const closeItemPreview = useCallback(() => {
+    setPreviewItemId(null);
+  }, []);
+
+  const closeOutfitLookPreview = useCallback(() => {
+    setShowOutfitLookPreview(false);
+  }, []);
+
+  const closePlanModal = useCallback(() => {
+    setPreviewItemId(null);
+    setShowOutfitLookPreview(false);
+    setShowAddModal(false);
+    setEditingOutfitId(null);
+  }, []);
+
+  const handlePlanModalRequestClose = useCallback(() => {
+    if (previewItemId) {
+      closeItemPreview();
+      return;
+    }
+    if (showOutfitLookPreview) {
+      closeOutfitLookPreview();
+      return;
+    }
+    closePlanModal();
+  }, [previewItemId, showOutfitLookPreview, closeItemPreview, closeOutfitLookPreview, closePlanModal]);
 
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -280,25 +513,29 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const handleEditOutfit = async (outfit: PlannedOutfit) => {
-    // Pre-populate from local state immediately so modal opens fast
+    // Pre-populate from local state immediately so modal opens with the saved look
+    const localIds = normalizeItemIds(outfit.itemIds);
     setEditingOutfitId(outfit.id);
     setNewEventName(outfit.eventName || '');
     setNewEventType(outfit.eventType || 'casual');
-    setSelectedItems([...outfit.itemIds]);
+    setSelectedItems(localIds);
     setNotes(outfit.notes || '');
+    setPreviewItemId(null);
+    setShowOutfitLookPreview(false);
     setShowAddModal(true);
-    // Then fetch fresh data from backend to overwrite with authoritative version
+    // Then fetch fresh data from backend — only replace if it returns real item IDs
     setIsFetchingOutfit(true);
     try {
       const result = await apiService.getOutfitCalendarEntry(outfit.id);
-      if (result?.success && result.outfit) {
+      const remoteIds = normalizeItemIds(result?.outfit?.itemIds);
+      if (remoteIds.length > 0) {
         setNewEventName(result.outfit.eventName || '');
         setNewEventType((result.outfit.eventType as PlannedEventType) || 'casual');
-        setSelectedItems(result.outfit.itemIds ?? []);
+        setSelectedItems(remoteIds);
         setNotes(result.outfit.notes || '');
       }
     } catch (err) {
-      // Backend unavailable — local data already loaded, no action needed
+      // Backend unavailable or local-only plan id — keep local selection
       console.log('[OutfitCalendar] GET outfit-calendar/:id failed, using local data:', err);
     } finally {
       setIsFetchingOutfit(false);
@@ -312,7 +549,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     }
 
     const completedIds = orderItemIdsByVisualOrder(
-      completeOutfitItemIds(selectedItems, items),
+      completeOutfitItemIds(normalizeItemIds(selectedItems), items),
       items,
     );
     if (!isCompleteOutfit(completedIds, items)) {
@@ -343,6 +580,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       }
       setShowAddModal(false);
       setEditingOutfitId(null);
+      setPreviewItemId(null);
+      setShowOutfitLookPreview(false);
     } catch (error) {
       Alert.alert(t('common.error'), t('wardrobe.failedToSaveOutfitPlan'));
     }
@@ -364,7 +603,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const handleMarkWorn = async (id: string) => {
     try {
       await markPlannedOutfitWorn(id);
-      Alert.alert(t('common.success'), t('wardrobe.outfitMarkedWorn'));
+      // Success is visible via the Worn badge — no Alert OK bar.
     } catch (error) {
       Alert.alert(t('common.error'), t('wardrobe.failedToMarkWorn'));
     }
@@ -396,95 +635,119 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         return;
       }
 
-      const occasionTypes = buildWeekOccasionRotation(generatingDays, focusOccasionId);
-      const ownedItems = items.filter((item) => !item.origin || item.origin === 'owned');
-      const wardrobeForGen = ownedItems.length >= MIN_OUTFIT_ITEMS ? ownedItems : items;
-      
       const today = new Date();
       today.setHours(12, 0, 0, 0);
+      const occasionTypes = buildWeekOccasionRotation(generatingDays, focusOccasionId, today);
+      const ownedItems = items.filter((item) => !item.origin || item.origin === 'owned');
+      const wardrobeForGen = ownedItems.length >= MIN_OUTFIT_ITEMS ? ownedItems : items;
+
+      // Constraint engine first with honest fallback modes (never fake variety)
+      let plan = allocateMultiDayPlan({
+        wardrobe: wardrobeForGen,
+        occasionTypes,
+        preferReduceDaysOverRotation: true,
+        allowReduceDays: false,
+      });
+
+      if (!plan.ok) {
+        const maxDays = plan.maxPossibleDays;
+        const guidance = (plan.guidance || []).join('\n• ');
+        const choice = await new Promise<'cancel' | 'reduce' | 'rotation'>((resolve) => {
+          if (maxDays < 1) {
+            Alert.alert(
+              t('wardrobe.notEnoughUniqueOutfits') || 'Need more items for full variety',
+              `${plan.message}${guidance ? `\n\n• ${guidance}` : ''}`,
+              [{ text: t('common.ok') || 'OK', onPress: () => resolve('cancel') }],
+            );
+            return;
+          }
+          Alert.alert(
+            t('wardrobe.limitedWardrobeTitle') || 'Limited wardrobe detected',
+            `${plan.message}${guidance ? `\n\n• ${guidance}` : ''}`,
+            [
+              { text: t('common.cancel') || 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+              {
+                text: (t('wardrobe.planNUniqueDays') || '{n} unique days').replace('{n}', String(maxDays)),
+                onPress: () => resolve('reduce'),
+              },
+              {
+                text: t('wardrobe.useRotationMode') || 'Rotation mode',
+                onPress: () => resolve('rotation'),
+              },
+            ],
+          );
+        });
+
+        if (choice === 'cancel') {
+          setShowAIModal(false);
+          return;
+        }
+
+        if (choice === 'reduce') {
+          plan = allocateMultiDayPlan({
+            wardrobe: wardrobeForGen,
+            occasionTypes: occasionTypes.slice(0, maxDays),
+            preferReduceDaysOverRotation: true,
+            allowReduceDays: true,
+          });
+        } else {
+          plan = allocateMultiDayPlan({
+            wardrobe: wardrobeForGen,
+            occasionTypes,
+            forceMode: 'rotation',
+          });
+        }
+      }
+
+      if (!plan.ok) {
+        Alert.alert(
+          t('wardrobe.noOutfitsCreated') || 'No Outfits Created',
+          plan.message,
+        );
+        setShowAIModal(false);
+        return;
+      }
+
+      // Transparent mode notice (not a fake "success" — honesty about constraints)
+      if (plan.mode !== 'strict') {
+        Alert.alert(
+          plan.modeLabel,
+          plan.modeExplanation,
+          [{ text: t('common.ok') || 'OK' }],
+        );
+      }
+
+      setAiGenerateProgress({ current: 0, total: plan.days.length });
       let successCount = 0;
       let firstPlannedDate: Date | null = null;
       let lastFailureReason = '';
-      const usedSignatures = new Set<string>();
 
-      const buildLocalDayOutfit = (occasionType: OutfitOccasionId, dayIndex: number): string[] => {
-        // Rotate wardrobe so mixed weeks don't reuse the exact same first picks every day
-        const rotated = [
-          ...wardrobeForGen.slice(dayIndex % wardrobeForGen.length),
-          ...wardrobeForGen.slice(0, dayIndex % wardrobeForGen.length),
-        ];
-        let ids = orderItemIdsByVisualOrder(
-          completeOutfitItemIds([], rotated, occasionType),
-          wardrobeForGen,
-        );
-        const signature = ids.slice().sort().join('|');
-        if (usedSignatures.has(signature) && wardrobeForGen.length > MIN_OUTFIT_ITEMS) {
-          const reshuffle = [
-            ...rotated.slice(1),
-            rotated[0],
-          ];
-          ids = orderItemIdsByVisualOrder(
-            completeOutfitItemIds([], reshuffle, occasionType),
-            wardrobeForGen,
-          );
-        }
-        return ids;
-      };
-      
-      for (let i = 0; i < generatingDays; i++) {
-        setAiGenerateProgress({ current: i, total: generatingDays });
+      for (let i = 0; i < plan.days.length; i++) {
+        setAiGenerateProgress({ current: i + 1, total: plan.days.length });
+        const dayPlan = plan.days[i];
         const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + i);
-        
-        const occasionType = occasionTypes[i % occasionTypes.length];
-        let itemIds: string[] = [];
-        
-        try {
-          const regional = resolveRegionalStyleContext(user);
-          const result = await apiService.generateOutfit({
-            occasionType,
-            stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
-            countryCode: regional.countryCode || undefined,
-            preferredStyles: regional.styleTags,
-            localItems: wardrobeForGen.map(i => ({
-              id: String(i.id),
-              name: i.name,
-              category: i.category,
-              color: i.color,
-              imageUri: i.imageUri,
-            })),
-          });
-          
-          itemIds = resolveGeneratedOutfitItemIds(result, wardrobeForGen, occasionType);
-          
-          if (!(result.success && isCompleteOutfit(itemIds, wardrobeForGen))) {
-            lastFailureReason = 'AI returned an incomplete outfit';
-            itemIds = buildLocalDayOutfit(occasionType, i);
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          lastFailureReason = message || 'AI request failed';
-          console.log(`Failed to generate outfit for day ${i + 1}:`, err);
-          itemIds = buildLocalDayOutfit(occasionType, i);
-        }
+        targetDate.setDate(today.getDate() + dayPlan.dayIndex);
+        const itemIds = dayPlan.itemIds;
 
         if (!isCompleteOutfit(itemIds, wardrobeForGen)) {
-          lastFailureReason =
-            lastFailureReason
-            || 'Could not assemble a full outfit (need tops, bottoms, and shoes).';
+          lastFailureReason = 'Allocated outfit was incomplete.';
           continue;
         }
 
         try {
-          const eventType = (OCCASION_TO_PLANNED_EVENT[occasionType] || 'casual') as PlannedEventType;
+          const eventType = (OCCASION_TO_PLANNED_EVENT[dayPlan.occasionType] || 'casual') as PlannedEventType;
+          const reuseBits = [
+            dayPlan.reusedHardIds.length ? 'spaced laundry reuse' : null,
+            dayPlan.reusedSoftIds.length ? 'soft shoe/accessory reuse' : null,
+          ].filter(Boolean);
+          const reuseNote = reuseBits.length ? ` (${reuseBits.join(', ')})` : '';
           await planOutfit({
             date: toPlannedOutfitDateIso(targetDate),
             itemIds,
-            eventName: `AI ${occasionType.replace(/_/g, ' ')}`,
+            eventName: `AI ${dayPlan.occasionType.replace(/_/g, ' ')}`,
             eventType,
-            notes: 'Created by AI Stylist',
+            notes: `${plan.modeLabel}.${reuseNote}`,
           });
-          usedSignatures.add(itemIds.slice().sort().join('|'));
           successCount++;
           if (!firstPlannedDate) firstPlannedDate = targetDate;
         } catch (planErr) {
@@ -492,38 +755,25 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           console.log(`Failed to save outfit for day ${i + 1}:`, planErr);
         }
       }
-      
-      setAiGenerateProgress({ current: generatingDays, total: generatingDays });
+
+      setAiGenerateProgress({ current: plan.days.length, total: plan.days.length });
       setShowAIModal(false);
-      
+
       if (successCount > 0) {
         if (firstPlannedDate) {
           setCurrentDate(new Date(firstPlannedDate.getFullYear(), firstPlannedDate.getMonth(), 1));
           setSelectedDate(firstPlannedDate);
         }
-        const partial = successCount < generatingDays;
-        Alert.alert(
-          partial ? t('wardrobe.someOutfitsCreated') : t('wardrobe.outfitsCreated'),
-          partial
-            ? t('wardrobe.someOutfitsCreatedMessage')
-                .replace('{success}', String(successCount))
-                .replace('{total}', String(generatingDays))
-            : t('wardrobe.outfitsCreatedMessage').replace('{count}', String(successCount)),
-          [{ text: t('common.viewCalendar'), onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
-        );
       } else {
-        const detail = lastFailureReason
-          ? `\n\n${lastFailureReason}`
-          : '';
         Alert.alert(
-          t('wardrobe.noOutfitsCreated') || "No Outfits Created",
-          (t('wardrobe.aiCouldntMatchYourWardrobeItems')
-            || "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.")
-            + detail,
+          t('wardrobe.noOutfitsCreated') || 'No Outfits Created',
+          lastFailureReason
+            || (t('wardrobe.aiCouldntMatchYourWardrobeItems')
+              || "Couldn't save the wardrobe plan. Try again."),
         );
       }
     } catch (error) {
-      console.error('AI outfit generation error:', error);
+      console.error('Outfit allocation error:', error);
       Alert.alert(
         t('common.error'),
         error instanceof Error ? error.message : t('wardrobe.failedToGenerateAiOutfits'),
@@ -535,10 +785,11 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
+    const key = String(itemId);
+    setSelectedItems(prev =>
+      prev.some((id) => isSameItemId(id, key))
+        ? prev.filter((id) => !isSameItemId(id, key))
+        : [...prev, key]
     );
   };
 
@@ -684,11 +935,11 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const renderWardrobeItem = ({ item }: { item: WardrobeItem }) => {
-    const isSelected = selectedItems.includes(item.id);
+    const isSelected = selectedItems.some((id) => isSameItemId(id, item.id));
 
     return (
       <Pressable
-        onPress={() => toggleItemSelection(item.id)}
+        onPress={() => setPreviewItemId(String(item.id))}
         style={[
           styles.wardrobeItemCard,
           { backgroundColor: theme.backgroundSecondary },
@@ -711,14 +962,23 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             {item.name}
           </ThemedText>
           <ThemedText type="caption" style={{ color: tertiaryTextColor }}>
-            {item.category}
+            {CATEGORY_LABELS[item.category] || item.category}
           </ThemedText>
         </View>
-        {isSelected ? (
-          <View style={[styles.checkBadge, { backgroundColor: theme.link }]}>
-            <Feather name="check" size={12} color="#FFFFFF" />
-          </View>
-        ) : null}
+        <Pressable
+          onPress={() => toggleItemSelection(String(item.id))}
+          hitSlop={8}
+          style={[
+            styles.checkBadge,
+            {
+              backgroundColor: isSelected ? theme.link : theme.backgroundTertiary,
+              borderWidth: isSelected ? 0 : 1,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          {isSelected ? <Feather name="check" size={12} color="#FFFFFF" /> : null}
+        </Pressable>
       </Pressable>
     );
   };
@@ -800,12 +1060,14 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                 day: 'numeric' 
               })}
             </ThemedText>
-            <Pressable
-              onPress={handleAddOutfit}
-              style={[styles.addButton, { backgroundColor: theme.link }]}
-            >
-              <Feather name="plus" size={20} color="#FFFFFF" />
-            </Pressable>
+            {selectedDateOutfits.length > 0 ? (
+              <Pressable
+                onPress={handleAddOutfit}
+                style={[styles.addButton, { backgroundColor: theme.link }]}
+              >
+                <Feather name="plus" size={20} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
           </View>
 
           {selectedDateOutfits.length > 0 ? (
@@ -847,13 +1109,25 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         visible={showAddModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowAddModal(false)}
+        onRequestClose={handlePlanModalRequestClose}
       >
         <ThemedView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Pressable onPress={() => { setShowAddModal(false); setEditingOutfitId(null); }}>
+            <Pressable
+              onPress={() => {
+                if (previewItemId) {
+                  closeItemPreview();
+                  return;
+                }
+                if (showOutfitLookPreview) {
+                  closeOutfitLookPreview();
+                  return;
+                }
+                closePlanModal();
+              }}
+            >
               <ThemedText type="body" style={{ color: theme.link }}>
-                Cancel
+                {previewItemId || showOutfitLookPreview ? 'Back' : 'Cancel'}
               </ThemedText>
             </Pressable>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -876,39 +1150,90 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                   Outfit Preview
                 </ThemedText>
                 <StackedOutfitPreview
-                  outfitItems={selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean) as WardrobeItem[]}
+                  outfitItems={selectedWardrobeItems}
+                  onItemPress={(item) => setPreviewItemId(item.id)}
+                  onOpenFullPreview={() => setShowOutfitLookPreview(true)}
                 />
-                {/* Item-level removal strip — only shown in edit mode */}
-                {editingOutfitId ? (
+                {(() => {
+                  const scoreColor =
+                    styleScore >= 80 ? LuxuryColors.emerald :
+                    styleScore >= 60 ? LuxuryColors.gold :
+                    styleScore >= 35 ? LuxuryColors.coral :
+                    '#EF4444';
+                  return (
+                    <View style={[styles.scoreBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                      <View style={[styles.scoreRing, { borderColor: scoreColor }]}>
+                        {isAiScoring ? (
+                          <ActivityIndicator size="small" color={scoreColor} />
+                        ) : (
+                          <ThemedText type="h3" style={{ color: scoreColor, fontWeight: '800' }}>
+                            {styleScore}%
+                          </ThemedText>
+                        )}
+                      </View>
+                      <View style={styles.scoreTextBlock}>
+                        <ThemedText type="body" style={{ fontWeight: '700' }}>
+                          Outfit rating
+                        </ThemedText>
+                        <ThemedText type="caption" style={{ color: secondaryTextColor }} numberOfLines={3}>
+                          {scoreHeadline || styleHint}
+                          {aiScoreApplied ? ' · AI refined' : isAiScoring ? ' · AI refining…' : ''}
+                        </ThemedText>
+                        {scoreDimensions ? (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                            {Object.entries(scoreDimensions).map(([key, val]) => (
+                              <View
+                                key={key}
+                                style={[styles.dimPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}
+                              >
+                                <ThemedText type="caption" style={{ fontSize: 10, color: secondaryTextColor }}>
+                                  {DIMENSION_LABELS[key] || key}
+                                </ThemedText>
+                                <ThemedText type="caption" style={{ fontWeight: '700' }}>{val}/10</ThemedText>
+                              </View>
+                            ))}
+                          </ScrollView>
+                        ) : null}
+                        {scoreExplanations[0] ? (
+                          <ThemedText
+                            type="caption"
+                            style={{ color: secondaryTextColor, marginTop: 2, fontStyle: 'italic' }}
+                            numberOfLines={2}
+                          >
+                            {scoreExplanations[0]}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    </View>
+                  );
+                })()}
+                {selectedWardrobeItems.length > 0 ? (
                   <View>
                     <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
-                      Tap to remove an item
+                      {editingOutfitId
+                        ? 'Items in this outfit — tap × to remove, then pick a replacement below'
+                        : 'Tap × to remove an item'}
                     </ThemedText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                      {selectedItems.map(id => {
-                        const it = items.find(i => i.id === id);
-                        if (!it) return null;
-                        return (
-                          <Pressable
-                            key={id}
-                            onPress={async () => {
-                              if (!editingOutfitId) return;
-                              await removeItemFromPlannedOutfit(editingOutfitId, id);
-                              setSelectedItems(prev => prev.filter(sid => sid !== id));
-                            }}
-                            style={[styles.removeItemChip, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
-                          >
-                            {it.imageUri ? (
-                              <Image source={{ uri: it.imageUri }} style={styles.removeItemThumb} contentFit="contain" />
-                            ) : (
-                              <Feather name="image" size={18} color={secondaryTextColor} />
-                            )}
-                            <View style={[styles.removeItemX, { backgroundColor: theme.error }]}>
-                              <Feather name="x" size={9} color="#fff" />
-                            </View>
-                          </Pressable>
-                        );
-                      })}
+                      {selectedWardrobeItems.map((it) => (
+                        <Pressable
+                          key={String(it.id)}
+                          onPress={() => {
+                            // Draft-only until Save — Cancel keeps the original outfit
+                            setSelectedItems((prev) => prev.filter((sid) => !isSameItemId(sid, it.id)));
+                          }}
+                          style={[styles.removeItemChip, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                        >
+                          {it.imageUri ? (
+                            <Image source={{ uri: it.imageUri }} style={styles.removeItemThumb} contentFit="contain" />
+                          ) : (
+                            <Feather name="image" size={18} color={secondaryTextColor} />
+                          )}
+                          <View style={[styles.removeItemX, { backgroundColor: theme.error }]}>
+                            <Feather name="x" size={9} color="#fff" />
+                          </View>
+                        </Pressable>
+                      ))}
                     </ScrollView>
                   </View>
                 ) : null}
@@ -976,9 +1301,9 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
               Select Outfit Items ({selectedItems.length} selected)
             </ThemedText>
             
-            {items.length > 0 ? (
+            {sortedWardrobeItems.length > 0 ? (
               <FlatList
-                data={items}
+                data={sortedWardrobeItems}
                 renderItem={renderWardrobeItem}
                 keyExtractor={item => item.id}
                 numColumns={3}
@@ -994,7 +1319,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                 </ThemedText>
                 <Pressable
                   onPress={() => {
-                    setShowAddModal(false);
+                    closePlanModal();
                     navigation.navigate('AddWardrobeItem');
                   }}
                   style={[styles.addItemButton, { backgroundColor: theme.link }]}
@@ -1029,6 +1354,66 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
 
             <View style={{ height: 100 }} />
           </ScrollView>
+
+          {previewItem ? (
+            <GestureHandlerRootView style={styles.previewOverlay}>
+              <ThemedView style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <Pressable onPress={closeItemPreview}>
+                    <ThemedText type="body" style={{ color: theme.link }}>
+                      Back
+                    </ThemedText>
+                  </Pressable>
+                  <ThemedText type="h3" numberOfLines={1} style={{ flex: 1, textAlign: 'center', marginHorizontal: 8 }}>
+                    {previewItem.name}
+                  </ThemedText>
+                  <Pressable onPress={() => toggleItemSelection(String(previewItem.id))}>
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
+                  {previewItem && selectedItems.some((id) => isSameItemId(id, previewItem.id)) ? 'Remove' : 'Select'}
+                </ThemedText>
+                  </Pressable>
+                </View>
+                <View style={styles.itemPreviewBody}>
+                  <ZoomableWardrobeImage
+                    uri={previewItem.imageUri}
+                    hintColor={secondaryTextColor}
+                  />
+                  <ThemedText type="caption" style={{ color: secondaryTextColor, textAlign: 'center', marginTop: Spacing.md }}>
+                    {CATEGORY_LABELS[previewItem.category] || previewItem.category}
+                    {previewItem.color ? ` · ${previewItem.color}` : ''}
+                  </ThemedText>
+                </View>
+              </ThemedView>
+            </GestureHandlerRootView>
+          ) : null}
+
+          {showOutfitLookPreview ? (
+            <View style={styles.previewOverlay}>
+              <ThemedView style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <Pressable onPress={closeOutfitLookPreview}>
+                    <ThemedText type="body" style={{ color: theme.link }}>
+                      Back
+                    </ThemedText>
+                  </Pressable>
+                  <ThemedText type="h3">Outfit Look</ThemedText>
+                  <View style={{ width: 50 }} />
+                </View>
+                <ScrollView contentContainerStyle={styles.outfitLookBody}>
+                  <StackedOutfitPreview
+                    outfitItems={selectedWardrobeItems}
+                    onItemPress={(item) => {
+                      closeOutfitLookPreview();
+                      setPreviewItemId(item.id);
+                    }}
+                  />
+                  <ThemedText type="caption" style={{ color: secondaryTextColor, textAlign: 'center', marginTop: Spacing.md }}>
+                    Tap a piece for a closer look · pinch to zoom on item preview
+                  </ThemedText>
+                </ScrollView>
+              </ThemedView>
+            </View>
+          ) : null}
         </ThemedView>
       </Modal>
 
@@ -1203,6 +1588,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
+  flatLayGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    justifyContent: 'flex-start',
+  },
   flatLayRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -1219,17 +1610,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  flatLayEqualSlot: {
+    width: '48.5%',
+    aspectRatio: 1,
+  },
   flatLayHalfSlot: {
     flex: 1,
-    aspectRatio: 0.82,
+    aspectRatio: 1,
   },
   flatLayCenterSlot: {
-    width: '52%',
-    aspectRatio: 0.62,
+    width: '48.5%',
+    aspectRatio: 1,
   },
   flatLayFootSlot: {
     flex: 1,
-    aspectRatio: 1.3,
+    aspectRatio: 1,
   },
   flatLayImage: {
     width: '100%',
@@ -1241,6 +1636,48 @@ const styles = StyleSheet.create({
   },
   modalPreviewContainer: {
     marginBottom: Spacing.sm,
+  },
+  scoreBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+  },
+  scoreRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreTextBlock: {
+    flex: 1,
+  },
+  dimPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    marginRight: 6,
+  },
+  itemPreviewBody: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  outfitLookBody: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  previewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    elevation: 20,
   },
   emptyCard: {
     alignItems: 'center',

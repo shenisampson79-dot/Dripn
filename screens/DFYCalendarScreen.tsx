@@ -8,6 +8,7 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -28,12 +29,21 @@ import { useWardrobe, type WardrobeItem } from '@/contexts/WardrobeContext';
 import {
   mapLookbookDeliveryToCalendarOutfits,
   mapApiLookbookToCalendarOutfits,
+  mapDfyCalendarPayloadToOutfits,
+  buildLocalCoreCalendarOutfits,
   DFYCalendarMappedOutfit,
 } from '@/utils/dfyCalendarBridge';
 import { buildLocalAlternatives, DFYAlternativeOutfit } from '@/utils/dfyOutfitImages';
 import { enrichWardrobeItemForOutfitVisual } from '@/utils/wardrobeImage';
 import { OutfitPiecesVisual, OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import { DFYPackageNameModal } from '@/components/outfit/DFYPackageNameModal';
 import { useTranslations } from "@/contexts/TranslationContext";
+import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
+import { laundryProfileFromUser } from '@/utils/wearRules';
+import {
+  buildClientCalendarSaveRequest,
+  pickNewerCalendarSource,
+} from '@/utils/coreCalendarSync';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -62,11 +72,13 @@ type ViewMode = 'calendar' | 'week' | 'list';
 
 type DFYCalendarScreenProps = {
   navigation: NativeStackNavigationProp<any>;
-  route: RouteProp<{ DFYCalendar: { tier: DFYTier } }, 'DFYCalendar'>;
+  route: RouteProp<{ DFYCalendar: { tier: DFYTier; packageId?: string } }, 'DFYCalendar'>;
 };
 
 export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScreenProps) {
   const tier = route.params?.tier || 'lite';
+  const packageId = route.params?.packageId;
+  const isHistorical = Boolean(packageId);
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
@@ -84,6 +96,10 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
   const [alternatives, setAlternatives] = useState<DFYAlternativeOutfit[]>([]);
+  const [packageName, setPackageName] = useState<string | null>(null);
+  const [showPackageNamePrompt, setShowPackageNamePrompt] = useState(false);
+  const [packageNameDefault, setPackageNameDefault] = useState('');
+  const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
 
   const totalDays = tier === 'lite' ? 14 : 30;
   const startDate = useMemo(() => {
@@ -155,14 +171,260 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     return [];
   };
 
+  const mapCachedRowsToOutfits = (
+    rows: Array<{
+      id: string;
+      date: string;
+      title: string;
+      stylistNote: string;
+      stylistId: StylistId;
+      itemIds: string[];
+      dayNumber: number;
+    }>,
+  ): DFYCalendarOutfit[] =>
+    rows
+      .map((row) => ({
+        id: row.id,
+        date: row.date,
+        title: row.title,
+        stylistNote: row.stylistNote,
+        stylistId: row.stylistId,
+        wasWorn: false,
+        alternativesCount: 0,
+        dayNumber: row.dayNumber,
+        itemIds: row.itemIds,
+        items: row.itemIds
+          .map((id) => wardrobeItems.find((w) => String(w.id) === String(id)))
+          .filter((w): w is WardrobeItem => Boolean(w))
+          .map((w) => ({
+            id: String(w.id),
+            name: w.name,
+            imageUri: w.imageUri || w.enhancedImageUri,
+            category: w.category,
+            color: w.color,
+          })),
+      }))
+      .filter((o) => o.items.length > 0);
+
+  const loadCoreCalendarOutfits = async (): Promise<DFYCalendarOutfit[]> => {
+    let localMapped: DFYCalendarOutfit[] = [];
+    let localGeneratedAt: string | null = null;
+
+    if (user?.id) {
+      try {
+        const cached = await dfyService.getCoreCalendarCache(user.id);
+        if (cached?.outfits?.length) {
+          localGeneratedAt = cached.generatedAt || null;
+          localMapped = mapCachedRowsToOutfits(cached.outfits);
+        }
+      } catch (err) {
+        console.log('[DFYCalendar] Local Core cache read failed:', err);
+      }
+    }
+
+    let remoteMapped: DFYCalendarOutfit[] = [];
+    let remoteGeneratedAt: string | null = null;
+
+    try {
+      const remote = await apiService.getDFYCalendar();
+      if (remote.success && remote.ready !== false) {
+        remoteGeneratedAt = remote.generatedAt || null;
+        remoteMapped = mapDfyCalendarPayloadToOutfits(
+          remote,
+          startDate,
+          wardrobeItems,
+          (remote.stylistId as StylistId) || 'ruby',
+        );
+      }
+    } catch (err) {
+      console.log('[DFYCalendar] Remote Core calendar fetch failed:', err);
+    }
+
+    const winner = pickNewerCalendarSource(localGeneratedAt, remoteGeneratedAt);
+    if (winner === 'remote' && remoteMapped.length > 0) {
+      console.log('[DFYCalendar] Using server calendar (newer than local cache)');
+      return remoteMapped;
+    }
+    if (localMapped.length > 0) {
+      if (winner === 'local') {
+        console.log('[DFYCalendar] Using local cache (newer than server)');
+      }
+      return localMapped;
+    }
+    if (remoteMapped.length > 0) return remoteMapped;
+
+    // Active Core package payload (historical / named packages)
+    try {
+      const active = await dfyService.getActiveDfyPackage('core');
+      if (active?.id) {
+        const pkg = await dfyService.getDfyPackage(active.id);
+        if (pkg?.payload) {
+          const mapped = mapDfyCalendarPayloadToOutfits(
+            pkg.payload,
+            startDate,
+            wardrobeItems,
+            (pkg.stylistId as StylistId) || 'ruby',
+          );
+          if (mapped.length > 0) {
+            setPackageName(pkg.name);
+            return mapped;
+          }
+        }
+      }
+    } catch (err) {
+      console.log('[DFYCalendar] Active Core package fetch failed:', err);
+    }
+
+    return [];
+  };
+
+  const persistCoreCalendarInBackground = (
+    outfits: DFYCalendarOutfit[],
+    wardrobeForGen: WardrobeItem[],
+  ) => {
+    if (!user?.id || outfits.length === 0) return;
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + totalDays - 1);
+
+    void (async () => {
+      try {
+        const saveRequest = await buildClientCalendarSaveRequest(outfits, wardrobeForGen, {
+          startDate: formatDateKey(startDate),
+          endDate: formatDateKey(endDate),
+          stylistId: 'ruby',
+        });
+
+        const cachePayload = {
+          outfits: outfits.map((o) => ({
+            id: o.id,
+            date: typeof o.date === 'string' ? o.date.slice(0, 10) : formatDateKey(new Date(o.date)),
+            title: o.title,
+            stylistNote: o.stylistNote,
+            stylistId: o.stylistId,
+            itemIds: o.itemIds,
+            dayNumber: o.dayNumber,
+          })),
+          startDate: formatDateKey(startDate),
+          totalDays,
+          generatedAt: saveRequest.generatedAt,
+          calendarHash: saveRequest.calendarHash,
+          engineVersion: saveRequest.engineVersion,
+        };
+
+        await dfyService.saveCoreCalendarCache(user.id, cachePayload);
+        console.log('[DFYCalendar] STEP 5: local cache saved');
+
+        console.log('[DFYCalendar] STEP 6: syncing exact plan to server');
+        const result = await apiService.saveClientCoreCalendar(saveRequest);
+        if (result.skipped) {
+          console.log('[DFYCalendar] STEP 6: server unchanged (hash match)');
+        } else if (result.success) {
+          console.log('[DFYCalendar] STEP 6: server persist complete', result.version);
+        }
+      } catch (persistErr: unknown) {
+        const err = persistErr as { message?: string; conflict?: boolean };
+        if (err?.message?.includes('409') || String(persistErr).includes('server_newer')) {
+          console.warn('[DFYCalendar] STEP 6: server has newer calendar — keeping local until reload');
+        } else {
+          console.warn('[DFYCalendar] STEP 6: server sync failed (local cache kept):', persistErr);
+        }
+      }
+    })();
+  };
+
+  const generateAndMapCoreCalendar = async (): Promise<DFYCalendarOutfit[]> => {
+    const ownedItems = wardrobeItems.filter((item) => !item.origin || item.origin === 'owned');
+    const wardrobeForGen = ownedItems.length >= 3 ? ownedItems : wardrobeItems;
+    const laundryProfile = laundryProfileFromUser(user);
+
+    console.log('[DFYCalendar] STEP 1: validate wardrobe', {
+      total: wardrobeItems.length,
+      forGen: wardrobeForGen.length,
+    });
+
+    if (!wardrobeCanBuildCompleteOutfit(wardrobeForGen)) {
+      throw new Error('NEED_MORE_ITEMS');
+    }
+
+    console.log('[DFYCalendar] STEP 2: local guaranteed generation');
+    const local = buildLocalCoreCalendarOutfits(
+      wardrobeForGen,
+      startDate,
+      totalDays,
+      'ruby',
+      laundryProfile,
+    );
+
+    if (local.length >= totalDays) {
+      console.log('[DFYCalendar] STEP 3: local success', { days: local.length });
+      persistCoreCalendarInBackground(local, wardrobeForGen);
+      return local;
+    }
+
+    throw new Error('GENERATE_EMPTY');
+  };
+
+  const maybePromptPackageName = async () => {
+    try {
+      const prompt = await dfyService.preparePackageNamePrompt(tier === 'core' ? 'core' : 'lite');
+      if (prompt) {
+        setRenamePackageId(prompt.packageId);
+        setPackageNameDefault(prompt.defaultName);
+        setShowPackageNamePrompt(true);
+      }
+    } catch {
+      // Non-blocking
+    }
+  };
+
   useEffect(() => {
     const loadAllOutfits = async () => {
       try {
         setLoadingAll(true);
+
+        if (packageId && user?.id) {
+          const pkg = await dfyService.getDfyPackage(packageId);
+          if (pkg) {
+            setPackageName(pkg.name);
+            const fromPayload = pkg.payload
+              ? mapDfyCalendarPayloadToOutfits(
+                  pkg.payload,
+                  startDate,
+                  wardrobeItems,
+                  (pkg.stylistId as StylistId) || 'ruby',
+                )
+              : [];
+            if (fromPayload.length > 0) {
+              applyCalendarOutfits(fromPayload);
+              return;
+            }
+            const liteDelivery = dfyService.mapPackagePayloadToLiteDelivery(
+              user.id,
+              pkg,
+              'ruby',
+            );
+            if (liteDelivery) {
+              const mapped = mapLookbookDeliveryToCalendarOutfits(
+                liteDelivery,
+                startDate,
+                wardrobeItems,
+              );
+              if (mapped.length > 0) {
+                applyCalendarOutfits(mapped);
+                return;
+              }
+            }
+          }
+          return;
+        }
+
+        setPackageName(null);
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + totalDays - 1);
-        let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
 
+        // Manual / SQL calendar entries (legacy mix & match pins)
+        let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
         if (result.success && result.outfits && result.outfits.length > 0) {
           applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
           return;
@@ -177,11 +439,17 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         }
 
         if (tier === 'core') {
+          const existing = await loadCoreCalendarOutfits();
+          if (existing.length > 0) {
+            applyCalendarOutfits(existing);
+            return;
+          }
+
           try {
-            await apiService.generateDFYDelivery({ tier: 'core', stylistId: 'ruby' });
-            result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
-            if (result.success && result.outfits && result.outfits.length > 0) {
-              applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+            const generated = await generateAndMapCoreCalendar();
+            if (generated.length > 0) {
+              applyCalendarOutfits(generated);
+              await maybePromptPackageName();
             }
           } catch (genErr) {
             console.warn('[DFYCalendar] Failed to generate outfits:', genErr);
@@ -189,10 +457,17 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         }
       } catch (err) {
         console.log('[DFYCalendar] Error loading all outfits:', err);
-        if (tier === 'lite') {
+        if (!packageId && tier === 'lite') {
           const lookbookOutfits = await loadLookbookCalendarOutfits();
           if (lookbookOutfits.length > 0) {
             applyCalendarOutfits(lookbookOutfits);
+          }
+        } else if (!packageId && tier === 'core') {
+          try {
+            const existing = await loadCoreCalendarOutfits();
+            if (existing.length > 0) applyCalendarOutfits(existing);
+          } catch {
+            // ignore
           }
         }
       } finally {
@@ -200,7 +475,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       }
     };
     loadAllOutfits();
-  }, [startDate, totalDays, tier, user?.id, wardrobeItems.length]);
+  }, [startDate, totalDays, tier, user?.id, wardrobeItems.length, packageId]);
 
   // Fetch outfit for a specific date from backend
   const fetchOutfitForDate = async (date: Date) => {
@@ -237,6 +512,20 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           }
         }
       }
+
+      if (tier === 'core' && user?.id) {
+        const coreOutfits = await loadCoreCalendarOutfits();
+        const dateKey = formatDateKey(date);
+        const match = coreOutfits.find((o) => formatDateKey(new Date(o.date)) === dateKey);
+        if (match) {
+          setCalendarOutfits((prev) => {
+            const idx = prev.findIndex((o) => o.id === match.id);
+            if (idx >= 0) return prev;
+            return [...prev, match];
+          });
+          return match;
+        }
+      }
     } catch (err) {
       console.log('Error fetching outfit for date:', err);
     } finally {
@@ -246,6 +535,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   };
 
   const handleRegenerateCalendar = async () => {
+    if (isHistorical) return;
     try {
       setLoadingAll(true);
       if (tier === 'lite') {
@@ -254,23 +544,53 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           applyCalendarOutfits(lookbookOutfits);
           return;
         }
-      }
-
-      await apiService.generateDFYDelivery({ tier: tier as 'lite' | 'core', stylistId: 'ruby' });
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + totalDays - 1);
-      const result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
-      if (result.success && result.outfits && result.outfits.length > 0) {
-        applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+        await apiService.generateDFYDelivery({ tier: 'lite', stylistId: 'ruby' });
+        const afterGen = await loadLookbookCalendarOutfits();
+        if (afterGen.length > 0) {
+          applyCalendarOutfits(afterGen);
+          await maybePromptPackageName();
+        }
         return;
       }
 
-      const lookbookOutfits = await loadLookbookCalendarOutfits();
-      if (lookbookOutfits.length > 0) {
-        applyCalendarOutfits(lookbookOutfits);
+      // Core: always regenerate delivery, then hydrate from response / blob
+      const generated = await generateAndMapCoreCalendar();
+      if (generated.length > 0) {
+        applyCalendarOutfits(generated);
+        await maybePromptPackageName();
+        return;
       }
+
+      const existing = await loadCoreCalendarOutfits();
+      if (existing.length > 0) {
+        applyCalendarOutfits(existing);
+        return;
+      }
+
+      throw new Error('GENERATE_EMPTY');
     } catch (err) {
       console.error('Failed to regenerate calendar:', err);
+      const message = (err as Error)?.message || '';
+      let body =
+        tier === 'core'
+          ? (t('dfy.calendar.generateFailed') || 'Could not generate your 30-day calendar. Add wardrobe items and try again.')
+          : (t('dfy.calendar.generateFailedLite') || 'Could not load your lookbook calendar. Try again from My Lookbook.');
+
+      if (message === 'NEED_MORE_ITEMS') {
+        body =
+          t('wardrobe.needMoreItemsAi')?.replace('{n}', '3')
+          || 'Add tops, bottoms, and shoes to your wardrobe so we can build full outfits.';
+      } else if (message === 'GENERATE_EMPTY') {
+        body =
+          t('dfy.calendar.generateEmpty') ||
+          'We could not build outfits from your wardrobe right now. Try again in a moment.';
+      } else if (message.includes('took too long')) {
+        body = 'Generation is taking longer than usual. Pull to refresh in a moment, or try again.';
+      } else if (message.includes('Network error')) {
+        body = 'Check your connection and try again.';
+      }
+
+      Alert.alert(t('common.error') || 'Error', body);
     } finally {
       setLoadingAll(false);
     }
@@ -894,20 +1214,30 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           <Feather name="arrow-left" size={20} color="#FFFFFF" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>
-            {totalDays}-Day Calendar
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }} numberOfLines={1}>
+            {isHistorical && packageName
+              ? packageName
+              : `${totalDays}-Day Calendar`}
           </ThemedText>
           <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {tier === 'lite' ? 'Occasion Ready' : 'Full Wardrobe Setup'}
+            {isHistorical
+              ? (t('dfy.package.savedPlan') || 'Saved plan')
+              : tier === 'lite'
+                ? 'Occasion Ready'
+                : 'Full Wardrobe Setup'}
           </ThemedText>
         </View>
-        <Pressable 
-          onPress={handleRegenerateCalendar} 
-          disabled={loadingAll}
-          style={[styles.backButton, { opacity: loadingAll ? 0.5 : 1 }]}
-        >
-          <Feather name="rotate-cw" size={20} color="#FFFFFF" />
-        </Pressable>
+        {!isHistorical ? (
+          <Pressable 
+            onPress={handleRegenerateCalendar} 
+            disabled={loadingAll}
+            style={[styles.backButton, { opacity: loadingAll ? 0.5 : 1 }]}
+          >
+            <Feather name="rotate-cw" size={20} color="#FFFFFF" />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <View style={styles.viewToggle}>
@@ -1056,14 +1386,22 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
                 No outfits in your calendar yet.
               </ThemedText>
               <ThemedText type="small" style={{ marginTop: Spacing.sm, opacity: 0.7, textAlign: 'center' }}>
-                Open My Lookbook to build your 14-day plan, then return here.
+                {tier === 'lite'
+                  ? 'Open My Lookbook to build your 14-day plan, then return here.'
+                  : 'Generate your 30-day Full Wardrobe plan to fill this calendar.'}
               </ThemedText>
               <Pressable
-                onPress={() => navigation.navigate('DFYLookbook')}
+                onPress={() => {
+                  if (tier === 'lite') {
+                    navigation.navigate('DFYLookbook');
+                    return;
+                  }
+                  void handleRegenerateCalendar();
+                }}
                 style={[styles.emptyStateButton, { backgroundColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}
               >
                 <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  Go to My Lookbook
+                  {tier === 'lite' ? 'Go to My Lookbook' : 'Generate 30-day plan'}
                 </ThemedText>
               </Pressable>
             </View>
@@ -1084,6 +1422,25 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
       {renderOutfitDetail()}
       {renderAlternativesModal()}
+
+      <DFYPackageNameModal
+        visible={showPackageNamePrompt}
+        defaultName={packageNameDefault}
+        onClose={() => setShowPackageNamePrompt(false)}
+        onSave={async (name) => {
+          if (!renamePackageId) return;
+          try {
+            await dfyService.renameDfyPackage(renamePackageId, name);
+            setPackageName(name);
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
+        }}
+      />
     </View>
   );
 }

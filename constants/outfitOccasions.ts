@@ -32,26 +32,31 @@ export const OUTFIT_OCCASION_OPTIONS: OutfitOccasionOption[] = [
 
 export const OUTFIT_OCCASION_CHIPS = OUTFIT_OCCASION_OPTIONS.slice(0, 4);
 
-const DEFAULT_WEEK_ROTATION: OutfitOccasionId[] = [
-  'casual_day',
-  'work_outfit',
-  'casual_day',
-  'work_outfit',
-  'casual_day',
-  'date_night',
-  'casual_day',
-  'weekend',
-  'smart_casual',
-];
+/**
+ * Default multi-day plan by calendar weekday — no casual-Friday assumption.
+ * Mon–Fri → work; Sat–Sun → weekend.
+ */
+export function occasionForWeekday(date: Date): OutfitOccasionId {
+  const day = date.getDay(); // 0 Sun … 6 Sat
+  if (day === 0 || day === 6) return 'weekend';
+  return 'work_outfit';
+}
 
 export function buildWeekOccasionRotation(
   days: number,
   focusOccasionId?: OutfitOccasionId | null,
+  startDate: Date = new Date(),
 ): OutfitOccasionId[] {
   if (focusOccasionId) {
     return Array.from({ length: days }, () => focusOccasionId);
   }
-  return Array.from({ length: days }, (_, i) => DEFAULT_WEEK_ROTATION[i % DEFAULT_WEEK_ROTATION.length]);
+  const start = new Date(startDate);
+  start.setHours(12, 0, 0, 0);
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return occasionForWeekday(d);
+  });
 }
 
 export const OCCASION_TO_PLANNED_EVENT: Record<OutfitOccasionId, string> = {

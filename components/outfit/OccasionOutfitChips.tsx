@@ -57,13 +57,17 @@ export function OccasionOutfitChips({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onWeatherPress();
             }}
-            disabled={disabled}
+            disabled={disabled || Boolean(generatingOccasionId)}
             style={({ pressed }) => [
               styles.chip,
-              { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.75 : disabled ? 0.5 : 1 },
+              { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.75 : disabled || generatingOccasionId ? 0.5 : 1 },
             ]}
           >
-            <Feather name="cloud" size={14} color={theme.link} />
+            {generatingOccasionId === 'weather' ? (
+              <ActivityIndicator size="small" color={theme.link} />
+            ) : (
+              <Feather name="cloud" size={14} color={theme.link} />
+            )}
             <ThemedText style={styles.chipText}>
               {t('aiStylist.weatherLook') || 'Weather look'}
             </ThemedText>

@@ -49,6 +49,21 @@ export interface DecisionResponse {
     category?: string | null;
   }>;
   outfitSummary?: string;
+  unifiedScore?: {
+    final_score?: number;
+    label?: string;
+    feedback?: string[];
+    context?: {
+      season?: string;
+      occasion?: string;
+      brand_coherence?: number;
+      season_fit?: number;
+      brand_tiers?: string[];
+    };
+    style_score?: number;
+    color_score?: number;
+    fit_score?: number;
+  } | null;
 }
 
 export interface SecondOpinionResponse {

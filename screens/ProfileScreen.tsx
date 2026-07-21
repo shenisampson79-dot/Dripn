@@ -34,7 +34,8 @@ import {
 import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
-import { dfyService, SavedLookbookOutfit } from "@/services/DFYService";
+import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
+import { dfyService, SavedLookbookOutfit, type DfyPackageSummary } from "@/services/DFYService";
 import {
   buildSavedOutfitTableRows,
   findLookbookOutfitByRowId,
@@ -42,6 +43,7 @@ import {
   resolveMixOutfitItems,
   type MixAndMatchSavedOutfit,
 } from "@/utils/profileSavedOutfits";
+import { formatDfyPackageSubtitle } from "@/utils/dfyPackages";
 import { resolveWardrobeImageUri } from "@/utils/wardrobeImage";
 import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
@@ -75,6 +77,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
   const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<MixAndMatchSavedOutfit[]>([]);
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
+  const [stylePackages, setStylePackages] = useState<DfyPackageSummary[]>([]);
+  const [loadingStylePackages, setLoadingStylePackages] = useState(false);
+  const [renamePackage, setRenamePackage] = useState<DfyPackageSummary | null>(null);
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
   const [showOutfitDetailModal, setShowOutfitDetailModal] = useState(false);
   const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
@@ -210,10 +215,27 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
   }, [user?.id]);
 
+  const loadStylePackages = useCallback(async () => {
+    if (!user?.id) {
+      setStylePackages([]);
+      return;
+    }
+    try {
+      setLoadingStylePackages(true);
+      const packages = await dfyService.listDfyPackages();
+      setStylePackages(packages);
+    } catch {
+      setStylePackages([]);
+    } finally {
+      setLoadingStylePackages(false);
+    }
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       loadSavedLookbookOutfits();
-    }, [loadSavedLookbookOutfits]),
+      loadStylePackages();
+    }, [loadSavedLookbookOutfits, loadStylePackages]),
   );
 
   // Dynamic colors from palette
@@ -293,8 +315,46 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const selectedLookbookOutfit = findLookbookOutfitByRowId(selectedOutfitId, likedOutfits);
   const selectedMixOutfit = findMixOutfitByRowId(selectedOutfitId, savedMixAndMatchOutfits);
 
-  const handleOpenLookbook = () => {
+  const handleOpenLookbook = async () => {
+    // Lookbook day grid is Lite-only. Core Full Setup lives on Calendar.
+    try {
+      if (user?.id) {
+        const access = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
+        const packages = stylePackages.length > 0 ? stylePackages : await dfyService.listDfyPackages();
+        const hasLite =
+          packages.some((pkg) => pkg.tier === 'lite') || access.tier === 'lite';
+        const hasCore =
+          packages.some((pkg) => pkg.tier === 'core') || access.tier === 'core';
+        if (hasCore && !hasLite) {
+          navigation.getParent()?.navigate?.('WardrobeTab', {
+            screen: 'DFYCalendar',
+            params: { tier: 'core' },
+          });
+          return;
+        }
+      }
+    } catch {
+      // Fall through to Lookbook
+    }
     navigation.getParent()?.navigate?.('WardrobeTab', { screen: 'DFYLookbook' });
+  };
+
+  const handleOpenStylePackage = (pkg: DfyPackageSummary) => {
+    if (pkg.tier === 'core') {
+      navigation.getParent()?.navigate?.('WardrobeTab', {
+        screen: 'DFYCalendar',
+        params: { tier: 'core', packageId: pkg.id },
+      });
+      return;
+    }
+    navigation.getParent()?.navigate?.('WardrobeTab', {
+      screen: 'DFYLookbook',
+      params: { packageId: pkg.id },
+    });
+  };
+
+  const handleRenameStylePackage = (pkg: DfyPackageSummary) => {
+    setRenamePackage(pkg);
   };
 
   const handleRemoveSavedLookbookOutfit = async (outfitId: string) => {
@@ -776,6 +836,51 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : null}
       </View>
 
+      {!loadingStylePackages && stylePackages.length > 0 ? (
+        <View style={styles.stylePlansSection}>
+          <View style={styles.savedOutfitsSectionHeader}>
+            <Feather name="layers" size={18} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
+              {t('profile.stylePlans') || 'Style plans'}
+            </ThemedText>
+          </View>
+          <View style={styles.stylePlansList}>
+            {stylePackages.map((pkg) => (
+              <Pressable
+                key={pkg.id}
+                onPress={() => handleOpenStylePackage(pkg)}
+                onLongPress={() => handleRenameStylePackage(pkg)}
+                delayLongPress={350}
+                style={({ pressed }) => [
+                  styles.stylePlanRow,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+                    opacity: pressed ? 0.88 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.stylePlanRowContent}>
+                  <ThemedText type="body" style={styles.stylePlanTitle} numberOfLines={1}>
+                    {pkg.name}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.stylePlanSubtitle} numberOfLines={1}>
+                    {formatDfyPackageSubtitle(pkg)}
+                  </ThemedText>
+                </View>
+                <Pressable
+                  onPress={() => handleRenameStylePackage(pkg)}
+                  hitSlop={12}
+                  style={styles.stylePlanEditButton}
+                >
+                  <Feather name="edit-2" size={16} color="rgba(255,255,255,0.65)" />
+                </Pressable>
+                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.65)" />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.savedOutfitsSectionHeader}>
         <Feather name="bookmark" size={18} color={LUXURY_COLORS.gold} />
         <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
@@ -955,6 +1060,32 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       <VoiceCreditsPurchaseModal
         visible={showVoiceCreditsModal}
         onClose={() => setShowVoiceCreditsModal(false)}
+      />
+
+      <DFYPackageNameModal
+        visible={Boolean(renamePackage)}
+        defaultName={renamePackage?.name || ''}
+        title={t('dfy.package.renameTitle') || 'Rename style plan'}
+        onClose={() => setRenamePackage(null)}
+        onSave={async (name) => {
+          if (!renamePackage) return;
+          try {
+            const updated = await dfyService.renameDfyPackage(renamePackage.id, name);
+            if (updated) {
+              setStylePackages((prev) =>
+                prev.map((pkg) =>
+                  pkg.id === renamePackage.id ? { ...pkg, name: updated.name } : pkg,
+                ),
+              );
+            }
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
+        }}
       />
     </View>
   );
@@ -1169,6 +1300,36 @@ const styles = StyleSheet.create({
   styleProfileTipText: {
     flex: 1,
     lineHeight: 18,
+  },
+  stylePlansSection: {
+    marginBottom: Spacing.lg,
+  },
+  stylePlansList: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  stylePlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  stylePlanRowContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  stylePlanTitle: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  stylePlanSubtitle: {
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 2,
+  },
+  stylePlanEditButton: {
+    padding: Spacing.xs,
   },
   upgradeButtonGradient: {
     borderRadius: BorderRadius.full,

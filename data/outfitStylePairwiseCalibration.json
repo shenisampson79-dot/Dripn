@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "description": "Pairwise taste comparisons — A vs B, which is better",
+  "minMargin": 15,
+  "pairs": [
+    {
+      "id": "p1_joggers_footwear",
+      "outfitA": [
+        { "name": "Grey Joggers", "category": "bottoms", "color": "gray" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "White Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "outfitB": [
+        { "name": "Grey Joggers", "category": "bottoms", "color": "gray" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Black Chelsea Boots", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Footwear consistency — trainers complete athleisure"
+    },
+    {
+      "id": "p2_chinos_footwear",
+      "outfitA": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "outfitB": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Slides", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Slides reduce structure for smart casual"
+    },
+    {
+      "id": "p3_formal_footwear",
+      "outfitA": [
+        { "name": "Navy Blazer", "category": "outerwear", "color": "navy" },
+        { "name": "White Dress Shirt", "category": "tops", "color": "white" },
+        { "name": "Charcoal Tailored Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "Black Derby Shoes", "category": "shoes", "color": "black" }
+      ],
+      "outfitB": [
+        { "name": "Navy Blazer", "category": "outerwear", "color": "navy" },
+        { "name": "White Dress Shirt", "category": "tops", "color": "white" },
+        { "name": "Charcoal Tailored Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "White Running Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "better": "A",
+      "reason": "Formal alignment — derby shoes match tailoring"
+    },
+    {
+      "id": "p4_cargo_footwear",
+      "outfitA": [
+        { "name": "Olive Cargo Pants", "category": "bottoms", "color": "olive" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "White Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "outfitB": [
+        { "name": "Olive Cargo Pants", "category": "bottoms", "color": "olive" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "better": "A",
+      "reason": "Casual consistency — streetwear needs trainers"
+    },
+    {
+      "id": "p5_minimal_silhouette",
+      "outfitA": [
+        { "name": "Black Wide Leg Trousers", "category": "bottoms", "color": "black" },
+        { "name": "Cream Turtleneck", "category": "tops", "color": "cream" },
+        { "name": "Black Ankle Boots", "category": "shoes", "color": "black" }
+      ],
+      "outfitB": [
+        { "name": "Black Wide Leg Trousers", "category": "bottoms", "color": "black" },
+        { "name": "Black Tank Top", "category": "tops", "color": "black" },
+        { "name": "Black Slides", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Stronger identity and proportion balance"
+    },
+    {
+      "id": "p6_sweats_vs_sneakers",
+      "outfitA": [
+        { "name": "Grey Sweatpants", "category": "bottoms", "color": "gray" },
+        { "name": "Cream T-Shirt", "category": "tops", "color": "cream" },
+        { "name": "White Leather Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "outfitB": [
+        { "name": "Grey Sweatpants", "category": "bottoms", "color": "gray" },
+        { "name": "Cream T-Shirt", "category": "tops", "color": "cream" },
+        { "name": "Black Leather Chelsea Boots", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Core taste calibration — athleisure vs dress boots"
+    },
+    {
+      "id": "p7_tailored_vs_slides",
+      "outfitA": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White Oxford Shirt", "category": "tops", "color": "white" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "outfitB": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White Oxford Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Slides", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Structure preserved with loafers"
+    },
+    {
+      "id": "p8_streetwear_coherence",
+      "outfitA": [
+        { "name": "Black Cargo Pants", "category": "bottoms", "color": "black" },
+        { "name": "Oversized T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Chunky Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "outfitB": [
+        { "name": "Black Cargo Pants", "category": "bottoms", "color": "black" },
+        { "name": "White Dress Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Combat Boots", "category": "shoes", "color": "black" }
+      ],
+      "better": "A",
+      "reason": "Single streetwear lane vs mixed signals"
+    }
+  ]
+}

@@ -5,7 +5,6 @@ import {
   Pressable,
   FlatList,
   Dimensions,
-  Animated,
   Modal,
   Alert,
 } from "react-native";
@@ -24,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useScreenInsets } from "@/hooks/useScreenInsets";
 import apiService from "@/services/ApiService";
+import { dfyService } from "@/services/DFYService";
 import { computeLocalOutfitScore, mergeOutfitScores } from "@/utils/outfitCompatibilityScore";
 import { resolveRegionalStyleContext } from "@/utils/outfitRegionalContext";
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -57,6 +57,7 @@ const CATEGORY_ROWS: { key: ClothingCategory; label: string; icon: string; gradi
 
 type DFYModularWardrobeScreenProps = {
   navigation: NativeStackNavigationProp<any>;
+  route?: { params?: { packageId?: string } };
 };
 
 type ModularCategory = 'tops' | 'bottoms' | 'outerwear' | 'shoes' | 'accessories';
@@ -65,7 +66,8 @@ type SelectedItems = {
   [K in ModularCategory]: WardrobeItem | null;
 };
 
-export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardrobeScreenProps) {
+export default function DFYModularWardrobeScreen({ navigation, route }: DFYModularWardrobeScreenProps) {
+  const packageId = route?.params?.packageId;
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user, actualCountry } = useAuth();
@@ -77,6 +79,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const insets = useSafeAreaInsets();
   const { paddingBottom: tabAwarePaddingBottom } = useScreenInsets();
 
+  const [packageName, setPackageName] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({
     tops: null,
     bottoms: null,
@@ -95,14 +98,8 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const [compatibilityError, setCompatibilityError] = useState<string | null>(null);
 
   const scrollRefs = useRef<Record<string, FlatList<WardrobeItem> | null>>({});
-  const rotationAnimations = useRef<Record<string, Animated.Value>>({});
 
   useEffect(() => {
-    // Initialize rotation animations
-    CATEGORY_ROWS.forEach(row => {
-      rotationAnimations.current[row.key] = new Animated.Value(0);
-    });
-    
     // CRITICAL: Reset all selected items on mount to prevent carrying over previous selections
     setSelectedItems({
       tops: null,
@@ -112,6 +109,21 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       accessories: null,
     });
   }, []);
+
+  useEffect(() => {
+    if (!packageId) {
+      setPackageName(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const pkg = await dfyService.getDfyPackage(packageId);
+      if (!cancelled) setPackageName(pkg?.name || null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [packageId]);
 
   const getItemsByCategory = (category: ClothingCategory): WardrobeItem[] => {
     // Include activewear in their respective main categories
@@ -124,48 +136,9 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     return items.filter(item => item.category === category);
   };
 
-  const handleItemSelect = (category: ModularCategory, item: WardrobeItem) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedItems(prev => ({
-      ...prev,
-      [category]: prev[category]?.id === item.id ? null : item,
-    }));
-    calculateCompatibility();
-  };
-
-  const handleRotateCategory = (category: ModularCategory) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    const categoryItems = getItemsByCategory(category as ClothingCategory);
-    if (categoryItems.length === 0) return;
-
-    const currentItem = selectedItems[category];
-    const currentIndex = currentItem ? categoryItems.findIndex(i => i.id === currentItem.id) : -1;
-    const nextIndex = (currentIndex + 1) % categoryItems.length;
-
-    setSelectedItems(prev => ({
-      ...prev,
-      [category]: categoryItems[nextIndex],
-    }));
-
-    Animated.sequence([
-      Animated.timing(rotationAnimations.current[category], {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotationAnimations.current[category], {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    calculateCompatibility();
-  };
-
-  const calculateCompatibility = async () => {
-    const selected = Object.values(selectedItems).filter(Boolean) as WardrobeItem[];
+  const calculateCompatibility = async (overrideSelection?: SelectedItems) => {
+    const source = overrideSelection || selectedItems;
+    const selected = Object.values(source).filter(Boolean) as WardrobeItem[];
     if (selected.length < 2) {
       setCompatibilityScore(null);
       setCompatibilityVerdict(null);
@@ -176,7 +149,11 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       return;
     }
 
-    const local = computeLocalOutfitScore(selected, regionalContext);
+    const local = computeLocalOutfitScore(
+      selected,
+      regionalContext,
+      user?.colorScanData?.colorSeasonType ?? null,
+    );
     setCompatibilityScore(local.score);
     setCompatibilityVerdict(local.hint);
     setCompatibilityAnalysis(null);
@@ -205,6 +182,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
           hardCapApplied: result.hardCapApplied,
           verdict: result.verdict,
           analysis: result.analysis,
+          unifiedScoreApplied: result.unifiedScoreApplied,
           explanations: result.explanations,
           improvements: result.improvements,
         }, {
@@ -234,6 +212,66 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     } finally {
       setIsCheckingCompatibility(false);
     }
+  };
+
+  const scrollCategoryToIndex = (category: string, index: number) => {
+    const list = scrollRefs.current[category];
+    if (!list || index < 0) return;
+    requestAnimationFrame(() => {
+      try {
+        list.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.4,
+        });
+      } catch {
+        // Layout may not be ready yet — retry once
+        setTimeout(() => {
+          try {
+            list.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+          } catch {
+            /* ignore */
+          }
+        }, 80);
+      }
+    });
+  };
+
+  const handleItemSelect = (category: ModularCategory, item: WardrobeItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const currentlySelected = selectedItems[category]?.id === item.id;
+    const next: SelectedItems = {
+      ...selectedItems,
+      [category]: currentlySelected ? null : item,
+    };
+    setSelectedItems(next);
+    if (!currentlySelected) {
+      const categoryItems = getItemsByCategory(category as ClothingCategory);
+      const index = categoryItems.findIndex((i) => i.id === item.id);
+      if (index >= 0) scrollCategoryToIndex(category, index);
+    }
+    void calculateCompatibility(next);
+  };
+
+  const handleRotateCategory = (category: ModularCategory) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const categoryItems = getItemsByCategory(category as ClothingCategory);
+    if (categoryItems.length === 0) return;
+
+    const currentItem = selectedItems[category];
+    const currentIndex = currentItem
+      ? categoryItems.findIndex((i) => i.id === currentItem.id)
+      : -1;
+    const nextIndex = (currentIndex + 1) % categoryItems.length;
+    const next: SelectedItems = {
+      ...selectedItems,
+      [category]: categoryItems[nextIndex],
+    };
+
+    setSelectedItems(next);
+    scrollCategoryToIndex(category, nextIndex);
+    void calculateCompatibility(next);
   };
 
   const handleViewOutfit = () => {
@@ -275,12 +313,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const renderCategoryRow = ({ key, label, icon, gradient }: typeof CATEGORY_ROWS[0]) => {
     const categoryItems = getItemsByCategory(key as ClothingCategory);
     const selected = selectedItems[key as ModularCategory];
-    const rotation = rotationAnimations.current[key] || new Animated.Value(0);
-
-    const rotateInterpolate = rotation.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['0deg', '360deg'],
-    });
+    const itemStride = ITEM_SIZE + ITEM_MARGIN;
 
     return (
       <View key={key} style={styles.categoryRow}>
@@ -291,18 +324,17 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
           >
             <Feather name={icon as any} size={16} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h3" style={{ flex: 1 }}>{label}</ThemedText>
-          <View style={[styles.categoryCount, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-            <ThemedText type="caption">{categoryItems.length}</ThemedText>
+          <ThemedText type="h3" style={{ flex: 1, color: LUXURY_COLORS.midnight }}>{label}</ThemedText>
+          <View style={[styles.categoryCount, { backgroundColor: 'rgba(0,0,0,0.06)' }]}>
+            <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight }}>{categoryItems.length}</ThemedText>
           </View>
-          <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-            <Pressable
-              onPress={() => handleRotateCategory(key as ModularCategory)}
-              style={[styles.rotateButton, { backgroundColor: gradient[0] + '20' }]}
-            >
-              <Feather name="refresh-cw" size={18} color={gradient[0]} />
-            </Pressable>
-          </Animated.View>
+          <Pressable
+            onPress={() => handleRotateCategory(key as ModularCategory)}
+            style={[styles.rotateButton, { backgroundColor: gradient[0] + '20' }]}
+            accessibilityLabel={`Next ${label}`}
+          >
+            <Feather name="arrow-right" size={18} color={gradient[0]} />
+          </Pressable>
         </View>
 
         {categoryItems.length > 0 ? (
@@ -313,6 +345,29 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.itemsScrollContent}
             keyExtractor={(item) => item.id}
+            getItemLayout={(_, index) => ({
+              length: itemStride,
+              offset: itemStride * index,
+              index,
+            })}
+            onScrollToIndexFailed={(info) => {
+              const list = scrollRefs.current[key];
+              list?.scrollToOffset({
+                offset: Math.max(0, info.index * itemStride - ITEM_SIZE),
+                animated: true,
+              });
+              setTimeout(() => {
+                try {
+                  list?.scrollToIndex({
+                    index: info.index,
+                    animated: true,
+                    viewPosition: 0.4,
+                  });
+                } catch {
+                  /* ignore */
+                }
+              }, 100);
+            }}
             renderItem={({ item }) => {
               const isSelected = selected?.id === item.id;
               return (
@@ -366,28 +421,24 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
 
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <LinearGradient
-        colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold, LUXURY_COLORS.obsidian]}
-        locations={[0, 0.2, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <View style={[styles.container, { backgroundColor: LUXURY_COLORS.champagne }]}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={20} color="#FFFFFF" />
+          <Feather name="arrow-left" size={20} color={LUXURY_COLORS.midnight} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Modular Wardrobe</ThemedText>
-          <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            Rotate & mix items like Clueless
+          <ThemedText type="h2" style={{ color: LUXURY_COLORS.midnight }} numberOfLines={1}>
+            {packageName || 'Modular Wardrobe'}
+          </ThemedText>
+          <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.65)' }}>
+            {packageName ? (t('dfy.package.savedPlan') || 'Saved plan') : 'Rotate & mix your pieces'}
           </ThemedText>
         </View>
         <Pressable
           onPress={() => navigation.navigate('DFYCalendar', { tier: 'core' })}
           style={styles.calendarButton}
         >
-          <Feather name="calendar" size={20} color="#FFFFFF" />
+          <Feather name="calendar" size={20} color={LUXURY_COLORS.midnight} />
         </Pressable>
       </View>
 
@@ -587,7 +638,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -599,7 +650,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -636,12 +687,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemsScrollContent: {
-    gap: ITEM_MARGIN,
     paddingVertical: Spacing.xs,
   },
   itemCard: {
     width: ITEM_SIZE,
     height: ITEM_SIZE,
+    marginRight: ITEM_MARGIN,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
   },

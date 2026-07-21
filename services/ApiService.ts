@@ -997,10 +997,11 @@ class ApiService {
     return this.request<{
       success: boolean;
       processedImageUrl?: string;
+      backgroundRemoved?: boolean;
       maskQuality?: number;
       straightened?: boolean;
       error?: string;
-    }>('/api/wardrobe/process-image/resilient', {
+    }>('/api/wardrobe/process-image', {
       method: 'POST',
       body: JSON.stringify({ 
         imageBase64, 
@@ -1008,31 +1009,68 @@ class ApiService {
         straighten: options?.straighten ?? true,
         targetSize: options?.targetSize ?? 1024,
       }),
+      timeout: 90000,
     });
   }
 
   async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
-    // Always use real backend - no mock mode
-    return this.request<{
+    // Always use real backend - no mock mode.
+    // Note: resilient extract returns analysis only (processedImageUrl is null by design).
+    type ExtractAnalysis = {
+      type: string;
+      color: string;
+      style: string;
+      material?: string;
+      brand?: string;
+      features?: string[];
+      occasions?: string[];
+      seasons?: string[];
+      description?: string;
+    };
+
+    const raw = await this.request<{
       success: boolean;
-      processedImageUrl?: string;
-      clothingAnalysis?: {
-        type: string;
-        color: string;
-        style: string;
-        material?: string;
-        brand?: string;
-        features?: string[];
-        occasions?: string[];
-        seasons?: string[];
-        description?: string;
-      };
-      backgroundRemoved: boolean;
+      processedImageUrl?: string | null;
+      clothingAnalysis?: ExtractAnalysis | null;
+      analysis?: {
+        mainItem?: {
+          type?: string;
+          color?: string;
+          style?: string;
+          material?: string;
+          brand?: string | null;
+          features?: string[];
+        };
+        suggestedCategory?: string;
+        suggestedName?: string;
+      } | null;
+      backgroundRemoved?: boolean;
       error?: string;
+      analysisError?: string | null;
     }>('/api/wardrobe/extract-clothing/resilient', {
       method: 'POST',
       body: JSON.stringify(imageData),
+      timeout: 60000,
     });
+
+    const fromNested = raw.analysis?.mainItem
+      ? {
+          type: raw.analysis.mainItem.type || raw.analysis.suggestedCategory || '',
+          color: raw.analysis.mainItem.color || '',
+          style: raw.analysis.mainItem.style || '',
+          material: raw.analysis.mainItem.material,
+          brand: raw.analysis.mainItem.brand || undefined,
+          features: raw.analysis.mainItem.features,
+          description: raw.analysis.suggestedName || undefined,
+        }
+      : undefined;
+
+    return {
+      ...raw,
+      processedImageUrl: raw.processedImageUrl ?? undefined,
+      clothingAnalysis: raw.clothingAnalysis || fromNested,
+      backgroundRemoved: Boolean(raw.backgroundRemoved),
+    };
   }
 
   isConfigured() {
@@ -2252,9 +2290,16 @@ class ApiService {
   }
 
   async removeBackground(imageBase64: string) {
-    return this.request<{ imageUrl: string | null }>('/api/wardrobe/remove-background', {
+    return this.request<{
+      imageUrl: string | null;
+      imageBase64?: string | null;
+      method?: string;
+      removed?: boolean;
+    }>('/api/wardrobe/remove-background', {
       method: 'POST',
       body: JSON.stringify({ imageBase64 }),
+      // Replicate rembg can take 30–60s; default 30s timeout made preview look like a no-op
+      timeout: 90000,
     });
   }
 
@@ -3886,6 +3931,148 @@ class ApiService {
       canGenerateOutfits: boolean;
       upsellMessage?: string;
     }>('/api/dfy/access-status');
+  }
+
+  async getDFYCalendar() {
+    return this.request<{
+      success: boolean;
+      hasCalendar?: boolean;
+      ready?: boolean;
+      tier?: 'lite' | 'core';
+      duration?: number;
+      startDate?: string;
+      endDate?: string;
+      generatedAt?: string;
+      calendarHash?: string;
+      engineVersion?: string;
+      stylistId?: string;
+      calendar?: Array<{
+        day?: number;
+        date?: string;
+        occasion?: string;
+        stylistNote?: string;
+        outfit?: {
+          items?: Array<{
+            id: string | number;
+            name?: string;
+            category?: string;
+            color?: string;
+            imageUri?: string | null;
+            imageUrl?: string | null;
+            processedImageUrl?: string | null;
+          }>;
+        };
+      }>;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        items: Array<{
+          id: string | number;
+          name?: string;
+          category?: string;
+          color?: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+      emptyState?: { title?: string; message?: string };
+    }>('/api/dfy/calendar');
+  }
+
+  async generateDFYCalendar(data: { stylistId?: string; startDate?: string }) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      calendar?: Array<{
+        day?: number;
+        date?: string;
+        occasion?: string;
+        stylistNote?: string;
+        outfit?: {
+          items?: Array<{
+            id: string | number;
+            name?: string;
+            category?: string;
+            color?: string;
+            imageUri?: string | null;
+            imageUrl?: string | null;
+            processedImageUrl?: string | null;
+          }>;
+        };
+      }>;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        items: Array<{
+          id: string | number;
+          name?: string;
+          category?: string;
+          color?: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+      duration?: number;
+      startDate?: string;
+      endDate?: string;
+      error?: string;
+    }>('/api/dfy/calendar/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      timeout: 180000,
+    });
+  }
+
+  /** Persist locally-generated Core calendar — server stores exact client plan */
+  async saveClientCoreCalendar(data: {
+    calendar: {
+      days: Array<{
+        date: string;
+        occasion?: string;
+        stylistNote?: string;
+        outfit: {
+          itemIds: string[];
+          metadata?: { tier?: string; dayNumber?: number; score?: number };
+        };
+      }>;
+    };
+    startDate: string;
+    endDate: string;
+    duration: number;
+    generatedAt: string;
+    engineVersion: string;
+    wardrobeSnapshotHash: string;
+    calendarHash: string;
+    stylistId?: string;
+    force?: boolean;
+  }) {
+    return this.request<{
+      success: boolean;
+      skipped?: boolean;
+      conflict?: boolean;
+      error?: string;
+      version?: string;
+      calendarHash?: string;
+      generatedAt?: string;
+      savedAt?: string;
+      serverGeneratedAt?: string;
+      clientGeneratedAt?: string;
+      message?: string;
+    }>('/api/dfy/calendar/save-client-calendar', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      timeout: 15000,
+    });
   }
 
   async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string; lat?: number; lon?: number; location?: string }) {

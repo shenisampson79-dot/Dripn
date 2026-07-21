@@ -261,7 +261,7 @@ export function getStylistGreeting(
   if (owned == null) {
     const neutrals = direct
       ? [
-          "{name}. {stylist} here. What are we styling?",
+          "{name}. {stylist} here. What are we styling for?",
           "Hey {name}. {stylist}. Tell me what you need.",
         ]
       : [
@@ -324,7 +324,7 @@ export function getStylistGreeting(
   }
 
   const readyDirectFallback =
-    "{name}. {stylist}. You've got {count} pieces — {tops} tops, {bottoms} bottoms, {shoes} pairs of shoes. Enough to build outfits. What are we styling?";
+    "{name}. {stylist}. You've got {count} pieces — {tops} tops, {bottoms} bottoms, {shoes} pairs of shoes. Enough to build outfits. What are we styling for?";
   return apply(tx(t, 'aiStylist.welcomeReadyDirect', readyDirectFallback));
 }
 

@@ -46,6 +46,7 @@ import {
   isApplePurchaseCancelled,
   runDfyCheckout,
 } from "@/utils/dfyCheckout";
+import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
 
 type DFYStartScreenProps = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -69,7 +70,29 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const [activationBlockedReason, setActivationBlockedReason] = useState<string | null>(null);
   const [activationBlockCode, setActivationBlockCode] = useState<DfyActivationBlockCode | null>(null);
   const [dfyPrices, setDfyPrices] = useState({ outfit_setup: '£19.99', wardrobe_setup: '£39.99' });
+  const [showPackageNamePrompt, setShowPackageNamePrompt] = useState(false);
+  const [packageNameDefault, setPackageNameDefault] = useState('');
+  const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
+  const [pendingAfterName, setPendingAfterName] = useState<(() => void) | null>(null);
   const useAppleIAP = shouldUseAppleIAP();
+
+  const promptPackageNameThen = async (tier: DFYTier, continueFn: () => void) => {
+    try {
+      // Give the server a moment to archive/create the package after generate
+      await new Promise((r) => setTimeout(r, 600));
+      const prompt = await dfyService.preparePackageNamePrompt(tier);
+      if (prompt) {
+        setRenamePackageId(prompt.packageId);
+        setPackageNameDefault(prompt.defaultName);
+        setPendingAfterName(() => continueFn);
+        setShowPackageNamePrompt(true);
+        return;
+      }
+    } catch {
+      // Fall through
+    }
+    continueFn();
+  };
 
   const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const benefit = getDfyBenefitForSubscription(subscriptionTier);
@@ -157,7 +180,23 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         return;
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigateAfterDfyActivation(navigation, tier);
+      if (tier === 'lite') {
+        try {
+          await dfyService.createMockLiteDelivery(
+            user.id,
+            user.stylistPreferences?.selectedStylistId || 'ruby',
+          );
+        } catch {
+          // Style plan will create on open
+        }
+      } else {
+        try {
+          await finalizeDfyPurchase('core');
+        } catch {
+          // Continue; upload flow can generate later
+        }
+      }
+      await promptPackageNameThen(tier, () => navigateAfterDfyActivation(navigation, tier));
     } finally {
       setIsProcessing(false);
     }
@@ -222,31 +261,33 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         await finalizeDfyPurchase(tier);
         refreshSubscriptionFromBackend().catch(() => {});
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setTimeout(() => {
-          if (tier === 'lite') {
-            Alert.alert(
-              t('dfy.comparison.paymentSuccessTitle'),
-              t('dfy.comparison.paymentSuccessLiteMessage'),
-              [
-                {
-                  text: t('dfy.comparison.getPersonalStylist'),
-                  onPress: () => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' }),
-                },
-                {
-                  text: t('dfy.comparison.continueSetup'),
-                  onPress: () => navigation.navigate('DFYStylePlan'),
-                  style: 'cancel',
-                },
-              ],
-            );
-          } else {
-            Alert.alert(
-              t('dfy.comparison.paymentSuccessTitle'),
-              t('dfy.comparison.paymentSuccessCoreMessage'),
-              [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }],
-            );
-          }
-        }, 400);
+        await promptPackageNameThen(tier, () => {
+          setTimeout(() => {
+            if (tier === 'lite') {
+              Alert.alert(
+                t('dfy.comparison.paymentSuccessTitle'),
+                t('dfy.comparison.paymentSuccessLiteMessage'),
+                [
+                  {
+                    text: t('dfy.comparison.getPersonalStylist'),
+                    onPress: () => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' }),
+                  },
+                  {
+                    text: t('dfy.comparison.continueSetup'),
+                    onPress: () => navigation.navigate('DFYStylePlan'),
+                    style: 'cancel',
+                  },
+                ],
+              );
+            } else {
+              Alert.alert(
+                t('dfy.comparison.paymentSuccessTitle'),
+                t('dfy.comparison.paymentSuccessCoreMessage'),
+                [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }],
+              );
+            }
+          }, 400);
+        });
         await refreshState();
         return;
       }
@@ -415,6 +456,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   };
 
   return (
+    <>
     <ScreenScrollView
       opaqueHeader
       style={{ backgroundColor: isDark ? '#0D0B09' : theme.backgroundRoot }}
@@ -542,6 +584,30 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         </Pressable>
       ) : null}
     </ScreenScrollView>
+
+      <DFYPackageNameModal
+        visible={showPackageNamePrompt}
+        defaultName={packageNameDefault}
+        onClose={() => {
+          setShowPackageNamePrompt(false);
+          const next = pendingAfterName;
+          setPendingAfterName(null);
+          next?.();
+        }}
+        onSave={async (name) => {
+          if (!renamePackageId) return;
+          try {
+            await dfyService.renameDfyPackage(renamePackageId, name);
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
+        }}
+      />
+    </>
   );
 }
 

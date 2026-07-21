@@ -76,12 +76,41 @@ export function WardrobeItemImage({
   useEffect(() => {
     let cancelled = false;
 
+    const preferred =
+      (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
+      (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
+      null;
+
+    // Never reuse a stale cached URI when the item's source photo changed (retake / rotate / rembg).
     const warm = getCachedWardrobeImageUri(item.id);
-    if (warm) {
-      setUri(warm);
-      setLoading(false);
-      setFailed(false);
-      return;
+    if (warm && preferred && warm !== preferred) {
+      const preferredIsConcreteSource =
+        preferred.startsWith('file') ||
+        preferred.startsWith('content') ||
+        preferred.startsWith('ph://') ||
+        preferred.startsWith('assets-library') ||
+        preferred.startsWith('data:') ||
+        preferred.startsWith('http');
+      if (preferredIsConcreteSource) {
+        invalidateWardrobeImageCache(item.id);
+      }
+    }
+
+    const warmAfter = getCachedWardrobeImageUri(item.id);
+    if (warmAfter && (!preferred || warmAfter === preferred || String(item.id) === 'preview')) {
+      // For preview id, always prefer the live prop URI over any accidental cache hit.
+      if (String(item.id) === 'preview' && preferred) {
+        setUri(preferred);
+        setLoading(false);
+        setFailed(false);
+        return;
+      }
+      if (warmAfter && String(item.id) !== 'preview') {
+        setUri(warmAfter);
+        setLoading(false);
+        setFailed(false);
+        return;
+      }
     }
 
     setLoading(true);

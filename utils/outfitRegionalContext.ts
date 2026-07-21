@@ -47,6 +47,14 @@ export type RegionalStyleContext = {
   styleTags: string[];
 };
 
+/** Fallback when no user region is available — UK/EU smart-casual trainer norms. */
+export const DEFAULT_SMART_CASUAL_REGIONAL: RegionalStyleContext = {
+  countryCode: 'GB',
+  allowsSmartCasualTrainers: true,
+  typicalDressCode: 'smart-casual',
+  styleTags: [],
+};
+
 export function normalizeCountryCode(input?: string | null): string | null {
   if (!input || typeof input !== 'string') return null;
   const trimmed = input.trim();
@@ -143,6 +151,13 @@ export function isIntentionalSmartCasualTrainerLook(
   if (items.some((item) => item.category === 'activewear_tops' || item.category === 'activewear_bottoms')) {
     return false;
   }
+  if (items.some((item) => item.category === 'bottoms' && /\bshorts?\b/.test(`${item.name || ''}`.toLowerCase()))) {
+    return false;
+  }
+
+  const hasDressShirt = /dress shirt|button-down|button down|oxford shirt/.test(text);
+  const hasSuitBottom = /suit trouser|suit pant|dress trouser|dress pant/.test(text);
+  if (hasSuitBottom && hasDressShirt) return false;
 
   const hasBlazer = /blazer|sport coat|suit jacket|tailored jacket/.test(text);
   const hasDress = items.some((item) => item.category === 'dresses') || /\bdress\b/.test(text);

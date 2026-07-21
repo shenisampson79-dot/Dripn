@@ -1,0 +1,305 @@
+{
+  "version": 1,
+  "description": "Extended taste calibration — advanced good, subtle bad, edge cases",
+  "examples": [
+    {
+      "id": "g11_pleated_chelsea",
+      "items": [
+        { "name": "Pleated Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "Black Turtleneck", "category": "tops", "color": "black" },
+        { "name": "Black Chelsea Boots", "category": "shoes", "color": "black" }
+      ],
+      "label": "good",
+      "minScore": 70,
+      "maxScore": 94,
+      "primaryStyle": "classic_tailoring"
+    },
+    {
+      "id": "g12_parachute_street",
+      "items": [
+        { "name": "Parachute Pants", "category": "bottoms", "color": "black" },
+        { "name": "Black Crop Top", "category": "tops", "color": "black" },
+        { "name": "White Chunky Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "streetwear"
+    },
+    {
+      "id": "g13_linen_silk_loafers",
+      "items": [
+        { "name": "Beige Linen Pants", "category": "bottoms", "color": "beige" },
+        { "name": "Cream Silk Shirt", "category": "tops", "color": "cream" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "label": "good",
+      "minScore": 58,
+      "maxScore": 94,
+      "primaryStyle": "luxury_casual"
+    },
+    {
+      "id": "g14_double_denim",
+      "items": [
+        { "name": "Blue Denim Jacket", "category": "outerwear", "color": "denim" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Blue Slim Jeans", "category": "bottoms", "color": "denim" },
+        { "name": "White Minimal Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "minimalist"
+    },
+    {
+      "id": "g15_athleisure_layered",
+      "items": [
+        { "name": "Black Track Pants", "category": "bottoms", "color": "black" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Black Puffer Jacket", "category": "outerwear", "color": "black" },
+        { "name": "White Running Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "athleisure"
+    },
+    {
+      "id": "g16_edgy_mini",
+      "items": [
+        { "name": "Black Mini Skirt", "category": "bottoms", "color": "black" },
+        { "name": "Black Sheer Top", "category": "tops", "color": "black" },
+        { "name": "Black Platform Boots", "category": "shoes", "color": "black" }
+      ],
+      "label": "good",
+      "minScore": 60,
+      "maxScore": 94,
+      "primaryStyle": "edgy_fashion"
+    },
+    {
+      "id": "g17_knit_derby",
+      "items": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "Grey Knit Sweater", "category": "tops", "color": "gray" },
+        { "name": "Brown Derby Shoes", "category": "shoes", "color": "brown" }
+      ],
+      "label": "good",
+      "minScore": 63,
+      "maxScore": 94,
+      "primaryStyle": "smart_casual"
+    },
+    {
+      "id": "g18_streetwear_layered",
+      "items": [
+        { "name": "Olive Cargo Pants", "category": "bottoms", "color": "olive" },
+        { "name": "White Graphic T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Bomber Jacket", "category": "outerwear", "color": "black" },
+        { "name": "White High Top Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "streetwear"
+    },
+    {
+      "id": "g19_luxury_wide_mules",
+      "items": [
+        { "name": "Black Wide Leg Trousers", "category": "bottoms", "color": "black" },
+        { "name": "Cream Cashmere Sweater", "category": "tops", "color": "cream" },
+        { "name": "Tan Mules", "category": "shoes", "color": "tan" }
+      ],
+      "label": "good",
+      "minScore": 58,
+      "maxScore": 94,
+      "primaryStyle": "luxury_casual"
+    },
+    {
+      "id": "g20_tailored_heels",
+      "items": [
+        { "name": "Charcoal Tailored Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "White Blouse", "category": "tops", "color": "white" },
+        { "name": "Black Stiletto Heels", "category": "shoes", "color": "black" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "classic_tailoring"
+    },
+    {
+      "id": "b11_oversized_formal_shoes",
+      "items": [
+        { "name": "Black Oversized T-Shirt", "category": "tops", "color": "black" },
+        { "name": "Charcoal Tailored Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "Black Oxford Dress Shoes", "category": "shoes", "color": "black" }
+      ],
+      "label": "bad",
+      "maxScore": 50,
+      "issues": ["formality_conflict"]
+    },
+    {
+      "id": "b12_hoodie_dress_shirt",
+      "items": [
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "White Dress Shirt", "category": "tops", "color": "white" },
+        { "name": "Blue Slim Jeans", "category": "bottoms", "color": "denim" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "label": "bad",
+      "maxScore": 50,
+      "issues": ["layering_conflict"]
+    },
+    {
+      "id": "b13_cargo_tank_derby",
+      "items": [
+        { "name": "Olive Cargo Pants", "category": "bottoms", "color": "olive" },
+        { "name": "Black Tank Top", "category": "tops", "color": "black" },
+        { "name": "Black Derby Shoes", "category": "shoes", "color": "black" }
+      ],
+      "label": "bad",
+      "maxScore": 45,
+      "issues": ["footwear_mismatch"]
+    },
+    {
+      "id": "b14_blazer_gym_shorts",
+      "items": [
+        { "name": "Navy Blazer", "category": "outerwear", "color": "navy" },
+        { "name": "Black Gym Shorts", "category": "bottoms", "color": "black" },
+        { "name": "White Running Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "bad",
+      "maxScore": 40,
+      "issues": ["structure_conflict"]
+    },
+    {
+      "id": "b15_leather_linen_sandals",
+      "items": [
+        { "name": "Black Leather Jacket", "category": "outerwear", "color": "black" },
+        { "name": "White Linen Pants", "category": "bottoms", "color": "white" },
+        { "name": "Tan Sandals", "category": "shoes", "color": "tan" }
+      ],
+      "label": "bad",
+      "maxScore": 58,
+      "issues": ["context_conflict"]
+    },
+    {
+      "id": "e1_smart_casual_trainers",
+      "items": [
+        { "name": "Charcoal Tailored Trousers", "category": "bottoms", "color": "charcoal" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "White Minimal Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "smart_casual",
+      "edgeCase": "intentional_smart_casual_hybrid"
+    },
+    {
+      "id": "e2_blazer_hoodie_jeans",
+      "items": [
+        { "name": "Navy Blazer", "category": "outerwear", "color": "navy" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Blue Slim Jeans", "category": "bottoms", "color": "denim" },
+        { "name": "White Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "streetwear",
+      "edgeCase": "accepted_streetwear_layering"
+    },
+    {
+      "id": "e3_suit_jacket_chunky",
+      "items": [
+        { "name": "Charcoal Suit Jacket", "category": "outerwear", "color": "charcoal" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Slim Jeans", "category": "bottoms", "color": "black" },
+        { "name": "White Chunky Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 55,
+      "maxScore": 94,
+      "edgeCase": "fashion_forward_contrast"
+    },
+    {
+      "id": "e4_chinos_tee_loafers",
+      "items": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "label": "good",
+      "minScore": 70,
+      "maxScore": 94,
+      "primaryStyle": "smart_casual"
+    },
+    {
+      "id": "e5_chinos_tee_slides_bad",
+      "items": [
+        { "name": "Khaki Chinos", "category": "bottoms", "color": "beige" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Black Slides", "category": "shoes", "color": "black" }
+      ],
+      "label": "bad",
+      "maxScore": 45,
+      "issues": ["footwear_mismatch"]
+    },
+    {
+      "id": "e6_blazer_hoodie_jeans_loafers_bad",
+      "items": [
+        { "name": "Navy Blazer", "category": "outerwear", "color": "navy" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Blue Slim Jeans", "category": "bottoms", "color": "denim" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "label": "bad",
+      "maxScore": 50,
+      "issues": ["footwear_mismatch"]
+    },
+    {
+      "id": "e7_denim_jacket_dress_shirt_bad",
+      "items": [
+        { "name": "Blue Denim Jacket", "category": "outerwear", "color": "denim" },
+        { "name": "White Dress Shirt", "category": "tops", "color": "white" },
+        { "name": "Blue Slim Jeans", "category": "bottoms", "color": "denim" },
+        { "name": "Black Oxford Dress Shoes", "category": "shoes", "color": "black" }
+      ],
+      "label": "bad",
+      "maxScore": 52,
+      "issues": ["formality_conflict"]
+    },
+    {
+      "id": "e8_athletic_shorts_oversized_borderline",
+      "items": [
+        { "name": "Black Gym Shorts", "category": "bottoms", "color": "black" },
+        { "name": "White Oversized T-Shirt", "category": "tops", "color": "white" },
+        { "name": "Brown Loafers", "category": "shoes", "color": "brown" }
+      ],
+      "label": "bad",
+      "maxScore": 55,
+      "issues": ["weak_cohesion"]
+    },
+    {
+      "id": "seed_black_joggers",
+      "items": [
+        { "name": "Black Joggers", "category": "bottoms", "color": "black" },
+        { "name": "White T-Shirt", "category": "tops", "color": "white" },
+        { "name": "White Running Sneakers", "category": "shoes", "color": "white" }
+      ],
+      "label": "good",
+      "minScore": 65,
+      "maxScore": 94,
+      "primaryStyle": "athleisure"
+    },
+    {
+      "id": "seed_joggers_chelsea_bad",
+      "items": [
+        { "name": "Grey Joggers", "category": "bottoms", "color": "gray" },
+        { "name": "Grey Hoodie", "category": "tops", "color": "gray" },
+        { "name": "Black Chelsea Boots", "category": "shoes", "color": "black" }
+      ],
+      "label": "bad",
+      "maxScore": 40
+    }
+  ]
+}

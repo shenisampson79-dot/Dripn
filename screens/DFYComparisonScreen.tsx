@@ -46,6 +46,7 @@ import {
 } from "@/services/AppleIAPService";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { currencyService } from "@/services/CurrencyService";
+import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -88,6 +89,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     lite: '£19.99',
     core: '£39.99',
   });
+  const [showPackageNamePrompt, setShowPackageNamePrompt] = useState(false);
+  const [packageNameDefault, setPackageNameDefault] = useState('');
+  const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
+  const [pendingAfterName, setPendingAfterName] = useState<(() => void) | null>(null);
   const tiers = dfyService.getComparisonTiers().map((tier) => ({
     ...tier,
     price: tierPrices[tier.id] || tier.price,
@@ -104,6 +109,23 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const isAutoCheckout = Boolean(routeParams?.autoCheckout && routeParams?.selectedTier);
   const autoCheckoutStarted = useRef(false);
+
+  const promptPackageNameThen = async (tier: DFYTier, continueFn: () => void) => {
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      const prompt = await dfyService.preparePackageNamePrompt(tier);
+      if (prompt) {
+        setRenamePackageId(prompt.packageId);
+        setPackageNameDefault(prompt.defaultName);
+        setPendingAfterName(() => continueFn);
+        setShowPackageNamePrompt(true);
+        return;
+      }
+    } catch {
+      // Fall through
+    }
+    continueFn();
+  };
 
   // Bundled subscribers use DFYStart — unless they're buying an extra paid setup (Plan B).
   useEffect(() => {
@@ -206,7 +228,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const completeDfyPurchaseSuccess = async () => {
     await finalizeDfyPurchase(selectedTier);
     refreshSubscriptionFromBackend().catch(() => {});
-    showDfyPaymentSuccess();
+    await promptPackageNameThen(selectedTier, () => showDfyPaymentSuccess());
   };
 
   const startAppleCheckout = async () => {
@@ -706,6 +728,29 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           </Pressable>
         </Pressable>
       </Modal>
+
+      <DFYPackageNameModal
+        visible={showPackageNamePrompt}
+        defaultName={packageNameDefault}
+        onClose={() => {
+          setShowPackageNamePrompt(false);
+          const next = pendingAfterName;
+          setPendingAfterName(null);
+          next?.();
+        }}
+        onSave={async (name) => {
+          if (!renamePackageId) return;
+          try {
+            await dfyService.renameDfyPackage(renamePackageId, name);
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
+        }}
+      />
     </View>
   );
 }

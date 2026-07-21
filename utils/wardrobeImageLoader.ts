@@ -214,10 +214,73 @@ export function invalidateWardrobeImageCache(id?: string | number): void {
   inflight.delete(key);
 }
 
+/** Drop memory + on-disk cache for an item so a new photo/cutout is shown. */
+export async function purgeWardrobeImageCache(id: string | number): Promise<void> {
+  invalidateWardrobeImageCache(id);
+  const diskPath = cachePathFor(id);
+  if (!diskPath) return;
+  try {
+    await FileSystem.deleteAsync(diskPath, { idempotent: true });
+  } catch {
+    // Non-fatal
+  }
+}
+
 export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promise<string | null> {
   if (!item?.id) return null;
 
   const id = itemKey(item.id);
+
+  // Shared "preview" id must never hit permanent/disk cache — it reused one photo across retakes.
+  if (id === 'preview') {
+    const previewUri =
+      (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
+      (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
+      (typeof item.originalImageUri === 'string' && item.originalImageUri.trim()) ||
+      null;
+    logSource(item.id, previewUri ? 'local' : 'none', 'preview-bypass-cache');
+    return previewUri;
+  }
+
+  const preferredProp =
+    (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
+    (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
+    null;
+
+  // Fresh local picker/camera URIs always win over a stale permanent file for this id.
+  if (
+    preferredProp &&
+    !isRemoteImageUri(preferredProp) &&
+    !preferredProp.startsWith('data:')
+  ) {
+    if (await localWardrobeFileExists(preferredProp)) {
+      memoryCache.delete(id);
+      inflight.delete(id);
+      logSource(item.id, 'local', 'prefer-prop-uri');
+      return remember(id, preferredProp);
+    }
+  }
+
+  // New remote cutout URL should invalidate an older cached file for the same item id.
+  if (preferredProp && isRemoteImageUri(preferredProp)) {
+    const existing = memoryCache.get(id);
+    if (existing && existing !== preferredProp && !existing.startsWith('data:')) {
+      memoryCache.delete(id);
+    }
+    // Stale disk jpg for this id would otherwise beat the new CDN cutout.
+    const diskPath = cachePathFor(item.id);
+    if (diskPath) {
+      const cached = await isFreshDiskCache(diskPath);
+      if (cached && cached !== preferredProp) {
+        try {
+          await FileSystem.deleteAsync(diskPath, { idempotent: true });
+        } catch {
+          // Non-fatal
+        }
+      }
+    }
+  }
+
   const existing = memoryCache.get(id);
   if (existing) {
     logSource(item.id, 'memory');

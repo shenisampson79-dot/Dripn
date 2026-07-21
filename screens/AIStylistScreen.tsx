@@ -90,6 +90,7 @@ import {
 import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
@@ -1326,6 +1327,34 @@ function messageHasWardrobeVisual(message: ChatMessage): boolean {
   return false;
 }
 
+/** True when Love + Save (OutfitSaveActions) would render — ≥2 wardrobe pieces. */
+function visualShowsOutfitSaveActions(
+  visual: ReturnType<typeof normalizeWardrobeVisual>,
+): boolean {
+  if (!visual) return false;
+  if (visual.layout === 'multi' && visual.outfits?.length) {
+    return visual.outfits.some(
+      (outfit) => wardrobeIdsFromPieces(outfit.pieces ?? []).length >= 2,
+    );
+  }
+  if (visual.pieces?.length) {
+    return wardrobeIdsFromPieces(visual.pieces).length >= 2;
+  }
+  return false;
+}
+
+function messageShowsOutfitSaveActions(message: ChatMessage): boolean {
+  const visual = normalizeWardrobeVisual(message.wardrobeVisual);
+  if (visualShowsOutfitSaveActions(visual)) return true;
+  const legacyItems = message.outfitSuggestion?.items;
+  if (legacyItems?.length) {
+    return visualShowsOutfitSaveActions(
+      normalizeWardrobeVisual(wardrobeVisualFromOutfitSuggestion(legacyItems)),
+    );
+  }
+  return false;
+}
+
 export default function AIStylistScreen() {
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
@@ -1489,9 +1518,7 @@ export default function AIStylistScreen() {
     );
   }, [navigation]);
 
-  const navigateToWeatherOutfits = useCallback(() => {
-    navigation.navigate('WeatherOutfit');
-  }, [navigation]);
+  const WEATHER_CHIP_ID = 'weather';
 
   const wardrobeImageFingerprint = useMemo(
     () => wardrobeItems
@@ -2448,7 +2475,7 @@ export default function AIStylistScreen() {
     if (!canSendMessage() || generatingOccasionId) return;
 
     const label = getOccasionLabel(occasionId);
-    const userText = `Create a ${label.toLowerCase()} from my wardrobe`;
+    const userText = `Create a ${label.toLowerCase()} outfit from my wardrobe`;
 
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -2484,6 +2511,117 @@ export default function AIStylistScreen() {
 
       const content = generated.stylistMessage
         || `Here's your ${label.toLowerCase()} — styled from pieces you already own.`;
+
+      const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
+      const cappedVisual = wardrobeVisual
+        ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
+        : null;
+
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content,
+        timestamp: new Date().toISOString(),
+        wardrobeVisual: cappedVisual ?? undefined,
+        outfitSuggestion: generated.items.length
+          ? { items: generated.items, occasion: label, reason: '' }
+          : undefined,
+      };
+
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      await saveChatHistory(finalMessages);
+
+      if (voiceSettings.autoPlayResponses && ttsEnabled) {
+        playTTSAudio(content);
+      }
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Unable to generate outfit. Please try again.';
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      await saveChatHistory(finalMessages);
+    } finally {
+      setGeneratingOccasionId(null);
+      setIsTyping(false);
+      setTimeout(() => {
+        scrollChatToEnd(true);
+      }, 100);
+    }
+  };
+
+  const handleWeatherOutfitGenerate = async () => {
+    if (!canSendMessage() || generatingOccasionId) return;
+
+    const label = t('aiStylist.weatherLook') || 'Weather look';
+    const userText = t('aiStylist.promptWeatherLook') || 'Create a weather look outfit from my wardrobe';
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
+    const userMessage: ChatMessage = {
+      id: `msg_${Date.now()}_user`,
+      role: 'user',
+      content: userText,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setShowQuickPrompts(false);
+    setGeneratingOccasionId(WEATHER_CHIP_ID);
+    setIsTyping(true);
+
+    await incrementDailyMessages();
+
+    setTimeout(() => {
+      scrollChatToEnd(true);
+    }, 100);
+
+    let weatherData: { temperature: number; condition: string } | null = null;
+    try {
+      const permission = await weatherService.checkPermissionStatus();
+      if (!permission.granted && permission.canAskAgain) {
+        await weatherService.requestPermission();
+      }
+      const currentWeather = await weatherService.getWeatherForOutfits();
+      if (currentWeather) {
+        weatherData = {
+          temperature: currentWeather.temperature,
+          condition: currentWeather.condition,
+        };
+      }
+    } catch {
+      // Non-blocking — still generate a look without live weather.
+    }
+
+    try {
+      const generated = await generateWardrobeOutfit({
+        occasionType: 'casual_day',
+        wardrobeItems,
+        stylistId: stylist.id,
+        saveToCalendar: false,
+        user,
+        weather: weatherData,
+      });
+
+      const weatherSuffix = weatherData
+        ? ` for ${weatherData.temperature}° and ${weatherData.condition} conditions`
+        : '';
+      const content = generated.stylistMessage
+        || `Here's your ${label.toLowerCase()}${weatherSuffix} — styled from pieces you already own.`;
 
       const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
       const cappedVisual = wardrobeVisual
@@ -2610,6 +2748,51 @@ export default function AIStylistScreen() {
       }
       return part;
     });
+  };
+
+  const resolveAssistantWardrobeVisual = (message: ChatMessage, messageIndex: number) => {
+    const priorUser = [...messages.slice(0, messageIndex)].reverse().find((entry) => entry.role === 'user');
+    const outfitCount = inferOutfitCountFromText(message.content);
+
+    let visual = normalizeWardrobeVisual(message.wardrobeVisual);
+    if (!visual && wardrobeItems.length > 0) {
+      visual = normalizeWardrobeVisual(
+        capWardrobeVisualForAccess(
+          buildWardrobeVisualFromChat(
+            priorUser?.content || '',
+            message.content,
+            wardrobeItems,
+            user?.subscriptionTier,
+          ),
+          user?.subscriptionTier,
+        ),
+      );
+    }
+
+    if (outfitCount >= 2 && wardrobeItems.length > 0) {
+      const rebuilt = normalizeWardrobeVisual(
+        capWardrobeVisualForAccess(
+          buildWardrobeVisualFromChat(
+            priorUser?.content || '',
+            message.content,
+            wardrobeItems,
+            user?.subscriptionTier,
+          ),
+          user?.subscriptionTier,
+        ),
+      );
+      if (rebuilt?.layout === 'multi') {
+        visual = rebuilt;
+      }
+    }
+
+    if (!visual && message.outfitSuggestion?.items?.length) {
+      visual = normalizeWardrobeVisual(
+        wardrobeVisualFromOutfitSuggestion(message.outfitSuggestion.items),
+      );
+    }
+
+    return visual;
   };
 
   const renderOutfitSaveActions = (
@@ -2972,7 +3155,7 @@ export default function AIStylistScreen() {
           </LinearGradient>
         ) : null}
         
-        {!isUser && index > 0 ? (
+        {!isUser && index > 0 && !messageShowsOutfitSaveActions(item) && !visualShowsOutfitSaveActions(resolveAssistantWardrobeVisual(item, index)) ? (
           <View style={styles.feedbackContainer}>
             {messageFeedback[item.id] ? (
               <View style={styles.feedbackGiven}>
@@ -3131,48 +3314,41 @@ export default function AIStylistScreen() {
         0,
         Number(voiceCreditsBalance?.usedThisMonth ?? Math.max(0, allowance - remaining)),
       );
-      const showTeaser =
-        !weekendUnlimitedActive &&
-        (allowance > 0 || tier === 'free');
 
-      let teaserTitle =
+      // Only surface the big counter/upsell here when the monthly tier allowance is gone.
+      // Ongoing usage lives on Profile — keep voice mode feeling unmonitored.
+      if (weekendUnlimitedActive || remaining > 0) {
+        return {
+          showWarning: false,
+          showTeaser: false,
+          teaserTitle: '',
+          teaserMsg: '',
+          teaserIcon: 'mic' as const,
+          teaserCta: 'topup' as const,
+          teaserButtonLabel: '',
+        };
+      }
+
+      const teaserTitle =
         allowance > 0
-          ? (t('aiStylist.voiceRepliesThisMonth') || '{used}/{allowance} voice replies this month')
+          ? (t('aiStylist.voiceRepliesUsedUp') || "This month's spoken replies are used up")
+          : (t('aiStylist.voiceRepliesThisMonth') || '{used}/{allowance} voice replies this month')
               .replace('{used}', String(used))
-              .replace('{allowance}', String(allowance))
-          : (t('aiStylist.voiceRepliesLeft') || '{count} spoken replies left').replace(
-              '{count}',
-              String(remaining),
-            );
+              .replace('{allowance}', String(Math.max(allowance, used)));
 
-      let teaserMsg = (t('aiStylist.voiceUnlockMore') ||
-        'Hands-free spoken replies are limited each month. Add a voice pack to keep talking with {name}.')
+      const teaserMsg = (t('aiStylist.voiceUnlockMore') ||
+        'Add a voice pack so {name} can keep speaking with you. Text chat stays unlimited.')
         .replace('{name}', stylist.name);
-      let teaserIcon: 'star' | 'heart' | 'zap' | 'mic' = 'mic';
-      // Voice mode card always tops up spoken replies (packs modal) — not subscription plans
-      let teaserCta: 'upgrade' | 'topup' | 'retry' = 'topup';
-      let teaserButtonLabel = t('voiceCredits.topUpVoiceReplies') || 'Top up voice';
 
-      if (weekendUnlimitedActive) {
-        return { showWarning: false, showTeaser: false, teaserTitle: '', teaserMsg: '', teaserIcon: 'star' as const, teaserCta: 'topup' as const, teaserButtonLabel: '' };
-      }
-
-      if (remaining <= 0 && allowance > 0) {
-        teaserTitle = t('aiStylist.voiceRepliesUsedUp') || "This month's spoken replies are used up";
-        teaserMsg = (t('aiStylist.voiceUnlockMore') ||
-          'Add a voice pack so {name} can keep speaking with you. Text chat stays unlimited.')
-          .replace('{name}', stylist.name);
-        teaserIcon = 'heart';
-        teaserButtonLabel = t('voiceCredits.buyTitle') || 'Buy Voice Package';
-      } else if (allowance > 0 && remaining <= Math.max(1, Math.floor(allowance * 0.25))) {
-        teaserMsg = (t('aiStylist.voiceRunningLow') ||
-          'Running low on spoken replies with {name}. Top up before you hit the cap.')
-          .replace('{name}', stylist.name);
-        teaserIcon = 'zap';
-      }
-
-      const showWarning = allowance > 0 && remaining <= Math.max(1, Math.floor(allowance * 0.25));
-      return { showWarning, showTeaser, teaserTitle, teaserMsg, teaserIcon, teaserCta, teaserButtonLabel };
+      return {
+        showWarning: false,
+        showTeaser: true,
+        teaserTitle,
+        teaserMsg,
+        teaserIcon: 'heart' as const,
+        teaserCta: 'topup' as const,
+        teaserButtonLabel: t('voiceCredits.buyTitle') || 'Buy Voice Package',
+      };
     }
 
     const showWarning = remainingMessages !== Infinity && remainingMessages <= 3;
@@ -3486,7 +3662,7 @@ export default function AIStylistScreen() {
             <OccasionOutfitChips
               generatingOccasionId={generatingOccasionId}
               disabled={!canSendMessage() || Boolean(generatingOccasionId)}
-              onWeatherPress={navigateToWeatherOutfits}
+              onWeatherPress={handleWeatherOutfitGenerate}
               onOccasionPress={handleOccasionOutfitGenerate}
             />
             {/* Extra chat prompts that don't overlap occasion chips (work/date/weekend). */}

@@ -8,9 +8,10 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
+import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,8 +25,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
-import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId } from "@/services/DFYService";
+import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId, type DFYAccessStatus } from "@/services/DFYService";
 import { SaveOutfitPromptModal, type SaveOutfitIntent } from "@/components/outfit/SaveOutfitPromptModal";
+import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
 import { apiService } from "@/services/ApiService";
 import { weatherService } from "@/services/WeatherService";
 import {
@@ -33,14 +35,22 @@ import {
   resolveDFYItemImageUri,
   RawDFYOutfitItem,
   fillEmptyLookbookSlots,
+  reallocateLookbookInventory,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
   filterOutfitItemsForWeather,
 } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
+import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
+import {
+  hasCoreLookbookRedirectSignal,
+  pickLiteLookbookPackage,
+} from "@/utils/dfyPackages";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
+
+type LookbookEmptyMode = 'loading' | 'core' | 'unlock' | null;
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -65,10 +75,13 @@ const STYLIST_COLORS: Record<NonNullable<StylistId>, { gradient: readonly [strin
 };
 
 type DFYLookbookScreenProps = {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: NativeStackNavigationProp<WardrobeStackParamList, 'DFYLookbook'>;
 };
 
 export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps) {
+  const route = useRoute<RouteProp<WardrobeStackParamList, 'DFYLookbook'>>();
+  const packageId = route.params?.packageId;
+  const isHistorical = Boolean(packageId);
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
@@ -76,6 +89,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const insets = useSafeAreaInsets();
 
   const [delivery, setDelivery] = useState<DFYLiteDelivery | null>(null);
+  const [accessStatus, setAccessStatus] = useState<DFYAccessStatus | null>(null);
+  const [emptyMode, setEmptyMode] = useState<LookbookEmptyMode>('loading');
+  const [packageName, setPackageName] = useState<string | null>(null);
   const [selectedOutfit, setSelectedOutfit] = useState<DFYOutfit | null>(null);
   const [showOutfitModal, setShowOutfitModal] = useState(false);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
@@ -83,25 +99,43 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [currentDay, setCurrentDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [showPackageNamePrompt, setShowPackageNamePrompt] = useState(false);
+  const [packageNameDefault, setPackageNameDefault] = useState('');
+  const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
   const backfillStartedRef = useRef(false);
+
+  const maybePromptPackageName = async () => {
+    if (isHistorical) return;
+    try {
+      const prompt = await dfyService.preparePackageNamePrompt('lite');
+      if (!prompt) return;
+      setRenamePackageId(prompt.packageId);
+      setPackageNameDefault(prompt.defaultName);
+      setShowPackageNamePrompt(true);
+    } catch {
+      // Non-blocking
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
+    backfillStartedRef.current = false;
     void loadDelivery();
-  }, [user?.id]);
+  }, [user?.id, packageId]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!delivery || !user?.id) return;
+      if (isHistorical || !delivery || !user?.id) return;
       const totalDays = delivery.totalDays || 14;
       if (countFilledLookbookDays(delivery) >= totalDays) return;
       if (backfillStartedRef.current) return;
       backfillStartedRef.current = true;
       void populateLookbookOutfits(delivery, { fillGapsOnly: true });
-    }, [delivery, user?.id]),
+    }, [delivery, user?.id, isHistorical]),
   );
 
   const maybeBackfillLookbook = (hydrated: DFYLiteDelivery) => {
+    if (isHistorical) return;
     const totalDays = hydrated.totalDays || 14;
     const filledCount = countFilledLookbookDays(hydrated);
     if (filledCount >= totalDays || backfillStartedRef.current) return;
@@ -117,63 +151,61 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       : `Day ${idx + 1} Look`;
   };
 
-  const loadDelivery = async () => {
-    if (!user?.id) return;
-    const saved = await dfyService.getDFYDelivery(user.id);
-    if (saved && saved.tier === 'lite') {
-      const liteDelivery = saved as DFYLiteDelivery;
-      const totalDays = liteDelivery.totalDays || 14;
+  const applyLiteDelivery = async (
+    liteDelivery: DFYLiteDelivery,
+    options?: { persistCorrections?: boolean; backfill?: boolean },
+  ) => {
+    const totalDays = liteDelivery.totalDays || 14;
+    const hasCorruptedDayNumbers = liteDelivery.outfits.some((o) => o.dayNumber > totalDays);
+    const normalised: DFYLiteDelivery = hasCorruptedDayNumbers
+      ? {
+          ...liteDelivery,
+          outfits: liteDelivery.outfits.map((o, idx) => ({
+            ...o,
+            dayNumber: idx + 1,
+            title: outfitTitle(idx),
+          })),
+        }
+      : liteDelivery;
 
-      // Normalise corrupted dayNumbers — if any outfit has a dayNumber > totalDays
-      // the delivery was generated with the wrong formula and needs to be fixed in-place.
-      const hasCorruptedDayNumbers = liteDelivery.outfits.some(o => o.dayNumber > totalDays);
-      const normalised: DFYLiteDelivery = hasCorruptedDayNumbers
-        ? {
-            ...liteDelivery,
-            outfits: liteDelivery.outfits.map((o, idx) => ({
-              ...o,
-              dayNumber: idx + 1,
-              title: outfitTitle(idx),
-            })),
-          }
-        : liteDelivery;
+    if (hasCorruptedDayNumbers && options?.persistCorrections !== false) {
+      await dfyService.saveDFYDelivery(normalised);
+    }
 
-      if (hasCorruptedDayNumbers) {
-        // Persist the corrected delivery so it doesn't re-corrupt on next load
-        await dfyService.saveDFYDelivery(normalised);
-      }
+    const hydrated = enrichDeliveryWithWardrobeImages(
+      ensureLookbookOutfitsHaveFootwear(normalised, wardrobeItems),
+      wardrobeItems,
+    );
+    const forecast = await weatherService.get14DayForecast();
+    const withWeather = forecast?.days?.length
+      ? {
+          ...hydrated,
+          outfits: hydrated.outfits.map((outfit, idx) => {
+            const dayForecast = weatherService.getForecastDay(
+              forecast,
+              outfit.dayNumber || idx + 1,
+            );
+            const filteredItems = filterOutfitItemsForWeather(
+              outfit.items || [],
+              dayForecast,
+              wardrobeItems,
+            );
+            return {
+              ...outfit,
+              items: filteredItems,
+              weatherNote:
+                outfit.weatherNote ||
+                weatherService.buildWeatherNoteForDay(dayForecast),
+            };
+          }),
+        }
+      : hydrated;
 
-      const hydrated = enrichDeliveryWithWardrobeImages(
-        ensureLookbookOutfitsHaveFootwear(normalised, wardrobeItems),
-        wardrobeItems,
-      );
-      const forecast = await weatherService.get14DayForecast();
-      const withWeather = forecast?.days?.length
-        ? {
-            ...hydrated,
-            outfits: hydrated.outfits.map((outfit, idx) => {
-              const dayForecast = weatherService.getForecastDay(
-                forecast,
-                outfit.dayNumber || idx + 1,
-              );
-              const filteredItems = filterOutfitItemsForWeather(
-                outfit.items || [],
-                dayForecast,
-                wardrobeItems,
-              );
-              return {
-                ...outfit,
-                items: filteredItems,
-                weatherNote:
-                  outfit.weatherNote ||
-                  weatherService.buildWeatherNoteForDay(dayForecast),
-              };
-            }),
-          }
-        : hydrated;
-      setDelivery(withWeather);
-      setCurrentDay(withWeather.currentDay);
+    setDelivery(withWeather);
+    setCurrentDay(withWeather.currentDay || 1);
+    setEmptyMode(null);
 
+    if (options?.persistCorrections !== false) {
       const gainedImages = withWeather.outfits.some((outfit, idx) =>
         outfit.items.some((item, itemIdx) => {
           const prev = normalised.outfits[idx]?.items[itemIdx];
@@ -194,14 +226,142 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       if (gainedImages || gainedShoes || gainedWeather || droppedWarmLayers) {
         await dfyService.saveDFYDelivery(withWeather);
       }
+    }
 
+    if (options?.backfill !== false) {
       maybeBackfillLookbook(withWeather);
     }
   };
 
+  const resolveEmptyMode = (options: {
+    access: DFYAccessStatus | null;
+    packages: Awaited<ReturnType<typeof dfyService.listDfyPackages>>;
+    localTier: 'lite' | 'core' | null;
+  }): LookbookEmptyMode => {
+    if (
+      hasCoreLookbookRedirectSignal({
+        access: options.access,
+        packages: options.packages,
+        localDeliveryTier: options.localTier,
+        subscriptionTier: user?.subscriptionTier,
+      })
+    ) {
+      return 'core';
+    }
+    return 'unlock';
+  };
+
+  const openCoreCalendar = (corePackageId?: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.replace('DFYCalendar', {
+      tier: 'core',
+      ...(corePackageId ? { packageId: corePackageId } : {}),
+    });
+  };
+
+  const loadDelivery = async () => {
+    if (!user?.id) return;
+    setEmptyMode('loading');
+    setDelivery(null);
+
+    let access: DFYAccessStatus | null = null;
+    try {
+      access = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
+      setAccessStatus(access);
+    } catch {
+      setAccessStatus(null);
+    }
+
+    const stylistId = (user.stylistPreferences?.selectedStylistId || 'ruby') as StylistId;
+
+    if (packageId) {
+      const pkg = await dfyService.getDfyPackage(packageId);
+      if (!pkg) {
+        setPackageName(null);
+        setEmptyMode('unlock');
+        return;
+      }
+      // Core packages belong on Calendar / Modular Wardrobe — not the Lite day grid.
+      if (pkg.tier === 'core') {
+        openCoreCalendar(pkg.id);
+        return;
+      }
+      setPackageName(pkg.name);
+      const mapped = dfyService.mapPackagePayloadToLiteDelivery(user.id, pkg, stylistId);
+      if (!mapped) {
+        setEmptyMode('unlock');
+        return;
+      }
+      const hydrated = enrichDeliveryWithWardrobeImages(
+        ensureLookbookOutfitsHaveFootwear(mapped, wardrobeItems),
+        wardrobeItems,
+      );
+      setDelivery(hydrated);
+      setCurrentDay(hydrated.currentDay || 1);
+      setEmptyMode(null);
+      return;
+    }
+
+    setPackageName(null);
+    const saved = await dfyService.getDFYDelivery(user.id);
+    if (saved && saved.tier === 'lite') {
+      await applyLiteDelivery(saved as DFYLiteDelivery);
+      return;
+    }
+
+    const packages = await dfyService.listDfyPackages();
+    const litePkg = pickLiteLookbookPackage(packages);
+    if (litePkg?.id) {
+      const pkg = await dfyService.getDfyPackage(litePkg.id);
+      if (pkg) {
+        const mapped = dfyService.mapPackagePayloadToLiteDelivery(user.id, pkg, stylistId);
+        if (mapped) {
+          setPackageName(pkg.isActive ? null : pkg.name);
+          await applyLiteDelivery(mapped, {
+            persistCorrections: pkg.isActive,
+            backfill: pkg.isActive,
+          });
+          return;
+        }
+      }
+    }
+
+    try {
+      const remote = await apiService.getDFYLookbook();
+      if (remote.success && remote.outfits && remote.outfits.length > 0) {
+        const mappedOutfits = mapApiOutfitsToDelivery(remote.outfits, stylistId);
+        const startDate = new Date().toISOString();
+        const expiryDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        const remoteDelivery: DFYLiteDelivery = {
+          userId: user.id,
+          tier: 'lite',
+          startDate,
+          expiryDate,
+          totalDays: 14,
+          currentDay: 1,
+          completed: false,
+          nudgesShown: [],
+          outfits: mappedOutfits,
+        };
+        await applyLiteDelivery(remoteDelivery);
+        return;
+      }
+    } catch (err) {
+      console.log('[DFYLookbook] Remote lookbook fetch failed:', err);
+    }
+
+    setEmptyMode(
+      resolveEmptyMode({
+        access,
+        packages,
+        localTier: saved?.tier === 'core' ? 'core' : null,
+      }),
+    );
+  };
+
   // Re-hydrate item photos when wardrobe finishes loading on device
   useEffect(() => {
-    if (!delivery || wardrobeItems.length === 0) return;
+    if (isHistorical || !delivery || wardrobeItems.length === 0) return;
     const hydrated = enrichDeliveryWithWardrobeImages(delivery, wardrobeItems);
     const gainedImages = hydrated.outfits.some((outfit, idx) =>
       outfit.items.some((item, itemIdx) => {
@@ -224,7 +384,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         void dfyService.saveDFYDelivery(hydrated);
       }
     }
-  }, [wardrobeItems]);
+  }, [wardrobeItems, isHistorical]);
 
   const mapApiOutfitsToDelivery = (rawOutfits: any[], stylistId: StylistId): DFYOutfit[] =>
     rawOutfits.map((o, idx) => ({
@@ -249,30 +409,11 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       saved: false,
     }));
 
-  const mergeLookbookOutfits = (
-    existingDelivery: DFYLiteDelivery,
-    mappedOutfits: DFYOutfit[],
-    fillGapsOnly: boolean,
-  ): DFYOutfit[] =>
-    existingDelivery.outfits.map((slot, idx) => {
-      if (fillGapsOnly && slot.items && slot.items.length > 0) return slot;
-      const source = mappedOutfits[idx];
-      if (!source?.items?.length) return slot;
-      return {
-        ...source,
-        id: slot.id,
-        dayNumber: slot.dayNumber,
-        title: slot.title,
-        userReaction: slot.userReaction ?? null,
-        saved: slot.saved ?? false,
-      };
-    });
-
   const populateLookbookOutfits = async (
     existingDelivery: DFYLiteDelivery,
     options: { fillGapsOnly?: boolean; force?: boolean } = {},
   ) => {
-    if (!user?.id || isGenerating) return;
+    if (isHistorical || !user?.id || isGenerating) return;
     if (!options.force && backfillStartedRef.current && countFilledLookbookDays(existingDelivery) >= (existingDelivery.totalDays || 14)) {
       return;
     }
@@ -281,8 +422,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     setGenerateError(null);
 
     const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
-    const fillGapsOnly =
-      options.fillGapsOnly ?? existingDelivery.outfits.some((o) => o.items && o.items.length > 0);
+    let serverGenerated = false;
 
     try {
       let working = existingDelivery;
@@ -291,7 +431,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         ? { lat: forecast.lat, lon: forecast.lon, locationName: forecast.location }
         : await weatherService.getLocationCoords();
 
-      // Instant on-device fill so empty days appear immediately
+      // Instant on-device fill so empty days appear immediately (constraint engine)
       if (wardrobeItems.length >= 2) {
         const locallyFilled = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
         if (countFilledLookbookDays(locallyFilled) > countFilledLookbookDays(working)) {
@@ -301,7 +441,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         }
       }
 
-      // Try server for richer AI styling (may be slow on cold start)
+      // Try server for richer AI styling notes (may be slow on cold start)
       let rawOutfits: any[] = [];
       try {
         const result = await apiService.generateDFYLookbook({
@@ -324,21 +464,32 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             (fallback as any).delivery?.outfits ||
             [];
         }
+        if (rawOutfits.length > 0) serverGenerated = true;
       } catch (apiErr: any) {
         console.log('[DFYLookbook] Server lookbook unavailable, keeping local outfits:', apiErr?.message || apiErr);
       }
 
       if (rawOutfits.length > 0) {
         const mappedOutfits = mapApiOutfitsToDelivery(rawOutfits, stylistId);
-        const mergedOutfits = mergeLookbookOutfits(working, mappedOutfits, fillGapsOnly);
-        working = enrichDeliveryWithWardrobeImages(
-          { ...working, outfits: mergedOutfits },
-          wardrobeItems,
-        );
+        // Keep AI titles/notes; then re-allocate inventory so variety is honest
+        const withNotes = working.outfits.map((slot, idx) => {
+          const source = mappedOutfits[idx];
+          if (!source) return slot;
+          return {
+            ...slot,
+            title: source.title || slot.title,
+            stylistNote: source.stylistNote || slot.stylistNote,
+            occasion: source.occasion || slot.occasion,
+            description: source.description || slot.description,
+          };
+        });
+        working = { ...working, outfits: withNotes };
       }
 
-      // Final safety net — never leave empty days if wardrobe has items
-      if (wardrobeItems.length >= 2) {
+      // Constraint engine owns inventory for the full plan
+      if (wardrobeItems.length >= 3) {
+        working = reallocateLookbookInventory(working, wardrobeItems, stylistId, forecast);
+      } else if (wardrobeItems.length >= 2) {
         working = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
       }
       working = ensureLookbookOutfitsHaveFootwear(working, wardrobeItems);
@@ -373,6 +524,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       if (countFilledLookbookDays(working) < totalDays) {
         setGenerateError(t('dfy.lookbook.someDaysUnfilled'));
       }
+
+      if (serverGenerated && options.force) {
+        void maybePromptPackageName();
+      }
     } catch (err: any) {
       console.log('[DFYLookbook] Lookbook generation failed:', err);
       setGenerateError(err?.message || t('dfy.lookbook.buildFailed'));
@@ -392,7 +547,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     description?: string,
     options?: { loved?: boolean; bookmark?: boolean },
   ) => {
-    if (!selectedOutfit || !delivery) return;
+    if (isHistorical || !selectedOutfit || !delivery) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const updatedOutfits = delivery.outfits.map((o) =>
@@ -445,11 +600,30 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
   const getTotalDays = (): number => delivery?.totalDays || 14;
 
+  /**
+   * Calendar days left in the DFY access window — not "outfits you haven't opened".
+   * Prefer live access status / expiryDate so a stale startDate can't fake "0 days left".
+   */
   const getDaysRemaining = (): number => {
-    if (!delivery) return getTotalDays();
+    if (typeof accessStatus?.daysRemaining === 'number') {
+      return Math.max(0, accessStatus.daysRemaining);
+    }
+
+    const expiryRaw = delivery?.expiryDate || accessStatus?.expiryDate;
+    if (expiryRaw) {
+      const expiry = new Date(expiryRaw);
+      if (!Number.isNaN(expiry.getTime())) {
+        return Math.max(
+          0,
+          Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+        );
+      }
+    }
+
+    if (!delivery?.startDate) return getTotalDays();
     const start = new Date(delivery.startDate);
-    const now = new Date();
-    const elapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (Number.isNaN(start.getTime())) return getTotalDays();
+    const elapsed = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, getTotalDays() - elapsed);
   };
 
@@ -463,11 +637,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   const formatDaysLeft = (count: number): string => {
+    if (count <= 0) {
+      return t('dfy.lookbook.ended') || 'Ended';
+    }
     const template =
       t('dfy.lookbook.daysLeft') ||
       (count === 1 ? '{count} day left' : '{count} days left');
     if (template.includes('{count}')) {
-      // Fix awkward "1 days left" from a plural-only template
       const filled = template.replace('{count}', String(count));
       if (count === 1) return filled.replace(/\bdays\b/i, 'day');
       return filled;
@@ -767,10 +943,16 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   if (!delivery) {
+    const isCoreEmpty = emptyMode === 'core';
+    const isLoadingEmpty = emptyMode === 'loading' || emptyMode === null;
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
         <LinearGradient
-          colors={[LUXURY_COLORS.coral, '#C46A4F', LUXURY_COLORS.obsidian]}
+          colors={
+            isCoreEmpty
+              ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold, LUXURY_COLORS.obsidian]
+              : [LUXURY_COLORS.coral, '#C46A4F', LUXURY_COLORS.obsidian]
+          }
           locations={[0, 0.3, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -782,13 +964,43 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyState}>
-          <Feather name="book-open" size={64} color="rgba(255,255,255,0.3)" />
-          <ThemedText type="h3" style={{ color: '#FFFFFF', marginTop: Spacing.lg }}>
-            {t('dfy.lookbook.noLookbookTitle')}
-          </ThemedText>
-          <ThemedText style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: Spacing.sm }}>
-            {t('dfy.lookbook.noLookbookMessage')}
-          </ThemedText>
+          {isLoadingEmpty ? (
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          ) : (
+            <>
+              <Feather
+                name={isCoreEmpty ? 'calendar' : 'book-open'}
+                size={64}
+                color="rgba(255,255,255,0.3)"
+              />
+              <ThemedText type="h3" style={{ color: '#FFFFFF', marginTop: Spacing.lg }}>
+                {isCoreEmpty
+                  ? (t('dfy.lookbook.coreRedirectTitle') || 'Your Full Setup lives in the Calendar')
+                  : (t('dfy.lookbook.noLookbookTitle') || 'No lookbook yet')}
+              </ThemedText>
+              <ThemedText style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: Spacing.sm }}>
+                {isCoreEmpty
+                  ? (t('dfy.lookbook.coreRedirectMessage') ||
+                    'Occasion Ready lookbooks are day grids. Your Full Wardrobe Setup is on the 30-day Calendar (and Modular Wardrobe).')
+                  : (t('dfy.lookbook.noLookbookMessage') ||
+                    'Complete Decide For You to unlock your lookbook.')}
+              </ThemedText>
+              {isCoreEmpty ? (
+                <Pressable
+                  onPress={() => openCoreCalendar()}
+                  style={({ pressed }) => [
+                    styles.coreRedirectButton,
+                    { opacity: pressed ? 0.9 : 1 },
+                  ]}
+                >
+                  <Feather name="calendar" size={18} color={LUXURY_COLORS.midnight} />
+                  <ThemedText type="small" style={styles.coreRedirectButtonText}>
+                    {t('dfy.lookbook.openCalendarCta') || 'Open 30-day Calendar'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+            </>
+          )}
         </View>
       </View>
     );
@@ -807,21 +1019,35 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           <Feather name="arrow-left" size={20} color="#FFFFFF" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>
-            {t('dfy.lookbook.title') || 'Lookbook'}
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }} numberOfLines={1}>
+            {isHistorical && packageName
+              ? packageName
+              : (t('dfy.lookbook.title') || 'Lookbook')}
           </ThemedText>
-          <View style={[styles.daysRemainingBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <ThemedText type="caption" style={{ color: '#FFFFFF' }}>
-              {formatDaysLeft(getDaysRemaining())}
-            </ThemedText>
-          </View>
+          {!isHistorical ? (
+            <View style={[styles.daysRemainingBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <ThemedText type="caption" style={{ color: '#FFFFFF' }}>
+                {formatDaysLeft(getDaysRemaining())}
+              </ThemedText>
+            </View>
+          ) : (
+            <View style={[styles.daysRemainingBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <ThemedText type="caption" style={{ color: '#FFFFFF' }}>
+                {t('dfy.package.savedPlan') || 'Saved plan'}
+              </ThemedText>
+            </View>
+          )}
         </View>
-        <Pressable
-          onPress={() => navigation.navigate('DFYCalendar', { tier: 'lite' })}
-          style={styles.calendarButton}
-        >
-          <Feather name="calendar" size={20} color="#FFFFFF" />
-        </Pressable>
+        {!isHistorical ? (
+          <Pressable
+            onPress={() => navigation.navigate('DFYCalendar', { tier: 'lite' })}
+            style={styles.calendarButton}
+          >
+            <Feather name="calendar" size={20} color="#FFFFFF" />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <View style={styles.progressSection}>
@@ -863,7 +1089,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={
-          !isGenerating ? (
+          !isGenerating && !isHistorical ? (
             <Pressable
               onPress={() => {
                 if (!delivery) return;
@@ -884,7 +1110,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       {renderOutfitModal()}
 
       <SaveOutfitPromptModal
-        visible={showSavePrompt}
+        visible={showSavePrompt && !isHistorical}
         intent={savePromptIntent}
         wardrobeItemIds={selectedOutfit?.items?.map((item) => String(item.id)) || ['lookbook']}
         defaultTitle={
@@ -901,6 +1127,25 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             loved: savePromptIntent === 'love',
             bookmark: savePromptIntent === 'save',
           });
+        }}
+      />
+
+      <DFYPackageNameModal
+        visible={showPackageNamePrompt}
+        defaultName={packageNameDefault}
+        onClose={() => setShowPackageNamePrompt(false)}
+        onSave={async (name) => {
+          if (!renamePackageId) return;
+          try {
+            await dfyService.renameDfyPackage(renamePackageId, name);
+            setPackageName(name);
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
         }}
       />
     </View>
@@ -1110,6 +1355,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
+  },
+  coreRedirectButton: {
+    marginTop: Spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  coreRedirectButtonText: {
+    color: LUXURY_COLORS.midnight,
+    fontWeight: '700',
   },
   modalContainer: {
     flex: 1,

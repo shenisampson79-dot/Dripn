@@ -1,0 +1,6638 @@
+{
+  "schema": "outfitUnifiedDataset.schema.json",
+  "weights": {
+    "style": 0.4,
+    "color": 0.3,
+    "fit": 0.3
+  },
+  "generated_at": "2026-07-20T08:36:33.834Z",
+  "count": 120,
+  "label_counts": {
+    "good": 46,
+    "average": 61,
+    "bad": 13
+  },
+  "outfits": [
+    {
+      "outfit_id": "O001",
+      "items": [
+        {
+          "type": "top",
+          "name": "White Oxford Shirt",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Navy Chinos",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Brown Loafers",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.67,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.72
+      },
+      "color": {
+        "palette": [
+          "white",
+          "navy",
+          "brown"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O002",
+      "items": [
+        {
+          "type": "top",
+          "name": "Grey Hoodie",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Grey Sweatpants",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Black Leather Chelsea Boots",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.05,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.21
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "black"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.79,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Sweatpants or joggers with leather Chelsea/dress boots clash — keep athleisure with trainers, or boots with jeans/chinos",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "joggers_dressy_boots"
+    },
+    {
+      "outfit_id": "O003",
+      "items": [
+        {
+          "type": "top",
+          "name": "Neon Green Hoodie",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Red Shorts",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Purple Sneakers",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.5,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.71
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "red",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.24,
+        "clash_penalty": 0.8,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.36
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.79,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.64,
+      "label": "average",
+      "feedback": [
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O004",
+      "items": [
+        {
+          "type": "outerwear",
+          "name": "Navy Blazer",
+          "color": "navy"
+        },
+        {
+          "type": "top",
+          "name": "Grey Hoodie",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Blue Slim Jeans",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "White High Top Sneakers",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.33,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.48
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "gray",
+          "denim",
+          "white"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "slim",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.92,
+        "FIT_SCORE": 0.76
+      },
+      "final_score": 0.68,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O005",
+      "items": [
+        {
+          "type": "top",
+          "name": "Oxford Shirt",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Biker Shorts",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "rust"
+        },
+        {
+          "type": "outerwear",
+          "name": "Hoodie",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.37,
+        "formality_match": 0.28,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.43
+      },
+      "color": {
+        "palette": [
+          "white",
+          "tan",
+          "rust",
+          "brown"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.77,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.87
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.69,
+      "label": "average",
+      "feedback": [
+        "Hoodie over a dress shirt reads accidental — wear one or the other, or add a blazer for intentional layering",
+        "Formality mismatch across items"
+      ],
+      "clash_id": "hoodie_dress_shirt"
+    },
+    {
+      "outfit_id": "O006",
+      "items": [
+        {
+          "type": "top",
+          "name": "Linen Shirt",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.68,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "black",
+          "tan",
+          "rust"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O007",
+      "items": [
+        {
+          "type": "top",
+          "name": "Polo Shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Wide Leg Trousers",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.48,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.63
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "cream"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O008",
+      "items": [
+        {
+          "type": "top",
+          "name": "Denim Shirt",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Biker Shorts",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Sandals",
+          "color": "multicolor"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.18,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.44
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "gray",
+          "multicolor"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.76,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O009",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "burgundy"
+        },
+        {
+          "type": "outerwear",
+          "name": "Shearling Jacket",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.22,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.57
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "white",
+          "burgundy",
+          "olive"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O010",
+      "items": [
+        {
+          "type": "top",
+          "name": "Football Jersey",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.18,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "denim",
+          "rust"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.67,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.82
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O011",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Running Sneakers",
+          "color": "tan"
+        },
+        {
+          "type": "outerwear",
+          "name": "Zip Hoodie",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.7,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.66
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "white",
+          "tan",
+          "burgundy"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.79,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.77,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O012",
+      "items": [
+        {
+          "type": "top",
+          "name": "Polo Shirt",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Ugg Boots",
+          "color": "charcoal"
+        },
+        {
+          "type": "outerwear",
+          "name": "Parka",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.43,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.68
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "denim",
+          "charcoal",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O013",
+      "items": [
+        {
+          "type": "top",
+          "name": "Graphic T-shirt",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Skort",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "multicolor"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.04,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "multicolor"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.68,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.76
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O014",
+      "items": [
+        {
+          "type": "top",
+          "name": "Polo Shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Running Sneakers",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.68,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "white",
+          "olive"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.79,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O015",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Trousers",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Combat Boots",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.07,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.39
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "denim",
+          "cream"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes classic tailoring with edgy fashion — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O016",
+      "items": [
+        {
+          "type": "top",
+          "name": "Blouse",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.21,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.56
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "red",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O017",
+      "items": [
+        {
+          "type": "top",
+          "name": "Flannel Shirt",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "navy"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.21,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.45
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "burgundy",
+          "navy"
+        ],
+        "harmony_type": "triadic",
+        "contrast_score": 0.54,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.72
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O018",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "olive"
+        },
+        {
+          "type": "shoes",
+          "name": "Combat Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.16,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.36
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "olive",
+          "brown"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O019",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "purple"
+        },
+        {
+          "type": "bottom",
+          "name": "Tailored Shorts",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Combat Boots",
+          "color": "beige"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.16,
+        "formality_match": 0.41,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.36
+      },
+      "color": {
+        "palette": [
+          "purple",
+          "navy",
+          "beige"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "slim",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.86,
+        "FIT_SCORE": 0.74
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.42,
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O020",
+      "items": [
+        {
+          "type": "top",
+          "name": "Oversized T-shirt",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Joggers",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "navy"
+        },
+        {
+          "type": "outerwear",
+          "name": "Blazer",
+          "color": "charcoal"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.23,
+        "formality_match": 0.14,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.31
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "orange",
+          "navy",
+          "charcoal"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.8,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.35,
+      "label": "bad",
+      "feedback": [
+        "Joggers with a blazer — athleisure needs intentional styling to work",
+        "Footwear breaks the outfit's style intent",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.35,
+      "clash_id": "joggers_blazer"
+    },
+    {
+      "outfit_id": "O021",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.38,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.53
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "tan",
+          "cream"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O022",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Clogs",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.48,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "cream",
+          "olive"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.81,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O023",
+      "items": [
+        {
+          "type": "top",
+          "name": "Flannel Shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Mini Skirt",
+          "color": "olive"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "burgundy"
+        },
+        {
+          "type": "outerwear",
+          "name": "Oversized Blazer",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.06,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.38
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "olive",
+          "burgundy",
+          "cream"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes smart casual with athleisure — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O024",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Mini Skirt",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "purple"
+        },
+        {
+          "type": "outerwear",
+          "name": "Parka",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.38,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.53
+      },
+      "color": {
+        "palette": [
+          "white",
+          "gray",
+          "purple",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O025",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Ugg Boots",
+          "color": "multicolor"
+        },
+        {
+          "type": "outerwear",
+          "name": "Track Jacket",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.11,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.51
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "burgundy",
+          "multicolor",
+          "olive"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.32,
+        "clash_penalty": 1,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.33
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ],
+      "hard_cap": 0.34
+    },
+    {
+      "outfit_id": "O026",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Baggy Jeans",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Chunky Sneakers",
+          "color": "gray"
+        },
+        {
+          "type": "outerwear",
+          "name": "Track Jacket",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.67,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.72
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "beige",
+          "gray"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.82,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O027",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.19,
+        "formality_match": 0.38,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "red",
+          "gray"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.49,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.56
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Gym top needs sport shoes to feel intentional",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Color monochromatic — simplify palette or add a neutral anchor",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.42,
+      "clash_id": "athletic_top_non_athletic_shoes"
+    },
+    {
+      "outfit_id": "O028",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Shorts",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Clogs",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.16,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.43
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "red",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O029",
+      "items": [
+        {
+          "type": "top",
+          "name": "Crewneck Sweatshirt",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Derby Shoes",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.05,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.21
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "beige",
+          "denim"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O030",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Slim Jeans",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Ugg Boots",
+          "color": "multicolor"
+        },
+        {
+          "type": "outerwear",
+          "name": "Zip Hoodie",
+          "color": "multicolor"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.43,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.6
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "navy",
+          "multicolor"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.08,
+        "clash_penalty": 0.45,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.38
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "slim",
+        "silhouette": "relaxed",
+        "proportion_score": 0.7,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.69
+      },
+      "final_score": 0.56,
+      "label": "average",
+      "feedback": [
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O031",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "multicolor"
+        },
+        {
+          "type": "outerwear",
+          "name": "Cardigan",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.2,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.56
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "red",
+          "multicolor",
+          "burgundy"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.39,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.52
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes",
+        "Color monochromatic — simplify palette or add a neutral anchor"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O032",
+      "items": [
+        {
+          "type": "top",
+          "name": "Graphic T-shirt",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.32,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.55
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "denim",
+          "brown"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.55,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.74
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.69,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O033",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "brown"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.19,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.48
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "brown",
+          "purple"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.64,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.77
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O034",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Slides",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.21,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.49
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "tan",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O035",
+      "items": [
+        {
+          "type": "top",
+          "name": "Denim Shirt",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Corduroy Pants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "beige"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.32,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.5
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "beige"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O036",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cardigan",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "orange"
+        },
+        {
+          "type": "outerwear",
+          "name": "Trench Coat",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.45,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.54
+      },
+      "color": {
+        "palette": [
+          "black",
+          "orange",
+          "burgundy"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O037",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Combat Boots",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.53,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.67
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "gray"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.79,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O038",
+      "items": [
+        {
+          "type": "top",
+          "name": "Linen Shirt",
+          "color": "burgundy"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "brown"
+        },
+        {
+          "type": "shoes",
+          "name": "Skate Shoes",
+          "color": "navy"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.63,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "burgundy",
+          "brown",
+          "navy"
+        ],
+        "harmony_type": "triadic",
+        "contrast_score": 0.54,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.72
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.75,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O039",
+      "items": [
+        {
+          "type": "top",
+          "name": "Linen Shirt",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Oxford Shoes",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.63,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "tan",
+          "brown"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O040",
+      "items": [
+        {
+          "type": "top",
+          "name": "Blouse",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "brown"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.56,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.67
+      },
+      "color": {
+        "palette": [
+          "black",
+          "brown",
+          "olive"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O041",
+      "items": [
+        {
+          "type": "top",
+          "name": "Graphic T-shirt",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "charcoal"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.24,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.43
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "white",
+          "charcoal"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O042",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.4,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.66
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.63,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.75,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O043",
+      "items": [
+        {
+          "type": "top",
+          "name": "Denim Shirt",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "charcoal"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.23,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.5
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "charcoal",
+          "white"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O044",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "purple"
+        },
+        {
+          "type": "outerwear",
+          "name": "Hooded Jacket",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.12,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.24
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "navy",
+          "purple",
+          "olive"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.48,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.71
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Athletic top + boots clash — trainers or sport shoes work better",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "athletic_boots"
+    },
+    {
+      "outfit_id": "O045",
+      "items": [
+        {
+          "type": "top",
+          "name": "Oxford Shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Joggers",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.53,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.45
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "black"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O046",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Biker Shorts",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.48,
+        "formality_match": 0.41,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.52
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "black",
+          "brown"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Formality mismatch across items"
+      ],
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O047",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Sandals",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.24,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.39
+      },
+      "color": {
+        "palette": [
+          "white",
+          "burgundy",
+          "cream"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O048",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "charcoal"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "red"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.22,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.5
+      },
+      "color": {
+        "palette": [
+          "charcoal",
+          "orange",
+          "red"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O049",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Running Sneakers",
+          "color": "multicolor"
+        },
+        {
+          "type": "outerwear",
+          "name": "Denim Jacket",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.3,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.46
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "gray",
+          "multicolor",
+          "burgundy"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.32,
+        "clash_penalty": 1,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.33
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.54,
+      "label": "average",
+      "feedback": [
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O050",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Midi Skirt",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Derby Shoes",
+          "color": "orange"
+        },
+        {
+          "type": "outerwear",
+          "name": "Blazer",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.52,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "cream",
+          "orange",
+          "olive"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.24,
+        "clash_penalty": 1,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.31
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.61,
+      "label": "average",
+      "feedback": [
+        "Color analogous — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O051",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Skate Shoes",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.63,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "beige",
+          "gray"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.81,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O052",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Joggers",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Running Sneakers",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.71,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.67
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "white"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.79,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O053",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "multicolor"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.63,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "multicolor",
+          "cream"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.78,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.81
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O054",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.42,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.6
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "burgundy",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.77,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O055",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "purple"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "white"
+        },
+        {
+          "type": "outerwear",
+          "name": "Windbreaker",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.68,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "purple",
+          "orange",
+          "white",
+          "brown"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.59,
+        "clash_penalty": 0.2,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.69
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.72,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O056",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "charcoal"
+        },
+        {
+          "type": "outerwear",
+          "name": "Bomber Jacket",
+          "color": "tan"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.48,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "red",
+          "charcoal",
+          "tan"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.75,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O057",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cashmere Sweater",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Clogs",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.57,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.75
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "denim",
+          "cream"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.82,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O058",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "beige"
+        },
+        {
+          "type": "outerwear",
+          "name": "Parka",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.35,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.52
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "denim",
+          "beige",
+          "white"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "oversized",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.87,
+        "FIT_SCORE": 0.86
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O059",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "charcoal"
+        },
+        {
+          "type": "outerwear",
+          "name": "Cardigan",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.45,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.54
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "denim",
+          "charcoal",
+          "burgundy"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.72,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O060",
+      "items": [
+        {
+          "type": "top",
+          "name": "White T-shirt",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "olive"
+        },
+        {
+          "type": "shoes",
+          "name": "Derby Shoes",
+          "color": "charcoal"
+        },
+        {
+          "type": "outerwear",
+          "name": "Leather Jacket",
+          "color": "red"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.04,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.4
+      },
+      "color": {
+        "palette": [
+          "red",
+          "olive",
+          "charcoal"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O061",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cardigan",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Combat Boots",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.2,
+        "formality_match": 0.41,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.35
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "gray",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.42,
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O062",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.09,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.23
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "navy",
+          "brown"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.58,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.68
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Gym top, shorts & boots clash",
+        "Mixes smart casual with athleisure — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "athletic_boots_shorts"
+    },
+    {
+      "outfit_id": "O063",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cashmere Sweater",
+          "color": "charcoal"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "charcoal"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "charcoal"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.29,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.33
+      },
+      "color": {
+        "palette": [
+          "charcoal"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O064",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "multicolor"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "burgundy"
+        },
+        {
+          "type": "outerwear",
+          "name": "Shearling Jacket",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.29,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.53
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "multicolor",
+          "burgundy",
+          "rust"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.14,
+        "clash_penalty": 0.8,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.31
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.52,
+      "label": "average",
+      "feedback": [
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O065",
+      "items": [
+        {
+          "type": "top",
+          "name": "Oxford Shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.53,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.45
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "beige",
+          "black"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Sweatpants or joggers with leather Chelsea/dress boots clash — keep athleisure with trainers, or boots with jeans/chinos",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "joggers_dressy_boots"
+    },
+    {
+      "outfit_id": "O066",
+      "items": [
+        {
+          "type": "top",
+          "name": "Bodysuit",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Baggy Jeans",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "purple"
+        },
+        {
+          "type": "outerwear",
+          "name": "Parka",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.43,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.68
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "denim",
+          "purple"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.84
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.77,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O067",
+      "items": [
+        {
+          "type": "top",
+          "name": "Sheer Top",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Chinos",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Ugg Boots",
+          "color": "navy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.32,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.62
+      },
+      "color": {
+        "palette": [
+          "white",
+          "navy"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O068",
+      "items": [
+        {
+          "type": "top",
+          "name": "Linen Shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Shorts",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "charcoal"
+        },
+        {
+          "type": "outerwear",
+          "name": "Varsity Jacket",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.2,
+        "formality_match": 0.41,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.38
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "beige",
+          "charcoal",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.42,
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O069",
+      "items": [
+        {
+          "type": "top",
+          "name": "Hoodie",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "white"
+        },
+        {
+          "type": "outerwear",
+          "name": "Oversized Blazer",
+          "color": "tan"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.1,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.24
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "white",
+          "tan"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Sweatpants or joggers with leather Chelsea/dress boots clash — keep athleisure with trainers, or boots with jeans/chinos",
+        "Mixes smart casual with athleisure — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "joggers_dressy_boots"
+    },
+    {
+      "outfit_id": "O070",
+      "items": [
+        {
+          "type": "top",
+          "name": "Tank Top",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Corduroy Pants",
+          "color": "rust"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.19,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.26
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "rust",
+          "denim"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.67,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.82
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.35,
+      "label": "bad",
+      "feedback": [
+        "Athletic top + boots clash — trainers or sport shoes work better",
+        "Footwear breaks the outfit's style intent",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.35,
+      "clash_id": "athletic_boots"
+    },
+    {
+      "outfit_id": "O071",
+      "items": [
+        {
+          "type": "top",
+          "name": "Rugby Shirt",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Denim Shorts",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Chunky Sneakers",
+          "color": "tan"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.74,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.76
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "black",
+          "tan"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.78,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.81
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O072",
+      "items": [
+        {
+          "type": "top",
+          "name": "Football Jersey",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Corduroy Pants",
+          "color": "rust"
+        },
+        {
+          "type": "shoes",
+          "name": "Ankle Boots",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.53,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.45
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "rust",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Athletic top + boots clash — trainers or sport shoes work better",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "athletic_boots"
+    },
+    {
+      "outfit_id": "O073",
+      "items": [
+        {
+          "type": "top",
+          "name": "Football Jersey",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.05,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.21
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "white",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Athletic top + formal shoes clash",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "athletic_formal_shoes"
+    },
+    {
+      "outfit_id": "O074",
+      "items": [
+        {
+          "type": "top",
+          "name": "Crewneck Sweatshirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "purple"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "black"
+        },
+        {
+          "type": "outerwear",
+          "name": "Shearling Jacket",
+          "color": "navy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.36,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.56
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "purple",
+          "black",
+          "navy"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.59,
+        "clash_penalty": 0.2,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.69
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.68,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O075",
+      "items": [
+        {
+          "type": "top",
+          "name": "Crewneck Sweatshirt",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "navy"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.68,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "red",
+          "tan",
+          "navy"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.55,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.74
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O076",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Track Pants",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.48,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.55
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "orange",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.55,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.74
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.69,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O077",
+      "items": [
+        {
+          "type": "top",
+          "name": "Rugby Shirt",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Mini Skirt",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Derby Shoes",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.04,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "red",
+          "tan",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.63,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O078",
+      "items": [
+        {
+          "type": "top",
+          "name": "Tank Top",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Baggy Jeans",
+          "color": "charcoal"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.45,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.49
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "charcoal",
+          "denim"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.78,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.81
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.69,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O079",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "purple"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "brown"
+        },
+        {
+          "type": "shoes",
+          "name": "Chunky Sneakers",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.32,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.55
+      },
+      "color": {
+        "palette": [
+          "purple",
+          "brown",
+          "black"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.83,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.86
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O080",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "charcoal"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.53,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.65
+      },
+      "color": {
+        "palette": [
+          "red",
+          "charcoal",
+          "gray"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.76,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O081",
+      "items": [
+        {
+          "type": "top",
+          "name": "Hoodie",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Slim Jeans",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "beige"
+        },
+        {
+          "type": "outerwear",
+          "name": "Leather Jacket",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.42,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.6
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "tan",
+          "beige",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.77,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.87
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "slim",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.82,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.76,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O082",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "cream"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "denim"
+        },
+        {
+          "type": "outerwear",
+          "name": "Cardigan",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.27,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.52
+      },
+      "color": {
+        "palette": [
+          "cream",
+          "denim",
+          "burgundy"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.72,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O083",
+      "items": [
+        {
+          "type": "top",
+          "name": "Football Jersey",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Midi Skirt",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Slides",
+          "color": "multicolor"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.25,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.44
+      },
+      "color": {
+        "palette": [
+          "red",
+          "cream",
+          "multicolor"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.61,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.62
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes athleisure with smart casual — different style worlds",
+        "Color monochromatic — simplify palette or add a neutral anchor"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O084",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Cargo Pants",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.27,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.45
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "navy",
+          "orange"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.56,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.73
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.66,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O085",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "beige"
+        },
+        {
+          "type": "bottom",
+          "name": "Maxi Skirt",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Chunky Sneakers",
+          "color": "multicolor"
+        },
+        {
+          "type": "outerwear",
+          "name": "Oversized Blazer",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.3,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.46
+      },
+      "color": {
+        "palette": [
+          "beige",
+          "denim",
+          "multicolor",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.36,
+        "clash_penalty": 0.8,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.43
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.56,
+      "label": "average",
+      "feedback": [
+        "Color analogous — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O086",
+      "items": [
+        {
+          "type": "top",
+          "name": "Bodysuit",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Slim Jeans",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.33,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.51
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "burgundy",
+          "brown"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.63,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "slim",
+        "silhouette": "relaxed",
+        "proportion_score": 0.7,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.79,
+        "FIT_SCORE": 0.69
+      },
+      "final_score": 0.65,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O087",
+      "items": [
+        {
+          "type": "top",
+          "name": "Flannel Shirt",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Tailored Shorts",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "brown"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.09,
+        "formality_match": 0.41,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.3
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "burgundy",
+          "brown"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.63,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "slim",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.86,
+        "FIT_SCORE": 0.74
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Mixes smart casual with athleisure — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O088",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "purple"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "denim"
+        },
+        {
+          "type": "outerwear",
+          "name": "Oversized Blazer",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.22,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.3
+      },
+      "color": {
+        "palette": [
+          "purple",
+          "tan",
+          "denim",
+          "cream"
+        ],
+        "harmony_type": "complementary",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.84
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.42,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O089",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cashmere Sweater",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "charcoal"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.32,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.35
+      },
+      "color": {
+        "palette": [
+          "black",
+          "beige",
+          "charcoal"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.86,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.91
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O090",
+      "items": [
+        {
+          "type": "top",
+          "name": "Flannel Shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Shorts",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.05,
+        "formality_match": 0.28,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.27
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Shorts with formal shoes — sandals or trainers match better",
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "shorts_formal_shoes"
+    },
+    {
+      "outfit_id": "O091",
+      "items": [
+        {
+          "type": "top",
+          "name": "Zip Hoodie",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Gym Shorts",
+          "color": "white"
+        },
+        {
+          "type": "shoes",
+          "name": "Derby Shoes",
+          "color": "rust"
+        },
+        {
+          "type": "outerwear",
+          "name": "Oversized Blazer",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.04,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.19
+      },
+      "color": {
+        "palette": [
+          "white",
+          "rust",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "oversized",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.81,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Running vest or gym top under a blazer — sportswear and tailoring do not mix",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "blazer_athletic_top"
+    },
+    {
+      "outfit_id": "O092",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Skort",
+          "color": "navy"
+        },
+        {
+          "type": "shoes",
+          "name": "Loafers",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.29,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.53
+      },
+      "color": {
+        "palette": [
+          "black",
+          "navy",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.72,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O093",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Tailored Trousers",
+          "color": "multicolor"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "multicolor"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.32,
+        "formality_match": 0.14,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.33
+      },
+      "color": {
+        "palette": [
+          "white",
+          "multicolor"
+        ],
+        "harmony_type": "neutral_dominant",
+        "contrast_score": 0.36,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.59
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "slim",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.8,
+        "fit_quality": 0.86,
+        "FIT_SCORE": 0.82
+      },
+      "final_score": 0.56,
+      "label": "average",
+      "feedback": [
+        "Sportswear mixed with business pieces — bridge with smart casual items",
+        "Formality mismatch across items"
+      ],
+      "clash_id": "tier_spread_2_athletic_formal"
+    },
+    {
+      "outfit_id": "O094",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Gym Shorts",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "beige"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.05,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.19
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "red",
+          "beige"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Athletic top + formal shoes clash",
+        "Mixes classic tailoring with athleisure — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "athletic_formal_shoes"
+    },
+    {
+      "outfit_id": "O095",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "multicolor"
+        },
+        {
+          "type": "shoes",
+          "name": "Sandals",
+          "color": "cream"
+        },
+        {
+          "type": "outerwear",
+          "name": "Bomber Jacket",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.18,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.47
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "cream",
+          "burgundy"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0,
+        "clash_penalty": 0.8,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.27
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes",
+        "Color monochromatic — simplify palette or add a neutral anchor"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O096",
+      "items": [
+        {
+          "type": "top",
+          "name": "Tank Top",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Parachute Pants",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Skate Shoes",
+          "color": "burgundy"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.75,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.69
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "gray",
+          "burgundy"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O097",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Corduroy Pants",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.42,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.6
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "tan",
+          "denim"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.59,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.78
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O098",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "red"
+        },
+        {
+          "type": "bottom",
+          "name": "Skort",
+          "color": "gray"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "beige"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.03,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "red",
+          "gray",
+          "beige"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.34
+    },
+    {
+      "outfit_id": "O099",
+      "items": [
+        {
+          "type": "top",
+          "name": "Blouse",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Running Sneakers",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.08,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.35
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "denim",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes athleisure with smart casual — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O100",
+      "items": [
+        {
+          "type": "top",
+          "name": "Turtleneck",
+          "color": "white"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "cream"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.32,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.62
+      },
+      "color": {
+        "palette": [
+          "white",
+          "burgundy",
+          "cream"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.78,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O101",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Leggings",
+          "color": "rust"
+        },
+        {
+          "type": "shoes",
+          "name": "Mules",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "minimalist",
+        "style_consistency": 0.26,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.44
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "rust",
+          "white"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O102",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Skort",
+          "color": "olive"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "charcoal"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.29,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.42
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "olive",
+          "charcoal"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.71,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O103",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Biker Shorts",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.45,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.56
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "red",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.41,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.5
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.63,
+      "label": "average",
+      "feedback": [
+        "Color mixed harmonious — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O104",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "orange"
+        },
+        {
+          "type": "bottom",
+          "name": "Wide Leg Trousers",
+          "color": "olive"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.45,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.54
+      },
+      "color": {
+        "palette": [
+          "orange",
+          "olive"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.67,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.82
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "oversized",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.78,
+        "FIT_SCORE": 0.83
+      },
+      "final_score": 0.71,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O105",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Trousers",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "orange"
+        },
+        {
+          "type": "outerwear",
+          "name": "Blazer",
+          "color": "gray"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.07,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.42
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "beige",
+          "orange",
+          "gray"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.4
+    },
+    {
+      "outfit_id": "O106",
+      "items": [
+        {
+          "type": "top",
+          "name": "Knit Sweater",
+          "color": "rust"
+        },
+        {
+          "type": "bottom",
+          "name": "Corduroy Pants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "tan"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.23,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.58
+      },
+      "color": {
+        "palette": [
+          "rust",
+          "beige",
+          "tan"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.82,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.89
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O107",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "gray"
+        },
+        {
+          "type": "bottom",
+          "name": "Baggy Jeans",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "gray"
+        },
+        {
+          "type": "outerwear",
+          "name": "Kimono Jacket",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.45,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.54
+      },
+      "color": {
+        "palette": [
+          "gray",
+          "red",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "oversized",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.87,
+        "FIT_SCORE": 0.86
+      },
+      "final_score": 0.73,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O108",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "tan"
+        },
+        {
+          "type": "shoes",
+          "name": "High Top Sneakers",
+          "color": "orange"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.63,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.7
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "tan",
+          "orange"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.45,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.53
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.69,
+      "label": "average",
+      "feedback": [
+        "Color analogous — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O109",
+      "items": [
+        {
+          "type": "top",
+          "name": "Longline T-shirt",
+          "color": "brown"
+        },
+        {
+          "type": "bottom",
+          "name": "Pleated Trousers",
+          "color": "rust"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.11,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.51
+      },
+      "color": {
+        "palette": [
+          "brown",
+          "rust"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.67,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.82
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.6,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.73
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.34
+    },
+    {
+      "outfit_id": "O110",
+      "items": [
+        {
+          "type": "top",
+          "name": "Crewneck Sweatshirt",
+          "color": "charcoal"
+        },
+        {
+          "type": "bottom",
+          "name": "Sweatpants",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Oxford Shoes",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.06,
+        "formality_match": 0.09,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.22
+      },
+      "color": {
+        "palette": [
+          "charcoal",
+          "burgundy",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.34,
+      "label": "bad",
+      "feedback": [
+        "Dress shoes with gym or athletic pieces",
+        "Mixes athleisure with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.34,
+      "clash_id": "formal_shoes_athletic"
+    },
+    {
+      "outfit_id": "O111",
+      "items": [
+        {
+          "type": "top",
+          "name": "Crewneck Sweatshirt",
+          "color": "black"
+        },
+        {
+          "type": "bottom",
+          "name": "Chinos",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Work Boots",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.33,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.57
+      },
+      "color": {
+        "palette": [
+          "black",
+          "denim"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.76,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O112",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "multicolor"
+        },
+        {
+          "type": "bottom",
+          "name": "Distressed Jeans",
+          "color": "orange"
+        },
+        {
+          "type": "shoes",
+          "name": "Sneakers",
+          "color": "white"
+        },
+        {
+          "type": "outerwear",
+          "name": "Cardigan",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.3,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.46
+      },
+      "color": {
+        "palette": [
+          "multicolor",
+          "orange",
+          "white"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.56,
+        "clash_penalty": 0.6,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.6
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.63,
+      "label": "average",
+      "feedback": [
+        "Color monochromatic — simplify palette or add a neutral anchor"
+      ]
+    },
+    {
+      "outfit_id": "O113",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "navy"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "cream"
+        },
+        {
+          "type": "shoes",
+          "name": "Hiking Boots",
+          "color": "purple"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.22,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.57
+      },
+      "color": {
+        "palette": [
+          "navy",
+          "cream",
+          "purple"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    },
+    {
+      "outfit_id": "O114",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "charcoal"
+        },
+        {
+          "type": "bottom",
+          "name": "Shorts",
+          "color": "burgundy"
+        },
+        {
+          "type": "shoes",
+          "name": "Chelsea Boots",
+          "color": "cream"
+        },
+        {
+          "type": "outerwear",
+          "name": "Varsity Jacket",
+          "color": "rust"
+        }
+      ],
+      "style": {
+        "primary_style": "streetwear",
+        "style_consistency": 0.05,
+        "formality_match": 0.28,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.27
+      },
+      "color": {
+        "palette": [
+          "charcoal",
+          "burgundy",
+          "cream",
+          "rust"
+        ],
+        "harmony_type": "analogous",
+        "contrast_score": 0.87,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.92
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.4,
+      "label": "average",
+      "feedback": [
+        "Shorts + heavy boots can feel unbalanced — try trainers or loafers",
+        "Mixes streetwear with classic tailoring — different style worlds",
+        "Footwear breaks the outfit's style intent",
+        "Style inconsistency — pieces read like different wardrobes",
+        "Formality mismatch across items"
+      ],
+      "hard_cap": 0.4,
+      "clash_id": "shorts_boots"
+    },
+    {
+      "outfit_id": "O115",
+      "items": [
+        {
+          "type": "top",
+          "name": "Cropped Top",
+          "color": "olive"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "red"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "beige"
+        },
+        {
+          "type": "outerwear",
+          "name": "Kimono Jacket",
+          "color": "denim"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.58,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.75
+      },
+      "color": {
+        "palette": [
+          "olive",
+          "red",
+          "beige",
+          "denim"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.73,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.83
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.8,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O116",
+      "items": [
+        {
+          "type": "top",
+          "name": "Zip Hoodie",
+          "color": "tan"
+        },
+        {
+          "type": "bottom",
+          "name": "Trousers",
+          "color": "denim"
+        },
+        {
+          "type": "shoes",
+          "name": "Stiletto Heels",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.21,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.42
+      },
+      "color": {
+        "palette": [
+          "tan",
+          "denim",
+          "olive"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.7,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "relaxed",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.79,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.35,
+      "label": "bad",
+      "feedback": [
+        "Footwear breaks the outfit's style intent"
+      ],
+      "hard_cap": 0.35
+    },
+    {
+      "outfit_id": "O117",
+      "items": [
+        {
+          "type": "top",
+          "name": "T-shirt",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Trousers",
+          "color": "multicolor"
+        },
+        {
+          "type": "shoes",
+          "name": "Platform Boots",
+          "color": "white"
+        }
+      ],
+      "style": {
+        "primary_style": "edgy_fashion",
+        "style_consistency": 0.3,
+        "formality_match": 1,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.61
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "multicolor",
+          "white"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.78,
+        "clash_penalty": 0.25,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.81
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O118",
+      "items": [
+        {
+          "type": "top",
+          "name": "Dress Shirt",
+          "color": "purple"
+        },
+        {
+          "type": "bottom",
+          "name": "Skort",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "red"
+        }
+      ],
+      "style": {
+        "primary_style": "smart_casual",
+        "style_consistency": 0.29,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.42
+      },
+      "color": {
+        "palette": [
+          "purple",
+          "black",
+          "red"
+        ],
+        "harmony_type": "mixed_harmonious",
+        "contrast_score": 0.78,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.85
+      },
+      "fit": {
+        "top_fit": "tailored",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.89,
+        "FIT_SCORE": 0.87
+      },
+      "final_score": 0.68,
+      "label": "average",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O119",
+      "items": [
+        {
+          "type": "top",
+          "name": "Corset Top",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Linen Pants",
+          "color": "beige"
+        },
+        {
+          "type": "shoes",
+          "name": "Oxford Shoes",
+          "color": "cream"
+        },
+        {
+          "type": "outerwear",
+          "name": "Bomber Jacket",
+          "color": "black"
+        }
+      ],
+      "style": {
+        "primary_style": "classic_tailoring",
+        "style_consistency": 0.27,
+        "formality_match": 0.75,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.52
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "beige",
+          "cream",
+          "black"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tailored",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.84,
+        "FIT_SCORE": 0.85
+      },
+      "final_score": 0.74,
+      "label": "good",
+      "feedback": []
+    },
+    {
+      "outfit_id": "O120",
+      "items": [
+        {
+          "type": "top",
+          "name": "Muscle Tank",
+          "color": "denim"
+        },
+        {
+          "type": "bottom",
+          "name": "Leather Pants",
+          "color": "black"
+        },
+        {
+          "type": "shoes",
+          "name": "Minimal Sneakers",
+          "color": "olive"
+        }
+      ],
+      "style": {
+        "primary_style": "athleisure",
+        "style_consistency": 0.19,
+        "formality_match": 0.5,
+        "occasion_fit": 0.8,
+        "STYLE_SCORE": 0.37
+      },
+      "color": {
+        "palette": [
+          "denim",
+          "black",
+          "olive"
+        ],
+        "harmony_type": "monochromatic",
+        "contrast_score": 0.88,
+        "clash_penalty": 0,
+        "seasonal_match": null,
+        "COLOR_SCORE": 0.93
+      },
+      "fit": {
+        "top_fit": "regular",
+        "bottom_fit": "regular",
+        "silhouette": "tapered",
+        "proportion_score": 0.8,
+        "silhouette_balance": 0.9,
+        "fit_quality": 0.8,
+        "FIT_SCORE": 0.84
+      },
+      "final_score": 0.42,
+      "label": "average",
+      "feedback": [
+        "Style inconsistency — pieces read like different wardrobes"
+      ],
+      "hard_cap": 0.42
+    }
+  ]
+}

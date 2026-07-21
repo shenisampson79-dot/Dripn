@@ -1,7 +1,13 @@
 import type { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { WardrobeItem } from '@/contexts/WardrobeContext';
 import { DFYLiteDelivery, DFYOccasion, DFYOutfit, DFYOutfitItem, StylistId } from '@/services/DFYService';
 import { DailyForecast, DailyForecastDay } from '@/services/WeatherService';
+import {
+  allocateMultiDayPlan,
+  allocateSingleDayOutfit,
+  normalizeAllocatorOccasion,
+} from '@/utils/wardrobeAllocationEngine';
 import {
   buildWardrobeImageProxyUrl,
   enrichWardrobeItemForOutfitVisual,
@@ -147,6 +153,38 @@ function wardrobeItemToOutfitItem(item: WardrobeItem): DFYOutfitItem {
 }
 
 const LOCAL_OCCASIONS: DFYOccasion[] = ['work', 'casual', 'casual', 'event', 'browsing', 'holiday', 'work'];
+
+const DFY_TO_ALLOCATOR: Record<DFYOccasion, OutfitOccasionId> = {
+  work: 'work_outfit',
+  casual: 'casual_day',
+  browsing: 'casual_day',
+  event: 'evening_out',
+  holiday: 'travel',
+};
+
+export function dfyOccasionToAllocator(occasion?: string | null, dayIndex = 0): OutfitOccasionId {
+  const key = String(occasion || '').toLowerCase().trim() as DFYOccasion;
+  if (key && DFY_TO_ALLOCATOR[key]) return DFY_TO_ALLOCATOR[key];
+  const mapped = normalizeAllocatorOccasion(key || LOCAL_OCCASIONS[dayIndex % LOCAL_OCCASIONS.length]);
+  return mapped;
+}
+
+function allocatorOccasionToDfy(occasion: OutfitOccasionId): DFYOccasion {
+  if (occasion === 'work_outfit' || occasion === 'smart_casual') return 'work';
+  if (occasion === 'evening_out' || occasion === 'date_night') return 'event';
+  if (occasion === 'travel') return 'holiday';
+  if (occasion === 'weekend') return 'casual';
+  return 'casual';
+}
+
+function dayOccasionForIndex(dayIndex: number, startDate = new Date()): OutfitOccasionId {
+  const d = new Date(startDate);
+  d.setDate(startDate.getDate() + dayIndex);
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return 'weekend';
+  if (dow === 5) return 'smart_casual';
+  return 'work_outfit';
+}
 
 function itemStyleText(item: { name?: string; subcategory?: string; category?: string; brand?: string }): string {
   return `${item.name || ''} ${item.subcategory || ''} ${item.category || ''} ${item.brand || ''}`.toLowerCase();
@@ -393,35 +431,173 @@ export function buildLocalOutfitForDay(
   };
 }
 
+/**
+ * Constraint-first fill for empty DFY lookbook days.
+ * Plans all empty slots together so tops/bottoms are not round-robin duplicated.
+ */
 export function fillEmptyLookbookSlots(
   delivery: DFYLiteDelivery,
   wardrobeItems: WardrobeItem[],
   stylistId: StylistId,
   forecast?: DailyForecast | null,
 ): DFYLiteDelivery {
+  const emptyIndexes = delivery.outfits
+    .map((slot, idx) => (!(slot.items && slot.items.length > 0) ? idx : -1))
+    .filter((idx) => idx >= 0);
+
+  if (emptyIndexes.length === 0) {
+    return enrichDeliveryWithWardrobeImages(delivery, wardrobeItems);
+  }
+
+  const occasionTypes = emptyIndexes.map((idx) => {
+    const slot = delivery.outfits[idx];
+    if (slot.occasion) return dfyOccasionToAllocator(slot.occasion, idx);
+    return dayOccasionForIndex(idx);
+  });
+
+  const plan = allocateMultiDayPlan({
+    wardrobe: wardrobeItems,
+    occasionTypes,
+  });
+
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
+  const outfits = [...delivery.outfits];
+
+  if (plan.ok) {
+    plan.days.forEach((day, planIdx) => {
+      const slotIdx = emptyIndexes[planIdx];
+      if (slotIdx == null) return;
+      const slot = outfits[slotIdx];
+      const items = day.itemIds
+        .map((id) => byId.get(String(id)))
+        .filter((item): item is WardrobeItem => Boolean(item))
+        .map(wardrobeItemToOutfitItem);
+      if (items.length < 2) return;
+
+      const dayForecast =
+        forecast?.days?.find((d) => d.dayIndex === slot.dayNumber) || forecast?.days?.[slotIdx] || null;
+      const weatherNote = dayForecast
+        ? `${dayForecast.tempMin}–${dayForecast.tempMax}°C, ${dayForecast.description}`
+        : undefined;
+      const hero = items[0];
+      const partner = items[1];
+      const weatherLine = dayForecast
+        ? ` Forecast: ${dayForecast.description.toLowerCase()} (${dayForecast.tempMin}–${dayForecast.tempMax}°C).`
+        : '';
+      const modeNote =
+        plan.mode === 'rotation'
+          ? ` (${plan.modeLabel})`
+          : plan.mode === 'soft'
+            ? ` (${plan.modeLabel})`
+            : '';
+
+      outfits[slotIdx] = {
+        ...slot,
+        items,
+        occasion: allocatorOccasionToDfy(day.occasionType),
+        stylistNote:
+          slot.stylistNote
+          || `Day ${slot.dayNumber}: ${hero.name} with ${partner?.name || 'your pieces'}${modeNote}.${weatherLine}`,
+        weatherNote: slot.weatherNote || weatherNote,
+        stylistId: slot.stylistId || stylistId,
+      };
+    });
+  } else {
+    // Last resort: legacy per-day builder (may soft-reuse)
+    emptyIndexes.forEach((idx) => {
+      const slot = outfits[idx];
+      const dayForecast =
+        forecast?.days?.find((d) => d.dayIndex === slot.dayNumber) || forecast?.days?.[idx] || null;
+      const weatherNote = dayForecast
+        ? `${dayForecast.tempMin}–${dayForecast.tempMax}°C, ${dayForecast.description}`
+        : undefined;
+      const local = buildLocalOutfitForDay(
+        idx,
+        wardrobeItems,
+        stylistId,
+        slot.dayNumber,
+        slot.title,
+        dayForecast,
+        weatherNote,
+      );
+      if (!local) return;
+      outfits[idx] = {
+        ...local,
+        id: slot.id,
+        dayNumber: slot.dayNumber,
+        title: slot.title,
+        userReaction: slot.userReaction ?? null,
+        saved: slot.saved ?? false,
+      };
+    });
+  }
+
+  return enrichDeliveryWithWardrobeImages({ ...delivery, outfits }, wardrobeItems);
+}
+
+/**
+ * Re-plan inventory for an entire lookbook (keep titles/notes; replace item sets).
+ * Used so AI decoration cannot invent fake variety.
+ */
+export function reallocateLookbookInventory(
+  delivery: DFYLiteDelivery,
+  wardrobeItems: WardrobeItem[],
+  stylistId: StylistId,
+  forecast?: DailyForecast | null,
+): DFYLiteDelivery {
+  if (wardrobeItems.length < 3 || delivery.outfits.length === 0) {
+    return fillEmptyLookbookSlots(delivery, wardrobeItems, stylistId, forecast);
+  }
+
+  const occasionTypes = delivery.outfits.map((slot, idx) => {
+    if (slot.occasion) return dfyOccasionToAllocator(slot.occasion, idx);
+    return dayOccasionForIndex(idx);
+  });
+
+  const plan = allocateMultiDayPlan({
+    wardrobe: wardrobeItems,
+    occasionTypes,
+  });
+
+  if (!plan.ok) {
+    return fillEmptyLookbookSlots(
+      {
+        ...delivery,
+        outfits: delivery.outfits.map((o) => ({ ...o, items: [] })),
+      },
+      wardrobeItems,
+      stylistId,
+      forecast,
+    );
+  }
+
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
   const outfits = delivery.outfits.map((slot, idx) => {
-    if (slot.items && slot.items.length > 0) return slot;
-    const dayForecast = forecast?.days?.find((d) => d.dayIndex === slot.dayNumber) || forecast?.days?.[idx] || null;
+    const day = plan.days[idx];
+    if (!day) return slot;
+    const items = day.itemIds
+      .map((id) => byId.get(String(id)))
+      .filter((item): item is WardrobeItem => Boolean(item))
+      .map(wardrobeItemToOutfitItem);
+    if (items.length < 2) return slot;
+
+    const dayForecast =
+      forecast?.days?.find((d) => d.dayIndex === slot.dayNumber) || forecast?.days?.[idx] || null;
     const weatherNote = dayForecast
       ? `${dayForecast.tempMin}–${dayForecast.tempMax}°C, ${dayForecast.description}`
       : undefined;
-    const local = buildLocalOutfitForDay(
-      idx,
-      wardrobeItems,
-      stylistId,
-      slot.dayNumber,
-      slot.title,
-      dayForecast,
-      weatherNote,
-    );
-    if (!local) return slot;
+    const modeSuffix =
+      plan.mode !== 'strict' ? ` · ${plan.modeLabel}` : '';
+
     return {
-      ...local,
-      id: slot.id,
-      dayNumber: slot.dayNumber,
-      title: slot.title,
-      userReaction: slot.userReaction ?? null,
-      saved: slot.saved ?? false,
+      ...slot,
+      items,
+      occasion: slot.occasion || allocatorOccasionToDfy(day.occasionType),
+      stylistNote: slot.stylistNote
+        ? `${slot.stylistNote}${modeSuffix && !slot.stylistNote.includes(plan.modeLabel) ? modeSuffix : ''}`
+        : `Day ${slot.dayNumber}: allocated from your wardrobe${modeSuffix}.`,
+      weatherNote: slot.weatherNote || weatherNote,
+      stylistId: slot.stylistId || stylistId,
     };
   });
 
@@ -438,19 +614,6 @@ export interface DFYAlternativeOutfit {
   stylistNote: string;
 }
 
-function pickDifferentItem(
-  pool: WardrobeItem[],
-  offset: number,
-  excludeIds: Set<string>,
-): WardrobeItem | null {
-  if (!pool.length) return null;
-  for (let i = 0; i < pool.length; i++) {
-    const candidate = pool[(offset + i) % pool.length];
-    if (!excludeIds.has(String(candidate.id))) return candidate;
-  }
-  return pool[offset % pool.length];
-}
-
 export function buildLocalAlternatives(
   currentItemIds: string[],
   dayNumber: number,
@@ -459,70 +622,24 @@ export function buildLocalAlternatives(
 ): DFYAlternativeOutfit[] {
   if (wardrobeItems.length < 3) return [];
 
-  const currentIds = new Set(currentItemIds.map(String));
-  const tops = wardrobeItems.filter(
-    (i) => categorizeWardrobeItem(i) === 'tops' && !isWarmMidlayer(i),
-  );
-  const bottoms = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'bottoms');
-  const dresses = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'dresses');
-  const outerwear = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'outerwear');
-  const footwear = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'footwear');
-
   const notes = [
     'A more relaxed take on today\'s look',
     'A sharper, more polished option',
   ];
 
   const alternatives: DFYAlternativeOutfit[] = [];
+  const excludeSoFar = [...currentItemIds.map(String)];
 
   for (let altIdx = 1; altIdx <= count; altIdx++) {
-    const offset = dayNumber + altIdx * 3;
-    const items: DFYOutfitItem[] = [];
-    const usedIds = new Set<string>();
+    const allocated = allocateSingleDayOutfit({
+      wardrobe: wardrobeItems,
+      occasionType: dayOccasionForIndex(Math.max(0, dayNumber - 1 + altIdx)),
+      excludeItemIds: excludeSoFar,
+    });
+    if (!allocated.ok || allocated.items.length < 2) continue;
 
-    if (dresses.length && (dayNumber + altIdx) % 4 === 0) {
-      const dress = pickDifferentItem(dresses, offset, currentIds);
-      if (dress) {
-        items.push(wardrobeItemToOutfitItem(dress));
-        usedIds.add(String(dress.id));
-      }
-    } else {
-      const top = pickDifferentItem(tops, offset, currentIds);
-      const bottom = pickDifferentItem(bottoms, offset + 1, currentIds);
-      if (top) {
-        items.push(wardrobeItemToOutfitItem(top));
-        usedIds.add(String(top.id));
-      }
-      if (bottom) {
-        items.push(wardrobeItemToOutfitItem(bottom));
-        usedIds.add(String(bottom.id));
-      }
-    }
-
-    if (outerwear.length && shouldIncludeOuterwear(null, dayNumber + altIdx)) {
-      const lightPool = outerwear.filter(isLightOuterwear);
-      const pool = lightPool.length ? lightPool : outerwear.filter((i) => !isWarmMidlayer(i) && !isHeavyWarmthOuterwear(i));
-      const layer = pickDifferentItem(
-        pool.length ? pool : outerwear,
-        offset + 2,
-        new Set([...currentIds, ...usedIds]),
-      );
-      if (layer && !isWarmMidlayer(layer) && !isHeavyWarmthOuterwear(layer)) {
-        items.push(wardrobeItemToOutfitItem(layer));
-        usedIds.add(String(layer.id));
-      }
-    }
-
-    const shoe = pickFootwearItem(footwear, offset + altIdx, null);
-    if (shoe && !currentIds.has(String(shoe.id))) {
-      items.push(wardrobeItemToOutfitItem(shoe));
-    } else if (footwear.length) {
-      const altShoe = pickDifferentItem(footwear, offset + altIdx, currentIds);
-      if (altShoe) items.push(wardrobeItemToOutfitItem(altShoe));
-    }
-
-    if (items.length < 2) continue;
-
+    const items = allocated.items.map(wardrobeItemToOutfitItem);
+    excludeSoFar.push(...allocated.itemIds);
     const hero = items[0];
     const partner = items[1];
     alternatives.push({

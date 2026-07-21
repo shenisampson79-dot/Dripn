@@ -76,6 +76,22 @@ const BODY_SHAPE_INFO: Record<BodyShape, { icon: keyof typeof Feather.glyphMap; 
   unknown: { icon: "help-circle", description: "Body shape not yet determined" },
 };
 
+const BODY_SCAN_TIP_KEYS = [
+  "bodyScan.tipFullBody",
+  "bodyScan.tipStandBack",
+  "bodyScan.tipLighting",
+  "bodyScan.tipPose",
+  "bodyScan.tipClothes",
+] as const;
+
+const BODY_SCAN_TIP_FALLBACKS = [
+  "Show your full body from head to toe",
+  "Stand farther back until your whole body fits the outline",
+  "Use good lighting and a plain background if possible",
+  "Stand straight with arms slightly away from your body",
+  "Avoid baggy or obscuring clothes for a clearer proportion read",
+] as const;
+
 const MEASUREMENT_LABELS: Record<string, string> = {
   neck: "Neck",
   shoulders: "Shoulders",
@@ -91,7 +107,7 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 
 export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps) {
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, translations } = useTranslations();
   const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile } = useBodyProfile();
   
   const [permission, requestPermission] = useCameraPermissions();
@@ -117,6 +133,24 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
   const isLowConfidence = confidenceBand === "low";
   const isMediumConfidence = confidenceBand === "medium";
 
+  const bodyScanCopy = (key: string, fallback: string) => {
+    const value = t(key);
+    return typeof value === "string" && value.trim() ? value : fallback;
+  };
+
+  const retakeTips = (() => {
+    const fromKeys = BODY_SCAN_TIP_KEYS.map((key, index) =>
+      bodyScanCopy(key, BODY_SCAN_TIP_FALLBACKS[index]),
+    ).filter((tip) => tip.trim().length > 0);
+    if (fromKeys.length > 0) return fromKeys;
+
+    const bundled = (translations as { bodyScan?: { tips?: string[] } })?.bodyScan?.tips;
+    if (Array.isArray(bundled) && bundled.length > 0) {
+      return bundled.filter((tip) => typeof tip === "string" && tip.trim().length > 0);
+    }
+    return [...BODY_SCAN_TIP_FALLBACKS];
+  })();
+
   useLayoutEffect(() => {
     if (showCamera) {
       navigation.setOptions({ headerShown: false });
@@ -127,7 +161,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         theme,
         isDark,
         transparent: false,
-        title: t('bodyScan.title'),
+        title: bodyScanCopy('bodyScan.title', 'Body Scan'),
       }),
     );
   }, [navigation, theme, isDark, showCamera, t]);
@@ -609,7 +643,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
                 <ThemedText type="h3">
                   {bodyProfile.bodyShape.charAt(0).toUpperCase() + bodyProfile.bodyShape.slice(1).replace("-", " ")}
                 </ThemedText>
-                <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, flexShrink: 1 }}>
                   {BODY_SHAPE_INFO[bodyProfile.bodyShape]?.description}
                 </ThemedText>
               </View>
@@ -643,12 +677,14 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
                   ? "alert-circle"
                   : "check-circle";
               const badgeLabel = isLowConfidence
-                ? t("bodyScan.lowConfidenceBadge").replace("{confidence}", String(confidence))
-                : t("bodyScan.aiScannedConfidence").replace("{confidence}", String(confidence));
+                ? bodyScanCopy("bodyScan.lowConfidenceBadge", "Low confidence — {confidence}%")
+                    .replace("{confidence}", String(confidence))
+                : bodyScanCopy("bodyScan.aiScannedConfidence", "AI Scanned — {confidence}% Confidence")
+                    .replace("{confidence}", String(confidence));
               return (
                 <View style={[styles.confidenceBadge, { backgroundColor: badgeColor + "20" }]}>
                   <Feather name={badgeIcon} size={16} color={badgeColor} />
-                  <ThemedText type="small" style={{ color: badgeColor, flexShrink: 1, textAlign: "center" }}>
+                  <ThemedText type="small" style={{ color: badgeColor, flexShrink: 1, flex: 1, textAlign: "left" }}>
                     {badgeLabel}
                   </ThemedText>
                 </View>
@@ -656,8 +692,8 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
             })() : (
               <View style={[styles.confidenceBadge, { backgroundColor: theme.warning + "20" }]}>
                 <Feather name="edit-3" size={16} color={theme.warning} />
-                <ThemedText type="small" style={{ color: theme.warning }}>
-                  {t("bodyScan.manuallyEntered")}
+                <ThemedText type="small" style={{ color: theme.warning, flex: 1 }}>
+                  {bodyScanCopy("bodyScan.manuallyEntered", "Manually Entered")}
                 </ThemedText>
               </View>
             )}
@@ -668,25 +704,22 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
               <View style={styles.guidanceHeader}>
                 <Feather name="camera" size={18} color={theme.error} />
                 <ThemedText style={{ fontWeight: "700", color: theme.error, flex: 1 }}>
-                  {t("bodyScan.lowConfidenceTitle")}
+                  {bodyScanCopy("bodyScan.lowConfidenceTitle", "Low confidence — retake recommended")}
                 </ThemedText>
               </View>
               <ThemedText type="small" style={{ color: theme.tabIconDefault, lineHeight: 20, marginBottom: Spacing.sm }}>
-                {t("bodyScan.lowConfidenceMessage")}
+                {bodyScanCopy(
+                  "bodyScan.lowConfidenceMessage",
+                  "We could not read your proportions clearly. These results are rough estimates — retake your photo for a more accurate scan.",
+                )}
               </ThemedText>
-              <ThemedText type="small" style={{ fontWeight: "600", marginBottom: Spacing.xs }}>
-                {t("bodyScan.retakeGuidanceTitle")}
+              <ThemedText type="small" style={{ fontWeight: "600", marginBottom: Spacing.xs, color: theme.text }}>
+                {bodyScanCopy("bodyScan.retakeGuidanceTitle", "For a better scan:")}
               </ThemedText>
-              {[
-                t("bodyScan.tipFullBody"),
-                t("bodyScan.tipStandBack"),
-                t("bodyScan.tipLighting"),
-                t("bodyScan.tipPose"),
-                t("bodyScan.tipClothes"),
-              ].map((tip) => (
-                <View key={tip} style={styles.guidanceTipRow}>
-                  <Feather name="check" size={14} color={theme.link} />
-                  <ThemedText type="small" style={{ flex: 1, color: theme.tabIconDefault, lineHeight: 18 }}>
+              {retakeTips.map((tip, index) => (
+                <View key={`${index}-${tip.slice(0, 24)}`} style={styles.guidanceTipRow}>
+                  <Feather name="check" size={14} color={theme.link} style={{ marginTop: 2 }} />
+                  <ThemedText type="small" style={{ flex: 1, color: theme.text, lineHeight: 20 }}>
                     {tip}
                   </ThemedText>
                 </View>
@@ -696,8 +729,11 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
             <Card style={styles.mediumTipCard}>
               <View style={styles.guidanceTipRow}>
                 <Feather name="info" size={16} color={theme.warning} />
-                <ThemedText type="small" style={{ flex: 1, color: theme.tabIconDefault, lineHeight: 18 }}>
-                  {t("bodyScan.mediumConfidenceTip")}
+                <ThemedText type="small" style={{ flex: 1, color: theme.text, lineHeight: 18 }}>
+                  {bodyScanCopy(
+                    "bodyScan.mediumConfidenceTip",
+                    "Tip: a clearer full-body photo in good light can improve scan confidence.",
+                  )}
                 </ThemedText>
               </View>
             </Card>
@@ -706,12 +742,15 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
           <Card style={styles.measurementsCard}>
             <ThemedText type="h4" style={styles.sectionTitle}>
               {isLowConfidence
-                ? t("bodyScan.measurementsEstimates")
-                : t("bodyScan.yourMeasurements")}
+                ? bodyScanCopy("bodyScan.measurementsEstimates", "Estimated Measurements")
+                : bodyScanCopy("bodyScan.yourMeasurements", "Your Measurements")}
             </ThemedText>
             {isLowConfidence ? (
               <ThemedText type="small" style={{ color: theme.warning, marginBottom: Spacing.sm, lineHeight: 18 }}>
-                {t("bodyScan.measurementsLowConfidenceNote")}
+                {bodyScanCopy(
+                  "bodyScan.measurementsLowConfidenceNote",
+                  "Treat these as estimates until you retake with higher confidence.",
+                )}
               </ThemedText>
             ) : null}
             <View style={styles.measurementsGrid}>
@@ -723,7 +762,9 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
 
           {scanResult?.recommendations && scanResult.recommendations.length > 0 ? (
             <Card style={styles.recommendationsCard}>
-              <ThemedText type="h4" style={styles.sectionTitle}>{t("bodyScan.styleRecommendations")}</ThemedText>
+              <ThemedText type="h4" style={styles.sectionTitle}>
+                {bodyScanCopy("bodyScan.styleRecommendations", "Style Recommendations")}
+              </ThemedText>
               {scanResult.recommendations.map((rec, index) => (
                 <View key={index} style={styles.recommendationItem}>
                   <Feather name="check" size={16} color={theme.success} />
@@ -751,8 +792,8 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
                 />
                 <ThemedText style={styles.rescanText}>
                   {isLowConfidence
-                    ? t("bodyScan.rescanRetake")
-                    : t("bodyScan.rescanBody")}
+                    ? bodyScanCopy("bodyScan.rescanRetake", "Rescan")
+                    : bodyScanCopy("bodyScan.rescanBody", "Rescan Body")}
                 </ThemedText>
               </LinearGradient>
             </Pressable>
@@ -1045,7 +1086,7 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: Spacing.md,
   },
   shapeIcon: {
@@ -1054,13 +1095,16 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 2,
   },
   profileInfo: {
     flex: 1,
     marginLeft: Spacing.md,
+    minWidth: 0,
   },
   categoryTags: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
@@ -1075,10 +1119,10 @@ const styles = StyleSheet.create({
   confidenceBadge: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.sm,
   },
   guidanceCard: {

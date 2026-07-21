@@ -28,6 +28,8 @@ function assert(condition: boolean, message: string) {
 const dressShirt = item({ id: 'dress-shirt', category: 'tops', name: 'White Dress Shirt', color: 'white' });
 const graphicTee = item({ id: 'tee', category: 'tops', name: 'Graphic T-Shirt', color: 'white' });
 const crewNeck = item({ id: 'crew', category: 'tops', name: 'Navy Crew Neck', color: 'navy' });
+const hoodie = item({ id: 'hoodie', category: 'outerwear', name: 'Black Puffer Hoodie', color: 'black' });
+const joggers = item({ id: 'joggers', category: 'bottoms', name: 'Black Joggers', color: 'black' });
 const chinos = item({ id: 'chinos', category: 'bottoms', name: 'Khaki Chinos', color: 'beige' });
 const loafers = item({ id: 'loafers', category: 'shoes', name: 'Brown Loafers', color: 'brown' });
 const tie = item({ id: 'tie', category: 'accessories', name: 'Silk Tie', color: 'burgundy' });
@@ -61,6 +63,18 @@ if (formal.ok) {
   if (formal.itemIds.includes('tie')) {
     assert(formal.itemIds.includes('dress-shirt'), 'tie only with dress shirt');
   }
+}
+
+const workMixed = allocateSingleDayOutfit({
+  wardrobe: [hoodie, graphicTee, joggers, trainers, dressShirt, chinos, loafers],
+  occasionType: 'work_outfit',
+});
+assert(workMixed.ok === true, `expected mixed wardrobe work allocation, got ${JSON.stringify(workMixed)}`);
+if (workMixed.ok) {
+  assert(!workMixed.itemIds.includes('hoodie'), 'work_outfit must not pick hoodies');
+  assert(!workMixed.itemIds.includes('joggers'), 'work_outfit must not pick joggers');
+  assert(!workMixed.itemIds.includes('trainers'), 'work_outfit must not pick trainers');
+  assert(isOutfitValid(workMixed.items), 'work outfit must be hard-valid');
 }
 
 console.log('All StyleWise allocator hard-validity checks passed.');

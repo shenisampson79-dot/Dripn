@@ -421,6 +421,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         ratingLabel: apiResult.ratingLabel ?? null,
         outfitPieces: apiResult.outfitPieces ?? null,
         outfitSummary: apiResult.outfitSummary ?? null,
+        unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe: true,
         stylistId,
         timestamp: new Date().toISOString(),
@@ -614,6 +615,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         ratingLabel: apiResult.ratingLabel ?? null,
         outfitPieces: apiResult.outfitPieces ?? null,
         outfitSummary: apiResult.outfitSummary ?? null,
+        unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe,
         stylistId,
         timestamp: new Date().toISOString(),
@@ -1723,6 +1725,19 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           </View>
         ) : null}
 
+        {response?.unifiedScore?.context ? (
+          <ThemedText type="small" style={styles.unifiedContextHint}>
+            {[
+              response.unifiedScore.context.season,
+              response.unifiedScore.context.occasion,
+              response.unifiedScore.label,
+            ].filter(Boolean).join(' · ')}
+            {typeof response.unifiedScore.style_score === 'number'
+              ? ` · style ${Math.round(response.unifiedScore.style_score * 100)} · colour ${Math.round((response.unifiedScore.color_score || 0) * 100)} · fit ${Math.round((response.unifiedScore.fit_score || 0) * 100)}`
+              : ''}
+          </ThemedText>
+        ) : null}
+
         {response?.outfitSummary ? (
           <ThemedText type="body" style={[styles.responseText, styles.outfitSummaryText]}>
             {response.outfitSummary}
@@ -2275,6 +2290,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     flex: 1,
     fontWeight: '500',
+  },
+  unifiedContextHint: {
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: Spacing.md,
+    textTransform: 'capitalize',
   },
   outfitPiecesList: {
     marginBottom: Spacing.md,

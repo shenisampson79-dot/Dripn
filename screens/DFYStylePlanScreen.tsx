@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { DFYOutfitVisual } from "@/components/outfit/DFYOutfitVisual";
+import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +38,7 @@ import { apiService } from "@/services/ApiService";
 import {
   enrichDeliveryWithWardrobeImages,
   fillEmptyLookbookSlots,
+  reallocateLookbookInventory,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
 } from "@/utils/dfyOutfitImages";
@@ -89,6 +92,10 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   const [adjustmentText, setAdjustmentText] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<DfyCoreFeature>("swap_item");
+  const [showPackageNamePrompt, setShowPackageNamePrompt] = useState(false);
+  const [packageNameDefault, setPackageNameDefault] = useState('');
+  const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
+  const namePromptShownRef = React.useRef(false);
 
   const mapApiOutfitsToDelivery = (rawOutfits: any[], stylistId: StylistId): DFYOutfit[] =>
     rawOutfits.map((o, idx) => ({
@@ -146,9 +153,11 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
 
     const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
     let existingDelivery = await dfyService.getDFYDelivery(user.id);
+    let createdNewLite = false;
 
     if (!existingDelivery) {
       existingDelivery = await dfyService.createMockLiteDelivery(user.id, stylistId);
+      createdNewLite = true;
     }
 
     if (existingDelivery?.tier !== 'lite') {
@@ -175,7 +184,9 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       }
     }
 
-    if (wardrobeItems.length >= 2) {
+    if (wardrobeItems.length >= 3) {
+      liteDelivery = reallocateLookbookInventory(liteDelivery, wardrobeItems, stylistId, null);
+    } else if (wardrobeItems.length >= 2) {
       liteDelivery = fillEmptyLookbookSlots(liteDelivery, wardrobeItems, stylistId, null);
     }
 
@@ -195,6 +206,20 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
 
     const status = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
     setAccessStatus(status);
+
+    if (createdNewLite && !namePromptShownRef.current) {
+      namePromptShownRef.current = true;
+      try {
+        const prompt = await dfyService.preparePackageNamePrompt('lite');
+        if (prompt) {
+          setRenamePackageId(prompt.packageId);
+          setPackageNameDefault(prompt.defaultName);
+          setShowPackageNamePrompt(true);
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
   };
 
   useEffect(() => {
@@ -694,6 +719,24 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
           </Pressable>
         </Pressable>
       </Modal>
+
+      <DFYPackageNameModal
+        visible={showPackageNamePrompt}
+        defaultName={packageNameDefault}
+        onClose={() => setShowPackageNamePrompt(false)}
+        onSave={async (name) => {
+          if (!renamePackageId) return;
+          try {
+            await dfyService.renameDfyPackage(renamePackageId, name);
+          } catch {
+            Alert.alert(
+              t('common.error') || 'Error',
+              t('dfy.package.renameFailed') || 'Could not save the plan name. Please try again.',
+            );
+            throw new Error('rename failed');
+          }
+        }}
+      />
     </View>
   );
 }

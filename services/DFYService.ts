@@ -55,7 +55,8 @@ export interface DFYLiteDelivery {
   tier: 'lite';
   startDate: string;
   expiryDate: string;
-  totalDays: 14;
+  /** Lite is 14; package mapper may temporarily carry Core length when reusing this shape. */
+  totalDays: 14 | 30;
   outfits: DFYOutfit[];
   currentDay: number;
   completed: boolean;
@@ -120,6 +121,20 @@ export interface DFYAccessStatus {
   nudgeType: 'day12' | 'day25' | 'expired' | null;
 }
 
+export interface DfyPackageSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  isActive: boolean;
+  outfitCount: number;
+  tier: DFYTier;
+}
+
+export interface DfyPackageDetail extends DfyPackageSummary {
+  stylistId?: string;
+  payload?: Record<string, unknown> | null;
+}
+
 export interface UpgradePathTrigger {
   featureRequested: string;
   requiredTier: DFYTier;
@@ -129,6 +144,7 @@ export interface UpgradePathTrigger {
 
 const DFY_ACCESS_KEY = '@dripn_dfy_access';
 const DFY_DELIVERY_KEY = '@dripn_dfy_delivery';
+const DFY_CORE_CALENDAR_KEY = '@dripn_dfy_core_calendar';
 const DFY_ACTIVATIONS_KEY = '@dripn_dfy_activations';
 const COLD_OPEN_KEY = '@dripn_cold_open';
 
@@ -606,6 +622,57 @@ class DFYService {
     }
   }
 
+  async saveCoreCalendarCache(
+    userId: string,
+    payload: {
+      outfits: Array<{
+        id: string;
+        date: string;
+        title: string;
+        stylistNote: string;
+        stylistId: StylistId;
+        itemIds: string[];
+        dayNumber: number;
+      }>;
+      startDate: string;
+      totalDays: number;
+      generatedAt: string;
+      calendarHash?: string;
+      engineVersion?: string;
+    },
+  ): Promise<void> {
+    try {
+      await AsyncStorage.setItem(`${DFY_CORE_CALENDAR_KEY}_${userId}`, JSON.stringify(payload));
+    } catch (error) {
+      console.error('Error saving Core calendar cache:', error);
+    }
+  }
+
+  async getCoreCalendarCache(userId: string): Promise<{
+    outfits: Array<{
+      id: string;
+      date: string;
+      title: string;
+      stylistNote: string;
+      stylistId: StylistId;
+      itemIds: string[];
+      dayNumber: number;
+    }>;
+    startDate: string;
+    totalDays: number;
+    generatedAt: string;
+    calendarHash?: string;
+    engineVersion?: string;
+  } | null> {
+    try {
+      const raw = await AsyncStorage.getItem(`${DFY_CORE_CALENDAR_KEY}_${userId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.error('Error reading Core calendar cache:', error);
+      return null;
+    }
+  }
+
   async updateOutfitReaction(
     userId: string, 
     outfitId: string, 
@@ -800,6 +867,18 @@ class DFYService {
     };
   }
 
+  /** Resolve active package + default name for the post-generate rename prompt. */
+  async preparePackageNamePrompt(
+    tier: DFYTier,
+  ): Promise<{ packageId: string; defaultName: string } | null> {
+    const active = await this.getActiveDfyPackage(tier);
+    if (!active) return null;
+    const defaultName =
+      active.name?.trim() ||
+      (await this.getDefaultPackageName(tier));
+    return { packageId: active.id, defaultName };
+  }
+
   canEditOutfit(tier: DFYTier | null): boolean {
     return tier === 'core';
   }
@@ -822,6 +901,205 @@ class DFYService {
     return {
       type: 'individual',
       description: 'Photograph each item individually for best results. Flat lay or hanger shots work great.',
+    };
+  }
+
+  private formatPackageDate(date: Date = new Date()): string {
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  private occasionLabel(occasion: DFYOccasion | string | undefined): string | null {
+    if (!occasion || occasion === 'browsing' || occasion === 'casual') return null;
+    const labels: Record<string, string> = {
+      work: 'Work',
+      holiday: 'Holiday',
+      event: 'Event',
+    };
+    return labels[occasion] || occasion.charAt(0).toUpperCase() + occasion.slice(1);
+  }
+
+  /** Default package title after Lite/Core generate — occasion if known, else product · date. */
+  async getDefaultPackageName(tier: DFYTier, occasion?: DFYOccasion | string | null): Promise<string> {
+    const dateLabel = this.formatPackageDate();
+    if (tier === 'core') {
+      return `Full Wardrobe Setup · ${dateLabel}`;
+    }
+    const fromArg = this.occasionLabel(occasion || undefined);
+    if (fromArg) return `${fromArg} · ${dateLabel}`;
+    try {
+      const coldOpen = await this.getColdOpenFlow();
+      const fromCold = this.occasionLabel(coldOpen?.occasion);
+      if (fromCold) return `${fromCold} · ${dateLabel}`;
+    } catch {
+      // ignore
+    }
+    return `Occasion Ready · ${dateLabel}`;
+  }
+
+  async listDfyPackages(): Promise<DfyPackageSummary[]> {
+    if (!apiService.isConfigured()) return [];
+    try {
+      const result = await apiService.listDfyPackages();
+      return (result.packages || []).map((pkg) => ({
+        id: pkg.id,
+        name: pkg.name,
+        createdAt: pkg.createdAt,
+        isActive: Boolean(pkg.isActive),
+        outfitCount: typeof pkg.outfitCount === 'number' ? pkg.outfitCount : 0,
+        tier: (pkg.tier === 'core' ? 'core' : 'lite') as DFYTier,
+      }));
+    } catch (error) {
+      console.warn('[DFY] listDfyPackages failed:', error);
+      return [];
+    }
+  }
+
+  async getDfyPackage(packageId: string): Promise<DfyPackageDetail | null> {
+    if (!apiService.isConfigured() || !packageId) return null;
+    try {
+      const pkg = await apiService.getDfyPackage(packageId);
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        createdAt: pkg.createdAt,
+        isActive: Boolean(pkg.isActive),
+        outfitCount:
+          typeof pkg.outfitCount === 'number'
+            ? pkg.outfitCount
+            : Array.isArray((pkg.payload as { outfits?: unknown[] } | null)?.outfits)
+              ? ((pkg.payload as { outfits: unknown[] }).outfits.length)
+              : 0,
+        tier: (pkg.tier === 'core' ? 'core' : 'lite') as DFYTier,
+        stylistId: pkg.stylistId,
+        payload: (pkg.payload as Record<string, unknown> | null | undefined) ?? null,
+      };
+    } catch (error) {
+      console.warn('[DFY] getDfyPackage failed:', error);
+      return null;
+    }
+  }
+
+  async renameDfyPackage(packageId: string, name: string): Promise<DfyPackageDetail | null> {
+    const trimmed = name.trim();
+    if (!apiService.isConfigured() || !packageId || !trimmed) return null;
+    try {
+      const pkg = await apiService.renameDfyPackage(packageId, trimmed);
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        createdAt: pkg.createdAt,
+        isActive: Boolean(pkg.isActive),
+        outfitCount: typeof pkg.outfitCount === 'number' ? pkg.outfitCount : 0,
+        tier: (pkg.tier === 'core' ? 'core' : 'lite') as DFYTier,
+        stylistId: pkg.stylistId,
+        payload: (pkg.payload as Record<string, unknown> | null | undefined) ?? null,
+      };
+    } catch (error) {
+      console.warn('[DFY] renameDfyPackage failed:', error);
+      throw error;
+    }
+  }
+
+  /** Active package for a tier (newest active match), or null. */
+  async getActiveDfyPackage(tier?: DFYTier): Promise<DfyPackageSummary | null> {
+    const packages = await this.listDfyPackages();
+    const active = packages.filter((pkg) => pkg.isActive && (!tier || pkg.tier === tier));
+    if (active.length === 0) return null;
+    return active.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+  }
+
+  /** Map a stored package payload into a lite lookbook delivery for historical viewing. */
+  mapPackagePayloadToLiteDelivery(
+    userId: string,
+    pkg: DfyPackageDetail,
+    fallbackStylistId: StylistId = 'ruby',
+  ): DFYLiteDelivery | null {
+    const payload = pkg.payload || {};
+    const rawOutfits = Array.isArray(payload.outfits)
+      ? payload.outfits
+      : Array.isArray((payload as { lookbook?: unknown[] }).lookbook)
+        ? (payload as { lookbook: unknown[] }).lookbook
+        : Array.isArray((payload as { calendar?: Array<{ outfit?: unknown }> }).calendar)
+          ? (payload as { calendar: Array<{ outfit?: unknown; day?: number }> }).calendar
+              .map((entry, i) => {
+                const outfit = (entry?.outfit || entry) as Record<string, unknown> | null;
+                if (!outfit || typeof outfit !== 'object') return null;
+                return {
+                  ...outfit,
+                  day: entry?.day ?? (outfit as { day?: number }).day ?? i + 1,
+                  dayNumber:
+                    entry?.day ??
+                    (outfit as { dayNumber?: number }).dayNumber ??
+                    (outfit as { day?: number }).day ??
+                    i + 1,
+                };
+              })
+              .filter(Boolean)
+          : Array.isArray((payload as { delivery?: { outfits?: unknown[] } }).delivery?.outfits)
+            ? (payload as { delivery: { outfits: unknown[] } }).delivery.outfits
+            : [];
+    if (!Array.isArray(rawOutfits) || rawOutfits.length === 0) {
+      // Some APIs nest the full delivery as payload itself
+      if (Array.isArray((payload as DFYLiteDelivery).outfits)) {
+        const nested = payload as unknown as DFYLiteDelivery;
+        return {
+          ...nested,
+          userId,
+          tier: 'lite',
+          totalDays: (nested.totalDays as 14) || 14,
+        };
+      }
+      return null;
+    }
+
+    const stylistId = (pkg.stylistId || fallbackStylistId) as StylistId;
+    const startDate =
+      (typeof payload.startDate === 'string' && payload.startDate) ||
+      pkg.createdAt ||
+      new Date().toISOString();
+    const windowDays = pkg.tier === 'core' ? 30 : 14;
+    const expiryDate =
+      (typeof payload.expiryDate === 'string' && payload.expiryDate) ||
+      (typeof payload.endDate === 'string' && payload.endDate) ||
+      new Date(new Date(startDate).getTime() + windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    return {
+      userId,
+      tier: 'lite',
+      startDate,
+      expiryDate,
+      // Historical calendar viewers use totalDays for slice length; Core packages are 30-day.
+      totalDays: windowDays as 14 | 30,
+      currentDay: typeof payload.currentDay === 'number' ? payload.currentDay : 1,
+      completed: Boolean(payload.completed),
+      nudgesShown: Array.isArray(payload.nudgesShown) ? (payload.nudgesShown as number[]) : [],
+      outfits: rawOutfits.map((o: any, i: number) => ({
+        id: String(o.id || `outfit-${i + 1}`),
+        dayNumber: o.dayNumber ?? o.day ?? i + 1,
+        title: o.title || o.occasion || (i === 0 ? "Today's Look" : `Day ${i + 1} Look`),
+        description: o.description || o.stylistNote || '',
+        items: (o.items || []).map((item: any) => ({
+          id: String(item.id),
+          name: item.name || '',
+          category: item.category || '',
+          color: item.color || '',
+          imageUri: item.imageUri || item.imageUrl || item.processedImageUrl || undefined,
+          imageUrl: item.imageUrl,
+          processedImageUrl: item.processedImageUrl,
+        })),
+        occasion: (o.occasion as DFYOccasion) || 'casual',
+        stylistNote: o.stylistNote,
+        weatherNote: o.weatherNote,
+        stylistId: (o.stylistId as StylistId) || stylistId,
+        userReaction: o.userReaction ?? null,
+        saved: Boolean(o.saved),
+      })),
     };
   }
 

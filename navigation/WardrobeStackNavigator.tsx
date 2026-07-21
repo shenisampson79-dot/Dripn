@@ -33,9 +33,9 @@ export type WardrobeStackParamList = {
   ColorAnalysis: undefined;
   BodyScanner: undefined;
   WeatherOutfit: undefined;
-  DFYLookbook: undefined;
-  DFYModularWardrobe: undefined;
-  DFYCalendar: { tier: DFYTier };
+  DFYLookbook: { packageId?: string } | undefined;
+  DFYModularWardrobe: { packageId?: string } | undefined;
+  DFYCalendar: { tier: DFYTier; packageId?: string };
 };
 
 const Stack = createNativeStackNavigator<WardrobeStackParamList>();

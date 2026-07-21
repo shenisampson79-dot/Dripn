@@ -78,7 +78,7 @@ const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
 
 const OCCASION_SCORE_MAP: Record<PlannedEventType, string> = {
   casual: 'casual-hangout',
-  work: 'casual-friday',
+  work: 'job-interview',
   'date-night': 'first-date',
   party: 'casual-hangout',
   formal: 'wedding',
@@ -353,7 +353,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   );
 
   useEffect(() => {
-    const local = computeLocalOutfitScore(selectedWardrobeItems, regionalContext);
+    const local = computeLocalOutfitScore(
+      selectedWardrobeItems,
+      regionalContext,
+      user?.colorScanData?.colorSeasonType ?? null,
+    );
     setStyleScore(local.score);
     setStyleHint(local.hint);
     setAiScoreApplied(false);
@@ -394,6 +398,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             verdict: result.verdict,
             analysis: result.analysis,
             headline: result.headline,
+          unifiedScoreApplied: result.unifiedScoreApplied,
             explanations: result.explanations,
             improvements: result.improvements,
             dimensions: result.dimensions,
@@ -511,7 +516,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         <View style={{ flex: 1 }}>
           <ThemedText type="h3" style={{ fontWeight: '700' }}>Outfit Mix</ThemedText>
           <ThemedText type="caption" style={{ color: secondaryText }}>
-            Clueless-style wardrobe builder
+            Mix and match your wardrobe
           </ThemedText>
         </View>
         <Pressable onPress={handleClear} style={styles.clearBtn}>

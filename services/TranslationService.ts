@@ -8,7 +8,7 @@ import {
   resolveLocaleNativeName,
 } from './localeBundles';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v6';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v7';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {
@@ -217,6 +217,37 @@ export interface BodyScanTranslations {
   overlayText: string;
   countdown: string;
   privacyNote: string;
+  aiScannedConfidence: string;
+  captureFailed: string;
+  error: string;
+  failedToAnalyzeImagePleaseTryAgain: string;
+  failedToSelectImagePleaseTryAgain: string;
+  lowConfidenceAlertMessage: string;
+  lowConfidenceAlertTitle: string;
+  lowConfidenceBadge: string;
+  lowConfidenceMessage: string;
+  lowConfidenceTitle: string;
+  manuallyEntered: string;
+  measurementsEstimates: string;
+  measurementsLowConfidenceNote: string;
+  mediumConfidenceTip: string;
+  rescanBody: string;
+  rescanRetake: string;
+  retakeGuidanceTitle: string;
+  retakePhoto: string;
+  saved: string;
+  scanComplete: string;
+  scanCompleteMessage: string;
+  scanIssue: string;
+  scanIssueDefault: string;
+  styleRecommendations: string;
+  tipClothes: string;
+  tipFullBody: string;
+  tipLighting: string;
+  tipPose: string;
+  tipStandBack: string;
+  yourBodyProfileHasBeenSavedSuccessfully: string;
+  yourMeasurements: string;
 }
 
 export interface ColorScanTranslations {
@@ -455,7 +486,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     never: 'Never',
     bulkUpload: 'Bulk Upload',
     lastWorn: 'Last worn',
-    wornTimes: 'times',
+    wornTimes: 'Worn {n}x',
     itemDetails: 'Item Details',
     timesWorn: 'Times Worn',
     loadingWardrobe: 'Loading your wardrobe...',
@@ -529,10 +560,53 @@ const DEFAULT_TRANSLATIONS: Translations = {
   bodyScan: {
     title: 'Body Scan',
     description: 'Stand in front of the camera for a full body analysis',
-    tips: ['Stand 6 feet away', 'Wear fitted clothing', 'Good lighting helps'],
+    tips: [
+      'Show your full body from head to toe',
+      'Stand farther back until your whole body fits the outline',
+      'Use good lighting and a plain background if possible',
+      'Stand straight with arms slightly away from your body',
+      'Avoid baggy or obscuring clothes for a clearer proportion read',
+    ],
     overlayText: 'Position yourself in the frame',
     countdown: 'Taking photo in',
     privacyNote: 'Your photo is processed securely and not stored',
+    aiScannedConfidence: 'AI Scanned — {confidence}% Confidence',
+    captureFailed: 'Capture Failed',
+    error: 'Error',
+    failedToAnalyzeImagePleaseTryAgain: 'Failed to analyze image. Please try again.',
+    failedToSelectImagePleaseTryAgain: 'Failed to select image. Please try again.',
+    lowConfidenceAlertMessage:
+      'Scan confidence was only {confidence}%. Retake with a clearer full-body photo for better results.',
+    lowConfidenceAlertTitle: 'Low confidence scan',
+    lowConfidenceBadge: 'Low confidence — {confidence}%',
+    lowConfidenceMessage:
+      'We could not read your proportions clearly. These results are rough estimates — retake your photo for a more accurate scan.',
+    lowConfidenceTitle: 'Low confidence — retake recommended',
+    manuallyEntered: 'Manually Entered',
+    measurementsEstimates: 'Estimated Measurements',
+    measurementsLowConfidenceNote:
+      'Treat these as estimates until you retake with higher confidence.',
+    mediumConfidenceTip:
+      'Tip: a clearer full-body photo in good light can improve scan confidence.',
+    rescanBody: 'Rescan Body',
+    rescanRetake: 'Rescan',
+    retakeGuidanceTitle: 'For a better scan:',
+    retakePhoto: 'Retake Photo',
+    saved: 'Saved',
+    scanComplete: 'Scan Complete',
+    scanCompleteMessage:
+      'Body analysis complete with {confidence}% confidence. Your body profile has been saved.',
+    scanIssue: 'Scan Issue',
+    scanIssueDefault:
+      "We couldn't fully analyze the image. Please try again with a clearer full-body photo, standing straight with arms slightly away from your body.",
+    styleRecommendations: 'Style Recommendations',
+    tipClothes: 'Avoid baggy or obscuring clothes for a clearer proportion read',
+    tipFullBody: 'Show your full body from head to toe',
+    tipLighting: 'Use good lighting and a plain background if possible',
+    tipPose: 'Stand straight with arms slightly away from your body',
+    tipStandBack: 'Stand farther back until your whole body fits the outline',
+    yourBodyProfileHasBeenSavedSuccessfully: 'Your body profile has been saved successfully.',
+    yourMeasurements: 'Your Measurements',
   },
   colorScan: {
     title: 'Color Analysis',
@@ -1055,6 +1129,9 @@ const DEFAULT_TRANSLATIONS: Translations = {
     },
     lookbook: {
       buildFailed: 'Build Failed',
+      coreRedirectMessage:
+        'Occasion Ready lookbooks are day grids. Your Full Wardrobe Setup lives in the 30-day Calendar.',
+      coreRedirectTitle: 'Your Full Setup lives in the Calendar',
       dayLook: 'Day {day} Look',
       dayLookFallback: 'Day {day} Look',
       dayOf: 'Day {day} of {total}',
@@ -1064,6 +1141,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       noLookbookMessage: 'Complete Decide For You to unlock your lookbook.',
       noLookbookTitle: 'No lookbook yet',
       notMe: 'Not me',
+      openCalendarCta: 'Open 30-day Calendar',
       photosLoading: 'Photos loading…',
       piecesComingSoon: 'Pieces coming soon',
       refreshOutfits: 'Refresh outfits',

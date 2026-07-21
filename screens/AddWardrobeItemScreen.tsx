@@ -32,6 +32,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useWardrobe,
@@ -51,7 +52,6 @@ import { apiService } from "@/services/ApiService";
 import { describeBulkAnalyzeFailure, getPhotoTips } from "@/services/WardrobeDigitizationService";
 import { getClothingUploadComparisons } from "@/constants/uploadGuideExamples";
 import * as FileSystem from "expo-file-system/legacy";
-import { WardrobeItemImage } from "@/components/WardrobeItemImage";
 import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
 import { sanitizeWardrobeItemName, reconcileWardrobeBrandName } from "@/utils/wardrobeItemName";
 import {
@@ -69,8 +69,23 @@ import {
   promptWardrobeOrientationReview,
   rotateWardrobeImage,
 } from "@/utils/wardrobeImageOrientation";
+import { permanentWardrobePhotoPath } from "@/utils/persistWardrobePhoto";
+import { invalidateWardrobeImageCache } from "@/utils/wardrobeImageLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+type PhotoSource = "camera" | "gallery";
+
+async function clearStaleAddPreviewCache() {
+  invalidateWardrobeImageCache("preview");
+  const path = permanentWardrobePhotoPath("preview");
+  if (!path) return;
+  try {
+    await FileSystem.deleteAsync(path, { idempotent: true });
+  } catch {
+    // Non-fatal — leftover preview.jpg from older builds
+  }
+}
 
 type AddWardrobeItemScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "AddWardrobeItem">;
@@ -107,6 +122,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [originalImageUri, setOriginalImageUri] = useState<string | null>(null);
+  const [photoSource, setPhotoSource] = useState<PhotoSource>("gallery");
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageProcessed, setImageProcessed] = useState(false);
   const [name, setName] = useState("");
@@ -129,8 +145,10 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     [user?.gender],
   );
 
-  const beginImageImport = async (asset: ImagePicker.ImagePickerAsset) => {
+  const beginImageImport = async (asset: ImagePicker.ImagePickerAsset, source: PhotoSource) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await clearStaleAddPreviewCache();
+    setPhotoSource(source);
     try {
       const corrected = await correctWardrobeImageOrientation(asset.uri, asset);
       setOriginalImageUri(corrected.uri);
@@ -158,6 +176,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const rotated = await rotateWardrobeImage(imageUri, 90);
+      await clearStaleAddPreviewCache();
       setImageUri(rotated.uri);
       setOriginalImageUri(rotated.uri);
       setImageProcessed(false);
@@ -184,77 +203,122 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     return { base64, correctedUri: uri };
   };
 
+  const applyClothingAnalysis = (analysis: {
+    type?: string;
+    color?: string;
+    style?: string;
+    material?: string;
+    brand?: string;
+    features?: string[];
+    occasions?: string[];
+    seasons?: string[];
+    description?: string;
+  }) => {
+    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
+    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
+    const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+    const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+
+    const typeToCategory: Record<string, ClothingCategory> = {
+      'shirt': 'tops', 'blouse': 'tops', 't-shirt': 'tops', 'top': 'tops', 'sweater': 'tops', 'hoodie': 'tops',
+      'pants': 'bottoms', 'jeans': 'bottoms', 'shorts': 'bottoms', 'skirt': 'bottoms', 'trousers': 'bottoms',
+      'dress': 'dresses', 'gown': 'dresses', 'jumpsuit': 'dresses', 'romper': 'dresses',
+      'jacket': 'outerwear', 'coat': 'outerwear', 'blazer': 'outerwear', 'cardigan': 'outerwear', 'suit': 'formal',
+      'gilet': 'outerwear', 'vest': 'outerwear', 'puffer': 'outerwear',
+      'shoes': 'shoes', 'sneakers': 'shoes', 'boots': 'shoes', 'heels': 'shoes', 'sandals': 'shoes',
+      'bag': 'bags', 'purse': 'bags', 'backpack': 'bags', 'handbag': 'bags',
+      'watch': 'accessories', 'jewelry': 'accessories', 'belt': 'accessories', 'hat': 'accessories', 'scarf': 'accessories',
+      'jersey': 'activewear_tops', 'sports shirt': 'activewear_tops', 'athletic top': 'activewear_tops',
+      'sports top': 'activewear_tops', 'gym top': 'activewear_tops', 'training top': 'activewear_tops',
+      'track pants': 'activewear_bottoms', 'joggers': 'activewear_bottoms', 'leggings': 'activewear_bottoms',
+      'sweatpants': 'activewear_bottoms', 'gym shorts': 'activewear_bottoms', 'training pants': 'activewear_bottoms',
+      'running shorts': 'activewear_bottoms', 'athletic pants': 'activewear_bottoms',
+    };
+
+    const detectedType = analysis.type?.toLowerCase() || '';
+    const mappedCategory = typeToCategory[detectedType] || validCategories.find(c => detectedType.includes(c));
+    if (mappedCategory) setCategory(mappedCategory);
+
+    const colorLower = analysis.color?.toLowerCase() || '';
+    const mappedColor = validColors.find(c => colorLower.includes(c));
+    if (mappedColor) setColor(mappedColor);
+
+    if (analysis.description) setName(analysis.description.slice(0, 50));
+    if (analysis.brand) setBrand(analysis.brand);
+    if (analysis.seasons) setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
+    if (analysis.occasions) setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
+
+    setAiAnalyzed(true);
+  };
+
   const processImageWithAI = async (uri: string) => {
     setIsProcessingImage(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     try {
-      // Auto-correct EXIF orientation via ImageManipulator, show corrected image immediately
       const { base64: imageBase64, correctedUri } = await toJpegBase64(uri);
       if (correctedUri !== uri) {
         setImageUri(correctedUri);
       }
-      
-      const result = await apiService.extractClothing({ imageBase64 });
-      
-      // Backend returns CDN URL only — never base64 anymore
-      const processedUri = result.processedImageUrl ?? null;
 
-      if (result.success && processedUri) {
-        setImageUri(processedUri);
-        setImageProcessed(true);
-        
-        if (result.clothingAnalysis) {
-          const analysis = result.clothingAnalysis;
-          const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
-          const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
-          const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
-          const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
-          
-          const typeToCategory: Record<string, ClothingCategory> = {
-            'shirt': 'tops', 'blouse': 'tops', 't-shirt': 'tops', 'top': 'tops', 'sweater': 'tops', 'hoodie': 'tops',
-            'pants': 'bottoms', 'jeans': 'bottoms', 'shorts': 'bottoms', 'skirt': 'bottoms', 'trousers': 'bottoms',
-            'dress': 'dresses', 'gown': 'dresses', 'jumpsuit': 'dresses', 'romper': 'dresses',
-            'jacket': 'outerwear', 'coat': 'outerwear', 'blazer': 'outerwear', 'cardigan': 'outerwear', 'suit': 'formal',
-            'shoes': 'shoes', 'sneakers': 'shoes', 'boots': 'shoes', 'heels': 'shoes', 'sandals': 'shoes',
-            'bag': 'bags', 'purse': 'bags', 'backpack': 'bags', 'handbag': 'bags',
-            'watch': 'accessories', 'jewelry': 'accessories', 'belt': 'accessories', 'hat': 'accessories', 'scarf': 'accessories',
-            'jersey': 'activewear_tops', 'sports shirt': 'activewear_tops', 'athletic top': 'activewear_tops',
-            'sports top': 'activewear_tops', 'gym top': 'activewear_tops', 'training top': 'activewear_tops',
-            'track pants': 'activewear_bottoms', 'joggers': 'activewear_bottoms', 'leggings': 'activewear_bottoms',
-            'sweatpants': 'activewear_bottoms', 'gym shorts': 'activewear_bottoms', 'training pants': 'activewear_bottoms',
-            'running shorts': 'activewear_bottoms', 'athletic pants': 'activewear_bottoms',
-          };
-          
-          const detectedType = analysis.type?.toLowerCase() || '';
-          const mappedCategory = typeToCategory[detectedType] || validCategories.find(c => detectedType.includes(c));
-          if (mappedCategory) setCategory(mappedCategory);
-          
-          const colorLower = analysis.color?.toLowerCase() || '';
-          const mappedColor = validColors.find(c => colorLower.includes(c));
-          if (mappedColor) setColor(mappedColor);
-          
-          if (analysis.description) setName(analysis.description.slice(0, 50));
-          if (analysis.brand) setBrand(analysis.brand);
-          if (analysis.seasons) setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
-          if (analysis.occasions) setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
-          
-          setAiAnalyzed(true);
-        }
-        
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        return processedUri;
+      if (!imageBase64) {
+        setImageProcessed(false);
+        return correctedUri || uri;
       }
-      
-      setImageProcessed(false);
-      return uri;
+
+      // Preview must call rembg directly — extract-clothing/resilient never returns a cutout.
+      // Analysis runs in parallel and never overwrites the user's photo with another item.
+      const [bgOutcome, extractOutcome] = await Promise.allSettled([
+        apiService.removeBackground(imageBase64),
+        apiService.extractClothing({ imageBase64 }),
+      ]);
+
+      let nextUri = correctedUri || uri;
+      let didRemoveBg = false;
+
+      if (bgOutcome.status === 'fulfilled') {
+        const bg = bgOutcome.value;
+        if (bg?.removed !== false && bg?.imageUrl) {
+          nextUri = bg.imageUrl;
+          didRemoveBg = true;
+          setImageUri(bg.imageUrl);
+          setImageProcessed(true);
+        } else {
+          setImageProcessed(false);
+        }
+      } else {
+        console.log('Background removal failed, keeping original photo:', bgOutcome.reason?.message || bgOutcome.reason);
+        setImageProcessed(false);
+      }
+
+      if (extractOutcome.status === 'fulfilled') {
+        const analysis = extractOutcome.value?.clothingAnalysis;
+        // Autofill labels only — never swap imageUri from analysis / wardrobe matches.
+        if (analysis) {
+          applyClothingAnalysis(analysis);
+        }
+      } else {
+        console.log('Clothing analysis failed:', extractOutcome.reason?.message || extractOutcome.reason);
+      }
+
+      if (didRemoveBg) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      return nextUri;
     } catch (error: any) {
-      console.log('Clothing extraction not available, using original image:', error.message);
+      console.log('Image processing not available, using original image:', error.message);
       setImageProcessed(false);
       return uri;
     } finally {
       setIsProcessingImage(false);
     }
+  };
+
+  const handleRetryBackgroundRemoval = async () => {
+    const source = originalImageUri || imageUri;
+    if (!source || isProcessingImage) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await processImageWithAI(source);
   };
 
   const handleAIScan = async () => {
@@ -604,7 +668,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     });
 
     if (!result.canceled && result.assets[0]) {
-      await beginImageImport(result.assets[0]);
+      await beginImageImport(result.assets[0], "gallery");
     }
   };
 
@@ -633,8 +697,54 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     });
 
     if (!result.canceled && result.assets[0]) {
-      await beginImageImport(result.assets[0]);
+      await beginImageImport(result.assets[0], "camera");
     }
+  };
+
+  const handleRetakePhoto = async () => {
+    if (isProcessingImage) return;
+    if (photoSource === "camera" && Platform.OS !== "web") {
+      await handleTakePhoto();
+      return;
+    }
+    await handlePickImage();
+  };
+
+  const handleEditPhotoOptions = () => {
+    if (isProcessingImage) return;
+    const buttons: {
+      text: string;
+      style?: "cancel" | "destructive" | "default";
+      onPress?: () => void;
+    }[] = [];
+
+    if (Platform.OS !== "web") {
+      buttons.push({
+        text: "Retake with camera",
+        onPress: () => {
+          void handleTakePhoto();
+        },
+      });
+    }
+    buttons.push({
+      text: "Choose from gallery",
+      onPress: () => {
+        void handlePickImage();
+      },
+    });
+    buttons.push({
+      text: "Rotate 90°",
+      onPress: () => {
+        void handleRotatePhoto();
+      },
+    });
+    buttons.push({ text: t('common.cancel') || "Cancel", style: "cancel" });
+
+    Alert.alert(
+      "Edit photo",
+      "Retake keeps your new shot. We never replace it with another wardrobe item.",
+      buttons,
+    );
   };
 
   const toggleSeason = (season: ClothingSeason) => {
@@ -817,12 +927,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Photo</ThemedText>
           <ThemedText type="caption" style={[styles.outfitMixPreviewHint, { color: theme.tabIconDefault }]}>
-            This preview matches Outfit Mix. Tap the photo to retake if the item looks too close or cut off.
+            {photoSource === "camera"
+              ? "Preview framing matches how this item will look in outfits. Tap the photo to retake with the camera if it looks too close or cut off."
+              : "Preview framing matches how this item will look in outfits. Tap the photo to choose a different image if it looks too close or cut off."}
           </ThemedText>
           {imageUri ? (
             <View>
               <Pressable
-                onPress={handlePickImage}
+                onPress={handleRetakePhoto}
                 disabled={isProcessingImage}
                 style={[styles.imageContainer, { aspectRatio: outfitMixPreviewAspect }]}
               >
@@ -832,12 +944,19 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                     ? { backgroundColor: wardrobeImageBackground(isDark, { imageUri, imageProcessed, aiAnalyzed: false }) }
                     : null,
                 ]}>
-                  <WardrobeItemImage
-                    item={{ id: 'preview', imageUri, imageProcessed, enhancedImageUri: imageUri }}
-                    style={styles.selectedImage}
-                    processed={imageProcessed}
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={[
+                      styles.selectedImage,
+                      outfitMixPreviewScale !== 1
+                        ? { transform: [{ scale: outfitMixPreviewScale }] }
+                        : null,
+                    ]}
                     contentFit="contain"
-                    displayScale={outfitMixPreviewScale}
+                    // Never disk-cache add-flow previews under a shared key — that swapped wrong photos on retake.
+                    cachePolicy="none"
+                    recyclingKey={imageUri}
+                    transition={200}
                   />
                 </View>
                 {isProcessingImage && (
@@ -848,16 +967,25 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                     </ThemedText>
                   </View>
                 )}
-                <View style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}>
+                <Pressable
+                  onPress={handleEditPhotoOptions}
+                  disabled={isProcessingImage}
+                  style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}
+                  accessibilityLabel="Edit photo"
+                  hitSlop={8}
+                >
                   <Feather name="edit-2" size={16} color={theme.text} />
-                </View>
+                </Pressable>
                 {!isProcessingImage ? (
                   <Pressable
-                    onPress={handleRotatePhoto}
+                    onPress={() => {
+                      void handleRetryBackgroundRemoval();
+                    }}
                     style={[styles.rotateImageBadge, { backgroundColor: theme.backgroundDefault }]}
-                    accessibilityLabel="Rotate photo 90 degrees"
+                    accessibilityLabel="Retry background removal"
+                    hitSlop={8}
                   >
-                    <Feather name="rotate-cw" size={16} color={theme.text} />
+                    <Feather name="refresh-cw" size={16} color={theme.text} />
                   </Pressable>
                 ) : null}
                 {imageProcessed && !isProcessingImage && (
@@ -882,7 +1010,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     if (imageUri === originalImageUri) {
-                      processImageWithAI(originalImageUri);
+                      void processImageWithAI(originalImageUri);
                     } else {
                       setImageUri(originalImageUri);
                       setImageProcessed(false);
@@ -900,6 +1028,19 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   </ThemedText>
                 </Pressable>
               )}
+              {!imageProcessed && !isProcessingImage && originalImageUri ? (
+                <Pressable
+                  onPress={() => {
+                    void handleRetryBackgroundRemoval();
+                  }}
+                  style={[styles.toggleImageButton, { backgroundColor: theme.backgroundDefault }]}
+                >
+                  <Feather name="refresh-cw" size={16} color={theme.tabIconDefault} />
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: 6 }}>
+                    Retry background removal
+                  </ThemedText>
+                </Pressable>
+              ) : null}
               <Pressable
                 onPress={handleAIScan}
                 disabled={isAnalyzing || isProcessingImage}

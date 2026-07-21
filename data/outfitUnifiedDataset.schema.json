@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UnifiedOutfitRecord",
+  "description": "One outfit row for training or ranking models. Scores are 0–1 unless noted.",
+  "type": "object",
+  "required": ["outfit_id", "items", "context", "style", "color", "fit", "final_score", "label"],
+  "properties": {
+    "outfit_id": { "type": "string", "pattern": "^O[0-9]+$" },
+    "items": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": { "enum": ["top", "bottom", "shoes", "outerwear", "dress", "formal", "accessory"] },
+          "name": { "type": "string" },
+          "color": { "type": "string" },
+          "brand_tier": { "enum": ["luxury", "premium", "mid", "fast_fashion"] },
+          "seasons": { "type": "array", "items": { "enum": ["spring", "summer", "autumn", "winter", "all-season"] } }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "required": ["season", "occasion", "brand_tiers", "brand_coherence", "season_fit"],
+      "properties": {
+        "season": { "enum": ["spring", "summer", "autumn", "winter", "all-season"] },
+        "occasion": { "enum": ["office", "gym", "date", "travel", "casual", "weekend", "event"] },
+        "brand_tiers": { "type": "array", "items": { "enum": ["luxury", "premium", "mid", "fast_fashion"] } },
+        "brand_coherence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "season_fit": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": ["primary_style", "style_consistency", "formality_match", "occasion_fit", "STYLE_SCORE"],
+      "properties": {
+        "primary_style": { "type": ["string", "null"] },
+        "style_consistency": { "type": "number", "minimum": 0, "maximum": 1 },
+        "formality_match": { "type": "number", "minimum": 0, "maximum": 1 },
+        "occasion_fit": { "type": "number", "minimum": 0, "maximum": 1 },
+        "STYLE_SCORE": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "color": {
+      "type": "object",
+      "required": ["palette", "harmony_type", "contrast_score", "clash_penalty", "COLOR_SCORE"],
+      "properties": {
+        "palette": { "type": "array", "items": { "type": "string" } },
+        "harmony_type": {
+          "enum": ["monochromatic", "analogous", "complementary", "triadic", "neutral_dominant", "mixed_harmonious", "clashing"]
+        },
+        "contrast_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "clash_penalty": { "type": "number", "minimum": 0, "maximum": 1 },
+        "seasonal_match": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "COLOR_SCORE": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "fit": {
+      "type": "object",
+      "required": ["top_fit", "bottom_fit", "silhouette", "proportion_score", "silhouette_balance", "fit_quality", "FIT_SCORE"],
+      "properties": {
+        "top_fit": { "type": "string" },
+        "bottom_fit": { "type": "string" },
+        "silhouette": { "type": "string" },
+        "proportion_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "silhouette_balance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "fit_quality": { "type": "number", "minimum": 0, "maximum": 1 },
+        "FIT_SCORE": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "final_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "0.4*STYLE + 0.3*COLOR + 0.3*FIT (after hard caps)"
+    },
+    "label": { "enum": ["bad", "average", "good"] },
+    "feedback": { "type": "array", "items": { "type": "string" } },
+    "hard_cap": { "type": "number", "minimum": 0, "maximum": 1 },
+    "clash_id": { "type": "string" },
+    "source_label": { "enum": ["bad", "average", "good"] }
+  }
+}

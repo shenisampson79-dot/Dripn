@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,6 +6,7 @@ import {
   Modal,
   useWindowDimensions,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,10 +22,14 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWardrobe } from '@/contexts/WardrobeContext';
+import { useWardrobe, type PlannedEventType } from '@/contexts/WardrobeContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import {
   generateTodaysWardrobeOutfit,
+  prewarmTodaysWardrobeOutfit,
+  resolveCachedTodaysOutfit,
+  stableTodaysOutfitId,
+  TODAYS_OUTFIT_GENERATION_BUDGET_MS,
   type WardrobeTodaysOutfit,
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
@@ -34,11 +39,15 @@ import {
   isWithinTodaysOutfitPopupWindow,
 } from '@/utils/todaysOutfitPrefs';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
+
 import {
   countWardrobeOutfitBasics,
   describeOutfitPlanningGap,
   wardrobeReadyForTodaysOutfitAutoPopup,
 } from '@/utils/wardrobeOutfitReadiness';
+
+type TodaysOutfitCardState = 'idle' | 'loading' | 'ready' | 'error';
 
 type Props = {
   onOpenStylist?: (prompt: string) => void;
@@ -56,8 +65,29 @@ function hasPaidTodaysOutfitAccess(subscriptionTier?: string | null): boolean {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.4;
 
+function mapOccasionToPlannedEvent(
+  dressFor?: string,
+  occasionType?: string,
+): PlannedEventType {
+  if (dressFor === 'work' || occasionType === 'work_outfit' || occasionType === 'smart_casual') {
+    return 'work';
+  }
+  if (dressFor === 'date' || occasionType === 'date_night') return 'date-night';
+  if (dressFor === 'event' || occasionType === 'evening_out') return 'party';
+  if (occasionType === 'gym') return 'workout';
+  if (occasionType === 'travel') return 'travel';
+  if (occasionType === 'formal') return 'formal';
+  return 'everyday';
+}
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function todayPlannedDateIso() {
+  const now = new Date();
+  now.setHours(12, 0, 0, 0);
+  return now.toISOString();
 }
 
 function formatTodayBadgeDate(locale?: string) {
@@ -197,26 +227,50 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
-  const { items: wardrobeItems } = useWardrobe();
+  const {
+    items: wardrobeItems,
+    plannedOutfits,
+    planOutfit,
+    markPlannedOutfitWorn,
+    updatePlannedOutfit,
+  } = useWardrobe();
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
 
   const [outfit, setOutfit] = useState<WardrobeTodaysOutfit | null>(null);
   const [pieces, setPieces] = useState<WardrobeItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [cardState, setCardState] = useState<TodaysOutfitCardState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   /** Separate from outfit dismiss — empty-wardrobe guidance must reopen from the chip. */
   const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [wearBusy, setWearBusy] = useState(false);
+  const autoPopupCheckedRef = useRef(false);
+  /** Buttons only act on this stable outfit id once cardState is ready. */
+  const actionOutfitIdRef = useRef<string | null>(null);
+
+  const generating = cardState === 'loading';
+  const actionsEnabled =
+    cardState === 'ready'
+    && Boolean(outfit?.id)
+    && outfit?.id === actionOutfitIdRef.current
+    && !wearBusy;
+
+  const applyReadyOutfit = useCallback((nextOutfit: WardrobeTodaysOutfit, nextPieces: WardrobeItem[]) => {
+    actionOutfitIdRef.current = nextOutfit.id;
+    setOutfit(nextOutfit);
+    setPieces(nextPieces);
+    setErrorMessage(null);
+    setCardState('ready');
+    void traceTodaysOutfit('render', { id: nextOutfit.id, pieceCount: nextPieces.length });
+  }, []);
 
   const load = useCallback(
     async (forceRefresh = false) => {
       const isManual = forceRefresh;
-      setLoading(!forceRefresh);
-      setGenerating(forceRefresh);
+      setCardState('loading');
       if (forceRefresh) {
         setGapVisible(false);
       }
@@ -225,17 +279,14 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
       const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
 
-      // Auto path after onboarding: never nag with paid/wardrobe modals.
-      // Daily popup only starts once the wardrobe can build 7 distinct outfits
-      // and the account has a paid stylist plan.
       if (!isManual) {
         if (!paid || !readyForAuto) {
           setOutfit(null);
           setPieces([]);
+          actionOutfitIdRef.current = null;
           setVisible(false);
           setGapVisible(false);
-          setLoading(false);
-          setGenerating(false);
+          setCardState('idle');
           return;
         }
       }
@@ -243,16 +294,36 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       if (isManual && !paid) {
         setOutfit(null);
         setPieces([]);
+        actionOutfitIdRef.current = null;
         setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
         setVisible(false);
         setGapVisible(true);
-        setLoading(false);
-        setGenerating(false);
+        setCardState('error');
         return;
       }
 
       await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
       const profile = await onboardingProfileService.getProfile();
+
+      if (!forceRefresh) {
+        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+        if (cached) {
+          applyReadyOutfit(cached.outfit, cached.items);
+          try {
+            const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
+            const wasDismissed = dismissedToday === '1';
+            const prefs = await getTodaysOutfitPopupPrefs();
+            const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
+            setDismissed(wasDismissed);
+            setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
+          } catch {
+            setDismissed(false);
+            setVisible(true);
+          }
+          onRefresh?.();
+          return;
+        }
+      }
 
       const result = await generateTodaysWardrobeOutfit({
         wardrobeItems,
@@ -264,23 +335,20 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       if (!result.ok) {
         setOutfit(null);
         setPieces([]);
+        actionOutfitIdRef.current = null;
         const message =
           result.reason === 'not_ready'
             ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
             : result.message;
         setErrorMessage(message);
         setVisible(false);
-        // Only open the explanation sheet when the user asked for Today's outfit.
         setGapVisible(isManual);
-        setLoading(false);
-        setGenerating(false);
+        setCardState('error');
         return;
       }
 
       setGapVisible(false);
-      setErrorMessage(null);
-      setOutfit(result.outfit);
-      setPieces(result.items);
+      applyReadyOutfit(result.outfit, result.items);
 
       try {
         const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
@@ -298,20 +366,65 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         setVisible(true);
       }
 
-      setLoading(false);
-      setGenerating(false);
       onRefresh?.();
     },
-    [wardrobeItems, user, onRefresh, t],
+    [wardrobeItems, user, onRefresh, t, applyReadyOutfit],
   );
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
+      setCardState('idle');
       return;
     }
+    void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id });
     void load(false);
   }, [user?.id, wardrobeItems.length]);
+
+  useEffect(() => {
+    if (!user || wardrobeItems.length < 4) return;
+    void onboardingProfileService.getProfile().then((profile) => {
+      void prewarmTodaysWardrobeOutfit({ wardrobeItems, profile, user });
+    });
+  }, [user?.id, wardrobeItems.length]);
+
+  const maybeAutoOpenPopup = useCallback(async () => {
+    if (!user || !outfit || visible || gapVisible || generating) return;
+
+    const paid = hasPaidTodaysOutfitAccess(user.subscriptionTier);
+    const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
+    if (!paid || !readyForAuto) return;
+
+    try {
+      const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
+      if (dismissedToday === '1') return;
+      const prefs = await getTodaysOutfitPopupPrefs();
+      if (prefs.enabled && isWithinTodaysOutfitPopupWindow(prefs)) {
+        setDismissed(false);
+        setVisible(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [user, outfit, visible, gapVisible, generating, wardrobeItems]);
+
+  useEffect(() => {
+    if (!outfit || autoPopupCheckedRef.current) return;
+    autoPopupCheckedRef.current = true;
+    void maybeAutoOpenPopup();
+  }, [outfit, maybeAutoOpenPopup]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      void maybeAutoOpenPopup();
+    }, 60_000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void maybeAutoOpenPopup();
+    });
+    return () => {
+      clearInterval(intervalId);
+      sub.remove();
+    };
+  }, [maybeAutoOpenPopup]);
 
   const handleClose = async (
     signal: 'wore' | 'skipped' | null = 'skipped',
@@ -348,14 +461,78 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     }
   };
 
-  const handleWearThis = () => handleClose('wore');
-  const handleDismiss = () => handleClose('skipped');
+  const handleWearThis = async () => {
+    if (!actionsEnabled || !outfit?.id) return;
+    const outfitId = outfit.id;
+    void traceTodaysOutfit('button_click', { action: 'wear', outfitId });
+    setWearBusy(true);
+    try {
+      if (pieces.length > 0) {
+        const todayKeyStr = todayKey();
+        const eventType = mapOccasionToPlannedEvent(outfit?.dressFor, outfit?.occasionType);
+        const existing = plannedOutfits.find((plan) => plan.date.slice(0, 10) === todayKeyStr);
+        let planId = existing?.id;
+
+        if (existing) {
+          await updatePlannedOutfit(existing.id, {
+            itemIds: pieces.map((item) => String(item.id)),
+            eventName: "Today's outfit",
+            eventType,
+            notes: outfit?.stylistMessage || outfit?.vibeLabel,
+          });
+        } else {
+          const created = await planOutfit({
+            date: todayPlannedDateIso(),
+            itemIds: pieces.map((item) => String(item.id)),
+            eventName: "Today's outfit",
+            eventType,
+            notes: outfit?.stylistMessage || outfit?.vibeLabel,
+          });
+          planId = created.id;
+        }
+
+        if (planId) {
+          await markPlannedOutfitWorn(planId);
+        }
+
+        apiService
+          .recordOutfitEngagement({
+            items: pieces.map((item) => ({
+              id: String(item.id),
+              name: item.name,
+              category: item.category,
+              color: item.color,
+            })),
+            signal: 'wore',
+            occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+            contextSnapshot: {
+              source: 'todays_outfit_card',
+              dayLabel: outfit?.dayLabel,
+              occasionLabel: outfit?.occasionLabel,
+              weatherTemp: outfit?.weatherTemp,
+              weatherCondition: outfit?.weatherCondition,
+              vibeLabel: outfit?.vibeLabel,
+            },
+          })
+          .catch(() => {});
+      }
+    } catch (error) {
+      console.warn('[TodaysOutfitCard] Wear this failed:', error);
+    } finally {
+      setWearBusy(false);
+      await handleClose(null);
+    }
+  };
+  const handleDismiss = () => {
+    void handleClose('skipped');
+  };
   const handleDismissGap = () => {
     setGapVisible(false);
   };
 
   const openTodaysOutfit = () => {
-    if (outfit) {
+    void traceTodaysOutfit('trigger', { source: 'chip_tap' });
+    if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
       setDismissed(false);
       setVisible(true);
       return;
@@ -363,9 +540,24 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     if (!hasPaidTodaysOutfitAccess(user?.subscriptionTier)) {
       setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
       setGapVisible(true);
+      setCardState('error');
       return;
     }
-    void load(true);
+    setErrorMessage(null);
+    setGapVisible(false);
+    setDismissed(false);
+    setVisible(true);
+    setCardState('loading');
+
+    void (async () => {
+      const profile = await onboardingProfileService.getProfile();
+      const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+      if (cached) {
+        applyReadyOutfit(cached.outfit, cached.items);
+        return;
+      }
+      void load(true);
+    })();
   };
 
   const visualPieces = useMemo(
@@ -382,10 +574,9 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const itemIds = useMemo(() => pieces.map((p) => String(p.id)), [pieces]);
   // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
   const showReopenChip =
-    Boolean(user) && !loading && !visible && !gapVisible && !generating;
+    Boolean(user) && !visible && !gapVisible && cardState !== 'loading';
 
   if (!user) return null;
-  if (loading && !outfit && !errorMessage) return null;
 
   const weatherLine =
     outfit?.weatherTemp != null
@@ -420,7 +611,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       ) : null}
 
       <Modal
-        visible={visible && Boolean(outfit)}
+        visible={visible && (generating || Boolean(outfit)) && !showSaveModal}
         transparent
         animationType="fade"
         statusBarTranslucent
@@ -500,7 +691,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                   </View>
                 ) : null}
 
-                {generating ? (
+                {generating || !outfit ? (
                   <View style={styles.loadingBox}>
                     <ActivityIndicator color={theme.link} />
                     <ThemedText
@@ -567,8 +758,12 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
               >
                 <View style={styles.actions}>
                   <Pressable
-                    style={[styles.primaryBtn, { backgroundColor: theme.link }]}
-                    onPress={handleWearThis}
+                    style={[
+                      styles.primaryBtn,
+                      { backgroundColor: theme.link, opacity: actionsEnabled ? 1 : 0.6 },
+                    ]}
+                    onPress={() => void handleWearThis()}
+                    disabled={!actionsEnabled}
                   >
                     <ThemedText
                       type="body"
@@ -587,11 +782,18 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                   </Pressable>
                 </View>
 
-                {itemIds.length > 0 ? (
+                {itemIds.length > 0 && actionsEnabled ? (
                   <View style={styles.saveWrap}>
                     <Pressable
                       style={[styles.saveBtn, { borderColor: theme.border }]}
-                      onPress={() => setShowSaveModal(true)}
+                      onPress={() => {
+                        void traceTodaysOutfit('button_click', {
+                          action: 'save',
+                          outfitId: outfit?.id,
+                        });
+                        setShowSaveModal(true);
+                      }}
+                      disabled={!actionsEnabled}
                     >
                       <Feather name="bookmark" size={16} color={theme.link} />
                       <ThemedText type="small" style={{ color: theme.text, fontWeight: '600' }}>
@@ -613,7 +815,10 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
         defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
         occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
-        onClose={() => setShowSaveModal(false)}
+        onClose={() => {
+          setShowSaveModal(false);
+          if (outfit) setVisible(true);
+        }}
         onSaved={() => {
           apiService
             .recordOutfitEngagement({
@@ -623,11 +828,13 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
               contextSnapshot: { source: 'todays_outfit_card' },
             })
             .catch(() => {});
+          setShowSaveModal(false);
+          if (outfit) setVisible(true);
         }}
       />
 
       <Modal
-        visible={Boolean(errorMessage) && !outfit && gapVisible && !loading}
+        visible={Boolean(errorMessage) && !outfit && gapVisible && cardState === 'error'}
         transparent
         animationType="fade"
         statusBarTranslucent

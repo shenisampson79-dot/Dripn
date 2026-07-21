@@ -22,6 +22,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import * as Updates from "expo-updates";
 
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
@@ -282,6 +283,37 @@ function AppContent() {
 }
 
 export default function App() {
+  // Hold splash until we've checked for an OTA update and applied it if needed.
+  // Without this, Expo may download the update but keep running the embedded JS
+  // until a later cold start — which is why TestFlight can miss EAS Updates.
+  const [updatesReady, setUpdatesReady] = useState(__DEV__ || Platform.OS === "web");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (__DEV__ || Platform.OS === "web") {
+        if (!cancelled) setUpdatesReady(true);
+        return;
+      }
+      try {
+        if (Updates.isEnabled) {
+          const result = await Updates.checkForUpdateAsync();
+          if (result.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+            return; // reload remounts the app on the new bundle
+          }
+        }
+      } catch (error) {
+        console.log("[Updates] check/apply skipped:", error);
+      }
+      if (!cancelled) setUpdatesReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const captureInvite = (url: string | null) => {
       if (!url) return;
@@ -303,6 +335,10 @@ export default function App() {
     const sub = Linking.addEventListener('url', ({ url }) => captureInvite(url));
     return () => sub.remove();
   }, []);
+
+  if (!updatesReady) {
+    return null;
+  }
 
   return (
     <ErrorBoundary>

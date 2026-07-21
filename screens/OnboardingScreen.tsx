@@ -24,6 +24,7 @@ import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, 
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useVoiceSettings } from "@/contexts/VoiceSettingsContext";
 import { stylistLanguageNameToCode } from "@/utils/stylistLanguage";
+import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from "@/utils/wearRules";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
 import { getLocalizedCountryName, filterCountriesBySearch } from "@/utils/countryLocalization";
@@ -744,6 +745,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [shoppingFrequency, setShoppingFrequency] = useState<ShoppingFrequency | null>(null);
   const [preferOnlineShopping, setPreferOnlineShopping] = useState<boolean>(true);
   const [sustainabilityImportant, setSustainabilityImportant] = useState<boolean>(false);
+  const [laundryHabit, setLaundryHabit] = useState<LaundryHabit>(() =>
+    normalizeLaundryHabit(user?.extendedPreferences?.laundryHabit ?? user?.profileData?.laundryHabit ?? "flexible"),
+  );
 
   // Sync local state when user's stylist preferences change (e.g., after profile loads or updates)
   useEffect(() => {
@@ -753,7 +757,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     }
   }, [user?.stylistPreferences?.useNameInGreetings, user?.stylistPreferences?.namePronunciationConfirmed]);
 
-  const totalSteps = 15;
+  useEffect(() => {
+    const fromUser =
+      user?.extendedPreferences?.laundryHabit ?? (user?.profileData?.laundryHabit as unknown as string | undefined);
+    if (!fromUser) return;
+    setLaundryHabit(normalizeLaundryHabit(fromUser));
+  }, [user?.extendedPreferences?.laundryHabit, user?.profileData?.laundryHabit]);
+
+  const totalSteps = 16;
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
   const allAvailableShops = (suggestedRetailers.length > 0 
@@ -1350,11 +1361,16 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         weight: bodyWeight,
         weightUnit: bodyWeightUnit,
       },
+      profileData: {
+        ...(user?.profileData || {}),
+        laundryHabit,
+      },
       stylistPreferences,
       extendedPreferences: {
         lifestyle: null,
         favoriteBrands: [],
         colorPreferences: [],
+        laundryHabit,
         shoppingFrequency: null,
         preferOnlineShopping: true,
         sustainabilityImportant: false,
@@ -2498,7 +2514,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 11:
+      case 12:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2858,7 +2874,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 12:
+      case 13:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2992,7 +3008,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 13:
+      case 14:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -3066,7 +3082,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 14: {
+      case 15: {
         const dressCodeKeyMap: Record<string, string> = {
           'hijab-friendly': 'hijabFriendly',
           'tzniut': 'tzniut',
@@ -3340,6 +3356,76 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   </ThemedText>
                 </View>
               ) : null}
+            </KeyboardAwareScrollView>
+          </View>
+        );
+      }
+
+      case 11: {
+        const laundryIconMap: Record<LaundryHabit, keyof typeof Feather.glyphMap> = {
+          after_each_wear: "droplet",
+          few_wears: "layers",
+          weekly: "calendar",
+          flexible: "refresh-cw",
+        };
+
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              {t("settings.laundry.title") || "How do you handle laundry?"}
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              {t("settings.laundry.subtitle") || "Helps Dripn know when pieces are ready to wear again."}
+            </ThemedText>
+
+            <ScrollProgressIndicator />
+            <KeyboardAwareScrollView
+              style={styles.optionsScroll}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              bottomOffset={200}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.goalsContainer}>
+                {LAUNDRY_HABIT_OPTIONS.map((option) => {
+                  const isSelected = laundryHabit === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => setLaundryHabit(option.id)}
+                      style={({ pressed }) => [
+                        styles.goalOption,
+                        {
+                          backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                          borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                          paddingVertical: Spacing.md,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={laundryIconMap[option.id]}
+                        size={20}
+                        color={isSelected ? "#FFFFFF" : theme.text}
+                      />
+                      <View style={styles.goalTextContainer}>
+                        <ThemedText
+                          type="body"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text, fontWeight: "600" }}
+                        >
+                          {t(option.labelKey) || option.id}
+                        </ThemedText>
+                      </View>
+                      {isSelected ? (
+                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={14} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
             </KeyboardAwareScrollView>
           </View>
         );

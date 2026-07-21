@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { I18nManager } from 'react-native';
 import { TranslationService, Translations } from '@/services/TranslationService';
+import { LOCAL_TRANSLATION_BUNDLES } from '@/services/localeBundles';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -167,7 +168,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
     if (value) return value;
 
-    // Last resort: English defaults so empty chips / badges never ship blank
+    // Fall back to current English bundle (covers incomplete backend/cache merges)
     const english = TranslationService.getTranslations();
     if (english && english !== translations) {
       value = lookup(english, key);
@@ -176,8 +177,14 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       } else if (!value && key.startsWith('fashionBlog.')) {
         value = lookup(english, `blog.${key.slice('fashionBlog.'.length)}`);
       }
+      if (value) return value;
     }
-    return value || '';
+
+    // Last resort: offline English flat keys (never show blank copy for known strings)
+    const flatEn = LOCAL_TRANSLATION_BUNDLES.en?.[key];
+    if (typeof flatEn === 'string' && flatEn.trim()) return flatEn;
+
+    return '';
   }, [translations]);
 
   const isRTL = translations.localeInfo.direction === 'rtl';
@@ -217,7 +224,10 @@ export function useTranslations() {
       refreshTranslations: async () => {},
       setLanguage: async () => {},
       syncFromAccent: async () => {},
-      t: (_key: string) => '',
+      t: (key: string) => {
+        const flat = LOCAL_TRANSLATION_BUNDLES.en?.[key];
+        return typeof flat === 'string' && flat.trim() ? flat : '';
+      },
     };
   }
   return context;
