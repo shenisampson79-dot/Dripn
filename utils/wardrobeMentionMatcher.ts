@@ -92,6 +92,16 @@ export function stripAvoidanceClauses(text = '') {
     .trim();
 }
 
+/** Strip server outfit contract markers so chat bubbles stay clean. */
+export function stripStructuredOutfitMarkers(text = '') {
+  return String(text || '')
+    .replace(/<<<DRIPN_OUTFIT>>>[\s\S]*?<<<END_DRIPN_OUTFIT>>>/gi, ' ')
+    .replace(/```(?:json)?\s*\{[\s\S]*?"outfit"\s*:[\s\S]*?\}\s*```/gi, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function collectExcludedWardrobeItemIdsFromMentions(
   text = '',
   wardrobeItems: WardrobeItem[] = [],

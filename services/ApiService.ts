@@ -1734,6 +1734,8 @@ class ApiService {
     stylistId?: string;
     error?: string;
     guestMessagesRemaining?: number;
+    hasOutfitRecommendation?: boolean;
+    visualAuthority?: 'server' | null;
   }> {
     const { stylistId, ...rest } = data;
     
@@ -1805,6 +1807,8 @@ class ApiService {
       guestToken?: string;
       guestMessagesRemaining?: number;
       sessionBackup?: string;
+      hasOutfitRecommendation?: boolean;
+      visualAuthority?: 'server' | null;
     }>('/api/chat/resilient', {
       method: 'POST',
       headers,
@@ -1843,6 +1847,8 @@ class ApiService {
       stylistId: result.stylist || stylistId,
       error: result.error,
       guestMessagesRemaining: result.guestMessagesRemaining,
+      hasOutfitRecommendation: result.hasOutfitRecommendation,
+      visualAuthority: result.visualAuthority ?? null,
     };
   }
 
