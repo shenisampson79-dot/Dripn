@@ -33,6 +33,7 @@ import { weatherService } from "@/services/WeatherService";
 import {
   enrichDeliveryWithWardrobeImages,
   resolveDFYItemImageUri,
+  findWardrobeItemForDFYOutfitItem,
   RawDFYOutfitItem,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
@@ -47,6 +48,7 @@ import {
   hasCoreLookbookRedirectSignal,
   pickLiteLookbookPackage,
 } from "@/utils/dfyPackages";
+import { CATEGORY_LABELS, type ClothingCategory } from "@/contexts/WardrobeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -464,7 +466,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         return;
       }
 
-      // Optional: AI notes only — never trust server item picks
+      // Optional: AI day titles only — never adopt server inventory or notes (they named wrong pieces)
       try {
         const coords = forecast
           ? { lat: forecast.lat, lon: forecast.lon, locationName: forecast.location }
@@ -480,18 +482,12 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           const mappedOutfits = mapApiOutfitsToDelivery(rawOutfits, stylistId);
           generated.outfits = generated.outfits.map((slot, idx) => {
             const source = mappedOutfits[idx];
-            if (!source) return slot;
-            return {
-              ...slot,
-              title: source.title || slot.title,
-              stylistNote: source.stylistNote || slot.stylistNote,
-              description: source.description || slot.description,
-              // Keep locally allocated items — never adopt server inventory
-            };
+            if (!source?.title || slot.saved || slot.userReaction === 'love') return slot;
+            return { ...slot, title: source.title };
           });
         }
       } catch (apiErr: any) {
-        console.log('[DFYLookbook] Server notes unavailable (local inventory kept):', apiErr?.message || apiErr);
+        console.log('[DFYLookbook] Server titles unavailable (local inventory kept):', apiErr?.message || apiErr);
       }
 
       let working = ensureLookbookOutfitsHaveFootwear(
@@ -851,24 +847,33 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                       {t('dfy.lookbook.thePieces').replace('{count}', String(selectedOutfit.items.length))}
                     </ThemedText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
-                      {sortOutfitItemsByVisualOrder(selectedOutfit.items).map((wardrobeItem) => {
-                        const itemUri = resolveDFYItemImageUri(wardrobeItem as RawDFYOutfitItem);
+                      {sortOutfitItemsByVisualOrder(selectedOutfit.items).map((outfitItem) => {
+                        const wardrobeMatch = findWardrobeItemForDFYOutfitItem(outfitItem, wardrobeItems);
+                        const itemUri =
+                          resolveDFYItemImageUri(outfitItem as RawDFYOutfitItem, wardrobeMatch)
+                          || (wardrobeMatch ? resolveDFYItemImageUri({ ...outfitItem, id: wardrobeMatch.id } as RawDFYOutfitItem, wardrobeMatch) : undefined);
+                        const categoryKey = String(outfitItem.category || wardrobeMatch?.category || '') as ClothingCategory;
+                        const categoryLabel =
+                          CATEGORY_LABELS[categoryKey]
+                          || String(outfitItem.category || '').replace(/_/g, ' ');
                         return (
-                        <View key={wardrobeItem.id} style={styles.modalItemCard}>
+                        <View key={outfitItem.id} style={styles.modalItemCard}>
                           {itemUri ? (
-                            <Image source={{ uri: itemUri }} style={styles.modalItemImage} contentFit="contain" />
+                            <View style={[styles.modalItemImage, { backgroundColor: isDark ? '#1A1A2E' : '#F7F5F2' }]}>
+                              <Image source={{ uri: itemUri }} style={styles.modalItemImage} contentFit="contain" />
+                            </View>
                           ) : (
-                            <View style={[styles.modalItemImage, { backgroundColor: wardrobeItem.color || (isDark ? '#2A2A3E' : '#F0EDE8'), alignItems: 'center', justifyContent: 'center' }]}>
-                              {!wardrobeItem.color && (
+                            <View style={[styles.modalItemImage, { backgroundColor: outfitItem.color || (isDark ? '#2A2A3E' : '#F0EDE8'), alignItems: 'center', justifyContent: 'center' }]}>
+                              {!outfitItem.color && (
                                 <Feather name="package" size={20} color={colors.accent} />
                               )}
                             </View>
                           )}
                           <ThemedText type="caption" numberOfLines={1} style={{ marginTop: 4, textAlign: 'center', maxWidth: 80 }}>
-                            {wardrobeItem.name}
+                            {outfitItem.name}
                           </ThemedText>
-                          <ThemedText type="caption" style={{ opacity: 0.45, textAlign: 'center' }}>
-                            {wardrobeItem.category}
+                          <ThemedText type="caption" style={{ opacity: 0.45, textAlign: 'center', textTransform: 'capitalize' }}>
+                            {categoryLabel}
                           </ThemedText>
                         </View>
                         );

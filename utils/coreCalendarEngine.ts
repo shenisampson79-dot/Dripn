@@ -35,7 +35,7 @@ import {
 } from '@/utils/wardrobeAllocationEngine';
 
 export const CORE_CALENDAR_ENGINE_VERSION = 'core_v2.1';
-export const LITE_LOOKBOOK_ENGINE_VERSION = 'lite_travel_v1.1';
+export const LITE_LOOKBOOK_ENGINE_VERSION = 'lite_travel_v1.2';
 
 const MAX_EMERGENCY_COMBOS = 80;
 

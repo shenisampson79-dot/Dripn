@@ -845,7 +845,9 @@ export function generateLiteLookbook(params: {
 
     // Flight / travel days: replace with dedicated comfort outfit from the capsule
     if (dayActivity === 'flight') {
-      const flight = buildFlightOutfit(wardrobeItems, capsuleWardrobe);
+      const previousDay = outfits[idx - 1]?.items || [];
+      const avoidIds = previousDay.map((item) => String(item.id));
+      const flight = buildFlightOutfit(wardrobeItems, capsuleWardrobe, { avoidItemIds: avoidIds });
       if (flight?.length) mapped = flight;
     } else if (mapped.length >= 2 && violatesActivitySoftRules(mapped, dayActivity)) {
       // Soft activity mismatch — keep allocator pick but note it; scoring already biased via capsule
@@ -883,26 +885,39 @@ export function generateLiteLookbook(params: {
 
     const isReturnFlight = dayActivity === 'flight' && idx > 0;
     const activityLabel = ACTIVITY_CONSTRAINTS[dayActivity]?.label;
+    const hero = finalItems[0];
+    const partner = finalItems[1];
+    const pieceLine =
+      hero && partner
+        ? `${hero.name} with ${partner.name}`
+        : hero?.name || 'your capsule pieces';
     const stylistNote =
       dayActivity === 'flight'
         ? flightOutfitNote(isReturnFlight)
-        : `Day ${idx + 1}: ${activityLabel || 'trip'} look from your ${capsule.items.length}-piece capsule for ${destLabel}${modeSuffix}.`;
+        : `Day ${idx + 1}: ${pieceLine} — ${activityLabel || 'trip'} look from your ${capsule.items.length}-piece capsule for ${destLabel}${modeSuffix}.`;
 
     outfits.push({
       id: prev?.id || `lite-day-${idx + 1}`,
       dayNumber: idx + 1,
       title:
-        prev?.title
-        || (dayActivity === 'flight'
-          ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
-          : idx === 0
-            ? "Today's Look"
-            : `Day ${idx + 1} Look`),
-      description: prev?.description || activityCopy,
+        prev?.saved || prev?.userReaction === 'love'
+          ? (prev?.title
+            || (dayActivity === 'flight'
+              ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
+              : idx === 0
+                ? "Today's Look"
+                : `Day ${idx + 1} Look`))
+          : (dayActivity === 'flight'
+            ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
+            : idx === 0
+              ? "Today's Look"
+              : `Day ${idx + 1} Look`),
+      description: activityCopy,
       items: finalItems,
       occasion: prev?.occasion || allocatorOccasionToDfy(day.occasionType),
-      stylistNote: prev?.stylistNote || stylistNote,
-      weatherNote: prev?.weatherNote || weatherLine,
+      // Always rewrite notes from the allocated pieces — never keep stale AI/server copy
+      stylistNote,
+      weatherNote: weatherLine || prev?.weatherNote,
       stylistId: prev?.stylistId || stylistId,
       userReaction: prev?.userReaction ?? null,
       saved: prev?.saved ?? false,

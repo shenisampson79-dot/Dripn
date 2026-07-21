@@ -300,15 +300,15 @@ function scoreCombo(
       else if (days < 999) score -= 4 * w;
     } else {
       // rotation: spaced reuse — heavy if too soon; prefer less-used pieces without hard-failing long plans
-      const gap = gym ? 2 : 1;
+      const gap = gym ? 3 : 2;
       if (isLaundrySensitive(item)) {
         if (days < gap) score -= 300 * w;
-        else if (days < 7) score -= 20 * w;
-        score -= Math.min(uses, 8) * 3 * w; // soft preference for fresher pieces
+        else if (days < 7) score -= 28 * w;
+        score -= Math.min(uses, 8) * 5 * w; // soft preference for fresher pieces
+        if (isTopItem(item)) score -= Math.min(uses, 8) * 4 * w;
       } else if (isShoesItem(item)) {
         if (days < 1) score -= 10 * w;
       }
-      // Require different pairing when reusing a top: bonus already from prevIds
     }
   }
 
@@ -380,9 +380,9 @@ function itemAllowed(
     if (isTopItem(item) || isBottomItem(item)) return days >= 999;
     return true;
   }
-  // rotation — spaced reuse; scoring prefers less-used pieces (no hard weekly cap that breaks long DFY plans)
+  // rotation — spaced reuse; never wear the same top/bottom on consecutive days
   if (isLaundrySensitive(item)) {
-    const gap = gym ? 2 : 1;
+    const gap = gym ? 3 : 2;
     if (days < gap) return false;
     return true;
   }
@@ -529,14 +529,23 @@ function allocateWithMode(params: {
       shoesFiltered.pressure,
     );
 
-    const tops = topsFiltered.items;
-    const bottoms = bottomsFiltered.items;
-    let shoes = shoesFiltered.items;
+    const sortLeastUsed = (pool: WardrobeItem[]) =>
+      [...pool].sort((a, b) => {
+        const ua = log.weekCount.get(String(a.id)) || 0;
+        const ub = log.weekCount.get(String(b.id)) || 0;
+        if (ua !== ub) return ua - ub;
+        return daysSinceUsed(String(b.id), dayIndex, log) - daysSinceUsed(String(a.id), dayIndex, log);
+      });
+
+    const tops = sortLeastUsed(topsFiltered.items);
+    const bottoms = sortLeastUsed(bottomsFiltered.items);
+    let shoes = sortLeastUsed(shoesFiltered.items);
     if (!shoes.length && (mode === 'soft' || mode === 'rotation')) {
       shoes = boundPools.shoes.filter((item) =>
         canWearItem(item, planDate, laundryProfile, { relaxLevel: canWearRelaxLevel }),
       );
       if (!shoes.length) shoes = boundPools.shoes;
+      shoes = sortLeastUsed(shoes);
     }
 
     if (!tops.length || !bottoms.length || !shoes.length) return null;
@@ -544,9 +553,22 @@ function allocateWithMode(params: {
     let best: Combo | null = null;
     let bestScore = -Infinity;
 
+    const prevTopIds = previous
+      ? new Set(previous.filter(isTopItem).map((i) => String(i.id)))
+      : null;
+    const prevBottomIds = previous
+      ? new Set(previous.filter(isBottomItem).map((i) => String(i.id)))
+      : null;
+    const canSkipPrevBottom = bottoms.length > 1;
+
     for (const top of tops) {
       for (const bottom of bottoms) {
         for (const shoe of shoes) {
+          // Never reuse yesterday's top on consecutive days
+          if (prevTopIds?.has(String(top.id))) continue;
+          // Avoid consecutive bottoms when the capsule has alternatives
+          if (canSkipPrevBottom && prevBottomIds?.has(String(bottom.id))) continue;
+
           // Rotation: never repeat yesterday's exact top+bottom pair; when reusing one, switch the other
           if (mode === 'rotation' && previous) {
             const topReuse = daysSinceUsed(String(top.id), dayIndex, log) < 999;

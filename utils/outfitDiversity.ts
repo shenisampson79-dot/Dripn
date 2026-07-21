@@ -29,7 +29,9 @@ export type OutfitFeatures = {
   silhouette: string;
 };
 
-const ITEM_REUSE_PENALTY = 10;
+const ITEM_REUSE_PENALTY = 18;
+/** Extra weight so hero pieces (tops) spread across the plan instead of clustering. */
+const TOP_REUSE_EXTRA_PENALTY = 14;
 const COLOR_REUSE_PENALTY = 5;
 const FIT_REUSE_PENALTY = 8;
 const SILHOUETTE_REUSE_PENALTY = 12;
@@ -118,7 +120,12 @@ export function scoreOutfitDiversity(items: WardrobeItem[], tracker: DiversityTr
   }
 
   for (const id of features.itemIds) {
-    score -= (tracker.usedItems.get(id) || 0) * ITEM_REUSE_PENALTY;
+    const uses = tracker.usedItems.get(id) || 0;
+    score -= uses * ITEM_REUSE_PENALTY;
+    const piece = items.find((i) => String(i.id) === id);
+    if (piece && isTopItem(piece)) {
+      score -= uses * TOP_REUSE_EXTRA_PENALTY;
+    }
   }
   for (const color of features.colors) {
     score -= (tracker.usedColors.get(color) || 0) * COLOR_REUSE_PENALTY;

@@ -93,60 +93,69 @@ function pickBest(
 export function buildFlightOutfit(
   wardrobe: WardrobeItem[],
   capsule?: WardrobeItem[] | null,
+  options?: { avoidItemIds?: Iterable<string> },
 ): WardrobeItem[] | null {
   const prefer = capsule?.length ? capsule : wardrobe;
   const fallback = wardrobe;
+  const avoid = new Set(
+    Array.from(options?.avoidItemIds || []).map(String).filter(Boolean),
+  );
 
   const layers = prefer.filter(isOuterwearItem);
   const tops = prefer.filter(isTopItem);
   const bottoms = prefer.filter(isBottomItem);
   const shoes = prefer.filter(isShoesItem);
 
-  const used = new Set<string>();
-  let layer =
-    pickBest(layers, scoreLayer, used)
-    || pickBest(fallback.filter(isOuterwearItem), scoreLayer, used);
-  // Soft midlayer as layer if no outerwear (hoodie often tagged as top)
-  if (!layer) {
-    const hoodie = pickBest(
-      [...prefer, ...fallback].filter(
-        (i) => isTopItem(i) && /hoodie|sweatshirt|cardigan|zip/.test(itemText(i)),
-      ),
-      scoreLayer,
-      used,
-    );
-    layer = hoodie;
-  }
+  const tryBuild = (hardAvoid: Set<string>): WardrobeItem[] | null => {
+    const used = new Set<string>(hardAvoid);
+    let layer =
+      pickBest(layers, scoreLayer, used)
+      || pickBest(fallback.filter(isOuterwearItem), scoreLayer, used);
+    // Soft midlayer as layer if no outerwear (hoodie often tagged as top)
+    if (!layer) {
+      const hoodie = pickBest(
+        [...prefer, ...fallback].filter(
+          (i) => isTopItem(i) && /hoodie|sweatshirt|cardigan|zip/.test(itemText(i)),
+        ),
+        scoreLayer,
+        used,
+      );
+      layer = hoodie;
+    }
 
-  if (layer) used.add(String(layer.id));
+    if (layer) used.add(String(layer.id));
 
-  let top =
-    pickBest(tops.filter((t) => String(t.id) !== String(layer?.id)), scoreTop, used)
-    || pickBest(fallback.filter(isTopItem), scoreTop, used);
-  if (top) used.add(String(top.id));
+    let top =
+      pickBest(tops.filter((t) => String(t.id) !== String(layer?.id)), scoreTop, used)
+      || pickBest(fallback.filter(isTopItem), scoreTop, used);
+    if (top) used.add(String(top.id));
 
-  let bottom =
-    pickBest(bottoms.filter(isComfortBottom), scoreBottom, used)
-    || pickBest(fallback.filter(isBottomItem), scoreBottom, used);
-  if (bottom) used.add(String(bottom.id));
+    let bottom =
+      pickBest(bottoms.filter(isComfortBottom), scoreBottom, used)
+      || pickBest(fallback.filter(isBottomItem), scoreBottom, used);
+    if (bottom) used.add(String(bottom.id));
 
-  let shoe =
-    pickBest(shoes.filter(isClosedShoe), scoreShoe, used)
-    || pickBest(fallback.filter((i) => isShoesItem(i) && isClosedShoe(i)), scoreShoe, used);
-  if (shoe) used.add(String(shoe.id));
+    let shoe =
+      pickBest(shoes.filter(isClosedShoe), scoreShoe, used)
+      || pickBest(fallback.filter((i) => isShoesItem(i) && isClosedShoe(i)), scoreShoe, used);
+    if (shoe) used.add(String(shoe.id));
 
-  if (!top || !bottom || !shoe) return null;
+    if (!top || !bottom || !shoe) return null;
 
-  const base = [top, bottom, shoe];
-  const withLayer = layer ? [...base, layer] : base;
+    const base = [top, bottom, shoe];
+    const withLayer = layer ? [...base, layer] : base;
 
-  if (passesHardOutfitChecks(withLayer) || isOutfitValid(withLayer)) {
-    return withLayer;
-  }
-  if (passesHardOutfitChecks(base) || isOutfitValid(base)) {
-    return base;
-  }
-  return null;
+    if (passesHardOutfitChecks(withLayer) || isOutfitValid(withLayer)) {
+      return withLayer;
+    }
+    if (passesHardOutfitChecks(base) || isOutfitValid(base)) {
+      return base;
+    }
+    return null;
+  };
+
+  // Prefer avoiding yesterday's top/bottom so return flight ≠ day-before clone
+  return tryBuild(avoid) || tryBuild(new Set());
 }
 
 export function flightOutfitNote(isReturn: boolean): string {
