@@ -4994,8 +4994,16 @@ class ApiService {
     return this.request<{
       response: string;
       messagesRemaining: number;
+      remainingMessages?: number;
       limitReached: boolean;
       signupPrompt?: string;
+      hasOutfitRecommendation?: boolean;
+      outfitVisualSuggestion?: {
+        source: 'generated';
+        outfitDescription: string;
+        occasion: string;
+        pieces?: Array<{ role: string; garment: string; descriptor: string }>;
+      } | null;
     }>('/api/guest/chat', {
       method: 'POST',
       headers: { 'x-guest-token': sessionToken },
@@ -5028,6 +5036,10 @@ class ApiService {
     style: string,
     stylistId: string,
     gender?: string | null,
+    extras?: {
+      pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
+      occasion?: string | null;
+    },
   ) {
     return this.request<{
       success: boolean;
@@ -5045,6 +5057,8 @@ class ApiService {
         style,
         stylist: stylistId,
         ...(gender ? { gender } : {}),
+        ...(extras?.pieces?.length ? { pieces: extras.pieces } : {}),
+        ...(extras?.occasion ? { occasion: extras.occasion } : {}),
       }),
     });
   }

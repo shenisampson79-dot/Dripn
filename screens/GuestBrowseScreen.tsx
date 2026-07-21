@@ -11,6 +11,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,8 +19,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/ThemedText";
+import { ZoomableWardrobeImage } from "@/components/ZoomableWardrobeImage";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
@@ -45,6 +48,14 @@ interface GuestStylist {
   avatar: string;
 }
 
+type OutfitPiece = { role: string; garment?: string; descriptor: string };
+
+interface OutfitVisualContext {
+  description: string;
+  pieces?: OutfitPiece[];
+  occasion?: string | null;
+}
+
 interface ChatMessage {
   id: string;
   content: string;
@@ -55,6 +66,8 @@ interface ChatMessage {
   showVisualizeButton?: boolean;
   isGeneratingImage?: boolean;
   outfitContext?: string;
+  outfitPieces?: OutfitPiece[];
+  outfitOccasion?: string | null;
   /** Inline error under the bubble when visualize fails or limit is hit */
   visualError?: string;
 }
@@ -128,7 +141,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [signupPrompt, setSignupPrompt] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [imageGenUsed, setImageGenUsed] = useState(0);
-  const lastOutfitContextRef = useRef<string | null>(null);
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
+  const lastOutfitVisualRef = useRef<OutfitVisualContext | null>(null);
 
   const stylistSpeakCode = resolveStylistSpeakLanguage({
     preferredLanguageCode: voiceSettings.preferredLanguage,
@@ -274,12 +288,32 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         else if (/\b(female|woman|girl|she|her|lady)\b/.test(lowerUserText)) setUserGender('female');
       }
 
+      const suggestion = rawResponse?.outfitVisualSuggestion;
+      const suggestionDescription =
+        typeof suggestion?.outfitDescription === 'string'
+          ? suggestion.outfitDescription.trim()
+          : '';
+      const suggestionPieces = Array.isArray(suggestion?.pieces)
+        ? suggestion.pieces.filter((p: OutfitPiece) => p?.descriptor || p?.garment)
+        : undefined;
+      const suggestionOccasion =
+        typeof suggestion?.occasion === 'string' ? suggestion.occasion : null;
+
+      // Prefer structured outfitVisualSuggestion — never feed loose chat prose to SDXL
       const outfitContext = (
-        rawResponse?.outfitVisualSuggestion?.outfitDescription
-        || aiContent.replace(/►/g, '').substring(0, 400)
+        suggestionDescription
+        || lastOutfitVisualRef.current?.description
+        || ''
       ).trim();
+
       if (rawResponse?.hasOutfitRecommendation === true && outfitContext) {
-        lastOutfitContextRef.current = outfitContext;
+        lastOutfitVisualRef.current = {
+          description: outfitContext,
+          pieces: suggestionPieces?.length
+            ? suggestionPieces
+            : lastOutfitVisualRef.current?.pieces,
+          occasion: suggestionOccasion ?? lastOutfitVisualRef.current?.occasion ?? null,
+        };
       }
 
       const askedForVisual = /\b(visual|visualize|picture|photo|image|show me|see (it|the|that)|render)\b/i.test(userText);
@@ -287,7 +321,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       // Prefer auto-visualize whenever the server flags an outfit recommendation
       const shouldVisualize = canGenerateImage && (
         rawResponse?.hasOutfitRecommendation === true
-        || (askedForVisual && Boolean(lastOutfitContextRef.current || outfitContext))
+        || (askedForVisual && Boolean(lastOutfitVisualRef.current?.description || outfitContext))
       );
       const showVisualizeButton = canGenerateImage && (
         rawResponse?.hasOutfitRecommendation === true
@@ -295,9 +329,15 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       );
       const visualContext = (
         askedForVisual
-          ? (lastOutfitContextRef.current || outfitContext)
+          ? (lastOutfitVisualRef.current?.description || outfitContext)
           : outfitContext
       );
+      const visualPieces = (
+        suggestionPieces?.length
+          ? suggestionPieces
+          : lastOutfitVisualRef.current?.pieces
+      );
+      const visualOccasion = suggestionOccasion ?? lastOutfitVisualRef.current?.occasion ?? null;
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -306,6 +346,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         timestamp: new Date(),
         showVisualizeButton: showVisualizeButton && !shouldVisualize,
         outfitContext: visualContext,
+        outfitPieces: visualPieces,
+        outfitOccasion: visualOccasion,
         isGeneratingImage: shouldVisualize,
         visualError: (!canGenerateImage && (rawResponse?.hasOutfitRecommendation === true || askedForVisual))
           ? GUEST_VISUAL_LIMIT_MSG
@@ -314,7 +356,12 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
       setMessages(prev => [...prev, aiMessage]);
       if (shouldVisualize && visualContext) {
-        void handleGenerateOutfitImage(aiMessage.id, visualContext, activeToken);
+        void handleGenerateOutfitImage(
+          aiMessage.id,
+          visualContext,
+          activeToken,
+          { pieces: visualPieces, occasion: visualOccasion },
+        );
       } else if (askedForVisual && !canGenerateImage) {
         // Limit message already attached via visualError on the AI bubble
       }
@@ -350,6 +397,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     messageId: string,
     outfitContext: string,
     tokenOverride?: string | null,
+    extras?: { pieces?: OutfitPiece[]; occasion?: string | null },
   ) => {
     const activeToken = tokenOverride || sessionToken;
     if (!activeToken || !selectedStylist) return;
@@ -367,7 +415,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       return;
     }
 
-    lastOutfitContextRef.current = outfitContext;
+    lastOutfitVisualRef.current = {
+      description: outfitContext,
+      pieces: extras?.pieces?.length ? extras.pieces : lastOutfitVisualRef.current?.pieces,
+      occasion: extras?.occasion ?? lastOutfitVisualRef.current?.occasion ?? null,
+    };
     setMessages(prev => prev.map(m => m.id === messageId
       ? {
           ...m,
@@ -383,6 +435,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         "smart casual",
         selectedStylist.id,
         userGender,
+        {
+          pieces: extras?.pieces,
+          occasion: extras?.occasion,
+        },
       ) as any;
 
       if (result?.limitReached === true) {
@@ -589,7 +645,12 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           )}
 
           {hasValidImage && (
-            <View style={styles.outfitImageContainer}>
+            <Pressable
+              onPress={() => setViewerImageUrl(item.imageUrl!)}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="View outfit image full screen"
+              style={styles.outfitImageContainer}
+            >
               <Image
                 source={{ uri: item.imageUrl }}
                 style={styles.outfitImage}
@@ -607,7 +668,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                   ));
                 }}
               />
-            </View>
+              <View style={styles.imageTapHint}>
+                <Feather name="maximize-2" size={12} color="#FFFFFF" />
+                <Text style={styles.imageTapHintText}>Tap to enlarge</Text>
+              </View>
+            </Pressable>
           )}
 
           {!hasValidImage && !item.isGeneratingImage && !!item.visualError && (
@@ -624,8 +689,13 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
           {!hasValidImage && !item.isGeneratingImage && item.showVisualizeButton && (
             <Pressable
-              onPress={() => handleGenerateOutfitImage(item.id, item.outfitContext || item.content)}
-              disabled={item.isGeneratingImage}
+              onPress={() => handleGenerateOutfitImage(
+                item.id,
+                item.outfitContext || lastOutfitVisualRef.current?.description || '',
+                undefined,
+                { pieces: item.outfitPieces, occasion: item.outfitOccasion },
+              )}
+              disabled={item.isGeneratingImage || !(item.outfitContext || lastOutfitVisualRef.current?.description)}
               style={[styles.visualizeButton, { backgroundColor: colors.primary }]}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -830,6 +900,35 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           </View>
         )}
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={Boolean(viewerImageUrl)}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setViewerImageUrl(null)}
+      >
+        <GestureHandlerRootView style={styles.viewerRoot}>
+          <View style={[styles.viewerHeader, { paddingTop: insets.top + Spacing.sm }]}>
+            <Pressable
+              onPress={() => setViewerImageUrl(null)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close image viewer"
+            >
+              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                Close
+              </ThemedText>
+            </Pressable>
+            <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
+              Outfit look
+            </ThemedText>
+            <View style={{ width: 48 }} />
+          </View>
+          <View style={styles.viewerBody}>
+            <ZoomableWardrobeImage uri={viewerImageUrl} hintColor="#AAAAAA" />
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -952,11 +1051,45 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
+    position: "relative",
   },
   outfitImage: {
     width: "100%",
     height: 260,
     borderRadius: BorderRadius.md,
+  },
+  imageTapHint: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageTapHintText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  viewerRoot: {
+    flex: 1,
+    backgroundColor: "#0A0A0A",
+  },
+  viewerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  viewerBody: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   imageLoadingRow: {
     marginTop: Spacing.sm,
