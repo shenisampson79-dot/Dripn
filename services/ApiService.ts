@@ -5031,8 +5031,12 @@ class ApiService {
   ) {
     return this.request<{
       success: boolean;
-      imageUrl: string;
+      imageUrl: string | null;
       isPlaceholder: boolean;
+      limitReached?: boolean;
+      retryable?: boolean;
+      message?: string;
+      visualsRemaining?: number;
     }>('/api/guest/generate-outfit-image', {
       method: 'POST',
       headers: { 'x-guest-token': sessionToken },

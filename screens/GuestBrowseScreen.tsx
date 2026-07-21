@@ -55,6 +55,18 @@ interface ChatMessage {
   showVisualizeButton?: boolean;
   isGeneratingImage?: boolean;
   outfitContext?: string;
+  /** Inline error under the bubble when visualize fails or limit is hit */
+  visualError?: string;
+}
+
+const GUEST_VISUAL_LIMIT = 3;
+const GUEST_VISUAL_LIMIT_MSG =
+  "You've used your free outfit visuals for this guest session. Sign up to unlock unlimited looks.";
+const GUEST_VISUAL_FAIL_MSG =
+  "Couldn't create that outfit visual. Tap retry to try again.";
+
+function isRenderableHttpsImageUrl(url: unknown): url is string {
+  return typeof url === 'string' && url.startsWith('https://');
 }
 
 const DEFAULT_STYLISTS: GuestStylist[] = [
@@ -271,7 +283,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       }
 
       const askedForVisual = /\b(visual|visualize|picture|photo|image|show me|see (it|the|that)|render)\b/i.test(userText);
-      const canGenerateImage = imageGenUsed < 3;
+      const canGenerateImage = imageGenUsed < GUEST_VISUAL_LIMIT;
+      // Prefer auto-visualize whenever the server flags an outfit recommendation
       const shouldVisualize = canGenerateImage && (
         rawResponse?.hasOutfitRecommendation === true
         || (askedForVisual && Boolean(lastOutfitContextRef.current || outfitContext))
@@ -294,18 +307,16 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         showVisualizeButton: showVisualizeButton && !shouldVisualize,
         outfitContext: visualContext,
         isGeneratingImage: shouldVisualize,
+        visualError: (!canGenerateImage && (rawResponse?.hasOutfitRecommendation === true || askedForVisual))
+          ? GUEST_VISUAL_LIMIT_MSG
+          : undefined,
       };
 
       setMessages(prev => [...prev, aiMessage]);
       if (shouldVisualize && visualContext) {
         void handleGenerateOutfitImage(aiMessage.id, visualContext, activeToken);
       } else if (askedForVisual && !canGenerateImage) {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 2).toString(),
-          content: "You've used your free outfit visuals for this guest session. Sign up to unlock unlimited looks.",
-          isUser: false,
-          timestamp: new Date(),
-        }]);
+        // Limit message already attached via visualError on the AI bubble
       }
 
       const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
@@ -341,9 +352,30 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     tokenOverride?: string | null,
   ) => {
     const activeToken = tokenOverride || sessionToken;
-    if (!activeToken || !selectedStylist || imageGenUsed >= 3) return;
+    if (!activeToken || !selectedStylist) return;
+
+    if (imageGenUsed >= GUEST_VISUAL_LIMIT) {
+      setMessages(prev => prev.map(m => m.id === messageId
+        ? {
+            ...m,
+            isGeneratingImage: false,
+            showVisualizeButton: false,
+            imageUrl: undefined,
+            visualError: GUEST_VISUAL_LIMIT_MSG,
+          }
+        : m));
+      return;
+    }
+
     lastOutfitContextRef.current = outfitContext;
-    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isGeneratingImage: true, showVisualizeButton: false } : m));
+    setMessages(prev => prev.map(m => m.id === messageId
+      ? {
+          ...m,
+          isGeneratingImage: true,
+          showVisualizeButton: false,
+          visualError: undefined,
+        }
+      : m));
     try {
       const result = await apiService.guestGenerateOutfitImage(
         activeToken,
@@ -352,21 +384,76 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         selectedStylist.id,
         userGender,
       ) as any;
-      const rawUrl = typeof result.imageUrl === 'string' ? result.imageUrl : null;
-      const hasRealImage = Boolean(rawUrl && /^https?:\/\//i.test(rawUrl)) && result.isPlaceholder !== true;
+
+      if (result?.limitReached === true) {
+        setImageGenUsed(GUEST_VISUAL_LIMIT);
+        setMessages(prev => prev.map(m => m.id === messageId
+          ? {
+              ...m,
+              isGeneratingImage: false,
+              showVisualizeButton: false,
+              imageUrl: undefined,
+              isPlaceholder: false,
+              visualError: (typeof result.message === 'string' && result.message)
+                || GUEST_VISUAL_LIMIT_MSG,
+            }
+          : m));
+        return;
+      }
+
+      const rawUrl = result?.imageUrl;
+      const hasRealImage =
+        result?.success === true
+        && isRenderableHttpsImageUrl(rawUrl)
+        && result?.isPlaceholder !== true;
+
+      if (hasRealImage) {
+        setImageGenUsed((used) => Math.min(GUEST_VISUAL_LIMIT, used + 1));
+        setMessages(prev => prev.map(m => m.id === messageId
+          ? {
+              ...m,
+              isGeneratingImage: false,
+              showVisualizeButton: false,
+              imageUrl: rawUrl,
+              isPlaceholder: false,
+              visualError: undefined,
+            }
+          : m));
+        return;
+      }
+
+      // Placeholder / invalid URL / soft failure — never render a blank box
+      const failMsg =
+        (typeof result?.message === 'string' && result.message)
+        || (result?.isPlaceholder === true
+          ? 'Outfit visuals are temporarily unavailable. Tap retry to try again.'
+          : GUEST_VISUAL_FAIL_MSG);
+      const canRetry = imageGenUsed < GUEST_VISUAL_LIMIT && result?.limitReached !== true;
       setMessages(prev => prev.map(m => m.id === messageId
         ? {
             ...m,
             isGeneratingImage: false,
-            showVisualizeButton: !hasRealImage && imageGenUsed < 3,
-            imageUrl: hasRealImage ? rawUrl! : undefined,
-            isPlaceholder: result.isPlaceholder === true,
+            showVisualizeButton: canRetry,
+            imageUrl: undefined,
+            isPlaceholder: result?.isPlaceholder === true,
+            visualError: failMsg,
           }
         : m));
-      if (hasRealImage) setImageGenUsed((used) => Math.min(3, used + 1));
-    } catch {
+    } catch (error: any) {
+      const failMsg =
+        (typeof error?.message === 'string' && error.message && !/^HTTP\s*\d+/i.test(error.message))
+          ? error.message
+          : GUEST_VISUAL_FAIL_MSG;
       setMessages(prev => prev.map(m =>
-        m.id === messageId ? { ...m, isGeneratingImage: false, showVisualizeButton: imageGenUsed < 3 } : m
+        m.id === messageId
+          ? {
+              ...m,
+              isGeneratingImage: false,
+              showVisualizeButton: imageGenUsed < GUEST_VISUAL_LIMIT,
+              imageUrl: undefined,
+              visualError: failMsg,
+            }
+          : m
       ));
     }
   };
@@ -478,7 +565,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const colors = selectedStylist ? STYLIST_COLORS[selectedStylist.id] : { primary: "#6B7280", secondary: "#374151" };
-    const hasValidImage = typeof item.imageUrl === 'string' && /^https?:\/\//i.test(item.imageUrl);
+    const hasValidImage = isRenderableHttpsImageUrl(item.imageUrl) && item.isPlaceholder !== true;
     
     return (
       <View style={[styles.messageRow, item.isUser ? styles.userRow : styles.aiRow]}>
@@ -510,12 +597,29 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                 onError={() => {
                   setMessages(prev => prev.map(m =>
                     m.id === item.id
-                      ? { ...m, imageUrl: undefined, showVisualizeButton: imageGenUsed < 3 }
+                      ? {
+                          ...m,
+                          imageUrl: undefined,
+                          showVisualizeButton: imageGenUsed < GUEST_VISUAL_LIMIT,
+                          visualError: GUEST_VISUAL_FAIL_MSG,
+                        }
                       : m
                   ));
                 }}
               />
             </View>
+          )}
+
+          {!hasValidImage && !item.isGeneratingImage && !!item.visualError && (
+            <Text style={{
+              color: theme.textSecondary || theme.text,
+              fontSize: 12,
+              marginTop: 8,
+              opacity: 0.85,
+              lineHeight: 17,
+            }}>
+              {item.visualError}
+            </Text>
           )}
 
           {!hasValidImage && !item.isGeneratingImage && item.showVisualizeButton && (
@@ -526,7 +630,9 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Feather name="image" size={14} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Visualize this outfit</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+                  {item.visualError ? 'Retry visual' : 'Visualize this outfit'}
+                </Text>
               </View>
             </Pressable>
           )}

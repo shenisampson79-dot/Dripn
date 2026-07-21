@@ -210,7 +210,15 @@ async function generateGuestOutfitImage(
     try {
       const result = await apiService.guestGenerateOutfitImage(token, outfitDescription, occasion, 'ruby');
       // Never show a generic stock placeholder as if it were the exact recommended outfit
-      if (result?.imageUrl && !result.isPlaceholder) return result.imageUrl;
+      const url = result?.imageUrl;
+      if (
+        result?.success !== false
+        && typeof url === 'string'
+        && url.startsWith('https://')
+        && !result.isPlaceholder
+      ) {
+        return url;
+      }
       return null;
     } catch {
       // Guest session likely expired — mint a fresh one and retry once
