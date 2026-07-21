@@ -5,7 +5,13 @@ import type { OnboardingProfile } from '@/services/OnboardingProfileService';
 import { completeOutfitItemIds, MIN_OUTFIT_ITEMS } from '@/utils/completeOutfit';
 import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
+import {
+  allocateSingleDayOutfit,
+  normalizeAllocatorOccasion,
+} from '@/utils/wardrobeAllocationEngine';
+import { laundryProfileFromUser } from '@/utils/wearRules';
 import apiService from '@/services/ApiService';
+
 export type GeneratedOutfitApiItem = {
   id: string | number;
   name?: string;
@@ -19,6 +25,7 @@ export type GeneratedOutfitDisplay = {
   items: WardrobeItem[];
   stylistMessage?: string;
   vibeLabel?: string;
+  allocationMode?: string;
 };
 
 export function hydrateGeneratedOutfitItems(
@@ -71,6 +78,22 @@ export function resolveGeneratedOutfitItemIds(
   );
 }
 
+function displayFromAllocation(
+  allocated: Extract<ReturnType<typeof allocateSingleDayOutfit>, { ok: true }>,
+): GeneratedOutfitDisplay {
+  const label = allocated.occasionType.replace(/_/g, ' ');
+  return {
+    items: sortOutfitItemsByVisualOrder(allocated.items),
+    vibeLabel: label,
+    stylistMessage: `Here's a ${label} look from pieces you already own.`,
+    allocationMode: allocated.mode,
+  };
+}
+
+/**
+ * Constraint-first wardrobe outfit generation.
+ * Allocator picks inventory; API may only decorate copy (and is never trusted to invent items).
+ */
 export async function generateWardrobeOutfit(params: {
   occasionType: OutfitOccasionId | 'todays_look';
   wardrobeItems: WardrobeItem[];
@@ -80,7 +103,10 @@ export async function generateWardrobeOutfit(params: {
   user?: UserProfile | null;
   onboardingProfile?: OnboardingProfile | null;
   weather?: { temperature: number; condition: string } | null;
-}): Promise<GeneratedOutfitDisplay & { raw: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
+  excludeItemIds?: string[];
+  /** Local allocator only — skip slow API decorate (Today's outfit, quick chips). */
+  skipDecorate?: boolean;
+}): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
   const {
     occasionType,
     wardrobeItems,
@@ -90,46 +116,73 @@ export async function generateWardrobeOutfit(params: {
     user,
     onboardingProfile,
     weather,
+    excludeItemIds,
+    skipDecorate = false,
   } = params;
-  const regional = resolveRegionalStyleContext(user, onboardingProfile);
 
-  const result = await apiService.generateOutfit({
-    occasionType: occasionType as Parameters<typeof apiService.generateOutfit>[0]['occasionType'],
-    stylistId,
-    saveToCalendar,
-    calendarDate,
-    weather: weather || undefined,
-    countryCode: regional.countryCode || undefined,
-    preferredStyles: regional.styleTags,
-    localItems: wardrobeItems.map((i) => ({
-      id: i.id,
-      name: i.name,
-      category: i.category,
-      color: i.color,
-      imageUri: i.imageUri,
-    })),
+  const allocated = allocateSingleDayOutfit({
+    wardrobe: wardrobeItems,
+    occasionType,
+    excludeItemIds,
+    laundryProfile: laundryProfileFromUser(user),
   });
 
-  if (!result.success || !result.outfit) {
-    throw new Error(result.message || 'Unable to generate outfit');
+  if (!allocated.ok) {
+    throw new Error(allocated.message || 'Could not build a complete outfit from your wardrobe.');
   }
 
-  const completedIds = resolveGeneratedOutfitItemIds(result, wardrobeItems, occasionType);
-  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
-  const displayItems = sortOutfitItemsByVisualOrder(
-    completedIds
-      .map((id) => byId.get(id))
-      .filter((item): item is WardrobeItem => Boolean(item)),
-  );
-
-  if (displayItems.length < MIN_OUTFIT_ITEMS) {
-    throw new Error('Could not build a complete outfit from your wardrobe. Add tops, bottoms, and shoes.');
+  const base = displayFromAllocation(allocated);
+  if (skipDecorate) {
+    return base;
   }
 
-  return {
-    raw: result,
-    items: displayItems,
-    stylistMessage: result.stylistMessage || result.outfit.stylistMessage,
-    vibeLabel: result.vibeLabel || result.outfit.vibe,
-  };
+  const regional = resolveRegionalStyleContext(user, onboardingProfile);
+  const occasionForApi = normalizeAllocatorOccasion(occasionType);
+
+  // Optional decorate: ask API for stylist voice only, constrained to allocated items
+  try {
+    const result = await apiService.generateOutfit({
+      occasionType: occasionForApi as Parameters<typeof apiService.generateOutfit>[0]['occasionType'],
+      stylistId,
+      saveToCalendar,
+      calendarDate,
+      weather: weather || undefined,
+      countryCode: regional.countryCode || undefined,
+      preferredStyles: regional.styleTags,
+      // Pass ONLY allocated pieces so the server cannot invent substitutes
+      localItems: allocated.items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        category: i.category,
+        color: i.color,
+        imageUri: i.imageUri,
+      })),
+      excludeItemIds: wardrobeItems
+        .map((i) => String(i.id))
+        .filter((id) => !allocated.itemIds.includes(id)),
+      contextNotes:
+        `CONSTRAINT ENGINE already selected these exact item IDs: ${allocated.itemIds.join(', ')}. ` +
+        `Use ONLY these items (they are the full wardrobe for this request). ` +
+        `Return them unchanged. Write stylistMessage + vibeLabel only — do not substitute pieces.`,
+    });
+
+    if (result.success) {
+      return {
+        ...base,
+        raw: result,
+        stylistMessage:
+          result.stylistMessage
+          || result.outfit?.stylistMessage
+          || base.stylistMessage,
+        vibeLabel: result.vibeLabel || result.outfit?.vibe || base.vibeLabel,
+      };
+    }
+  } catch (error) {
+    console.warn(
+      '[generateWardrobeOutfit] Decorate call failed; keeping allocator outfit:',
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  return base;
 }

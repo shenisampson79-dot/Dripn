@@ -32,6 +32,10 @@ import {
   MIN_OUTFIT_ITEMS,
 } from '@/utils/completeOutfit';
 import { computeLocalOutfitScore } from '@/utils/outfitCompatibilityScore';
+import {
+  applyWearIncrement,
+  laundryProfileFromUser,
+} from '@/utils/wearRules';
 
 function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'imageProcessed'>): boolean {
   const urls = [item.enhancedImageUri, item.imageUri].filter(Boolean) as string[];
@@ -132,6 +136,8 @@ export interface WardrobeItem {
   purchaseDate?: string;
   timesWorn: number;
   lastWorn?: string;
+  wearCountSinceWash?: number;
+  isDirty?: boolean;
   plannedDate?: string;
   isFavorite: boolean;
   sustainabilityScore?: number;
@@ -232,6 +238,8 @@ interface WardrobeContextType {
   wardrobePhotosUnavailable: boolean;
   backgroundRemovalProgress: BackgroundRemovalProgress | null;
   markItemWorn: (id: string) => Promise<void>;
+  markItemDirty: (id: string) => Promise<void>;
+  markItemClean: (id: string) => Promise<void>;
   toggleItemFavorite: (id: string) => Promise<void>;
   saveOutfit: (outfit: Omit<SavedOutfit, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<SavedOutfit>;
   deleteOutfit: (id: string) => Promise<void>;
@@ -655,8 +663,20 @@ function mapBackendItemToFrontend(
     occasions: (row.occasions || (meta as any).occasions || []) as ClothingOccasion[],
     origin: (row.item_type || (meta as any).origin || 'owned') as ItemOrigin,
     isFavorite: row.is_favorite ?? (meta as any).isFavorite ?? false,
-    timesWorn: row.times_worn ?? (meta as any).timesWorn ?? 0,
-    lastWorn: (meta as any).lastWorn,
+    timesWorn: row.times_worn ?? row.wearCount ?? (meta as any).timesWorn ?? 0,
+    lastWorn: row.last_worn ?? row.lastWorn ?? (meta as any).lastWorn,
+    wearCountSinceWash:
+      (meta as any).wearCountSinceWash
+      ?? row.ai_tags?.wearState?.wearCountSinceWash
+      ?? row.aiTags?.wearState?.wearCountSinceWash
+      ?? row.times_worn
+      ?? row.wearCount
+      ?? 0,
+    isDirty:
+      (meta as any).isDirty
+      ?? row.ai_tags?.wearState?.isDirty
+      ?? row.aiTags?.wearState?.isDirty
+      ?? false,
     plannedDate: (meta as any).plannedDate,
     purchasePrice: (meta as any).purchasePrice,
     purchaseCurrency: (meta as any).purchaseCurrency,
@@ -1348,20 +1368,68 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [loadWardrobe]);
 
   const markItemWorn = useCallback(async (id: string) => {
-    const now = new Date().toISOString();
     const targetItem = itemsRef.current.find(i => i.id === id);
+    if (!targetItem) return;
+    const laundryProfile = laundryProfileFromUser(user);
+    const wearUpdate = applyWearIncrement(targetItem, laundryProfile);
+    const now = wearUpdate.lastWorn;
     const updatedItems = itemsRef.current.map(item =>
       item.id === id
-        ? { ...item, timesWorn: item.timesWorn + 1, lastWorn: now, updatedAt: now }
+        ? { ...item, ...wearUpdate, updatedAt: now }
         : item
     );
     setItems(updatedItems);
     await saveFullLocalCache(updatedItems);
 
     try {
-      await apiService.updateWardrobeItem(id, { timesWorn: (targetItem?.timesWorn || 0) + 1 });
+      await apiService.updateWardrobeItem(id, {
+        timesWorn: wearUpdate.timesWorn,
+        metadata: {
+          lastWorn: wearUpdate.lastWorn,
+          wearCountSinceWash: wearUpdate.wearCountSinceWash,
+          isDirty: wearUpdate.isDirty,
+        },
+      });
     } catch (err) {
       console.log('[WardrobeContext] Backend markItemWorn failed (local updated):', err);
+    }
+  }, [user]);
+
+  const markItemDirty = useCallback(async (id: string) => {
+    const now = new Date().toISOString();
+    const updatedItems = itemsRef.current.map(item =>
+      item.id === id
+        ? { ...item, isDirty: true, updatedAt: now }
+        : item
+    );
+    setItems(updatedItems);
+    await saveFullLocalCache(updatedItems);
+
+    try {
+      await apiService.updateWardrobeItem(id, {
+        metadata: { isDirty: true },
+      });
+    } catch (err) {
+      console.log('[WardrobeContext] Backend markItemDirty failed (local updated):', err);
+    }
+  }, []);
+
+  const markItemClean = useCallback(async (id: string) => {
+    const now = new Date().toISOString();
+    const updatedItems = itemsRef.current.map(item =>
+      item.id === id
+        ? { ...item, isDirty: false, wearCountSinceWash: 0, updatedAt: now }
+        : item
+    );
+    setItems(updatedItems);
+    await saveFullLocalCache(updatedItems);
+
+    try {
+      await apiService.updateWardrobeItem(id, {
+        metadata: { isDirty: false, wearCountSinceWash: 0 },
+      });
+    } catch (err) {
+      console.log('[WardrobeContext] Backend markItemClean failed (local updated):', err);
     }
   }, []);
 
@@ -1476,9 +1544,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [plannedOutfits]);
 
   const removeItemFromPlannedOutfit = useCallback(async (outfitId: string, wardrobeItemId: string) => {
+    const removeKey = String(wardrobeItemId);
     const updatedPlanned = plannedOutfits.map(plan =>
       plan.id === outfitId
-        ? { ...plan, itemIds: plan.itemIds.filter(id => id !== wardrobeItemId) }
+        ? { ...plan, itemIds: plan.itemIds.filter(id => String(id) !== removeKey) }
         : plan
     );
     await savePlannedOutfits(updatedPlanned);
@@ -1590,7 +1659,11 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         const selectedItems = itemIds
           .map((id) => items.find((item) => String(item.id) === String(id)))
           .filter((item): item is WardrobeItem => Boolean(item));
-        const editorial = computeLocalOutfitScore(selectedItems);
+        const editorial = computeLocalOutfitScore(
+          selectedItems,
+          null,
+          user?.colorScanData?.colorSeasonType ?? null,
+        );
         if (editorial.score < 55) continue;
         newSuggestions.push({
           id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1616,7 +1689,11 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       const selectedItems = itemIds
         .map((id) => items.find((item) => String(item.id) === String(id)))
         .filter((item): item is WardrobeItem => Boolean(item));
-      const editorial = computeLocalOutfitScore(selectedItems);
+      const editorial = computeLocalOutfitScore(
+        selectedItems,
+        null,
+        user?.colorScanData?.colorSeasonType ?? null,
+      );
       if (editorial.score < 55) continue;
       newSuggestions.push({
         id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1634,7 +1711,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const topSuggestions = newSuggestions.slice(0, 10);
     setSuggestions(topSuggestions);
     return topSuggestions;
-  }, [items]);
+  }, [items, user?.colorScanData?.colorSeasonType]);
 
   const shuffleOutfit = useCallback((occasion?: ClothingOccasion): OutfitSuggestion | null => {
     const filteredItems = occasion
@@ -1652,7 +1729,11 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const selectedItems = itemIds
       .map((id) => filteredItems.find((item) => String(item.id) === String(id)))
       .filter((item): item is WardrobeItem => Boolean(item));
-    const editorial = computeLocalOutfitScore(selectedItems);
+    const editorial = computeLocalOutfitScore(
+      selectedItems,
+      null,
+      user?.colorScanData?.colorSeasonType ?? null,
+    );
     if (editorial.score < 55) return null;
     return {
       id: `shuffle_${Date.now()}`,
@@ -1664,7 +1745,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       matchScore: editorial.score / 100,
       generatedAt: new Date().toISOString(),
     };
-  }, [items]);
+  }, [items, user?.colorScanData?.colorSeasonType]);
 
   const refreshStats = useCallback(() => {
     if (items.length === 0) {
@@ -1721,6 +1802,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     wardrobePhotosUnavailable,
     backgroundRemovalProgress,
     markItemWorn,
+    markItemDirty,
+    markItemClean,
     toggleItemFavorite,
     saveOutfit,
     deleteOutfit,

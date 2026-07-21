@@ -45,7 +45,7 @@ import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/component
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { getOccasionLabel } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
-import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_GAP = Spacing.md;
@@ -91,7 +91,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
-  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
+  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, markItemDirty, markItemClean, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
     ? getMinimalistCategoryColors() 
@@ -388,10 +388,31 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const handleMarkWorn = async (item: WardrobeItem) => {
     try {
+      const wearUpdate = applyWearIncrement(item, laundryProfileFromUser(user));
       await markItemWorn(item.id);
-      setSelectedItem({ ...item, timesWorn: item.timesWorn + 1 });
+      setSelectedItem({ ...item, ...wearUpdate });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(translations.common.done, translations.wardrobe.markedAsWorn);
+    } catch (error) {
+      Alert.alert(translations.common.error, translations.common.error);
+    }
+  };
+
+  const handleMarkDirty = async (item: WardrobeItem) => {
+    try {
+      await markItemDirty(item.id);
+      setSelectedItem({ ...item, isDirty: true });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      Alert.alert(translations.common.error, translations.common.error);
+    }
+  };
+
+  const handleMarkClean = async (item: WardrobeItem) => {
+    try {
+      await markItemClean(item.id);
+      setSelectedItem({ ...item, isDirty: false, wearCountSinceWash: 0 });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       Alert.alert(translations.common.error, translations.common.error);
     }
@@ -705,7 +726,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             {item.name}
           </ThemedText>
           <ThemedText type="caption" style={styles.itemWornBelow}>
-            {(t('wardrobe.wornTimes') || 'Worn {n}x').replace('{n}', String(item.timesWorn))}
+            {(() => {
+              const template = t('wardrobe.wornTimes') || 'Worn {n}x';
+              if (template.includes('{n}')) {
+                return template.replace('{n}', String(item.timesWorn));
+              }
+              // Stale/incomplete copy like bare "times" — restore clear "Worn N" label
+              return `Worn ${item.timesWorn}`;
+            })()}
           </ThemedText>
         </View>
       </Pressable>
@@ -954,6 +982,17 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     </View>
                   </View>
 
+                  {selectedItem.isDirty ? (
+                    <View style={[styles.detailRow, { marginBottom: Spacing.sm }]}>
+                      <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.coral + '25' }]}>
+                        <Feather name="alert-circle" size={16} color={LUXURY_COLORS.coral} />
+                      </View>
+                      <ThemedText type="body" style={{ color: LUXURY_COLORS.coral }}>
+                        {t('wardrobe.needsLaundry') || 'Needs laundry'}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+
                   {selectedItem.brand ? (
                     <View style={styles.detailRow}>
                       <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
@@ -1002,10 +1041,30 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     >
                       <Feather name="check-circle" size={18} color="#FFFFFF" />
                       <ThemedText type="body" style={styles.actionButtonText}>
-                        Log Wear
+                        {t('wardrobe.logWear') || 'Log Wear'}
                       </ThemedText>
                     </Pressable>
                   </LinearGradient>
+
+                  {selectedItem.isDirty ? (
+                    <Pressable
+                      onPress={() => handleMarkClean(selectedItem)}
+                      style={[styles.secondaryActionButton, { borderColor: LUXURY_COLORS.teal + '60' }]}
+                    >
+                      <Feather name="droplet" size={18} color={LUXURY_COLORS.teal} />
+                      <ThemedText type="body" style={{ color: LUXURY_COLORS.teal }}>
+                        {t('wardrobe.markClean') || 'Mark Clean'}
+                      </ThemedText>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => handleMarkDirty(selectedItem)}
+                      style={[styles.secondaryActionButton, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]}
+                    >
+                      <Feather name="cloud-off" size={18} color={theme.text} />
+                      <ThemedText type="body">{t('wardrobe.markDirty') || 'Mark Dirty'}</ThemedText>
+                    </Pressable>
+                  )}
 
                   {selectedItem.imageUri && !isProxyWardrobeImageUri(selectedItem.imageUri) && !isDurableWardrobeCdnUrl(selectedItem.imageUri) ? (
                     <Pressable
@@ -2039,10 +2098,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   modalActions: {
-    flexDirection: "row",
-    gap: Spacing.md,
+    flexDirection: "column",
+    gap: Spacing.sm,
     marginTop: Spacing["2xl"],
     paddingBottom: Spacing.md,
+  },
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    minHeight: 48,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
   actionButtonGradient: {
     flex: 1,

@@ -114,6 +114,7 @@ export interface ExtendedPreferences {
   culturalStyle: CulturalStylePreferences;
   bodyFitPreferences: BodyFitPreferences;
   colorChoices: ColorPreferences;
+  laundryHabit?: import('@/utils/wearRules').LaundryHabit;
 }
 
 export interface UserProfile {

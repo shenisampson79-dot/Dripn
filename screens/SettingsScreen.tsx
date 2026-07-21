@@ -46,6 +46,7 @@ import {
   getAnalyticsConsent,
   setAnalyticsConsent,
 } from "@/utils/analyticsConsent";
+import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from '@/utils/wearRules';
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -551,6 +552,36 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     setPickerModal({ type: 'colorScheme', visible: true });
   };
 
+  const getLaundryHabitLabel = (habit: LaundryHabit) => {
+    const key = LAUNDRY_HABIT_OPTIONS.find((o) => o.id === habit)?.labelKey;
+    return key ? (t(key) || habit) : habit;
+  };
+
+  const handleLaundryHabitSelect = () => {
+    Alert.alert(
+      t('settings.laundry.title') || 'How do you handle laundry?',
+      t('settings.laundry.subtitle') || 'Helps Dripn know when pieces are ready to wear again.',
+      [
+        ...LAUNDRY_HABIT_OPTIONS.map((option) => ({
+          text: t(option.labelKey) || option.id,
+          onPress: () => {
+            void updateProfile({
+              extendedPreferences: {
+                ...user?.extendedPreferences,
+                laundryHabit: option.id,
+              },
+              profileData: {
+                ...(user?.profileData || {}),
+                laundryHabit: option.id,
+              },
+            });
+          },
+        })),
+        { text: t('common.cancel') || 'Cancel', style: 'cancel' as const },
+      ],
+    );
+  };
+
   const closePickerModal = () => {
     setPickerModal({ type: null, visible: false });
   };
@@ -811,6 +842,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           />
           <SettingItem
+            icon="droplet"
+            title={t('settings.laundry.title') || 'How do you handle laundry?'}
+            subtitle={getLaundryHabitLabel(
+              normalizeLaundryHabit(user?.extendedPreferences?.laundryHabit ?? user?.profileData?.laundryHabit),
+            )}
+            onPress={handleLaundryHabitSelect}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          />
+          <SettingItem
             icon="map-pin"
             title={t('settings.country')}
             subtitle={
@@ -888,88 +930,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.coral, '#C46A4F']}
-            style={styles.sectionIcon}
-          >
-            <Feather name="gift" size={12} color="#FFFFFF" />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.inviteFriends')}</ThemedText>
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <Pressable
-            onPress={handleShareReferral}
-            style={({ pressed }) => [
-              styles.settingItem,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral, '#C46A4F']}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="gift" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={[styles.settingTitle, { color: LUXURY_COLORS.coral }]}>
-                {t('settings.shareYourCode')}: {referralCode}
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {totalReferrals > 0
-                  ? (t('settings.referralStatsLine') || '{count} friends joined · {next}% off next charge ({credit}% banked)')
-                      .replace('{count}', String(totalReferrals))
-                      .replace('{next}', String(referralNextInvoicePercent || Math.min(50, referralCreditPercent || 0)))
-                      .replace('{credit}', String(referralCreditPercent || 0))
-                  : t('settings.inviteDescription')}
-              </ThemedText>
-            </View>
-            <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
-          </Pressable>
-          {!referredByCode ? (
-            <View style={styles.referralApplyRow}>
-              <TextInput
-                value={referralCodeInput}
-                onChangeText={setReferralCodeInput}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                placeholder={t('settings.enterReferralCode') || 'Have a code? Enter it here'}
-                placeholderTextColor={theme.tabIconDefault}
-                style={[
-                  styles.referralInput,
-                  {
-                    color: theme.text,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                    borderColor: theme.border,
-                  },
-                ]}
-              />
-              <Pressable
-                onPress={handleApplyReferralCode}
-                disabled={!referralCodeInput.trim()}
-                style={[
-                  styles.referralApplyBtn,
-                  {
-                    backgroundColor: theme.link,
-                    opacity: referralCodeInput.trim() ? 1 : 0.5,
-                  },
-                ]}
-              >
-                <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  {t('settings.applyCode') || 'Apply'}
-                </ThemedText>
-              </Pressable>
-            </View>
-          ) : (
-            <ThemedText type="caption" style={[styles.referralAppliedNote, { color: theme.tabIconDefault }]}>
-              {(t('settings.referredByNote') || 'Joined with code {code}')
-                .replace('{code}', referredByCode)}
-            </ThemedText>
-          )}
         </View>
       </View>
 
@@ -1307,6 +1267,88 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </View>
         </View>
       ) : null}
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.coral, '#C46A4F']}
+            style={styles.sectionIcon}
+          >
+            <Feather name="gift" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.inviteFriends')}</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          <Pressable
+            onPress={handleShareReferral}
+            style={({ pressed }) => [
+              styles.settingItem,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="gift" size={16} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={[styles.settingTitle, { color: LUXURY_COLORS.coral }]}>
+                {t('settings.shareYourCode')}: {referralCode}
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {totalReferrals > 0
+                  ? (t('settings.referralStatsLine') || '{count} friends joined · {next}% off next charge ({credit}% banked)')
+                      .replace('{count}', String(totalReferrals))
+                      .replace('{next}', String(referralNextInvoicePercent || Math.min(50, referralCreditPercent || 0)))
+                      .replace('{credit}', String(referralCreditPercent || 0))
+                  : t('settings.inviteDescription')}
+              </ThemedText>
+            </View>
+            <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
+          </Pressable>
+          {!referredByCode ? (
+            <View style={styles.referralApplyRow}>
+              <TextInput
+                value={referralCodeInput}
+                onChangeText={setReferralCodeInput}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder={t('settings.enterReferralCode') || 'Have a code? Enter it here'}
+                placeholderTextColor={theme.tabIconDefault}
+                style={[
+                  styles.referralInput,
+                  {
+                    color: theme.text,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={handleApplyReferralCode}
+                disabled={!referralCodeInput.trim()}
+                style={[
+                  styles.referralApplyBtn,
+                  {
+                    backgroundColor: theme.link,
+                    opacity: referralCodeInput.trim() ? 1 : 0.5,
+                  },
+                ]}
+              >
+                <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  {t('settings.applyCode') || 'Apply'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : (
+            <ThemedText type="caption" style={[styles.referralAppliedNote, { color: theme.tabIconDefault }]}>
+              {(t('settings.referredByNote') || 'Joined with code {code}')
+                .replace('{code}', referredByCode)}
+            </ThemedText>
+          )}
+        </View>
+      </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>

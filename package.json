@@ -19,7 +19,10 @@
     "i18n:generate": "node scripts/generate-translations.js",
     "i18n:locales": "node scripts/generate-all-locales.js",
     "security:smoke": "node scripts/security-smoke-check.mjs",
-    "security:scan-secrets": "node scripts/scan-secrets.mjs"
+    "security:scan-secrets": "node scripts/scan-secrets.mjs",
+    "verify:todays-outfit": "npx tsx scripts/verify-todays-outfit-hardening.ts",
+    "verify:allocator": "npx tsx scripts/verify-allocator-hard-validity.ts",
+    "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

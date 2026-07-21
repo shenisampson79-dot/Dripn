@@ -21,6 +21,14 @@ import {
 import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
+import {
+  canWearItem,
+  computeWardrobePressure,
+  DEFAULT_LAUNDRY_PROFILE,
+  resolveCanWearRelaxLevel,
+  reuseScoreComponent,
+  type LaundryProfile,
+} from '@/utils/wearRules';
 
 export type AllocationMode = 'strict' | 'soft' | 'rotation' | 'failure';
 
@@ -72,6 +80,13 @@ const CATEGORY_WEIGHT = {
   shoes: 2,
   accessory: 1,
 } as const;
+
+/** Caps combinatorial search for single-day paths (Today's outfit chip). */
+export const SINGLE_DAY_POOL_CAP = 12;
+
+function capPoolForSingleDay(items: WardrobeItem[], cap = SINGLE_DAY_POOL_CAP): WardrobeItem[] {
+  return items.length <= cap ? items : items.slice(0, cap);
+}
 
 function isLaundrySensitive(item: WardrobeItem): boolean {
   return isTopItem(item) || isBottomItem(item) || isOuterwearItem(item);
@@ -213,6 +228,12 @@ function daysSinceUsed(itemId: string, dayIndex: number, log: UsageLog): number 
   return dayIndex - last;
 }
 
+function isSameFullOutfitAsPrevious(items: WardrobeItem[], previous: WardrobeItem[] | null): boolean {
+  if (!previous?.length || items.length !== previous.length) return false;
+  const prevIds = new Set(previous.map((i) => String(i.id)));
+  return items.every((item) => prevIds.has(String(item.id)));
+}
+
 /** Score(O) = V(O) - R(O) - C(O); higher is better. */
 function scoreCombo(
   items: WardrobeItem[],
@@ -221,9 +242,16 @@ function scoreCombo(
   log: UsageLog,
   mode: Exclude<AllocationMode, 'failure'>,
   occasion: OutfitOccasionId,
+  laundryProfile: LaundryProfile,
+  referenceDate: Date,
+  wardrobePressure: number,
 ): number {
   let score = 0;
   const gym = occasion === 'gym';
+
+  if (isSameFullOutfitAsPrevious(items, previous)) {
+    score -= 10000;
+  }
 
   // Variety vs previous day
   if (previous?.length) {
@@ -237,6 +265,8 @@ function scoreCombo(
       if (!prevSil.has(silhouetteKey(item))) score += 1;
     }
   }
+
+  score += reuseScoreComponent(items, referenceDate, laundryProfile, wardrobePressure);
 
   // Reuse penalty R(O)
   for (const item of items) {
@@ -297,9 +327,12 @@ function pickValidOptional(
   log: UsageLog,
   mode: Exclude<AllocationMode, 'failure'>,
   occasion: OutfitOccasionId,
+  laundryProfile: LaundryProfile,
+  referenceDate: Date,
+  canWearRelaxLevel: 0 | 1 | 2,
 ): WardrobeItem | undefined {
   for (const item of candidates) {
-    if (!itemAllowed(item, dayIndex, log, mode, occasion)) continue;
+    if (!itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, canWearRelaxLevel)) continue;
     if (isOutfitValid([...baseItems, item])) return item;
   }
   return undefined;
@@ -311,10 +344,17 @@ function itemAllowed(
   log: UsageLog,
   mode: Exclude<AllocationMode, 'failure'>,
   occasion: OutfitOccasionId,
+  laundryProfile: LaundryProfile,
+  referenceDate: Date,
+  canWearRelaxLevel: 0 | 1 | 2,
 ): boolean {
   const id = String(item.id);
   const days = daysSinceUsed(id, dayIndex, log);
   const gym = occasion === 'gym';
+
+  if (!canWearItem(item, referenceDate, laundryProfile, { relaxLevel: canWearRelaxLevel })) {
+    return false;
+  }
 
   if (mode === 'strict') {
     return days >= 999;
@@ -331,6 +371,44 @@ function itemAllowed(
     return true;
   }
   return true;
+}
+
+function filterPoolWithWearConstraints(
+  items: WardrobeItem[],
+  dayIndex: number,
+  log: UsageLog,
+  mode: Exclude<AllocationMode, 'failure'>,
+  occasion: OutfitOccasionId,
+  laundryProfile: LaundryProfile,
+  referenceDate: Date,
+  minNeeded: number,
+): { items: WardrobeItem[]; relaxLevel: 0 | 1 | 2; pressure: number } {
+  const base = items.filter((item) =>
+    itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, 0),
+  );
+  let pressure = computeWardrobePressure(base.length, minNeeded);
+  if (base.length >= minNeeded) {
+    return { items: base, relaxLevel: 0, pressure };
+  }
+
+  for (const relaxLevel of [1, 2] as const) {
+    const relaxed = items.filter((item) =>
+      itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, relaxLevel),
+    );
+    pressure = computeWardrobePressure(relaxed.length, minNeeded);
+    if (relaxed.length >= minNeeded) {
+      return { items: relaxed, relaxLevel, pressure };
+    }
+  }
+
+  const fallback = items.filter((item) =>
+    itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, 2),
+  );
+  return {
+    items: fallback.length ? fallback : base,
+    relaxLevel: 2,
+    pressure: computeWardrobePressure(fallback.length, minNeeded),
+  };
 }
 
 function markUsage(items: WardrobeItem[], dayIndex: number, log: UsageLog): void {
@@ -362,8 +440,17 @@ function allocateWithMode(params: {
   occasionTypes: OutfitOccasionId[];
   mode: Exclude<AllocationMode, 'failure'>;
   daysToPlan: number;
+  laundryProfile?: LaundryProfile;
+  referenceDate?: Date;
 }): DayAllocation[] | null {
-  const { wardrobe, occasionTypes, mode, daysToPlan } = params;
+  const {
+    wardrobe,
+    occasionTypes,
+    mode,
+    daysToPlan,
+    laundryProfile = DEFAULT_LAUNDRY_PROFILE,
+    referenceDate = new Date(),
+  } = params;
   const primaryOccasion = occasionTypes[0] || 'casual_day';
   const log: UsageLog = { lastDay: new Map(), weekCount: new Map() };
   const days: DayAllocation[] = [];
@@ -371,13 +458,66 @@ function allocateWithMode(params: {
 
   for (let dayIndex = 0; dayIndex < daysToPlan; dayIndex++) {
     const occasionType = occasionTypes[dayIndex] || primaryOccasion;
+    const planDate = new Date(referenceDate);
+    planDate.setDate(planDate.getDate() + dayIndex);
     const pools = buildOccasionPools(wardrobe, occasionType);
+    const boundPools = daysToPlan === 1
+      ? {
+          tops: capPoolForSingleDay(pools.tops),
+          bottoms: capPoolForSingleDay(pools.bottoms),
+          shoes: capPoolForSingleDay(pools.shoes),
+          outerwear: capPoolForSingleDay(pools.outerwear),
+          accessories: capPoolForSingleDay(pools.accessories),
+        }
+      : pools;
 
-    const tops = pools.tops.filter((i) => itemAllowed(i, dayIndex, log, mode, occasionType));
-    const bottoms = pools.bottoms.filter((i) => itemAllowed(i, dayIndex, log, mode, occasionType));
-    let shoes = pools.shoes.filter((i) => itemAllowed(i, dayIndex, log, mode, occasionType));
+    const topsFiltered = filterPoolWithWearConstraints(
+      boundPools.tops,
+      dayIndex,
+      log,
+      mode,
+      occasionType,
+      laundryProfile,
+      planDate,
+      1,
+    );
+    const bottomsFiltered = filterPoolWithWearConstraints(
+      boundPools.bottoms,
+      dayIndex,
+      log,
+      mode,
+      occasionType,
+      laundryProfile,
+      planDate,
+      1,
+    );
+    const shoesFiltered = filterPoolWithWearConstraints(
+      boundPools.shoes,
+      dayIndex,
+      log,
+      mode,
+      occasionType,
+      laundryProfile,
+      planDate,
+      1,
+    );
+    const canWearRelaxLevel = resolveCanWearRelaxLevel(
+      Math.max(topsFiltered.pressure, bottomsFiltered.pressure, shoesFiltered.pressure),
+    );
+    const wardrobePressure = Math.max(
+      topsFiltered.pressure,
+      bottomsFiltered.pressure,
+      shoesFiltered.pressure,
+    );
+
+    const tops = topsFiltered.items;
+    const bottoms = bottomsFiltered.items;
+    let shoes = shoesFiltered.items;
     if (!shoes.length && (mode === 'soft' || mode === 'rotation')) {
-      shoes = pools.shoes; // soft shoe fallback
+      shoes = boundPools.shoes.filter((item) =>
+        canWearItem(item, planDate, laundryProfile, { relaxLevel: canWearRelaxLevel }),
+      );
+      if (!shoes.length) shoes = boundPools.shoes;
     }
 
     if (!tops.length || !bottoms.length || !shoes.length) return null;
@@ -400,36 +540,55 @@ function allocateWithMode(params: {
             if (bottomReuse && previous.some((p) => String(p.id) === String(top.id))) continue;
           }
 
+          if (isSameFullOutfitAsPrevious([top, bottom, shoe], previous)) continue;
+
           const baseItems: WardrobeItem[] = [top, bottom, shoe];
           // Hard filter before soft reuse/variety scoring — invalid outfits never enter the candidate set
           if (!isOutfitValid(baseItems)) continue;
 
           const outerwear = pickValidOptional(
-            pools.outerwear,
+            boundPools.outerwear,
             baseItems,
             dayIndex,
             log,
             mode,
             occasionType,
+            laundryProfile,
+            planDate,
+            canWearRelaxLevel,
           );
           const withOuterwear = outerwear ? [...baseItems, outerwear] : baseItems;
           const accessory =
             occasionType === 'gym'
               ? undefined
               : pickValidOptional(
-                  pools.accessories,
+                  boundPools.accessories,
                   withOuterwear,
                   dayIndex,
                   log,
                   mode,
                   occasionType,
+                  laundryProfile,
+                  planDate,
+                  canWearRelaxLevel,
                 );
 
           const combo: Combo = { top, bottom, shoes: shoe, outerwear, accessory };
           const items = comboItems(combo);
           if (!isOutfitValid(items)) continue;
+          if (isSameFullOutfitAsPrevious(items, previous)) continue;
 
-          const score = scoreCombo(items, dayIndex, previous, log, mode, occasionType);
+          const score = scoreCombo(
+            items,
+            dayIndex,
+            previous,
+            log,
+            mode,
+            occasionType,
+            laundryProfile,
+            planDate,
+            wardrobePressure,
+          );
           if (score > bestScore) {
             bestScore = score;
             best = combo;
@@ -472,6 +631,8 @@ export function allocateMultiDayPlan(params: {
   allowReduceDays?: boolean;
   /** Force a specific mode (advanced) */
   forceMode?: AllocationMode;
+  laundryProfile?: LaundryProfile;
+  referenceDate?: Date;
 }): AllocationResult {
   const {
     wardrobe,
@@ -479,6 +640,8 @@ export function allocateMultiDayPlan(params: {
     preferReduceDaysOverRotation = false,
     allowReduceDays = false,
     forceMode,
+    laundryProfile = DEFAULT_LAUNDRY_PROFILE,
+    referenceDate = new Date(),
   } = params;
 
   if (!occasionTypes.length) {
@@ -537,6 +700,8 @@ export function allocateMultiDayPlan(params: {
       occasionTypes: occasionTypes.slice(0, daysToPlan),
       mode,
       daysToPlan,
+      laundryProfile,
+      referenceDate,
     });
     if (!allocated) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -568,6 +733,8 @@ export function allocateMultiDayPlan(params: {
     occasionTypes,
     mode,
     daysToPlan,
+    laundryProfile,
+    referenceDate,
   });
 
   if (!allocated) {
@@ -579,6 +746,8 @@ export function allocateMultiDayPlan(params: {
       occasionTypes,
       mode: fallbackMode,
       daysToPlan,
+      laundryProfile,
+      referenceDate,
     });
     if (!retry) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -687,18 +856,24 @@ export function allocateSingleDayOutfit(params: {
   wardrobe: WardrobeItem[];
   occasionType: OutfitOccasionId | 'todays_look' | string;
   excludeItemIds?: string[];
+  laundryProfile?: LaundryProfile;
+  referenceDate?: Date;
 }): SingleDayAllocation {
-  const occasion = normalizeAllocatorOccasion(params.occasionType);
+  const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
   const wardrobe = params.wardrobe.filter((item) => !exclude.has(String(item.id)));
   const pool = wardrobe.length >= 3 ? wardrobe : params.wardrobe;
   const capacity = computeAllocationCapacity(pool, occasion);
+  const laundryProfile = params.laundryProfile ?? DEFAULT_LAUNDRY_PROFILE;
+  const referenceDate = params.referenceDate ?? new Date();
 
   for (const mode of ['strict', 'soft', 'rotation'] as const) {
     const plan = allocateMultiDayPlan({
       wardrobe: pool,
       occasionTypes: [occasion],
       forceMode: mode,
+      laundryProfile,
+      referenceDate,
     });
     if (plan.ok && plan.days[0]?.itemIds?.length) {
       const byId = new Map(params.wardrobe.map((w) => [String(w.id), w]));
