@@ -1723,6 +1723,7 @@ class ApiService {
       source: 'generated';
       outfitDescription: string;
       occasion: string;
+      pieces?: Array<{ role: string; garment: string; descriptor: string }>;
     } | null;
     mood?: {
       mood: string;
@@ -1792,6 +1793,7 @@ class ApiService {
         source: 'generated';
         outfitDescription: string;
         occasion: string;
+        pieces?: Array<{ role: string; garment: string; descriptor: string }>;
       } | null;
       mood?: {
         mood: string;
@@ -4504,14 +4506,28 @@ class ApiService {
     });
   }
 
-  // AI Outfit Image Generation (via backend)
-  async generateOutfitImage(outfitDescription: string, occasion: string) {
+  // AI Outfit Image Generation (via backend) — same labeled pieces path as guest visuals
+  async generateOutfitImage(
+    outfitDescription: string,
+    occasion: string,
+    extras?: {
+      pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
+      gender?: string | null;
+      style?: string;
+    },
+  ) {
     return this.request<{
-      success: boolean;
+      success?: boolean;
       imageUrl: string | null;
     }>('/api/ai/generate-outfit-image', {
       method: 'POST',
-      body: JSON.stringify({ outfitDescription, occasion }),
+      body: JSON.stringify({
+        outfitDescription,
+        occasion,
+        ...(extras?.pieces?.length ? { pieces: extras.pieces } : {}),
+        ...(extras?.gender ? { gender: extras.gender } : {}),
+        ...(extras?.style ? { style: extras.style } : {}),
+      }),
     });
   }
 

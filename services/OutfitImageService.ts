@@ -204,11 +204,23 @@ async function getGuestSessionToken(forceNew = false): Promise<string | null> {
 async function generateGuestOutfitImage(
   outfitDescription: string,
   occasion: string,
+  extras?: {
+    pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
+    gender?: string | null;
+    style?: string;
+  },
 ): Promise<string | null> {
   let token = await getGuestSessionToken();
   for (let attempt = 0; attempt < 2 && token; attempt++) {
     try {
-      const result = await apiService.guestGenerateOutfitImage(token, outfitDescription, occasion, 'ruby');
+      const result = await apiService.guestGenerateOutfitImage(
+        token,
+        outfitDescription,
+        extras?.style || occasion,
+        'ruby',
+        extras?.gender,
+        { pieces: extras?.pieces, occasion },
+      );
       // Never show a generic stock placeholder as if it were the exact recommended outfit
       const url = result?.imageUrl;
       if (
@@ -232,6 +244,11 @@ export async function generateOutfitImage(
   outfitDescription: string,
   occasion: string,
   t?: TranslateFn,
+  extras?: {
+    pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
+    gender?: string | null;
+    style?: string;
+  },
 ): Promise<OutfitImageResult> {
   const { styleRule, explanation, styleRuleKey, explanationKey } = getStyleRuleForOccasion(occasion, t);
 
@@ -239,11 +256,11 @@ export async function generateOutfitImage(
   try {
     const authToken = await apiService.getToken().catch(() => null);
     if (authToken) {
-      const result = await apiService.generateOutfitImage(outfitDescription, occasion);
+      const result = await apiService.generateOutfitImage(outfitDescription, occasion, extras);
       imageUrl = result.imageUrl || null;
     } else {
       // Pre-signup users can't call the paid endpoint — use the capped guest route
-      imageUrl = await generateGuestOutfitImage(outfitDescription, occasion);
+      imageUrl = await generateGuestOutfitImage(outfitDescription, occasion, extras);
     }
   } catch (error) {
     console.log('Image generation failed, using fallback:', error);

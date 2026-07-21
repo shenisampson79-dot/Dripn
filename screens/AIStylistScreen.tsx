@@ -176,6 +176,7 @@ interface ChatMessage {
     source: 'generated';
     outfitDescription: string;
     occasion: string;
+    pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
   };
   isVisualizingOutfit?: boolean;
 }
@@ -206,12 +207,22 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
     message.outfitVisualSuggestion?.source === 'generated'
     && typeof message.outfitVisualSuggestion.outfitDescription === 'string'
   ) {
+    const suggestionPieces = Array.isArray(message.outfitVisualSuggestion.pieces)
+      ? message.outfitVisualSuggestion.pieces.filter(
+          (p) => p && typeof p === 'object' && (typeof p.descriptor === 'string' || typeof p.garment === 'string'),
+        ).map((p) => ({
+          role: String(p.role || ''),
+          garment: typeof p.garment === 'string' ? p.garment : undefined,
+          descriptor: String(p.descriptor || p.garment || ''),
+        })).filter((p) => p.role && p.descriptor)
+      : undefined;
     normalized.outfitVisualSuggestion = {
       source: 'generated',
       outfitDescription: message.outfitVisualSuggestion.outfitDescription,
       occasion: typeof message.outfitVisualSuggestion.occasion === 'string'
         ? message.outfitVisualSuggestion.occasion
         : '',
+      ...(suggestionPieces?.length ? { pieces: suggestionPieces } : {}),
     };
   }
 
@@ -281,6 +292,7 @@ function attachWardrobeVisualToMessage(
       source: 'generated';
       outfitDescription: string;
       occasion: string;
+      pieces?: Array<{ role: string; garment?: string; descriptor: string }>;
     } | null;
   },
   wardrobeItems: WardrobeItem[],
@@ -2159,6 +2171,9 @@ export default function AIStylistScreen() {
       const result = await apiService.generateOutfitImage(
         suggestion.outfitDescription,
         suggestion.occasion,
+        {
+          pieces: suggestion.pieces,
+        },
       ) as { imageUrl?: string | null; isPlaceholder?: boolean };
       setMessages((current) => {
         const next = current.map((entry) => entry.id === messageId
