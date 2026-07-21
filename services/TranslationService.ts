@@ -8,7 +8,7 @@ import {
   resolveLocaleNativeName,
 } from './localeBundles';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v9';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v10';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {
@@ -1546,11 +1546,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
     nothingToSaveTitle: 'Nothing to save',
     outfitColumn: 'Outfit',
     outfitDetails: 'Outfit details',
-    outfitSavedMessage: 'Find it anytime in Profile → Saved Outfits.',
+    outfitSavedMessage: 'Outfit saved. Find it anytime in Profile → Saved Outfits.',
     outfitSavedTitle: 'Outfit saved',
     previewColumn: 'Preview',
     saveOutfit: 'Save outfit',
-    savedToFavoritesMessage: 'Find it anytime in Profile → Saved Outfits.',
+    savedToFavoritesMessage: 'Saved to favorites. Find it anytime in Profile → Saved Outfits.',
     savedToFavoritesTitle: 'Saved to favorites',
     scrollHint: 'Scroll to browse all {count} outfits',
     titleLabel: 'Name',

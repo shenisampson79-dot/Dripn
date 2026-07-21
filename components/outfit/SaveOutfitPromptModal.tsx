@@ -85,19 +85,21 @@ export function SaveOutfitPromptModal({
       }
       onSaved?.();
       onClose();
-      Alert.alert(
-        isLove
-          ? (t('savedOutfits.savedToFavoritesTitle') || 'Saved to favorites')
-          : (t('savedOutfits.outfitSavedTitle') || 'Outfit saved'),
-        isLove
-          ? (t('savedOutfits.savedToFavoritesMessage') || 'Find it anytime in Profile → Saved Outfits.')
-          : (t('savedOutfits.outfitSavedMessage') || 'Find it anytime in Profile → Saved Outfits.'),
-        [{ text: t('common.ok') || t('common.done') || 'OK' }],
-      );
+      // Single-line confirmation — no separate title (avoids stub copy like "Outfit Saved Title")
+      const savedCopy = isLove
+        ? (t('savedOutfits.savedToFavoritesMessage') || 'Saved to favorites. Find it anytime in Profile → Saved Outfits.')
+        : (t('savedOutfits.outfitSavedMessage') || 'Outfit saved. Find it anytime in Profile → Saved Outfits.');
+      const cleaned =
+        /\b(Title|Message)\s*$/i.test(savedCopy.trim()) || /^(Outfit Saved|Saved To Favorites)\b/i.test(savedCopy.trim())
+          ? (isLove
+              ? 'Saved to favorites. Find it anytime in Profile → Saved Outfits.'
+              : 'Outfit saved. Find it anytime in Profile → Saved Outfits.')
+          : savedCopy.trim();
+      Alert.alert(cleaned, undefined, [{ text: t('common.ok') || t('common.done') || 'OK' }]);
     } catch {
       Alert.alert(
-        t('savedOutfits.couldNotSaveTitle') || 'Could not save',
-        t('savedOutfits.couldNotSaveMessage') || 'Please try again in a moment.',
+        t('savedOutfits.couldNotSaveMessage') || 'Could not save. Please try again in a moment.',
+        undefined,
         [{ text: t('common.ok') || t('common.done') || 'OK' }],
       );
     } finally {
