@@ -84,8 +84,14 @@ function isDressLike(item: WardrobeItem): boolean {
   return cat === 'dresses' || cat === 'dress' || /\bdress\b|jumpsuit/.test(itemText(item));
 }
 
+/** High-visibility pieces that must be spaced harder across a lookbook. */
+export function isStatementItem(item: WardrobeItem): boolean {
+  const t = itemText(item);
+  return /graphic|print|logo|bold|neon|sequin|embroider|jersey|fc\b|football|kit\b|team shirt|liverpool|arsenal|chelsea|manchester/.test(t);
+}
+
 function isStatement(item: WardrobeItem): boolean {
-  return /graphic|print|logo|bold|neon|sequin|embroider/.test(itemText(item));
+  return isStatementItem(item);
 }
 
 function isNeutralColor(item: WardrobeItem): boolean {

@@ -10,23 +10,22 @@ import {
   StylistId,
 } from '@/services/DFYService';
 import { DailyForecast, DailyForecastDay } from '@/services/WeatherService';
-import { allocateGuaranteedMultiDayPlan, LITE_LOOKBOOK_ENGINE_VERSION } from '@/utils/coreCalendarEngine';
+import { LITE_LOOKBOOK_ENGINE_VERSION } from '@/utils/coreCalendarEngine';
 import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
 import { isOutfitValid } from '@/utils/outfitClashRules';
-import {
-  createDiversityTracker,
-  passesHardOutfitChecks,
-  updateDiversityTracker,
-} from '@/utils/outfitDiversity';
+import { passesHardOutfitChecks } from '@/utils/outfitDiversity';
 import { buildTravelCapsule, defaultTravelPlan, type TravelPlan } from '@/utils/travelCapsule';
 import {
   ACTIVITY_CONSTRAINTS,
   assignDayActivities,
   summarizeActivitiesForCopy,
-  violatesActivitySoftRules,
 } from '@/utils/travelActivityConstraints';
-import { buildFlightOutfit, flightOutfitNote } from '@/utils/flightOutfitBuilder';
+import { flightOutfitNote } from '@/utils/flightOutfitBuilder';
 import { generatePackingSummary } from '@/utils/packingSummary';
+import {
+  allocateScheduleDrivenLookbook,
+  generateNotesFromOutfit,
+} from '@/utils/scheduleDrivenAllocator';
 import {
   allocateMultiDayPlan,
   allocateSingleDayOutfit,
@@ -814,49 +813,45 @@ export function generateLiteLookbook(params: {
       ? capsule.items
       : wardrobeItems;
 
-  const { days, mode, modeLabel, emergencyDays } = allocateGuaranteedMultiDayPlan({
-    wardrobe: capsuleWardrobe,
-    totalDays: LITE_LOOKBOOK_DAYS,
-    planStartDate: start,
-  });
-
-  if (days.length < LITE_LOOKBOOK_DAYS) {
-    return null;
-  }
-
-  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
-  const modeSuffix = mode !== 'strict' || emergencyDays > 0 ? ` · ${modeLabel}` : '';
-  const diversity = createDiversityTracker();
-  const destLabel = capsulePlan.destination || forecast?.location || 'your trip';
   const dayActivities = assignDayActivities(
     LITE_LOOKBOOK_DAYS,
     capsulePlan.tripDays || LITE_LOOKBOOK_DAYS,
     capsulePlan.activities,
   );
+
+  const scheduled = allocateScheduleDrivenLookbook({
+    capsule: capsuleWardrobe,
+    totalDays: LITE_LOOKBOOK_DAYS,
+    dayActivities,
+    fullWardrobe: wardrobeItems,
+  });
+
+  if (!scheduled || scheduled.outfits.length < LITE_LOOKBOOK_DAYS) {
+    return null;
+  }
+
+  const modeLabel = scheduled.modeLabel;
+  const destLabel = capsulePlan.destination || forecast?.location || 'your trip';
   const activityCopy = summarizeActivitiesForCopy(capsulePlan.activities);
+
+  // Debug-friendly usage lines for capsule notes
+  const usageLines = Object.entries(scheduled.usagePlan)
+    .filter(([, days]) => days.length > 0)
+    .slice(0, 8)
+    .map(([id, days]) => {
+      const item = capsuleWardrobe.find((w) => String(w.id) === id);
+      return item ? `${item.name} → Days ${days.join(', ')}` : null;
+    })
+    .filter(Boolean) as string[];
 
   const outfits: DFYOutfit[] = [];
   for (let idx = 0; idx < LITE_LOOKBOOK_DAYS; idx++) {
-    const day = days[idx];
     const dayActivity = dayActivities[idx] || 'explore';
-    let mapped = day.itemIds
-      .map((id) => byId.get(String(id)) || capsuleWardrobe.find((w) => String(w.id) === String(id)))
-      .filter((item): item is WardrobeItem => Boolean(item));
+    const mapped = scheduled.outfits[idx];
 
-    // Flight / travel days: replace with dedicated comfort outfit from the capsule
-    if (dayActivity === 'flight') {
-      const previousDay = outfits[idx - 1]?.items || [];
-      const avoidIds = previousDay.map((item) => String(item.id));
-      const flight = buildFlightOutfit(wardrobeItems, capsuleWardrobe, { avoidItemIds: avoidIds });
-      if (flight?.length) mapped = flight;
-    } else if (mapped.length >= 2 && violatesActivitySoftRules(mapped, dayActivity)) {
-      // Soft activity mismatch — keep allocator pick but note it; scoring already biased via capsule
-    }
-
-    if (!passesHardOutfitChecks(mapped)) {
+    if (!passesHardOutfitChecks(mapped) && !isOutfitValid(mapped)) {
       return null;
     }
-    updateDiversityTracker(mapped, diversity);
 
     const dayForecast =
       forecast?.days?.find((d) => d.dayIndex === idx + 1) || forecast?.days?.[idx] || null;
@@ -885,16 +880,15 @@ export function generateLiteLookbook(params: {
 
     const isReturnFlight = dayActivity === 'flight' && idx > 0;
     const activityLabel = ACTIVITY_CONSTRAINTS[dayActivity]?.label;
-    const hero = finalItems[0];
-    const partner = finalItems[1];
-    const pieceLine =
-      hero && partner
-        ? `${hero.name} with ${partner.name}`
-        : hero?.name || 'your capsule pieces';
+    const noteItems = mapOutfitItemsToWardrobe(finalItems, wardrobeItems);
     const stylistNote =
       dayActivity === 'flight'
         ? flightOutfitNote(isReturnFlight)
-        : `Day ${idx + 1}: ${pieceLine} — ${activityLabel || 'trip'} look from your ${capsule.items.length}-piece capsule for ${destLabel}${modeSuffix}.`;
+        : generateNotesFromOutfit(noteItems.length ? noteItems : mapped, idx + 1, {
+            activityLabel,
+            destination: destLabel,
+            capsuleSize: capsule.items.length,
+          });
 
     outfits.push({
       id: prev?.id || `lite-day-${idx + 1}`,
@@ -914,7 +908,7 @@ export function generateLiteLookbook(params: {
               : `Day ${idx + 1} Look`),
       description: activityCopy,
       items: finalItems,
-      occasion: prev?.occasion || allocatorOccasionToDfy(day.occasionType),
+      occasion: prev?.occasion || (dayActivity === 'flight' ? 'holiday' : 'casual'),
       // Always rewrite notes from the allocated pieces — never keep stale AI/server copy
       stylistNote,
       weatherNote: weatherLine || prev?.weatherNote,
@@ -950,7 +944,13 @@ export function generateLiteLookbook(params: {
       outfits,
       travelPlan: capsulePlan,
       capsuleItemIds: capsule.itemIds,
-      capsuleNotes: [...capsule.notes, activityCopy],
+      capsuleNotes: [
+        ...capsule.notes,
+        activityCopy,
+        `Allocator: ${modeLabel}`,
+        ...(usageLines.length ? ['Usage schedule:', ...usageLines] : []),
+        scheduled.validation.ok ? 'Schedule validated' : 'Schedule repaired with soft fallbacks',
+      ],
       packingSummary,
       engineVersion: LITE_LOOKBOOK_ENGINE_VERSION,
     },
