@@ -86,11 +86,20 @@ export function SaveOutfitPromptModal({
       onSaved?.();
       onClose();
       Alert.alert(
-        isLove ? t('savedOutfits.savedToFavoritesTitle') : t('savedOutfits.outfitSavedTitle'),
-        isLove ? t('savedOutfits.savedToFavoritesMessage') : t('savedOutfits.outfitSavedMessage'),
+        isLove
+          ? (t('savedOutfits.savedToFavoritesTitle') || 'Saved to favorites')
+          : (t('savedOutfits.outfitSavedTitle') || 'Outfit saved'),
+        isLove
+          ? (t('savedOutfits.savedToFavoritesMessage') || 'Find it anytime in Profile → Saved Outfits.')
+          : (t('savedOutfits.outfitSavedMessage') || 'Find it anytime in Profile → Saved Outfits.'),
+        [{ text: t('common.ok') || t('common.done') || 'OK' }],
       );
     } catch {
-      Alert.alert(t('savedOutfits.couldNotSaveTitle'), t('savedOutfits.couldNotSaveMessage'));
+      Alert.alert(
+        t('savedOutfits.couldNotSaveTitle') || 'Could not save',
+        t('savedOutfits.couldNotSaveMessage') || 'Please try again in a moment.',
+        [{ text: t('common.ok') || t('common.done') || 'OK' }],
+      );
     } finally {
       setIsSaving(false);
     }
