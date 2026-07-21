@@ -1504,7 +1504,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   <ThemedText type="body" style={{ marginLeft: Spacing.sm, fontWeight: '600' }}>
                     {dfyAccess.tier === 'core'
                       ? (t('wardrobe.fullWardrobeSetup') || 'Full Wardrobe Setup')
-                      : (t('wardrobe.occasionReady') || 'Occasion Ready')}{' '}
+                      : (t('wardrobe.occasionReady') || 'Travel Capsule')}{' '}
                     {t('wardrobe.active') || 'Active'}
                   </ThemedText>
                 </View>

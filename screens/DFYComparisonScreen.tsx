@@ -200,7 +200,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               if (isAutoCheckout) {
                 navigation.replace('DFYStylePlan');
               } else {
-                navigation.navigate('DFYStylePlan');
+                navigation.navigate('DFYTravelPlan');
               }
             },
             style: 'cancel',

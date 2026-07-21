@@ -1,8 +1,32 @@
 import type { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { WardrobeItem } from '@/contexts/WardrobeContext';
-import { DFYLiteDelivery, DFYOccasion, DFYOutfit, DFYOutfitItem, StylistId } from '@/services/DFYService';
+import {
+  DFYLiteDelivery,
+  DFYOccasion,
+  DFYOutfit,
+  DFYOutfitItem,
+  LITE_LOOKBOOK_DAYS,
+  StylistId,
+} from '@/services/DFYService';
 import { DailyForecast, DailyForecastDay } from '@/services/WeatherService';
+import { allocateGuaranteedMultiDayPlan, LITE_LOOKBOOK_ENGINE_VERSION } from '@/utils/coreCalendarEngine';
+import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
+import { isOutfitValid } from '@/utils/outfitClashRules';
+import {
+  createDiversityTracker,
+  passesHardOutfitChecks,
+  updateDiversityTracker,
+} from '@/utils/outfitDiversity';
+import { buildTravelCapsule, defaultTravelPlan, type TravelPlan } from '@/utils/travelCapsule';
+import {
+  ACTIVITY_CONSTRAINTS,
+  assignDayActivities,
+  summarizeActivitiesForCopy,
+  violatesActivitySoftRules,
+} from '@/utils/travelActivityConstraints';
+import { buildFlightOutfit, flightOutfitNote } from '@/utils/flightOutfitBuilder';
+import { generatePackingSummary } from '@/utils/packingSummary';
 import {
   allocateMultiDayPlan,
   allocateSingleDayOutfit,
@@ -248,6 +272,48 @@ function isMeaningfullyWetDay(dayForecast: DailyForecastDay): boolean {
     return true;
   }
   return false;
+}
+
+function outfitHasTopAndBottom(items: WardrobeItem[]): boolean {
+  const hasTop = items.some((i) => {
+    const cat = categorizeWardrobeItem(i);
+    return cat === 'tops' || cat === 'dresses' || cat === 'outerwear';
+  });
+  const hasBottom = items.some((i) => categorizeWardrobeItem(i) === 'bottoms');
+  const hasDress = items.some((i) => categorizeWardrobeItem(i) === 'dresses');
+  return (hasTop && hasBottom) || hasDress;
+}
+
+function mapOutfitItemsToWardrobe(
+  items: DFYOutfitItem[],
+  wardrobeItems: WardrobeItem[],
+): WardrobeItem[] {
+  return items
+    .map((item) => findWardrobeItemForDFYOutfitItem(item, wardrobeItems))
+    .filter((item): item is WardrobeItem => Boolean(item));
+}
+
+/** Clear lookbook slots that fail hard-validity (tie+gym, missing top, etc.). */
+export function stripInvalidLookbookOutfits(
+  delivery: DFYLiteDelivery,
+  wardrobeItems: WardrobeItem[],
+): DFYLiteDelivery {
+  const seenSignatures = new Set<string>();
+
+  const outfits = delivery.outfits.map((slot) => {
+    const mapped = mapOutfitItemsToWardrobe(slot.items || [], wardrobeItems);
+    if (mapped.length < 2 || !outfitHasTopAndBottom(mapped) || !isOutfitValid(mapped)) {
+      return { ...slot, items: [] as DFYOutfitItem[] };
+    }
+    const sig = mapped.map((i) => String(i.id)).sort().join('|');
+    if (sig && seenSignatures.has(sig)) {
+      return { ...slot, items: [] as DFYOutfitItem[] };
+    }
+    if (sig) seenSignatures.add(sig);
+    return slot;
+  });
+
+  return { ...delivery, outfits };
 }
 
 function shouldIncludeOuterwear(dayForecast?: DailyForecastDay | null, dayNumber?: number): boolean {
@@ -577,9 +643,11 @@ export function reallocateLookbookInventory(
     if (!day) return slot;
     const items = day.itemIds
       .map((id) => byId.get(String(id)))
-      .filter((item): item is WardrobeItem => Boolean(item))
-      .map(wardrobeItemToOutfitItem);
-    if (items.length < 2) return slot;
+      .filter((item): item is WardrobeItem => Boolean(item));
+    if (items.length < 2 || !outfitHasTopAndBottom(items) || !isOutfitValid(items)) {
+      return { ...slot, items: [] as DFYOutfitItem[] };
+    }
+    const mappedItems = items.map(wardrobeItemToOutfitItem);
 
     const dayForecast =
       forecast?.days?.find((d) => d.dayIndex === slot.dayNumber) || forecast?.days?.[idx] || null;
@@ -591,7 +659,7 @@ export function reallocateLookbookInventory(
 
     return {
       ...slot,
-      items,
+      items: mappedItems,
       occasion: slot.occasion || allocatorOccasionToDfy(day.occasionType),
       stylistNote: slot.stylistNote
         ? `${slot.stylistNote}${modeSuffix && !slot.stylistNote.includes(plan.modeLabel) ? modeSuffix : ''}`
@@ -629,17 +697,25 @@ export function buildLocalAlternatives(
 
   const alternatives: DFYAlternativeOutfit[] = [];
   const excludeSoFar = [...currentItemIds.map(String)];
+  const priorOutfits: WardrobeItem[][] = [];
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
+  const currentItems = currentItemIds
+    .map((id) => byId.get(String(id)))
+    .filter((item): item is WardrobeItem => Boolean(item));
+  if (currentItems.length) priorOutfits.push(currentItems);
 
   for (let altIdx = 1; altIdx <= count; altIdx++) {
     const allocated = allocateSingleDayOutfit({
       wardrobe: wardrobeItems,
       occasionType: dayOccasionForIndex(Math.max(0, dayNumber - 1 + altIdx)),
       excludeItemIds: excludeSoFar,
+      priorOutfits,
     });
-    if (!allocated.ok || allocated.items.length < 2) continue;
+    if (!allocated.ok || allocated.items.length < 2 || !passesHardOutfitChecks(allocated.items)) continue;
 
     const items = allocated.items.map(wardrobeItemToOutfitItem);
     excludeSoFar.push(...allocated.itemIds);
+    priorOutfits.push(allocated.items);
     const hero = items[0];
     const partner = items[1];
     alternatives.push({
@@ -661,12 +737,208 @@ export function ensureLookbookOutfitsHaveFootwear(
 
   const outfits = delivery.outfits.map((outfit, idx) => {
     if (!outfit.items?.length || outfitHasFootwear(outfit.items)) return outfit;
-    const shoe = footwear[(outfit.dayNumber || idx + 1) % footwear.length];
-    return enrichOutfitWithWardrobeImages(
-      { ...outfit, items: [...outfit.items, wardrobeItemToOutfitItem(shoe)] },
-      wardrobeItems,
-    );
+
+    const baseMapped = mapOutfitItemsToWardrobe(outfit.items, wardrobeItems);
+    if (baseMapped.length < 2 || !outfitHasTopAndBottom(baseMapped) || !isOutfitValid(baseMapped)) {
+      return outfit;
+    }
+
+    const dayNum = outfit.dayNumber || idx + 1;
+    for (let offset = 0; offset < footwear.length; offset++) {
+      const shoe = footwear[(dayNum + offset) % footwear.length];
+      const candidate = [...baseMapped, shoe];
+      if (!isOutfitValid(candidate)) continue;
+      return enrichOutfitWithWardrobeImages(
+        {
+          ...outfit,
+          items: [...outfit.items, wardrobeItemToOutfitItem(shoe)],
+        },
+        wardrobeItems,
+      );
+    }
+
+    return outfit;
   });
 
   return { ...delivery, outfits };
+}
+
+/**
+ * Guaranteed 14-day Travel Capsule lookbook.
+ * Packs a capsule subset, then allocates 14 looks with travel-friendly reuse.
+ * Never trusts server inventory. Always exactly 14 days.
+ */
+export function generateLiteLookbook(params: {
+  userId: string;
+  wardrobeItems: WardrobeItem[];
+  stylistId: StylistId;
+  existing?: DFYLiteDelivery | null;
+  forecast?: DailyForecast | null;
+  travelPlan?: TravelPlan | null;
+}): DFYLiteDelivery | null {
+  const { userId, wardrobeItems, stylistId, existing, forecast } = params;
+  const travelPlan = params.travelPlan || existing?.travelPlan || null;
+
+  if (!wardrobeCanBuildCompleteOutfit(wardrobeItems)) {
+    return null;
+  }
+
+  const startDate =
+    travelPlan?.startDate
+      ? new Date(travelPlan.startDate).toISOString()
+      : existing?.startDate || new Date().toISOString();
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const tempMins = forecast?.days?.map((d) => d.tempMin) || [];
+  const tempMaxes = forecast?.days?.map((d) => d.tempMax) || [];
+  const avgMin = tempMins.length
+    ? Math.round(tempMins.reduce((a, b) => a + b, 0) / tempMins.length)
+    : null;
+  const avgMax = tempMaxes.length
+    ? Math.round(tempMaxes.reduce((a, b) => a + b, 0) / tempMaxes.length)
+    : null;
+
+  const capsulePlan = travelPlan || defaultTravelPlan({
+    destination: forecast?.location || 'your trip',
+    startDate: start.toISOString().slice(0, 10),
+  });
+
+  const capsule = buildTravelCapsule(wardrobeItems, capsulePlan, {
+    tempMin: avgMin,
+    tempMax: avgMax,
+  });
+
+  const capsuleWardrobe =
+    capsule.items.length >= 3 && wardrobeCanBuildCompleteOutfit(capsule.items)
+      ? capsule.items
+      : wardrobeItems;
+
+  const { days, mode, modeLabel, emergencyDays } = allocateGuaranteedMultiDayPlan({
+    wardrobe: capsuleWardrobe,
+    totalDays: LITE_LOOKBOOK_DAYS,
+    planStartDate: start,
+  });
+
+  if (days.length < LITE_LOOKBOOK_DAYS) {
+    return null;
+  }
+
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
+  const modeSuffix = mode !== 'strict' || emergencyDays > 0 ? ` · ${modeLabel}` : '';
+  const diversity = createDiversityTracker();
+  const destLabel = capsulePlan.destination || forecast?.location || 'your trip';
+  const dayActivities = assignDayActivities(
+    LITE_LOOKBOOK_DAYS,
+    capsulePlan.tripDays || LITE_LOOKBOOK_DAYS,
+    capsulePlan.activities,
+  );
+  const activityCopy = summarizeActivitiesForCopy(capsulePlan.activities);
+
+  const outfits: DFYOutfit[] = [];
+  for (let idx = 0; idx < LITE_LOOKBOOK_DAYS; idx++) {
+    const day = days[idx];
+    const dayActivity = dayActivities[idx] || 'explore';
+    let mapped = day.itemIds
+      .map((id) => byId.get(String(id)) || capsuleWardrobe.find((w) => String(w.id) === String(id)))
+      .filter((item): item is WardrobeItem => Boolean(item));
+
+    // Flight / travel days: replace with dedicated comfort outfit from the capsule
+    if (dayActivity === 'flight') {
+      const flight = buildFlightOutfit(wardrobeItems, capsuleWardrobe);
+      if (flight?.length) mapped = flight;
+    } else if (mapped.length >= 2 && violatesActivitySoftRules(mapped, dayActivity)) {
+      // Soft activity mismatch — keep allocator pick but note it; scoring already biased via capsule
+    }
+
+    if (!passesHardOutfitChecks(mapped)) {
+      return null;
+    }
+    updateDiversityTracker(mapped, diversity);
+
+    const dayForecast =
+      forecast?.days?.find((d) => d.dayIndex === idx + 1) || forecast?.days?.[idx] || null;
+    const weatherFiltered = dayForecast
+      ? filterOutfitItemsForWeather(
+          mapped.map(wardrobeItemToOutfitItem),
+          dayForecast,
+          wardrobeItems,
+        )
+      : mapped.map(wardrobeItemToOutfitItem);
+
+    const weatherMapped = mapOutfitItemsToWardrobe(weatherFiltered, wardrobeItems);
+    let finalItems = passesHardOutfitChecks(weatherMapped)
+      ? weatherFiltered
+      : mapped.map(wardrobeItemToOutfitItem);
+
+    // Don't let weather strip flight layers / structure
+    if (dayActivity === 'flight' && !passesHardOutfitChecks(mapOutfitItemsToWardrobe(finalItems, wardrobeItems))) {
+      finalItems = mapped.map(wardrobeItemToOutfitItem);
+    }
+
+    const prev = existing?.outfits?.[idx];
+    const weatherLine = dayForecast
+      ? `${dayForecast.tempMin}–${dayForecast.tempMax}°C in ${destLabel}`
+      : undefined;
+
+    const isReturnFlight = dayActivity === 'flight' && idx > 0;
+    const activityLabel = ACTIVITY_CONSTRAINTS[dayActivity]?.label;
+    const stylistNote =
+      dayActivity === 'flight'
+        ? flightOutfitNote(isReturnFlight)
+        : `Day ${idx + 1}: ${activityLabel || 'trip'} look from your ${capsule.items.length}-piece capsule for ${destLabel}${modeSuffix}.`;
+
+    outfits.push({
+      id: prev?.id || `lite-day-${idx + 1}`,
+      dayNumber: idx + 1,
+      title:
+        prev?.title
+        || (dayActivity === 'flight'
+          ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
+          : idx === 0
+            ? "Today's Look"
+            : `Day ${idx + 1} Look`),
+      description: prev?.description || activityCopy,
+      items: finalItems,
+      occasion: prev?.occasion || allocatorOccasionToDfy(day.occasionType),
+      stylistNote: prev?.stylistNote || stylistNote,
+      weatherNote: prev?.weatherNote || weatherLine,
+      stylistId: prev?.stylistId || stylistId,
+      userReaction: prev?.userReaction ?? null,
+      saved: prev?.saved ?? false,
+      vibeLabel: dayActivity === 'flight' ? 'Travel day' : activityLabel,
+    });
+  }
+
+  const packingSummary = generatePackingSummary({
+    capsuleItems: capsuleWardrobe,
+    travelPlan: capsulePlan,
+    tempMin: avgMin,
+    tempMax: avgMax,
+    lookbookDays: LITE_LOOKBOOK_DAYS,
+  });
+
+  const expiryDate = new Date(
+    start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  return enrichDeliveryWithWardrobeImages(
+    {
+      userId,
+      tier: 'lite',
+      startDate: start.toISOString(),
+      expiryDate,
+      totalDays: LITE_LOOKBOOK_DAYS,
+      currentDay: existing?.currentDay || 1,
+      completed: false,
+      nudgesShown: existing?.nudgesShown || [],
+      outfits,
+      travelPlan: capsulePlan,
+      capsuleItemIds: capsule.itemIds,
+      capsuleNotes: [...capsule.notes, activityCopy],
+      packingSummary,
+      engineVersion: LITE_LOOKBOOK_ENGINE_VERSION,
+    },
+    wardrobeItems,
+  );
 }

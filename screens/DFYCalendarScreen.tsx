@@ -894,6 +894,30 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     );
   };
 
+  const formatOutfitCardDate = (date: Date) =>
+    date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const renderSelectedOutfitSummary = (
+    outfit: DFYCalendarOutfit,
+    date: Date,
+    trailing?: React.ReactNode,
+  ) => (
+    <View style={[styles.selectedOutfitHeader, { marginBottom: Spacing.md }]}>
+      <View style={{ flex: 1 }}>
+        <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
+          {formatOutfitCardDate(date)}
+        </ThemedText>
+        <ThemedText type="h3">{outfit.title}</ThemedText>
+        {outfit.weatherNote ? (
+          <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
+            {outfit.weatherNote}
+          </ThemedText>
+        ) : null}
+      </View>
+      {trailing}
+    </View>
+  );
+
   const renderAlternativeStackVisual = (alt: DFYAlternativeOutfit) => {
     const pieces = itemsToVisualPieces(alt.items);
     if (!pieces.length) return null;
@@ -959,22 +983,12 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}
           >
             <Pressable onPress={() => handleOutfitPress(selectedOutfit)}>
+              {renderSelectedOutfitSummary(
+                selectedOutfit,
+                selectedDate,
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />,
+              )}
               {renderOutfitStackVisual(selectedOutfit)}
-
-              <View style={[styles.outfitCardHeader, { marginTop: Spacing.md }]}>
-                <View style={styles.outfitCardInfo}>
-                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
-                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </ThemedText>
-                  <ThemedText type="h3">{selectedOutfit.title}</ThemedText>
-                  {selectedOutfit.weatherNote ? (
-                    <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
-                      {selectedOutfit.weatherNote}
-                    </ThemedText>
-                  ) : null}
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-              </View>
 
               {selectedOutfit.stylistNote ? (
                 <ThemedText type="small" numberOfLines={3} style={{ opacity: 0.7, marginTop: Spacing.md, lineHeight: 18 }}>
@@ -1018,6 +1032,11 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             )}
           </View>
           <View style={styles.listOutfitInfo}>
+            {item.date ? (
+              <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
+                {formatOutfitCardDate(new Date(item.date))}
+              </ThemedText>
+            ) : null}
             <ThemedText type="body" style={{ fontWeight: '600' }}>{item.title}</ThemedText>
             <ThemedText type="small" numberOfLines={2} style={{ opacity: 0.7, marginTop: 2 }}>
               {item.stylistNote}
@@ -1223,7 +1242,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             {isHistorical
               ? (t('dfy.package.savedPlan') || 'Saved plan')
               : tier === 'lite'
-                ? 'Occasion Ready'
+                ? 'Travel Capsule'
                 : 'Full Wardrobe Setup'}
           </ThemedText>
         </View>
@@ -1313,26 +1332,14 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
               style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}
             >
               <Pressable onPress={() => handleOutfitPress(selectedOutfit)}>
-                {renderOutfitStackVisual(selectedOutfit)}
-
-                <View style={[styles.selectedOutfitHeader, { marginTop: Spacing.md, marginBottom: 0 }]}>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
-                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </ThemedText>
-                    <ThemedText type="h3">
-                      {selectedOutfit.title}
-                    </ThemedText>
-                    {selectedOutfit.weatherNote ? (
-                      <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
-                        {selectedOutfit.weatherNote}
-                      </ThemedText>
-                    ) : null}
-                  </View>
+                {renderSelectedOutfitSummary(
+                  selectedOutfit,
+                  selectedDate,
                   <View style={[styles.outfitStatus, { backgroundColor: selectedOutfit.wasWorn ? LUXURY_COLORS.emerald : tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}>
                     <Feather name={selectedOutfit.wasWorn ? 'check' : 'eye'} size={20} color="#FFFFFF" />
-                  </View>
-                </View>
+                  </View>,
+                )}
+                {renderOutfitStackVisual(selectedOutfit)}
 
                 {selectedOutfit.stylistNote && (
                   <View style={{ marginTop: Spacing.md }}>

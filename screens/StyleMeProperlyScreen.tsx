@@ -52,7 +52,7 @@ const DEFAULT_TIERS: DfyTier[] = [
   },
   {
     id: "outfit",
-    title: "Occasion Ready",
+    title: "Travel Capsule",
     tagline: "Ready-to-wear looks for a trip or event (14 days).",
     price: "£19.99",
     turnaround: "Ready in 24h",

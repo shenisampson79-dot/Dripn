@@ -20,6 +20,16 @@ import {
 } from '@/utils/completeOutfit';
 import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
+import {
+  cloneDiversityTracker,
+  createDiversityTracker,
+  hashOutfit,
+  scoreOutfitDiversity,
+  seedDiversityTracker,
+  seedTrackerFromExcludeIds,
+  updateDiversityTracker,
+  type DiversityTracker,
+} from '@/utils/outfitDiversity';
 import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
 import {
   canWearItem,
@@ -234,7 +244,7 @@ function isSameFullOutfitAsPrevious(items: WardrobeItem[], previous: WardrobeIte
   return items.every((item) => prevIds.has(String(item.id)));
 }
 
-/** Score(O) = V(O) - R(O) - C(O); higher is better. */
+/** Score(O) = V(O) - R(O) - C(O) + D(O); higher is better. */
 function scoreCombo(
   items: WardrobeItem[],
   dayIndex: number,
@@ -245,12 +255,18 @@ function scoreCombo(
   laundryProfile: LaundryProfile,
   referenceDate: Date,
   wardrobePressure: number,
+  diversity?: DiversityTracker | null,
 ): number {
   let score = 0;
   const gym = occasion === 'gym';
 
   if (isSameFullOutfitAsPrevious(items, previous)) {
     score -= 10000;
+  }
+
+  // Plan-wide diversity (item / color / fit / silhouette / exact duplicate)
+  if (diversity) {
+    score += scoreOutfitDiversity(items, diversity);
   }
 
   // Variety vs previous day
@@ -442,6 +458,7 @@ function allocateWithMode(params: {
   daysToPlan: number;
   laundryProfile?: LaundryProfile;
   referenceDate?: Date;
+  diversityTracker?: DiversityTracker;
 }): DayAllocation[] | null {
   const {
     wardrobe,
@@ -450,9 +467,11 @@ function allocateWithMode(params: {
     daysToPlan,
     laundryProfile = DEFAULT_LAUNDRY_PROFILE,
     referenceDate = new Date(),
+    diversityTracker,
   } = params;
   const primaryOccasion = occasionTypes[0] || 'casual_day';
   const log: UsageLog = { lastDay: new Map(), weekCount: new Map() };
+  const diversity = diversityTracker || createDiversityTracker();
   const days: DayAllocation[] = [];
   let previous: WardrobeItem[] | null = null;
 
@@ -577,6 +596,8 @@ function allocateWithMode(params: {
           const items = comboItems(combo);
           if (!isOutfitValid(items)) continue;
           if (isSameFullOutfitAsPrevious(items, previous)) continue;
+          const sig = hashOutfit(items);
+          if (sig && diversity.outfitHashes.has(sig)) continue;
 
           const score = scoreCombo(
             items,
@@ -588,6 +609,7 @@ function allocateWithMode(params: {
             laundryProfile,
             planDate,
             wardrobePressure,
+            diversity,
           );
           if (score > bestScore) {
             bestScore = score;
@@ -602,6 +624,7 @@ function allocateWithMode(params: {
     const selected = comboItems(best);
     const reuse = classifyReuse(selected, dayIndex, log);
     markUsage(selected, dayIndex, log);
+    updateDiversityTracker(selected, diversity);
 
     days.push({
       dayIndex,
@@ -633,6 +656,9 @@ export function allocateMultiDayPlan(params: {
   forceMode?: AllocationMode;
   laundryProfile?: LaundryProfile;
   referenceDate?: Date;
+  /** Prior outfits (e.g. earlier week) seed diversity so regenerations avoid sameness */
+  priorOutfits?: WardrobeItem[][];
+  diversityTracker?: DiversityTracker;
 }): AllocationResult {
   const {
     wardrobe,
@@ -642,7 +668,15 @@ export function allocateMultiDayPlan(params: {
     forceMode,
     laundryProfile = DEFAULT_LAUNDRY_PROFILE,
     referenceDate = new Date(),
+    priorOutfits,
+    diversityTracker,
   } = params;
+
+  const planDiversity =
+    diversityTracker
+    || (priorOutfits?.length
+      ? seedDiversityTracker(priorOutfits)
+      : createDiversityTracker());
 
   if (!occasionTypes.length) {
     const capacity = computeAllocationCapacity(wardrobe, 'casual_day');
@@ -702,6 +736,7 @@ export function allocateMultiDayPlan(params: {
       daysToPlan,
       laundryProfile,
       referenceDate,
+      diversityTracker: cloneDiversityTracker(planDiversity),
     });
     if (!allocated) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -735,6 +770,7 @@ export function allocateMultiDayPlan(params: {
     daysToPlan,
     laundryProfile,
     referenceDate,
+    diversityTracker: cloneDiversityTracker(planDiversity),
   });
 
   if (!allocated) {
@@ -748,6 +784,7 @@ export function allocateMultiDayPlan(params: {
       daysToPlan,
       laundryProfile,
       referenceDate,
+      diversityTracker: cloneDiversityTracker(planDiversity),
     });
     if (!retry) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -858,6 +895,8 @@ export function allocateSingleDayOutfit(params: {
   excludeItemIds?: string[];
   laundryProfile?: LaundryProfile;
   referenceDate?: Date;
+  /** Recent outfits to diversify against (stylist regenerations, weekly planner). */
+  priorOutfits?: WardrobeItem[][];
 }): SingleDayAllocation {
   const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
@@ -866,6 +905,10 @@ export function allocateSingleDayOutfit(params: {
   const capacity = computeAllocationCapacity(pool, occasion);
   const laundryProfile = params.laundryProfile ?? DEFAULT_LAUNDRY_PROFILE;
   const referenceDate = params.referenceDate ?? new Date();
+  const diversityTracker = seedTrackerFromExcludeIds(
+    params.excludeItemIds,
+    seedDiversityTracker(params.priorOutfits || []),
+  );
 
   for (const mode of ['strict', 'soft', 'rotation'] as const) {
     const plan = allocateMultiDayPlan({
@@ -874,13 +917,14 @@ export function allocateSingleDayOutfit(params: {
       forceMode: mode,
       laundryProfile,
       referenceDate,
+      diversityTracker: cloneDiversityTracker(diversityTracker),
     });
     if (plan.ok && plan.days[0]?.itemIds?.length) {
       const byId = new Map(params.wardrobe.map((w) => [String(w.id), w]));
       const items = plan.days[0].itemIds
         .map((id) => byId.get(String(id)))
         .filter((item): item is WardrobeItem => Boolean(item));
-      if (items.length >= 3) {
+      if (items.length >= 3 && isOutfitValid(items)) {
         return {
           ok: true,
           occasionType: occasion,

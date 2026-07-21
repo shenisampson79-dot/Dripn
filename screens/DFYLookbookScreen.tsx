@@ -25,7 +25,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
-import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId, type DFYAccessStatus } from "@/services/DFYService";
+import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId, type DFYAccessStatus, normalizeLiteDelivery, LITE_LOOKBOOK_DAYS } from "@/services/DFYService";
 import { SaveOutfitPromptModal, type SaveOutfitIntent } from "@/components/outfit/SaveOutfitPromptModal";
 import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
 import { apiService } from "@/services/ApiService";
@@ -34,12 +34,13 @@ import {
   enrichDeliveryWithWardrobeImages,
   resolveDFYItemImageUri,
   RawDFYOutfitItem,
-  fillEmptyLookbookSlots,
-  reallocateLookbookInventory,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
   filterOutfitItemsForWeather,
+  stripInvalidLookbookOutfits,
+  generateLiteLookbook,
 } from "@/utils/dfyOutfitImages";
+import { LITE_LOOKBOOK_ENGINE_VERSION } from "@/utils/coreCalendarEngine";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
 import {
@@ -134,13 +135,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     }, [delivery, user?.id, isHistorical]),
   );
 
-  const maybeBackfillLookbook = (hydrated: DFYLiteDelivery) => {
+  const maybeBackfillLookbook = (hydrated: DFYLiteDelivery, force = false) => {
     if (isHistorical) return;
-    const totalDays = hydrated.totalDays || 14;
+    const totalDays = hydrated.totalDays || LITE_LOOKBOOK_DAYS;
     const filledCount = countFilledLookbookDays(hydrated);
-    if (filledCount >= totalDays || backfillStartedRef.current) return;
+    if (!force && (filledCount >= totalDays || backfillStartedRef.current)) return;
     backfillStartedRef.current = true;
-    void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0 });
+    void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0, force });
   };
 
   const outfitTitle = (idx: number) => {
@@ -155,20 +156,28 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     liteDelivery: DFYLiteDelivery,
     options?: { persistCorrections?: boolean; backfill?: boolean },
   ) => {
-    const totalDays = liteDelivery.totalDays || 14;
-    const hasCorruptedDayNumbers = liteDelivery.outfits.some((o) => o.dayNumber > totalDays);
-    const normalised: DFYLiteDelivery = hasCorruptedDayNumbers
-      ? {
-          ...liteDelivery,
-          outfits: liteDelivery.outfits.map((o, idx) => ({
-            ...o,
-            dayNumber: idx + 1,
-            title: outfitTitle(idx),
-          })),
-        }
-      : liteDelivery;
+    let normalised = normalizeLiteDelivery(liteDelivery);
+    const totalDays = normalised.totalDays;
+    const hasCorruptedDayNumbers = normalised.outfits.some((o) => o.dayNumber > totalDays);
+    if (hasCorruptedDayNumbers) {
+      normalised = {
+        ...normalised,
+        outfits: normalised.outfits.map((o, idx) => ({
+          ...o,
+          dayNumber: idx + 1,
+          title: outfitTitle(idx),
+        })),
+      };
+    }
 
-    if (hasCorruptedDayNumbers && options?.persistCorrections !== false) {
+    const beforeInvalidStrip = countFilledLookbookDays(normalised);
+    normalised = stripInvalidLookbookOutfits(normalised, wardrobeItems);
+    const clearedInvalidOutfits = beforeInvalidStrip > countFilledLookbookDays(normalised);
+    const staleEngine =
+      (liteDelivery as DFYLiteDelivery & { engineVersion?: string }).engineVersion
+      !== LITE_LOOKBOOK_ENGINE_VERSION;
+
+    if ((hasCorruptedDayNumbers || clearedInvalidOutfits) && options?.persistCorrections !== false) {
       await dfyService.saveDFYDelivery(normalised);
     }
 
@@ -229,7 +238,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     }
 
     if (options?.backfill !== false) {
-      maybeBackfillLookbook(withWeather);
+      maybeBackfillLookbook(withWeather, clearedInvalidOutfits || staleEngine);
     }
   };
 
@@ -293,7 +302,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         return;
       }
       const hydrated = enrichDeliveryWithWardrobeImages(
-        ensureLookbookOutfitsHaveFootwear(mapped, wardrobeItems),
+        ensureLookbookOutfitsHaveFootwear(
+          stripInvalidLookbookOutfits(normalizeLiteDelivery(mapped), wardrobeItems),
+          wardrobeItems,
+        ),
         wardrobeItems,
       );
       setDelivery(hydrated);
@@ -414,118 +426,99 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     options: { fillGapsOnly?: boolean; force?: boolean } = {},
   ) => {
     if (isHistorical || !user?.id || isGenerating) return;
-    if (!options.force && backfillStartedRef.current && countFilledLookbookDays(existingDelivery) >= (existingDelivery.totalDays || 14)) {
+    if (
+      !options.force
+      && backfillStartedRef.current
+      && countFilledLookbookDays(existingDelivery) >= LITE_LOOKBOOK_DAYS
+    ) {
       return;
     }
 
     setIsGenerating(true);
     setGenerateError(null);
 
-    const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
-    let serverGenerated = false;
+    const stylistId = (user.stylistPreferences?.selectedStylistId || 'ruby') as StylistId;
 
     try {
-      let working = existingDelivery;
-      const forecast = await weatherService.get14DayForecast();
-      const coords = forecast
-        ? { lat: forecast.lat, lon: forecast.lon, locationName: forecast.location }
-        : await weatherService.getLocationCoords();
+      const scaffold = normalizeLiteDelivery(existingDelivery);
+      const trip = scaffold.travelPlan;
+      const forecast = trip?.destination
+        ? await weatherService.getForecastForDestination(trip.destination, trip.lat, trip.lon)
+        : await weatherService.get14DayForecast();
 
-      // Instant on-device fill so empty days appear immediately (constraint engine)
-      if (wardrobeItems.length >= 2) {
-        const locallyFilled = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
-        if (countFilledLookbookDays(locallyFilled) > countFilledLookbookDays(working)) {
-          working = locallyFilled;
-          await dfyService.saveDFYDelivery(working);
-          setDelivery(working);
-        }
+      // Travel Capsule engine — packs subset, then allocates 14 looks. Never keep server inventory.
+      const generated = generateLiteLookbook({
+        userId: user.id,
+        wardrobeItems,
+        stylistId,
+        existing: scaffold,
+        forecast,
+        travelPlan: trip,
+      });
+
+      if (!generated) {
+        setGenerateError(
+          t('dfy.lookbook.buildFailed')
+          || 'Add a few more wardrobe pieces (top, bottom, shoes) so we can build your 14-day lookbook.',
+        );
+        return;
       }
 
-      // Try server for richer AI styling notes (may be slow on cold start)
-      let rawOutfits: any[] = [];
+      // Optional: AI notes only — never trust server item picks
       try {
+        const coords = forecast
+          ? { lat: forecast.lat, lon: forecast.lon, locationName: forecast.location }
+          : await weatherService.getLocationCoords();
         const result = await apiService.generateDFYLookbook({
           stylistId,
           lat: coords?.lat,
           lon: coords?.lon,
           location: coords?.locationName || forecast?.location,
         });
-        rawOutfits = result.outfits || [];
-        if (!result.success || rawOutfits.length === 0) {
-          const fallback = await apiService.generateDFYDelivery({
-            tier: 'lite',
-            stylistId,
-            lat: coords?.lat,
-            lon: coords?.lon,
-            location: coords?.locationName || forecast?.location,
-          });
-          rawOutfits =
-            fallback.outfits ||
-            (fallback as any).delivery?.outfits ||
-            [];
-        }
-        if (rawOutfits.length > 0) serverGenerated = true;
-      } catch (apiErr: any) {
-        console.log('[DFYLookbook] Server lookbook unavailable, keeping local outfits:', apiErr?.message || apiErr);
-      }
-
-      if (rawOutfits.length > 0) {
-        const mappedOutfits = mapApiOutfitsToDelivery(rawOutfits, stylistId);
-        // Keep AI titles/notes; then re-allocate inventory so variety is honest
-        const withNotes = working.outfits.map((slot, idx) => {
-          const source = mappedOutfits[idx];
-          if (!source) return slot;
-          return {
-            ...slot,
-            title: source.title || slot.title,
-            stylistNote: source.stylistNote || slot.stylistNote,
-            occasion: source.occasion || slot.occasion,
-            description: source.description || slot.description,
-          };
-        });
-        working = { ...working, outfits: withNotes };
-      }
-
-      // Constraint engine owns inventory for the full plan
-      if (wardrobeItems.length >= 3) {
-        working = reallocateLookbookInventory(working, wardrobeItems, stylistId, forecast);
-      } else if (wardrobeItems.length >= 2) {
-        working = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
-      }
-      working = ensureLookbookOutfitsHaveFootwear(working, wardrobeItems);
-
-      if (forecast?.days?.length) {
-        working = {
-          ...working,
-          outfits: working.outfits.map((outfit, idx) => {
-            const dayForecast = weatherService.getForecastDay(
-              forecast,
-              outfit.dayNumber || idx + 1,
-            );
+        const rawOutfits = result.outfits || [];
+        if (rawOutfits.length > 0) {
+          const mappedOutfits = mapApiOutfitsToDelivery(rawOutfits, stylistId);
+          generated.outfits = generated.outfits.map((slot, idx) => {
+            const source = mappedOutfits[idx];
+            if (!source) return slot;
             return {
-              ...outfit,
-              items: filterOutfitItemsForWeather(
-                outfit.items || [],
-                dayForecast,
-                wardrobeItems,
-              ),
-              weatherNote:
-                outfit.weatherNote ||
-                weatherService.buildWeatherNoteForDay(dayForecast),
+              ...slot,
+              title: source.title || slot.title,
+              stylistNote: source.stylistNote || slot.stylistNote,
+              description: source.description || slot.description,
+              // Keep locally allocated items — never adopt server inventory
             };
-          }),
-        };
+          });
+        }
+      } catch (apiErr: any) {
+        console.log('[DFYLookbook] Server notes unavailable (local inventory kept):', apiErr?.message || apiErr);
       }
 
+      let working = ensureLookbookOutfitsHaveFootwear(
+        stripInvalidLookbookOutfits(generated, wardrobeItems),
+        wardrobeItems,
+      );
+      // If strip cleared any days, rebuild once more rather than keep holes
+      if (countFilledLookbookDays(working) < LITE_LOOKBOOK_DAYS) {
+        const rebuilt = generateLiteLookbook({
+          userId: user.id,
+          wardrobeItems,
+          stylistId,
+          existing: working,
+          forecast,
+        });
+        if (rebuilt) working = rebuilt;
+      }
+
+      working = normalizeLiteDelivery(working);
       await dfyService.saveDFYDelivery(working);
       setDelivery(working);
 
-      const totalDays = working.totalDays || 14;
-      if (countFilledLookbookDays(working) < totalDays) {
+      if (countFilledLookbookDays(working) < LITE_LOOKBOOK_DAYS) {
         setGenerateError(t('dfy.lookbook.someDaysUnfilled'));
       }
 
-      if (serverGenerated && options.force) {
+      if (options.force) {
         void maybePromptPackageName();
       }
     } catch (err: any) {
@@ -598,33 +591,42 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     openSavePrompt('save');
   };
 
-  const getTotalDays = (): number => delivery?.totalDays || 14;
+  const getTotalDays = (): number => {
+    if (delivery?.tier === 'lite') return LITE_LOOKBOOK_DAYS;
+    return delivery?.totalDays || LITE_LOOKBOOK_DAYS;
+  };
 
   /**
    * Calendar days left in the DFY access window — not "outfits you haven't opened".
    * Prefer live access status / expiryDate so a stale startDate can't fake "0 days left".
    */
   const getDaysRemaining = (): number => {
-    if (typeof accessStatus?.daysRemaining === 'number') {
-      return Math.max(0, accessStatus.daysRemaining);
-    }
+    const cap = getTotalDays();
+    let remaining = cap;
 
-    const expiryRaw = delivery?.expiryDate || accessStatus?.expiryDate;
-    if (expiryRaw) {
-      const expiry = new Date(expiryRaw);
-      if (!Number.isNaN(expiry.getTime())) {
-        return Math.max(
-          0,
-          Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-        );
+    if (typeof accessStatus?.daysRemaining === 'number') {
+      remaining = Math.max(0, accessStatus.daysRemaining);
+    } else {
+      const expiryRaw = delivery?.expiryDate || accessStatus?.expiryDate;
+      if (expiryRaw) {
+        const expiry = new Date(expiryRaw);
+        if (!Number.isNaN(expiry.getTime())) {
+          remaining = Math.max(
+            0,
+            Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+          );
+        }
+      } else if (delivery?.startDate) {
+        const start = new Date(delivery.startDate);
+        if (!Number.isNaN(start.getTime())) {
+          const elapsed = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
+          remaining = Math.max(0, cap - elapsed);
+        }
       }
     }
 
-    if (!delivery?.startDate) return getTotalDays();
-    const start = new Date(delivery.startDate);
-    if (Number.isNaN(start.getTime())) return getTotalDays();
-    const elapsed = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, getTotalDays() - elapsed);
+    // Lite UI must never show a 30-day window even if cached access is polluted
+    return Math.min(remaining, cap);
   };
 
   const formatDayOf = (day: number): string => {
@@ -634,6 +636,41 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       return template.replace('{day}', String(day)).replace('{total}', String(total));
     }
     return `Day ${day} of ${total}`;
+  };
+
+  const formatLookbookCardDate = (dayNumber: number): string | null => {
+    if (!delivery?.startDate) return null;
+    const start = new Date(delivery.startDate);
+    if (Number.isNaN(start.getTime())) return null;
+    const date = new Date(start);
+    date.setDate(start.getDate() + dayNumber - 1);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const renderLookbookDayHeader = (outfit: DFYOutfit, vibeLabel?: string, accent?: string) => {
+    const cardDate = formatLookbookCardDate(outfit.dayNumber);
+    return (
+      <View style={styles.outfitCardHeader}>
+        {cardDate ? (
+          <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
+            {cardDate}
+          </ThemedText>
+        ) : null}
+        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
+          {formatDayOf(outfit.dayNumber)}
+        </ThemedText>
+        <ThemedText type="h3" numberOfLines={2}>
+          {outfit.title}
+        </ThemedText>
+        {vibeLabel ? (
+          <View style={[styles.vibeBadge, { backgroundColor: (accent || LUXURY_COLORS.coral) + '20' }]}>
+            <ThemedText type="caption" style={{ color: accent || LUXURY_COLORS.coral, fontWeight: '600' }}>
+              {vibeLabel}
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
+    );
   };
 
   const formatDaysLeft = (count: number): string => {
@@ -680,7 +717,8 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         ]}
       >
         <View style={[styles.outfitCardGradient, { backgroundColor: isDark ? '#1E1E2E' : '#FFFFFF' }]}>
-          {/* Visual section — full-width image/collage */}
+          {renderLookbookDayHeader(item, vibeLabel, colors.accent)}
+
           <View style={styles.outfitImageContainer}>
             {renderOutfitVisual(item, 220)}
 
@@ -707,34 +745,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                 <Feather name={item.userReaction === 'love' ? 'heart' : 'x'} size={12} color="#FFFFFF" />
               </View>
             )}
-
-            {/* Gradient fade into info section */}
-            <LinearGradient
-              colors={['transparent', isDark ? 'rgba(30,30,46,0.85)' : 'rgba(255,255,255,0.85)']}
-              style={styles.imageBottomFade}
-            />
           </View>
 
-          {/* Info section */}
+          {/* Details below the visual */}
           <View style={styles.outfitInfo}>
-            <View style={styles.outfitTitleRow}>
-              <View style={{ flex: 1 }}>
-                <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
-                  {formatDayOf(item.dayNumber)}
-                </ThemedText>
-                <ThemedText type="h3" numberOfLines={1}>
-                  {item.title}
-                </ThemedText>
-                {vibeLabel ? (
-                  <View style={[styles.vibeBadge, { backgroundColor: colors.accent + '20' }]}>
-                    <ThemedText type="caption" style={{ color: colors.accent, fontWeight: '600' }}>
-                      {vibeLabel}
-                    </ThemedText>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-
             {item.weatherNote ? (
               <View style={styles.weatherNotePreview}>
                 <Feather name="cloud" size={12} color={colors.accent} />
@@ -823,6 +837,8 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
+                {renderLookbookDayHeader(selectedOutfit, (selectedOutfit as any).vibeLabel, colors.accent)}
+
                 {/* Main outfit visual */}
                 <View style={[styles.outfitDetailImage, { overflow: 'hidden', borderRadius: BorderRadius.lg, backgroundColor: '#FFFFFF' }]}>
                   {renderOutfitVisual(selectedOutfit, 300)}
@@ -981,7 +997,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
               <ThemedText style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: Spacing.sm }}>
                 {isCoreEmpty
                   ? (t('dfy.lookbook.coreRedirectMessage') ||
-                    'Occasion Ready lookbooks are day grids. Your Full Wardrobe Setup is on the 30-day Calendar (and Modular Wardrobe).')
+                    'Travel Capsule lookbooks are day grids. Your Full Wardrobe Setup is on the 30-day Calendar (and Modular Wardrobe).')
                   : (t('dfy.lookbook.noLookbookMessage') ||
                     'Complete Decide For You to unlock your lookbook.')}
               </ThemedText>
@@ -1214,18 +1230,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
+  outfitCardHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
   outfitImageContainer: {
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#FFFFFF',
-  },
-  imageBottomFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
   },
   currentDayBadge: {
     position: 'absolute',

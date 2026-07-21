@@ -455,7 +455,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               },
               {
                 text: t('dfy.comparison.continueSetup'),
-                onPress: () => navigation.navigate('DFYStylePlan'),
+                onPress: () => navigation.navigate('DFYTravelPlan'),
                 style: 'cancel',
               },
             ],

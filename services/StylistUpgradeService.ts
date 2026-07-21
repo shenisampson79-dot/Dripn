@@ -346,7 +346,7 @@ class StylistUpgradeService {
           },
           {
             id: "outfit",
-            name: "Occasion Ready",
+            name: "Travel Capsule",
             capabilities: ["AI learns your style", "Quick recommendations", "Occasion-based advice"],
             limitations: ["Limited wardrobe visibility", "No item-level suggestions"],
           },

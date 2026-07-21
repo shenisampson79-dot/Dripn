@@ -18,7 +18,8 @@ export function navigateAfterDfyActivation(
   options?: DfyStylePlanParams,
 ): void {
   if (tier === 'lite') {
-    navigation.navigate('DFYStylePlan', options?.initialDay != null ? { initialDay: options.initialDay } : undefined);
+    // Travel Capsule: collect trip details before generating the lookbook
+    navigation.navigate('DFYTravelPlan');
     return;
   }
   navigation.navigate('DFYUpload', { type: 'core' });
@@ -26,7 +27,7 @@ export function navigateAfterDfyActivation(
 
 /**
  * Lite users need Full Setup (core) for swap/remix. If they already have an active
- * Quick Start window, send them to paid checkout — not DFYStart (which only loops back).
+ * Travel Capsule window, send them to paid checkout — not DFYStart (which only loops back).
  */
 export function navigateToCoreFeatureUpgrade(
   navigation: DfyNavigation,

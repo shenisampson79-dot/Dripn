@@ -19,6 +19,7 @@ import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStartScreen from "@/screens/DFYStartScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
+import DFYTravelPlanScreen from "@/screens/DFYTravelPlanScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import { useTheme } from "@/hooks/useTheme";
@@ -45,6 +46,7 @@ export type SettingsStackParamList = {
   CommunityVoting: { session: any };
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean };
   DFYStart: undefined;
+  DFYTravelPlan: undefined;
   DFYStylePlan: { tier?: string; initialDay?: number } | undefined;
   DFYUpload: { type: "outfit" | "core" };
   AnalyticsDashboard: undefined;
@@ -205,6 +207,14 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         component={DFYUploadScreen}
         options={{
           title: t('navTitles.uploadWardrobe'),
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYTravelPlan"
+        component={DFYTravelPlanScreen}
+        options={{
+          title: t('dfy.travel.title') || 'Plan Your Trip',
           headerShown: false,
         }}
       />

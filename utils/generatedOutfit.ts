@@ -104,6 +104,8 @@ export async function generateWardrobeOutfit(params: {
   onboardingProfile?: OnboardingProfile | null;
   weather?: { temperature: number; condition: string } | null;
   excludeItemIds?: string[];
+  /** Recent outfits to diversify against (stylist regenerations). */
+  priorOutfits?: WardrobeItem[][];
   /** Local allocator only — skip slow API decorate (Today's outfit, quick chips). */
   skipDecorate?: boolean;
 }): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
@@ -117,6 +119,7 @@ export async function generateWardrobeOutfit(params: {
     onboardingProfile,
     weather,
     excludeItemIds,
+    priorOutfits,
     skipDecorate = false,
   } = params;
 
@@ -125,6 +128,7 @@ export async function generateWardrobeOutfit(params: {
     occasionType,
     excludeItemIds,
     laundryProfile: laundryProfileFromUser(user),
+    priorOutfits,
   });
 
   if (!allocated.ok) {

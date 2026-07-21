@@ -252,6 +252,27 @@ const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isTie') && ctx.any('isAthleticTop'),
   },
   {
+    id: 'tie_athletic_bottom',
+    penalty: 90,
+    hint: 'Tie with joggers or track pants — formal neckwear needs tailored trousers',
+    severity: 'major',
+    when: (ctx) => ctx.any('isTie') && (ctx.any('isJoggers') || ctx.any('isAthleticBottom')),
+  },
+  {
+    id: 'tie_shorts',
+    penalty: 88,
+    hint: 'Tie with shorts — keep tailoring with full-length trousers',
+    severity: 'major',
+    when: (ctx) => ctx.any('isTie') && ctx.any('isShorts'),
+  },
+  {
+    id: 'tie_uggs',
+    penalty: 84,
+    hint: 'Tie with UGG-style boots — formality lanes mixed',
+    severity: 'major',
+    when: (ctx) => ctx.any('isTie') && ctx.any('isUggs'),
+  },
+  {
     id: 'tie_tshirt',
     penalty: 86,
     hint: 'Tie needs a dress shirt collar — not a tee or casual top',

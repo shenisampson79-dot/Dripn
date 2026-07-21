@@ -2501,12 +2501,18 @@ export default function AIStylistScreen() {
     }, 100);
 
     try {
+      const priorOutfits = messages
+        .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
+        .slice(-5)
+        .map((m) => m.outfitSuggestion!.items);
+
       const generated = await generateWardrobeOutfit({
         occasionType: occasionId,
         wardrobeItems,
         stylistId: stylist.id,
         saveToCalendar: false,
         user,
+        priorOutfits,
       });
 
       const content = generated.stylistMessage
@@ -2608,6 +2614,11 @@ export default function AIStylistScreen() {
     }
 
     try {
+      const priorOutfits = messages
+        .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
+        .slice(-5)
+        .map((m) => m.outfitSuggestion!.items);
+
       const generated = await generateWardrobeOutfit({
         occasionType: 'casual_day',
         wardrobeItems,
@@ -2615,6 +2626,7 @@ export default function AIStylistScreen() {
         saveToCalendar: false,
         user,
         weather: weatherData,
+        priorOutfits,
       });
 
       const weatherSuffix = weatherData

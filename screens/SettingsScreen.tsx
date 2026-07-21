@@ -1190,12 +1190,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </LinearGradient>
               <View style={styles.settingContent}>
                 <ThemedText type="body" style={styles.settingTitle}>
-                  DFY Lite Access
+                  Travel Capsule Access
                 </ThemedText>
                 <ThemedText type="small" style={styles.settingSubtitle}>
                   {dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess
                     ? `${dfyAccess.daysRemaining}d remaining`
-                    : 'Test Occasion Ready (14-day lookbook)'}
+                    : 'Test Travel Capsule (14-day lookbook)'}
                 </ThemedText>
               </View>
               <Switch

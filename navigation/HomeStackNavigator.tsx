@@ -6,6 +6,7 @@ import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStartScreen from "@/screens/DFYStartScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
+import DFYTravelPlanScreen from "@/screens/DFYTravelPlanScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
@@ -18,6 +19,7 @@ export type HomeStackParamList = {
   Subscription: { highlightPlan?: string } | undefined;
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
   DFYStart: undefined;
+  DFYTravelPlan: undefined;
   DFYStylePlan: { initialDay?: number } | undefined;
   DFYUpload: { type: "outfit" | "core" };
 };
@@ -81,6 +83,14 @@ export default function HomeStackNavigator() {
         component={DFYUploadScreen}
         options={{
           title: t('navTitles.uploadWardrobe') || "Upload Wardrobe",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYTravelPlan"
+        component={DFYTravelPlanScreen}
+        options={{
+          title: t('dfy.travel.title') || "Plan Your Trip",
           headerShown: false,
         }}
       />

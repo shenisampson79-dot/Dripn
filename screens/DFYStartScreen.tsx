@@ -274,7 +274,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
                   },
                   {
                     text: t('dfy.comparison.continueSetup'),
-                    onPress: () => navigation.navigate('DFYStylePlan'),
+                    onPress: () => navigation.navigate('DFYTravelPlan'),
                     style: 'cancel',
                   },
                 ],
@@ -386,7 +386,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             <Feather name="shopping-bag" size={22} color={titleColor} />
             <ThemedText type="h3" style={[styles.pathTitle, { color: titleColor }]}>
               {isLite
-                ? (t('subscription.dfy.occasion.title') || 'Occasion Ready')
+                ? (t('subscription.dfy.occasion.title') || 'Travel Capsule')
                 : (t('subscription.dfy.wardrobe.title') || 'Full Wardrobe Setup')}
             </ThemedText>
             <ThemedText type="h3" style={[styles.pathTitle, { marginLeft: 'auto', color: titleColor }]}>
@@ -476,7 +476,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             ? getDfyActiveWindowSubtitle(accessStatus.tier)
             : benefit === 'none'
               ? (t('dfy.start.noBenefitSubtitle') ||
-                'Buy a one-time stylist setup — Occasion Ready for an upcoming event, or Full Setup to digitise your wardrobe.')
+                'Buy a one-time stylist setup — Travel Capsule for your next trip, or Full Setup to digitise your wardrobe.')
               : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
@@ -539,7 +539,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           </ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
             {t('dfy.start.chooseIncludedPathDesc') ||
-              'Your plan includes one setup — pick Quick Start or Full Setup to begin.'}
+              'Your plan includes one setup — pick Travel Capsule or Full Setup to begin.'}
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
@@ -555,7 +555,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
               {t('dfy.start.quickVsFullNote') ||
-                'Quick Start is a fast win when you’re short on time. Full Setup is for when you want your whole closet digitised.'}
+                'Travel Capsule packs a trip wardrobe fast. Full Setup is for when you want your whole closet digitised.'}
             </ThemedText>
           )}
         </View>

@@ -29,6 +29,7 @@ import ColdOpenScreen from "@/screens/ColdOpenScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStartScreen from "@/screens/DFYStartScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
+import DFYTravelPlanScreen from "@/screens/DFYTravelPlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
@@ -80,6 +81,7 @@ export type ProfileStackParamList = {
   ColdOpen: undefined;
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
   DFYStart: undefined;
+  DFYTravelPlan: undefined;
   DFYStylePlan: { initialDay?: number } | undefined;
   DFYExpiry: undefined;
   DFYUpload: { type: "outfit" | "core" };
@@ -338,6 +340,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={DFYUploadScreen}
         options={{
           title: t('navTitles.uploadWardrobe'),
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYTravelPlan"
+        component={DFYTravelPlanScreen}
+        options={{
+          title: t('dfy.travel.title') || 'Plan Your Trip',
           headerShown: false,
         }}
       />

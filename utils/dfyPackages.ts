@@ -15,7 +15,7 @@ export function formatDfyPackageSubtitle(pkg: DfyPackageSummary): string {
 }
 
 export function dfyPackageTierLabel(tier: DFYTier): string {
-  return tier === 'core' ? 'Full Wardrobe Setup' : 'Occasion Ready';
+  return tier === 'core' ? 'Full Wardrobe Setup' : 'Travel Capsule';
 }
 
 const DFY_CORE_SUBSCRIPTION_TIERS = new Set([

@@ -15,7 +15,7 @@ export function getDfyBenefitForSubscription(tier?: string | null): DfySubscript
 export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return 'Occasion Ready';
+      return 'Travel Capsule';
     case 'full_wardrobe_setup':
       return 'Full Wardrobe Setup';
     default:
@@ -26,9 +26,9 @@ export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
 export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return "We've saved Occasion Ready for you — a handful of looks for that trip or event you've got coming up.";
+      return "We've saved Travel Capsule for you — a packed wardrobe and 14 looks for your next trip.";
     case 'full_wardrobe_setup':
-      return "Your plan includes one setup — choose Quick Start for a fast win, or Full Setup to digitise your whole closet.";
+      return "Your plan includes one setup — choose Travel Capsule for a trip, or Full Setup to digitise your whole closet.";
     default:
       return 'Your stylist can set up your wardrobe for you — included with Personal Stylist or Stylist Unlimited.';
   }
@@ -37,7 +37,7 @@ export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
 /** Hero copy when the user already has an active styling window. */
 export function getDfyActiveWindowSubtitle(tier: DFYTier): string {
   if (tier === 'lite') {
-    return "You're in your Quick Start styling window — pick up where you left off and keep your looks coming.";
+    return "You're in your Travel Capsule window — pick up where you left off and keep your trip looks coming.";
   }
   return "You're in your Full Setup styling window — pick up where you left off and keep digitising your wardrobe.";
 }
@@ -54,10 +54,13 @@ export function getIncludedStylingWindowDays(
   subscriptionTier: string | null | undefined,
   dfyTier: DFYTier,
 ): number {
+  // Path length is defined by DFY tier, not subscription marketing tier
+  if (dfyTier === 'lite') return 14;
+  if (dfyTier === 'core') return 30;
   const benefit = getDfyBenefitForSubscription(subscriptionTier);
   if (benefit === 'full_wardrobe_setup') return 30;
   if (benefit === 'styling_sprint') return 14;
-  return dfyTier === 'lite' ? 14 : 30;
+  return 14;
 }
 
 /** Whether this DFY path is allowed for the subscriber's included benefit. */
@@ -72,7 +75,7 @@ export function isDfyTierAllowedForSubscription(
 }
 
 export function getDfyPathLabel(tier: DFYTier): string {
-  return tier === 'lite' ? 'Quick Start' : 'Full Setup';
+  return tier === 'lite' ? 'Travel Capsule' : 'Full Setup';
 }
 
 /** Title for the user's currently active DFY path (not the subscription marketing benefit name). */
@@ -89,14 +92,14 @@ export function getDfyCoreFeaturePaywallCopy(
   if (onQuickStart) {
     if (feature === 'swap_item') {
       return {
-        title: "Quick Start doesn't include swap",
+        title: "Travel Capsule doesn't include swap",
         description:
           'Swapping items needs your full wardrobe mapped. Upgrade to Full Setup to remix pieces your way.',
         cta: 'Upgrade to Full Setup',
       };
     }
     return {
-      title: "Quick Start doesn't include remix",
+      title: "Travel Capsule doesn't include remix",
       description:
         'Remixing outfits needs your full wardrobe in the system. Upgrade to Full Setup for unlimited combinations.',
       cta: 'Upgrade to Full Setup',
@@ -124,9 +127,9 @@ export function getDfyPathDescription(
 ): string {
   if (tier === 'lite') {
     if (benefit === 'styling_sprint' || benefit === 'full_wardrobe_setup') {
-      return 'Feel confident fast — styled looks for one occasion';
+      return 'Pack smart — a travel capsule and 14 destination looks';
     }
-    return 'Look ready for your trip or event — less outfit stress';
+    return 'Pack less, look sorted — weather-aware looks for your trip';
   }
   if (benefit === 'full_wardrobe_setup') {
     return 'Dress with ease — your whole closet, organised and styled';

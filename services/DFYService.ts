@@ -6,11 +6,55 @@ import {
   getIncludedStylingWindowDays,
   isDfyTierAllowedForSubscription,
 } from '@/utils/dfyEntitlements';
+import type { TravelPlan, TravelVibe, TravelActivity } from '@/utils/travelCapsule';
 
 export type { StylistId };
+export type { TravelPlan, TravelVibe, TravelActivity };
 
 export type DFYTier = 'lite' | 'core';
 export type DFYOccasion = 'work' | 'holiday' | 'event' | 'casual' | 'browsing';
+
+/** Travel Capsule (DFY Lite) lookbook length — always 14 days. */
+export const LITE_LOOKBOOK_DAYS = 14;
+
+export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDelivery {
+  const startDate = delivery.startDate || new Date().toISOString();
+  const start = new Date(startDate);
+  const correctExpiry = new Date(
+    start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const stylistId = delivery.outfits[0]?.stylistId || 'ruby';
+
+  const outfits: DFYOutfit[] = delivery.outfits.slice(0, LITE_LOOKBOOK_DAYS).map((o, idx) => ({
+    ...o,
+    dayNumber: idx + 1,
+    title: o.title || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+  }));
+
+  while (outfits.length < LITE_LOOKBOOK_DAYS) {
+    const dayNumber = outfits.length + 1;
+    outfits.push({
+      id: `outfit-${dayNumber}`,
+      dayNumber,
+      title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
+      description: 'Your stylist will fill this day once generation completes',
+      items: [],
+      occasion: 'casual',
+      stylistId,
+      userReaction: null,
+      saved: false,
+    });
+  }
+
+  return {
+    ...delivery,
+    tier: 'lite',
+    totalDays: LITE_LOOKBOOK_DAYS,
+    startDate,
+    expiryDate: correctExpiry,
+    outfits,
+  };
+}
 
 export interface ColdOpenFlow {
   occasion: DFYOccasion;
@@ -32,6 +76,8 @@ export interface DFYOutfit {
   userReaction?: 'love' | 'not-me' | null;
   adjustmentRequest?: string;
   saved: boolean;
+  /** Soft activity / vibe chip for Travel Capsule days */
+  vibeLabel?: string;
 }
 
 export type SavedLookbookOutfitReason = 'bookmark' | 'love' | 'both';
@@ -61,6 +107,13 @@ export interface DFYLiteDelivery {
   currentDay: number;
   completed: boolean;
   nudgesShown: number[];
+  /** Trip context for Travel Capsule packing + destination weather */
+  travelPlan?: TravelPlan | null;
+  /** Item IDs in the packed capsule (subset of wardrobe) */
+  capsuleItemIds?: string[];
+  capsuleNotes?: string[];
+  packingSummary?: import('@/utils/packingSummary').PackingSummary | null;
+  engineVersion?: string;
 }
 
 export interface DFYCoreDelivery {
@@ -252,17 +305,17 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
   },
   {
     id: 'lite',
-    name: 'Occasion Ready',
-    tagline: 'Feel confident for your next occasion.',
+    name: 'Travel Capsule',
+    tagline: 'Pack less. Look sorted for the whole trip.',
     price: '£19.99',
     mentalModel: 'tactical',
-    description: 'Ready-to-wear looks for a trip, event, or busy week — no closet overhaul needed.',
+    description: 'A packed capsule wardrobe and 14 ready-to-wear looks for your destination — weather-aware, mix-and-match.',
     features: [
-      { text: "14 days of styled looks you'll actually wear", included: true },
-      { text: 'One moment solved — work, holiday, or event', included: true },
-      { text: 'Tweaks included while your window is open', included: true },
+      { text: 'Smart packing: 9–12 versatile pieces', included: true },
+      { text: '14 destination-ready outfit looks', included: true },
+      { text: 'Weather-aware for your trip', included: true },
       { text: 'Save looks to revisit anytime', included: true },
-      { text: 'Build your wardrobe system', included: false },
+      { text: 'Build your full wardrobe system', included: false },
       { text: 'Edit or customize individual items', included: false },
     ],
     deliveryDays: 14,
@@ -374,8 +427,9 @@ class DFYService {
   ): Promise<{ tier: DFYTier; startDate: string; expiryDate: string; windowDays: number }> {
     const included = await this.getIncludedActivation(userId);
     if (!included || included.source !== 'subscription_included' || !access.startDate) {
-      const windowDays =
+      let windowDays =
         access.windowDays ?? this.inferWindowDaysFromDates(access.startDate, access.expiryDate, access.tier);
+      if (access.tier === 'lite') windowDays = Math.min(windowDays, LITE_LOOKBOOK_DAYS);
       return { ...access, windowDays };
     }
 
@@ -383,19 +437,24 @@ class DFYService {
     const currentWindowDays =
       access.windowDays ?? this.inferWindowDaysFromDates(access.startDate, access.expiryDate, access.tier);
 
-    if (currentWindowDays >= expectedWindowDays) {
+    const targetWindowDays =
+      access.tier === 'lite'
+        ? Math.min(expectedWindowDays, LITE_LOOKBOOK_DAYS)
+        : Math.max(currentWindowDays, expectedWindowDays);
+
+    if (currentWindowDays === targetWindowDays) {
       return { ...access, windowDays: currentWindowDays };
     }
 
     const start = new Date(access.startDate);
     const newExpiryDate = new Date(
-      start.getTime() + expectedWindowDays * 24 * 60 * 60 * 1000,
+      start.getTime() + targetWindowDays * 24 * 60 * 60 * 1000,
     ).toISOString();
     const migrated = {
       tier: access.tier,
       startDate: access.startDate,
       expiryDate: newExpiryDate,
-      windowDays: expectedWindowDays,
+      windowDays: targetWindowDays,
     };
 
     await AsyncStorage.setItem(`${DFY_ACCESS_KEY}_${userId}`, JSON.stringify(migrated));
@@ -403,16 +462,17 @@ class DFYService {
     const delivery = await this.getDFYDelivery(userId);
     if (delivery && delivery.tier === access.tier) {
       if (delivery.tier === 'lite') {
-        await this.saveDFYDelivery({
-          ...delivery,
-          expiryDate: newExpiryDate,
-          totalDays: expectedWindowDays,
-        } as DFYLiteDelivery);
+        await this.saveDFYDelivery(
+          normalizeLiteDelivery({
+            ...(delivery as DFYLiteDelivery),
+            expiryDate: newExpiryDate,
+          }),
+        );
       } else {
         await this.saveDFYDelivery({
           ...delivery,
           expiryDate: newExpiryDate,
-          totalDays: expectedWindowDays,
+          totalDays: targetWindowDays,
         } as DFYCoreDelivery);
       }
     }
@@ -440,7 +500,28 @@ class DFYService {
       }
 
       const storedAccess = JSON.parse(accessData);
-      const access = await this.maybeMigrateIncludedWindow(userId, storedAccess, subscriptionTier);
+      let access = await this.maybeMigrateIncludedWindow(userId, storedAccess, subscriptionTier);
+
+      if (access.tier === 'lite') {
+        const liteWindow = Math.min(access.windowDays ?? LITE_LOOKBOOK_DAYS, LITE_LOOKBOOK_DAYS);
+        if (liteWindow !== access.windowDays) {
+          const start = new Date(access.startDate);
+          access = {
+            ...access,
+            windowDays: LITE_LOOKBOOK_DAYS,
+            expiryDate: new Date(
+              start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+          };
+          await AsyncStorage.setItem(`${DFY_ACCESS_KEY}_${userId}`, JSON.stringify(access));
+
+          const delivery = await this.getDFYDelivery(userId);
+          if (delivery?.tier === 'lite') {
+            await this.saveDFYDelivery(normalizeLiteDelivery(delivery as DFYLiteDelivery));
+          }
+        }
+      }
+
       const now = new Date();
       const expiry = new Date(access.expiryDate);
       const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
@@ -550,7 +631,7 @@ class DFYService {
         allowed: false,
         blockCode: 'included_used',
         usedTier: used.tier,
-        reason: `You've already used your included setup (${used.tier === 'lite' ? 'Quick Start' : 'Full Setup'}). Purchase another to continue.`,
+        reason: `You've already used your included setup (${used.tier === 'lite' ? 'Travel Capsule' : 'Full Setup'}). Purchase another to continue.`,
       };
     }
 
@@ -607,7 +688,12 @@ class DFYService {
   async getDFYDelivery(userId: string): Promise<DFYDelivery | null> {
     try {
       const data = await AsyncStorage.getItem(`${DFY_DELIVERY_KEY}_${userId}`);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const parsed = JSON.parse(data) as DFYDelivery;
+      if (parsed?.tier === 'lite') {
+        return normalizeLiteDelivery(parsed as DFYLiteDelivery);
+      }
+      return parsed;
     } catch (error) {
       console.error('Error getting DFY delivery:', error);
       return null;
@@ -616,7 +702,11 @@ class DFYService {
 
   async saveDFYDelivery(delivery: DFYDelivery): Promise<void> {
     try {
-      await AsyncStorage.setItem(`${DFY_DELIVERY_KEY}_${delivery.userId}`, JSON.stringify(delivery));
+      const toSave =
+        delivery.tier === 'lite'
+          ? normalizeLiteDelivery(delivery as DFYLiteDelivery)
+          : delivery;
+      await AsyncStorage.setItem(`${DFY_DELIVERY_KEY}_${toSave.userId}`, JSON.stringify(toSave));
     } catch (error) {
       console.error('Error saving DFY delivery:', error);
     }
@@ -937,7 +1027,7 @@ class DFYService {
     } catch {
       // ignore
     }
-    return `Occasion Ready · ${dateLabel}`;
+    return `Travel Capsule · ${dateLabel}`;
   }
 
   async listDfyPackages(): Promise<DfyPackageSummary[]> {
@@ -1069,13 +1159,13 @@ class DFYService {
       (typeof payload.endDate === 'string' && payload.endDate) ||
       new Date(new Date(startDate).getTime() + windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    return {
+    return normalizeLiteDelivery({
       userId,
       tier: 'lite',
       startDate,
       expiryDate,
-      // Historical calendar viewers use totalDays for slice length; Core packages are 30-day.
-      totalDays: windowDays as 14 | 30,
+      // Lite lookbook is always 14 days regardless of package metadata
+      totalDays: LITE_LOOKBOOK_DAYS as 14,
       currentDay: typeof payload.currentDay === 'number' ? payload.currentDay : 1,
       completed: Boolean(payload.completed),
       nudgesShown: Array.isArray(payload.nudgesShown) ? (payload.nudgesShown as number[]) : [],
@@ -1100,7 +1190,7 @@ class DFYService {
         userReaction: o.userReaction ?? null,
         saved: Boolean(o.saved),
       })),
-    };
+    });
   }
 
   /**
@@ -1112,7 +1202,7 @@ class DFYService {
       if (apiService.isConfigured()) {
         const result = await apiService.generateDFYDelivery({ tier: 'lite', stylistId });
         if (result.success && result.delivery?.outfits?.length) {
-          const delivery: DFYLiteDelivery = {
+          const delivery: DFYLiteDelivery = normalizeLiteDelivery({
             ...result.delivery,
             userId,
             tier: 'lite',
@@ -1128,7 +1218,7 @@ class DFYService {
                 color: item.color,
               })),
             })),
-          };
+          });
           await this.saveDFYDelivery(delivery);
           await this.activateDFYAccess(userId, 'lite');
           return delivery;

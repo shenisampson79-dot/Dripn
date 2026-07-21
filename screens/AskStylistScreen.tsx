@@ -37,6 +37,7 @@ import {
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
 import weatherService from "@/services/WeatherService";
+import { generateWardrobeOutfit } from "@/utils/generatedOutfit";
 import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
 import { getFashionRules } from "@/data/getFashionRules";
 import {
@@ -402,6 +403,46 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         retailers: user?.extendedPreferences?.favoriteShops || [],
       };
 
+      const occasionType =
+        selectedType === 'event-outfit'
+          ? 'evening_out'
+          : selectedType === 'what-to-wear'
+            ? 'casual_day'
+            : 'smart_casual';
+
+      let localPieces: Array<{
+        wardrobeItemId: string;
+        name: string;
+        category?: string;
+        imageUrl?: string;
+      }> | null = null;
+      let localSummary: string | null = null;
+
+      try {
+        if (wardrobeItems.length >= 3) {
+          const local = await generateWardrobeOutfit({
+            occasionType,
+            wardrobeItems,
+            stylistId,
+            user,
+            skipDecorate: true,
+          });
+          if (local.items.length >= 3) {
+            localPieces = local.items.map((item) => ({
+              wardrobeItemId: String(item.id),
+              name: item.name || 'Item',
+              category: item.category,
+              imageUrl: item.enhancedImageUri || item.imageUri || undefined,
+            }));
+            localSummary =
+              local.stylistMessage
+              || local.items.map((i) => i.name).filter(Boolean).join(' · ');
+          }
+        }
+      } catch (localErr) {
+        console.log('[AskStylist] Local Surprise Me allocator skipped:', localErr);
+      }
+
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: (selectedType ? decisionTypeMap[selectedType] : undefined) || 'sanity_check',
         images: [], // Surprise Me doesn't need images
@@ -419,13 +460,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
-        outfitPieces: apiResult.outfitPieces ?? null,
-        outfitSummary: apiResult.outfitSummary ?? null,
+        // Prefer constraint-engine wardrobe pieces over server inventory
+        outfitPieces: localPieces || apiResult.outfitPieces || null,
+        outfitSummary: localSummary || apiResult.outfitSummary || null,
         unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe: true,
         stylistId,
         timestamp: new Date().toISOString(),
-        outfitImageUrl: apiResult.outfitImageUrl,
+        outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
         uploadedImages: images,
         recommendedIndex,
         recommendedOptionId: `option-${recommendedIndex}`,

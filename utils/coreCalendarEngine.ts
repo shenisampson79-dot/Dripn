@@ -17,7 +17,13 @@ import {
   type DFYCalendarMappedOutfit,
   mapApiLookbookToCalendarOutfits,
 } from '@/utils/dfyCalendarBridge';
-import { isOutfitValid } from '@/utils/outfitClashRules';
+import {
+  createDiversityTracker,
+  hashOutfit,
+  passesHardOutfitChecks,
+  pickMostDiverse,
+  updateDiversityTracker,
+} from '@/utils/outfitDiversity';
 import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
 import type { LaundryProfile } from '@/utils/wearRules';
 import { DEFAULT_LAUNDRY_PROFILE } from '@/utils/wearRules';
@@ -28,9 +34,10 @@ import {
   type DayAllocation,
 } from '@/utils/wardrobeAllocationEngine';
 
-export const CORE_CALENDAR_ENGINE_VERSION = 'core_v2.0';
+export const CORE_CALENDAR_ENGINE_VERSION = 'core_v2.1';
+export const LITE_LOOKBOOK_ENGINE_VERSION = 'lite_travel_v1.1';
 
-const MAX_EMERGENCY_COMBOS = 40;
+const MAX_EMERGENCY_COMBOS = 80;
 
 export type GuaranteedCoreCalendarResult = {
   outfits: DFYCalendarMappedOutfit[];
@@ -50,6 +57,7 @@ function buildEmergencyDayItems(
   dayIndex: number,
   occasionType: Parameters<typeof buildOccasionPools>[1],
   usageLog: Map<string, number>,
+  diversity = createDiversityTracker(),
 ): WardrobeItem[] {
   const pools = buildOccasionPools(wardrobe, occasionType);
   const tops = pools.tops.length ? pools.tops : wardrobe.filter(isTopItem);
@@ -65,39 +73,30 @@ function buildEmergencyDayItems(
   const sortedBottoms = byFreshness(bottoms);
   const sortedShoes = byFreshness(shoes);
 
-  if (!sortedTops.length || !sortedBottoms.length) {
+  if (!sortedTops.length || !sortedBottoms.length || !sortedShoes.length) {
     return [];
   }
 
+  const candidates: WardrobeItem[][] = [];
   let attempts = 0;
   for (let ti = 0; ti < sortedTops.length && attempts < MAX_EMERGENCY_COMBOS; ti++) {
     const top = sortedTops[(dayIndex + ti) % sortedTops.length];
     for (let bi = 0; bi < sortedBottoms.length && attempts < MAX_EMERGENCY_COMBOS; bi++) {
       const bottom = sortedBottoms[(dayIndex + bi) % sortedBottoms.length];
-      if (sortedShoes.length) {
-        for (let si = 0; si < sortedShoes.length && attempts < MAX_EMERGENCY_COMBOS; si++) {
-          attempts++;
-          const shoe = sortedShoes[(dayIndex + si) % sortedShoes.length];
-          const combo = [top, bottom, shoe];
-          if (isOutfitValid(combo)) return combo;
-        }
-      } else {
+      for (let si = 0; si < sortedShoes.length && attempts < MAX_EMERGENCY_COMBOS; si++) {
         attempts++;
-        const combo = [top, bottom];
-        if (isOutfitValid(combo)) return combo;
+        const shoe = sortedShoes[(dayIndex + si) % sortedShoes.length];
+        const combo = [top, bottom, shoe];
+        const sig = hashOutfit(combo);
+        if (sig && diversity.outfitHashes.has(sig)) continue;
+        if (!passesHardOutfitChecks(combo)) continue;
+        candidates.push(combo);
       }
     }
   }
 
-  // Survival tier — structure over style rules
-  const fallback: WardrobeItem[] = [
-    sortedTops[dayIndex % sortedTops.length],
-    sortedBottoms[dayIndex % sortedBottoms.length],
-  ];
-  if (sortedShoes.length) {
-    fallback.push(sortedShoes[dayIndex % sortedShoes.length]);
-  }
-  return fallback;
+  const best = pickMostDiverse(candidates, diversity);
+  return best || [];
 }
 
 function markUsage(items: WardrobeItem[], dayIndex: number, usageLog: Map<string, number>): void {
@@ -161,24 +160,30 @@ export function allocateGuaranteedMultiDayPlan(params: {
   }
 
   const usageLog = new Map<string, number>();
+  const diversity = createDiversityTracker();
   for (const day of bestDays) {
-    markUsage(
-      day.itemIds
-        .map((id) => wardrobe.find((w) => String(w.id) === id))
-        .filter((item): item is WardrobeItem => Boolean(item)),
-      day.dayIndex,
-      usageLog,
-    );
+    const dayItems = day.itemIds
+      .map((id) => wardrobe.find((w) => String(w.id) === id))
+      .filter((item): item is WardrobeItem => Boolean(item));
+    markUsage(dayItems, day.dayIndex, usageLog);
+    if (dayItems.length) updateDiversityTracker(dayItems, diversity);
   }
 
   let emergencyDays = 0;
   while (bestDays.length < totalDays) {
     const dayIndex = bestDays.length;
     const occasionType = occasionTypes[dayIndex] || occasionTypes[0];
-    const items = buildEmergencyDayItems(wardrobe, dayIndex, occasionType, usageLog);
-    if (items.length < 2) break;
+    const items = buildEmergencyDayItems(
+      wardrobe,
+      dayIndex,
+      occasionType,
+      usageLog,
+      diversity,
+    );
+    if (!passesHardOutfitChecks(items)) break;
 
     markUsage(items, dayIndex, usageLog);
+    updateDiversityTracker(items, diversity);
     emergencyDays++;
     bestDays.push({
       dayIndex,
@@ -262,19 +267,9 @@ export function generateGuaranteedCoreCalendar(params: {
 
   const outfits = mapApiLookbookToCalendarOutfits(rawOutfits, start, wardrobe, stylistId);
 
-  // Final backfill pass — duplicate nearest valid day rather than return short
-  while (outfits.length < totalDays && outfits.length > 0) {
-    const template = outfits[outfits.length % outfits.length];
-    const idx = outfits.length;
-    const date = new Date(start);
-    date.setDate(start.getDate() + idx);
-    outfits.push({
-      ...template,
-      id: `core-day-${idx + 1}-fill`,
-      dayNumber: idx + 1,
-      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
-      title: idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`,
-    });
+  // Never duplicate days to pad — short calendars fail honestly
+  if (outfits.length < totalDays) {
+    return null;
   }
 
   return {

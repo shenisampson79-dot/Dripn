@@ -35,12 +35,14 @@ import {
   StylistId,
 } from "@/services/DFYService";
 import { apiService } from "@/services/ApiService";
+import { weatherService } from "@/services/WeatherService";
 import {
   enrichDeliveryWithWardrobeImages,
   fillEmptyLookbookSlots,
   reallocateLookbookInventory,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
+  generateLiteLookbook,
 } from "@/utils/dfyOutfitImages";
 import {
   navigateToCoreFeatureUpgrade,
@@ -184,9 +186,38 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       }
     }
 
-    if (wardrobeItems.length >= 3) {
-      liteDelivery = reallocateLookbookInventory(liteDelivery, wardrobeItems, stylistId, null);
-    } else if (wardrobeItems.length >= 2) {
+    const alreadyPacked =
+      Boolean(liteDelivery.travelPlan)
+      && (liteDelivery.capsuleItemIds?.length || 0) >= 6
+      && countFilledLookbookDays(liteDelivery) >= (liteDelivery.totalDays || 14);
+
+    if (!alreadyPacked && wardrobeItems.length >= 3) {
+      let forecast = null as Awaited<ReturnType<typeof weatherService.getForecastForDestination>> | null;
+      try {
+        if (liteDelivery.travelPlan?.destination) {
+          forecast = await weatherService.getForecastForDestination(
+            liteDelivery.travelPlan.destination,
+            liteDelivery.travelPlan.lat,
+            liteDelivery.travelPlan.lon,
+          );
+        }
+      } catch {
+        // non-blocking
+      }
+      const generated = generateLiteLookbook({
+        userId: user.id,
+        wardrobeItems,
+        stylistId,
+        existing: liteDelivery,
+        forecast,
+        travelPlan: liteDelivery.travelPlan,
+      });
+      if (generated) {
+        liteDelivery = generated;
+      } else {
+        liteDelivery = reallocateLookbookInventory(liteDelivery, wardrobeItems, stylistId, null);
+      }
+    } else if (!alreadyPacked && wardrobeItems.length >= 2) {
       liteDelivery = fillEmptyLookbookSlots(liteDelivery, wardrobeItems, stylistId, null);
     }
 

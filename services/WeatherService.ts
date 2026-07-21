@@ -202,6 +202,46 @@ class WeatherService {
     return this.fetchDailyForecast(coords.lat, coords.lon, 14, coords.locationName);
   }
 
+  /** Geocode a city/destination name via Open-Meteo. */
+  async geocodeDestination(
+    destination: string,
+  ): Promise<{ lat: number; lon: number; name: string } | null> {
+    const query = destination.trim();
+    if (!query) return null;
+    try {
+      const response = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`,
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      const hit = data.results?.[0];
+      if (!hit || typeof hit.latitude !== 'number' || typeof hit.longitude !== 'number') {
+        return null;
+      }
+      const name = [hit.name, hit.admin1, hit.country_code].filter(Boolean).join(', ');
+      return { lat: hit.latitude, lon: hit.longitude, name: name || query };
+    } catch (error) {
+      console.error('Failed to geocode destination:', error);
+      return null;
+    }
+  }
+
+  /** 14-day forecast for a travel destination (falls back to device location). */
+  async getForecastForDestination(
+    destination: string,
+    lat?: number,
+    lon?: number,
+  ): Promise<DailyForecast | null> {
+    if (typeof lat === 'number' && typeof lon === 'number') {
+      return this.fetchDailyForecast(lat, lon, 14, destination);
+    }
+    const geo = await this.geocodeDestination(destination);
+    if (geo) {
+      return this.fetchDailyForecast(geo.lat, geo.lon, 14, geo.name);
+    }
+    return this.get14DayForecast();
+  }
+
   async fetchDailyForecast(
     lat: number,
     lon: number,
