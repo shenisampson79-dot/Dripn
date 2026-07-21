@@ -64,24 +64,19 @@ export function getClothingUploadComparisons(gender?: Gender | null): UploadGuid
 /** @deprecated Use getClothingUploadComparisons(user?.gender) */
 export const CLOTHING_UPLOAD_COMPARISONS = buildClothingComparisons(WOMEN_IMAGES);
 
+/** Bundled accessory tip photos (remote Unsplash IDs previously used here return 404). */
+const ACCESSORY_IMAGES = {
+  arranged: require('@/assets/images/accessory-tips-correct.png'),
+  cluttered: require('@/assets/images/accessory-tips-incorrect.png'),
+};
+
 export const ACCESSORY_UPLOAD_COMPARISONS: UploadGuideComparison[] = [
   {
     id: 'accessories-flat',
     doLabel: 'Arranged on a plain surface',
     avoidLabel: 'Cluttered or tangled',
-    doImage:
-      'https://images.unsplash.com/photo-1606760227091-8ecfb58d751f?auto=format&fit=crop&w=540&h=400&q=80',
-    avoidImage:
-      'https://images.unsplash.com/photo-1515565969006-b1ad1a5a8a04?auto=format&fit=crop&w=540&h=400&q=80',
-  },
-  {
-    id: 'accessories-close',
-    doLabel: 'Close-up with details visible',
-    avoidLabel: 'Too far away or dark',
-    doImage:
-      'https://images.unsplash.com/photo-1611596818305-174f43399c28?auto=format&fit=crop&w=540&h=400&q=80',
-    avoidImage:
-      'https://images.unsplash.com/photo-1522312346375-d1a52e554552?auto=format&fit=crop&w=540&h=400&q=80',
+    doImage: ACCESSORY_IMAGES.arranged,
+    avoidImage: ACCESSORY_IMAGES.cluttered,
   },
 ];
 

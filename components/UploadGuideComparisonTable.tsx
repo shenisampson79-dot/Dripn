@@ -31,6 +31,7 @@ function ComparisonCell({
   compact?: boolean;
 }) {
   const { theme } = useTheme();
+  const [failed, setFailed] = React.useState(false);
   const isDo = variant === 'do';
   const accent = isDo ? '#34C759' : '#FF3B30';
 
@@ -40,14 +41,25 @@ function ComparisonCell({
         style={[
           compact ? styles.imageWrapCompact : styles.imageWrap,
           isDo && styles.imageWrapDo,
+          failed && { backgroundColor: theme.backgroundDefault },
         ]}
       >
-        <Image
-          source={toImageSource(image)}
-          style={styles.image}
-          contentFit={isDo ? 'contain' : 'cover'}
-          transition={200}
-        />
+        {failed ? (
+          <View style={[styles.image, styles.imageFallback]}>
+            <Feather name="image" size={compact ? 20 : 28} color={theme.tabIconDefault} />
+            <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
+              Example unavailable
+            </ThemedText>
+          </View>
+        ) : (
+          <Image
+            source={toImageSource(image)}
+            style={styles.image}
+            contentFit={isDo ? 'contain' : 'cover'}
+            transition={200}
+            onError={() => setFailed(true)}
+          />
+        )}
         <View style={[styles.badge, compact && styles.badgeCompact, { backgroundColor: accent }]}>
           <Feather name={isDo ? 'check' : 'x'} size={compact ? 10 : 12} color="#FFFFFF" />
         </View>
@@ -216,6 +228,12 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imageFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   badge: {
     position: 'absolute',
