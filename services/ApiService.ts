@@ -5022,7 +5022,13 @@ class ApiService {
     });
   }
 
-  async guestGenerateOutfitImage(sessionToken: string, outfitDescription: string, style: string, stylistId: string) {
+  async guestGenerateOutfitImage(
+    sessionToken: string,
+    outfitDescription: string,
+    style: string,
+    stylistId: string,
+    gender?: string | null,
+  ) {
     return this.request<{
       success: boolean;
       imageUrl: string;
@@ -5030,7 +5036,12 @@ class ApiService {
     }>('/api/guest/generate-outfit-image', {
       method: 'POST',
       headers: { 'x-guest-token': sessionToken },
-      body: JSON.stringify({ outfitDescription, style, stylist: stylistId }),
+      body: JSON.stringify({
+        outfitDescription,
+        style,
+        stylist: stylistId,
+        ...(gender ? { gender } : {}),
+      }),
     });
   }
 

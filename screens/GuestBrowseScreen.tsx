@@ -116,6 +116,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [signupPrompt, setSignupPrompt] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [imageGenUsed, setImageGenUsed] = useState(0);
+  const lastOutfitContextRef = useRef<string | null>(null);
 
   const stylistSpeakCode = resolveStylistSpeakLanguage({
     preferredLanguageCode: voiceSettings.preferredLanguage,
@@ -251,6 +252,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
       // Replace ### headings with ► so renderer can bold them; strip other markdown
       aiContent = aiContent.replace(/^#{1,6}\s+(.+)/gm, '►$1').replace(/\*\*/g, '').replace(/\*/g, '');
+      // Collapse runaway blank lines that inflate message bubbles
+      aiContent = aiContent.replace(/\n{3,}/g, '\n\n').trim();
 
       // Track gender for image generation context
       const lowerUserText = userText.toLowerCase();
@@ -259,25 +262,50 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         else if (/\b(female|woman|girl|she|her|lady)\b/.test(lowerUserText)) setUserGender('female');
       }
 
-      const outfitContext = rawResponse?.outfitVisualSuggestion?.outfitDescription
-        || aiContent.replace(/►/g, '').substring(0, 400);
-      const shouldVisualize = imageGenUsed < 3
-        && rawResponse?.hasOutfitRecommendation === true
-        && rawResponse?.outfitVisualSuggestion?.source === 'generated';
-      const showVisualizeButton = imageGenUsed < 3 && rawResponse?.hasOutfitRecommendation === true;
+      const outfitContext = (
+        rawResponse?.outfitVisualSuggestion?.outfitDescription
+        || aiContent.replace(/►/g, '').substring(0, 400)
+      ).trim();
+      if (rawResponse?.hasOutfitRecommendation === true && outfitContext) {
+        lastOutfitContextRef.current = outfitContext;
+      }
+
+      const askedForVisual = /\b(visual|visualize|picture|photo|image|show me|see (it|the|that)|render)\b/i.test(userText);
+      const canGenerateImage = imageGenUsed < 3;
+      const shouldVisualize = canGenerateImage && (
+        rawResponse?.hasOutfitRecommendation === true
+        || (askedForVisual && Boolean(lastOutfitContextRef.current || outfitContext))
+      );
+      const showVisualizeButton = canGenerateImage && (
+        rawResponse?.hasOutfitRecommendation === true
+        || askedForVisual
+      );
+      const visualContext = (
+        askedForVisual
+          ? (lastOutfitContextRef.current || outfitContext)
+          : outfitContext
+      );
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: aiContent,
         isUser: false,
         timestamp: new Date(),
-        showVisualizeButton,
-        outfitContext,
+        showVisualizeButton: showVisualizeButton && !shouldVisualize,
+        outfitContext: visualContext,
+        isGeneratingImage: shouldVisualize,
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      if (shouldVisualize) {
-        void handleGenerateOutfitImage(aiMessage.id, outfitContext, activeToken);
+      if (shouldVisualize && visualContext) {
+        void handleGenerateOutfitImage(aiMessage.id, visualContext, activeToken);
+      } else if (askedForVisual && !canGenerateImage) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 2).toString(),
+          content: "You've used your free outfit visuals for this guest session. Sign up to unlock unlimited looks.",
+          isUser: false,
+          timestamp: new Date(),
+        }]);
       }
 
       const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
@@ -314,21 +342,24 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   ) => {
     const activeToken = tokenOverride || sessionToken;
     if (!activeToken || !selectedStylist || imageGenUsed >= 3) return;
-    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isGeneratingImage: true } : m));
+    lastOutfitContextRef.current = outfitContext;
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isGeneratingImage: true, showVisualizeButton: false } : m));
     try {
       const result = await apiService.guestGenerateOutfitImage(
         activeToken,
         outfitContext,
-        userGender || "neutral",
-        selectedStylist.id
+        "smart casual",
+        selectedStylist.id,
+        userGender,
       ) as any;
-      const hasRealImage = Boolean(result.imageUrl) && result.isPlaceholder !== true;
+      const rawUrl = typeof result.imageUrl === 'string' ? result.imageUrl : null;
+      const hasRealImage = Boolean(rawUrl && /^https?:\/\//i.test(rawUrl)) && result.isPlaceholder !== true;
       setMessages(prev => prev.map(m => m.id === messageId
         ? {
             ...m,
             isGeneratingImage: false,
             showVisualizeButton: !hasRealImage && imageGenUsed < 3,
-            imageUrl: hasRealImage ? result.imageUrl : undefined,
+            imageUrl: hasRealImage ? rawUrl! : undefined,
             isPlaceholder: result.isPlaceholder === true,
           }
         : m));
@@ -409,9 +440,22 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const renderFormattedContent = (text: string, textColor: string) => {
     const lines = text.split('\n');
+    // Drop leading/trailing empties and collapse consecutive blank lines
+    const compacted: string[] = [];
+    for (const line of lines) {
+      if (line.trim() === '') {
+        if (compacted.length === 0) continue;
+        if (compacted[compacted.length - 1] === '') continue;
+        compacted.push('');
+      } else {
+        compacted.push(line);
+      }
+    }
+    while (compacted.length && compacted[compacted.length - 1] === '') compacted.pop();
+
     return (
       <View>
-        {lines.map((line, i) => {
+        {compacted.map((line, i) => {
           if (line.startsWith('►')) {
             return (
               <Text key={i} style={{ fontWeight: '700', fontSize: 15, color: textColor, marginTop: i > 0 ? 8 : 0, marginBottom: 2 }}>
@@ -420,7 +464,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             );
           }
           if (line.trim() === '') {
-            return <View key={i} style={{ height: 5 }} />;
+            return <View key={i} style={{ height: 6 }} />;
           }
           return (
             <Text key={i} style={{ fontSize: 15, color: textColor, lineHeight: 22 }}>
@@ -434,6 +478,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const colors = selectedStylist ? STYLIST_COLORS[selectedStylist.id] : { primary: "#6B7280", secondary: "#374151" };
+    const hasValidImage = typeof item.imageUrl === 'string' && /^https?:\/\//i.test(item.imageUrl);
     
     return (
       <View style={[styles.messageRow, item.isUser ? styles.userRow : styles.aiRow]}>
@@ -447,30 +492,42 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         >
           {renderFormattedContent(item.content, item.isUser ? "#FFFFFF" : theme.text)}
 
-          {item.imageUrl && (
+          {item.isGeneratingImage && !hasValidImage && (
+            <View style={styles.imageLoadingRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={{ color: theme.textSecondary || theme.text, fontSize: 12, marginLeft: 8, opacity: 0.7 }}>
+                Creating outfit visual…
+              </Text>
+            </View>
+          )}
+
+          {hasValidImage && (
             <View style={styles.outfitImageContainer}>
               <Image
                 source={{ uri: item.imageUrl }}
                 style={styles.outfitImage}
                 resizeMode="cover"
+                onError={() => {
+                  setMessages(prev => prev.map(m =>
+                    m.id === item.id
+                      ? { ...m, imageUrl: undefined, showVisualizeButton: imageGenUsed < 3 }
+                      : m
+                  ));
+                }}
               />
             </View>
           )}
 
-          {!item.imageUrl && item.showVisualizeButton && (
+          {!hasValidImage && !item.isGeneratingImage && item.showVisualizeButton && (
             <Pressable
               onPress={() => handleGenerateOutfitImage(item.id, item.outfitContext || item.content)}
               disabled={item.isGeneratingImage}
               style={[styles.visualizeButton, { backgroundColor: colors.primary }]}
             >
-              {item.isGeneratingImage ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Feather name="image" size={14} color="#FFFFFF" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Visualize this outfit</Text>
-                </View>
-              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="image" size={14} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Visualize this outfit</Text>
+              </View>
             </Pressable>
           )}
         </View>
@@ -764,6 +821,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 260,
     borderRadius: BorderRadius.md,
+  },
+  imageLoadingRow: {
+    marginTop: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 28,
   },
   visualizeButton: {
     marginTop: Spacing.sm,
