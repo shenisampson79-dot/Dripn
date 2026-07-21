@@ -23,13 +23,24 @@ type LanguagePickerModalProps = {
   onClose: () => void;
   /** `app` = UI chrome only. `stylist` = chat + voice speak language only. */
   mode?: LanguagePickerMode;
+  /**
+   * Pre-auth Welcome / Get Styled: changing app language also sets stylist speak language
+   * (voice preferredLanguage + logged-in stylistPreferences when present).
+   */
+  alsoSetStylistLanguage?: boolean;
 };
 
 /**
  * Shared language picker for Welcome / Settings.
- * App mode never changes stylist speak language; stylist mode never changes UI language.
+ * App mode normally never changes stylist speak language; stylist mode never changes UI language.
+ * Pass alsoSetStylistLanguage on Welcome so Get Styled stylists reply in the chosen language.
  */
-export function LanguagePickerModal({ visible, onClose, mode = "app" }: LanguagePickerModalProps) {
+export function LanguagePickerModal({
+  visible,
+  onClose,
+  mode = "app",
+  alsoSetStylistLanguage = false,
+}: LanguagePickerModalProps) {
   const { theme, isDark } = useTheme();
   const { t, setLanguage, currentLanguage, availableLanguages, isLoading } = useTranslations();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
@@ -88,8 +99,19 @@ export function LanguagePickerModal({ visible, onClose, mode = "app" }: Language
           });
         }
       } else {
-        // App UI only — do not overwrite stylist chat/voice language
         await setLanguage(langCode);
+        if (alsoSetStylistLanguage) {
+          const languageName = stylistLanguageCodeToName(langCode);
+          await updateVoiceSettings({ preferredLanguage: langCode });
+          if (user) {
+            await updateProfile({
+              stylistPreferences: {
+                ...user.stylistPreferences,
+                language: languageName,
+              },
+            });
+          }
+        }
       }
       onClose();
     } catch {

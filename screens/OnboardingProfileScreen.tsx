@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
+import { StyleSheet, View, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import {
   onboardingProfileService,
   StyleIdentity,
   DressFor,
+  QuizGender,
 } from '@/services/OnboardingProfileService';
 import { videoRandomizer } from '@/services/VideoRandomizerService';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -42,6 +43,14 @@ const IDENTITY_IDS: {
   { id: 'impress_someone', icon: 'star' },
 ];
 
+const GENDER_IDS: {
+  id: QuizGender;
+  icon: keyof typeof Feather.glyphMap;
+}[] = [
+  { id: 'male', icon: 'user' },
+  { id: 'female', icon: 'user' },
+];
+
 const DRESS_FOR_IDS: {
   id: DressFor;
   icon: keyof typeof Feather.glyphMap;
@@ -59,6 +68,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
   const { t } = useTranslations();
   const [step, setStep] = useState(0);
   const [identity, setIdentity] = useState<StyleIdentity | null>(null);
+  const [quizGender, setQuizGender] = useState<QuizGender | null>(null);
   const [dressFor, setDressFor] = useState<DressFor | null>(null);
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: 'confidence' }));
 
@@ -109,6 +119,17 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
     [t]
   );
 
+  const genderOptions = useMemo(
+    () =>
+      GENDER_IDS.map((opt) => ({
+        ...opt,
+        label:
+          t(`onboardingProfile.gender.${opt.id}`) ||
+          (opt.id === 'male' ? 'Male' : 'Female'),
+      })),
+    [t]
+  );
+
   const dressForOptions = useMemo(
     () =>
       DRESS_FOR_IDS.map((opt) => ({
@@ -131,6 +152,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
   const goToChooseStylist = async () => {
     await onboardingProfileService.saveProfile({
       identity: identity || undefined,
+      quizGender: quizGender || undefined,
       dressFor: dressFor || 'myself',
       quizLikes: [],
       likedStyles: [],
@@ -149,18 +171,19 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
   const handleContinue = async () => {
     if (!SHOW_FULL_PRE_STYLIST_FLOW) {
-      if (!identity) return;
+      if (!identity || !quizGender) return;
       await goToChooseStylist();
       return;
     }
 
-    if (step === 0 && identity) {
+    if (step === 0 && identity && quizGender) {
       setStep(1);
       return;
     }
     if (step === 1) {
       await onboardingProfileService.saveProfile({
         identity: identity || undefined,
+        quizGender: quizGender || undefined,
         dressFor: dressFor || 'myself',
         quizLikes: [],
         likedStyles: [],
@@ -196,7 +219,11 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
           style={styles.body}
         >
           {!showingOccasion ? (
-            <>
+            <ScrollView
+              style={styles.body}
+              contentContainerStyle={styles.bodyContent}
+              showsVerticalScrollIndicator={false}
+            >
               <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
                 {t('onboardingProfile.identityTitle') || 'Which sounds most like you?'}
               </ThemedText>
@@ -233,9 +260,41 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                   );
                 })}
               </View>
-            </>
+
+              <ThemedText type="h3" style={[styles.genderTitle, { color: ui.headline }]}>
+                {t('onboardingProfile.genderTitle') || 'I dress as'}
+              </ThemedText>
+              <View style={styles.genderRow}>
+                {genderOptions.map((opt) => {
+                  const selected = quizGender === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      onPress={() => setQuizGender(opt.id)}
+                      style={[
+                        styles.genderOption,
+                        {
+                          backgroundColor: selected ? ui.optionSelectedBg : ui.optionBg,
+                          borderColor: selected ? LuxuryColors.gold : ui.optionBorder,
+                        },
+                      ]}
+                    >
+                      <ThemedText type="body" style={[styles.optionLabel, { color: ui.optionLabel }]}>
+                        {opt.label}
+                      </ThemedText>
+                      {selected ? <Feather name="check-circle" size={18} color={LuxuryColors.gold} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
           ) : (
-            <>
+            <Animated.View
+              key={1}
+              entering={FadeInRight.duration(280)}
+              exiting={FadeOutLeft.duration(200)}
+              style={styles.body}
+            >
               <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
                 {t('onboardingProfile.occasionTitle') || "What's the occasion?"}
               </ThemedText>
@@ -267,13 +326,13 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                   );
                 })}
               </View>
-            </>
+            </Animated.View>
           )}
         </Animated.View>
 
         <Button
           onPress={handleContinue}
-          disabled={!identity && !showingOccasion}
+          disabled={showingOccasion ? false : !identity || !quizGender}
           style={styles.cta}
         >
           {!showingOccasion
@@ -299,8 +358,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   body: { flex: 1 },
+  bodyContent: { paddingBottom: Spacing.md },
   headline: { marginBottom: Spacing.sm },
   sub: { marginBottom: Spacing.xl, lineHeight: 22 },
+  genderTitle: { marginTop: Spacing.xl, marginBottom: Spacing.sm },
+  genderRow: { flexDirection: 'row', gap: Spacing.sm },
+  genderOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
   options: { gap: Spacing.sm },
   option: {
     flexDirection: 'row',

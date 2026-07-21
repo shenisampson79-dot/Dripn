@@ -454,6 +454,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       <LanguagePickerModal
         visible={languagePickerVisible}
         onClose={() => setLanguagePickerVisible(false)}
+        alsoSetStylistLanguage
       />
     </ThemedView>
   );

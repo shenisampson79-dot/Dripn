@@ -147,6 +147,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       <LanguagePickerModal
         visible={languagePickerVisible}
         onClose={() => setLanguagePickerVisible(false)}
+        alsoSetStylistLanguage
       />
     </View>
   );

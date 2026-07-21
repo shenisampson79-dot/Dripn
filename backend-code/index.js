@@ -11005,7 +11005,15 @@ app.post('/api/guest/generate-outfit-image', async (req, res) => {
 app.post('/api/guest/chat', async (req, res) => {
   try {
     // Handle both stylist/stylistId field names from different frontend versions
-    const { message, stylist, stylistId, history, conversationHistory = [] } = req.body;
+    const {
+      message,
+      stylist,
+      stylistId,
+      history,
+      conversationHistory = [],
+      language,
+      gender,
+    } = req.body;
     const receivedStylistId = stylist || stylistId;
     const receivedHistory = history || conversationHistory || [];
     
@@ -11028,19 +11036,34 @@ app.post('/api/guest/chat', async (req, res) => {
       { role: 'user', content: message }
     ];
 
-    // Extract user profile data to guide AI constraints
+    // Extract user profile data to guide AI constraints; prefer explicit client gender
     const profile = extractUserProfile(messages);
-    console.log(`[Guest Chat] Extracted profile - Gender: ${profile.gender}, Occasion: ${profile.occasion}, Fit: ${profile.fit}, Vibe: ${profile.vibe}`);
+    const resolvedGender =
+      gender === 'male' || gender === 'female' || gender === 'man' || gender === 'woman'
+        ? (gender === 'man' ? 'male' : gender === 'woman' ? 'female' : gender)
+        : profile.gender;
+    const LANGUAGE_CODE_TO_NAME = {
+      en: 'English', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian',
+      pt: 'Portuguese', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', ar: 'Arabic',
+      hi: 'Hindi', nl: 'Dutch', ru: 'Russian', sv: 'Swedish',
+    };
+    const languageCode = typeof language === 'string' && language.trim()
+      ? language.trim().toLowerCase()
+      : 'en';
+    const languageName = LANGUAGE_CODE_TO_NAME[languageCode] || 'English';
+    console.log(`[Guest Chat] Gender: ${resolvedGender}, Language: ${languageCode}, Occasion: ${profile.occasion}`);
 
     // Call the AI stylist service with proper context and extracted profile
     const response = await generateStylistResponse({
       stylistId: normalizedStylistId,
       messages,
       userMessage: message,
-      userGender: profile.gender,
+      userGender: resolvedGender,
       subscriptionTier: 'free',
-      guestMode: true, // Flag to indicate this is guest demo mode
-      profileData: profile // Pass explicit profile for AI constraints
+      guestMode: true,
+      userProfile: { ...profile, gender: resolvedGender },
+      languageCode,
+      languageName,
     });
 
     const outfitKeywords = ['tee', 'jeans', 'sneakers', 'jacket', 'trousers', 'shirt', 'hoodie', 'shoes', 'boots', 'chinos', 'blazer', 'trainers', 'loafers', 'coat', 'cardigan', 'sweater'];

@@ -25,6 +25,12 @@ import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { useVoiceSettings } from "@/contexts/VoiceSettingsContext";
+import { onboardingProfileService } from "@/services/OnboardingProfileService";
+import {
+  getStylistSpeakTranslator,
+  resolveStylistSpeakLanguage,
+} from "@/utils/stylistLanguage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GUEST_TOKEN_KEY = "@dripn_guest_token";
@@ -93,7 +99,8 @@ const STYLIST_GREETINGS: Record<string, string> = {
 
 export default function GuestBrowseScreen({ navigation }: { navigation: NavigationProp }) {
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
+  const { settings: voiceSettings } = useVoiceSettings();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
@@ -110,9 +117,17 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [userGender, setUserGender] = useState<string | null>(null);
   const [imageGenUsed, setImageGenUsed] = useState(0);
 
+  const stylistSpeakCode = resolveStylistSpeakLanguage({
+    preferredLanguageCode: voiceSettings.preferredLanguage,
+    uiLanguageCode: currentLanguage,
+  });
+  const stylistT = getStylistSpeakTranslator(stylistSpeakCode);
 
   useEffect(() => {
     initializeGuestSession();
+    void onboardingProfileService.getProfile().then((profile) => {
+      if (profile.quizGender) setUserGender(profile.quizGender);
+    });
   }, []);
 
   const initializeGuestSession = async () => {
@@ -159,7 +174,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const handleSelectStylist = (stylist: GuestStylist) => {
     setSelectedStylist(stylist);
-    const greeting = STYLIST_GREETINGS[stylist.id] || `Hi! I'm ${stylist.name}. What can I help you with today?`;
+    const greeting =
+      stylistT(`guestBrowse.greeting.${stylist.id}`)
+      || t(`guestBrowse.greeting.${stylist.id}`)
+      || STYLIST_GREETINGS[stylist.id]
+      || `Hi! I'm ${stylist.name}. What can I help you with today?`;
     setMessages([{
       id: "greeting",
       content: greeting,
@@ -222,7 +241,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         activeToken,
         userText,
         selectedStylist.id,
-        conversationHistory
+        conversationHistory,
+        {
+          language: stylistSpeakCode,
+          gender: userGender,
+        },
       ) as any;
 
       let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";

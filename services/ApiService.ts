@@ -4984,7 +4984,13 @@ class ApiService {
     });
   }
 
-  async guestChat(sessionToken: string, message: string, stylistId: string, conversationHistory?: Array<{ role: string; content: string }>) {
+  async guestChat(
+    sessionToken: string,
+    message: string,
+    stylistId: string,
+    conversationHistory?: Array<{ role: string; content: string }>,
+    options?: { language?: string; gender?: string | null },
+  ) {
     return this.request<{
       response: string;
       messagesRemaining: number;
@@ -4993,7 +4999,13 @@ class ApiService {
     }>('/api/guest/chat', {
       method: 'POST',
       headers: { 'x-guest-token': sessionToken },
-      body: JSON.stringify({ message, stylist: stylistId, history: conversationHistory }),
+      body: JSON.stringify({
+        message,
+        stylist: stylistId,
+        history: conversationHistory,
+        ...(options?.language ? { language: options.language } : {}),
+        ...(options?.gender ? { gender: options.gender } : {}),
+      }),
     });
   }
 
