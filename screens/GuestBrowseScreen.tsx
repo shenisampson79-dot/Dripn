@@ -20,7 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -702,9 +702,20 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             <ThemedText type="small" style={{ opacity: 0.7, textAlign: "center" }}>
               Want unlimited access, voice chat, and a personalized wardrobe?
             </ThemedText>
-            <Pressable onPress={handleSignUp} style={styles.signupButton}>
-              <ThemedText type="body" style={{ color: theme.link, fontWeight: "600" }}>
-                Create Account
+            <Pressable
+              onPress={handleSignUp}
+              style={({ pressed }) => [
+                styles.signupButton,
+                {
+                  backgroundColor: pressed ? LuxuryColors.deepGold : LuxuryColors.gold,
+                  opacity: pressed ? 0.92 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t("auth.createAccount") || "Create Account"}
+            >
+              <ThemedText type="body" style={styles.signupButtonText}>
+                {t("auth.createAccount") || "Create Account"}
               </ThemedText>
             </Pressable>
           </View>
@@ -767,10 +778,18 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
               </ThemedText>
               <Pressable
                 onPress={handleSignUp}
-                style={[styles.unlockButton, { backgroundColor: stylistColors.primary }]}
+                style={({ pressed }) => [
+                  styles.unlockButton,
+                  {
+                    backgroundColor: pressed ? LuxuryColors.deepGold : LuxuryColors.gold,
+                    opacity: pressed ? 0.92 : 1,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t("auth.createAccount") || "Create Account"}
               >
-                <ThemedText type="body" style={{ color: "#FFFFFF", fontWeight: "600" }}>
-                  Create Free Account
+                <ThemedText type="body" style={styles.signupButtonText}>
+                  {t("auth.createAccount") || "Create Account"}
                 </ThemedText>
               </Pressable>
             </View>
@@ -889,8 +908,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signupButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    alignSelf: "stretch",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+  },
+  signupButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   messageList: {
     paddingHorizontal: Spacing.lg,
@@ -979,8 +1009,12 @@ const styles = StyleSheet.create({
   },
   unlockButton: {
     marginTop: Spacing.lg,
+    alignSelf: "stretch",
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
   },
 });
