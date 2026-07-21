@@ -318,6 +318,38 @@ export const SEASON_LABELS: Record<ClothingSeason, string> = {
   'all-season': 'All Season',
 };
 
+const SEASON_ALIASES: Record<string, ClothingSeason> = {
+  spring: 'spring',
+  summer: 'summer',
+  autumn: 'autumn',
+  fall: 'autumn',
+  winter: 'winter',
+  'all-season': 'all-season',
+  'all season': 'all-season',
+  'all seasons': 'all-season',
+  'all-year': 'all-season',
+  'all year': 'all-season',
+  'year-round': 'all-season',
+  'year round': 'all-season',
+};
+
+/** Prefer non-empty season lists; normalize aliases like fall → autumn. */
+function normalizeClothingSeasons(...candidates: unknown[]): ClothingSeason[] {
+  for (const candidate of candidates) {
+    const arr = Array.isArray(candidate)
+      ? candidate
+      : typeof candidate === 'string' && candidate.trim()
+        ? [candidate]
+        : null;
+    if (!arr?.length) continue;
+    const mapped = arr
+      .map((s) => SEASON_ALIASES[String(s).toLowerCase().trim()])
+      .filter((s): s is ClothingSeason => !!s);
+    if (mapped.length > 0) return [...new Set(mapped)];
+  }
+  return [];
+}
+
 export const OCCASION_LABELS: Record<ClothingOccasion, string> = {
   casual: 'Casual',
   work: 'Work',
@@ -659,7 +691,7 @@ function mapBackendItemToFrontend(
     color: (row.color || (meta as any).color || 'black') as ClothingColor,
     secondaryColor: (meta as any).secondaryColor,
     brand: row.brand || (meta as any).brand,
-    seasons: (row.season || (meta as any).seasons || []) as ClothingSeason[],
+    seasons: normalizeClothingSeasons(row.season, row.seasons, (meta as any).seasons),
     occasions: (row.occasions || (meta as any).occasions || []) as ClothingOccasion[],
     origin: (row.item_type || (meta as any).origin || 'owned') as ItemOrigin,
     isFavorite: row.is_favorite ?? (meta as any).isFavorite ?? false,

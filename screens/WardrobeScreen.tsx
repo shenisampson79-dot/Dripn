@@ -33,7 +33,14 @@ import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
+import {
+  useWardrobe,
+  WardrobeItem,
+  ClothingCategory,
+  ClothingSeason,
+  CATEGORY_LABELS,
+  SEASON_LABELS,
+} from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -48,6 +55,25 @@ import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+/** Prefer colder seasons when an item spans multiple (e.g. autumn+winter outerwear). */
+function getSeasonDetailIcon(seasons: ClothingSeason[]): keyof typeof Feather.glyphMap {
+  const set = new Set(seasons);
+  if (set.has('winter')) return 'cloud-snow';
+  if (set.has('autumn')) return 'cloud-drizzle';
+  if (set.has('spring')) return 'sunrise';
+  if (set.has('summer')) return 'sun';
+  if (set.has('all-season')) return 'layers';
+  return 'help-circle';
+}
+
+function formatSeasonDetailLabel(seasons: ClothingSeason[]): string {
+  if (!seasons.length) return 'Not set';
+  return seasons
+    .map((s) => SEASON_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' '))
+    .join(', ');
+}
+
 const GRID_GAP = Spacing.md;
 const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
 const ITEM_HEIGHT = Math.round(ITEM_WIDTH * 1.34);
@@ -1004,10 +1030,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
                   <View style={styles.detailRow}>
                     <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
-                      <Feather name="sun" size={16} color={LUXURY_COLORS.coral} />
+                      <Feather
+                        name={getSeasonDetailIcon(selectedItem.seasons)}
+                        size={16}
+                        color={LUXURY_COLORS.coral}
+                      />
                     </View>
                     <ThemedText type="body">
-                      {selectedItem.seasons.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(", ")}
+                      {formatSeasonDetailLabel(selectedItem.seasons)}
                     </ThemedText>
                   </View>
 
