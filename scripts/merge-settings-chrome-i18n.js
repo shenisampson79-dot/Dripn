@@ -103,7 +103,7 @@ const EN_KEYS = {
   'wardrobe.fixBackground': 'Fix Background',
   'wardrobe.fixing': 'Fixing...',
   'wardrobe.fullWardrobeSetup': 'Full Wardrobe Setup',
-  'wardrobe.occasionReady': 'Occasion Ready',
+  'wardrobe.occasionReady': 'Travel Capsule',
   'wardrobe.active': 'Active',
   'wardrobe.never': 'Never',
   'wardrobe.lastWorn': 'Last worn',

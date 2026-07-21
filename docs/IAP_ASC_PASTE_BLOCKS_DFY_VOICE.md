@@ -42,7 +42,7 @@ Copy into each product's **Localization (English U.K.)** fields in App Store Con
 
 
 
-### `com.dripn.dfy.lite` — £19.99 (Occasion Ready / Quick Start path)
+### `com.dripn.dfy.lite` — £19.99 (Travel Capsule path)
 
 
 
@@ -50,11 +50,11 @@ Copy into each product's **Localization (English U.K.)** fields in App Store Con
 
 
 
-- **Display name:** `Occasion Ready` **(14 chars)**
+- **Display name:** `Travel Capsule` **(14 chars)**
 
 
 
-- **Description:** `Feel confident for what's coming up` **(35 chars)**
+- **Description:** `14 days of trip-ready looks` **(27 chars)**
 
 
 
@@ -215,11 +215,11 @@ com.dripn.dfy.lite
 
 
 
-Display name: Occasion Ready
+Display name: Travel Capsule
 
 
 
-Description: Feel confident for what's coming up
+Description: 14 days of trip-ready looks
 
 
 

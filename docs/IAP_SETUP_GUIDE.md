@@ -15,7 +15,7 @@ Complete setup guide for all **9** in-app purchase products used by Dripn (Style
 | 2 | `com.dripn.personal_stylist.yearly` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
 | 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Plan Ahead, Dress Better | Less fatigue — always know what to wear | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — life planning, less decision fatigue |
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
-| 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
+| 5 | `com.dripn.dfy.lite` | Non-consumable | Travel Capsule | 14 days of trip-ready looks | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Travel Capsule |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
 | 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
 | 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
@@ -58,8 +58,8 @@ Copy into each product's **Subscription Localization** fields:
 Copy into each **Non-Consumable** product's localization fields:
 
 **`com.dripn.dfy.lite`**
-- Display name: `Occasion Ready` (14 chars)
-- Description: `Feel confident for what's coming up` (35 chars)
+- Display name: `Travel Capsule` (14 chars)
+- Description: `14 days of trip-ready looks` (27 chars)
 
 **`com.dripn.dfy.core`**
 - Display name: `Full Wardrobe Setup` (20 chars)
@@ -145,7 +145,7 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Display name | Price (UK) |
 |------------|--------------|------------|
-| `com.dripn.dfy.lite` | Occasion Ready | £19.99 |
+| `com.dripn.dfy.lite` | Travel Capsule | £19.99 |
 | `com.dripn.dfy.core` | Full Wardrobe Setup | £39.99 |
 
 2. Add localized descriptions from §1 DFY paste blocks (benefit-led; ≤30 / ≤45 chars).
@@ -231,7 +231,7 @@ RevenueCat → **Entitlements** → create exactly these four:
 |----------------|---------|
 | `personal_stylist` | Personal Stylist / Style Chat subscription |
 | `stylist_unlimited` | Stylist Unlimited subscription |
-| `dfy_lite` | DFY Occasion Ready (one-time) |
+| `dfy_lite` | DFY Travel Capsule (one-time) |
 | `dfy_core` | DFY Full Wardrobe Setup (one-time) |
 
 Voice consumables get **no entitlement**.

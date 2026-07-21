@@ -17,7 +17,7 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 
 | Product ID | Type | Maps to | RevenueCat entitlement |
 |---|---|---|---|
-| `com.dripn.dfy.lite` | Non-consumable | DFY Lite / Quick Start (`outfit_setup`) | `dfy_lite` |
+| `com.dripn.dfy.lite` | Non-consumable | DFY Travel Capsule (`outfit_setup`) | `dfy_lite` |
 | `com.dripn.dfy.core` | Non-consumable | DFY Core / Full Setup (`core_wardrobe`) | `dfy_core` |
 
 ### Voice credits (consumable)
@@ -153,7 +153,7 @@ Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscri
 2. Map to RevenueCat entitlements `dfy_lite` and `dfy_core`
 3. Set `EXPO_PUBLIC_FORCE_APPLE_IAP=true` for dev builds or use production iOS build
 4. Sign in with Sandbox Apple ID on device
-5. From DFY Comparison (or paid add-on on DFY Start), purchase Quick Start or Full Setup
+5. From DFY Comparison (or paid add-on on DFY Start), purchase Travel Capsule or Full Setup
 6. Confirm `POST /api/dfy/apple/sync` returns `tier: lite` or `core`
 7. Test Restore Purchases on DFY Comparison or Subscription screen after reinstall
 
