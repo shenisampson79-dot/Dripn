@@ -455,18 +455,22 @@ export default function DFYModularWardrobeScreen({ navigation, route }: DFYModul
             style={styles.floatingBarGradient}
           >
             <View style={styles.floatingBarContent}>
-              <View>
+              <View style={styles.floatingBarText}>
                 <ThemedText type="body" style={{ fontWeight: '600' }}>
-                  {getSelectedCount()} items selected
+                  {getSelectedCount()} {getSelectedCount() === 1 ? 'item' : 'items'} selected
                 </ThemedText>
                 {isCheckingCompatibility ? (
                   <ThemedText type="caption" style={{ opacity: 0.7 }}>Analysing outfit...</ThemedText>
                 ) : compatibilityScore !== null ? (
-                  <ThemedText type="caption" style={{
-                    opacity: 0.9,
-                    color: compatibilityScore >= 70 ? LUXURY_COLORS.emerald : compatibilityScore >= 40 ? LUXURY_COLORS.gold : LUXURY_COLORS.coral,
-                    fontWeight: '600',
-                  }}>
+                  <ThemedText
+                    type="caption"
+                    numberOfLines={2}
+                    style={{
+                      opacity: 0.9,
+                      color: compatibilityScore >= 70 ? LUXURY_COLORS.emerald : compatibilityScore >= 40 ? LUXURY_COLORS.gold : LUXURY_COLORS.coral,
+                      fontWeight: '600',
+                    }}
+                  >
                     {compatibilityScore}/100 · {compatibilityVerdict || 'Scored'}
                   </ThemedText>
                 ) : null}
@@ -750,10 +754,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  floatingBarText: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: Spacing.sm,
   },
   viewOutfitButton: {
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   viewOutfitButtonInner: {
     flexDirection: 'row',
