@@ -38,6 +38,22 @@ console.log('=== Safe Render Layer (StyleWise) ===\n');
 }
 
 {
+  // ID-only pieces pending client hydrate must NOT be dropped.
+  const pending = sanitizeOutfitPieces([
+    { wardrobeItemId: '50', name: 'Cavani Blazer', imageUrl: null },
+    { wardrobeItemId: 59, name: 'Primark Tee', imageUrl: '' },
+    { wardrobeItemId: '45', name: 'Khaki Cargos' },
+  ], { log: false });
+  assert(pending.length === 3, `id-only pending hydrate kept (got ${pending.length})`);
+  const visual = sanitizeWardrobeVisual({
+    layout: 'stacked',
+    source: 'wardrobe',
+    pieces: pending,
+  }, { log: false });
+  assert(visual != null && visual.pieces.length === 3, 'wardrobeVisual with id-only pieces stays renderable');
+}
+
+{
   assert(sanitizeOutfit(null) === null, 'null outfit → null');
   assert(sanitizeOutfit({ pieces: [null] }) === null, 'outfit with only null pieces → null');
   const o = sanitizeOutfit({ title: 'Look 1', sectionIndex: 2, pieces: [{ name: 'Tee' }] });

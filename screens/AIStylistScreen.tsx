@@ -1955,6 +1955,10 @@ export default function AIStylistScreen() {
         favorite: Boolean(item.isFavorite),
         origin: item.origin || 'owned',
         notes: item.notes || null,
+        imageUrl: resolveWardrobeImageUri(item) || item.imageUri || null,
+        imageUri: item.imageUri || null,
+        processedImageUrl: item.enhancedImageUri || null,
+        enhancedImageUri: item.enhancedImageUri || null,
       }));
       
       const chatHistory = updatedMessages.slice(-10).map(msg => ({
@@ -2305,6 +2309,11 @@ export default function AIStylistScreen() {
         favorite: Boolean(item.isFavorite),
         origin: item.origin || 'owned',
         notes: item.notes || null,
+        // Server strip hydrate: durable URLs (or empty — client still hydrates by id).
+        imageUrl: resolveWardrobeImageUri(item) || item.imageUri || null,
+        imageUri: item.imageUri || null,
+        processedImageUrl: item.enhancedImageUri || null,
+        enhancedImageUri: item.enhancedImageUri || null,
       }));
       
       const chatHistory = updatedMessages.slice(-10).map(msg => ({
@@ -2826,7 +2835,11 @@ export default function AIStylistScreen() {
   };
 
   const renderWardrobeVisual = (message: ChatMessage, label = 'From your wardrobe') => {
-    const visual = normalizeWardrobeVisual(message.wardrobeVisual);
+    // Always re-hydrate by ID so server soft-missing images still show local thumbnails.
+    const visual = hydrateWardrobeVisualImagesByIds(
+      normalizeWardrobeVisual(message.wardrobeVisual),
+      wardrobeItems,
+    );
     if (!visual) {
       const legacyItems = message.outfitSuggestion?.items;
       if (!legacyItems?.length) return null;
