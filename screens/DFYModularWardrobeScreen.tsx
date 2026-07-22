@@ -26,6 +26,10 @@ import apiService from "@/services/ApiService";
 import { dfyService } from "@/services/DFYService";
 import { computeLocalOutfitScore, mergeOutfitScores } from "@/utils/outfitCompatibilityScore";
 import { resolveRegionalStyleContext } from "@/utils/outfitRegionalContext";
+import {
+  messageFromOutfitSaveError,
+  saveGeneratedOutfitToProfile,
+} from "@/utils/saveGeneratedOutfit";
 import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -292,7 +296,7 @@ export default function DFYModularWardrobeScreen({ navigation, route }: DFYModul
       }
 
       const outfitName = `Outfit ${new Date().toLocaleDateString()}`;
-      const response = await apiService.post('/api/outfits/mix-and-match/save', {
+      await saveGeneratedOutfitToProfile({
         name: outfitName,
         occasion: 'casual',
         wardrobeItemIds: outfitItems,
@@ -301,7 +305,7 @@ export default function DFYModularWardrobeScreen({ navigation, route }: DFYModul
       setShowOutfitPreview(false);
       Alert.alert(t('wardrobe.outfitSavedTitle'), t('wardrobe.outfitSavedSuccess'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('wardrobe.failedToSaveOutfit'));
+      Alert.alert(t('common.error'), messageFromOutfitSaveError(error));
       console.error('[DFYModularWardrobe] Save outfit error:', error);
     }
   };

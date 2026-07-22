@@ -34,6 +34,10 @@ import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService, type OnboardingProfile } from '@/services/OnboardingProfileService';
 import { apiService } from '@/services/ApiService';
+import {
+  messageFromOutfitSaveError,
+  saveGeneratedOutfitToProfile,
+} from '@/utils/saveGeneratedOutfit';
 import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import * as Location from 'expo-location';
@@ -460,29 +464,19 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     setIsSaving(true);
     try {
       const name = outfitName.trim() || 'My Outfit';
-      const payload: Parameters<typeof apiService.saveMixAndMatchOutfit>[0] = {
+      const description = outfitDescription.trim();
+      const result = await saveGeneratedOutfitToProfile({
         name,
         occasion: eventType,
         wardrobeItemIds: selectedItemIds,
-      };
-      const description = outfitDescription.trim();
-      if (description) {
-        payload.notes = description;
-      }
-      if (pinToCalendar) {
-        payload.calendarDate = calendarDate.toISOString().split('T')[0];
-      }
-      const result = await apiService.saveMixAndMatchOutfit(payload);
-      apiService.recordOutfitEngagement({
-        items: selectedItemIds,
-        signal: 'saved',
-        outfitScore: styleScore,
-        scoreBreakdown: scoreDimensions || undefined,
-        occasion: OCCASION_SCORE_MAP[eventType],
-      }).catch(() => {});
+        description: description || undefined,
+        calendarDate: pinToCalendar
+          ? calendarDate.toISOString().split('T')[0]
+          : undefined,
+      });
       setShowSaveModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const calMsg = result.calendarEntry
+      const calMsg = result.calendarSaved
         ? `\n\nAlso pinned to ${formatDate(calendarDate)}.`
         : '';
       Alert.alert(
@@ -492,8 +486,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         { text: t('common.keepBuilding'), style: 'cancel' },
         { text: t('common.done'), onPress: () => navigation.goBack() },
       ]);
-    } catch {
-      Alert.alert(t('common.error'), t('wardrobe.couldNotSaveOutfit'));
+    } catch (err) {
+      Alert.alert(t('common.error'), messageFromOutfitSaveError(err));
     } finally {
       setIsSaving(false);
     }

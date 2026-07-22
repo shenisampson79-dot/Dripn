@@ -18,6 +18,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { ThemedText } from '@/components/ThemedText';
 import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
 import { SaveOutfitPromptModal } from '@/components/outfit/SaveOutfitPromptModal';
+import { wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -571,7 +572,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     [pieces],
   );
 
-  const itemIds = useMemo(() => pieces.map((p) => String(p.id)), [pieces]);
+  const itemIds = useMemo(() => wardrobeIdsFromPieces(pieces), [pieces]);
   // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
   const showReopenChip =
     Boolean(user) && !visible && !gapVisible && cardState !== 'loading';

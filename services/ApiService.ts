@@ -342,11 +342,14 @@ class ApiService {
         status?: number;
         statusCode?: number;
         errorCode?: string;
+        code?: string;
         voiceCreditsExhausted?: boolean;
         limitCopy?: unknown;
       };
       apiError.status = response.status;
       apiError.statusCode = response.status;
+      apiError.errorCode = rawCode || undefined;
+      apiError.code = (typeof error.code === 'string' && error.code) || rawCode || undefined;
       if (error.errorCode) {
         apiError.errorCode = String(error.errorCode);
       }
@@ -4729,22 +4732,32 @@ class ApiService {
     }>(`/api/dfy/calendar/day/${date}/alternatives?stylistId=${stylistId}`);
   }
 
-  // Mix & Match Outfit Builder
+  // Mix & Match Outfit Builder — always goes through server Outfit Save Gateway
   async saveMixAndMatchOutfit(data: {
     name: string;
     occasion: string;
-    wardrobeItemIds: string[];
+    wardrobeItemIds: Array<string | number>;
     notes?: string;
     loved?: boolean;
     calendarDate?: string; // ISO date string — pins to calendar in same call
   }) {
+    const wardrobeItemIds = [...new Set(
+      (data.wardrobeItemIds || [])
+        .map((id) => String(id).trim())
+        .filter((id) => /^\d+$/.test(id)),
+    )];
     return this.request<{
       success: boolean;
-      outfit: { id: string; name: string; occasion: string; wardrobeItemIds: string[] };
-      calendarEntry?: { id: string; date: string };
+      lookbookId: number;
+      name: string;
+      itemCount: number;
+      wardrobeItemIds: string[];
+      items: Array<{ id: number; name: string; category?: string; imageUrl?: string | null }>;
+      calendarSaved?: boolean;
+      styleWarnings?: Array<{ id: string; hint: string; severity: string }>;
     }>('/api/outfits/mix-and-match/save', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, wardrobeItemIds }),
     });
   }
 

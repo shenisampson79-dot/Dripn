@@ -17,7 +17,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
-import { saveGeneratedOutfitToProfile } from '@/utils/saveGeneratedOutfit';
+import { messageFromOutfitSaveError, saveGeneratedOutfitToProfile } from '@/utils/saveGeneratedOutfit';
 
 export type SaveOutfitIntent = 'save' | 'love';
 
@@ -96,9 +96,9 @@ export function SaveOutfitPromptModal({
               : 'Outfit saved. Find it anytime in Profile → Saved Outfits.')
           : savedCopy.trim();
       Alert.alert(cleaned, undefined, [{ text: t('common.ok') || t('common.done') || 'OK' }]);
-    } catch {
+    } catch (err) {
       Alert.alert(
-        t('savedOutfits.couldNotSaveMessage') || 'Could not save. Please try again in a moment.',
+        messageFromOutfitSaveError(err),
         undefined,
         [{ text: t('common.ok') || t('common.done') || 'OK' }],
       );
