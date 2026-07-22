@@ -3,6 +3,10 @@
  *
  * Plan item usage FIRST (deterministic distribution), then build outfits from
  * those assignments. Penalties alone cannot prevent clustering — this does.
+ *
+ * Follow-up (deferred): a CP-SAT / OR-Tools constraint solver for globally
+ * optimal schedules. Do not add @google-ortools/cp-sat until that pass —
+ * strengthen this allocator + lookbook SSOT first.
  */
 
 import type { WardrobeItem } from '@/contexts/WardrobeContext';

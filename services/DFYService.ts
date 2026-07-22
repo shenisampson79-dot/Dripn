@@ -18,8 +18,17 @@ export type DFYOccasion = 'work' | 'holiday' | 'event' | 'casual' | 'browsing';
 export const LITE_LOOKBOOK_DAYS = 14;
 
 export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDelivery {
-  const startDate = delivery.startDate || new Date().toISOString();
-  const start = new Date(startDate);
+  // Prefer immutable trip anchor — never invent "today" when travelPlan/startDate exist.
+  const anchorIso =
+    delivery.travelPlan?.startDate
+    || delivery.startDate
+    || null;
+  const startDate = anchorIso || new Date().toISOString();
+  const start = new Date(
+    /^\d{4}-\d{2}-\d{2}$/.test(String(startDate).slice(0, 10))
+      ? `${String(startDate).slice(0, 10)}T12:00:00`
+      : startDate,
+  );
   const correctExpiry = new Date(
     start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
@@ -28,7 +37,7 @@ export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDeliver
   const outfits: DFYOutfit[] = delivery.outfits.slice(0, LITE_LOOKBOOK_DAYS).map((o, idx) => ({
     ...o,
     dayNumber: idx + 1,
-    title: o.title || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+    title: o.title || `Day ${idx + 1} Look`,
   }));
 
   while (outfits.length < LITE_LOOKBOOK_DAYS) {
@@ -36,7 +45,7 @@ export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDeliver
     outfits.push({
       id: `outfit-${dayNumber}`,
       dayNumber,
-      title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
+      title: `Day ${dayNumber} Look`,
       description: 'Your stylist will fill this day once generation completes',
       items: [],
       occasion: 'casual',
@@ -50,7 +59,8 @@ export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDeliver
     ...delivery,
     tier: 'lite',
     totalDays: LITE_LOOKBOOK_DAYS,
-    startDate,
+    // Keep original startDate string when present so we never rewrite trip start to "now"
+    startDate: delivery.startDate || startDate,
     expiryDate: correctExpiry,
     outfits,
   };

@@ -52,6 +52,7 @@ import {
   computeLookbookDayNumber,
   computeLookbookDaysRemaining,
   lookbookDateForDay,
+  resolveTripAnchorIso,
 } from "@/utils/lookbookTripDay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -112,7 +113,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const backfillStartedRef = useRef(false);
 
   const resolveTripStartIso = (d: DFYLiteDelivery): string | null | undefined =>
-    d.travelPlan?.startDate || d.startDate;
+    resolveTripAnchorIso(d) || d.travelPlan?.startDate || d.startDate;
 
   const liveCurrentDayFor = (d: DFYLiteDelivery): number =>
     computeLookbookDayNumber(
@@ -175,7 +176,6 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   const outfitTitle = (idx: number) => {
-    if (idx === 0) return t('dfy.lookbook.todaysLook') || "Today's Look";
     const template = t('dfy.lookbook.dayLook') || 'Day {day} Look';
     return template.includes('{day}')
       ? template.replace('{day}', String(idx + 1))

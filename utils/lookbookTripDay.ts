@@ -1,9 +1,44 @@
 /**
  * Single source of truth for Travel Capsule / Lite lookbook day index.
  * dayNumber / "Today" / progress = f(tripStartDate, today).
+ *
+ * Hard rule: trip start is never mutated to "today". Calendar dates are a pure
+ * projection of lookbook day index onto that immutable trip anchor.
  */
 
 export const LOOKBOOK_DEFAULT_TOTAL_DAYS = 14;
+
+export type TripAnchorSource = {
+  travelPlan?: { startDate?: string | null; endDate?: string | null } | null;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+/**
+ * Resolve the trip calendar anchor (YYYY-MM-DD preferred).
+ * Prefers travelPlan.startDate → delivery.startDate. Does NOT invent "today".
+ */
+export function resolveTripAnchorIso(
+  source?: TripAnchorSource | null,
+): string | null {
+  const raw =
+    source?.travelPlan?.startDate
+    || source?.startDate
+    || null;
+  if (!raw) return null;
+  const parsed = parseLocalDateOnly(raw);
+  return parsed ? formatLocalDateKey(parsed) : null;
+}
+
+/** Inclusive return date from user endDate when present. */
+export function resolveTripEndIso(
+  source?: TripAnchorSource | null,
+): string | null {
+  const raw = source?.travelPlan?.endDate || source?.endDate || null;
+  if (!raw) return null;
+  const parsed = parseLocalDateOnly(raw);
+  return parsed ? formatLocalDateKey(parsed) : null;
+}
 
 /** Local calendar midnight (avoids UTC date-only parse shifting the day). */
 export function startOfLocalDay(date: Date = new Date()): Date {

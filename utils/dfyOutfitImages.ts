@@ -805,10 +805,21 @@ export function generateLiteLookbook(params: {
 
   const startParsed =
     parseLocalDateOnly(travelPlan?.startDate)
-    || parseLocalDateOnly(existing?.startDate)
-    || new Date();
-  startParsed.setHours(0, 0, 0, 0);
-  const start = startParsed;
+    || parseLocalDateOnly(existing?.travelPlan?.startDate)
+    || parseLocalDateOnly(existing?.startDate);
+  // Only invent "today" when building a brand-new capsule with no trip anchor at all.
+  // Never overwrite an existing trip start during fillGapsOnly / refresh.
+  const start = startParsed
+    ? (() => {
+        const d = new Date(startParsed);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })()
+    : (() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })();
   const startDateIso = formatLocalDateKey(start);
 
   const tempMins = forecast?.days?.map((d) => d.tempMin) || [];
@@ -820,10 +831,13 @@ export function generateLiteLookbook(params: {
     ? Math.round(tempMaxes.reduce((a, b) => a + b, 0) / tempMaxes.length)
     : null;
 
-  const capsulePlan = travelPlan || defaultTravelPlan({
-    destination: forecast?.location || 'your trip',
-    startDate: startDateIso,
-  });
+  const capsulePlan =
+    travelPlan
+    || existing?.travelPlan
+    || defaultTravelPlan({
+      destination: forecast?.location || 'your trip',
+      startDate: startDateIso,
+    });
 
   const tripDays = resolveTravelTripDays(capsulePlan);
 
@@ -927,22 +941,16 @@ export function generateLiteLookbook(params: {
             capsuleSize: capsule.items.length,
           });
 
+    const flightTitle = isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit';
+    const dayTitle = dayActivity === 'flight' ? flightTitle : `Day ${idx + 1} Look`;
+
     outfits.push({
       id: prev?.id || `lite-day-${idx + 1}`,
       dayNumber: idx + 1,
       title:
-        prev?.saved || prev?.userReaction === 'love'
-          ? (prev?.title
-            || (dayActivity === 'flight'
-              ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
-              : idx === 0
-                ? "Today's Look"
-                : `Day ${idx + 1} Look`))
-          : (dayActivity === 'flight'
-            ? (isReturnFlight ? 'Return Travel Day' : 'Travel Day Outfit')
-            : idx === 0
-              ? "Today's Look"
-              : `Day ${idx + 1} Look`),
+        (prev?.saved || prev?.userReaction === 'love') && prev?.title
+          ? prev.title
+          : dayTitle,
       description: activityCopy,
       items: finalItems,
       occasion: prev?.occasion || (dayActivity === 'flight' ? 'holiday' : 'casual'),
@@ -972,7 +980,11 @@ export function generateLiteLookbook(params: {
     {
       userId,
       tier: 'lite',
-      startDate: start.toISOString(),
+      // Preserve existing trip ISO when present — never rewrite start to wall-clock on gap fills
+      startDate:
+        (fillGapsOnly && existing?.startDate)
+        || capsulePlan.startDate
+        || start.toISOString(),
       expiryDate,
       totalDays: LITE_LOOKBOOK_DAYS,
       currentDay: existing?.currentDay || 1,

@@ -44,7 +44,7 @@ import {
   buildClientCalendarSaveRequest,
   pickNewerCalendarSource,
 } from '@/utils/coreCalendarSync';
-import { parseLocalDateOnly } from '@/utils/lookbookTripDay';
+import { parseLocalDateOnly, resolveTripAnchorIso } from '@/utils/lookbookTripDay';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -108,18 +108,20 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
-  /** Trip start for lite lookbook; falls back to today until delivery loads. */
+  /**
+   * Trip start for lite lookbook projection.
+   * UI may show "today" before delivery loads, but outfits are never remapped onto today
+   * without a real trip anchor (see loadLookbookCalendarOutfits).
+   */
   const [planStartDate, setPlanStartDate] = useState<Date>(todayStart);
   const startDate = planStartDate;
 
-  const resolveLookbookPlanStart = (delivery: DFYLiteDelivery | null | undefined): Date => {
-    const iso = delivery?.travelPlan?.startDate || delivery?.startDate;
+  const resolveLookbookPlanStart = (delivery: DFYLiteDelivery | null | undefined): Date | null => {
+    const iso = resolveTripAnchorIso(delivery);
     const parsed = parseLocalDateOnly(iso);
-    if (parsed) {
-      parsed.setHours(0, 0, 0, 0);
-      return parsed;
-    }
-    return todayStart;
+    if (!parsed) return null;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
   };
 
   const tabBarClearance = insets.bottom + 100;
@@ -171,6 +173,11 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     const saved = await dfyService.getDFYDelivery(user.id);
     if (saved?.tier === 'lite' && saved.outfits.some((o) => o.items && o.items.length > 0)) {
       const planStart = resolveLookbookPlanStart(saved as DFYLiteDelivery);
+      if (!planStart) {
+        // Lookbook exists but trip anchor missing — refuse to remap onto "today"
+        console.warn('[DFYCalendar] Lite lookbook missing trip startDate; skipping calendar projection');
+        return [];
+      }
       setPlanStartDate((prev) =>
         formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
       );
@@ -180,7 +187,21 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     try {
       const remote = await apiService.getDFYLookbook();
       if (remote.success && remote.outfits && remote.outfits.length > 0) {
-        return mapApiLookbookToCalendarOutfits(remote.outfits, todayStart, wardrobeItems, 'ruby');
+        const remoteAnchor =
+          resolveTripAnchorIso({
+            travelPlan: remote.travelPlan,
+            startDate: remote.startDate || remote.generatedAt?.slice(0, 10),
+          });
+        const planStart = parseLocalDateOnly(remoteAnchor);
+        if (!planStart) {
+          console.warn('[DFYCalendar] Remote lookbook missing trip startDate; skipping today remap');
+          return [];
+        }
+        planStart.setHours(0, 0, 0, 0);
+        setPlanStartDate((prev) =>
+          formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
+        );
+        return mapApiLookbookToCalendarOutfits(remote.outfits, planStart, wardrobeItems, 'ruby');
       }
     } catch (err) {
       console.log('[DFYCalendar] Remote lookbook fetch failed:', err);
@@ -424,17 +445,19 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             );
             if (liteDelivery) {
               const planStart = resolveLookbookPlanStart(liteDelivery);
-              setPlanStartDate((prev) =>
-                formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
-              );
-              const mapped = mapLookbookDeliveryToCalendarOutfits(
-                liteDelivery,
-                planStart,
-                wardrobeItems,
-              );
-              if (mapped.length > 0) {
-                applyCalendarOutfits(mapped);
-                return;
+              if (planStart) {
+                setPlanStartDate((prev) =>
+                  formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
+                );
+                const mapped = mapLookbookDeliveryToCalendarOutfits(
+                  liteDelivery,
+                  planStart,
+                  wardrobeItems,
+                );
+                if (mapped.length > 0) {
+                  applyCalendarOutfits(mapped);
+                  return;
+                }
               }
             }
           }
@@ -442,22 +465,26 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         }
 
         setPackageName(null);
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + totalDays - 1);
 
-        // Manual / SQL calendar entries (legacy mix & match pins)
-        let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
-        if (result.success && result.outfits && result.outfits.length > 0) {
-          applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
-          return;
-        }
-
+        // Lite Travel Capsule: calendar is a pure projection of the lookbook SSOT.
+        // Never prefer independent SQL/calendar generators over the lookbook.
         if (tier === 'lite') {
           const lookbookOutfits = await loadLookbookCalendarOutfits();
           if (lookbookOutfits.length > 0) {
             applyCalendarOutfits(lookbookOutfits);
             return;
           }
+          return;
+        }
+
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + totalDays - 1);
+
+        // Core / legacy: manual SQL calendar pins, then Core delivery cache
+        let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+        if (result.success && result.outfits && result.outfits.length > 0) {
+          applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+          return;
         }
 
         if (tier === 'core') {
@@ -561,18 +588,13 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     try {
       setLoadingAll(true);
       if (tier === 'lite') {
+        // Projection-only refresh — never independently generate outfits here
         const lookbookOutfits = await loadLookbookCalendarOutfits();
         if (lookbookOutfits.length > 0) {
           applyCalendarOutfits(lookbookOutfits);
           return;
         }
-        await apiService.generateDFYDelivery({ tier: 'lite', stylistId: 'ruby' });
-        const afterGen = await loadLookbookCalendarOutfits();
-        if (afterGen.length > 0) {
-          applyCalendarOutfits(afterGen);
-          await maybePromptPackageName();
-        }
-        return;
+        throw new Error('LOOKBOOK_REQUIRED');
       }
 
       // Core: always regenerate delivery, then hydrate from response / blob
@@ -602,6 +624,10 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         body =
           t('wardrobe.needMoreItemsAi')?.replace('{n}', '3')
           || 'Add tops, bottoms, and shoes to your wardrobe so we can build full outfits.';
+      } else if (message === 'LOOKBOOK_REQUIRED') {
+        body =
+          t('dfy.calendar.lookbookRequiredLite')
+          || 'Open My Lookbook (or Travel Plan) to build your capsule first — the calendar only mirrors that lookbook.';
       } else if (message === 'GENERATE_EMPTY') {
         body =
           t('dfy.calendar.generateEmpty') ||

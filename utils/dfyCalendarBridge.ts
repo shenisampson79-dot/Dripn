@@ -44,7 +44,7 @@ export function mapLookbookOutfitToCalendarEntry(
   return {
     id: outfit.id || `lookbook-day-${dayIndex + 1}`,
     date: formatDateKey(date),
-    title: outfit.title || (dayIndex === 0 ? "Today's Look" : `Day ${dayIndex + 1} Look`),
+    title: outfit.title || `Day ${dayIndex + 1} Look`,
     stylistNote: enriched.stylistNote || '',
     weatherNote: enriched.weatherNote,
     stylistId: enriched.stylistId || 'ruby',
@@ -92,7 +92,7 @@ export function mapApiLookbookToCalendarOutfits(
       const outfit: DFYOutfit = {
         id: raw.id || `outfit_${idx + 1}`,
         dayNumber: raw.day || raw.dayNumber || idx + 1,
-        title: raw.title || raw.occasion || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+        title: raw.title || raw.occasion || `Day ${idx + 1} Look`,
         description: raw.description || raw.stylistNote || '',
         items: (raw.items || []).map((it: any) => ({
           id: String(it.id),
@@ -180,7 +180,7 @@ export function mapDfyCalendarPayloadToOutfits(
         const outfit: DFYOutfit = {
           id: raw.id || `outfit_${idx + 1}`,
           dayNumber: raw.day || raw.dayNumber || idx + 1,
-          title: raw.title || raw.occasion || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+          title: raw.title || raw.occasion || `Day ${idx + 1} Look`,
           description: raw.description || raw.stylistNote || '',
           items: (raw.items || []).map((it: any) => ({
             id: String(it.id),

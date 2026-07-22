@@ -4140,6 +4140,15 @@ class ApiService {
     return this.request<{
       success: boolean;
       hasLookbook?: boolean;
+      startDate?: string | null;
+      endDate?: string | null;
+      travelPlan?: {
+        startDate?: string;
+        endDate?: string;
+        destination?: string;
+        tripDays?: number;
+      } | null;
+      generatedAt?: string | null;
       outfits?: Array<{
         id: string;
         day?: number;
