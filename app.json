@@ -28,9 +28,10 @@
         }
       }
     },
-    "android": {
+      "android": {
       "package": "com.dripn.app",
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

@@ -1923,7 +1923,8 @@ class ApiService {
       stylistResponse?: string;
       message?: string;
       outfitImageUrl?: string;
-      recommendedIndex?: number;
+      recommendedIndex?: number | null;
+      selectedOptionIndex?: number | null;
       unifiedScore?: number | null;
     }>('/api/decision/check/resilient', {
       method: 'POST',

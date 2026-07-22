@@ -9,11 +9,14 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
@@ -105,13 +108,18 @@ function renderMarkdownText(text: string) {
 export default function StylistDecisionFlow({ decisionType, navigation }: StylistDecisionFlowProps) {
   const { theme } = useTheme();
   const { t } = useTranslations();
-  const { paddingBottom: tabAwarePaddingBottom } = useScreenInsets();
+  const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
   const stylistGradient = getStylistGradient(stylistId);
   const stylistName = getStylistName(stylistId);
   const stylistIcon = getStylistIcon(stylistId);
+
+  // Sticky CTA height clearance for KeyboardAwareScrollView bottomOffset (not layout padding —
+  // footer is a flex sibling, not position:absolute).
+  const stickyFooterClearance = Spacing.md + 52 + (hasTabBar ? tabAwarePaddingBottom : Spacing.lg);
 
   // Collapsed flows: context chips live on the input step (no separate context page)
   const steps = useMemo(() => {
@@ -602,6 +610,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     const res = flow.response;
     if (!res) return null;
 
+    const uploaded = res.uploadedImages || [];
+    const winnerUri =
+      res.recommendedIndex != null
+      && res.recommendedIndex >= 0
+      && res.recommendedIndex < uploaded.length
+        ? uploaded[res.recommendedIndex]
+        : uploaded.length === 1
+          ? uploaded[0]
+          : null;
+
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
         <View style={styles.stylistHeader}>
@@ -613,11 +631,14 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
         </View>
 
-        {res.uploadedImages && res.uploadedImages.length > 0 && res.recommendedIndex !== undefined ? (
-          <Image
-            source={{ uri: res.uploadedImages[res.recommendedIndex] }}
-            style={styles.responseHero}
-          />
+        {winnerUri ? (
+          <Image source={{ uri: winnerUri }} style={styles.responseHero} />
+        ) : uploaded.length > 1 ? (
+          <View style={styles.responseOptionsRow}>
+            {uploaded.map((uri, index) => (
+              <Image key={`${uri}-${index}`} source={{ uri }} style={styles.responseOptionThumb} />
+            ))}
+          </View>
         ) : res.outfitImageUrl ? (
           <Image source={{ uri: res.outfitImageUrl }} style={styles.responseHero} />
         ) : res.outfitPieces && res.outfitPieces.length > 0 ? (
@@ -667,10 +688,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.backgroundRoot }}>
+    // Keyboard-aware tree (NOT absolute footer):
+    // flex column → KeyboardAwareScrollView → KeyboardStickyView → SafeAreaView → Continue
+    <View style={[styles.root, { backgroundColor: theme.backgroundRoot }]}>
       <ScreenKeyboardAwareScrollView
+        style={styles.flex}
         opaqueHeader
-        // Extra space so last fields clear the sticky CTA; tab clearance is on the footer
+        keyboardDismissMode="on-drag"
+        bottomOffset={stickyCta ? stickyFooterClearance : 0}
+        extraKeyboardSpace={stickyCta ? Spacing.sm : 0}
+        // Extra space so last fields clear the sticky CTA; tab/safe clearance is on the footer
         contentContainerStyle={[
           styles.scrollContent,
           stickyCta ? styles.scrollContentWithStickyCta : null,
@@ -704,18 +731,26 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       </ScreenKeyboardAwareScrollView>
 
       {stickyCta ? (
-        <View
-          style={[
-            styles.stickyFooter,
-            {
-              paddingBottom: tabAwarePaddingBottom,
-              backgroundColor: theme.backgroundRoot,
-              borderTopColor: theme.border,
-            },
-          ]}
-        >
-          {renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
-        </View>
+        <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+          <SafeAreaView
+            // Tab bar already clears the home indicator; when keyboard is up the keys own the bottom.
+            edges={hasTabBar || isKeyboardVisible ? [] : ['bottom']}
+            style={[
+              styles.stickyFooter,
+              {
+                paddingBottom: isKeyboardVisible
+                  ? Math.max(Spacing.md, Platform.OS === 'ios' ? Spacing.sm : Spacing.md)
+                  : hasTabBar
+                    ? tabAwarePaddingBottom
+                    : Spacing.md,
+                backgroundColor: theme.backgroundRoot,
+                borderTopColor: theme.border,
+              },
+            ]}
+          >
+            {renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
+          </SafeAreaView>
+        </KeyboardStickyView>
       ) : null}
 
       <SurpriseMeLoadingOverlay
@@ -761,12 +796,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
   scrollContent: {
     // Do NOT set paddingBottom here — ScreenKeyboardAwareScrollView already applies
     // tab-bar-aware bottom inset. Overriding it hides the CTA under the absolute tab bar.
   },
   scrollContentWithStickyCta: {
-    // Sticky CTA lives outside the scroll view — only need a small gap above the footer.
+    // Sticky CTA is a flex sibling (not absolute) — small gap above the footer is enough.
     // Override tab-aware paddingBottom from ScreenKeyboardAwareScrollView (footer owns that).
     paddingBottom: Spacing.xl,
   },
@@ -1031,6 +1072,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 280,
     borderRadius: BorderRadius.lg,
+  },
+  responseOptionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  responseOptionThumb: {
+    flex: 1,
+    height: 140,
+    borderRadius: BorderRadius.md,
   },
   responseCard: {
     borderRadius: BorderRadius.lg,

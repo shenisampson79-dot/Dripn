@@ -37,6 +37,7 @@ import {
   DecisionAccessStatus,
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
+import { safeEnforceDecisionContract } from "@/utils/decisionContract";
 import weatherService from "@/services/WeatherService";
 import { generateWardrobeOutfit } from "@/utils/generatedOutfit";
 import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
@@ -489,11 +490,21 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         surpriseMe: true,
       });
 
-      const recommendedIndex = apiResult.recommendedIndex ?? 0;
+      const enforced = safeEnforceDecisionContract(apiResult, {
+        // Surprise Me is wardrobe-driven — no photo compare winner
+        optionCount: 0,
+        requireAdvice: true,
+      });
+      const recommendedIndex = enforced.payload.recommendedIndex;
       const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
+        recommendation:
+          enforced.payload.advice
+          || apiResult.decision
+          || apiResult.recommendation
+          || apiResult.response
+          || '',
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
@@ -507,7 +518,8 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
         uploadedImages: images,
         recommendedIndex,
-        recommendedOptionId: `option-${recommendedIndex}`,
+        recommendedOptionId:
+          recommendedIndex != null ? `option-${recommendedIndex}` : undefined,
       };
 
       if (user?.id) {
@@ -736,11 +748,25 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         })),
       });
 
-      const recommendedIndex = apiResult.recommendedIndex ?? 0;
+      const enforced = safeEnforceDecisionContract(apiResult, {
+        optionCount: isSurpriseMe ? 0 : images.length,
+        requireAdvice: true,
+      });
+      if (!enforced.ok && images.length >= 2) {
+        console.warn('[AskStylist] Multi-compare contract soft-fail; showing all options', {
+          issues: enforced.issues,
+        });
+      }
+      const recommendedIndex = enforced.payload.recommendedIndex;
       const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
+        recommendation:
+          enforced.payload.advice
+          || apiResult.decision
+          || apiResult.recommendation
+          || apiResult.response
+          || '',
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
@@ -753,7 +779,8 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         outfitImageUrl: apiResult.outfitImageUrl,
         uploadedImages: images,
         recommendedIndex,
-        recommendedOptionId: `option-${recommendedIndex}`,
+        recommendedOptionId:
+          recommendedIndex != null ? `option-${recommendedIndex}` : undefined,
       };
 
       if (user?.id) {
@@ -1815,13 +1842,34 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         </ThemedText>
       </View>
 
-      {response?.uploadedImages && response.uploadedImages.length > 0 && response.recommendedIndex !== undefined ? (
-        <View style={styles.responseOutfitImageContainer}>
-          <Image
-            source={{ uri: response.uploadedImages[response.recommendedIndex] }}
-            style={styles.outfitImage}
-          />
-        </View>
+      {response?.uploadedImages && response.uploadedImages.length > 0 ? (
+        response.recommendedIndex != null
+        && response.recommendedIndex >= 0
+        && response.recommendedIndex < response.uploadedImages.length ? (
+          <View style={styles.responseOutfitImageContainer}>
+            <Image
+              source={{ uri: response.uploadedImages[response.recommendedIndex] }}
+              style={styles.outfitImage}
+            />
+          </View>
+        ) : response.uploadedImages.length > 1 ? (
+          <View style={styles.responseOptionsRow}>
+            {response.uploadedImages.map((uri: string, index: number) => (
+              <Image
+                key={`${uri}-${index}`}
+                source={{ uri }}
+                style={styles.responseOptionThumb}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.responseOutfitImageContainer}>
+            <Image
+              source={{ uri: response.uploadedImages[0] }}
+              style={styles.outfitImage}
+            />
+          </View>
+        )
       ) : response?.outfitImageUrl ? (
         <View style={styles.responseOutfitImageContainer}>
           <Image
@@ -3096,6 +3144,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  responseOptionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginVertical: Spacing.lg,
+  },
+  responseOptionThumb: {
+    flex: 1,
+    height: 140,
+    borderRadius: BorderRadius.lg,
   },
   outfitImage: {
     width: '100%',

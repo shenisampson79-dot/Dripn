@@ -19,6 +19,7 @@ import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import { safeEnforceDecisionContract } from '@/utils/decisionContract';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -399,11 +400,26 @@ export function useStylistDecision({
         })),
       });
 
-      const recommendedIndex = apiResult.recommendedIndex ?? 0;
+      // Contract BEFORE result UI — never invent a multi-compare winner (no ?? 0)
+      const enforced = safeEnforceDecisionContract(apiResult, {
+        optionCount: imageUris.length,
+        requireAdvice: true,
+      });
+      if (!enforced.ok && imageUris.length >= 2) {
+        console.warn('[StylistDecision] Multi-compare contract soft-fail; showing all options', {
+          issues: enforced.issues,
+        });
+      }
+
       const result: DecisionResponse = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
+        recommendation:
+          enforced.payload.advice
+          || apiResult.decision
+          || apiResult.recommendation
+          || apiResult.response
+          || '',
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
@@ -414,7 +430,7 @@ export function useStylistDecision({
         timestamp: new Date().toISOString(),
         outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
         uploadedImages: imageUris,
-        recommendedIndex,
+        recommendedIndex: enforced.payload.recommendedIndex,
       };
 
       await persistResult(result, imageUris);
