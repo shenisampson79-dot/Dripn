@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -14,6 +14,15 @@ import {
   DecisionRequest,
 } from '@/services/DecisionService';
 import { apiService } from '@/services/ApiService';
+import {
+  decisionSessionManager,
+  DecisionFlow,
+  DecisionSession,
+  DecisionSessionStatus,
+  buildWardrobeSignature,
+  buildPersonaSignature,
+  computeContextHash,
+} from '@/services/DecisionSessionManager';
 import { stabilizeDecisionImage } from '@/services/VisionAnalysisService';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
@@ -66,6 +75,7 @@ export function useStylistDecision({
   const { t } = useTranslations();
 
   const defaultStep: StylistFlowStep = decisionType === 'event-outfit' ? 'event' : 'input';
+  const flowKey = decisionType as DecisionFlow;
 
   const [step, setStep] = useState<StylistFlowStep>(initialStep ?? defaultStep);
   /** Stable local JPEG URIs for preview (not ephemeral gallery content:// / ph://). */
@@ -86,8 +96,18 @@ export function useStylistDecision({
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<DecisionSessionStatus>('draft');
+  const [brokenImageCount, setBrokenImageCount] = useState(0);
+
+  const sessionHydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionRef = useRef<DecisionSession | null>(null);
+  const contextHashRef = useRef<string>('');
 
   const contextChips = decisionService.getContextChips();
+  const isReadOnly = sessionStatus === 'completed' || sessionStatus === 'stale';
+  const isStale = sessionStatus === 'stale';
 
   const getUploadLimit = useCallback(() => {
     if (decisionType === 'sanity-check') return 1;
@@ -101,6 +121,15 @@ export function useStylistDecision({
     }
     return accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
   }, [accessStatus, decisionType, user?.subscriptionTier]);
+
+  const resolveContextHash = useCallback(async () => {
+    const hash = await computeContextHash({
+      wardrobeSignature: buildWardrobeSignature(wardrobeItems),
+      personaSignature: buildPersonaSignature(user),
+    });
+    contextHashRef.current = hash;
+    return hash;
+  }, [wardrobeItems, user]);
 
   const checkAccess = useCallback(
     async (opts?: { showPaywallIfBlocked?: boolean }) => {
@@ -122,6 +151,128 @@ export function useStylistDecision({
     checkAccess({ showPaywallIfBlocked: false });
   }, [checkAccess]);
 
+  const applySessionToState = (session: DecisionSession) => {
+    sessionRef.current = session;
+    setSessionStatus(session.status);
+    setStep(session.step || defaultStep);
+    setImages(session.input.images || []);
+    setImageDataUris(session.input.imageDataUris || []);
+    setSelectedWardrobeIds(session.input.selectedWardrobeIds || []);
+    setContextNotes(session.input.text || '');
+    setSelectedContexts(session.input.selectedContexts || []);
+    setEventDetails(
+      session.input.eventDetails || { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
+    );
+    setResponse(session.result || null);
+    setIsSurpriseMe(Boolean(session.isSurpriseMe));
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    sessionHydratedRef.current = false;
+    setSessionReady(false);
+
+    const hydrate = async () => {
+      if (!user?.id) {
+        sessionHydratedRef.current = true;
+        if (!cancelled) setSessionReady(true);
+        return;
+      }
+
+      const hash = await resolveContextHash();
+      const { session, brokenImageIndexes } = await decisionSessionManager.loadForScreen(
+        user.id,
+        flowKey,
+        hash,
+      );
+      if (cancelled) return;
+
+      if (session) {
+        applySessionToState(session);
+        setBrokenImageCount(brokenImageIndexes.length);
+        console.log('[StylistDecision] Session restored', {
+          id: session.id,
+          status: session.status,
+          step: session.step,
+          brokenImages: brokenImageIndexes.length,
+        });
+      } else {
+        const created = decisionSessionManager.createSession(user.id, flowKey, hash);
+        sessionRef.current = created;
+        setSessionStatus('draft');
+        setBrokenImageCount(0);
+      }
+
+      sessionHydratedRef.current = true;
+      if (!cancelled) setSessionReady(true);
+    };
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user/flow; wardrobe hash via resolveContextHash
+  }, [user?.id, flowKey]);
+
+  const buildSessionSnapshot = useCallback((): DecisionSession | null => {
+    if (!user?.id) return null;
+    const base =
+      sessionRef.current
+      || decisionSessionManager.createSession(user.id, flowKey, contextHashRef.current || '');
+    const status: DecisionSessionStatus =
+      sessionStatus === 'stale' ? 'stale' : sessionStatus === 'completed' ? 'completed' : 'draft';
+    return {
+      ...base,
+      status,
+      contextHash: contextHashRef.current || base.contextHash,
+      step,
+      input: {
+        text: contextNotes,
+        images,
+        imageDataUris,
+        selectedContexts,
+        selectedWardrobeIds,
+        eventDetails,
+      },
+      result: response,
+      isSurpriseMe,
+      updatedAt: Date.now(),
+    };
+  }, [
+    user?.id,
+    flowKey,
+    sessionStatus,
+    step,
+    contextNotes,
+    images,
+    imageDataUris,
+    selectedContexts,
+    selectedWardrobeIds,
+    eventDetails,
+    response,
+    isSurpriseMe,
+  ]);
+
+  useEffect(() => {
+    if (!sessionReady || !sessionHydratedRef.current || !user?.id) return;
+    if (sessionStatus === 'completed' || sessionStatus === 'stale') return;
+
+    const snapshot = buildSessionSnapshot();
+    if (!snapshot) return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      sessionRef.current = snapshot;
+      void decisionSessionManager.saveSession(snapshot);
+    }, 400);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      sessionRef.current = snapshot;
+      void decisionSessionManager.saveSession(snapshot);
+    };
+  }, [sessionReady, user?.id, sessionStatus, buildSessionSnapshot]);
+
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
     navigateToSubscription(navigation as never, 'personal_stylist');
@@ -130,6 +281,7 @@ export function useStylistDecision({
   const dismissPaywall = () => setShowUpgradeModal(false);
 
   const guardAccess = () => {
+    if (isReadOnly) return false;
     if (accessStatus && !accessStatus.canMakeDecision) {
       setShowUpgradeModal(true);
       return false;
@@ -304,8 +456,8 @@ export function useStylistDecision({
     }
   };
 
-  const submitDecision = async (surpriseMe = false) => {
-    if (!guardAccess()) return;
+  const submitDecision = async (surpriseMe = false, opts?: { force?: boolean }) => {
+    if (!opts?.force && !guardAccess()) return;
 
     const imageUris = collectImageUris();
     if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping') {
@@ -434,6 +586,18 @@ export function useStylistDecision({
       };
 
       await persistResult(result, imageUris);
+      const hash = await resolveContextHash();
+      const base =
+        sessionRef.current
+        || (user?.id
+          ? decisionSessionManager.createSession(user.id, flowKey, hash)
+          : null);
+      if (base) {
+        const completed = decisionSessionManager.markCompleted(base, result, hash);
+        sessionRef.current = completed;
+        setSessionStatus('completed');
+        await decisionSessionManager.saveSession(completed);
+      }
       setResponse(result);
       setStep('response');
     } catch (error) {
@@ -537,9 +701,92 @@ export function useStylistDecision({
     setEventDetails({ eventType: '', dressCode: '', venue: '', timeOfDay: '' });
     setResponse(null);
     setIsSurpriseMe(false);
+    setBrokenImageCount(0);
+    setSessionStatus('draft');
+    if (user?.id) {
+      void decisionSessionManager.clearSession(user.id, flowKey);
+      const hash = contextHashRef.current || '';
+      const created = decisionSessionManager.createSession(user.id, flowKey, hash);
+      sessionRef.current = created;
+    } else {
+      sessionRef.current = null;
+    }
+  };
+
+  /** Done: leave completed snapshot as read-only for next open. */
+  const completeAndClose = () => {
+    const snapshot = buildSessionSnapshot();
+    if (snapshot && user?.id) {
+      const completed: DecisionSession = {
+        ...snapshot,
+        status: response ? 'completed' : snapshot.status,
+        step: response ? 'response' : snapshot.step,
+        result: response,
+        updatedAt: Date.now(),
+      };
+      sessionRef.current = completed;
+      setSessionStatus(completed.status);
+      void decisionSessionManager.saveSession(completed);
+    }
+    navigation.goBack();
+  };
+
+  /** Unlock completed/stale snapshot for a new run with same photos/notes. */
+  const editAndRerun = async () => {
+    if (!user?.id) return;
+    const hash = await resolveContextHash();
+    const base =
+      sessionRef.current
+      || decisionSessionManager.createSession(user.id, flowKey, hash);
+    const draft = decisionSessionManager.markDraftForEdit(
+      {
+        ...base,
+        input: {
+          text: contextNotes,
+          images,
+          imageDataUris,
+          selectedContexts,
+          selectedWardrobeIds,
+          eventDetails,
+        },
+      },
+      hash,
+    );
+    applySessionToState(draft);
+    setBrokenImageCount(0);
+    await decisionSessionManager.saveSession(draft);
+  };
+
+  /** Re-run decision engine for a stale completed session. */
+  const refreshStaleRecommendation = async () => {
+    if (!user?.id) return;
+    const hash = await resolveContextHash();
+    const base =
+      sessionRef.current
+      || decisionSessionManager.createSession(user.id, flowKey, hash);
+    const unlocked: DecisionSession = {
+      ...base,
+      status: 'draft',
+      contextHash: hash,
+      input: {
+        text: contextNotes,
+        images,
+        imageDataUris,
+        selectedContexts,
+        selectedWardrobeIds,
+        eventDetails,
+      },
+      result: response,
+      updatedAt: Date.now(),
+    };
+    sessionRef.current = unlocked;
+    setSessionStatus('draft');
+    await decisionSessionManager.saveSession(unlocked);
+    await submitDecision(false, { force: true });
   };
 
   const canProceedFromInput = () => {
+    if (isReadOnly) return false;
     if (decisionType === 'shopping') {
       return images.length >= 1 || contextNotes.trim().length > 0 || selectedContexts.length > 0;
     }
@@ -570,6 +817,11 @@ export function useStylistDecision({
     contextChips,
     wardrobeItems,
     user,
+    sessionReady,
+    sessionStatus,
+    isReadOnly,
+    isStale,
+    brokenImageCount,
     getUploadLimit,
     canProceedFromInput,
     handlePickImage,
@@ -579,6 +831,9 @@ export function useStylistDecision({
     toggleContext,
     submitDecision,
     resetFlow,
+    completeAndClose,
+    editAndRerun,
+    refreshStaleRecommendation,
     openSubscriptionFromPaywall,
     dismissPaywall,
     guardAccess,

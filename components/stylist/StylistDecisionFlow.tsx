@@ -148,6 +148,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   }[decisionType];
 
   const stickyCta = (() => {
+    if (flow.isReadOnly) return null;
     if (flow.step === 'event') {
       if (!flow.eventDetails.eventType || !flow.eventDetails.dressCode) return null;
       return {
@@ -676,12 +677,35 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         </View>
 
         <View style={styles.responseActions}>
-          {renderPrimaryButton(t('stylistFlow.done'), () => navigation.goBack())}
-          <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
-            <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-              {t('stylistFlow.startOver')}
-            </ThemedText>
-          </Pressable>
+          {flow.isStale ? (
+            <>
+              {renderPrimaryButton(
+                t('stylistFlow.refreshRecommendation'),
+                () => flow.refreshStaleRecommendation(),
+                false,
+                flow.isLoading,
+              )}
+              <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
+                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                  {t('stylistFlow.editAndRerun')}
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())}
+              <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
+                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                  {t('stylistFlow.editAndRerun')}
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
+                <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                  {t('stylistFlow.startOver')}
+                </ThemedText>
+              </Pressable>
+            </>
+          )}
         </View>
       </Animated.View>
     );
@@ -713,6 +737,24 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
           {flow.step !== 'response' ? renderProgress() : null}
         </LinearGradient>
+
+        {flow.isStale ? (
+          <View style={[styles.staleBanner, { backgroundColor: '#FFF4E5', borderColor: LuxuryColors.gold }]}>
+            <Feather name="alert-circle" size={16} color={LuxuryColors.deepGold} />
+            <ThemedText type="caption" style={{ color: LuxuryColors.obsidian, flex: 1 }}>
+              {t('stylistFlow.staleBanner')}
+            </ThemedText>
+          </View>
+        ) : null}
+
+        {flow.brokenImageCount > 0 && !flow.isReadOnly ? (
+          <View style={[styles.staleBanner, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+            <Feather name="image" size={16} color={theme.tabIconDefault} />
+            <ThemedText type="caption" style={{ color: theme.tabIconDefault, flex: 1 }}>
+              {t('stylistFlow.brokenImagesBanner').replace('{n}', String(flow.brokenImageCount))}
+            </ThemedText>
+          </View>
+        ) : null}
 
         {flow.step === 'event' ? renderEventStep() : null}
         {flow.step === 'input' && decisionType === 'shopping' ? renderShoppingInput() : null}
@@ -1115,6 +1157,16 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginTop: Spacing.md,
+  },
+  staleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   modalOverlay: {
     flex: 1,
