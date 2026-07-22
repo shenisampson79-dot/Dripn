@@ -1,6 +1,11 @@
 /**
  * DecisionSessionManager — single authority for resumable decision sessions.
- * Screens are temporary; sessions are the source of truth (draft / completed / stale).
+ *
+ * HARD RULES:
+ * - Screens are temporary; sessions are the source of truth
+ * - If session.result exists → status is completed|stale and UI is ALWAYS the recommendation
+ * - Autosave must NEVER clear or overwrite a completed recommendation with an empty draft
+ * - Step is DERIVED from data truth (result?), not trusted from storage alone
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
@@ -9,7 +14,9 @@ import type { DecisionContext, DecisionResponse } from '@/services/DecisionServi
 
 export type DecisionFlow = 'shopping' | 'event-outfit' | 'sanity-check';
 export type DecisionSessionStatus = 'draft' | 'completed' | 'stale';
-export type DecisionSessionStep = 'event' | 'input' | 'context' | 'response';
+/** Pre-result draft substeps only — recommendation view is derived from result. */
+export type DecisionDraftSubstep = 'event' | 'input' | 'context';
+export type DecisionSessionStep = DecisionDraftSubstep | 'response';
 
 export type DecisionSessionEventDetails = {
   eventType: string;
@@ -25,6 +32,8 @@ export type DecisionSessionInput = {
   selectedContexts: DecisionContext[];
   selectedWardrobeIds: string[];
   eventDetails: DecisionSessionEventDetails;
+  /** Only meaningful while status === draft and no result */
+  draftSubstep?: DecisionDraftSubstep;
 };
 
 export type DecisionSession = {
@@ -33,7 +42,8 @@ export type DecisionSession = {
   flow: DecisionFlow;
   status: DecisionSessionStatus;
   contextHash: string;
-  step: DecisionSessionStep;
+  /** @deprecated Derived via getDerivedStep — kept for migration only */
+  step?: DecisionSessionStep;
   input: DecisionSessionInput;
   result: DecisionResponse | null;
   isSurpriseMe: boolean;
@@ -61,7 +71,7 @@ function legacyDraftKey(userId: string, flow: DecisionFlow): string {
   return `${LEGACY_DRAFT_PREFIX}${userId}:${flow}`;
 }
 
-function emptyInput(): DecisionSessionInput {
+function emptyInput(flow: DecisionFlow): DecisionSessionInput {
   return {
     text: '',
     images: [],
@@ -69,6 +79,7 @@ function emptyInput(): DecisionSessionInput {
     selectedContexts: [],
     selectedWardrobeIds: [],
     eventDetails: { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
+    draftSubstep: flow === 'event-outfit' ? 'event' : 'input',
   };
 }
 
@@ -141,12 +152,48 @@ export async function computeContextHash(snapshot: ContextSnapshot): Promise<str
     p: snapshot.personaSignature,
     m: snapshot.memorySignature || '',
   });
-  // Fast local fingerprint — equality checks only (not cryptographic)
   let h = 5381;
   for (let i = 0; i < payload.length; i++) {
     h = ((h << 5) + h) ^ payload.charCodeAt(i);
   }
   return `ctx_${(h >>> 0).toString(16)}_${payload.length}`;
+}
+
+/**
+ * UI step is ALWAYS derived from data truth.
+ * result → recommendation; otherwise draft substep (event/input).
+ */
+export function getDerivedStep(session: DecisionSession): DecisionSessionStep {
+  if (session.result) return 'response';
+  const sub = session.input.draftSubstep;
+  if (sub === 'event' || sub === 'input' || sub === 'context') return sub;
+  if (session.flow === 'event-outfit') {
+    const e = session.input.eventDetails;
+    if (!e.eventType || !e.dressCode) return 'event';
+  }
+  return 'input';
+}
+
+/** Lock invariants: result implies completed|stale; never leave a result as draft. */
+export function normalizeSession(session: DecisionSession): DecisionSession {
+  if (session.result) {
+    const status: DecisionSessionStatus =
+      session.status === 'stale' ? 'stale' : 'completed';
+    return {
+      ...session,
+      status,
+      step: 'response',
+      input: {
+        ...session.input,
+        // Preserve input for edit & re-run, but draftSubstep is irrelevant while locked
+      },
+    };
+  }
+  return {
+    ...session,
+    status: session.status === 'stale' ? 'draft' : session.status === 'completed' ? 'draft' : session.status,
+    step: getDerivedStep({ ...session, result: null }),
+  };
 }
 
 function newId(): string {
@@ -173,7 +220,49 @@ async function sanitizeImages(images: string[], imageDataUris: string[]) {
   return { images: nextImages, imageDataUris: nextData, brokenIndexes };
 }
 
+/**
+ * Patch drafts only. Completed/stale sessions with a result are immutable here.
+ * Explicit unlock goes through markDraftForEdit / clearSession.
+ */
+export function applyDraftPatch(
+  session: DecisionSession,
+  patch: {
+    input?: Partial<DecisionSessionInput>;
+    isSurpriseMe?: boolean;
+    contextHash?: string;
+  },
+): DecisionSession {
+  const locked = normalizeSession(session);
+  if (locked.result) {
+    // 🔒 NEVER allow autosave/UI to clear or mutate a recommendation
+    return locked;
+  }
+
+  const nextInput: DecisionSessionInput = {
+    ...locked.input,
+    ...(patch.input || {}),
+    eventDetails: {
+      ...locked.input.eventDetails,
+      ...(patch.input?.eventDetails || {}),
+    },
+  };
+
+  return normalizeSession({
+    ...locked,
+    status: 'draft',
+    contextHash: patch.contextHash ?? locked.contextHash,
+    isSurpriseMe: patch.isSurpriseMe ?? locked.isSurpriseMe,
+    input: nextInput,
+    result: null,
+    updatedAt: Date.now(),
+  });
+}
+
 export const decisionSessionManager = {
+  getDerivedStep,
+  normalizeSession,
+  applyDraftPatch,
+
   async getActiveSession(userId: string, flow: DecisionFlow): Promise<DecisionSession | null> {
     if (!userId) return null;
     try {
@@ -181,9 +270,8 @@ export const decisionSessionManager = {
       if (raw) {
         const session = JSON.parse(raw) as DecisionSession;
         if (!session?.id || session.flow !== flow) return null;
-        return session;
+        return normalizeSession(session);
       }
-      // One-time migrate from earlier draft persistence
       return this.migrateLegacyDraft(userId, flow);
     } catch (error) {
       console.warn('[DecisionSession] get failed:', error);
@@ -197,27 +285,33 @@ export const decisionSessionManager = {
       if (!raw) return null;
       const draft = JSON.parse(raw);
       const hasResult = Boolean(draft?.response);
-      const session: DecisionSession = {
+      const draftSubstep: DecisionDraftSubstep =
+        draft.step === 'event' || draft.step === 'input' || draft.step === 'context'
+          ? draft.step
+          : flow === 'event-outfit'
+            ? 'event'
+            : 'input';
+      const session = normalizeSession({
         id: newId(),
         userId,
         flow,
         status: hasResult ? 'completed' : 'draft',
         contextHash: '',
-        step: draft.step || (flow === 'event-outfit' ? 'event' : 'input'),
         input: {
           text: draft.contextNotes || '',
           images: draft.images || [],
           imageDataUris: draft.imageDataUris || [],
           selectedContexts: draft.selectedContexts || [],
           selectedWardrobeIds: draft.selectedWardrobeIds || [],
-          eventDetails: draft.eventDetails || emptyInput().eventDetails,
+          eventDetails: draft.eventDetails || emptyInput(flow).eventDetails,
+          draftSubstep,
         },
         result: draft.response || null,
         isSurpriseMe: Boolean(draft.isSurpriseMe),
         createdAt: Date.now(),
         updatedAt: Date.now(),
-      };
-      await this.saveSession(session);
+      });
+      await this.persist(session);
       await AsyncStorage.removeItem(legacyDraftKey(userId, flow));
       return session;
     } catch {
@@ -225,66 +319,84 @@ export const decisionSessionManager = {
     }
   },
 
-  async saveSession(session: DecisionSession): Promise<void> {
+  /** Low-level persist after normalize. Refuses completed→empty-draft wipes. */
+  async persist(session: DecisionSession): Promise<void> {
     if (!session.userId) return;
+    const normalized = normalizeSession(session);
     try {
-      // Refuse silent downgrade: draft-without-result must not wipe a completed recommendation
-      try {
-        const existingRaw = await AsyncStorage.getItem(sessionKey(session.userId, session.flow));
-        if (existingRaw) {
-          const existing = JSON.parse(existingRaw) as DecisionSession;
-          if (
-            existing?.result
-            && (existing.status === 'completed' || existing.status === 'stale')
-            && session.status === 'draft'
-            && !session.result
-          ) {
-            console.warn('[DecisionSession] Refused draft overwrite of completed session');
-            return;
-          }
+      const existingRaw = await AsyncStorage.getItem(sessionKey(normalized.userId, normalized.flow));
+      if (existingRaw) {
+        const existing = normalizeSession(JSON.parse(existingRaw) as DecisionSession);
+        if (existing.result && !normalized.result) {
+          console.warn('[DecisionSession] HARD BLOCK: refused wipe of result');
+          return;
         }
-      } catch {
-        // continue with save
       }
 
-      if (!hasMeaningfulInput(session.input, session.result) && session.status === 'draft') {
-        await AsyncStorage.removeItem(sessionKey(session.userId, session.flow));
+      if (!hasMeaningfulInput(normalized.input, normalized.result) && !normalized.result) {
+        await AsyncStorage.removeItem(sessionKey(normalized.userId, normalized.flow));
         return;
       }
+
       const now = Date.now();
-      // TTL: drafts 7d, completed 90d
-      const age = now - session.updatedAt;
-      if (session.status === 'draft' && age > DRAFT_TTL_MS) {
-        await AsyncStorage.removeItem(sessionKey(session.userId, session.flow));
+      const age = now - normalized.updatedAt;
+      if (!normalized.result && age > DRAFT_TTL_MS) {
+        await AsyncStorage.removeItem(sessionKey(normalized.userId, normalized.flow));
         return;
       }
-      if (session.status !== 'draft' && age > COMPLETED_TTL_MS) {
-        await AsyncStorage.removeItem(sessionKey(session.userId, session.flow));
+      if (normalized.result && age > COMPLETED_TTL_MS) {
+        await AsyncStorage.removeItem(sessionKey(normalized.userId, normalized.flow));
         return;
       }
 
       const slim: DecisionSession = {
-        ...session,
+        ...normalized,
         updatedAt: now,
+        // Do not persist misleading step — load derives it
+        step: undefined,
         input: {
-          ...session.input,
-          images: (session.input.images || []).filter(isStableImageUri),
-          imageDataUris: slimDataUris(session.input.imageDataUris || []),
+          ...normalized.input,
+          images: (normalized.input.images || []).filter(isStableImageUri),
+          imageDataUris: slimDataUris(normalized.input.imageDataUris || []),
         },
-        result: session.result
+        result: normalized.result
           ? {
-              ...session.result,
-              uploadedImages: (session.result.uploadedImages || [])
+              ...normalized.result,
+              uploadedImages: (normalized.result.uploadedImages || [])
                 .filter(isStableImageUri)
                 .map((uri) => (uri.startsWith('data:') && uri.length > 50_000 ? '' : uri))
                 .filter(Boolean),
             }
           : null,
       };
-      await AsyncStorage.setItem(sessionKey(session.userId, session.flow), JSON.stringify(slim));
+      await AsyncStorage.setItem(sessionKey(slim.userId, slim.flow), JSON.stringify(slim));
     } catch (error) {
-      console.warn('[DecisionSession] save failed:', error);
+      console.warn('[DecisionSession] persist failed:', error);
     }
+  },
+
+  /** @deprecated use persist — kept for call-site compatibility */
+  async saveSession(session: DecisionSession): Promise<void> {
+    return this.persist(session);
+  },
+
+  /**
+   * Autosave draft input only. No-op if session already has a result.
+   */
+  async autosaveDraft(
+    session: DecisionSession,
+    patch: {
+      input?: Partial<DecisionSessionInput>;
+      isSurpriseMe?: boolean;
+      contextHash?: string;
+    },
+  ): Promise<DecisionSession> {
+    const next = applyDraftPatch(session, patch);
+    if (session.result) {
+      return normalizeSession(session);
+    }
+    await this.persist(next);
+    return next;
   },
 
   async clearSession(userId: string, flow: DecisionFlow): Promise<void> {
@@ -298,88 +410,76 @@ export const decisionSessionManager = {
 
   createSession(userId: string, flow: DecisionFlow, contextHash: string): DecisionSession {
     const now = Date.now();
-    return {
+    return normalizeSession({
       id: newId(),
       userId,
       flow,
       status: 'draft',
       contextHash,
-      step: flow === 'event-outfit' ? 'event' : 'input',
-      input: emptyInput(),
+      input: emptyInput(flow),
       result: null,
       isSurpriseMe: false,
       createdAt: now,
       updatedAt: now,
-    };
+    });
   },
 
-  /**
-   * Load active session and apply context invalidation.
-   * Completed + hash mismatch → stale (keep snapshot, flag for refresh).
-   */
   async loadForScreen(
     userId: string,
     flow: DecisionFlow,
     currentHash: string,
-  ): Promise<{ session: DecisionSession | null; brokenImageIndexes: number[] }> {
+  ): Promise<{ session: DecisionSession | null; step: DecisionSessionStep; brokenImageIndexes: number[] }> {
     let session = await this.getActiveSession(userId, flow);
-    if (!session) return { session: null, brokenImageIndexes: [] };
+    if (!session) return { session: null, step: flow === 'event-outfit' ? 'event' : 'input', brokenImageIndexes: [] };
 
     const sanitized = await sanitizeImages(session.input.images, session.input.imageDataUris);
-    session = {
+    session = normalizeSession({
       ...session,
       input: {
         ...session.input,
         images: sanitized.images,
         imageDataUris: sanitized.imageDataUris,
       },
-    };
+    });
 
     if (session.contextHash && currentHash && session.contextHash !== currentHash) {
-      if (session.status === 'completed' || session.result) {
-        session = { ...session, status: 'stale' };
-      }
-      // Draft with changed context: keep editable, but refresh hash so next complete is current
-      if (session.status === 'draft' && !session.result) {
-        session = { ...session, contextHash: currentHash };
+      if (session.result) {
+        session = normalizeSession({ ...session, status: 'stale' });
+      } else {
+        session = normalizeSession({ ...session, contextHash: currentHash, status: 'draft' });
       }
     }
 
-    // Any saved recommendation must reopen on the result step (never kick back to input)
-    if (session.result) {
-      session = {
-        ...session,
-        status: session.status === 'draft' ? 'completed' : session.status,
-        step: 'response',
-      };
-    } else if (session.status === 'completed' || session.status === 'stale') {
-      session = { ...session, step: 'response' };
-    }
-
-    await this.saveSession(session);
-    return { session, brokenImageIndexes: sanitized.brokenIndexes };
+    await this.persist(session);
+    return {
+      session,
+      step: getDerivedStep(session),
+      brokenImageIndexes: sanitized.brokenIndexes,
+    };
   },
 
   markCompleted(session: DecisionSession, result: DecisionResponse, contextHash: string): DecisionSession {
-    return {
+    return normalizeSession({
       ...session,
       result,
       status: 'completed',
       contextHash,
-      step: 'response',
       updatedAt: Date.now(),
-    };
+    });
   },
 
+  /** Explicit unlock only — the one path allowed to clear result. */
   markDraftForEdit(session: DecisionSession, contextHash: string): DecisionSession {
-    return {
+    return normalizeSession({
       ...session,
       status: 'draft',
       contextHash,
-      step: session.flow === 'event-outfit' ? 'event' : 'input',
-      // Keep prior result visible until new submit replaces it — clear so UI is editable input
       result: null,
+      input: {
+        ...session.input,
+        draftSubstep: session.flow === 'event-outfit' ? 'event' : 'input',
+      },
       updatedAt: Date.now(),
-    };
+    });
   },
 };

@@ -626,6 +626,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
+        {flow.isReadOnly ? (
+          <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+            {t('stylistFlow.lastRecommendation')}
+          </ThemedText>
+        ) : null}
         <View style={styles.stylistHeader}>
           <LinearGradient colors={stylistGradient} style={styles.stylistAvatar}>
             <Feather name={stylistIcon} size={24} color="#FFFFFF" />

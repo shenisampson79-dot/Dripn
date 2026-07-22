@@ -19,6 +19,8 @@ import {
   DecisionFlow,
   DecisionSession,
   DecisionSessionStatus,
+  DecisionDraftSubstep,
+  getDerivedStep,
   buildWardrobeSignature,
   buildPersonaSignature,
   computeContextHash,
@@ -106,8 +108,20 @@ export function useStylistDecision({
   const contextHashRef = useRef<string>('');
 
   const contextChips = decisionService.getContextChips();
-  const isReadOnly = sessionStatus === 'completed' || sessionStatus === 'stale';
+  // Data-truth: recommendation locks the UI; step is derived, not trusted from storage
+  const derivedStep: StylistFlowStep = response
+    ? 'response'
+    : step === 'response'
+      ? defaultStep
+      : step;
+  const isReadOnly = Boolean(response) || sessionStatus === 'completed' || sessionStatus === 'stale';
   const isStale = sessionStatus === 'stale';
+
+  const setDraftStep = useCallback((next: StylistFlowStep) => {
+    if (response || sessionRef.current?.result) return; // locked
+    if (next === 'response') return;
+    setStep(next);
+  }, [response]);
 
   const getUploadLimit = useCallback(() => {
     if (decisionType === 'sanity-check') return 1;
@@ -152,19 +166,20 @@ export function useStylistDecision({
   }, [checkAccess]);
 
   const applySessionToState = (session: DecisionSession) => {
-    sessionRef.current = session;
-    setSessionStatus(session.status);
-    setStep(session.step || defaultStep);
-    setImages(session.input.images || []);
-    setImageDataUris(session.input.imageDataUris || []);
-    setSelectedWardrobeIds(session.input.selectedWardrobeIds || []);
-    setContextNotes(session.input.text || '');
-    setSelectedContexts(session.input.selectedContexts || []);
+    const normalized = decisionSessionManager.normalizeSession(session);
+    sessionRef.current = normalized;
+    setSessionStatus(normalized.status);
+    setStep(getDerivedStep(normalized));
+    setImages(normalized.input.images || []);
+    setImageDataUris(normalized.input.imageDataUris || []);
+    setSelectedWardrobeIds(normalized.input.selectedWardrobeIds || []);
+    setContextNotes(normalized.input.text || '');
+    setSelectedContexts(normalized.input.selectedContexts || []);
     setEventDetails(
-      session.input.eventDetails || { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
+      normalized.input.eventDetails || { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
     );
-    setResponse(session.result || null);
-    setIsSurpriseMe(Boolean(session.isSurpriseMe));
+    setResponse(normalized.result || null);
+    setIsSurpriseMe(Boolean(normalized.isSurpriseMe));
   };
 
   useEffect(() => {
@@ -180,7 +195,7 @@ export function useStylistDecision({
       }
 
       const hash = await resolveContextHash();
-      const { session, brokenImageIndexes } = await decisionSessionManager.loadForScreen(
+      const { session, step: loadedStep, brokenImageIndexes } = await decisionSessionManager.loadForScreen(
         user.id,
         flowKey,
         hash,
@@ -193,13 +208,15 @@ export function useStylistDecision({
         console.log('[StylistDecision] Session restored', {
           id: session.id,
           status: session.status,
-          step: session.step,
+          step: loadedStep,
+          hasResult: Boolean(session.result),
           brokenImages: brokenImageIndexes.length,
         });
       } else {
         const created = decisionSessionManager.createSession(user.id, flowKey, hash);
         sessionRef.current = created;
         setSessionStatus('draft');
+        setStep(getDerivedStep(created));
         setBrokenImageCount(0);
       }
 
@@ -211,37 +228,53 @@ export function useStylistDecision({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user/flow; wardrobe hash via resolveContextHash
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user/flow
   }, [user?.id, flowKey]);
 
-  const buildSessionSnapshot = useCallback((): DecisionSession | null => {
-    if (!user?.id) return null;
-    const base =
-      sessionRef.current
-      || decisionSessionManager.createSession(user.id, flowKey, contextHashRef.current || '');
-    const status: DecisionSessionStatus =
-      sessionStatus === 'stale' ? 'stale' : sessionStatus === 'completed' ? 'completed' : 'draft';
-    return {
-      ...base,
-      status,
-      contextHash: contextHashRef.current || base.contextHash,
-      step,
-      input: {
-        text: contextNotes,
-        images,
-        imageDataUris,
-        selectedContexts,
-        selectedWardrobeIds,
-        eventDetails,
-      },
-      result: response,
-      isSurpriseMe,
-      updatedAt: Date.now(),
+  // Autosave DRAFT input only — completed sessions with result are immutable
+  useEffect(() => {
+    if (!sessionReady || !sessionHydratedRef.current || !user?.id) return;
+    if (response || sessionRef.current?.result) return;
+    if (sessionStatus === 'completed' || sessionStatus === 'stale') return;
+
+    const draftSubstep: DecisionDraftSubstep =
+      step === 'event' || step === 'input' || step === 'context' ? step : 'input';
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const base = sessionRef.current;
+      if (!base || base.result) return;
+      void decisionSessionManager
+        .autosaveDraft(base, {
+          contextHash: contextHashRef.current || base.contextHash,
+          isSurpriseMe,
+          input: {
+            text: contextNotes,
+            images,
+            imageDataUris,
+            selectedContexts,
+            selectedWardrobeIds,
+            eventDetails,
+            draftSubstep,
+          },
+        })
+        .then((next) => {
+          if (!sessionRef.current?.result) {
+            sessionRef.current = next;
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      // Never flush a draft wipe after result exists
+      if (sessionRef.current?.result) return;
     };
   }, [
+    sessionReady,
     user?.id,
-    flowKey,
     sessionStatus,
+    response,
     step,
     contextNotes,
     images,
@@ -249,46 +282,8 @@ export function useStylistDecision({
     selectedContexts,
     selectedWardrobeIds,
     eventDetails,
-    response,
     isSurpriseMe,
   ]);
-
-  useEffect(() => {
-    if (!sessionReady || !sessionHydratedRef.current || !user?.id) return;
-    if (sessionStatus === 'completed' || sessionStatus === 'stale') return;
-
-    const snapshot = buildSessionSnapshot();
-    if (!snapshot) return;
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      // Submit may have completed while this timer was pending — never overwrite it
-      if (
-        sessionRef.current?.status === 'completed'
-        || sessionRef.current?.status === 'stale'
-        || sessionRef.current?.result
-      ) {
-        return;
-      }
-      sessionRef.current = snapshot;
-      void decisionSessionManager.saveSession(snapshot);
-    }, 400);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      // CRITICAL: effect cleanup runs after submit flips to completed and would
-      // otherwise flush a stale draft (step=input, no result) and wipe the recommendation.
-      if (
-        sessionRef.current?.status === 'completed'
-        || sessionRef.current?.status === 'stale'
-        || sessionRef.current?.result
-      ) {
-        return;
-      }
-      sessionRef.current = snapshot;
-      void decisionSessionManager.saveSession(snapshot);
-    };
-  }, [sessionReady, user?.id, sessionStatus, buildSessionSnapshot]);
 
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
@@ -612,8 +607,8 @@ export function useStylistDecision({
       if (base) {
         const completed = decisionSessionManager.markCompleted(base, result, hash);
         sessionRef.current = completed;
-        setSessionStatus('completed');
-        await decisionSessionManager.saveSession(completed);
+        setSessionStatus(completed.status);
+        await decisionSessionManager.persist(completed);
       }
       setResponse(result);
       setStep('response');
@@ -730,21 +725,8 @@ export function useStylistDecision({
     }
   };
 
-  /** Done: leave completed snapshot as read-only for next open. */
+  /** Done: navigate only — never mutate/clear the completed session. */
   const completeAndClose = () => {
-    const snapshot = buildSessionSnapshot();
-    if (snapshot && user?.id) {
-      const completed: DecisionSession = {
-        ...snapshot,
-        status: response ? 'completed' : snapshot.status,
-        step: response ? 'response' : snapshot.step,
-        result: response,
-        updatedAt: Date.now(),
-      };
-      sessionRef.current = completed;
-      setSessionStatus(completed.status);
-      void decisionSessionManager.saveSession(completed);
-    }
     navigation.goBack();
   };
 
@@ -765,40 +747,44 @@ export function useStylistDecision({
           selectedContexts,
           selectedWardrobeIds,
           eventDetails,
+          draftSubstep: flowKey === 'event-outfit' ? 'event' : 'input',
         },
       },
       hash,
     );
     applySessionToState(draft);
     setBrokenImageCount(0);
-    await decisionSessionManager.saveSession(draft);
+    await decisionSessionManager.persist(draft);
   };
 
   /** Re-run decision engine for a stale completed session. */
   const refreshStaleRecommendation = async () => {
     if (!user?.id) return;
     const hash = await resolveContextHash();
+    // Keep inputs; clear lock by editing then force submit (submit replaces result)
     const base =
       sessionRef.current
       || decisionSessionManager.createSession(user.id, flowKey, hash);
-    const unlocked: DecisionSession = {
-      ...base,
-      status: 'draft',
-      contextHash: hash,
-      input: {
-        text: contextNotes,
-        images,
-        imageDataUris,
-        selectedContexts,
-        selectedWardrobeIds,
-        eventDetails,
+    const unlocked = decisionSessionManager.markDraftForEdit(
+      {
+        ...base,
+        input: {
+          text: contextNotes,
+          images,
+          imageDataUris,
+          selectedContexts,
+          selectedWardrobeIds,
+          eventDetails,
+          draftSubstep: 'input',
+        },
+        result: null,
       },
-      result: response,
-      updatedAt: Date.now(),
-    };
-    sessionRef.current = unlocked;
+      hash,
+    );
+    // Keep response in UI until new one arrives — submit will replace
+    sessionRef.current = { ...unlocked, result: null };
     setSessionStatus('draft');
-    await decisionSessionManager.saveSession(unlocked);
+    await decisionSessionManager.persist(unlocked);
     await submitDecision(false, { force: true });
   };
 
@@ -817,8 +803,8 @@ export function useStylistDecision({
   };
 
   return {
-    step,
-    setStep,
+    step: derivedStep,
+    setStep: setDraftStep,
     images,
     selectedWardrobeIds,
     contextNotes,
