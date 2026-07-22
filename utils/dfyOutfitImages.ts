@@ -840,6 +840,7 @@ export function generateLiteLookbook(params: {
     });
 
   const tripDays = resolveTravelTripDays(capsulePlan);
+  const lookbookDays = tripDays;
 
   const capsule = buildTravelCapsule(wardrobeItems, capsulePlan, {
     tempMin: avgMin,
@@ -852,19 +853,19 @@ export function generateLiteLookbook(params: {
       : wardrobeItems;
 
   const dayActivities = assignDayActivities(
-    LITE_LOOKBOOK_DAYS,
+    lookbookDays,
     tripDays,
     capsulePlan.activities,
   );
 
   const scheduled = allocateScheduleDrivenLookbook({
     capsule: capsuleWardrobe,
-    totalDays: LITE_LOOKBOOK_DAYS,
+    totalDays: lookbookDays,
     dayActivities,
     fullWardrobe: wardrobeItems,
   });
 
-  if (!scheduled || scheduled.outfits.length < LITE_LOOKBOOK_DAYS) {
+  if (!scheduled || scheduled.outfits.length < lookbookDays) {
     return null;
   }
 
@@ -883,7 +884,7 @@ export function generateLiteLookbook(params: {
     .filter(Boolean) as string[];
 
   const outfits: DFYOutfit[] = [];
-  for (let idx = 0; idx < LITE_LOOKBOOK_DAYS; idx++) {
+  for (let idx = 0; idx < lookbookDays; idx++) {
     const prev = existing?.outfits?.[idx];
 
     // fillGapsOnly: preserve any day that already has wardrobe items
@@ -969,11 +970,11 @@ export function generateLiteLookbook(params: {
     travelPlan: capsulePlan,
     tempMin: avgMin,
     tempMax: avgMax,
-    lookbookDays: LITE_LOOKBOOK_DAYS,
+    lookbookDays,
   });
 
   const expiryDate = new Date(
-    start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
+    start.getTime() + lookbookDays * 24 * 60 * 60 * 1000,
   ).toISOString();
 
   return enrichDeliveryWithWardrobeImages(
@@ -986,7 +987,7 @@ export function generateLiteLookbook(params: {
         || capsulePlan.startDate
         || start.toISOString(),
       expiryDate,
-      totalDays: LITE_LOOKBOOK_DAYS,
+      totalDays: lookbookDays,
       currentDay: existing?.currentDay || 1,
       completed: false,
       nudgesShown: existing?.nudgesShown || [],

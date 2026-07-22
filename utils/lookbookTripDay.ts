@@ -63,6 +63,39 @@ export function formatLocalDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+/** Display travel dates as DD/MM/YYYY (e.g. 21/07/2026). */
+export function formatDisplayDate(iso: string | null | undefined): string {
+  const parsed = parseLocalDateOnly(iso);
+  if (!parsed) return '';
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${parsed.getFullYear()}`;
+}
+
+/** Parse DD/MM/YYYY or YYYY-MM-DD into an ISO date key. */
+export function parseDisplayDate(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    const year = Number(dmy[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() === year
+      && date.getMonth() === month - 1
+      && date.getDate() === day
+    ) {
+      return formatLocalDateKey(date);
+    }
+    return null;
+  }
+
+  return parseLocalDateOnly(trimmed) ? formatLocalDateKey(parseLocalDateOnly(trimmed)!) : null;
+}
+
 export function addLocalDays(isoOrDate: string | Date, days: number): string {
   const base = typeof isoOrDate === 'string' ? parseLocalDateOnly(isoOrDate) : startOfLocalDay(isoOrDate);
   if (!base) return formatLocalDateKey(startOfLocalDay());

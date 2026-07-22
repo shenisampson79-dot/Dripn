@@ -7,6 +7,7 @@ import {
   isDfyTierAllowedForSubscription,
 } from '@/utils/dfyEntitlements';
 import type { TravelPlan, TravelVibe, TravelActivity } from '@/utils/travelCapsule';
+import { resolveTravelTripDays } from '@/utils/travelCapsule';
 
 export type { StylistId };
 export type { TravelPlan, TravelVibe, TravelActivity };
@@ -14,10 +15,16 @@ export type { TravelPlan, TravelVibe, TravelActivity };
 export type DFYTier = 'lite' | 'core';
 export type DFYOccasion = 'work' | 'holiday' | 'event' | 'casual' | 'browsing';
 
-/** Travel Capsule (DFY Lite) lookbook length — always 14 days. */
+/** Travel Capsule (DFY Lite) default lookbook length when trip dates are unknown. */
 export const LITE_LOOKBOOK_DAYS = 14;
 
 export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDelivery {
+  const totalDays = Math.max(
+    1,
+    delivery.totalDays
+    || resolveTravelTripDays(delivery.travelPlan)
+    || LITE_LOOKBOOK_DAYS,
+  );
   // Prefer immutable trip anchor — never invent "today" when travelPlan/startDate exist.
   const anchorIso =
     delivery.travelPlan?.startDate
@@ -30,17 +37,17 @@ export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDeliver
       : startDate,
   );
   const correctExpiry = new Date(
-    start.getTime() + LITE_LOOKBOOK_DAYS * 24 * 60 * 60 * 1000,
+    start.getTime() + totalDays * 24 * 60 * 60 * 1000,
   ).toISOString();
   const stylistId = delivery.outfits[0]?.stylistId || 'ruby';
 
-  const outfits: DFYOutfit[] = delivery.outfits.slice(0, LITE_LOOKBOOK_DAYS).map((o, idx) => ({
+  const outfits: DFYOutfit[] = delivery.outfits.slice(0, totalDays).map((o, idx) => ({
     ...o,
     dayNumber: idx + 1,
     title: o.title || `Day ${idx + 1} Look`,
   }));
 
-  while (outfits.length < LITE_LOOKBOOK_DAYS) {
+  while (outfits.length < totalDays) {
     const dayNumber = outfits.length + 1;
     outfits.push({
       id: `outfit-${dayNumber}`,
@@ -58,7 +65,7 @@ export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDeliver
   return {
     ...delivery,
     tier: 'lite',
-    totalDays: LITE_LOOKBOOK_DAYS,
+    totalDays,
     // Keep original startDate string when present so we never rewrite trip start to "now"
     startDate: delivery.startDate || startDate,
     expiryDate: correctExpiry,

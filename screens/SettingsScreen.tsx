@@ -50,6 +50,8 @@ import {
 import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from '@/utils/wearRules';
 import { getDfyBenefitForSubscription } from '@/utils/dfyEntitlements';
 import type { TravelPlan } from '@/utils/travelCapsule';
+import { isPlaceholderDestination } from '@/utils/travelCapsule';
+import { formatDisplayDate } from '@/utils/lookbookTripDay';
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -692,11 +694,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const hasTravelCapsuleBenefit = getDfyBenefitForSubscription(user?.subscriptionTier) === 'styling_sprint';
   const showTravelCapsuleSettings = hasLiteAccess || hasTravelCapsuleBenefit || !!travelPlan;
 
-  const travelCapsuleSubtitle = travelPlan?.destination
+  const travelCapsuleSubtitle = travelPlan?.destination && !isPlaceholderDestination(travelPlan.destination)
     ? (t('settings.travelCapsule.subtitle') || '{destination} · {startDate} – {endDate}')
         .replace('{destination}', travelPlan.destination)
-        .replace('{startDate}', travelPlan.startDate)
-        .replace('{endDate}', travelPlan.endDate)
+        .replace('{startDate}', formatDisplayDate(travelPlan.startDate))
+        .replace('{endDate}', formatDisplayDate(travelPlan.endDate))
     : (t('settings.travelCapsule.emptySubtitle') || 'Add destination and trip dates');
 
   return (

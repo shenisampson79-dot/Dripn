@@ -42,7 +42,7 @@ export type TravelPlan = {
   destination: string;
   startDate: string;
   endDate: string;
-  /** Trip length in days (UI); engine still generates 14 looks. */
+  /** Trip length in days (UI); lookbook generates one look per trip day. */
   tripDays: number;
   vibe: TravelVibe;
   activities: TravelActivity[];
@@ -441,12 +441,28 @@ export function buildTravelCapsule(
   };
 }
 
+const PLACEHOLDER_DESTINATIONS = new Set([
+  'your location',
+  'your trip',
+]);
+
+/** True when stored destination is a device/weather fallback, not user input. */
+export function isPlaceholderDestination(destination?: string | null): boolean {
+  const normalized = (destination || '').trim().toLowerCase();
+  return !normalized || PLACEHOLDER_DESTINATIONS.has(normalized);
+}
+
+/** Empty string for placeholder destinations so TextInput placeholders show. */
+export function destinationForDisplay(destination?: string | null): string {
+  return isPlaceholderDestination(destination) ? '' : (destination || '').trim();
+}
+
 export function tripLengthDays(startDate: string, endDate: string): number {
   const start = parseLocalDateOnly(startDate);
   const end = parseLocalDateOnly(endDate);
   if (!start || !end) return LOOKBOOK_DEFAULT_TOTAL_DAYS;
   const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, Math.min(LOOKBOOK_DEFAULT_TOTAL_DAYS, days));
+  return Math.max(1, days);
 }
 
 /**
@@ -459,7 +475,7 @@ export function resolveTravelTripDays(plan?: Partial<TravelPlan> | null): number
     return tripLengthDays(plan.startDate, plan.endDate);
   }
   if (typeof plan?.tripDays === 'number' && plan.tripDays > 0) {
-    return Math.max(1, Math.min(LOOKBOOK_DEFAULT_TOTAL_DAYS, Math.round(plan.tripDays)));
+    return Math.max(1, Math.round(plan.tripDays));
   }
   return LOOKBOOK_DEFAULT_TOTAL_DAYS;
 }
