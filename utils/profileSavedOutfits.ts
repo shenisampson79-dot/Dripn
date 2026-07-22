@@ -1,9 +1,15 @@
 import type { SavedLookbookOutfit } from '@/services/DFYService';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import type { SavedOutfitTableRow } from '@/components/outfit/SavedOutfitsTable';
+import type { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
 import { resolveDFYItemImageUri, type RawDFYOutfitItem } from '@/utils/dfyOutfitImages';
 import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
-import { buildWardrobeImageProxyUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import {
+  buildWardrobeImageProxyUrl,
+  enrichWardrobeItemForOutfitVisual,
+  normalizeRemoteApiUrl,
+  resolveWardrobeImageUri,
+} from '@/utils/wardrobeImage';
 import {
   getLocalizedLookbookDayTag,
   getLocalizedLookbookTitle,
@@ -25,6 +31,7 @@ export type MixAndMatchSavedOutfit = {
     imageUrl?: string | null;
   }>;
   wardrobe_item_ids?: string[];
+  wardrobeItemIds?: string[];
 };
 
 type TranslateFn = (key: string) => string;
@@ -47,20 +54,41 @@ function mixOccasionLabel(outfit: MixAndMatchSavedOutfit): string {
   return occasionTag ? occasionTag.replace(/-/g, ' ') : 'Custom';
 }
 
+function mixOutfitItemIds(outfit: MixAndMatchSavedOutfit): string[] {
+  const fromItems = (outfit.items || []).map((item) => String(item.id)).filter(Boolean);
+  if (fromItems.length > 0) return [...new Set(fromItems)];
+
+  const fromIds = [
+    ...(outfit.wardrobeItemIds || []),
+    ...(outfit.wardrobe_item_ids || []),
+  ].map((id) => String(id)).filter(Boolean);
+
+  return [...new Set(fromIds)];
+}
+
 function resolveMixItemImageUri(
   itemId: string,
   apiItem: { imageUri?: string | null; imageUrl?: string | null } | undefined,
   wardrobe: WardrobeItem | undefined,
 ): string | null {
+  // Prefer durable server / cutout URLs (same priority as DFY calendar lookbook items)
+  const serverUri =
+    normalizeRemoteApiUrl(apiItem?.imageUri) ||
+    normalizeRemoteApiUrl(apiItem?.imageUrl) ||
+    (typeof apiItem?.imageUri === 'string' && apiItem.imageUri.length > 0 && !apiItem.imageUri.startsWith('data:')
+      ? apiItem.imageUri
+      : null) ||
+    (typeof apiItem?.imageUrl === 'string' && apiItem.imageUrl.length > 0 && !apiItem.imageUrl.startsWith('data:')
+      ? apiItem.imageUrl
+      : null);
+
   if (wardrobe) {
-    const wardrobeUri = resolveWardrobeImageUri(wardrobe);
+    const enriched = enrichWardrobeItemForOutfitVisual(wardrobe);
+    const wardrobeUri = resolveWardrobeImageUri(enriched);
     if (wardrobeUri) return wardrobeUri;
   }
 
-  const apiUri = apiItem?.imageUri || apiItem?.imageUrl;
-  if (typeof apiUri === 'string' && apiUri.length > 0 && !apiUri.startsWith('data:')) {
-    return apiUri;
-  }
+  if (serverUri) return serverUri;
 
   if (itemId) {
     return buildWardrobeImageProxyUrl(itemId);
@@ -74,11 +102,7 @@ function resolveMixOutfitItems(
   wardrobeItems: WardrobeItem[],
 ): Array<{ id: string; name: string; category?: string; imageUri: string | null }> {
   const rawItems = outfit.items || [];
-  const itemIds = rawItems.length > 0
-    ? rawItems.map((item) => String(item.id))
-    : (outfit.wardrobe_item_ids || []).map((id) => String(id));
-
-  const uniqueIds = [...new Set(itemIds.filter(Boolean))];
+  const uniqueIds = mixOutfitItemIds(outfit);
 
   return uniqueIds.map((id) => {
     const apiItem = rawItems.find((row) => String(row.id) === id);
@@ -90,6 +114,44 @@ function resolveMixOutfitItems(
       imageUri: resolveMixItemImageUri(id, apiItem, wardrobe),
     };
   });
+}
+
+/** Build stacked visual pieces the same way calendar / lookbook saves do. */
+export function mixOutfitToVisualPieces(
+  outfit: MixAndMatchSavedOutfit,
+  wardrobeItems: WardrobeItem[],
+): OutfitPieceVisual[] {
+  const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
+  const orderedItems = sortOutfitItemsByVisualOrder(
+    resolvedItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+    })),
+  );
+
+  return orderedItems
+    .map((slot) => {
+      const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
+      const wardrobe = wardrobeItems.find((w) => String(w.id) === String(slot.id));
+      const imageUri =
+        item?.imageUri ||
+        (wardrobe
+          ? resolveDFYItemImageUri(
+              { id: slot.id, name: item?.name || slot.name, category: item?.category || slot.category } as RawDFYOutfitItem,
+              wardrobe,
+            )
+          : null) ||
+        (slot.id ? buildWardrobeImageProxyUrl(slot.id) : null);
+
+      return {
+        wardrobeItemId: slot.id,
+        name: item?.name || slot.name || 'Item',
+        category: item?.category || slot.category || wardrobe?.category,
+        imageUrl: imageUri,
+      };
+    })
+    .filter((piece) => Boolean(piece.imageUrl || piece.wardrobeItemId));
 }
 
 export function buildSavedOutfitTableRows(
@@ -128,41 +190,45 @@ export function buildSavedOutfitTableRows(
     };
   });
 
-  const mixRows: SavedOutfitTableRow[] = mixOutfits.map((outfit) => {
-    const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
-    const ordered = sortOutfitItemsByVisualOrder(
-      resolvedItems.map((item) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-      })),
-    );
-    const previewItems = ordered.map((slot) => {
-      const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
+  const mixRows: SavedOutfitTableRow[] = mixOutfits
+    .map((outfit) => {
+      const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
+      if (resolvedItems.length === 0) return null;
+
+      const ordered = sortOutfitItemsByVisualOrder(
+        resolvedItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+        })),
+      );
+      const previewItems = ordered.map((slot) => {
+        const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
+        return {
+          id: String(slot.id),
+          name: item?.name || slot.name || 'Item',
+          imageUri: item?.imageUri || null,
+        };
+      });
+
+      const occasionLabel = mixOccasionLabel(outfit);
+      const loved = outfit.tags?.includes('loved');
+
       return {
-        id: String(slot.id),
-        name: item?.name || slot.name || 'Item',
-        imageUri: item?.imageUri || null,
+        id: `mix-${outfit.id}`,
+        title: outfit.name || translate('profile.myOutfit') || 'My Outfit',
+        description: outfit.description?.trim() || occasionLabel,
+        itemCount: resolvedItems.length,
+        badgeLabel: loved
+          ? translate('profile.lovedOutfit') || 'Loved Outfit'
+          : translate('profile.myOutfit') || 'My Outfit',
+        badgeColors: loved
+          ? (['#E8B4B8', '#DB2777'] as const)
+          : (['#E8B4B8', '#8B2F39'] as const),
+        previewItems: previewFromItems(previewItems),
       };
-    });
-
-    const occasionLabel = mixOccasionLabel(outfit);
-    const loved = outfit.tags?.includes('loved');
-
-    return {
-      id: `mix-${outfit.id}`,
-      title: outfit.name || translate('profile.myOutfit') || 'My Outfit',
-      description: outfit.description?.trim() || occasionLabel,
-      itemCount: resolvedItems.length,
-      badgeLabel: loved
-        ? translate('profile.lovedOutfit') || 'Loved Outfit'
-        : translate('profile.myOutfit') || 'My Outfit',
-      badgeColors: loved
-        ? (['#E8B4B8', '#DB2777'] as const)
-        : (['#E8B4B8', '#8B2F39'] as const),
-      previewItems: previewFromItems(previewItems),
-    };
-  });
+    })
+    .filter((row): row is SavedOutfitTableRow => Boolean(row));
 
   return [...lookbookRows, ...mixRows];
 }
@@ -185,4 +251,4 @@ export function findMixOutfitByRowId(
   return mixOutfits.find((outfit) => String(outfit.id) === id) || null;
 }
 
-export { resolveMixOutfitItems, resolveMixItemImageUri };
+export { resolveMixOutfitItems, resolveMixItemImageUri, mixOutfitItemIds };

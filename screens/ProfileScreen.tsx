@@ -40,11 +40,10 @@ import {
   buildSavedOutfitTableRows,
   findLookbookOutfitByRowId,
   findMixOutfitByRowId,
-  resolveMixOutfitItems,
+  mixOutfitToVisualPieces,
   type MixAndMatchSavedOutfit,
 } from "@/utils/profileSavedOutfits";
 import { formatDfyPackageSubtitle } from "@/utils/dfyPackages";
-import { resolveWardrobeImageUri } from "@/utils/wardrobeImage";
 import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import { computeOutfitVisualScaleForModal } from "@/utils/outfitVisualScale";
@@ -416,27 +415,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     outfit: MixAndMatchSavedOutfit,
     options?: { forModal?: boolean },
   ) => {
-    const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
-    const orderedItems = sortOutfitItemsByVisualOrder(
-      resolvedItems.map((item) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-      })),
-    );
-    const pieces: OutfitPieceVisual[] = orderedItems
-      .map((slot) => {
-        const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
-        const wardrobe = wardrobeItems.find((w) => String(w.id) === String(slot.id));
-        const imageUri = item?.imageUri || (wardrobe ? resolveWardrobeImageUri(wardrobe) : null);
-        return {
-          wardrobeItemId: slot.id,
-          name: item?.name || slot.name || 'Item',
-          category: item?.category || slot.category || wardrobe?.category,
-          imageUrl: imageUri,
-        };
-      })
-      .filter((piece) => Boolean(piece.imageUrl || piece.wardrobeItemId));
+    const pieces = mixOutfitToVisualPieces(outfit, wardrobeItems);
 
     if (pieces.length === 0) {
       return (

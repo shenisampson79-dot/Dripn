@@ -4757,6 +4757,8 @@ class ApiService {
         description?: string | null;
         occasion?: string;
         tags?: string[];
+        wardrobeItemIds?: string[];
+        wardrobe_item_ids?: string[];
         items: Array<{
           id: string;
           name: string;

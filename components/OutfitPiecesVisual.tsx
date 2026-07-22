@@ -12,6 +12,7 @@ import {
   isProxyWardrobeImageUri,
   itemHasProcessedCutout,
   normalizeRemoteApiUrl,
+  resolveWardrobeImageUri,
   wardrobeProcessedTileBackground,
   wardrobeTileBackground,
 } from '@/utils/wardrobeImage';
@@ -137,7 +138,19 @@ function pieceToWardrobeItem(piece: OutfitPieceVisual, wardrobeItem?: WardrobeIt
   const fallbackUri = serverCdn || serverImageUrl || proxyFromId;
 
   if (wardrobeItem) {
-    return enrichWardrobeItemForOutfitVisual(wardrobeItem) as WardrobeItem;
+    const enriched = enrichWardrobeItemForOutfitVisual(wardrobeItem) as WardrobeItem;
+    const enrichedUri = resolveWardrobeImageUri(enriched);
+    if (enrichedUri) return enriched;
+    // Wardrobe row exists but has no usable photo — keep ID and use piece/proxy URL
+    if (fallbackUri) {
+      return {
+        ...enriched,
+        imageUri: fallbackUri,
+        enhancedImageUri: fallbackUri,
+        imageProcessed: true,
+      };
+    }
+    return enriched;
   }
 
   if (piece.wardrobeItemId != null && (fallbackUri || piece.name)) {

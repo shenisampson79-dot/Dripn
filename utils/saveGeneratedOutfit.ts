@@ -31,10 +31,14 @@ export function wardrobeIdsFromPieces(
 ): string[] {
   const ids = new Set<string>();
   for (const piece of pieces) {
+    // Prefer explicit wardrobe linkage; never treat display-only names as IDs
     const id = piece.wardrobeItemId ?? piece.id;
-    if (id != null && String(id).length > 0) {
-      ids.add(String(id));
-    }
+    if (id == null) continue;
+    const asString = String(id).trim();
+    if (!asString) continue;
+    // Wardrobe item IDs are numeric serials from the server
+    if (!/^\d+$/.test(asString)) continue;
+    ids.add(asString);
   }
   return [...ids];
 }
