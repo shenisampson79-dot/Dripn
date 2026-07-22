@@ -35,7 +35,8 @@ import {
 } from '@/utils/dfyCalendarBridge';
 import { buildLocalAlternatives, DFYAlternativeOutfit } from '@/utils/dfyOutfitImages';
 import { enrichWardrobeItemForOutfitVisual } from '@/utils/wardrobeImage';
-import { OutfitPiecesVisual, OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { DFYPackageNameModal } from '@/components/outfit/DFYPackageNameModal';
 import { useTranslations } from "@/contexts/TranslationContext";
 import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
@@ -930,7 +931,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
     return (
       <View style={styles.outfitVisualBlock}>
-        <OutfitPiecesVisual
+        <SafeOutfitPieces
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""
@@ -972,7 +973,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
     return (
       <View style={styles.outfitVisualBlock}>
-        <OutfitPiecesVisual
+        <SafeOutfitPieces
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""

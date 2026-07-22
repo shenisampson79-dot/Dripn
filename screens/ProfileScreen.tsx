@@ -31,7 +31,8 @@ import {
   getLocalizedColorSeasonLabel,
   getLocalizedLookbookTitle,
 } from "@/utils/profileLabelLocalization";
-import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
+import { OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
+import { SafeOutfitPieces } from "@/components/SafeOutfitPieces";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
 import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
@@ -399,7 +400,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
     return (
       <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal, forModal && { width: '100%' }]}>
-        <OutfitPiecesVisual
+        <SafeOutfitPieces
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""
@@ -429,7 +430,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
     return (
       <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal, forModal && { width: '100%' }]}>
-        <OutfitPiecesVisual
+        <SafeOutfitPieces
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""

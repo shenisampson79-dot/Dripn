@@ -23,7 +23,8 @@
     "verify:todays-outfit": "npx tsx scripts/verify-todays-outfit-hardening.ts",
     "verify:allocator": "npx tsx scripts/verify-allocator-hard-validity.ts",
     "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts",
-    "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts"
+    "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
+    "verify:safe-render": "npx tsx scripts/verify-safe-render.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

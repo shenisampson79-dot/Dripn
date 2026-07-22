@@ -1,7 +1,10 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import type { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import { buildWardrobeImageProxyUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
+
+export { sanitizeOutfitPieces };
 
 const MATCH_STOP_WORDS = new Set([
   'the', 'a', 'an', 'and', 'with', 'in', 'of', 'for', 'your', 'my', 'from',
@@ -284,20 +287,6 @@ function buildMultiOutfitVisual(
     layout: 'multi',
     outfits,
   };
-}
-
-function sanitizeOutfitPieces(pieces: unknown): OutfitPieceVisual[] {
-  if (!Array.isArray(pieces)) return [];
-  return pieces.filter(
-    (piece): piece is OutfitPieceVisual =>
-      !!piece
-      && typeof piece === 'object'
-      && (
-        (piece as OutfitPieceVisual).wardrobeItemId != null
-        || typeof (piece as OutfitPieceVisual).name === 'string'
-        || typeof (piece as OutfitPieceVisual).imageUrl === 'string'
-      ),
-  );
 }
 
 export function normalizeWardrobeVisual(

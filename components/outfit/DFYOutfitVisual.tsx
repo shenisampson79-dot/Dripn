@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
+import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { ThemedText } from '@/components/ThemedText';
 import { Spacing } from '@/constants/theme';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
@@ -51,7 +51,7 @@ export function DFYOutfitVisual({
 
   return (
     <View style={styles.container}>
-      <OutfitPiecesVisual
+      <SafeOutfitPieces
         pieces={pieces}
         wardrobeItems={wardrobeItems}
         label=""

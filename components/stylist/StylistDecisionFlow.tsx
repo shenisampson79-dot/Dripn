@@ -19,7 +19,7 @@ import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-cont
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
-import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
+import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { SurpriseMeLoadingOverlay } from '@/components/SurpriseMeLoadingOverlay';
 import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
@@ -30,6 +30,7 @@ import { DecisionType } from '@/services/DecisionService';
 import { decisionService } from '@/services/DecisionService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { useStylistDecision } from '@/hooks/useStylistDecision';
+import { sanitizeOutfitPieces } from '@/utils/safeRender';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WARDROBE_THUMB = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.sm * 2) / 3;
@@ -651,7 +652,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : res.outfitImageUrl ? (
           <Image source={{ uri: res.outfitImageUrl }} style={styles.responseHero} />
         ) : res.outfitPieces && res.outfitPieces.length > 0 ? (
-          <OutfitPiecesVisual pieces={res.outfitPieces} wardrobeItems={flow.wardrobeItems} large />
+          <SafeOutfitPieces
+            pieces={sanitizeOutfitPieces(res.outfitPieces)}
+            wardrobeItems={flow.wardrobeItems}
+            large
+          />
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>

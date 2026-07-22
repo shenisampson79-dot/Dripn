@@ -31,6 +31,7 @@ import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageL
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { safeEnforceDecisionContract } from '@/utils/decisionContract';
+import { sanitizeOutfitPieces } from '@/utils/safeRender';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -587,7 +588,10 @@ export function useStylistDecision({
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
-        outfitPieces: localPieces || apiResult.outfitPieces || null,
+        outfitPieces: (() => {
+          const pieces = sanitizeOutfitPieces(localPieces || apiResult.outfitPieces || []);
+          return pieces.length > 0 ? pieces : null;
+        })(),
         outfitSummary: localSummary || apiResult.outfitSummary || null,
         unifiedScore: apiResult.unifiedScore ?? null,
         stylistId: stylistId as DecisionResponse['stylistId'],

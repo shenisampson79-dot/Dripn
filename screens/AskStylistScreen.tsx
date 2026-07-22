@@ -20,7 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
-import { OutfitPiecesVisual } from "@/components/OutfitPiecesVisual";
+import { SafeOutfitPieces } from "@/components/SafeOutfitPieces";
 import { SurpriseMeLoadingOverlay } from "@/components/SurpriseMeLoadingOverlay";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -38,6 +38,7 @@ import {
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
 import { safeEnforceDecisionContract } from "@/utils/decisionContract";
+import { sanitizeOutfitPieces } from "@/utils/safeRender";
 import weatherService from "@/services/WeatherService";
 import { generateWardrobeOutfit } from "@/utils/generatedOutfit";
 import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
@@ -509,7 +510,10 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
         // Prefer constraint-engine wardrobe pieces over server inventory
-        outfitPieces: localPieces || apiResult.outfitPieces || null,
+        outfitPieces: (() => {
+          const pieces = sanitizeOutfitPieces(localPieces || apiResult.outfitPieces || []);
+          return pieces.length > 0 ? pieces : null;
+        })(),
         outfitSummary: localSummary || apiResult.outfitSummary || null,
         unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe: true,
@@ -770,7 +774,10 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
-        outfitPieces: apiResult.outfitPieces ?? null,
+        outfitPieces: (() => {
+          const pieces = sanitizeOutfitPieces(apiResult.outfitPieces || []);
+          return pieces.length > 0 ? pieces : null;
+        })(),
         outfitSummary: apiResult.outfitSummary ?? null,
         unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe,
@@ -1878,8 +1885,8 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
           />
         </View>
       ) : response?.outfitPieces && response.outfitPieces.length > 0 ? (
-        <OutfitPiecesVisual
-          pieces={response.outfitPieces}
+        <SafeOutfitPieces
+          pieces={sanitizeOutfitPieces(response.outfitPieces)}
           wardrobeItems={wardrobeItems}
           large
         />
@@ -1925,8 +1932,8 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
 
         {response?.outfitPieces && response.outfitPieces.length > 0 ? (
           <View style={styles.outfitPiecesList}>
-            {response.outfitPieces.map((piece: any, index: number) => (
-              <View key={`piece-${index}`} style={styles.outfitPieceRow}>
+            {sanitizeOutfitPieces(response.outfitPieces).map((piece, index) => (
+              <View key={`piece-${piece.wardrobeItemId || index}`} style={styles.outfitPieceRow}>
                 <ThemedText type="small" style={styles.outfitPieceRole}>
                   {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
                 </ThemedText>

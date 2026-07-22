@@ -49,7 +49,8 @@ import Animated, {
 // Input uses KeyboardStickyView (absolute bottom) so it tracks the keyboard without extra gap.
 
 import { ThemedText } from '@/components/ThemedText';
-import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
+import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
+import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { Card } from '@/components/Card';
@@ -58,6 +59,7 @@ import { PersonalStylistVoicePanel } from '@/components/PersonalStylistVoicePane
 import { VoiceCreditsPurchaseModal } from '@/components/VoiceCreditsPurchaseModal';
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { logInvalidRender, sanitizeOutfitPieces, sanitizeWardrobeVisual } from '@/utils/safeRender';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useReferral } from '@/contexts/ReferralContext';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -249,35 +251,21 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
   }
 
   if (message.wardrobeVisual && typeof message.wardrobeVisual === 'object') {
-    const visual = message.wardrobeVisual;
-    if (visual.layout === 'multi' && Array.isArray(visual.outfits)) {
-      const outfits = visual.outfits
-        .filter((outfit) => outfit && typeof outfit === 'object' && Array.isArray(outfit.pieces))
-        .map((outfit) => ({
-          title: typeof outfit.title === 'string' ? outfit.title : null,
-          sectionIndex: typeof outfit.sectionIndex === 'number' ? outfit.sectionIndex : 0,
-          pieces: outfit.pieces.filter((piece) => piece && typeof piece === 'object'),
-        }))
-        .filter((outfit) => outfit.pieces.length > 0);
-
-      if (outfits.length > 0) {
+    const sanitized = sanitizeWardrobeVisual(message.wardrobeVisual, { log: true });
+    if (sanitized) {
+      if (sanitized.layout === 'multi' && sanitized.outfits?.length) {
         normalized.wardrobeVisual = {
           layout: 'multi',
-          outfits,
-          source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
-          matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
+          outfits: sanitized.outfits,
+          source: sanitized.source,
+          matchScore: sanitized.matchScore,
         };
-      }
-    } else {
-      const pieces = Array.isArray(visual.pieces)
-        ? visual.pieces.filter((piece) => piece && typeof piece === 'object')
-        : [];
-      if (pieces.length > 0) {
+      } else if (sanitized.pieces.length > 0) {
         normalized.wardrobeVisual = {
-          layout: visual.layout === 'highlight' ? 'highlight' : 'stacked',
-          pieces,
-          source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
-          matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
+          layout: sanitized.layout === 'highlight' ? 'highlight' : 'stacked',
+          pieces: sanitized.pieces,
+          source: sanitized.source,
+          matchScore: sanitized.matchScore,
         };
       }
     }
@@ -2853,6 +2841,7 @@ export default function AIStylistScreen() {
 
     if (visual.layout === 'highlight' && visual.pieces?.length === 1) {
       const piece = visual.pieces[0];
+      if (!piece || typeof piece !== 'object') return null;
       const wardrobeItem = wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId));
       const serverImageUrl = normalizeRemoteApiUrl(piece.imageUrl) || piece.imageUrl;
       let displayItem: WardrobeItem | null = wardrobeItem ? enrichWardrobeItemForDisplay(wardrobeItem) as WardrobeItem : null;
@@ -2888,35 +2877,40 @@ export default function AIStylistScreen() {
       if (!displayItem) return null;
 
       return (
-        <View style={styles.wardrobeVisualBlock}>
-          <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
-          <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
-            <WardrobeItemImage
-              item={displayItem}
-              style={styles.wardrobeHighlightImage}
-              processed
-              contentFit="contain"
-              preferCover={false}
-            />
+        <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+          <View style={styles.wardrobeVisualBlock}>
+            <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
+            <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+            <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
+              <WardrobeItemImage
+                item={displayItem}
+                style={styles.wardrobeHighlightImage}
+                processed
+                contentFit="contain"
+                preferCover={false}
+              />
+            </View>
+            <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
           </View>
-          <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
-        </View>
+        </RenderErrorBoundary>
       );
     }
+
+    const safePieces = sanitizeOutfitPieces(visual.pieces ?? [], { log: true });
+    if (!safePieces.length) return null;
 
     return (
       <View style={styles.wardrobeVisualBlock}>
         <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
         <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
-        <OutfitPiecesVisual
-          pieces={visual.pieces ?? []}
+        <SafeOutfitPieces
+          pieces={safePieces}
           wardrobeItems={wardrobeItems}
           label=""
           large
           canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
         />
-        {renderOutfitSaveActions(message, wardrobeIdsFromPieces(visual.pieces ?? []))}
+        {renderOutfitSaveActions(message, wardrobeIdsFromPieces(safePieces))}
       </View>
     );
   };
@@ -2941,11 +2935,12 @@ export default function AIStylistScreen() {
       fallbackLabel: string,
       parentMessage: ChatMessage,
     ) => {
-      if (!outfit.pieces.length) return null;
+      const safePieces = sanitizeOutfitPieces(outfit?.pieces, { log: true });
+      if (!safePieces.length) return null;
       const outfitLabel = outfit.title || fallbackLabel;
 
-      if (outfit.pieces.length === 1) {
-        const piece = outfit.pieces[0];
+      if (safePieces.length === 1) {
+        const piece = safePieces[0];
         const wardrobeItem = wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId));
         const displayItem: WardrobeItem | null = wardrobeItem || (piece.imageUrl ? {
           id: String(piece.wardrobeItemId || piece.name),
@@ -2967,32 +2962,34 @@ export default function AIStylistScreen() {
         if (!displayItem) return null;
 
         return (
-          <View style={styles.wardrobeVisualBlock}>
-            <ThemedText style={styles.wardrobeVisualLabel}>{outfitLabel}</ThemedText>
-            <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
-              <WardrobeItemImage
-                item={displayItem}
-                style={styles.wardrobeHighlightImage}
-                processed
-                contentFit="contain"
-                preferCover={false}
-              />
+          <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+            <View style={styles.wardrobeVisualBlock}>
+              <ThemedText style={styles.wardrobeVisualLabel}>{outfitLabel}</ThemedText>
+              <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
+                <WardrobeItemImage
+                  item={displayItem}
+                  style={styles.wardrobeHighlightImage}
+                  processed
+                  contentFit="contain"
+                  preferCover={false}
+                />
+              </View>
+              <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
             </View>
-            <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
-          </View>
+          </RenderErrorBoundary>
         );
       }
 
       return (
         <View style={styles.wardrobeVisualBlock}>
-          <OutfitPiecesVisual
-            pieces={outfit.pieces}
+          <SafeOutfitPieces
+            pieces={safePieces}
             wardrobeItems={wardrobeItems}
             label={outfitLabel}
             large
             canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
           />
-          {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(outfit.pieces), outfitLabel)}
+          {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(safePieces), outfitLabel)}
         </View>
       );
     };
@@ -3088,6 +3085,9 @@ export default function AIStylistScreen() {
       </>
     );
     } catch (renderErr) {
+      logInvalidRender('render_boundary', {
+        message: renderErr instanceof Error ? renderErr.message : String(renderErr),
+      }, { surface: 'AIStylist.renderAssistantContent' });
       console.warn('[AIStylist] renderAssistantContent failed closed:', renderErr);
       return (
         <ThemedText style={styles.messageText}>

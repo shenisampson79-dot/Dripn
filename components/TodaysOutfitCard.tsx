@@ -16,7 +16,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 're
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
-import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
+import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { SaveOutfitPromptModal } from '@/components/outfit/SaveOutfitPromptModal';
 import { wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { Spacing, BorderRadius } from '@/constants/theme';
@@ -198,7 +198,7 @@ function ZoomableOutfitVisual({
       >
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.zoomCanvas, animatedStyle]}>
-            <OutfitPiecesVisual
+            <SafeOutfitPieces
               pieces={pieces}
               wardrobeItems={wardrobeItems}
               label=""

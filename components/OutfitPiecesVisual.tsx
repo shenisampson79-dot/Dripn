@@ -6,6 +6,7 @@ import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
+import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import {
   buildWardrobeImageProxyUrl,
   enrichWardrobeItemForOutfitVisual,
@@ -262,9 +263,14 @@ export function OutfitPiecesVisual({
   const sizeScale = compact ? 0.72 : (visualScale ?? 1);
   const effectiveCanvasWidth = canvasWidth ?? CANVAS_WIDTH;
 
+  const safePieces = useMemo(
+    () => sanitizeOutfitPieces(pieces, { log: true }),
+    [pieces],
+  );
+
   const { stack, accessories } = useMemo(
-    () => buildLayers(pieces, wardrobeItems),
-    [pieces, wardrobeItems],
+    () => buildLayers(safePieces, wardrobeItems),
+    [safePieces, wardrobeItems],
   );
 
   if (stack.length === 0 && accessories.length === 0) {
@@ -278,7 +284,8 @@ export function OutfitPiecesVisual({
         ]}
       >
         <View style={[styles.canvas, styles.canvasSeamless, { width: '100%', minHeight: 120, backgroundColor: fallbackBg }]}>
-          {pieces.map((piece, index) => {
+          {safePieces.map((piece, index) => {
+            if (!piece || typeof piece !== 'object') return null;
             const wardrobeItem = findWardrobeItemForPiece(piece, wardrobeItems);
             const displayItem = pieceToWardrobeItem(piece, wardrobeItem);
             if (!displayItem) return null;
