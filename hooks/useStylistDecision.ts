@@ -262,12 +262,29 @@ export function useStylistDecision({
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      // Submit may have completed while this timer was pending — never overwrite it
+      if (
+        sessionRef.current?.status === 'completed'
+        || sessionRef.current?.status === 'stale'
+        || sessionRef.current?.result
+      ) {
+        return;
+      }
       sessionRef.current = snapshot;
       void decisionSessionManager.saveSession(snapshot);
     }, 400);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      // CRITICAL: effect cleanup runs after submit flips to completed and would
+      // otherwise flush a stale draft (step=input, no result) and wipe the recommendation.
+      if (
+        sessionRef.current?.status === 'completed'
+        || sessionRef.current?.status === 'stale'
+        || sessionRef.current?.result
+      ) {
+        return;
+      }
       sessionRef.current = snapshot;
       void decisionSessionManager.saveSession(snapshot);
     };

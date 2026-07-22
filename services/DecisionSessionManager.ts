@@ -228,6 +228,25 @@ export const decisionSessionManager = {
   async saveSession(session: DecisionSession): Promise<void> {
     if (!session.userId) return;
     try {
+      // Refuse silent downgrade: draft-without-result must not wipe a completed recommendation
+      try {
+        const existingRaw = await AsyncStorage.getItem(sessionKey(session.userId, session.flow));
+        if (existingRaw) {
+          const existing = JSON.parse(existingRaw) as DecisionSession;
+          if (
+            existing?.result
+            && (existing.status === 'completed' || existing.status === 'stale')
+            && session.status === 'draft'
+            && !session.result
+          ) {
+            console.warn('[DecisionSession] Refused draft overwrite of completed session');
+            return;
+          }
+        }
+      } catch {
+        // continue with save
+      }
+
       if (!hasMeaningfulInput(session.input, session.result) && session.status === 'draft') {
         await AsyncStorage.removeItem(sessionKey(session.userId, session.flow));
         return;
@@ -321,12 +340,19 @@ export const decisionSessionManager = {
         session = { ...session, status: 'stale' };
       }
       // Draft with changed context: keep editable, but refresh hash so next complete is current
-      if (session.status === 'draft') {
+      if (session.status === 'draft' && !session.result) {
         session = { ...session, contextHash: currentHash };
       }
     }
 
-    if (session.status === 'completed' || session.status === 'stale') {
+    // Any saved recommendation must reopen on the result step (never kick back to input)
+    if (session.result) {
+      session = {
+        ...session,
+        status: session.status === 'draft' ? 'completed' : session.status,
+        step: 'response',
+      };
+    } else if (session.status === 'completed' || session.status === 'stale') {
       session = { ...session, step: 'response' };
     }
 
