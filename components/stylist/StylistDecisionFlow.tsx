@@ -21,6 +21,7 @@ import { SurpriseMeLoadingOverlay } from '@/components/SurpriseMeLoadingOverlay'
 import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { DecisionType } from '@/services/DecisionService';
 import { decisionService } from '@/services/DecisionService';
@@ -104,6 +105,7 @@ function renderMarkdownText(text: string) {
 export default function StylistDecisionFlow({ decisionType, navigation }: StylistDecisionFlowProps) {
   const { theme } = useTheme();
   const { t } = useTranslations();
+  const { paddingBottom: tabAwarePaddingBottom } = useScreenInsets();
   const flow = useStylistDecision({ decisionType, navigation });
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
@@ -111,14 +113,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const stylistName = getStylistName(stylistId);
   const stylistIcon = getStylistIcon(stylistId);
 
+  // Collapsed flows: context chips live on the input step (no separate context page)
   const steps = useMemo(() => {
     if (decisionType === 'event-outfit') {
-      return ['event', 'context', 'input', 'response'] as const;
+      return ['event', 'input', 'response'] as const;
     }
-    if (decisionType === 'shopping') {
-      return ['input', 'context', 'response'] as const;
-    }
-    return ['input', 'context', 'response'] as const;
+    return ['input', 'response'] as const;
   }, [decisionType]);
 
   const stepIndex = steps.indexOf(flow.step as typeof steps[number]);
@@ -138,6 +138,41 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       subtitle: t('stylistFlow.sanityCheck.subtitle'),
     },
   }[decisionType];
+
+  const stickyCta = (() => {
+    if (flow.step === 'event') {
+      if (!flow.eventDetails.eventType || !flow.eventDetails.dressCode) return null;
+      return {
+        label: t('stylistFlow.continue'),
+        onPress: () => flow.setStep('input'),
+        loading: false,
+      };
+    }
+    if (flow.step === 'input' && flow.canProceedFromInput()) {
+      if (decisionType === 'shopping') {
+        return {
+          label: t('stylistFlow.getRecommendation'),
+          onPress: () => flow.submitDecision(false),
+          loading: flow.isLoading,
+        };
+      }
+      if (decisionType === 'sanity-check') {
+        return {
+          label: t('stylistFlow.getVerdict'),
+          onPress: () => flow.submitDecision(false),
+          loading: flow.isLoading,
+        };
+      }
+      if (decisionType === 'event-outfit') {
+        return {
+          label: t('stylistFlow.getRecommendation'),
+          onPress: () => flow.submitDecision(false),
+          loading: flow.isLoading,
+        };
+      }
+    }
+    return null;
+  })();
 
   const renderProgress = () => (
     <View style={styles.progressRow}>
@@ -190,24 +225,78 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     <View style={styles.uploadActionsRow}>
       <Pressable
         onPress={flow.handlePickImage}
+        accessibilityRole="button"
+        accessibilityLabel={t('stylistFlow.gallery')}
         style={({ pressed }) => [
           styles.uploadAction,
-          { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.85 : 1 },
+          {
+            backgroundColor: theme.backgroundRoot,
+            borderColor: theme.border,
+            opacity: pressed ? 0.85 : 1,
+          },
         ]}
       >
-        <Feather name="image" size={20} color={LuxuryColors.gold} />
-        <ThemedText type="small">{t('stylistFlow.gallery')}</ThemedText>
+        <View style={[styles.uploadActionIconWrap, { backgroundColor: theme.backgroundSecondary }]}>
+          <Feather name="image" size={20} color={LuxuryColors.gold} />
+        </View>
+        <ThemedText type="small" style={styles.uploadActionLabel}>
+          {t('stylistFlow.gallery')}
+        </ThemedText>
       </Pressable>
+
+      <View style={[styles.uploadDivider, { backgroundColor: theme.border }]} />
+
       <Pressable
         onPress={flow.handleTakePhoto}
+        accessibilityRole="button"
+        accessibilityLabel={t('stylistFlow.camera')}
         style={({ pressed }) => [
           styles.uploadAction,
-          { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.85 : 1 },
+          {
+            backgroundColor: theme.backgroundRoot,
+            borderColor: theme.border,
+            opacity: pressed ? 0.85 : 1,
+          },
         ]}
       >
-        <Feather name="camera" size={20} color={LuxuryColors.gold} />
-        <ThemedText type="small">{t('stylistFlow.camera')}</ThemedText>
+        <View style={[styles.uploadActionIconWrap, { backgroundColor: theme.backgroundSecondary }]}>
+          <Feather name="camera" size={20} color={LuxuryColors.gold} />
+        </View>
+        <ThemedText type="small" style={styles.uploadActionLabel}>
+          {t('stylistFlow.camera')}
+        </ThemedText>
       </Pressable>
+    </View>
+  );
+
+  const renderContextChips = (subtitle?: string) => (
+    <View style={styles.contextBlock}>
+      <ThemedText type="body" style={styles.contextBlockTitle}>
+        {t('stylistFlow.contextTitle')}
+      </ThemedText>
+      <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+        {subtitle || t('stylistFlow.contextHelper')}
+      </ThemedText>
+      <View style={styles.chipRow}>
+        {flow.contextChips.map((chip) => {
+          const selected = flow.selectedContexts.includes(chip.id);
+          return (
+            <Pressable
+              key={chip.id}
+              onPress={() => flow.toggleContext(chip.id)}
+              style={[
+                styles.chip,
+                { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
+                selected && styles.chipSelected,
+              ]}
+            >
+              <ThemedText type="small" style={selected ? styles.chipTextSelected : undefined}>
+                {chip.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 
@@ -256,9 +345,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           })}
         </View>
 
-        <ThemedText type="body" style={styles.orLabel}>
-          {t('stylistFlow.orDescribe')}
-        </ThemedText>
+        {renderContextChips()}
+
         <TextInput
           style={[
             styles.textArea,
@@ -272,10 +360,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           numberOfLines={4}
           maxLength={400}
         />
-
-        {flow.canProceedFromInput()
-          ? renderPrimaryButton(t('stylistFlow.continue'), () => flow.setStep('context'))
-          : null}
       </Animated.View>
     );
   };
@@ -334,9 +418,21 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         </View>
       )}
 
-      {flow.canProceedFromInput()
-        ? renderPrimaryButton(t('stylistFlow.continue'), () => flow.setStep('context'))
-        : null}
+      {renderContextChips(t('stylistFlow.contextSubtitle'))}
+
+      <TextInput
+        style={[
+          styles.textArea,
+          { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
+        ]}
+        placeholder={t('common.addAnyExtraDetailsOptional')}
+        placeholderTextColor={theme.tabIconDefault}
+        value={flow.contextNotes}
+        onChangeText={flow.setContextNotes}
+        multiline
+        numberOfLines={3}
+        maxLength={200}
+      />
     </Animated.View>
   );
 
@@ -392,14 +488,21 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         </ThemedText>
       </View>
 
-      {flow.canProceedFromInput()
-        ? renderPrimaryButton(
-            t('stylistFlow.getRecommendation'),
-            () => flow.submitDecision(false),
-            false,
-            flow.isLoading,
-          )
-        : null}
+      {renderContextChips(t('stylistFlow.contextEventSubtitle'))}
+
+      <TextInput
+        style={[
+          styles.textArea,
+          { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
+        ]}
+        placeholder={t('common.addAnyExtraDetailsOptional')}
+        placeholderTextColor={theme.tabIconDefault}
+        value={flow.contextNotes}
+        onChangeText={flow.setContextNotes}
+        multiline
+        numberOfLines={3}
+        maxLength={200}
+      />
     </Animated.View>
   );
 
@@ -492,78 +595,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         value={flow.eventDetails.venue}
         onChangeText={(venue) => flow.setEventDetails((p) => ({ ...p, venue }))}
       />
-
-      {flow.eventDetails.eventType && flow.eventDetails.dressCode
-        ? renderPrimaryButton(t('stylistFlow.continue'), () => flow.setStep('context'))
-        : null}
-    </Animated.View>
-  );
-
-  const renderContextStep = () => (
-    <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
-      <ThemedText type="h3">
-        {decisionType === 'event-outfit'
-          ? t('stylistFlow.contextEventTitle')
-          : t('stylistFlow.contextTitle')}
-      </ThemedText>
-      <ThemedText style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        {decisionType === 'event-outfit'
-          ? t('stylistFlow.contextEventSubtitle')
-          : t('stylistFlow.contextSubtitle')}
-      </ThemedText>
-
-      <View style={styles.chipRow}>
-        {flow.contextChips.map((chip) => {
-          const selected = flow.selectedContexts.includes(chip.id);
-          return (
-            <Pressable
-              key={chip.id}
-              onPress={() => flow.toggleContext(chip.id)}
-              style={[
-                styles.chip,
-                { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
-                selected && styles.chipSelected,
-              ]}
-            >
-              <ThemedText type="small" style={selected ? styles.chipTextSelected : undefined}>
-                {chip.label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {decisionType !== 'shopping' ? (
-        <TextInput
-          style={[
-            styles.textArea,
-            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-          ]}
-          placeholder={t('common.addAnyExtraDetailsOptional')}
-          placeholderTextColor={theme.tabIconDefault}
-          value={flow.contextNotes}
-          onChangeText={flow.setContextNotes}
-          multiline
-          numberOfLines={3}
-          maxLength={200}
-        />
-      ) : null}
-
-      {decisionType === 'shopping'
-        ? renderPrimaryButton(
-            t('stylistFlow.getRecommendation'),
-            () => flow.submitDecision(false),
-            false,
-            flow.isLoading,
-          )
-        : decisionType === 'sanity-check'
-          ? renderPrimaryButton(
-              t('stylistFlow.getVerdict'),
-              () => flow.submitDecision(false),
-              false,
-              flow.isLoading,
-            )
-          : renderPrimaryButton(t('stylistFlow.continue'), () => flow.setStep('input'))}
     </Animated.View>
   );
 
@@ -637,7 +668,14 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.backgroundRoot }}>
-      <ScreenKeyboardAwareScrollView opaqueHeader contentContainerStyle={styles.scrollContent}>
+      <ScreenKeyboardAwareScrollView
+        opaqueHeader
+        // Extra space so last fields clear the sticky CTA; tab clearance is on the footer
+        contentContainerStyle={[
+          styles.scrollContent,
+          stickyCta ? styles.scrollContentWithStickyCta : null,
+        ]}
+      >
         <LinearGradient
           colors={[LuxuryColors.champagne, theme.backgroundRoot]}
           style={styles.heroBanner}
@@ -653,7 +691,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {flow.step === 'input' && decisionType === 'shopping' ? renderShoppingInput() : null}
         {flow.step === 'input' && decisionType === 'sanity-check' ? renderSanityInput() : null}
         {flow.step === 'input' && decisionType === 'event-outfit' ? renderEventInput() : null}
-        {flow.step === 'context' ? renderContextStep() : null}
         {flow.step === 'response' ? renderResponse() : null}
 
         {flow.accessStatus && normalizeSubscriptionTier(flow.user?.subscriptionTier) === 'free' ? (
@@ -665,6 +702,21 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </View>
         ) : null}
       </ScreenKeyboardAwareScrollView>
+
+      {stickyCta ? (
+        <View
+          style={[
+            styles.stickyFooter,
+            {
+              paddingBottom: tabAwarePaddingBottom,
+              backgroundColor: theme.backgroundRoot,
+              borderTopColor: theme.border,
+            },
+          ]}
+        >
+          {renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
+        </View>
+      ) : null}
 
       <SurpriseMeLoadingOverlay
         visible={flow.isLoading && flow.isSurpriseMe}
@@ -710,7 +762,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingBottom: Spacing.xxl,
+    // Do NOT set paddingBottom here — ScreenKeyboardAwareScrollView already applies
+    // tab-bar-aware bottom inset. Overriding it hides the CTA under the absolute tab bar.
+  },
+  scrollContentWithStickyCta: {
+    // Sticky CTA lives outside the scroll view — only need a small gap above the footer.
+    // Override tab-aware paddingBottom from ScreenKeyboardAwareScrollView (footer owns that).
+    paddingBottom: Spacing.xl,
+  },
+  stickyFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
   },
   heroBanner: {
     marginHorizontal: -Spacing.xl,
@@ -766,6 +829,13 @@ const styles = StyleSheet.create({
     color: LuxuryColors.obsidian,
     fontWeight: '600',
   },
+  contextBlock: {
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  contextBlockTitle: {
+    fontWeight: '600',
+  },
   textInput: {
     borderWidth: 1,
     borderRadius: BorderRadius.md,
@@ -783,7 +853,13 @@ const styles = StyleSheet.create({
   },
   uploadActionsRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: Spacing.sm,
+  },
+  uploadDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: Spacing.xs,
   },
   uploadAction: {
     flex: 1,
@@ -791,7 +867,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    minHeight: 88,
+  },
+  uploadActionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadActionLabel: {
+    fontWeight: '600',
   },
   optionsStack: {
     gap: Spacing.md,
@@ -912,7 +1001,6 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginTop: Spacing.sm,
   },
   primaryButtonDisabled: {
     opacity: 0.5,

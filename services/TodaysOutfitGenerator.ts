@@ -29,6 +29,7 @@ import {
 } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
+import { apiService } from '@/services/ApiService';
 
 export type WeatherSnapshot = {
   temperature: number;
@@ -59,11 +60,21 @@ export type WardrobeTodaysOutfit = {
   weatherLocation?: string;
   dayLabel?: string;
   occasionLabel?: string;
+  /** Lightweight explainability from shared server engine (when available). */
+  why?: string[];
+  /** true when built via POST /api/stylist/generate; false for offline fallback. */
+  fromServer?: boolean;
 };
 
 export type TodaysOutfitFallbackTier = 'strict' | 'relaxed' | 'minimal' | 'emergency';
 
 export const TODAYS_OUTFIT_GENERATION_BUDGET_MS = 2000;
+
+/**
+ * Offline / UX fallback only. Server (`/api/stylist/generate`, intent: today) is authority.
+ * Kept so Today still works with no network; do not treat as a parallel product pipeline.
+ */
+export const TODAYS_OUTFIT_OFFLINE_FALLBACK = true;
 
 const STORAGE_KEY = '@dripn_todays_wardrobe_outfit';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -438,7 +449,122 @@ function buildOutfitFromLocal(
     dressFor: dressForFromHonestOccasion(honest.occasionType, dressFor),
     dayLabel,
     occasionLabel: honest.occasionLabel,
+    fromServer: false,
+    why: [
+      'Offline fallback — local allocator (server authority unavailable).',
+      `Tier: ${generated.tier}.`,
+    ],
   });
+}
+
+function buildOutfitFromServer(params: {
+  itemIds: string[];
+  items: WardrobeItem[];
+  occasionType: OutfitOccasionId | 'todays_look';
+  dressFor: DressFor;
+  dayLabel: string;
+  stylistMessage?: string;
+  vibeLabel?: string;
+  why?: string[];
+  serverId?: string;
+}): WardrobeTodaysOutfit {
+  const honest = reconcileHonestOccasion(
+    params.items,
+    params.occasionType,
+    normalizeAllocatorOccasion(params.occasionType),
+  );
+
+  return withStableId({
+    id: params.serverId,
+    dateKey: dateKey(),
+    itemIds: params.itemIds,
+    stylistMessage: params.stylistMessage,
+    vibeLabel: params.vibeLabel || honest.occasionLabel,
+    occasionType: honest.occasionType,
+    dressFor: dressForFromHonestOccasion(honest.occasionType, params.dressFor),
+    dayLabel: params.dayLabel,
+    occasionLabel: honest.occasionLabel,
+    fromServer: true,
+    why: params.why,
+  });
+}
+
+async function tryGenerateTodaysOutfitFromServer(params: {
+  wardrobeItems: WardrobeItem[];
+  occasionType: OutfitOccasionId | 'todays_look';
+  dressFor: DressFor;
+  dayLabel: string;
+  stylistId?: string;
+  weather?: WeatherSnapshot | null;
+}): Promise<{ outfit: WardrobeTodaysOutfit; items: WardrobeItem[] } | null> {
+  try {
+    const localItems = params.wardrobeItems.slice(0, 120).map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      color: item.color,
+      brand: item.brand,
+      occasions: item.occasions,
+      subcategory: item.subcategory,
+      imageUrl: item.enhancedImageUri || item.imageUri,
+    }));
+
+    const result = await apiService.generateStylistOutfit({
+      intent: 'today',
+      occasionType: params.occasionType === 'todays_look' ? 'casual_day' : params.occasionType,
+      dressFor: params.dressFor,
+      stylistId: params.stylistId || 'ruby',
+      weather: params.weather
+        ? {
+            temperature: params.weather.temperature,
+            condition: params.weather.condition,
+            location: params.weather.location,
+          }
+        : null,
+      localItems,
+      environment: {
+        occasion: params.occasionType === 'todays_look' ? 'casual_day' : params.occasionType,
+        dressCode: params.dressFor,
+        intent: 'today',
+        weather: params.weather || undefined,
+      },
+    });
+
+    if (!result?.success || !result.outfit?.itemIds?.length) {
+      await traceTodaysOutfit('fallback', { reason: 'server_empty', error: result?.error });
+      return null;
+    }
+
+    const itemIds = result.outfit.itemIds.map(String);
+    const items = hydrateItems(itemIds, params.wardrobeItems);
+    if (items.length < MIN_OUTFIT_ITEMS || !isOutfitValid(items)) {
+      await traceTodaysOutfit('fallback', {
+        reason: 'server_hydrate_invalid',
+        itemCount: items.length,
+      });
+      return null;
+    }
+
+    const outfit = buildOutfitFromServer({
+      itemIds,
+      items,
+      occasionType: (result.occasionType || params.occasionType) as OutfitOccasionId | 'todays_look',
+      dressFor: params.dressFor,
+      dayLabel: params.dayLabel,
+      stylistMessage: result.outfit.stylistMessage,
+      vibeLabel: result.outfit.vibeLabel,
+      why: result.why,
+      serverId: result.outfit.id,
+    });
+
+    return { outfit, items };
+  } catch (error) {
+    await traceTodaysOutfit('fallback', {
+      reason: 'server_error',
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 export async function resolveCachedTodaysOutfit(params: {
@@ -491,7 +617,7 @@ export async function resolveCachedTodaysOutfit(params: {
 
 /**
  * Background precompute at app launch / wardrobe sync — never blocks UI.
- * Hot path is fully local; weather enriches asynchronously.
+ * Prefers shared server engine; weather enriches asynchronously.
  */
 export async function prewarmTodaysWardrobeOutfit(params: {
   wardrobeItems: WardrobeItem[];
@@ -562,7 +688,47 @@ export async function generateTodaysWardrobeOutfit(params: {
 
   const started = Date.now();
   try {
-    // Fully local hot path — skipDecorate, bounded allocator, tiered fallback, 2s budget.
+    // Authority: shared server stylist engine (intent: today). Weather goes in context.environment.
+    const weather = await Promise.race([
+      fetchWeatherSnapshot(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+    ]);
+
+    const fromServer = await tryGenerateTodaysOutfitFromServer({
+      wardrobeItems,
+      occasionType,
+      dressFor,
+      dayLabel,
+      stylistId: userContext.stylistId,
+      weather,
+    });
+
+    if (fromServer) {
+      const outfit = withStableId({
+        ...fromServer.outfit,
+        weatherTemp: weather?.temperature,
+        weatherCondition: weather?.condition,
+        weatherLocation: weather?.location,
+      });
+      await storeTodaysWardrobeOutfit(outfit);
+      await traceTodaysOutfit('generate', {
+        id: outfit.id,
+        source: 'server',
+        elapsedMs: Date.now() - started,
+        network: true,
+        whyCount: outfit.why?.length || 0,
+      });
+      if (outfit.weatherTemp == null) {
+        void enrichOutfitWeatherInBackground(outfit);
+      }
+      return { ok: true, outfit, items: fromServer.items };
+    }
+
+    if (!TODAYS_OUTFIT_OFFLINE_FALLBACK) {
+      throw new Error('Could not build today’s outfit from the stylist server.');
+    }
+
+    // Thin offline fallback for UX when network/auth fails — not a parallel product path.
     const generated = generateLocalTiered({
       wardrobeItems,
       occasionType,
@@ -580,6 +746,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     await traceTodaysOutfit('generate', {
       id: outfit.id,
       tier: generated.tier,
+      source: 'offline_fallback',
       elapsedMs: Date.now() - started,
       network: false,
     });

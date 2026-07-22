@@ -51,11 +51,99 @@ Guidelines:
 Respond ONLY with valid JSON, no additional text.`;
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+/** Reject empty / tiny payloads that look like failed gallery reads. */
+const MIN_DECISION_IMAGE_BASE64_CHARS = 800;
+
+export type StabilizedDecisionImage = {
+  /** Local JPEG (or data URI) safe for preview + later read */
+  uri: string;
+  /** Ready-to-send OpenAI data URI */
+  dataUri: string;
+  byteLength: number;
+};
+
+function stripDataUriPrefix(value: string): string {
+  if (value.startsWith('data:')) {
+    const comma = value.indexOf(',');
+    return comma >= 0 ? value.slice(comma + 1) : value;
+  }
+  return value;
+}
+
+function assertUsableBase64(base64: string, label = 'Image'): string {
+  const cleaned = String(base64 || '').replace(/\s/g, '');
+  if (cleaned.length < MIN_DECISION_IMAGE_BASE64_CHARS) {
+    throw new Error(`${label} could not be read. Try Gallery again or take a new photo.`);
+  }
+  return cleaned;
+}
+
+/**
+ * Copy gallery/camera assets into a stable local JPEG immediately.
+ * Gallery content:// and ph:// URIs often display in <Image> but become
+ * unreadable (or empty) by submit time — that previously looked like a
+ * "text-only" / missing-photos failure on the server.
+ */
+export async function stabilizeDecisionImage(params: {
+  uri?: string | null;
+  base64?: string | null;
+  label?: string;
+}): Promise<StabilizedDecisionImage> {
+  const label = params.label || 'Image';
+  const pickerBase64 = params.base64 ? assertUsableBase64(params.base64, label) : null;
+  const sourceUri = params.uri?.trim() || null;
+
+  if (!pickerBase64 && !sourceUri) {
+    throw new Error(`${label} is missing. Pick it again from Gallery or Camera.`);
+  }
+
+  // Prefer rewriting to a cache JPEG so later submit does not depend on ephemeral picker URIs.
+  if (sourceUri && Platform.OS !== 'web' && !sourceUri.startsWith('data:')) {
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        sourceUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      const fromManip = manipResult.base64
+        ? assertUsableBase64(manipResult.base64, label)
+        : assertUsableBase64(
+            await FileSystem.readAsStringAsync(manipResult.uri, { encoding: Base64Encoding }),
+            label,
+          );
+      return {
+        uri: manipResult.uri,
+        dataUri: `data:image/jpeg;base64,${fromManip}`,
+        byteLength: Math.ceil((fromManip.length * 3) / 4),
+      };
+    } catch (manipError) {
+      console.warn('[Vision] stabilize via manipulator failed, trying fallbacks:', manipError);
+    }
+  }
+
+  if (pickerBase64) {
+    const dataUri = `data:image/jpeg;base64,${pickerBase64}`;
+    return {
+      uri: sourceUri && !sourceUri.startsWith('content:') ? sourceUri : dataUri,
+      dataUri,
+      byteLength: Math.ceil((pickerBase64.length * 3) / 4),
+    };
+  }
+
+  // Last resort: existing convert path (http/data/file)
+  const base64 = assertUsableBase64(await convertImageToBase64(sourceUri!), label);
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+  return {
+    uri: sourceUri!.startsWith('data:') ? sourceUri! : dataUri,
+    dataUri,
+    byteLength: Math.ceil((base64.length * 3) / 4),
+  };
+}
 
 export async function convertImageToBase64(imageUri: string): Promise<string> {
   try {
     if (imageUri.startsWith('data:')) {
-      return imageUri.split(',')[1];
+      return assertUsableBase64(stripDataUriPrefix(imageUri));
     }
 
     const fileInfo = await FileSystem.getInfoAsync(imageUri);
@@ -82,10 +170,10 @@ export async function convertImageToBase64(imageUri: string): Promise<string> {
     const base64 = await FileSystem.readAsStringAsync(finalUri, {
       encoding: Base64Encoding,
     });
-    return base64;
+    return assertUsableBase64(base64);
   } catch (error: any) {
     console.error('Error converting image to base64:', error);
-    if (error.message?.includes('too large')) {
+    if (error.message?.includes('too large') || error.message?.includes('could not be read')) {
       throw error;
     }
     throw new Error('Failed to process image');

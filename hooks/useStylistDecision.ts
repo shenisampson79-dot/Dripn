@@ -14,7 +14,7 @@ import {
   DecisionRequest,
 } from '@/services/DecisionService';
 import { apiService } from '@/services/ApiService';
-import { convertImageToBase64 } from '@/services/VisionAnalysisService';
+import { stabilizeDecisionImage } from '@/services/VisionAnalysisService';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -41,10 +41,16 @@ const DECISION_TYPE_MAP: Record<string, 'sanity_check' | 'shopping' | 'what_to_w
   'event-outfit': 'event_outfit',
 };
 
-function formatSubmitError(error: { message?: string }, limit: number) {
-  const raw = error?.message || '';
+function formatSubmitError(error: { message?: string; error?: string; status?: number }, limit: number) {
+  const raw = error?.message || error?.error || '';
   if (raw === 'too_many_images' || raw.includes('too_many_images')) {
     return `You can add up to ${limit} photos for this question. Remove a few and try again.`;
+  }
+  if (raw.includes('Images required')) {
+    return 'Add at least one photo, or describe what you\'re deciding between.';
+  }
+  if (raw.includes('Add photos or describe')) {
+    return raw;
   }
   return raw || 'Something went wrong. Please try again.';
 }
@@ -61,7 +67,10 @@ export function useStylistDecision({
   const defaultStep: StylistFlowStep = decisionType === 'event-outfit' ? 'event' : 'input';
 
   const [step, setStep] = useState<StylistFlowStep>(initialStep ?? defaultStep);
+  /** Stable local JPEG URIs for preview (not ephemeral gallery content:// / ph://). */
   const [images, setImages] = useState<string[]>([]);
+  /** Parallel data-URIs ready for /api/decision — kept in sync with `images`. */
+  const [imageDataUris, setImageDataUris] = useState<string[]>([]);
   const [selectedWardrobeIds, setSelectedWardrobeIds] = useState<string[]>([]);
   const [contextNotes, setContextNotes] = useState('');
   const [selectedContexts, setSelectedContexts] = useState<DecisionContext[]>([]);
@@ -181,6 +190,63 @@ export function useStylistDecision({
     return [];
   };
 
+  const appendStabilizedImages = async (
+    assets: Array<{ uri?: string | null; base64?: string | null }>,
+  ) => {
+    const uploadLimit = getUploadLimit();
+    const remaining = Math.max(0, uploadLimit - images.length);
+    if (remaining === 0) return;
+
+    const prepared = [];
+    for (let i = 0; i < Math.min(assets.length, remaining); i++) {
+      const asset = assets[i];
+      prepared.push(
+        await stabilizeDecisionImage({
+          uri: asset.uri,
+          base64: asset.base64,
+          label: `Photo ${images.length + i + 1}`,
+        }),
+      );
+    }
+
+    setSelectedWardrobeIds([]);
+    setImages((prev) => [...prev, ...prepared.map((p) => p.uri)].slice(0, uploadLimit));
+    setImageDataUris((prev) => [...prev, ...prepared.map((p) => p.dataUri)].slice(0, uploadLimit));
+    console.log('[StylistDecision] Photos stabilized', {
+      added: prepared.length,
+      bytes: prepared.map((p) => p.byteLength),
+    });
+  };
+
+  /** Prefer cached data-URIs; re-stabilize from preview URIs if out of sync. */
+  const resolveSubmitImages = async (imageUris: string[]): Promise<string[]> => {
+    if (
+      imageDataUris.length === imageUris.length
+      && imageDataUris.length > 0
+      && imageDataUris.every((d) => typeof d === 'string' && d.startsWith('data:image/') && d.length > 1000)
+    ) {
+      return imageDataUris;
+    }
+
+    const rebuilt = await Promise.all(
+      imageUris.map(async (uri, index) => {
+        const cached = imageDataUris[index];
+        if (cached && cached.startsWith('data:image/') && cached.length > 1000) return cached;
+        const stabilized = await stabilizeDecisionImage({
+          uri,
+          label: `Photo ${index + 1}`,
+        });
+        return stabilized.dataUri;
+      }),
+    );
+
+    if (rebuilt.some((d) => !d || d.length < 1000)) {
+      throw new Error('One or more photos could not be read. Remove them and add again from Gallery or Camera.');
+    }
+    setImageDataUris(rebuilt);
+    return rebuilt;
+  };
+
   const persistResult = async (result: DecisionResponse, imageUris: string[]) => {
     if (!user?.id) return;
     const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
@@ -206,8 +272,15 @@ export function useStylistDecision({
   const handleSubmitError = async (error: {
     limitCopy?: { message?: string; cta?: string };
     message?: string;
+    error?: string;
     status?: number;
   }) => {
+    console.warn('[StylistDecision] Submit failed:', {
+      decisionType,
+      message: error?.message,
+      error: error?.error,
+      status: error?.status,
+    });
     if (
       error.limitCopy
       || error.message?.includes('your decision for today')
@@ -237,7 +310,7 @@ export function useStylistDecision({
     if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping') {
       return;
     }
-    if (!surpriseMe && decisionType === 'shopping' && imageUris.length === 0 && !contextNotes.trim()) {
+    if (!surpriseMe && decisionType === 'shopping' && imageUris.length === 0 && !contextNotes.trim() && selectedContexts.length === 0) {
       return;
     }
 
@@ -247,14 +320,17 @@ export function useStylistDecision({
     try {
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
       const context = buildDecisionContext();
-      const base64Images = surpriseMe
-        ? []
-        : await Promise.all(
-            imageUris.map(async (uri) => {
-              const base64 = await convertImageToBase64(uri);
-              return `data:image/jpeg;base64,${base64}`;
-            }),
-          );
+      let base64Images: string[] = [];
+      if (!surpriseMe && imageUris.length > 0) {
+        base64Images = await resolveSubmitImages(imageUris);
+      }
+
+      if (!surpriseMe && imageUris.length > 0 && base64Images.length === 0) {
+        throw new Error('Photos were selected but could not be attached. Please re-add them and try again.');
+      }
+      if (!surpriseMe && imageUris.length > 0 && base64Images.length !== imageUris.length) {
+        throw new Error('Some photos failed to attach. Remove them and add again from Gallery or Camera.');
+      }
 
       let localPieces: Array<{
         wardrobeItemId: string;
@@ -288,13 +364,39 @@ export function useStylistDecision({
         }
       }
 
+      const mappedType = DECISION_TYPE_MAP[decisionType] || 'sanity_check';
+      const approxKb = Math.round(
+        base64Images.reduce((sum, img) => sum + img.length, 0) / 1024,
+      );
+      console.log('[StylistDecision] Submitting', {
+        decisionType: mappedType,
+        imageCount: base64Images.length,
+        previewUriCount: imageUris.length,
+        approxPayloadKb: approxKb,
+        contextLength: context.length,
+        stylist: stylistId,
+        surpriseMe,
+        wardrobeSelected: selectedWardrobeIds.length,
+        wardrobeAvailable: wardrobeItems.length,
+      });
+
       const apiResult = await apiService.submitDecisionCheck({
-        decisionType: DECISION_TYPE_MAP[decisionType] || 'sanity_check',
+        decisionType: mappedType,
         images: base64Images,
         context,
         stylist: stylistId,
         userProfile: buildUserProfile(),
         surpriseMe,
+        clientImageCount: surpriseMe ? 0 : imageUris.length,
+        wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          color: item.color,
+          brand: item.brand,
+          occasions: item.occasions,
+          subcategory: item.subcategory,
+        })),
       });
 
       const recommendedIndex = apiResult.recommendedIndex ?? 0;
@@ -341,11 +443,19 @@ export function useStylistDecision({
       allowsMultipleSelection: decisionType !== 'sanity-check',
       quality: 0.8,
       selectionLimit: uploadLimit - images.length,
+      base64: true,
     });
 
-    if (!result.canceled) {
-      setSelectedWardrobeIds([]);
-      setImages((prev) => [...prev, ...result.assets.map((a) => a.uri)].slice(0, uploadLimit));
+    if (result.canceled) return;
+
+    try {
+      await appendStabilizedImages(result.assets);
+    } catch (error) {
+      console.warn('[StylistDecision] Gallery stabilize failed:', error);
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        (error as Error)?.message || 'Could not read those photos. Try again or use Camera.',
+      );
     }
   };
 
@@ -366,19 +476,28 @@ export function useStylistDecision({
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-    if (!result.canceled) {
-      setSelectedWardrobeIds([]);
-      setImages((prev) => [...prev, result.assets[0].uri].slice(0, uploadLimit));
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8, base64: true });
+    if (result.canceled) return;
+
+    try {
+      await appendStabilizedImages(result.assets);
+    } catch (error) {
+      console.warn('[StylistDecision] Camera stabilize failed:', error);
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        (error as Error)?.message || 'Could not read that photo. Please try again.',
+      );
     }
   };
 
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+    setImageDataUris((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleWardrobeItem = (id: string) => {
     setImages([]);
+    setImageDataUris([]);
     setSelectedWardrobeIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (prev.length >= 4) return prev;
@@ -395,6 +514,7 @@ export function useStylistDecision({
   const resetFlow = () => {
     setStep(defaultStep);
     setImages([]);
+    setImageDataUris([]);
     setSelectedWardrobeIds([]);
     setContextNotes('');
     setSelectedContexts([]);
@@ -405,7 +525,7 @@ export function useStylistDecision({
 
   const canProceedFromInput = () => {
     if (decisionType === 'shopping') {
-      return images.length >= 1 || contextNotes.trim().length > 0;
+      return images.length >= 1 || contextNotes.trim().length > 0 || selectedContexts.length > 0;
     }
     if (decisionType === 'sanity-check') {
       return images.length >= 1 || selectedWardrobeIds.length >= 1;

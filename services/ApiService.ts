@@ -1874,10 +1874,27 @@ class ApiService {
     stylist: string;
     userProfile?: any;
     surpriseMe?: boolean;
+    clientImageCount?: number;
+    wardrobeItems?: Array<{
+      id?: string | number;
+      name?: string;
+      category?: string;
+      color?: string;
+      brand?: string;
+      occasions?: string[] | string;
+      subcategory?: string;
+    }>;
   }) {
+    const images = (data.images || []).filter(
+      (img) => typeof img === 'string' && img.length > 100,
+    );
+    const approxKb = Math.round(images.reduce((sum, img) => sum + img.length, 0) / 1024);
     console.log('[Ask Stylist] Submitting to /api/decision/check/resilient with decisionType:', data.decisionType);
-    console.log('[Ask Stylist] Number of images:', data.images.length, 'surpriseMe:', data.surpriseMe);
-    
+    console.log('[Ask Stylist] Number of images:', images.length, 'approxKb:', approxKb, 'surpriseMe:', data.surpriseMe);
+    if ((data.clientImageCount || 0) > 0 && images.length === 0) {
+      throw new Error('Photos were selected but could not be attached. Please re-add them and try again.');
+    }
+
     return this.request<{
       success: boolean;
       decision: string;
@@ -1897,6 +1914,8 @@ class ApiService {
         brand?: string | null;
       }> | null;
       outfitSummary?: string | null;
+      why?: string[] | null;
+      scores?: Record<string, unknown> | null;
       surpriseMe?: boolean;
       stylistId?: string;
       decisionType?: string;
@@ -1905,8 +1924,91 @@ class ApiService {
       message?: string;
       outfitImageUrl?: string;
       recommendedIndex?: number;
+      unifiedScore?: number | null;
     }>('/api/decision/check/resilient', {
       method: 'POST',
+      timeout: 90000,
+      body: JSON.stringify({ ...data, images }),
+    });
+  }
+
+  /**
+   * Shared stylist engine — Today / Surprise / event wardrobe outfits.
+   * Server authority: buildStylistContext → generateOutfit → validateOutfit.
+   */
+  async generateStylistOutfit(data: {
+    intent: 'today' | 'event' | 'surprise' | 'chat' | 'shopping' | 'sanity';
+    occasionType?: string;
+    weather?: {
+      temperature?: number;
+      condition?: string;
+      location?: string;
+      unit?: string;
+    } | null;
+    dressFor?: string | null;
+    stylistId?: string;
+    localItems?: Array<{
+      id?: string | number;
+      name?: string;
+      category?: string;
+      color?: string;
+      brand?: string;
+      occasions?: string[] | string;
+      subcategory?: string;
+      imageUri?: string;
+      imageUrl?: string;
+    }>;
+    excludeItemIds?: Array<string | number>;
+    environment?: {
+      weather?: unknown;
+      occasion?: string;
+      dressCode?: string;
+      location?: unknown;
+      intent?: string;
+    };
+  }) {
+    return this.request<{
+      success: boolean;
+      engineVersion?: string;
+      intent?: string;
+      stylistId?: string;
+      dateKey?: string;
+      occasionType?: string;
+      dressFor?: string | null;
+      outfit?: {
+        id: string;
+        dateKey: string;
+        itemIds: string[];
+        occasionType: string;
+        stylistMessage?: string;
+        vibeLabel?: string;
+        pieces?: Array<{
+          role?: string;
+          name?: string;
+          wardrobeItemId?: string | number;
+          stylingNote?: string | null;
+          category?: string | null;
+          color?: string | null;
+          brand?: string | null;
+          imageUrl?: string | null;
+        }>;
+        items?: Array<{
+          role?: string;
+          name?: string;
+          wardrobeItemId?: string | number;
+          category?: string | null;
+          color?: string | null;
+          brand?: string | null;
+          imageUrl?: string | null;
+        }>;
+      };
+      why?: string[];
+      scores?: Record<string, unknown> | null;
+      error?: string;
+      message?: string;
+    }>('/api/stylist/generate', {
+      method: 'POST',
+      timeout: 45000,
       body: JSON.stringify(data),
     });
   }

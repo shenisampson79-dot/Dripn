@@ -47,7 +47,7 @@ import {
   normalizeApiColorOfTheYear,
 } from "@/utils/pantoneColorOfYear";
 import { getCurrentFashionYear } from "@/utils/fashionSeason";
-import { convertImageToBase64 } from "@/services/VisionAnalysisService";
+import { stabilizeDecisionImage } from "@/services/VisionAnalysisService";
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from "@/utils/tierMatrix";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
@@ -157,6 +157,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
   const [selectedType, setSelectedType] = useState<DecisionType | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [imageDataUris, setImageDataUris] = useState<string[]>([]);
   const [contextNotes, setContextNotes] = useState("");
   const [selectedContexts, setSelectedContexts] = useState<DecisionContext[]>([]);
   const [isSurpriseMe, setIsSurpriseMe] = useState(false);
@@ -571,12 +572,28 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
+      base64: true,
       selectionLimit: uploadLimit - images.length,
     });
 
     if (!result.canceled) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setImages(prev => [...prev, ...newImages].slice(0, uploadLimit));
+      try {
+        const prepared = [];
+        for (let i = 0; i < result.assets.length; i++) {
+          const asset = result.assets[i];
+          prepared.push(
+            await stabilizeDecisionImage({
+              uri: asset.uri,
+              base64: asset.base64,
+              label: `Photo ${images.length + i + 1}`,
+            }),
+          );
+        }
+        setImages((prev) => [...prev, ...prepared.map((p) => p.uri)].slice(0, uploadLimit));
+        setImageDataUris((prev) => [...prev, ...prepared.map((p) => p.dataUri)].slice(0, uploadLimit));
+      } catch (err: any) {
+        Alert.alert(t('askStylist.error'), err?.message || 'Could not read those photos. Try Gallery again.');
+      }
     }
   };
 
@@ -599,16 +616,28 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
 
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setImages(prev => [...prev, result.assets[0].uri].slice(0, uploadLimit));
+      try {
+        const stabilized = await stabilizeDecisionImage({
+          uri: result.assets[0].uri,
+          base64: result.assets[0].base64,
+          label: `Photo ${images.length + 1}`,
+        });
+        setImages((prev) => [...prev, stabilized.uri].slice(0, uploadLimit));
+        setImageDataUris((prev) => [...prev, stabilized.dataUri].slice(0, uploadLimit));
+      } catch (err: any) {
+        Alert.alert(t('askStylist.error'), err?.message || 'Could not read that photo. Try again.');
+      }
     }
   };
 
   const handleRemoveImage = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setImages(prev => prev.filter((_, i) => i !== index));
+    setImageDataUris(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleContextToggle = (context: DecisionContext) => {
@@ -645,11 +674,25 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       };
 
       const base64Images = await Promise.all(
-        images.map(async (imageUri) => {
-          const base64 = await convertImageToBase64(imageUri);
-          return `data:image/jpeg;base64,${base64}`;
-        })
+        images.map(async (imageUri, index) => {
+          const cached = imageDataUris[index];
+          if (cached && cached.startsWith('data:image/') && cached.length > 1000) {
+            return cached;
+          }
+          const stabilized = await stabilizeDecisionImage({
+            uri: imageUri,
+            label: `Photo ${index + 1}`,
+          });
+          return stabilized.dataUri;
+        }),
       );
+
+      if (!isSurpriseMe && images.length > 0 && base64Images.length === 0) {
+        throw new Error('Photos were selected but could not be read. Please re-add them from Gallery or Camera.');
+      }
+      if (!isSurpriseMe && images.length > 0 && base64Images.length !== images.length) {
+        throw new Error('One or more photos could not be read. Remove them and add again from Gallery or Camera.');
+      }
 
       // Map frontend gender values to backend-expected values
       const mappedGender = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || null;
@@ -676,11 +719,21 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
 
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: (selectedType ? decisionTypeMap[selectedType] : undefined) || 'sanity_check',
-        images: base64Images,
+        images: isSurpriseMe ? [] : base64Images,
         context,
         stylist: stylistId,
         userProfile: fullUserProfile,
         surpriseMe: isSurpriseMe,
+        clientImageCount: isSurpriseMe ? 0 : images.length,
+        wardrobeItems: (wardrobeItems || []).slice(0, 80).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          color: item.color,
+          brand: item.brand,
+          occasions: item.occasions,
+          subcategory: item.subcategory,
+        })),
       });
 
       const recommendedIndex = apiResult.recommendedIndex ?? 0;
