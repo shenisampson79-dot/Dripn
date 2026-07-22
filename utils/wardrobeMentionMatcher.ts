@@ -286,27 +286,68 @@ function buildMultiOutfitVisual(
   };
 }
 
+function sanitizeOutfitPieces(pieces: unknown): OutfitPieceVisual[] {
+  if (!Array.isArray(pieces)) return [];
+  return pieces.filter(
+    (piece): piece is OutfitPieceVisual =>
+      !!piece
+      && typeof piece === 'object'
+      && (
+        (piece as OutfitPieceVisual).wardrobeItemId != null
+        || typeof (piece as OutfitPieceVisual).name === 'string'
+        || typeof (piece as OutfitPieceVisual).imageUrl === 'string'
+      ),
+  );
+}
+
 export function normalizeWardrobeVisual(
   visual: WardrobeVisualPayload | null | undefined,
 ): WardrobeVisualPayload | null {
-  if (!visual) return null;
+  if (!visual || typeof visual !== 'object') return null;
 
-  if (visual.layout === 'multi' && visual.outfits && visual.outfits.length > 0) {
-    const pieces = visual.outfits.flatMap((outfit) => outfit.pieces || []);
-    if (pieces.length === 0) return null;
-    if (visual.outfits.length === 1) {
+  if (visual.layout === 'multi' && Array.isArray(visual.outfits) && visual.outfits.length > 0) {
+    const outfits = visual.outfits
+      .filter((outfit) => outfit && typeof outfit === 'object')
+      .map((outfit) => ({
+        title: typeof outfit.title === 'string' ? outfit.title : null,
+        sectionIndex: typeof outfit.sectionIndex === 'number' ? outfit.sectionIndex : 0,
+        pieces: sanitizeOutfitPieces(outfit.pieces),
+      }))
+      .filter((outfit) => outfit.pieces.length > 0);
+
+    if (outfits.length === 0) return null;
+
+    const pieces = outfits.flatMap((outfit) => outfit.pieces);
+    if (outfits.length === 1) {
       return {
         ...visual,
         layout: pieces.length === 1 ? 'highlight' : 'stacked',
         pieces,
         outfits: undefined,
+        source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
+        matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
       };
     }
-    return visual;
+    return {
+      ...visual,
+      layout: 'multi',
+      outfits,
+      pieces: undefined,
+      source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
+      matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
+    };
   }
 
-  if (visual.pieces?.length) return visual;
-  return null;
+  const pieces = sanitizeOutfitPieces(visual.pieces);
+  if (pieces.length === 0) return null;
+  return {
+    ...visual,
+    layout: visual.layout === 'highlight' ? 'highlight' : 'stacked',
+    pieces,
+    outfits: undefined,
+    source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
+    matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
+  };
 }
 
 export function capWardrobeVisualForAccess(
@@ -399,35 +440,46 @@ export function hydrateWardrobeVisualImagesByIds(
   visual: WardrobeVisualPayload | null | undefined,
   wardrobeItems: WardrobeItem[],
 ): WardrobeVisualPayload | null {
-  const normalized = normalizeWardrobeVisual(visual);
-  if (!normalized || wardrobeItems.length === 0) return normalized;
+  try {
+    const normalized = normalizeWardrobeVisual(visual);
+    if (!normalized || !Array.isArray(wardrobeItems) || wardrobeItems.length === 0) {
+      return normalized;
+    }
 
-  const hydratePiece = (piece: OutfitPieceVisual): OutfitPieceVisual => {
-    if (piece?.imageUrl) return piece;
-    const item = wardrobeItems.find((row) => String(row.id) === String(piece.wardrobeItemId));
-    if (!item) return piece;
-    const localUrl = resolveWardrobeImageUri(item) || (item.id ? buildWardrobeImageProxyUrl(item.id) : null);
-    if (!localUrl) return piece;
-    return { ...piece, imageUrl: localUrl };
-  };
-
-  if (normalized.layout === 'multi' && normalized.outfits?.length) {
-    return {
-      ...normalized,
-      outfits: normalized.outfits.map((outfit) => ({
-        ...outfit,
-        pieces: (outfit.pieces || []).map(hydratePiece),
-      })),
+    const hydratePiece = (piece: OutfitPieceVisual): OutfitPieceVisual => {
+      if (!piece || typeof piece !== 'object') {
+        return { name: 'Item', role: 'piece' };
+      }
+      if (piece.imageUrl) return piece;
+      if (piece.wardrobeItemId == null) return piece;
+      const item = wardrobeItems.find((row) => String(row.id) === String(piece.wardrobeItemId));
+      if (!item) return piece;
+      const localUrl = resolveWardrobeImageUri(item) || (item.id ? buildWardrobeImageProxyUrl(item.id) : null);
+      if (!localUrl) return piece;
+      return { ...piece, imageUrl: localUrl };
     };
-  }
 
-  if (normalized.pieces?.length) {
-    return {
-      ...normalized,
-      pieces: normalized.pieces.map(hydratePiece),
-    };
+    if (normalized.layout === 'multi' && normalized.outfits?.length) {
+      return {
+        ...normalized,
+        outfits: normalized.outfits.map((outfit) => ({
+          ...outfit,
+          pieces: sanitizeOutfitPieces(outfit.pieces).map(hydratePiece),
+        })),
+      };
+    }
+
+    if (normalized.pieces?.length) {
+      return {
+        ...normalized,
+        pieces: sanitizeOutfitPieces(normalized.pieces).map(hydratePiece),
+      };
+    }
+    return normalized;
+  } catch (error) {
+    console.warn('[wardrobeVisual] hydrate failed closed:', error);
+    return null;
   }
-  return normalized;
 }
 
 export function wardrobeVisualFromOutfitSuggestion(

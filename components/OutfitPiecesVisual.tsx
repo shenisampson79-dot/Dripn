@@ -115,6 +115,7 @@ function findWardrobeItemForPiece(
   piece: OutfitPieceVisual,
   wardrobeItems: WardrobeItem[],
 ): WardrobeItem | null {
+  if (!piece || typeof piece !== 'object') return null;
   if (piece.wardrobeItemId != null) {
     const match = wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId));
     if (match) return match;
@@ -200,6 +201,7 @@ function buildLayers(
   const accessories: ResolvedLayer[] = [];
 
   pieces.forEach((piece, index) => {
+    if (!piece || typeof piece !== 'object') return;
     const wardrobeItem = findWardrobeItemForPiece(piece, wardrobeItems);
     const displayItem = pieceToWardrobeItem(piece, wardrobeItem);
     if (!displayItem) return;

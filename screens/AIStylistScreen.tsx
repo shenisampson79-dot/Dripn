@@ -2922,6 +2922,7 @@ export default function AIStylistScreen() {
   };
 
   const renderAssistantContent = (message: ChatMessage, messageIndex: number) => {
+    try {
     const outfitCount = inferOutfitCountFromText(message.content);
 
     let visual = hydrateWardrobeVisualImagesByIds(
@@ -3086,6 +3087,14 @@ export default function AIStylistScreen() {
         </ThemedText>
       </>
     );
+    } catch (renderErr) {
+      console.warn('[AIStylist] renderAssistantContent failed closed:', renderErr);
+      return (
+        <ThemedText style={styles.messageText}>
+          {renderMarkdownText(typeof message?.content === 'string' ? message.content : '')}
+        </ThemedText>
+      );
+    }
   };
 
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
