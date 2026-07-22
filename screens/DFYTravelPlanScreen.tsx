@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp, useRoute } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -27,9 +29,14 @@ import {
   defaultTravelPlan,
   tripLengthDays,
   type TravelActivity,
+  type TravelPlan,
   type TravelVibe,
 } from '@/utils/travelCapsule';
 import { addLocalDays, LOOKBOOK_DEFAULT_TOTAL_DAYS, formatLocalDateKey, startOfLocalDay } from '@/utils/lookbookTripDay';
+
+type TravelPlanRouteParams = {
+  DFYTravelPlan: { mode?: 'create' | 'edit' } | undefined;
+};
 
 type Props = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -52,7 +59,33 @@ function todayIso(): string {
   return formatLocalDateKey(startOfLocalDay());
 }
 
+function buildPlanFromForm(
+  destination: string,
+  startDate: string,
+  endDate: string,
+  tripDays: number,
+  vibe: TravelVibe,
+  activities: TravelActivity[],
+  geo: { name?: string; lat?: number; lon?: number } | null,
+  createdAt?: string,
+): TravelPlan {
+  const dest = destination.trim();
+  return defaultTravelPlan({
+    destination: geo?.name || dest,
+    startDate,
+    endDate,
+    tripDays,
+    vibe,
+    activities: activities.length ? activities : ['explore'],
+    lat: geo?.lat,
+    lon: geo?.lon,
+    createdAt,
+  });
+}
+
 export default function DFYTravelPlanScreen({ navigation }: Props) {
+  const route = useRoute<RouteProp<TravelPlanRouteParams, 'DFYTravelPlan'>>();
+  const isEditMode = route.params?.mode === 'edit';
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
@@ -65,16 +98,40 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
   const [vibe, setVibe] = useState<TravelVibe>('mixed');
   const [activities, setActivities] = useState<TravelActivity[]>(['explore']);
   const [isBuilding, setIsBuilding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const [packingSummary, setPackingSummary] = useState<
     import('@/utils/packingSummary').PackingSummary | null
   >(null);
+  const [loadedPlan, setLoadedPlan] = useState<TravelPlan | null>(null);
+  const [hasExistingLooks, setHasExistingLooks] = useState(false);
 
   const tripDays = useMemo(
     () => tripLengthDays(startDate, endDate),
     [startDate, endDate],
   );
+
+  useEffect(() => {
+    if (!user?.id || !isEditMode) return;
+    let cancelled = false;
+    (async () => {
+      const delivery = await dfyService.getDFYDelivery(user.id);
+      if (cancelled || delivery?.tier !== 'lite') return;
+      setHasExistingLooks((delivery.outfits?.length ?? 0) > 0);
+      const plan = delivery.travelPlan;
+      if (!plan) return;
+      setLoadedPlan(plan);
+      setDestination(plan.destination || '');
+      setStartDate(plan.startDate || todayIso());
+      setEndDate(plan.endDate || addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1));
+      setVibe(plan.vibe || 'mixed');
+      setActivities(plan.activities?.length ? plan.activities : ['explore']);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isEditMode]);
 
   const toggleActivity = (id: TravelActivity) => {
     Haptics.selectionAsync();
@@ -83,11 +140,67 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     );
   };
 
-  const buildCapsule = async () => {
-    if (!user?.id) return;
+  const validateDestination = (): string | null => {
     const dest = destination.trim();
     if (!dest) {
-      setError(t('dfy.travel.destinationRequired') || 'Add a destination to continue.');
+      return t('dfy.travel.destinationRequired') || 'Add a destination to continue.';
+    }
+    return null;
+  };
+
+  const saveTripDetails = async () => {
+    if (!user?.id) return;
+    const validationError = validateDestination();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const dest = destination.trim();
+      const geo = await weatherService.geocodeDestination(dest);
+      const plan = buildPlanFromForm(
+        dest,
+        startDate,
+        endDate,
+        tripDays,
+        vibe,
+        activities,
+        geo,
+        loadedPlan?.createdAt,
+      );
+
+      let existing = await dfyService.getDFYDelivery(user.id);
+      if (existing?.tier !== 'lite') {
+        const stylistId = (user.stylistPreferences?.selectedStylistId || 'ruby') as StylistId;
+        existing = await dfyService.createMockLiteDelivery(user.id, stylistId);
+      }
+
+      await dfyService.saveDFYDelivery({
+        ...existing,
+        travelPlan: plan,
+        startDate: plan.startDate,
+      });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      navigation.goBack();
+    } catch (err: any) {
+      console.log('[DFYTravelPlan] save failed:', err);
+      setError(err?.message || t('common.error') || 'Something went wrong. Try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const buildCapsule = async () => {
+    if (!user?.id) return;
+    const validationError = validateDestination();
+    if (validationError) {
+      setError(validationError);
       return;
     }
     if (wardrobeItems.length < 3) {
@@ -98,6 +211,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
       return;
     }
 
+    const dest = destination.trim();
     setIsBuilding(true);
     setError(null);
     setStatusLine(
@@ -109,16 +223,16 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     try {
       const stylistId = (user.stylistPreferences?.selectedStylistId || 'ruby') as StylistId;
       const geo = await weatherService.geocodeDestination(dest);
-      const plan = defaultTravelPlan({
-        destination: geo?.name || dest,
+      const plan = buildPlanFromForm(
+        dest,
         startDate,
         endDate,
         tripDays,
         vibe,
-        activities: activities.length ? activities : ['explore'],
-        lat: geo?.lat,
-        lon: geo?.lon,
-      });
+        activities,
+        geo,
+        loadedPlan?.createdAt,
+      );
 
       setStatusLine(
         t('dfy.travel.weatherStatus')?.replace('{destination}', plan.destination)
@@ -170,6 +284,22 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     }
   };
 
+  const handleRebuildPress = () => {
+    if (isEditMode && hasExistingLooks) {
+      Alert.alert(
+        t('dfy.travel.rebuildConfirmTitle') || 'Rebuild your looks?',
+        t('dfy.travel.rebuildConfirmMessage')
+          || 'This repacks your capsule and regenerates all 14 destination looks using your updated trip details.',
+        [
+          { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+          { text: t('dfy.travel.rebuildConfirmYes') || 'Rebuild looks', onPress: buildCapsule },
+        ],
+      );
+      return;
+    }
+    buildCapsule();
+  };
+
   const continueToPlan = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.replace('DFYStylePlan');
@@ -190,11 +320,16 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
             <Feather name="arrow-left" size={20} color={theme.text} />
           </Pressable>
           <ThemedText type="h2">
-            {t('dfy.travel.title') || 'Plan Your Trip'}
+            {isEditMode
+              ? (t('dfy.travel.editTitle') || 'Trip details')
+              : (t('dfy.travel.title') || 'Plan Your Trip')}
           </ThemedText>
           <ThemedText type="body" style={{ opacity: 0.7, marginTop: Spacing.sm }}>
-            {t('dfy.travel.subtitle')
-              || "We'll pack a Travel Capsule and build 14 destination-ready looks — even if your trip is shorter."}
+            {isEditMode
+              ? (t('dfy.travel.editSubtitle')
+                || 'Update destination, dates, vibe, and activities. Your 14 looks stay as-is until you rebuild the capsule.')
+              : (t('dfy.travel.subtitle')
+                || "We'll pack a Travel Capsule and build 14 destination-ready looks — even if your trip is shorter.")}
           </ThemedText>
         </View>
 
@@ -387,6 +522,37 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
               {t('dfy.travel.seeLooksCta') || 'See my 14 looks'}
             </Button>
           </View>
+        ) : isEditMode ? (
+          <View style={{ marginHorizontal: Spacing.xl, marginTop: Spacing.xl }}>
+            <Button onPress={saveTripDetails} disabled={isSaving || isBuilding}>
+              {isSaving
+                ? (t('dfy.travel.savingCta') || 'Saving…')
+                : (t('dfy.travel.saveCta') || 'Save trip details')}
+            </Button>
+            {hasExistingLooks ? (
+              <ThemedText type="small" style={{ opacity: 0.65, marginTop: Spacing.md, textAlign: 'center' }}>
+                {t('dfy.travel.rebuildNote')
+                  || "Changing dates or destination won't refresh your 14 looks automatically."}
+              </ThemedText>
+            ) : null}
+            <Pressable
+              onPress={handleRebuildPress}
+              disabled={isBuilding || isSaving}
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                {
+                  opacity: pressed || isBuilding || isSaving ? 0.6 : 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
+                },
+              ]}
+            >
+              <ThemedText type="body" style={{ fontWeight: '600', color: LuxuryColors.teal }}>
+                {isBuilding
+                  ? (t('dfy.travel.buildingCta') || 'Packing your capsule…')
+                  : (t('dfy.travel.rebuildCta') || 'Rebuild Travel Capsule')}
+              </ThemedText>
+            </Pressable>
+          </View>
         ) : (
           <Button
             onPress={buildCapsule}
@@ -454,5 +620,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginHorizontal: Spacing.xl,
     marginTop: Spacing.lg,
+  },
+  secondaryBtn: {
+    marginTop: Spacing.md,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
   },
 });

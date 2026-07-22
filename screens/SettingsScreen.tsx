@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView, TextInput, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -47,6 +48,8 @@ import {
   setAnalyticsConsent,
 } from "@/utils/analyticsConsent";
 import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from '@/utils/wearRules';
+import { getDfyBenefitForSubscription } from '@/utils/dfyEntitlements';
+import type { TravelPlan } from '@/utils/travelCapsule';
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -168,6 +171,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [stylistLanguagePickerVisible, setStylistLanguagePickerVisible] = useState(false);
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
+  const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
   const [testingModeEnabled, setTestingModeEnabled] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -221,9 +225,26 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     }
   };
 
-  useEffect(() => {
-    loadDFYAccess();
+  const loadTravelPlan = useCallback(async () => {
+    if (!user?.id) {
+      setTravelPlan(null);
+      return;
+    }
+    try {
+      const delivery = await dfyService.getDFYDelivery(user.id);
+      setTravelPlan(delivery?.tier === 'lite' ? delivery.travelPlan ?? null : null);
+    } catch (error) {
+      console.error('Error loading travel plan:', error);
+      setTravelPlan(null);
+    }
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDFYAccess();
+      loadTravelPlan();
+    }, [user?.id, user?.subscriptionTier, loadTravelPlan]),
+  );
 
   useEffect(() => {
     if (!user?.id) {
@@ -667,6 +688,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
     : [ScreenGradients.settings.primary[0], ScreenGradients.settings.primary[1], LuxuryColors.obsidian] as const;
 
+  const hasLiteAccess = dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess;
+  const hasTravelCapsuleBenefit = getDfyBenefitForSubscription(user?.subscriptionTier) === 'styling_sprint';
+  const showTravelCapsuleSettings = hasLiteAccess || hasTravelCapsuleBenefit || !!travelPlan;
+
+  const travelCapsuleSubtitle = travelPlan?.destination
+    ? (t('settings.travelCapsule.subtitle') || '{destination} · {startDate} – {endDate}')
+        .replace('{destination}', travelPlan.destination)
+        .replace('{startDate}', travelPlan.startDate)
+        .replace('{endDate}', travelPlan.endDate)
+    : (t('settings.travelCapsule.emptySubtitle') || 'Add destination and trip dates');
+
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -852,6 +884,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           />
+          {showTravelCapsuleSettings ? (
+            <SettingItem
+              icon="briefcase"
+              title={t('settings.travelCapsule.title') || 'Travel Capsule'}
+              subtitle={travelCapsuleSubtitle}
+              onPress={() => navigation.navigate('DFYTravelPlan', { mode: 'edit' })}
+              theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+            />
+          ) : null}
           <SettingItem
             icon="map-pin"
             title={t('settings.country')}
