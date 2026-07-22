@@ -2930,6 +2930,13 @@ export default function AIStylistScreen() {
 
   const renderAssistantContent = (message: ChatMessage, messageIndex: number) => {
     try {
+    // Prior user turn for strip label inference — must be declared (ReferenceError
+    // here was swallowed by the catch below and forced text-only, dropping strips).
+    const priorUser =
+      messageIndex > 0 && messages[messageIndex - 1]?.role === 'user'
+        ? messages[messageIndex - 1]
+        : undefined;
+
     const outfitCount = inferOutfitCountFromText(message.content);
 
     let visual = hydrateWardrobeVisualImagesByIds(

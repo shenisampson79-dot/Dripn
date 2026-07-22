@@ -102,7 +102,13 @@ export function isStructuredShirt(item: WardrobeItem): boolean {
   if (item.category === 'shoes' || item.category === 'bottoms' || item.category === 'activewear_bottoms') {
     return false;
   }
-  if (/dress shirt|button-down|button down|oxford shirt|denim shirt|chambray/.test(t)) return true;
+  // button-up / button up (Travel Capsule naming) + denim…shirt with words between
+  if (
+    /dress shirt|button-down|button down|button-up|button up|oxford shirt|chambray/.test(t)
+    || /denim.{0,24}shirt/.test(t)
+  ) {
+    return true;
+  }
   // Bare "oxford" only counts on tops
   return (item.category === 'tops' || item.category === 'shirts' || !item.category)
     && /\boxford\b/.test(t)
@@ -164,7 +170,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const isJeans = /jean|denim/.test(t) && cat === 'bottoms';
   const isHoodie = /hoodie|hooded sweat/.test(t);
   const isJoggers = /jogger|sweatpant|track pant/.test(t);
-  const isDressShirt = /dress shirt|button-down|button down|oxford shirt/.test(t);
+  const isDressShirt = /dress shirt|button-down|button down|button-up|button up|oxford shirt/.test(t)
+    || /denim.{0,24}shirt/.test(t);
   const structuredShirt = isStructuredShirt(item) || isDressShirt;
   const isSkirt = cat === 'bottoms' && /skirt/.test(t);
   const athleticTop = isAthleticTop(item);
@@ -299,6 +306,13 @@ const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isTie')
       && /t-shirt|tee\b|graphic top|crew[\s-]?neck|polo\b/.test(ctx.text)
       && !ctx.any('isDressShirt'),
+  },
+  {
+    id: 'tie_no_structured_collar',
+    penalty: 88,
+    hint: 'Tie needs a structured collared shirt',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isTie') && !ctx.any('isStructuredShirt') && !ctx.any('isDressShirt'),
   },
   {
     id: 'swimwear_formal',
