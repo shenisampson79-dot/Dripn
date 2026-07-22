@@ -33,6 +33,7 @@ import DFYTravelPlanScreen from "@/screens/DFYTravelPlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
+import type { DecisionType } from "@/services/DecisionService";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import SubscriptionSuccessScreen from "@/screens/SubscriptionSuccessScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
@@ -85,7 +86,7 @@ export type ProfileStackParamList = {
   DFYStylePlan: { initialDay?: number } | undefined;
   DFYExpiry: undefined;
   DFYUpload: { type: "outfit" | "core" };
-  AskStylist: undefined;
+  AskStylist: { initialDecisionType?: DecisionType } | undefined;
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
   AdminDashboard: undefined;

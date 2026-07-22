@@ -26,6 +26,10 @@ import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { TodaysOutfitCard } from "@/components/TodaysOutfitCard";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
+import {
+  FEATURE_FLAGS,
+  LAUNCH_HIDDEN_STYLIST_FEATURE_IDS,
+} from "@/constants/featureFlags";
 
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
@@ -42,7 +46,7 @@ interface StylistFeature {
   title: string;
   description: string;
   icon: keyof typeof Feather.glyphMap;
-  screen: keyof UserStylistStackParamList;
+  screen?: keyof UserStylistStackParamList;
   gradientKey: GradientKey;
   category: "stylist" | "wardrobe" | "tools";
   premium?: boolean;
@@ -105,6 +109,40 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   },
 ];
 
+const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] => [
+  {
+    id: "choosing-what-to-buy",
+    title: t('stylistHub.choosingWhatToBuy') || "Choosing what to buy",
+    description: t('stylistHub.choosingWhatToBuyDesc') || "Help me decide between options",
+    icon: "shopping-bag",
+    screen: "ChoosingWhatToBuy",
+    gradientKey: "warm",
+    category: "stylist",
+  },
+  {
+    id: "outfit-for-event",
+    title: t('stylistHub.outfitForEvent') || "Outfit for an event",
+    description: t('stylistHub.outfitForEventDesc') || "Something specific coming up",
+    icon: "calendar",
+    screen: "EventOutfit",
+    gradientKey: "jewel",
+    category: "stylist",
+  },
+  {
+    id: "quick-sanity-check",
+    title: t('stylistHub.quickSanityCheck') || "Quick sanity check",
+    description: t('stylistHub.quickSanityCheckDesc') || "Just need a second pair of eyes",
+    icon: "check-circle",
+    screen: "SanityCheck",
+    gradientKey: "accent",
+    category: "stylist",
+  },
+];
+
+const DEFAULT_TILES_ORDER = FEATURE_FLAGS.launchSimplified
+  ? ["ai-stylist", "choosing-what-to-buy", "outfit-for-event", "quick-sanity-check", "fashion-blog", "style-rules"]
+  : ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
+
 const TILES_ORDER_KEY = "@stylist_tiles_order";
 
 const getGradientColors = (key: GradientKey, palette: any): readonly [string, string] => {
@@ -127,26 +165,40 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  const allFeatures = getFeatures(t);
+  const allFeatures = React.useMemo(() => {
+    const base = getFeatures(t);
+    if (!FEATURE_FLAGS.launchSimplified) return base;
+
+    const hidden = new Set<string>(LAUNCH_HIDDEN_STYLIST_FEATURE_IDS);
+    const visible = base.filter((feature) => !hidden.has(feature.id));
+    const launchTiles = getLaunchDecisionTiles(t);
+    const stylistChat = visible.find((feature) => feature.id === "ai-stylist");
+    const rest = visible.filter((feature) => feature.id !== "ai-stylist");
+    return stylistChat ? [stylistChat, ...launchTiles, ...rest] : [...launchTiles, ...visible];
+  }, [t]);
   
   useEffect(() => {
     const loadTilesOrder = async () => {
       try {
         const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
         if (stored) {
-          setTilesOrder(JSON.parse(stored));
+          const parsed: string[] = JSON.parse(stored);
+          const validIds = new Set(allFeatures.map((feature) => feature.id));
+          const sanitized = parsed.filter((id) => validIds.has(id));
+          const missing = allFeatures
+            .map((feature) => feature.id)
+            .filter((id) => !sanitized.includes(id));
+          setTilesOrder(sanitized.length > 0 ? [...sanitized, ...missing] : DEFAULT_TILES_ORDER);
         } else {
-          const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
-          setTilesOrder(defaultOrder);
+          setTilesOrder(DEFAULT_TILES_ORDER);
         }
       } catch (error) {
         console.error("Failed to load tiles order:", error);
-        const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
-        setTilesOrder(defaultOrder);
+        setTilesOrder(DEFAULT_TILES_ORDER);
       }
     };
     loadTilesOrder();
-  }, []);
+  }, [allFeatures]);
 
   const saveTilesOrder = async (newOrder: string[]) => {
     try {
@@ -174,7 +226,9 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
       navigateToSubscription(navigation);
       return;
     }
-    navigation.navigate(feature.screen);
+    if (feature.screen) {
+      navigation.navigate(feature.screen);
+    }
   };
 
   const sortedFeatures = useCallback(() => {

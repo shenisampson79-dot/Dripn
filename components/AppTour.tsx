@@ -16,6 +16,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -73,12 +74,32 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
 
-  const tourSteps: TourStep[] = useMemo(() => TOUR_STEP_KEYS.map((step, i) => ({
-    icon: step.icon,
-    title: t(`onboarding.${step.titleKey}`) || TOUR_STEP_FALLBACKS[i].title,
-    description: t(`onboarding.${step.descKey}`) || TOUR_STEP_FALLBACKS[i].description,
-    highlight: t(`onboarding.${step.highlightKey}`) || TOUR_STEP_FALLBACKS[i].highlight,
-  })), [t]);
+  const tourSteps: TourStep[] = useMemo(() => {
+    const keys = FEATURE_FLAGS.launchSimplified
+      ? TOUR_STEP_KEYS.filter((step) => step.titleKey !== 'tourPlusTitle')
+      : TOUR_STEP_KEYS;
+
+    const launchFallbacks = [
+      TOUR_STEP_FALLBACKS[0],
+      TOUR_STEP_FALLBACKS[1],
+      {
+        title: "Stylist Hub Decisions",
+        description: "On the Stylist tab, tap tiles like Choosing what to buy, Outfit for an event, or Quick sanity check when you need a decision. Today's Outfit at the bottom covers what to wear each day.",
+        highlight: "Open the Stylist tab for outfit help",
+      },
+      TOUR_STEP_FALLBACKS[3],
+      TOUR_STEP_FALLBACKS[4],
+    ];
+
+    const fallbacks = FEATURE_FLAGS.launchSimplified ? launchFallbacks : TOUR_STEP_FALLBACKS;
+
+    return keys.map((step, i) => ({
+      icon: step.icon,
+      title: t(`onboarding.${step.titleKey}`) || fallbacks[i].title,
+      description: t(`onboarding.${step.descKey}`) || fallbacks[i].description,
+      highlight: t(`onboarding.${step.highlightKey}`) || fallbacks[i].highlight,
+    }));
+  }, [t]);
 
   useEffect(() => {
     if (visible) {

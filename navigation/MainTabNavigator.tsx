@@ -19,6 +19,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 export type MainTabParamList = {
   StylistTab: undefined;
@@ -37,7 +38,7 @@ const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[
 ];
 
 interface CustomTabBarProps extends BottomTabBarProps {
-  onCreatePost: () => void;
+  onCreatePost?: () => void;
 }
 
 const TAB_TRANSLATION_KEYS: Record<string, string> = {
@@ -69,8 +70,9 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
     return null;
   }
 
-  const leftTabs = TAB_CONFIG.slice(0, 2);
-  const rightTabs = TAB_CONFIG.slice(2);
+  const leftTabs = FEATURE_FLAGS.launchSimplified ? [] : TAB_CONFIG.slice(0, 2);
+  const rightTabs = FEATURE_FLAGS.launchSimplified ? [] : TAB_CONFIG.slice(2);
+  const allTabs = FEATURE_FLAGS.launchSimplified ? TAB_CONFIG : [];
 
   const renderTabItem = (tabConfig: typeof TAB_CONFIG[0], index: number) => {
     const routeIndex = state.routes.findIndex(r => r.name === tabConfig.name);
@@ -142,29 +144,37 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
       {TabBarBackground}
       <View style={[styles.borderTop, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
       <View style={styles.tabBarContent}>
-        <View style={styles.leftTabGroup}>
-          {leftTabs.map((tab, i) => renderTabItem(tab, i))}
-        </View>
+        {FEATURE_FLAGS.launchSimplified ? (
+          <View style={styles.fullTabGroup}>
+            {allTabs.map((tab, i) => renderTabItem(tab, i))}
+          </View>
+        ) : (
+          <>
+            <View style={styles.leftTabGroup}>
+              {leftTabs.map((tab, i) => renderTabItem(tab, i))}
+            </View>
 
-        <View style={styles.centerButtonContainer}>
-          <Pressable
-            onPress={onCreatePost}
-            style={({ pressed }) => [
-              styles.centerButton,
-              {
-                backgroundColor: theme.link,
-                transform: [{ scale: pressed ? 0.92 : 1 }],
-                opacity: pressed ? 0.9 : 1,
-              },
-            ]}
-          >
-            <Feather name="plus" size={28} color="#FFFFFF" />
-          </Pressable>
-        </View>
+            <View style={styles.centerButtonContainer}>
+              <Pressable
+                onPress={onCreatePost}
+                style={({ pressed }) => [
+                  styles.centerButton,
+                  {
+                    backgroundColor: theme.link,
+                    transform: [{ scale: pressed ? 0.92 : 1 }],
+                    opacity: pressed ? 0.9 : 1,
+                  },
+                ]}
+              >
+                <Feather name="plus" size={28} color="#FFFFFF" />
+              </Pressable>
+            </View>
 
-        <View style={styles.rightTabGroup}>
-          {rightTabs.map((tab, i) => renderTabItem(tab, i + 4))}
-        </View>
+            <View style={styles.rightTabGroup}>
+              {rightTabs.map((tab, i) => renderTabItem(tab, i + 4))}
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -173,7 +183,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 import type { PortalMode } from "@/App";
 
 interface MainTabNavigatorProps {
-  onCreatePost: () => void;
+  onCreatePost?: () => void;
   onOpenPortal?: (mode: PortalMode) => void;
 }
 
@@ -224,6 +234,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flex: 2,
     justifyContent: "space-evenly",
+    alignItems: "center",
+    height: "100%",
+  },
+  fullTabGroup: {
+    flexDirection: "row",
+    flex: 1,
+    justifyContent: "space-around",
     alignItems: "center",
     height: "100%",
   },

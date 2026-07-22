@@ -53,6 +53,7 @@ import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { getOccasionLabel } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -1568,10 +1569,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             <OccasionPickerList
               generatingOccasionId={generatingOccasion}
               disabled={isGeneratingOutfit}
-              onWeatherPress={() => {
-                setShowAIOutfitModal(false);
-                navigation.navigate('WeatherOutfit');
-              }}
+              showWeatherLink={!FEATURE_FLAGS.launchSimplified}
+              onWeatherPress={
+                FEATURE_FLAGS.launchSimplified
+                  ? undefined
+                  : () => {
+                      setShowAIOutfitModal(false);
+                      navigation.navigate('WeatherOutfit');
+                    }
+              }
               onSelect={handleOccasionOutfitGenerate}
             />
 

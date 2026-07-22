@@ -20,6 +20,11 @@ import FashionBlogScreen from "@/screens/FashionBlogScreen";
 import StyleRulesScreen from "@/screens/StyleRulesScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
 import ColourInsightsScreen from "@/screens/ColourInsightsScreen";
+import ChoosingWhatToBuyScreen from "@/screens/ChoosingWhatToBuyScreen";
+import EventOutfitScreen from "@/screens/EventOutfitScreen";
+import SanityCheckScreen from "@/screens/SanityCheckScreen";
+import AskStylistScreen from "@/screens/AskStylistScreen";
+import type { DecisionType } from "@/services/DecisionService";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
@@ -44,6 +49,10 @@ export type UserStylistStackParamList = {
   StyleRules: undefined;
   ColourInsights: undefined;
   SocialStyleSync: undefined;
+  ChoosingWhatToBuy: undefined;
+  EventOutfit: undefined;
+  SanityCheck: undefined;
+  AskStylist: { initialDecisionType?: DecisionType } | undefined;
 };
 
 const Stack = createNativeStackNavigator<UserStylistStackParamList>();
@@ -193,6 +202,45 @@ export default function UserStylistStackNavigator() {
           transparent: false,
           title: t('navTitles.colourInsights') || t('stylistHub.colourInsights'),
         })}
+      />
+      <Stack.Screen
+        name="ChoosingWhatToBuy"
+        component={ChoosingWhatToBuyScreen}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.choosingWhatToBuy') || t('stylistHub.choosingWhatToBuy'),
+        })}
+      />
+      <Stack.Screen
+        name="EventOutfit"
+        component={EventOutfitScreen}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.eventOutfit') || t('stylistHub.outfitForEvent'),
+        })}
+      />
+      <Stack.Screen
+        name="SanityCheck"
+        component={SanityCheckScreen}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+        })}
+      />
+      <Stack.Screen
+        name="AskStylist"
+        component={AskStylistScreen}
+        options={{
+          title: t('aiStylist.askStylistTitle'),
+          headerShown: false,
+          presentation: "fullScreenModal",
+        }}
       />
     </Stack.Navigator>
   );

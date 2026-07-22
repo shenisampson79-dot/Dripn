@@ -71,6 +71,7 @@ import {
 } from "@/utils/wardrobeImageOrientation";
 import { permanentWardrobePhotoPath } from "@/utils/persistWardrobePhoto";
 import { invalidateWardrobeImageCache } from "@/utils/wardrobeImageLoader";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -851,6 +852,15 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       const outfitCounts = countWardrobeOutfitBasics(wardrobeForCounts);
 
       if (canOfferOutfitPlanning(outfitCounts)) {
+        if (FEATURE_FLAGS.launchSimplified) {
+          Alert.alert(
+            t('wardrobe.itemAdded'),
+            t('wardrobe.itemAddedPlanOutfit').replace('{name}', itemLabel),
+            [{ text: t('common.ok') || t('common.keepBuilding'), onPress: () => navigation.goBack() }],
+          );
+          return;
+        }
+
         Alert.alert(
           t('wardrobe.itemAdded'),
           t('wardrobe.itemAddedPlanOutfit').replace('{name}', itemLabel),

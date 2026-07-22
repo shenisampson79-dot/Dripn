@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RouteProp, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -48,6 +49,7 @@ import {
 import { getCurrentFashionYear } from "@/utils/fashionSeason";
 import { convertImageToBase64 } from "@/services/VisionAnalysisService";
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from "@/utils/tierMatrix";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
@@ -140,9 +142,12 @@ const TIME_OPTIONS = [
 
 type AskStylistScreenProps = {
   navigation: NativeStackNavigationProp<any>;
+  route?: RouteProp<{ AskStylist: { initialDecisionType?: DecisionType } }, 'AskStylist'>;
 };
 
-export default function AskStylistScreen({ navigation }: AskStylistScreenProps) {
+export default function AskStylistScreen({ navigation, route: routeProp }: AskStylistScreenProps) {
+  const route = useRoute<RouteProp<{ AskStylist: { initialDecisionType?: DecisionType } }, 'AskStylist'>>();
+  const initialDecisionType = routeProp?.params?.initialDecisionType ?? route.params?.initialDecisionType;
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
@@ -178,13 +183,44 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [seasonalPalette, setSeasonalPalette] = useState<ColorTrend[]>([]);
   const [showColorTrends, setShowColorTrends] = useState(false);
 
-  const decisionTypes = decisionService.getDecisionTypes();
+  const decisionTypes = React.useMemo(
+    () => decisionService.getDecisionTypes().filter(
+      (type) => !FEATURE_FLAGS.launchSimplified || type.id !== 'what-to-wear',
+    ),
+    [],
+  );
   const contextChips = decisionService.getContextChips();
+  const initialDecisionApplied = useRef(false);
 
   useEffect(() => {
     checkAccess();
     loadFashionBlog();
   }, []);
+
+  useEffect(() => {
+    if (!initialDecisionType || initialDecisionApplied.current || accessStatus === null) return;
+    initialDecisionApplied.current = true;
+
+    if (!accessStatus.canMakeDecision) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setSelectedType(initialDecisionType);
+    setIsSurpriseMe(false);
+    setEventDetails({ eventType: '', dressCode: '', venue: '', timeOfDay: '' });
+    setSelectedContexts([]);
+    setContextNotes('');
+    if (
+      initialDecisionType === 'what-to-wear'
+      || initialDecisionType === 'sanity-check'
+      || initialDecisionType === 'event-outfit'
+    ) {
+      setStep('context');
+    } else {
+      setStep('upload');
+    }
+  }, [initialDecisionType, accessStatus]);
 
   const getUploadLimit = () => {
     if (selectedType === 'sanity-check') return 1;

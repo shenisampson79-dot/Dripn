@@ -69,6 +69,7 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
 import * as Linking from "expo-linking";
 import { stashPendingReferralCode } from "@/contexts/ReferralContext";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -214,6 +215,7 @@ function AppContent() {
   }
 
   const handleCreatePost = () => {
+    if (FEATURE_FLAGS.launchSimplified) return;
     setShowAskStylist(true);
   };
 
@@ -221,7 +223,7 @@ function AppContent() {
     <>
       <SubscriptionSuccessRedirect />
       <MainTabNavigator 
-        onCreatePost={handleCreatePost} 
+        onCreatePost={FEATURE_FLAGS.launchSimplified ? undefined : handleCreatePost} 
         onOpenPortal={setPortalMode}
       />
       <Modal
@@ -246,7 +248,7 @@ function AppContent() {
         <CreatePostScreen onClose={() => setShowCreatePost(false)} />
       </Modal>
       <Modal
-        visible={showAskStylist}
+        visible={!FEATURE_FLAGS.launchSimplified && showAskStylist}
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={() => setShowAskStylist(false)}
