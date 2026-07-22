@@ -636,9 +636,23 @@ export function allocateScheduleDrivenLookbook(params: {
       best = pickBestCandidate(relaxed);
     }
     if (!best) {
-      const fallback = [primaryTop, primaryBottom, primaryShoes].filter(Boolean) as WardrobeItem[];
-      if (passesHardOutfitChecks(fallback) || isOutfitValid(fallback)) {
-        best = fallback;
+      // Last resort: scheduled pieces, but never reuse previous top when another top exists
+      let fallbackTop = primaryTop;
+      if (previous && primaryTop && sameTop([primaryTop], previous)) {
+        const altTop = capsule
+          .filter(isTopItem)
+          .find((t) => itemId(t) !== itemId(primaryTop!) && !blockedIds?.has(itemId(t)));
+        if (altTop) fallbackTop = altTop;
+      }
+      const fallback = [fallbackTop, primaryBottom, primaryShoes].filter(Boolean) as WardrobeItem[];
+      if (fallback.length >= 2 && (passesHardOutfitChecks(fallback) || isOutfitValid(fallback))) {
+        const repeatsPrevTop = Boolean(previous && sameTop(fallback, previous));
+        const hasOtherTop = capsule.some(
+          (t) => isTopItem(t) && previous && !sameTop([t], previous),
+        );
+        if (!repeatsPrevTop || !hasOtherTop) {
+          best = fallback;
+        }
       }
     }
     if (!best) return null;

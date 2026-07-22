@@ -29,6 +29,7 @@ import {
   type TravelActivity,
   type TravelVibe,
 } from '@/utils/travelCapsule';
+import { addLocalDays, LOOKBOOK_DEFAULT_TOTAL_DAYS, formatLocalDateKey, startOfLocalDay } from '@/utils/lookbookTripDay';
 
 type Props = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -48,13 +49,7 @@ const ACTIVITIES: { id: TravelActivity; label: string }[] = [
 ];
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function addDaysIso(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return formatLocalDateKey(startOfLocalDay());
 }
 
 export default function DFYTravelPlanScreen({ navigation }: Props) {
@@ -66,7 +61,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
 
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState(todayIso());
-  const [endDate, setEndDate] = useState(addDaysIso(todayIso(), 6));
+  const [endDate, setEndDate] = useState(addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1));
   const [vibe, setVibe] = useState<TravelVibe>('mixed');
   const [activities, setActivities] = useState<TravelActivity[]>(['explore']);
   const [isBuilding, setIsBuilding] = useState(false);

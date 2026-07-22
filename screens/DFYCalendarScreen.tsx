@@ -44,6 +44,7 @@ import {
   buildClientCalendarSaveRequest,
   pickNewerCalendarSource,
 } from '@/utils/coreCalendarSync';
+import { parseLocalDateOnly } from '@/utils/lookbookTripDay';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -102,11 +103,24 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
 
   const totalDays = tier === 'lite' ? 14 : 30;
-  const startDate = useMemo(() => {
+  const todayStart = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+  /** Trip start for lite lookbook; falls back to today until delivery loads. */
+  const [planStartDate, setPlanStartDate] = useState<Date>(todayStart);
+  const startDate = planStartDate;
+
+  const resolveLookbookPlanStart = (delivery: DFYLiteDelivery | null | undefined): Date => {
+    const iso = delivery?.travelPlan?.startDate || delivery?.startDate;
+    const parsed = parseLocalDateOnly(iso);
+    if (parsed) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+    return todayStart;
+  };
 
   const tabBarClearance = insets.bottom + 100;
 
@@ -156,13 +170,17 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
     const saved = await dfyService.getDFYDelivery(user.id);
     if (saved?.tier === 'lite' && saved.outfits.some((o) => o.items && o.items.length > 0)) {
-      return mapLookbookDeliveryToCalendarOutfits(saved as DFYLiteDelivery, startDate, wardrobeItems);
+      const planStart = resolveLookbookPlanStart(saved as DFYLiteDelivery);
+      setPlanStartDate((prev) =>
+        formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
+      );
+      return mapLookbookDeliveryToCalendarOutfits(saved as DFYLiteDelivery, planStart, wardrobeItems);
     }
 
     try {
       const remote = await apiService.getDFYLookbook();
       if (remote.success && remote.outfits && remote.outfits.length > 0) {
-        return mapApiLookbookToCalendarOutfits(remote.outfits, startDate, wardrobeItems, 'ruby');
+        return mapApiLookbookToCalendarOutfits(remote.outfits, todayStart, wardrobeItems, 'ruby');
       }
     } catch (err) {
       console.log('[DFYCalendar] Remote lookbook fetch failed:', err);
@@ -405,9 +423,13 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
               'ruby',
             );
             if (liteDelivery) {
+              const planStart = resolveLookbookPlanStart(liteDelivery);
+              setPlanStartDate((prev) =>
+                formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
+              );
               const mapped = mapLookbookDeliveryToCalendarOutfits(
                 liteDelivery,
-                startDate,
+                planStart,
                 wardrobeItems,
               );
               if (mapped.length > 0) {

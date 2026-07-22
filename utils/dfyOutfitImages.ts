@@ -14,7 +14,7 @@ import { LITE_LOOKBOOK_ENGINE_VERSION } from '@/utils/coreCalendarEngine';
 import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { passesHardOutfitChecks } from '@/utils/outfitDiversity';
-import { buildTravelCapsule, defaultTravelPlan, type TravelPlan } from '@/utils/travelCapsule';
+import { buildTravelCapsule, defaultTravelPlan, resolveTravelTripDays, type TravelPlan } from '@/utils/travelCapsule';
 import {
   ACTIVITY_CONSTRAINTS,
   assignDayActivities,
@@ -37,6 +37,7 @@ import {
   normalizeRemoteApiUrl,
   resolveWardrobeImageUri,
 } from '@/utils/wardrobeImage';
+import { parseLocalDateOnly, formatLocalDateKey } from '@/utils/lookbookTripDay';
 
 export type RawDFYOutfitItem = DFYOutfitItem & {
   imageUrl?: string | null;
@@ -766,6 +767,9 @@ export function ensureLookbookOutfitsHaveFootwear(
  * Guaranteed 14-day Travel Capsule lookbook.
  * Packs a capsule subset, then allocates 14 looks with travel-friendly reuse.
  * Never trusts server inventory. Always exactly 14 days.
+ *
+ * @param options.fillGapsOnly — keep existing filled days; only allocate empty slots
+ * @param options.force — full regenerate (ignores fillGapsOnly)
  */
 export function generateLiteLookbook(params: {
   userId: string;
@@ -774,20 +778,38 @@ export function generateLiteLookbook(params: {
   existing?: DFYLiteDelivery | null;
   forecast?: DailyForecast | null;
   travelPlan?: TravelPlan | null;
+  options?: { fillGapsOnly?: boolean; force?: boolean };
 }): DFYLiteDelivery | null {
   const { userId, wardrobeItems, stylistId, existing, forecast } = params;
   const travelPlan = params.travelPlan || existing?.travelPlan || null;
+  const force = Boolean(params.options?.force);
+  const fillGapsOnly = Boolean(params.options?.fillGapsOnly) && !force;
 
   if (!wardrobeCanBuildCompleteOutfit(wardrobeItems)) {
     return null;
   }
 
-  const startDate =
-    travelPlan?.startDate
-      ? new Date(travelPlan.startDate).toISOString()
-      : existing?.startDate || new Date().toISOString();
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
+  if (fillGapsOnly && existing) {
+    const filled = countFilledLookbookDays(existing);
+    const total = existing.totalDays || LITE_LOOKBOOK_DAYS;
+    if (filled >= total) {
+      return enrichDeliveryWithWardrobeImages(
+        {
+          ...existing,
+          engineVersion: existing.engineVersion || LITE_LOOKBOOK_ENGINE_VERSION,
+        },
+        wardrobeItems,
+      );
+    }
+  }
+
+  const startParsed =
+    parseLocalDateOnly(travelPlan?.startDate)
+    || parseLocalDateOnly(existing?.startDate)
+    || new Date();
+  startParsed.setHours(0, 0, 0, 0);
+  const start = startParsed;
+  const startDateIso = formatLocalDateKey(start);
 
   const tempMins = forecast?.days?.map((d) => d.tempMin) || [];
   const tempMaxes = forecast?.days?.map((d) => d.tempMax) || [];
@@ -800,8 +822,10 @@ export function generateLiteLookbook(params: {
 
   const capsulePlan = travelPlan || defaultTravelPlan({
     destination: forecast?.location || 'your trip',
-    startDate: start.toISOString().slice(0, 10),
+    startDate: startDateIso,
   });
+
+  const tripDays = resolveTravelTripDays(capsulePlan);
 
   const capsule = buildTravelCapsule(wardrobeItems, capsulePlan, {
     tempMin: avgMin,
@@ -815,7 +839,7 @@ export function generateLiteLookbook(params: {
 
   const dayActivities = assignDayActivities(
     LITE_LOOKBOOK_DAYS,
-    capsulePlan.tripDays || LITE_LOOKBOOK_DAYS,
+    tripDays,
     capsulePlan.activities,
   );
 
@@ -846,6 +870,20 @@ export function generateLiteLookbook(params: {
 
   const outfits: DFYOutfit[] = [];
   for (let idx = 0; idx < LITE_LOOKBOOK_DAYS; idx++) {
+    const prev = existing?.outfits?.[idx];
+
+    // fillGapsOnly: preserve any day that already has wardrobe items
+    if (fillGapsOnly && prev?.items && prev.items.length > 0) {
+      outfits.push({
+        ...prev,
+        id: prev.id || `lite-day-${idx + 1}`,
+        dayNumber: idx + 1,
+        userReaction: prev.userReaction ?? null,
+        saved: prev.saved ?? false,
+      });
+      continue;
+    }
+
     const dayActivity = dayActivities[idx] || 'explore';
     const mapped = scheduled.outfits[idx];
 
@@ -873,7 +911,6 @@ export function generateLiteLookbook(params: {
       finalItems = mapped.map(wardrobeItemToOutfitItem);
     }
 
-    const prev = existing?.outfits?.[idx];
     const weatherLine = dayForecast
       ? `${dayForecast.tempMin}–${dayForecast.tempMax}°C in ${destLabel}`
       : undefined;

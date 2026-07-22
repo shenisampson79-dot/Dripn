@@ -99,7 +99,7 @@ export const ACTIVITY_CONSTRAINTS: Record<ActivityConstraintId, ActivityConstrai
   flight: {
     id: 'flight',
     label: 'travel days',
-    preferredPatterns: [/hoodie|overshirt|cardigan|light jacket|softshell/, /jogger|chino|relaxed|soft/, /sneaker|trainer/],
+    preferredPatterns: [/hoodie|overshirt|cardigan|light jacket|softshell/, /chino|tailored|relaxed|soft/, /sneaker|trainer/],
     capsuleRequirePatterns: [/hoodie|overshirt|cardigan|jacket|blazer|fleece/, /sneaker|trainer/],
     softForbiddenPatterns: [/sandal|slide|flip.?flop/, /stiletto|tight jean|skinny jean.*stiff/],
     scoringWeights: {

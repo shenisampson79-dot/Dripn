@@ -32,6 +32,8 @@ export type ItemSignals = {
   isGown: boolean;
   isJoggers: boolean;
   isDressShirt: boolean;
+  /** Dress / button-down / oxford / denim / chambray shirt (not denim jacket). */
+  isStructuredShirt: boolean;
   isDressyBoots: boolean;
 };
 
@@ -89,7 +91,22 @@ export function isAthleticTop(item: WardrobeItem): boolean {
 export function isAthleticBottom(item: WardrobeItem): boolean {
   const t = itemText(item);
   return item.category === 'activewear_bottoms'
-    || /jogger|track pant|legging|gym short|athletic short|sweatpant|training pant/.test(t);
+    || /jogger|track pant|legging|gym short|athletic short|sweatpant|sweat pant|training pant|sweat short|jersey short|french terry|sweat bottom/.test(t);
+}
+
+/** Structured button-down family — dress, oxford, denim, chambray. Not denim jacket. */
+export function isStructuredShirt(item: WardrobeItem): boolean {
+  const t = itemText(item);
+  if (/denim jacket|jean jacket/.test(t)) return false;
+  // Never classify footwear / bottoms as shirts (e.g. "oxford" shoes)
+  if (item.category === 'shoes' || item.category === 'bottoms' || item.category === 'activewear_bottoms') {
+    return false;
+  }
+  if (/dress shirt|button-down|button down|oxford shirt|denim shirt|chambray/.test(t)) return true;
+  // Bare "oxford" only counts on tops
+  return (item.category === 'tops' || item.category === 'shirts' || !item.category)
+    && /\boxford\b/.test(t)
+    && !/shoe|loafer|boot/.test(t);
 }
 
 export function isAthleticFootwear(item: WardrobeItem): boolean {
@@ -148,6 +165,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const isHoodie = /hoodie|hooded sweat/.test(t);
   const isJoggers = /jogger|sweatpant|track pant/.test(t);
   const isDressShirt = /dress shirt|button-down|button down|oxford shirt/.test(t);
+  const structuredShirt = isStructuredShirt(item) || isDressShirt;
   const isSkirt = cat === 'bottoms' && /skirt/.test(t);
   const athleticTop = isAthleticTop(item);
   const athleticBottom = isAthleticBottom(item) || isJoggers;
@@ -167,7 +185,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     formalityTier = 2;
   } else if (isJeans || (boots && !dressyBoots)) {
     formalityTier = 3;
-  } else if (isDressShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
+  } else if (structuredShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
     formalityTier = 4;
   }
 
@@ -199,7 +217,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isUggs,
     isGown,
     isJoggers,
-    isDressShirt,
+    isDressShirt: isDressShirt || structuredShirt,
+    isStructuredShirt: structuredShirt,
     isDressyBoots: dressyBoots,
   };
 }
@@ -297,6 +316,23 @@ const CLASH_RULES: Array<{
   },
 
   // ── Major formality clashes ──────────────────────────────────────────
+  {
+    id: 'structured_shirt_sweat_bottom',
+    penalty: 78,
+    hint: 'Denim or button-down with sweat/jersey lounge bottoms — prefer chino or tailored shorts',
+    severity: 'major',
+    when: (ctx) => {
+      if (!ctx.any('isStructuredShirt')) return false;
+      if (!(ctx.any('isAthleticBottom') || ctx.any('isJoggers'))) return false;
+      // Tee / hoodie / jersey / athletic tops are fine with sweat bottoms — only structured shirts clash
+      const structuredTops = ctx.items.filter((i) => classifyItem(i).isStructuredShirt);
+      if (structuredTops.length === 0) return false;
+      return structuredTops.every((i) => {
+        const s = classifyItem(i);
+        return !s.isAthleticTop && !s.isHoodie && !/jersey|t-shirt|\btee\b/.test(itemText(i));
+      });
+    },
+  },
   {
     id: 'tier1_tier5',
     penalty: 86,

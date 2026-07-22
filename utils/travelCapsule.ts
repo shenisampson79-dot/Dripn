@@ -13,6 +13,13 @@ import {
 } from '@/utils/completeOutfit';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import {
+  LOOKBOOK_DEFAULT_TOTAL_DAYS,
+  addLocalDays,
+  formatLocalDateKey,
+  parseLocalDateOnly,
+  startOfLocalDay,
+} from '@/utils/lookbookTripDay';
+import {
   activityBoostForItem,
   pickActivityCapsuleRequirements,
 } from '@/utils/travelActivityConstraints';
@@ -435,23 +442,41 @@ export function buildTravelCapsule(
 }
 
 export function tripLengthDays(startDate: string, endDate: string): number {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 14;
+  const start = parseLocalDateOnly(startDate);
+  const end = parseLocalDateOnly(endDate);
+  if (!start || !end) return LOOKBOOK_DEFAULT_TOTAL_DAYS;
   const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, Math.min(14, days));
+  return Math.max(1, Math.min(LOOKBOOK_DEFAULT_TOTAL_DAYS, days));
+}
+
+/**
+ * Resolve trip length for flight-day placement.
+ * Prefers endDate − startDate; falls back to tripDays; defaults to full 14-day capsule
+ * so Return Travel Day is not stranded mid-lookbook when dates were never set.
+ */
+export function resolveTravelTripDays(plan?: Partial<TravelPlan> | null): number {
+  if (plan?.startDate && plan?.endDate) {
+    return tripLengthDays(plan.startDate, plan.endDate);
+  }
+  if (typeof plan?.tripDays === 'number' && plan.tripDays > 0) {
+    return Math.max(1, Math.min(LOOKBOOK_DEFAULT_TOTAL_DAYS, Math.round(plan.tripDays)));
+  }
+  return LOOKBOOK_DEFAULT_TOTAL_DAYS;
 }
 
 export function defaultTravelPlan(partial?: Partial<TravelPlan>): TravelPlan {
-  const start = partial?.startDate || new Date().toISOString().slice(0, 10);
+  const start =
+    partial?.startDate
+    || formatLocalDateKey(startOfLocalDay());
   const end =
     partial?.endDate
-    || new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    || addLocalDays(start, LOOKBOOK_DEFAULT_TOTAL_DAYS - 1);
+  const tripDays = partial?.tripDays ?? tripLengthDays(start, end);
   return {
     destination: partial?.destination || '',
     startDate: start,
     endDate: end,
-    tripDays: partial?.tripDays ?? tripLengthDays(start, end),
+    tripDays,
     vibe: partial?.vibe || 'mixed',
     activities: partial?.activities || ['explore'],
     lat: partial?.lat,

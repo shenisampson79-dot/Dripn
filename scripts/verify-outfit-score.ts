@@ -8,7 +8,7 @@ import {
   isShortsItem,
   analyzeOutfitAesthetic,
 } from '../utils/outfitCompatibilityScore';
-import { detectOutfitClashes, detectAllOutfitClashes } from '../utils/outfitClashRules';
+import { detectOutfitClashes, detectAllOutfitClashes, isOutfitValid } from '../utils/outfitClashRules';
 import { getStyleTagDatasetEntryCount } from '../utils/outfitStyleTagMatcher';
 import calibrationData from '../data/outfitStyleCalibration.json';
 import calibrationExtended from '../data/outfitStyleCalibrationExtended.json';
@@ -107,6 +107,11 @@ const CLASH_MATRIX: ClashCase[] = [
   { id: 'athletic_outerwear_formal', items: [puffer, tie, oxfords], maxScore: 55 },
   { id: 'athletic_top_non_athletic_shoes', items: [tank, clogs], maxScore: 75 },
   { id: 'blazer_hoodie_no_jeans', items: [blazer, hoodie, chinos], maxScore: 45 },
+  { id: 'structured_shirt_sweat_bottom', items: [
+    item({ id: 'denim-shirt', category: 'tops', name: 'Blue Denim Shirt', color: 'blue' }),
+    item({ id: 'sweat-shorts', category: 'bottoms', name: 'Grey Sweat Shorts', color: 'gray' }),
+    trainers,
+  ], maxScore: 30 },
 ];
 
 // ── Detector sanity ────────────────────────────────────────────────────────
@@ -211,6 +216,28 @@ const userOutfit = computeLocalOutfitScore([
 ]);
 assert(userOutfit.score <= 15, `blazer + running vest should score ~10%, got ${userOutfit.score}`);
 assert(userOutfit.clashId === 'blazer_athletic_top', `expected blazer_athletic_top, got ${userOutfit.clashId}`);
+
+// ── Structured shirt + sweat bottoms vs tee + sweat bottoms ───────────────
+const denimShirtSweatShorts = [
+  item({ id: 'denim-sh', category: 'tops', name: 'Blue Denim Shirt', color: 'blue' }),
+  item({ id: 'grey-ss', category: 'bottoms', name: 'Grey Sweat Shorts', color: 'gray' }),
+  trainers,
+];
+const teeSweatShorts = [
+  item({ id: 'plain-tee', category: 'tops', name: 'White T-Shirt', color: 'white' }),
+  item({ id: 'grey-ss2', category: 'bottoms', name: 'Grey Sweat Shorts', color: 'gray' }),
+  trainers,
+];
+assert(
+  detectAllOutfitClashes(denimShirtSweatShorts).some((c) => c.id === 'structured_shirt_sweat_bottom'),
+  'denim shirt + grey sweat shorts must clash',
+);
+assert(!isOutfitValid(denimShirtSweatShorts), 'denim shirt + sweat shorts must fail isOutfitValid');
+assert(
+  !detectAllOutfitClashes(teeSweatShorts).some((c) => c.id === 'structured_shirt_sweat_bottom'),
+  'tee + sweat shorts must NOT hard-clash as structured_shirt_sweat_bottom',
+);
+assert(isOutfitValid(teeSweatShorts), 'tee + sweat shorts should remain valid');
 
 // ── Style tag dataset coverage ─────────────────────────────────────────────
 assert(getStyleTagDatasetEntryCount() >= 100, `style tag dataset should have 100+ entries, got ${getStyleTagDatasetEntryCount()}`);

@@ -41,7 +41,6 @@ import {
   stripInvalidLookbookOutfits,
   generateLiteLookbook,
 } from "@/utils/dfyOutfitImages";
-import { LITE_LOOKBOOK_ENGINE_VERSION } from "@/utils/coreCalendarEngine";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
 import {
@@ -49,6 +48,11 @@ import {
   pickLiteLookbookPackage,
 } from "@/utils/dfyPackages";
 import { CATEGORY_LABELS, type ClothingCategory } from "@/contexts/WardrobeContext";
+import {
+  computeLookbookDayNumber,
+  computeLookbookDaysRemaining,
+  lookbookDateForDay,
+} from "@/utils/lookbookTripDay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -107,6 +111,16 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
   const backfillStartedRef = useRef(false);
 
+  const resolveTripStartIso = (d: DFYLiteDelivery): string | null | undefined =>
+    d.travelPlan?.startDate || d.startDate;
+
+  const liveCurrentDayFor = (d: DFYLiteDelivery): number =>
+    computeLookbookDayNumber(
+      resolveTripStartIso(d),
+      new Date(),
+      d.totalDays || LITE_LOOKBOOK_DAYS,
+    );
+
   const maybePromptPackageName = async () => {
     if (isHistorical) return;
     try {
@@ -128,7 +142,20 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
   useFocusEffect(
     useCallback(() => {
-      if (isHistorical || !delivery || !user?.id) return;
+      if (!delivery || !user?.id) return;
+
+      // Live trip day from startDate + today — never freeze delivery.currentDay
+      const liveDay = liveCurrentDayFor(delivery);
+      setCurrentDay(liveDay);
+      // Persist day index only — never regenerates outfits
+      if (!isHistorical && liveDay !== delivery.currentDay) {
+        setDelivery((prev) =>
+          prev && prev.currentDay !== liveDay ? { ...prev, currentDay: liveDay } : prev,
+        );
+        void dfyService.saveDFYDelivery({ ...delivery, currentDay: liveDay });
+      }
+
+      if (isHistorical) return;
       const totalDays = delivery.totalDays || 14;
       if (countFilledLookbookDays(delivery) >= totalDays) return;
       if (backfillStartedRef.current) return;
@@ -137,13 +164,14 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     }, [delivery, user?.id, isHistorical]),
   );
 
-  const maybeBackfillLookbook = (hydrated: DFYLiteDelivery, force = false) => {
+  const maybeBackfillLookbook = (hydrated: DFYLiteDelivery) => {
     if (isHistorical) return;
     const totalDays = hydrated.totalDays || LITE_LOOKBOOK_DAYS;
     const filledCount = countFilledLookbookDays(hydrated);
-    if (!force && (filledCount >= totalDays || backfillStartedRef.current)) return;
+    // Never force full regen on open / staleEngine — only fill empty days
+    if (filledCount >= totalDays || backfillStartedRef.current) return;
     backfillStartedRef.current = true;
-    void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0, force });
+    void populateLookbookOutfits(hydrated, { fillGapsOnly: true });
   };
 
   const outfitTitle = (idx: number) => {
@@ -175,9 +203,6 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     const beforeInvalidStrip = countFilledLookbookDays(normalised);
     normalised = stripInvalidLookbookOutfits(normalised, wardrobeItems);
     const clearedInvalidOutfits = beforeInvalidStrip > countFilledLookbookDays(normalised);
-    const staleEngine =
-      (liteDelivery as DFYLiteDelivery & { engineVersion?: string }).engineVersion
-      !== LITE_LOOKBOOK_ENGINE_VERSION;
 
     if ((hasCorruptedDayNumbers || clearedInvalidOutfits) && options?.persistCorrections !== false) {
       await dfyService.saveDFYDelivery(normalised);
@@ -212,35 +237,40 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         }
       : hydrated;
 
-    setDelivery(withWeather);
-    setCurrentDay(withWeather.currentDay || 1);
+    const liveDay = liveCurrentDayFor(withWeather);
+    const withLiveDay = { ...withWeather, currentDay: liveDay };
+
+    setDelivery(withLiveDay);
+    setCurrentDay(liveDay);
     setEmptyMode(null);
 
     if (options?.persistCorrections !== false) {
-      const gainedImages = withWeather.outfits.some((outfit, idx) =>
+      const gainedImages = withLiveDay.outfits.some((outfit, idx) =>
         outfit.items.some((item, itemIdx) => {
           const prev = normalised.outfits[idx]?.items[itemIdx];
           return item.imageUri && !prev?.imageUri;
         }),
       );
-      const gainedShoes = withWeather.outfits.some((outfit, idx) => {
+      const gainedShoes = withLiveDay.outfits.some((outfit, idx) => {
         const prev = normalised.outfits[idx];
         return (outfit.items?.length || 0) > (prev?.items?.length || 0);
       });
-      const droppedWarmLayers = withWeather.outfits.some((outfit, idx) => {
+      const droppedWarmLayers = withLiveDay.outfits.some((outfit, idx) => {
         const prev = normalised.outfits[idx];
         return (outfit.items?.length || 0) < (prev?.items?.length || 0);
       });
-      const gainedWeather = withWeather.outfits.some(
+      const gainedWeather = withLiveDay.outfits.some(
         (outfit, idx) => outfit.weatherNote && !normalised.outfits[idx]?.weatherNote,
       );
-      if (gainedImages || gainedShoes || gainedWeather || droppedWarmLayers) {
-        await dfyService.saveDFYDelivery(withWeather);
+      const dayChanged = liveDay !== (withWeather.currentDay || liteDelivery.currentDay || 1);
+      if (gainedImages || gainedShoes || gainedWeather || droppedWarmLayers || dayChanged) {
+        await dfyService.saveDFYDelivery(withLiveDay);
       }
     }
 
     if (options?.backfill !== false) {
-      maybeBackfillLookbook(withWeather, clearedInvalidOutfits || staleEngine);
+      // Only fill gaps after invalid strips — never force full regen for engine bumps
+      maybeBackfillLookbook(withLiveDay);
     }
   };
 
@@ -311,7 +341,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         wardrobeItems,
       );
       setDelivery(hydrated);
-      setCurrentDay(hydrated.currentDay || 1);
+      setCurrentDay(liveCurrentDayFor(hydrated));
       setEmptyMode(null);
       return;
     }
@@ -390,8 +420,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       if (needsMoreDays && wardrobeItems.length >= 2) {
         backfillStartedRef.current = false;
         void populateLookbookOutfits(hydrated, {
-          fillGapsOnly: countFilledLookbookDays(hydrated) > 0,
-          force: true,
+          fillGapsOnly: true,
         });
       } else if (gainedImages) {
         setDelivery(hydrated);
@@ -428,10 +457,19 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     options: { fillGapsOnly?: boolean; force?: boolean } = {},
   ) => {
     if (isHistorical || !user?.id || isGenerating) return;
+
+    const fillGapsOnly = Boolean(options.fillGapsOnly) && !options.force;
+    const totalDays = existingDelivery.totalDays || LITE_LOOKBOOK_DAYS;
+    const filledCount = countFilledLookbookDays(existingDelivery);
+
+    if (fillGapsOnly && filledCount >= totalDays) {
+      return;
+    }
+
     if (
       !options.force
       && backfillStartedRef.current
-      && countFilledLookbookDays(existingDelivery) >= LITE_LOOKBOOK_DAYS
+      && filledCount >= LITE_LOOKBOOK_DAYS
     ) {
       return;
     }
@@ -456,6 +494,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         existing: scaffold,
         forecast,
         travelPlan: trip,
+        options: { fillGapsOnly: options.fillGapsOnly, force: options.force },
       });
 
       if (!generated) {
@@ -483,6 +522,8 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           generated.outfits = generated.outfits.map((slot, idx) => {
             const source = mappedOutfits[idx];
             if (!source?.title || slot.saved || slot.userReaction === 'love') return slot;
+            // When fillGapsOnly, don't overwrite titles on already-filled days
+            if (fillGapsOnly && scaffold.outfits[idx]?.items?.length) return slot;
             return { ...slot, title: source.title };
           });
         }
@@ -494,7 +535,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         stripInvalidLookbookOutfits(generated, wardrobeItems),
         wardrobeItems,
       );
-      // If strip cleared any days, rebuild once more rather than keep holes
+      // If strip cleared any days, rebuild gaps only (never force full wipe)
       if (countFilledLookbookDays(working) < LITE_LOOKBOOK_DAYS) {
         const rebuilt = generateLiteLookbook({
           userId: user.id,
@@ -502,13 +543,17 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           stylistId,
           existing: working,
           forecast,
+          options: { fillGapsOnly: true },
         });
         if (rebuilt) working = rebuilt;
       }
 
       working = normalizeLiteDelivery(working);
+      const liveDay = liveCurrentDayFor(working);
+      working = { ...working, currentDay: liveDay };
       await dfyService.saveDFYDelivery(working);
       setDelivery(working);
+      setCurrentDay(liveDay);
 
       if (countFilledLookbookDays(working) < LITE_LOOKBOOK_DAYS) {
         setGenerateError(t('dfy.lookbook.someDaysUnfilled'));
@@ -593,13 +638,17 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   /**
-   * Calendar days left in the DFY access window — not "outfits you haven't opened".
-   * Prefer live access status / expiryDate so a stale startDate can't fake "0 days left".
+   * Days left in the trip lookbook window (Day 3 of 14 → 12).
+   * Prefer live startDate+today so progress matches the calendar, not a frozen access window.
    */
   const getDaysRemaining = (): number => {
     const cap = getTotalDays();
-    let remaining = cap;
+    const tripStart = delivery ? resolveTripStartIso(delivery) : null;
+    if (tripStart) {
+      return computeLookbookDaysRemaining(tripStart, new Date(), cap);
+    }
 
+    let remaining = cap;
     if (typeof accessStatus?.daysRemaining === 'number') {
       remaining = Math.max(0, accessStatus.daysRemaining);
     } else {
@@ -612,16 +661,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
           );
         }
-      } else if (delivery?.startDate) {
-        const start = new Date(delivery.startDate);
-        if (!Number.isNaN(start.getTime())) {
-          const elapsed = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
-          remaining = Math.max(0, cap - elapsed);
-        }
       }
     }
 
-    // Lite UI must never show a 30-day window even if cached access is polluted
     return Math.min(remaining, cap);
   };
 
@@ -635,11 +677,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   const formatLookbookCardDate = (dayNumber: number): string | null => {
-    if (!delivery?.startDate) return null;
-    const start = new Date(delivery.startDate);
-    if (Number.isNaN(start.getTime())) return null;
-    const date = new Date(start);
-    date.setDate(start.getDate() + dayNumber - 1);
+    if (!delivery) return null;
+    const date = lookbookDateForDay(resolveTripStartIso(delivery), dayNumber);
+    if (!date) return null;
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
