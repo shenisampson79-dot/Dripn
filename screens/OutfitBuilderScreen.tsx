@@ -39,6 +39,8 @@ import {
   saveGeneratedOutfitToProfile,
 } from '@/utils/saveGeneratedOutfit';
 import { computeLocalOutfitScore, mergeOutfitScores, buildDeterministicItemNotes, buildStylistAnalysis } from '@/utils/outfitCompatibilityScore';
+import { loadStoredTodaysWardrobeOutfit } from '@/services/TodaysOutfitGenerator';
+import type { WeatherLike } from '@/utils/weatherOuterwear';
 import type { ItemAnalysisNote } from '@/utils/outfitAnalysisStatements';
 import type { StylistAnalysis } from '@/utils/stylistVoiceEngine';
 import type { DetectedSignals } from '@/utils/styleCoherenceEngine';
@@ -302,6 +304,24 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const localClashIdRef = useRef<string | null>(null);
   const localSignalsRef = useRef<DetectedSignals | null>(null);
   const localScoreBreakdownRef = useRef<Record<string, unknown> | null>(null);
+  const [mixWeather, setMixWeather] = useState<WeatherLike | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = await loadStoredTodaysWardrobeOutfit();
+        if (cancelled || stored?.weatherTemp == null) return;
+        setMixWeather({
+          temperature: stored.weatherTemp,
+          condition: stored.weatherCondition || undefined,
+        });
+      } catch {
+        // no weather snapshot — skip hard gate
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const layoutMetrics = useMemo(() => {
     const centerWidth = SW * COMPACT_CENTER_RATIO;
@@ -383,6 +403,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       {
         occasion: eventType,
         source: 'outfit_mix',
+        weather: mixWeather,
       },
     );
     setStyleScore(local.score);
@@ -559,7 +580,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, 1100);
 
     return () => clearTimeout(timer);
-  }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry, user?.stylePreference, user?.extendedPreferences?.lifestyle]);
+  }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry, user?.stylePreference, user?.extendedPreferences?.lifestyle, mixWeather]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

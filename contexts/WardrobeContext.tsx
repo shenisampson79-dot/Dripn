@@ -694,7 +694,9 @@ function mapBackendItemToFrontend(
     seasons: normalizeClothingSeasons(row.season, row.seasons, (meta as any).seasons),
     occasions: (row.occasions || (meta as any).occasions || []) as ClothingOccasion[],
     origin: (row.item_type || (meta as any).origin || 'owned') as ItemOrigin,
-    isFavorite: row.is_favorite ?? (meta as any).isFavorite ?? false,
+    isFavorite: Boolean(
+      row.favorite ?? row.is_favorite ?? row.isFavorite ?? (meta as any).isFavorite ?? false,
+    ),
     timesWorn: row.times_worn ?? row.wearCount ?? (meta as any).timesWorn ?? 0,
     lastWorn: row.last_worn ?? row.lastWorn ?? (meta as any).lastWorn,
     wearCountSinceWash:
@@ -1467,18 +1469,34 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const toggleItemFavorite = useCallback(async (id: string) => {
     const targetItem = itemsRef.current.find(i => i.id === id);
-    const updatedItems = itemsRef.current.map(item =>
+    if (!targetItem) return;
+    const nextFavorite = !targetItem.isFavorite;
+    const previousItems = itemsRef.current;
+    const updatedItems = previousItems.map(item =>
       item.id === id
-        ? { ...item, isFavorite: !item.isFavorite, updatedAt: new Date().toISOString() }
+        ? { ...item, isFavorite: nextFavorite, updatedAt: new Date().toISOString() }
         : item
     );
+    // Optimistic: UI updates immediately; cache + network run in background
     setItems(updatedItems);
-    await saveFullLocalCache(updatedItems);
+    itemsRef.current = updatedItems;
 
     try {
-      await apiService.updateWardrobeItem(id, { isFavorite: !targetItem?.isFavorite });
+      await saveFullLocalCache(updatedItems);
+    } catch (cacheErr) {
+      console.log('[WardrobeContext] Local favorite cache failed:', cacheErr);
+    }
+
+    try {
+      await apiService.updateWardrobeItem(id, { isFavorite: nextFavorite });
     } catch (err) {
-      console.log('[WardrobeContext] Backend toggleItemFavorite failed (local updated):', err);
+      console.log('[WardrobeContext] Backend toggleItemFavorite failed — rolling back:', err);
+      setItems(previousItems);
+      itemsRef.current = previousItems;
+      try {
+        await saveFullLocalCache(previousItems);
+      } catch (_) { /* ignore */ }
+      throw err;
     }
   }, []);
 

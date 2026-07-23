@@ -137,7 +137,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     teal: palette.teal,
     emerald: palette.emerald,
   };
-  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
@@ -403,14 +403,19 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     );
   };
 
-  const handleToggleFavorite = async (item: WardrobeItem) => {
-    try {
-      await toggleItemFavorite(item.id);
-      setSelectedItem({ ...item, isFavorite: !item.isFavorite });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-      Alert.alert(translations.common.error, translations.common.error);
-    }
+  const handleToggleFavorite = (item: WardrobeItem) => {
+    const nextFavorite = !item.isFavorite;
+    // Illuminate heart instantly — do not await network/cache
+    setSelectedItem({ ...item, isFavorite: nextFavorite });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void (async () => {
+      try {
+        await toggleItemFavorite(item.id);
+      } catch {
+        setSelectedItem({ ...item, isFavorite: item.isFavorite });
+        Alert.alert(translations.common.error, translations.common.error);
+      }
+    })();
   };
 
   const handleMarkWorn = async (item: WardrobeItem) => {
@@ -894,6 +899,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 />
               </Pressable>
             </View>
+            {selectedItem.isFavorite ? (
+              <ThemedText type="caption" style={{ textAlign: 'center', opacity: 0.55, marginBottom: Spacing.sm, paddingHorizontal: Spacing.lg }}>
+                {t('wardrobe.favoritesHint') || 'Favorites get preferred by your stylist'}
+              </ThemedText>
+            ) : null}
           </LinearGradient>
 
           <FlatList

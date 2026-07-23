@@ -20,9 +20,13 @@ export type WeatherLike = {
   temp?: number;
   feelsLike?: number;
   unit?: string;
-  units?: string;
+  units?: string | { temp?: string; wind?: string };
+  useMetric?: boolean;
   condition?: string;
   conditions?: string;
+  location?: string;
+  city?: string;
+  source?: string;
 };
 
 export const WEATHER_OUTERWEAR_THRESHOLDS_C = Object.freeze({
@@ -53,9 +57,66 @@ export function parseWeatherTempC(weather?: WeatherLike | null): number | null {
   if (raw == null || (raw as unknown) === '') return null;
   const n = Number(raw);
   if (!Number.isFinite(n)) return null;
-  const unit = String(weather.unit || weather.units || 'C').toUpperCase();
-  if (unit.startsWith('F')) return Math.round((n - 32) * (5 / 9));
+  const unitRaw = weather.unit
+    ?? (typeof weather.units === 'string' ? weather.units : weather.units?.temp)
+    ?? (weather.useMetric === false ? 'F' : 'C');
+  const unit = String(unitRaw || 'C').toUpperCase();
+  if (unit.startsWith('F') || unit.includes('°F')) return Math.round((n - 32) * (5 / 9));
   return Math.round(n);
+}
+
+/** Normalize orchestrator / OpenWeather / Today snapshot shapes for allocator gates. */
+export function normalizeWeatherForAllocator(weather?: WeatherLike | null): WeatherLike | null {
+  if (!weather || typeof weather !== 'object') return null;
+  const temp = weather.temperature ?? weather.temp ?? weather.feelsLike;
+  if (temp == null || (temp as unknown) === '' || !Number.isFinite(Number(temp))) return null;
+  const unitRaw = weather.unit
+    ?? (typeof weather.units === 'string' ? weather.units : weather.units?.temp)
+    ?? (weather.useMetric === false ? 'F' : 'C');
+  const condition = weather.condition || weather.conditions || '';
+  return {
+    temperature: Number(temp),
+    temp: Number(temp),
+    feelsLike: weather.feelsLike != null ? Number(weather.feelsLike) : undefined,
+    condition,
+    conditions: condition,
+    unit: String(unitRaw || 'C'),
+    units: String(unitRaw || 'C'),
+    location: weather.location || weather.city,
+    source: weather.source,
+  };
+}
+
+/** Short hard-authority line for stylist prompts when temp is known. */
+export function formatWeatherOuterwearAuthorityForPrompt(weather?: WeatherLike | null): string {
+  const normalized = normalizeWeatherForAllocator(weather) || weather;
+  const tempC = parseWeatherTempC(normalized);
+  if (tempC == null) return '';
+  const policy = outerwearWeatherPolicy(
+    tempC,
+    normalized?.condition || normalized?.conditions || '',
+  );
+  const { HOT_EMPTY, WARM_NO_HEAVY, COLD_REQUIRE } = WEATHER_OUTERWEAR_THRESHOLDS_C;
+  const lines = [`WEATHER OUTERWEAR AUTHORITY: ambient ~${tempC}°C.`];
+  if (policy.forceEmpty) {
+    lines.push(
+      `HOT (≥${HOT_EMPTY}°C): outerwear slot must stay empty. Never suggest fleece, puffer, insulated, wool coat, or full-zip midlayers. Do not praise heavy layers.`,
+    );
+  } else if (policy.blockHeavy) {
+    lines.push(
+      `WARM (≥${WARM_NO_HEAVY}°C or transitional ≥18°C): heavy outerwear (fleece/puffer/insulated/wool coat) is forbidden. Light layers only if needed; prefer bare looks.`,
+    );
+  } else if (policy.requireWhenAvailable) {
+    lines.push(
+      `COLD (≤${COLD_REQUIRE}°C): prefer outerwear when the wardrobe has a suitable piece.`,
+    );
+  } else {
+    lines.push('Mild: outerwear optional; match fabric weight to temperature.');
+  }
+  if (policy.wet) {
+    lines.push('Wet conditions: prefer weather-appropriate shells over fashion-only layers.');
+  }
+  return lines.join(' ');
 }
 
 export function isHeavyOuterwear(item: Partial<WardrobeItem> | null | undefined): boolean {

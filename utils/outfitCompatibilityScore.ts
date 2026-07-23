@@ -40,6 +40,11 @@ import {
   buildStylistAnalysis,
   type StylistAnalysis,
 } from '@/utils/stylistVoiceEngine';
+import {
+  weatherOuterwearScoreAdjustment,
+  type WeatherLike,
+} from '@/utils/weatherOuterwear';
+import { isOuterwearItem } from '@/utils/completeOutfit';
 
 export type { OutfitClash, FormalityTier, ItemSignals } from '@/utils/outfitClashRules';
 export type { DetectedSignals, StyleLane, FootwearClass } from '@/utils/styleCoherenceEngine';
@@ -141,6 +146,7 @@ export function computeLocalOutfitScore(
     query?: string | null;
     intent?: string | null;
     source?: string | null;
+    weather?: WeatherLike | null;
   } = {},
 ): OutfitScoreResult {
   if (selected.length === 0) {
@@ -405,6 +411,23 @@ export function computeLocalOutfitScore(
     clashId: primaryClash?.id,
     severity: primaryClash?.severity,
   });
+
+  // Weather outerwear: hard-cap illegal heavy layers when temp known; skip if no temp
+  const weatherAdj = weatherOuterwearScoreAdjustment(selected, options.weather || null);
+  if (weatherAdj <= -40) {
+    score = Math.min(score, 35);
+    if (selected.some((i) => isOuterwearItem(i))) {
+      hint = 'Heavy outerwear does not match current temperature — drop the fleece/puffer for heat.';
+    }
+  } else if (weatherAdj !== 0) {
+    score = Math.max(5, Math.min(94, score + Math.round(weatherAdj / 5)));
+  }
+
+  // Soft favorites boost
+  const favCount = selected.filter((i) => i.isFavorite).length;
+  if (favCount > 0 && weatherAdj > -40) {
+    score = Math.min(94, score + Math.min(favCount * 2, 6));
+  }
 
   const stylistAnalysis = buildStylistAnalysis(selected, {
     score,

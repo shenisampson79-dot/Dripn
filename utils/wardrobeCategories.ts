@@ -213,11 +213,12 @@ export function normalizeWardrobeCategoryForGender(
 }
 
 export function itemMatchesWardrobeCategory(
-  item: { category?: string | null; name?: string; subcategory?: string },
-  category: ClothingCategory | 'all',
+  item: { category?: string | null; name?: string; subcategory?: string; isFavorite?: boolean },
+  category: ClothingCategory | 'all' | 'favorites',
   gender: PresentationGender = 'neutral',
 ): boolean {
   if (category === 'all') return true;
+  if (category === 'favorites') return Boolean(item.isFavorite);
   const normalized = normalizeWardrobeCategoryForGender(item.category, gender, {
     name: item.name,
     subcategory: item.subcategory,
@@ -226,15 +227,15 @@ export function itemMatchesWardrobeCategory(
 }
 
 export function countItemsForWardrobeCategory(
-  items: Array<{ category?: string | null; name?: string; subcategory?: string }>,
-  category: ClothingCategory | 'all',
+  items: Array<{ category?: string | null; name?: string; subcategory?: string; isFavorite?: boolean }>,
+  category: ClothingCategory | 'all' | 'favorites',
   gender: PresentationGender = 'neutral',
 ): number {
   return items.filter((item) => itemMatchesWardrobeCategory(item, category, gender)).length;
 }
 
 export type WardrobeCategoryTab = {
-  key: ClothingCategory | 'all';
+  key: ClothingCategory | 'all' | 'favorites';
   icon: string;
   iconSet: 'feather' | 'material';
   translationKey: string;
@@ -242,6 +243,7 @@ export type WardrobeCategoryTab = {
 
 export const WARDROBE_CATEGORY_TABS: WardrobeCategoryTab[] = [
   { key: 'all', icon: 'grid', iconSet: 'feather', translationKey: 'wardrobe.categoryAll' },
+  { key: 'favorites', icon: 'heart', iconSet: 'feather', translationKey: 'wardrobe.categoryFavorites' },
   { key: 'outerwear', icon: 'cloud', iconSet: 'feather', translationKey: 'wardrobe.categoryOuterwear' },
   { key: 'tops', icon: 'tshirt-crew', iconSet: 'material', translationKey: 'wardrobe.categoryTops' },
   { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },

@@ -24,6 +24,7 @@
     "verify:todays-outfit-rotation": "npx tsx scripts/verify-todays-outfit-date-rotation.ts",
     "verify:allocator": "npx tsx scripts/verify-allocator-hard-validity.ts",
     "verify:weather-outerwear": "npx tsx scripts/verify-weather-outerwear.ts",
+    "verify:favorites-weather": "npx tsx scripts/verify-favorites-weather.ts",
     "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts",
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",

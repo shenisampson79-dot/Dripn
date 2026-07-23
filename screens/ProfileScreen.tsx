@@ -74,6 +74,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { bodyProfile, hasBodyProfile, hasColorAnalysis, saveBodyProfile } = useBodyProfile();
   const { styleProfile, hasStyleProfile } = useStyleProfile();
   const { items: wardrobeItems } = useWardrobe();
+  const favoriteWardrobeItems = useMemo(
+    () => wardrobeItems.filter((item) => item.isFavorite).slice(0, 8),
+    [wardrobeItems],
+  );
   const [activeTab] = useState<"outfits">("outfits");
   const [savedLookbookOutfits, setSavedLookbookOutfits] = useState<SavedLookbookOutfit[]>([]);
   const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
@@ -975,6 +979,50 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </View>
         </View>
       ) : null}
+
+      <View style={styles.savedOutfitsSectionHeader}>
+        <Feather name="heart" size={18} color={LUXURY_COLORS.coral} />
+        <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
+          {t('profile.favoriteItems') || 'Favorite Items'}
+        </ThemedText>
+      </View>
+      <View style={styles.contentSection}>
+        {favoriteWardrobeItems.length > 0 ? (
+          <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
+              {favoriteWardrobeItems.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => navigation.navigate('Wardrobe')}
+                  style={{ width: 72, alignItems: 'center' }}
+                >
+                  <Image
+                    source={{ uri: item.enhancedImageUri || item.imageUri }}
+                    style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                    contentFit="cover"
+                  />
+                  <ThemedText type="caption" numberOfLines={1} style={{ color: 'rgba(255,255,255,0.8)', marginTop: 4, fontSize: 10 }}>
+                    {item.name}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              onPress={() => navigation.navigate('Wardrobe')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}
+            >
+              <ThemedText type="small" style={{ color: LUXURY_COLORS.gold }}>
+                {t('profile.seeAllFavorites') || 'See all in Wardrobe'}
+              </ThemedText>
+              <Feather name="chevron-right" size={14} color={LUXURY_COLORS.gold} />
+            </Pressable>
+          </View>
+        ) : (
+          <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            {t('profile.noFavoriteItemsHint') || 'Tap the heart on any wardrobe item'}
+          </ThemedText>
+        )}
+      </View>
 
       <View style={styles.savedOutfitsSectionHeader}>
         <Feather name="bookmark" size={18} color={LUXURY_COLORS.gold} />

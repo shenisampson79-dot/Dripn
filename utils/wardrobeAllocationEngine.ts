@@ -299,6 +299,11 @@ function scoreCombo(
     const w = categoryWeight(item);
     const uses = log.weekCount.get(id) || 0;
 
+    // Soft favorites boost — hearted wardrobe items
+    if (item.isFavorite) {
+      score += 3 * w;
+    }
+
     if (mode === 'strict') {
       if (days < 999 && isLaundrySensitive(item)) score -= 1000 * w;
       else if (days < 999 && isShoesItem(item)) score -= 50 * w;
