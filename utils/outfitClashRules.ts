@@ -35,6 +35,9 @@ export type ItemSignals = {
   /** Dress / button-down / oxford / denim / chambray shirt (not denim jacket). */
   isStructuredShirt: boolean;
   isDressyBoots: boolean;
+  isFleeceOrInsulated: boolean;
+  isLoungeBottom: boolean;
+  isFormalAccessory: boolean;
 };
 
 export type OutfitClash = {
@@ -183,14 +186,20 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const heels = /heel|pump|stiletto/.test(t) && cat === 'shoes';
   const casualTrainer = isCasualTrainer(item);
   const isUggs = /\bugg|shearling boot|sheepskin/.test(t);
+  const isFleeceOrInsulated = /fleece|insulated|puffer|down jacket|parka|quilted|thermal outer|winter coat/.test(t)
+    && (cat === 'outerwear' || /jacket|coat|fleece|parka|puffer/.test(t));
+  const isLoungeBottom = athleticBottom || isJoggers
+    || (cat === 'bottoms' && /sweat|french terry|jersey short|lounge/.test(t));
+  const isFormalAccessory = isTie
+    || (cat === 'accessories' && /cufflink|pocket square|lapel|cravat|ascot/.test(t));
 
   let formalityTier: FormalityTier = 3;
 
   if (isSwimwear || athleticTop || athleticBottom || isJoggers || (isShorts && athleticBottom)) {
     formalityTier = 1;
-  } else if (isSleepwear || isHoodie || isShorts || casualTrainer || athleticShoes) {
+  } else if (isSleepwear || isHoodie || isShorts || casualTrainer || athleticShoes || isUggs) {
     formalityTier = 2;
-  } else if (isJeans || (boots && !dressyBoots)) {
+  } else if (isJeans || (boots && !isUggs)) {
     formalityTier = 3;
   } else if (structuredShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
     formalityTier = 4;
@@ -200,6 +209,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   if (athleticTop || athleticBottom) formalityTier = Math.min(formalityTier, 1) as FormalityTier;
   if (formalShoes || heels || dressyBoots) formalityTier = Math.max(formalityTier, 4) as FormalityTier;
   if (athleticShoes && !formalShoes) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
+  if (isUggs) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
+  if (isFleeceOrInsulated) formalityTier = Math.min(formalityTier, 3) as FormalityTier;
 
   return {
     formalityTier,
@@ -227,6 +238,9 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isDressShirt: isDressShirt || structuredShirt,
     isStructuredShirt: structuredShirt,
     isDressyBoots: dressyBoots,
+    isFleeceOrInsulated,
+    isLoungeBottom,
+    isFormalAccessory,
   };
 }
 
@@ -281,22 +295,53 @@ const CLASH_RULES: Array<{
     id: 'tie_athletic_bottom',
     penalty: 90,
     hint: 'Tie with joggers or track pants — formal neckwear needs tailored trousers',
-    severity: 'major',
-    when: (ctx) => ctx.any('isTie') && (ctx.any('isJoggers') || ctx.any('isAthleticBottom')),
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isTie') && (ctx.any('isJoggers') || ctx.any('isAthleticBottom') || ctx.any('isLoungeBottom')),
   },
   {
     id: 'tie_shorts',
     penalty: 88,
     hint: 'Tie with shorts — keep tailoring with full-length trousers',
-    severity: 'major',
+    severity: 'fatal',
     when: (ctx) => ctx.any('isTie') && ctx.any('isShorts'),
   },
   {
     id: 'tie_uggs',
     penalty: 84,
     hint: 'Tie with UGG-style boots — formality lanes mixed',
-    severity: 'major',
+    severity: 'fatal',
     when: (ctx) => ctx.any('isTie') && ctx.any('isUggs'),
+  },
+  {
+    id: 'tie_low_formality_base',
+    penalty: 86,
+    hint: 'Tie needs smart-casual+ bottoms and shoes � not lounge or ultra-casual bases',
+    severity: 'fatal',
+    when: (ctx) => {
+      if (!ctx.any('isTie')) return false;
+      const bottoms = ctx.signals.filter((sig, i) => {
+        const cat = String(ctx.items[i]?.category || '').toLowerCase();
+        return cat === 'bottoms' || cat === 'activewear_bottoms' || sig.isShorts || sig.isJoggers || sig.isAthleticBottom || sig.isLoungeBottom || sig.isSuitPiece || sig.isSkirt;
+      });
+      const shoes = ctx.signals.filter((_sig, i) => String(ctx.items[i]?.category || '').toLowerCase() === 'shoes');
+      const bottomOk = bottoms.length === 0 || bottoms.every((sig) => sig.formalityTier >= 3 && !sig.isShorts && !sig.isLoungeBottom && !sig.isAthleticBottom);
+      const shoesOk = shoes.length === 0 || shoes.every((sig) => sig.formalityTier >= 3 && !sig.isUggs && !sig.isAthleticShoes);
+      return !(bottomOk && shoesOk);
+    },
+  },
+  {
+    id: 'formal_accessory_lounge_bottom',
+    penalty: 88,
+    hint: 'Formal accessories clash with lounge or sweat bottoms',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isFormalAccessory') && (ctx.any('isLoungeBottom') || ctx.any('isAthleticBottom') || ctx.any('isJoggers')),
+  },
+  {
+    id: 'fleece_shorts_season',
+    penalty: 86,
+    hint: 'Fleece/insulated outerwear with shorts � seasonal clash',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isFleeceOrInsulated') && ctx.any('isShorts'),
   },
   {
     id: 'tie_tshirt',
@@ -486,10 +531,17 @@ const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isShorts') && ctx.any('isBoots') && !ctx.any('isAthleticTop'),
   },
   {
+    id: 'formality_span_lock',
+    penalty: 82,
+    hint: 'Formality span too wide � keep pieces within 2 tiers of each other',
+    severity: 'fatal',
+    when: (ctx) => ctx.tierSpread > 2,
+  },
+  {
     id: 'tier_spread_3',
     penalty: 56,
     hint: 'Formality mismatch across the outfit — pieces sit too far apart',
-    severity: 'moderate',
+    severity: 'fatal',
     when: (ctx) => !ctx.isSmartCasualLook && ctx.tierSpread >= 3 && !ctx.any('isBlazer'),
   },
   {

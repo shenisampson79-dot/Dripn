@@ -3,6 +3,7 @@ import { Dimensions, StyleSheet, View, type DimensionValue } from 'react-native'
 
 import { ThemedText } from '@/components/ThemedText';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
+import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
@@ -368,15 +369,17 @@ export function OutfitPiecesVisual({
   });
 
   const renderLayerImage = (layer: ResolvedLayer, layerBg: string, isProcessedLayer: boolean) => (
-    <WardrobeItemImage
-      item={layer.item}
-      style={styles.layerImage}
-      processed={isProcessedLayer}
-      contentFit="contain"
-      preferCover={false}
-      showLoading
-      tileBackgroundColor={layerBg}
-    />
+    <RenderErrorBoundary fallbackMessage="Item preview unavailable">
+      <WardrobeItemImage
+        item={layer.item}
+        style={styles.layerImage}
+        processed={isProcessedLayer}
+        contentFit="contain"
+        preferCover={false}
+        showLoading
+        tileBackgroundColor={layerBg}
+      />
+    </RenderErrorBoundary>
   );
 
   return (

@@ -50,6 +50,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/ThemedText';
 import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
+import { SoftRenderFallback } from '@/components/SoftRenderFallback';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
@@ -2913,18 +2914,20 @@ export default function AIStylistScreen() {
     if (!safePieces.length) return null;
 
     return (
-      <View style={styles.wardrobeVisualBlock}>
-        <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-        <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
-        <SafeOutfitPieces
-          pieces={safePieces}
-          wardrobeItems={wardrobeItems}
-          label=""
-          large
-          canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
-        />
-        {renderOutfitSaveActions(message, wardrobeIdsFromPieces(safePieces))}
-      </View>
+      <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+        <View style={styles.wardrobeVisualBlock}>
+          <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
+          <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+          <SafeOutfitPieces
+            pieces={safePieces}
+            wardrobeItems={wardrobeItems}
+            label=""
+            large
+            canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
+          />
+          {renderOutfitSaveActions(message, wardrobeIdsFromPieces(safePieces))}
+        </View>
+      </RenderErrorBoundary>
     );
   };
 
@@ -3001,16 +3004,18 @@ export default function AIStylistScreen() {
       }
 
       return (
-        <View style={styles.wardrobeVisualBlock}>
-          <SafeOutfitPieces
-            pieces={safePieces}
-            wardrobeItems={wardrobeItems}
-            label={outfitLabel}
-            large
-            canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
-          />
-          {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(safePieces), outfitLabel)}
-        </View>
+        <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+          <View style={styles.wardrobeVisualBlock}>
+            <SafeOutfitPieces
+              pieces={safePieces}
+              wardrobeItems={wardrobeItems}
+              label={outfitLabel}
+              large
+              canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
+            />
+            {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(safePieces), outfitLabel)}
+          </View>
+        </RenderErrorBoundary>
       );
     };
 
@@ -3108,11 +3113,14 @@ export default function AIStylistScreen() {
       logInvalidRender('render_boundary', {
         message: renderErr instanceof Error ? renderErr.message : String(renderErr),
       }, { surface: 'AIStylist.renderAssistantContent' });
-      console.warn('[AIStylist] renderAssistantContent failed closed:', renderErr);
+      console.warn('[AIStylist] renderAssistantContent soft-fallback (text + SoftRenderFallback):', renderErr);
       return (
-        <ThemedText style={styles.messageText}>
-          {renderMarkdownText(typeof message?.content === 'string' ? message.content : '')}
-        </ThemedText>
+        <>
+          <ThemedText style={styles.messageText}>
+            {renderMarkdownText(typeof message?.content === 'string' ? message.content : '')}
+          </ThemedText>
+          <SoftRenderFallback message="Outfit preview unavailable" />
+        </>
       );
     }
   };
