@@ -85,6 +85,15 @@ const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
   { value: 'wedding',    label: 'Wedding' },
 ];
 
+/** Sentinel id for Mix outerwear "None / no jacket" slot */
+const OUTERWEAR_NONE_ID = '__outfit_mix_no_outerwear__';
+
+type ReelListItem = WardrobeItem | { id: typeof OUTERWEAR_NONE_ID; isNone: true; name: string; category: 'outerwear' };
+
+function isOuterwearNoneItem(item: ReelListItem): item is { id: typeof OUTERWEAR_NONE_ID; isNone: true; name: string; category: 'outerwear' } {
+  return (item as { isNone?: boolean }).isNone === true || item.id === OUTERWEAR_NONE_ID;
+}
+
 const OCCASION_SCORE_MAP: Record<PlannedEventType, string> = {
   casual: 'casual-hangout',
   work: 'job-interview',
@@ -112,13 +121,15 @@ type CategoryReelProps = {
   category: ClothingCategory;
   items: WardrobeItem[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   isDark: boolean;
   rowHeight: number;
   centerWidth: number;
   sideGap: number;
   sideInset: number;
   snapInterval: number;
+  /** Outerwear: prepend a blank "None" box that clears the slot */
+  allowEmpty?: boolean;
 };
 
 function CategoryReel({
@@ -132,41 +143,55 @@ function CategoryReel({
   sideGap,
   sideInset,
   snapInterval,
+  allowEmpty = false,
 }: CategoryReelProps) {
-  const data = items;
+  const data: ReelListItem[] = useMemo(() => {
+    if (!allowEmpty) return items;
+    return [
+      { id: OUTERWEAR_NONE_ID, isNone: true as const, name: 'None', category: 'outerwear' as const },
+      ...items,
+    ];
+  }, [allowEmpty, items]);
   const listRef = useRef<FlatList>(null);
 
   const initialIndex = useMemo(() => {
-    if (!selectedId) return 0;
-    const idx = items.findIndex(i => i.id === selectedId);
+    if (allowEmpty && !selectedId) return 0;
+    if (!selectedId) return allowEmpty ? 0 : 0;
+    const idx = data.findIndex((i) => i.id === selectedId);
     return idx >= 0 ? idx : 0;
-  }, [items, selectedId]);
+  }, [allowEmpty, data, selectedId]);
 
   useEffect(() => {
-    if (!selectedId || !listRef.current) return;
-    const idx = data.findIndex((item) => item.id === selectedId);
+    if (!listRef.current) return;
+    const idx = allowEmpty && !selectedId
+      ? 0
+      : data.findIndex((item) => item.id === selectedId);
     if (idx < 0) return;
     try {
       listRef.current.scrollToIndex({ index: idx, animated: false });
     } catch {
       // FlatList may not be measured yet on first paint.
     }
-  }, [data, selectedId]);
+  }, [allowEmpty, data, selectedId]);
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
     const item = data[clamped];
-    if (!item || item.id === selectedId) return;
+    if (!item) return;
+    const nextId = isOuterwearNoneItem(item) ? null : item.id;
+    const currentId = selectedId ?? null;
+    if (nextId === currentId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelect(item.id);
+    onSelect(nextId);
   }, [data, onSelect, selectedId, snapInterval]);
 
   const imageScale = getOutfitReelImageScale(category);
 
-  const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
-    const isSelected = item.id === selectedId;
+  const renderItem = useCallback(({ item }: { item: ReelListItem; index: number }) => {
+    const isNone = isOuterwearNoneItem(item);
+    const isSelected = isNone ? !selectedId : item.id === selectedId;
 
     return (
       <View style={[styles.reelItemContainer, { width: centerWidth, height: rowHeight }]}>
@@ -177,19 +202,28 @@ function CategoryReel({
             !isSelected && { opacity: 0.42 },
           ]}
         >
-          <View style={[
-            styles.reelImageWrap,
-            { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
-          ]}>
-            <WardrobeItemImage
-              item={item}
-              style={styles.reelImage}
-              processed={!!(item.imageProcessed || item.aiAnalyzed)}
-              contentFit="contain"
-              displayScale={imageScale}
-              tileBackgroundColor={wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF')}
-            />
-          </View>
+          {isNone ? (
+            <View style={[styles.reelNoneBox, { borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)' }]}>
+              <Feather name="slash" size={18} color={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'} />
+              <ThemedText type="caption" style={{ color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)', fontWeight: '600', marginTop: 4, fontSize: 11 }}>
+                None
+              </ThemedText>
+            </View>
+          ) : (
+            <View style={[
+              styles.reelImageWrap,
+              { backgroundColor: wardrobeImageBackground(isDark, item as WardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF') },
+            ]}>
+              <WardrobeItemImage
+                item={item as WardrobeItem}
+                style={styles.reelImage}
+                processed={!!((item as WardrobeItem).imageProcessed || (item as WardrobeItem).aiAnalyzed)}
+                contentFit="contain"
+                displayScale={imageScale}
+                tileBackgroundColor={wardrobeImageBackground(isDark, item as WardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF')}
+              />
+            </View>
+          )}
         </View>
       </View>
     );
@@ -265,10 +299,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, [reloadWardrobe]),
   );
 
-  // Pre-select the first item per category so the carousel opens on a real garment
+  // Pre-select the first item per category so the carousel opens on a real garment.
+  // Outerwear defaults to None (no jacket) — optional slot, especially for heat.
   const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>(() => {
     const initial: Partial<Record<ClothingCategory, string | null>> = {};
     for (const { key } of REEL_ORDER) {
+      if (key === 'outerwear') {
+        initial[key] = null;
+        continue;
+      }
       const cats = key === 'tops'
         ? (['tops', 'activewear_tops'] as const)
         : key === 'bottoms'
@@ -362,7 +401,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const compactRowHeight = useMemo(() => {
     const headerBlock = 52;
     const scoreBlock = 58;
-    const notesBlock = itemNotes.length > 0 ? (stylistAnalysis?.adjustments?.length ? 148 : 112) : 0;
+    const hasAdjustments = Boolean(stylistAnalysis?.adjustments?.length);
+    const weakNotes = (stylistAnalysis?.items || []).filter(
+      (n) => n.verdict === 'swap' || n.verdict === 'fights',
+    );
+    const notesBlock = (hasAdjustments || weakNotes.length > 0)
+      ? (hasAdjustments && weakNotes.length ? 96 : 72)
+      : 0;
     const bottomChrome = showSaveButton
       ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
       : bottomNavClearance;
@@ -371,10 +416,10 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
     return Math.max(78, Math.min(134, perRow));
-  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, itemNotes.length, stylistAnalysis?.adjustments?.length]);
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, stylistAnalysis?.adjustments?.length, stylistAnalysis?.items]);
 
-  const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
-    setSelection(prev => ({ ...prev, [cat]: id }));
+  const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
+    setSelection((prev) => ({ ...prev, [cat]: id }));
   }, []);
 
   const selectedWardrobeItems = useMemo(
@@ -382,6 +427,34 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       .map((id) => items.find((item) => item.id === id))
       .filter((item): item is WardrobeItem => !!item),
     [selectedItemIds, items]
+  );
+
+  const weakPieceNotes = useMemo(() => {
+    const fromAnalysis = (stylistAnalysis?.items || [])
+      .filter((n) => n.verdict === 'swap' || n.verdict === 'fights')
+      .map((n) => {
+        const wardrobe = selectedWardrobeItems.find((i) => String(i.id) === String(n.itemId));
+        const text = [n.comment, n.suggestion].filter(Boolean).join(' ');
+        return {
+          id: String(n.itemId),
+          name: wardrobe?.name || n.role,
+          note: text,
+          verdict: n.verdict,
+        };
+      })
+      .filter((n) => n.note && !/fine in isolation/i.test(n.note));
+    if (fromAnalysis.length) return fromAnalysis;
+    return itemNotes
+      .filter((n) => {
+        const v = String((n as { verdict?: string }).verdict || '');
+        if (v === 'swap' || v === 'fights') return true;
+        return /swap|fight|undercut|replace|drop the|pull this/i.test(n.note || '');
+      })
+      .filter((n) => !/fine in isolation/i.test(n.note || ''));
+  }, [stylistAnalysis?.items, itemNotes, selectedWardrobeItems]);
+
+  const showPieceNotesPanel = Boolean(
+    stylistAnalysis?.adjustments?.length || weakPieceNotes.length > 0,
   );
 
   const selectionKey = useMemo(
@@ -584,9 +657,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Reset to first item per category (not fully empty)
+    // Reset to first item per category; outerwear stays None (optional)
     const reset: Partial<Record<ClothingCategory, string | null>> = {};
     for (const { key } of REEL_ORDER) {
+      if (key === 'outerwear') {
+        reset[key] = null;
+        continue;
+      }
       const cats = key === 'tops'
         ? (['tops', 'activewear_tops'] as const)
         : key === 'bottoms'
@@ -752,7 +829,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         </ThemedText>
       </View>
 
-      {itemNotes.length > 0 ? (
+      {showPieceNotesPanel ? (
         <View style={[styles.itemNotesWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }]}>
           <View style={styles.itemNotesHeader}>
             <ThemedText type="caption" style={{ fontWeight: '700', color: theme.text }}>
@@ -768,7 +845,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             </ThemedText>
           </View>
           {stylistAnalysis?.adjustments?.length ? (
-            <View style={{ marginBottom: 6, paddingHorizontal: 2 }}>
+            <View style={{ marginBottom: weakPieceNotes.length ? 4 : 0, paddingHorizontal: 2 }}>
               {stylistAnalysis.adjustments.slice(0, 2).map((adj) => (
                 <ThemedText
                   key={adj}
@@ -781,24 +858,16 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               ))}
             </View>
           ) : null}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {itemNotes.map((note) => (
-              <View
-                key={note.id}
-                style={[styles.itemNoteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff' }]}
-              >
-                <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 2 }} numberOfLines={1}>
-                  {note.name}
-                </ThemedText>
-                <ThemedText type="caption" style={{ color: secondaryText, fontSize: 10, marginBottom: 4 }}>
-                  {note.role}
-                </ThemedText>
-                <ThemedText type="caption" style={{ color: secondaryText, lineHeight: 16 }} numberOfLines={4}>
-                  {note.note}
-                </ThemedText>
-              </View>
-            ))}
-          </ScrollView>
+          {weakPieceNotes.map((note) => (
+            <ThemedText
+              key={note.id}
+              type="caption"
+              style={{ color: secondaryText, fontSize: 11, lineHeight: 15, marginBottom: 2, paddingHorizontal: 2 }}
+              numberOfLines={2}
+            >
+              · {note.name}: {note.note}
+            </ThemedText>
+          ))}
         </View>
       ) : null}
 
@@ -827,13 +896,14 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
                 category={key}
                 items={itemsByCategory[key] ?? []}
                 selectedId={selection[key] ?? null}
-                onSelect={id => handleSelect(key, id)}
+                onSelect={(id) => handleSelect(key, id)}
                 isDark={isDark}
                 rowHeight={compactRowHeight}
                 centerWidth={layoutMetrics.centerWidth}
                 sideGap={layoutMetrics.sideGap}
                 sideInset={layoutMetrics.sideInset}
                 snapInterval={layoutMetrics.snapInterval}
+                allowEmpty={key === 'outerwear'}
               />
             ))}
           </View>
@@ -1161,6 +1231,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reelNoneBox: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: BorderRadius.sm,
   },
   reelImage: {
     width: '100%',

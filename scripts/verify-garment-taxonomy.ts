@@ -61,6 +61,16 @@ assert.equal(classifyGarment(item({ category: 'shoes', name: 'Brown Derby Shoes'
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Black Chelsea Boots' })).subtype, 'chelsea_boots');
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Desert Boots' })).subtype, 'chelsea_boots');
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Doc Martens Combat Boots' })).subtype, 'combat_boots');
+assert.equal(classifyGarment(item({ category: 'shoes', name: 'Brown Leather Lace-Up Boots' })).subtype, 'ankle_boots');
+assert.equal(classifyGarment(item({ category: 'shoes', name: 'Brown Leather Lace Up Boots' })).subtype, 'ankle_boots');
+assert.equal(classifyGarment(item({ category: 'shoes', name: 'Black Derby Boots' })).subtype, 'ankle_boots');
+assert.equal(classifyGarment(item({ category: 'shoes', name: 'Timberland Work Boots' })).subtype, 'combat_boots');
+assert.notEqual(classifyGarment(item({ category: 'shoes', name: 'Brown Leather Lace-Up Boots' })).subtype, 'chunky_trainer');
+assert.equal(
+  classifyGarment(item({ category: 'shoes', name: 'Brown Leather Boots', subtype: 'chunky_trainer' })).subtype,
+  'ankle_boots',
+  'explicit chunky_trainer must not override clear boot names',
+);
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Pool Slides' })).subtype, 'slides');
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Birkenstock Leather Sandals' })).subtype, 'leather_sandals');
 assert.equal(classifyGarment(item({ category: 'shoes', name: 'Canvas Espadrilles' })).subtype, 'espadrilles');
@@ -203,6 +213,21 @@ const sandalLinen = [
   item({ category: 'shoes', name: 'Brown Leather Sandals' }),
 ];
 assert.ok(isOutfitValid(sandalLinen), 'leather_sandals+linen must be valid');
+
+// Leather lace-up boots must not read as chunky trainers under a blazer
+const leatherBootsTailored = [
+  item({ category: 'outerwear', name: 'Navy Blazer' }),
+  item({ category: 'tops', name: 'White Oxford Shirt' }),
+  item({ category: 'bottoms', name: 'Khaki Chinos' }),
+  item({ category: 'shoes', name: 'Brown Leather Lace-Up Boots' }),
+];
+assert.ok(isOutfitValid(leatherBootsTailored), 'blazer+leather lace-up boots must be valid');
+assert.ok(
+  !detectAllOutfitClashes(leatherBootsTailored).some((c) => c.id === 'blazer_chunky_trainers'),
+  'leather boots must not trigger blazer_chunky_trainers',
+);
+assert.equal(classifyItem(leatherBootsTailored[3]).isChunkyOrTechTrainer, false);
+assert.equal(classifyItem(leatherBootsTailored[3]).isDressyBoots || classifyItem(leatherBootsTailored[3]).isBoots, true);
 
 // Soft pairing / profile
 const pair = scoreOutfitSubtypeCompatibility(tailoredOk);

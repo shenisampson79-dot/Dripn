@@ -116,11 +116,12 @@ export function resolveRegionalStyleContext(
   };
 }
 
-/** Chunky / technical / running athletic trainers — clash with blazer/suit. */
+/** Chunky / technical / running athletic trainers — clash with blazer/suit. Never boots. */
 export function isChunkyOrTechTrainer(item: { name?: string; category?: string; subcategory?: string; color?: string }): boolean {
   const t = `${item.name || ''} ${item.category || ''} ${item.subcategory || ''}`.toLowerCase();
+  if (/\bboots?\b/.test(t) && !/\b(trainers?|sneakers?)\b/.test(t)) return false;
   if (!/\b(trainers?|sneakers?|runners?|sport shoes?|tennis)\b/.test(t)) return false;
-  return /chunky|dad shoe|bulky|technical|trail|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|running|gym|training|performance|athletic|sport shoe|asics gel|gel-?kayano|nimbus|vomero|invincible|vaporfly|alpha.?fly|cloudmonster|cloudsurfer|max cushion|platform sneaker|tech sneaker/.test(t);
+  return /chunky|dad shoe|bulky|technical|trail|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|running|gym|training|performance|athletic|sport shoe|asics gel|gel-?kayano|nimbus|vomero|invincible|vaporfly|alpha.?fly|cloudmonster|cloudsurfer|max cushion|platform sneaker|tech sneaker|salomon/.test(t);
 }
 
 /** Fashion/lifestyle trainers (Samba, plain white leather, etc.) — not gym/chunky runners. */

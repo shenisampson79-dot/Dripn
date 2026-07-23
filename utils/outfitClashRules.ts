@@ -170,10 +170,10 @@ export function isBootFootwear(item: WardrobeItem): boolean {
 export function isDressyBootFootwear(item: WardrobeItem): boolean {
   if (!isBootFootwear(item)) return false;
   const t = itemText(item);
-  if (/combat|hiking|work boot|timberland|ugg|shearling|doc\b|dr\.? ?marten|chukka|desert boot/.test(t)) {
+  if (/combat|hiking|work boot|timberland|ugg|shearling|doc\b|dr\.? ?marten|army boot|chunky boot/.test(t)) {
     return false;
   }
-  return /chelsea|dress boot|riding boot|heeled boot|ankle boot|leather boot|leather chelsea/.test(t)
+  return /chelsea|dress boot|riding boot|heeled boot|ankle boot|leather boot|leather chelsea|lace[\s-]?up\s*boot|derby\s*boot/.test(t)
     || (/leather/.test(t) && /boot/.test(t));
 }
 
@@ -241,7 +241,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const fashionTrainer = subtype === 'minimal_sneaker' || isLifestyleFashionTrainer(item);
   const isUggs = subtype === 'uggs' || /\bugg|shearling boot|sheepskin/.test(t);
   const isCombatBoots = subtype === 'combat_boots'
-    || (/combat|doc\b|dr\.?\s*marten|chunky boot|lace-?up boot/.test(t) && cat === 'shoes');
+    || (/combat|doc\b|dr\.?\s*marten|chunky boot|hiking boot|work boot|timberland|army boot/.test(t) && cat === 'shoes');
   const isChelseaBoots = subtype === 'chelsea_boots' || /chelsea|desert boot|chukka/.test(t);
   const isSlides = subtype === 'slides' || /slide|flip.?flop|pool slide/.test(t);
   const isLeatherSandals = subtype === 'leather_sandals' || subtype === 'espadrilles'

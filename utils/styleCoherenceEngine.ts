@@ -129,7 +129,7 @@ export function classifyFootwear(item: ItemLike | null | undefined): FootwearCla
   const subtype = garment.subtype || sig.subtype;
   const t = itemText(item);
 
-  if (['oxfords', 'derby', 'loafers', 'heels', 'stilettos', 'block_heels', 'statement_heels', 'chelsea_boots'].includes(subtype || '')
+  if (['oxfords', 'derby', 'loafers', 'heels', 'stilettos', 'block_heels', 'statement_heels', 'chelsea_boots', 'ankle_boots'].includes(subtype || '')
     || sig.isFormalShoes || sig.isHeels || sig.isDressyBoots || sig.isChelseaBoots) {
     return 'dress';
   }

@@ -83,8 +83,10 @@ function buildAdjustments(signals: DetectedSignals, items: WardrobeItem[]): stri
       out.push('Swap slides for loafers or minimal sneakers');
     } else if (signals.footwearClass === 'combat_boots') {
       out.push('Swap combat boots for Chelsea boots — or drop the blazer');
-    } else {
+    } else if (signals.footwearClass === 'chunky_sneaker') {
       out.push('Replace chunky trainers with plain white lifestyle sneakers or dress shoes');
+    } else {
+      out.push('Swap footwear to match the tailored lane — loafers, Chelsea boots, or minimal sneakers');
     }
   }
   if (signals.multiLaneChaos && out.length < 2) {
@@ -213,11 +215,15 @@ function commentForItem(
         ? footwearVoiceHint('slides')
         : signals.footwearClass === 'combat_boots'
           ? footwearVoiceHint('combat_boots')
-          : footwearVoiceHint('chunky_trainer');
+          : signals.footwearClass === 'chunky_sneaker'
+            ? footwearVoiceHint('chunky_trainer')
+            : footwearVoiceHint(sig.subtype || 'footwear');
     return {
       verdict: 'swap',
       comment: hint,
-      suggestion: 'Swap to plain white lifestyle sneakers or loafers.',
+      suggestion: signals.footwearClass === 'combat_boots'
+        ? 'Swap to Chelsea boots or drop the blazer.'
+        : 'Swap to plain white lifestyle sneakers or loafers.',
     };
   }
 
@@ -298,7 +304,13 @@ function summaryFor(
   if (signals.footwearMismatch) {
     return signals.footwearClass === 'runner'
       ? 'Mixed — running shoes undercut the tailored pieces.'
-      : 'Mixed — chunky trainers undercut the tailored pieces.';
+      : signals.footwearClass === 'combat_boots'
+        ? 'Mixed — combat boots undercut the tailored pieces.'
+        : signals.footwearClass === 'slides'
+          ? 'Mixed — slides undercut the tailored pieces.'
+          : signals.footwearClass === 'chunky_sneaker'
+            ? 'Mixed — chunky trainers undercut the tailored pieces.'
+            : 'Mixed — footwear undercuts the tailored pieces.';
   }
   if (signals.invalidTwoLaneMix) {
     return `Mixed — ${signals.lanesPresent.map(laneLabel).join(' + ')} isn't an allowed mix.`;

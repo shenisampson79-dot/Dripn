@@ -195,10 +195,11 @@ const CLASSIFIER_RULES = [
       && !/\bugg|shearling|combat|doc\b|dr\.?\s*marten/.test(t),
   },
   {
+    // True combat / work / hiking boots only — NOT dressy leather lace-ups
     subtype: 'combat_boots',
     test: (t, cat) =>
       cat === 'footwear'
-      && /combat|doc\b|dr\.?\s*marten|lace-?up boot|chunky boot|hiking boot|work boot|timberland/.test(t)
+      && /combat|doc\b|dr\.?\s*marten|chunky boot|hiking boot|work boot|timberland|army boot|ranger boot/.test(t)
       && !/\bugg|shearling|chelsea|desert/.test(t),
   },
   {
@@ -214,9 +215,11 @@ const CLASSIFIER_RULES = [
     test: (t, cat) => cat === 'footwear' && /sandal|birkenstock|fisherman sandal/.test(t),
   },
   {
+    // Tech / performance runners only — never boots
     subtype: 'runner',
     test: (t, cat) =>
       cat === 'footwear'
+      && !/\bboots?\b/.test(t)
       && (
         /\b(runners?|running shoe|tech runner)\b/.test(t)
         || /hoka|salomon|pegasus|zoomx|vaporfly|ultraboost|fresh foam|gel-?kayano|nimbus|vomero|invincible|cloudmonster/.test(t)
@@ -227,16 +230,19 @@ const CLASSIFIER_RULES = [
       ),
   },
   {
+    // Chunky athletic sneakers only (Hoka/Salomon soles, dad shoes) — never leather boots
     subtype: 'chunky_trainer',
     test: (t, cat) =>
       cat === 'footwear'
+      && !/\bboots?\b/.test(t)
       && /\b(trainers?|sneakers?)\b/.test(t)
-      && /chunky|dad shoe|bulky|technical|trail|platform sneaker|max cushion|tech sneaker|cross.?train/.test(t),
+      && /chunky|dad shoe|bulky|technical|trail|platform sneaker|max cushion|tech sneaker|cross.?train|hoka|salomon/.test(t),
   },
   {
     subtype: 'minimal_sneaker',
     test: (t, cat) =>
       cat === 'footwear'
+      && !/\bboots?\b/.test(t)
       && (
         /stan smith|common projects|clean court|white leather low-?top|plain white (trainer|sneaker)|lifestyle sneaker/.test(t)
         || (
@@ -250,20 +256,28 @@ const CLASSIFIER_RULES = [
     test: (t, cat) => cat === 'footwear' && /loafer|penny loafer/.test(t),
   },
   {
+    // Derby *shoes* only — derby boots fall through to ankle_boots
     subtype: 'derby',
-    test: (t, cat) => cat === 'footwear' && /\bderby\b/.test(t) && !/shirt/.test(t),
+    test: (t, cat) =>
+      cat === 'footwear'
+      && /\bderby\b/.test(t)
+      && !/shirt/.test(t)
+      && !/\bboots?\b/.test(t),
   },
   {
     subtype: 'oxfords',
     test: (t, cat) =>
-      cat === 'footwear' && /oxford|brogue|dress shoe|formal shoe/.test(t) && !/shirt/.test(t),
+      cat === 'footwear' && /oxford|brogue|dress shoe|formal shoe/.test(t) && !/shirt/.test(t) && !/\bboots?\b/.test(t),
   },
   {
+    // Leather lace-ups, derby boots, ankle/riding boots — NOT combat/chunky trainers
     subtype: 'ankle_boots',
     test: (t, cat) =>
       cat === 'footwear'
-      && /ankle boot|heeled boot|leather boot|riding boot|\bboots?\b/.test(t)
-      && !/\bugg|shearling|trainer|sneaker|chelsea|combat|doc\b|dr\.?\s*marten|desert|chukka/.test(t),
+      && (
+        /ankle\s*boot|heeled\s*boot|leather\s*boot|riding\s*boot|derby\s*boot|dress\s*boot|lace[\s-]?up\s*boot|\bboots?\b/.test(t)
+      )
+      && !/\bugg|shearling|trainer|sneaker|chelsea|combat|doc\b|dr\.?\s*marten|desert|chukka|hiking|work boot|timberland|army boot/.test(t),
   },
 
   // Dresses — no generic invent; only keyword hits
@@ -376,18 +390,23 @@ export function classifyGarment(item) {
   const t = itemText(item);
   const bucket = categoryBucket(item);
 
-  // Explicit subtype field wins
+  // Explicit subtype field wins — unless it clearly contradicts boot names
+  // (e.g. AI tagged leather lace-ups as chunky_trainer).
   const explicit = item.subtype || item.garmentSubtype || item.taxonomySubtype;
   if (explicit && getGarmentBySubtype(explicit)) {
     const meta = getGarmentBySubtype(explicit);
-    return {
-      subtype: meta.subtype,
-      confidence: 1,
-      meta,
-      lane: meta.lane,
-      formality: meta.formality,
-      coarseOnly: false,
-    };
+    const trainerish = ['chunky_trainer', 'runner', 'minimal_sneaker'].includes(meta.subtype);
+    const clearlyBoots = /\bboots?\b/.test(t) && !/\b(trainers?|sneakers?)\b/.test(t);
+    if (!(trainerish && clearlyBoots)) {
+      return {
+        subtype: meta.subtype,
+        confidence: 1,
+        meta,
+        lane: meta.lane,
+        formality: meta.formality,
+        coarseOnly: false,
+      };
+    }
   }
 
   for (const rule of CLASSIFIER_RULES) {
