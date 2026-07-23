@@ -75,7 +75,11 @@ import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import {
   findLocalWardrobeDuplicates,
   formatDuplicateNames,
+  normalizeDuplicateDecision,
+  type DuplicateMatch,
+  type NormalizedDuplicateDecision,
 } from "@/utils/wardrobeDuplicateMatch";
+import { DuplicateComparisonSheet } from "@/components/wardrobe/DuplicateComparisonSheet";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -144,6 +148,10 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [showPhotoTips, setShowPhotoTips] = useState(false);
+  const [dupeSheet, setDupeSheet] = useState<{
+    visible: boolean;
+    decision: NormalizedDuplicateDecision;
+  }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false } });
   const photoTips = getPhotoTips();
   const clothingPhotoTips = useMemo(
     () => getClothingUploadComparisons(user?.gender),
@@ -821,7 +829,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       const sanitizedName = sanitizeWardrobeItemName(name.trim(), { color, brand: undefined });
 
       if (!opts?.allowDuplicate) {
-        let matches: Array<{ id?: string | number; name?: string; imageUrl?: string | null }> = [];
+        let decision: NormalizedDuplicateDecision = { type: 'ok', matches: [], isDuplicate: false };
         try {
           const check = await apiService.checkWardrobeDuplicates([{
             name: sanitizedName,
@@ -831,11 +839,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
             imageBase64,
           }]);
           const first = check?.results?.[0];
-          if (first?.isDuplicate && first.matches?.length) {
-            matches = first.matches;
-          }
+          decision = normalizeDuplicateDecision({
+            ...first,
+            type: first?.type || first?.decision?.type,
+            decision: first?.decision,
+            similarMatches: first?.similarMatches,
+          });
         } catch {
-          matches = findLocalWardrobeDuplicates(
+          const local = findLocalWardrobeDuplicates(
             { name: sanitizedName, category, color, brand: brand.trim() || undefined },
             items.map((it) => ({
               id: String(it.id),
@@ -848,36 +859,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               origin: it.origin,
             })),
           );
+          decision = normalizeDuplicateDecision({
+            isDuplicate: local.length > 0,
+            type: local.length > 0 ? 'duplicate' : 'ok',
+            matches: local,
+          });
         }
 
-        if (matches.length > 0) {
+        if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item') {
           setIsSubmitting(false);
-          const matchNames = formatDuplicateNames(matches);
-          const existingId = matches[0]?.id;
-          Alert.alert(
-            t('wardrobe.alreadyHaveThis') || 'Looks like you already have this',
-            (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to {names} in your wardrobe.')
-              .replace('{names}', matchNames),
-            [
-              { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-              ...(existingId
-                ? [{
-                    text: t('wardrobe.viewExisting') || 'View existing',
-                    onPress: () => {
-                      try {
-                        (navigation as any).navigate('WardrobeItemDetail', { itemId: String(existingId) });
-                      } catch {
-                        (navigation as any).navigate('Wardrobe');
-                      }
-                    },
-                  }]
-                : []),
-              {
-                text: t('common.addAnyway') || 'Add Anyway',
-                onPress: () => { void handleSave({ allowDuplicate: true }); },
-              },
-            ],
-          );
+          setDupeSheet({ visible: true, decision });
           return;
         }
       }
@@ -958,19 +949,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       );
     } catch (error: any) {
       if (error?.duplicate || error?.error === 'DUPLICATE_WARDROBE_ITEM' || error?.status === 409) {
-        const matchNames = formatDuplicateNames(error.matches || []);
-        Alert.alert(
-          t('wardrobe.alreadyHaveThis') || 'Looks like you already have this',
-          (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to {names} in your wardrobe.')
-            .replace('{names}', matchNames || 'an existing item'),
-          [
-            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-            {
-              text: t('common.addAnyway') || 'Add Anyway',
-              onPress: () => { void handleSave({ allowDuplicate: true }); },
-            },
-          ],
-        );
+        const decision = normalizeDuplicateDecision({
+          type: error?.type || error?.decision?.type || 'duplicate',
+          isDuplicate: true,
+          message: error?.message,
+          matches: error?.matches || error?.decision?.matches,
+          decision: error?.decision,
+        });
+        setDupeSheet({ visible: true, decision });
         return;
       }
       Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToAddItemToWardrobePleaseTryAgain') || "Failed to add item to wardrobe. Please try again.");
@@ -1484,6 +1470,43 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           />
         </View>
       </Modal>
+
+      <DuplicateComparisonSheet
+        visible={dupeSheet.visible}
+        type={dupeSheet.decision.type}
+        message={
+          dupeSheet.decision.message
+          || (dupeSheet.decision.type === 'similar_item'
+            ? undefined
+            : (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to {names} in your wardrobe.')
+              .replace('{names}', formatDuplicateNames(dupeSheet.decision.matches) || 'an existing item'))
+        }
+        candidateImageUri={imageUri}
+        candidateLabel={name.trim() || 'New item'}
+        matches={dupeSheet.decision.matches as DuplicateMatch[]}
+        onClose={() => setDupeSheet((s) => ({ ...s, visible: false }))}
+        onAddAnyway={() => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          void handleSave({ allowDuplicate: true });
+        }}
+        onContinue={() => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          void handleSave({ allowDuplicate: true });
+        }}
+        onViewExisting={(match) => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          const existingId = match?.id;
+          try {
+            if (existingId != null) {
+              (navigation as any).navigate('WardrobeItemDetail', { itemId: String(existingId) });
+            } else {
+              (navigation as any).navigate('Wardrobe');
+            }
+          } catch {
+            (navigation as any).navigate('Wardrobe');
+          }
+        }}
+      />
     </View>
   );
 }

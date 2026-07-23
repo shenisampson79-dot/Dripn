@@ -743,9 +743,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
             <View style={{ marginBottom: Spacing.md }}>
               <ThemedText type="small" style={{ color: theme.link, marginBottom: Spacing.xs }}>
-                {t('wardrobe.alreadyOwnPurchase') || 'You already own this'}
+                {t('wardrobe.alreadyOwnPurchase') || 'You already own something very similar'}
               </ThemedText>
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+              <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
                 {(t('wardrobe.alreadyOwnPurchaseMessage')
                   || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
                   .replace(
@@ -757,6 +757,51 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                       .join(', '),
                   )}
               </ThemedText>
+              <View style={{ gap: Spacing.sm }}>
+                <Pressable
+                  onPress={() => {
+                    const ownedIds = res.alreadyOwned!
+                      .flatMap((entry) => (entry.matches || []).map((m) => m.id))
+                      .filter((id): id is string | number => id != null)
+                      .map(String);
+                    const firstId = ownedIds[0];
+                    if (firstId) {
+                      try {
+                        navigation.navigate?.('WardrobeItemDetail', { itemId: firstId });
+                        return;
+                      } catch { /* fall through */ }
+                    }
+                    // Stub cleanly: open outfit calendar with owned pieces when detail route unavailable
+                    try {
+                      navigation.navigate?.('OutfitCalendar', {
+                        seedWardrobeItemIds: ownedIds,
+                        fromAlreadyOwned: true,
+                      });
+                    } catch {
+                      navigation.navigate?.('Wardrobe');
+                    }
+                  }}
+                  style={[styles.secondaryButton, { borderColor: LuxuryColors.gold }]}
+                >
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                    {t('wardrobe.useWhatIHave') || 'Use what I have'}
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void flow.continueInChat({
+                      seedMessage:
+                        t('wardrobe.showAlternativesSeed')
+                        || 'I already own something similar to what I was considering. Show me different styles / alternatives instead of buying a near-duplicate.',
+                    });
+                  }}
+                  style={styles.secondaryButton}
+                >
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                    {t('wardrobe.showAlternatives') || 'Show alternatives'}
+                  </ThemedText>
+                </Pressable>
+              </View>
             </View>
           ) : null}
           {showRating ? (

@@ -994,17 +994,17 @@ export function useStylistDecision({
   };
 
   /** Primary CTA: open AI Stylist with same stylist + seeded follow-up + continuity. */
-  const continueInChat = async () => {
+  const continueInChat = async (opts?: { seedMessage?: string }) => {
     const continuity = getDecisionContinuity();
     if (!continuity) {
-      navigation.navigate?.('AIStylist');
+      navigation.navigate?.('AIStylist', opts?.seedMessage ? { initialPrompt: opts.seedMessage } : undefined);
       return;
     }
     if (user?.id) {
       await saveLastDecisionContinuity(user.id, continuity);
     }
     navigation.navigate?.('AIStylist', {
-      initialPrompt: continuity.followUpPrompt,
+      initialPrompt: opts?.seedMessage || continuity.followUpPrompt,
       decisionContinuity: continuity,
       fromDecisionSessionId: continuity.decisionSessionId,
     });

@@ -108,6 +108,8 @@ export interface DecisionResponse {
   /** Shopping / sanity: uploaded photos that match owned wardrobe items */
   alreadyOwned?: Array<{
     optionIndex: number;
+    type?: 'already_owned';
+    message?: string;
     matches: Array<{
       id?: number | string;
       name?: string;
@@ -117,9 +119,15 @@ export interface DecisionResponse {
       imageUrl?: string | null;
       confidence?: string;
       reason?: string;
+      message?: string;
     }>;
   }>;
   alreadyOwnedMatches?: DecisionResponse['alreadyOwned'];
+  ownershipDecision?: {
+    type: 'already_owned' | 'ok' | 'similar_item' | 'duplicate';
+    matches: Array<Record<string, unknown>>;
+    message?: string;
+  };
 }
 
 /** Client floor — never display scores at/below occasion-fail cap. */

@@ -40,7 +40,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import {
   findLocalWardrobeDuplicates,
+  findLocalWithinBatchDuplicates,
   formatDuplicateNames,
+  normalizeDuplicateDecision,
 } from "@/utils/wardrobeDuplicateMatch";
 import { apiService } from "@/services/ApiService";
 import { convertImageToBase64 } from "@/services/VisionAnalysisService";
@@ -665,9 +667,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       return;
     }
 
-    // Prefer server visual+attribute check; fall back to local attribute / name match
+    // Prefer server visual+attribute+embedding check; fall back to local attribute / name / within-batch
     let duplicateIds = new Set<string>();
+    let similarIds = new Set<string>();
     let duplicateLabelMap: Record<string, string> = {};
+    let similarLabelMap: Record<string, string> = {};
 
     try {
       setIsProcessing(true);
@@ -694,13 +698,41 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       }
       const check = await apiService.checkWardrobeDuplicates(payloads);
       (check.results || []).forEach((r) => {
-        if (!r.isDuplicate || !r.matches?.length) return;
         const src = selectedItems[r.index];
         if (!src) return;
-        duplicateIds.add(src.id);
-        duplicateLabelMap[src.id] = formatDuplicateNames(r.matches);
+        const decision = normalizeDuplicateDecision({
+          ...r,
+          type: r.type || r.decision?.type,
+          decision: r.decision,
+          similarMatches: r.similarMatches,
+        });
+        if (decision.type === 'duplicate' || decision.type === 'already_owned') {
+          duplicateIds.add(src.id);
+          duplicateLabelMap[src.id] = formatDuplicateNames(decision.matches)
+            || (r.matches?.[0]?.matchScope === 'batch' ? `${src.suggestedName} (in this batch)` : src.suggestedName);
+        } else if (decision.type === 'similar_item') {
+          similarIds.add(src.id);
+          similarLabelMap[src.id] = decision.message
+            || formatDuplicateNames(decision.matches)
+            || src.suggestedName;
+        }
       });
     } catch {
+      const localBatch = findLocalWithinBatchDuplicates(
+        selectedItems.map((item) => ({
+          id: item.id,
+          name: item.suggestedName,
+          category: item.category,
+          color: item.color,
+          brand: item.brand,
+          imageUri: item.imageUri,
+        })),
+      );
+      localBatch.forEach((row) => {
+        if (row.matches.length === 0) return;
+        duplicateIds.add(row.id);
+        duplicateLabelMap[row.id] = formatDuplicateNames(row.matches) + ' (in this batch)';
+      });
       selectedItems.forEach((item) => {
         const local = findLocalWardrobeDuplicates(
           {
@@ -734,6 +766,27 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
 
     const duplicates = selectedItems.filter((item) => duplicateIds.has(item.id));
+    const similars = selectedItems.filter((item) => similarIds.has(item.id) && !duplicateIds.has(item.id));
+
+    if (similars.length > 0 && duplicates.length === 0) {
+      const similarNames = similars
+        .map((d) => similarLabelMap[d.id] || d.suggestedName)
+        .join(', ');
+      Alert.alert(
+        t('wardrobe.similarItemTitle') || 'Similar items found',
+        (t('wardrobe.similarItemsBulkMessage')
+          || 'These look similar to what you already have, but not exact duplicates: {names}. They will still be added.')
+          .replace('{names}', similarNames),
+        [
+          { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+          {
+            text: t('common.continue') || 'Continue',
+            onPress: () => { void saveItems(selectedItems, { allowDuplicates: true }); },
+          },
+        ],
+      );
+      return;
+    }
 
     if (duplicates.length > 0) {
       const duplicateNames = duplicates

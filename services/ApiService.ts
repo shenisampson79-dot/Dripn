@@ -3308,9 +3308,12 @@ class ApiService {
   }>): Promise<{
     success: boolean;
     hasDuplicates: boolean;
+    hasSimilar?: boolean;
     results: Array<{
       index: number;
+      type?: 'duplicate' | 'similar_item' | 'already_owned' | 'ok';
       isDuplicate: boolean;
+      message?: string;
       candidatePhash?: string | null;
       matches: Array<{
         id: number | string;
@@ -3321,7 +3324,29 @@ class ApiService {
         imageUrl?: string | null;
         confidence?: string;
         reason?: string;
+        message?: string;
+        matchScope?: 'wardrobe' | 'batch';
+        embeddingScore?: number | null;
+        similarityScore?: number | null;
       }>;
+      similarMatches?: Array<{
+        id: number | string;
+        name?: string;
+        category?: string;
+        color?: string;
+        brand?: string;
+        imageUrl?: string | null;
+        confidence?: string;
+        reason?: string;
+        message?: string;
+        matchScope?: 'wardrobe' | 'batch';
+      }>;
+      decision?: {
+        type: 'duplicate' | 'similar_item' | 'already_owned' | 'ok';
+        matches: Array<Record<string, unknown>>;
+        message?: string;
+        isDuplicate?: boolean;
+      };
     }>;
   }> {
     return this.request('/api/wardrobe/check-duplicates', {

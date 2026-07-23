@@ -7,7 +7,9 @@ import assert from 'assert';
 import {
   attributeSimilarity,
   findLocalWardrobeDuplicates,
+  findLocalWithinBatchDuplicates,
   formatDuplicateNames,
+  normalizeDuplicateDecision,
 } from './wardrobeDuplicateMatch.ts';
 
 console.log('=== Client wardrobe duplicate match ===\n');
@@ -28,6 +30,15 @@ console.log('=== Client wardrobe duplicate match ===\n');
   );
   assert.ok(score < 0.82, `two black tees should not soft-block (got ${score})`);
   console.log('✓ two black tees not blocked');
+}
+
+{
+  const score = attributeSimilarity(
+    { name: 'Black Puffer Jacket', category: 'outerwear', color: 'black', subcategory: 'puffer' },
+    { name: 'Black Wool Coat', category: 'outerwear', color: 'black', subcategory: 'wool coat' },
+  );
+  assert.ok(score < 0.82, `puffer vs wool should not soft-block (got ${score})`);
+  console.log('✓ puffer vs wool coat not soft-blocked');
 }
 
 {
@@ -60,6 +71,39 @@ console.log('=== Client wardrobe duplicate match ===\n');
   assert.strictEqual(formatDuplicateNames([{ name: 'A' }]), 'A');
   assert.strictEqual(formatDuplicateNames([{ name: 'A' }, { name: 'B' }]), 'A and B');
   console.log('✓ formatDuplicateNames');
+}
+
+{
+  const dupe = normalizeDuplicateDecision({
+    type: 'duplicate',
+    isDuplicate: true,
+    matches: [{ id: 1, name: 'Jacket' }],
+  });
+  assert.strictEqual(dupe.type, 'duplicate');
+  assert.strictEqual(dupe.isDuplicate, true);
+
+  const similar = normalizeDuplicateDecision({
+    type: 'similar_item',
+    isDuplicate: false,
+    similarMatches: [{ id: 2, name: 'Coat', message: 'Different fabric' }],
+  });
+  assert.strictEqual(similar.type, 'similar_item');
+  assert.strictEqual(similar.isDuplicate, false);
+
+  const owned = normalizeDuplicateDecision({
+    type: 'already_owned',
+    isDuplicate: true,
+    matches: [{ id: 3, name: 'Parka' }],
+  });
+  assert.strictEqual(owned.type, 'already_owned');
+
+  const batch = findLocalWithinBatchDuplicates([
+    { id: 'a', name: 'Tan Trench Coat', category: 'outerwear', color: 'tan', brand: 'Burberry' },
+    { id: 'b', name: 'Tan Trench Coat', category: 'outerwear', color: 'tan', brand: 'Burberry' },
+    { id: 'c', name: 'White Tee', category: 'tops', color: 'white' },
+  ]);
+  assert.ok(batch[0].matches.length >= 1, 'within-batch detects pair');
+  console.log('✓ normalize + within-batch');
 }
 
 console.log('\nAll client wardrobe duplicate tests passed.');
