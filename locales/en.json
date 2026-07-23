@@ -1788,9 +1788,10 @@
   "session.markedCompleted": "Session marked as completed",
   "session.notesSaved": "Notes saved successfully",
   "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageMeterPct": "{pct}% of monthly AI allowance used",
     "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+    "usageRembgMonthOfCap": "Background removals: {used} / {cap} this month",
+    "usageRembgFreeLine": "Background removals: {used} / {cap}"
   },
   "settings.account": "Account",
   "settings.accountActions": "Account Actions",
@@ -1899,10 +1900,11 @@
   "settings.todaysOutfitPopup": "Today's outfit popup",
   "settings.turnOff": "Turn Off",
   "settings.turnOn": "Turn On",
-  "settings.usageAllowanceUsed": "{percent}% of monthly allowance used",
-  "settings.usageMeterPct": "{pct}% of monthly allowance used",
-  "settings.usageRembgFreeLine": "Background removals: {used} of {cap}",
+  "settings.usageAllowanceUsed": "{percent}% of monthly AI allowance used",
+  "settings.usageMeterPct": "{pct}% of monthly AI allowance used",
+  "settings.usageRembgFreeLine": "Background removals: {used} / {cap}",
   "settings.usageRembgMonthLine": "Background removals: {month} this month",
+  "settings.usageRembgMonthOfCap": "Background removals: {used} / {cap} this month",
   "settings.usageThisMonth": "Usage this month",
   "settings.usageUnavailable": "Usage will appear after your next AI action",
   "settings.veryFast": "Very Fast",

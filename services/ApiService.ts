@@ -5622,9 +5622,15 @@ class ApiService {
         budgetCents: number;
         rembgLifetimeCount: number;
         rembgMonthCount: number;
+        rembgCap?: number;
+        rembgCapScope?: 'lifetime' | 'month';
+        rembgCostCents?: number;
+        rembgSoftMonthlyLimit?: number;
         remainingCents: number;
+        marketTier?: string | null;
       } | null;
       freeRembgLifetimeLimit: number;
+      paidRembgMonthlyLimit?: number;
       message?: string;
     }>('/api/usage/ai');
   }
