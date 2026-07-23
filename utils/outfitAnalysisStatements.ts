@@ -17,9 +17,10 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { styleArchetypeLabel, type OutfitAestheticAnalysis } from '@/utils/outfitAestheticClassifier';
 import {
   CLASH_RULES,
-  detectAllOutfitClashes,
   type OutfitClash,
 } from '@/utils/outfitClashRules';
+import type { DetectedSignals } from '@/utils/styleCoherenceEngine';
+import { buildStylistAnalysis, stylistAnalysisToItemNotes } from '@/utils/stylistVoiceEngine';
 
 export const SCORE_BANDS = {
   excellent: { id: 'excellent', min: 90, label: 'Excellent' },
@@ -116,7 +117,7 @@ export function isMajorConfusedLook(
   if (aesthetic.aestheticConflict) return true;
   if (aesthetic.unclearIdentity) return true;
   // Explicit multi-lane clash ids (confused copy only when these drive the look)
-  if (options?.clashId && /hoodie_blazer_cargo|blazer_shorts_trainers|tier1_tier5|swimwear_formal|sleepwear_formal|aesthetic_confused_lanes|aesthetic_conflict_/.test(options.clashId)) {
+  if (options?.clashId && /hoodie_blazer_cargo|blazer_shorts_trainers|tier1_tier5|swimwear_formal|sleepwear_formal|aesthetic_confused_lanes|aesthetic_conflict_|coherence_multi_lane_chaos|coherence_tailoring_clash|coherence_invalid_two_lane/.test(options.clashId)) {
     return true;
   }
   return false;
@@ -257,18 +258,7 @@ export type ItemAnalysisNote = {
   note: string;
 };
 
-function roleForCategory(category: string): string {
-  const c = String(category || '').toLowerCase();
-  if (c === 'shoes') return 'footwear';
-  if (c === 'outerwear' || c === 'formal') return 'layer';
-  if (c === 'bottoms' || c === 'activewear_bottoms') return 'bottoms';
-  if (c === 'tops' || c === 'activewear_tops') return 'top';
-  if (c === 'dresses') return 'dress';
-  if (c === 'accessories') return 'accessory';
-  return c || 'piece';
-}
-
-/** Deterministic per-item tips grounded in clash results (AI fallback). */
+/** Deterministic per-item tips grounded in DetectedSignals (Stylist Voice). */
 export function buildDeterministicItemNotes(
   items: WardrobeItem[],
   options?: {
@@ -276,51 +266,23 @@ export function buildDeterministicItemNotes(
     clashId?: string | null;
     clashHint?: string | null;
     aesthetic?: OutfitAestheticAnalysis | null;
+    signals?: DetectedSignals | null;
   },
 ): ItemAnalysisNote[] {
-  const clashes = detectAllOutfitClashes(items);
-  const primary = clashes[0] || null;
-  const score = options?.score ?? 70;
-  const band = scoreBandForValue(score);
-  const aesthetic = options?.aesthetic ?? null;
-
-  return items.map((item) => {
-    const role = roleForCategory(item.category);
-    const name = item.name || 'Item';
-    const text = `${item.name || ''} ${item.category || ''} ${item.color || ''}`.toLowerCase();
-
-    let note: string;
-    if (band === 'excellent') {
-      note = aesthetic?.primaryStyle
-        ? `Works in this ${styleArchetypeLabel(aesthetic.primaryStyle)} story — colour and formality align with the rest.`
-        : 'Supports a cohesive, intentional finish.';
-    } else if (primary && /blazer/.test(text) && /trainer|sneaker|chunky|running/.test(primary.hint.toLowerCase())) {
-      note = primary.id === 'blazer_chunky_trainers'
-        ? 'Tailoring reads office; chunky athletic trainers pull the look into gym territory — swap to plain lifestyle sneakers or dress shoes.'
-        : 'Blazer sets a smarter lane — footwear needs to match (lifestyle sneakers or loafers), not fight it.';
-    } else if (primary && role === 'footwear' && /shoe|trainer|boot|loafer|heel|footwear/.test(primary.hint.toLowerCase())) {
-      note = `Clash focus: ${primary.hint}`;
-    } else if (primary && (
-      (role === 'layer' && /blazer|outer|jacket|hoodie/.test(primary.hint.toLowerCase()))
-      || (role === 'bottoms' && /jogger|short|sweat|trouser|jean|bottom/.test(primary.hint.toLowerCase()))
-      || (role === 'top' && /tee|shirt|top|hoodie|athletic/.test(primary.hint.toLowerCase()))
-    )) {
-      note = `In tension with the outfit: ${primary.hint}`;
-    } else if (band === 'strong') {
-      note = 'Holds the look together — only a light finishing tweak would elevate further.';
-    } else if (band === 'mixed') {
-      note = `${name} is wearable here, but the overall mix still needs one clearer style anchor.`;
-    } else {
-      note = `Reconsider how ${name} sits with the other pieces — pick one style lane and commit.`;
-    }
-
-    // Excellent scores: never nag footwear
-    if (band === 'excellent' && role === 'footwear' && REFINE_FOOTWEAR_RE.test(note)) {
-      note = 'Footwear finishes the look cleanly — leave it.';
-    }
-
-    return { id: item.id, role, name, note };
+  const analysis = buildStylistAnalysis(items, {
+    score: options?.score ?? 70,
+    signals: options?.signals || undefined,
+    aesthetic: options?.aesthetic,
+    hint: options?.clashHint,
+    clashId: options?.clashId,
   });
+  const nameById = new Map(items.map((i) => [String(i.id), i.name || 'Item']));
+  return stylistAnalysisToItemNotes(analysis).map((n) => ({
+    id: n.id,
+    role: n.role,
+    name: nameById.get(n.id) || 'Item',
+    note: n.note,
+  }));
 }
 
 export type AnalysisStatementInventory = {

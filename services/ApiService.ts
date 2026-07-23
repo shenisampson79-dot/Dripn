@@ -4692,12 +4692,21 @@ class ApiService {
     score: number;
     hint?: string;
     clashId?: string;
+    signals?: Record<string, unknown>;
+    scoreBreakdown?: Record<string, unknown>;
   }) {
     return this.request<{
       success: boolean;
       score: number;
       overallVerdict: string;
-      itemNotes: Array<{ id: string; role: string; name: string; note: string }>;
+      itemNotes: Array<{ id: string; role: string; name: string; note: string; verdict?: string; suggestion?: string }>;
+      stylistAnalysis?: {
+        summary: string;
+        overallTone: 'excellent' | 'good' | 'mixed' | 'off';
+        items: Array<{ itemId: string; role: string; verdict: string; comment: string; suggestion?: string }>;
+        adjustments?: string[];
+      } | null;
+      signals?: Record<string, unknown> | null;
       source: 'ai' | 'deterministic' | 'cache';
       model?: string | null;
       error?: string;

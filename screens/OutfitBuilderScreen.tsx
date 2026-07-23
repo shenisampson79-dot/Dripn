@@ -38,8 +38,10 @@ import {
   messageFromOutfitSaveError,
   saveGeneratedOutfitToProfile,
 } from '@/utils/saveGeneratedOutfit';
-import { computeLocalOutfitScore, mergeOutfitScores, buildDeterministicItemNotes } from '@/utils/outfitCompatibilityScore';
+import { computeLocalOutfitScore, mergeOutfitScores, buildDeterministicItemNotes, buildStylistAnalysis } from '@/utils/outfitCompatibilityScore';
 import type { ItemAnalysisNote } from '@/utils/outfitAnalysisStatements';
+import type { StylistAnalysis } from '@/utils/stylistVoiceEngine';
+import type { DetectedSignals } from '@/utils/styleCoherenceEngine';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import * as Location from 'expo-location';
 import {
@@ -291,12 +293,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [isAiScoring, setIsAiScoring] = useState(false);
   const [aiScoreApplied, setAiScoreApplied] = useState(false);
   const [itemNotes, setItemNotes] = useState<ItemAnalysisNote[]>([]);
+  const [stylistAnalysis, setStylistAnalysis] = useState<StylistAnalysis | null>(null);
   const [itemAnalysisSource, setItemAnalysisSource] = useState<'ai' | 'deterministic' | 'cache' | null>(null);
   const [isItemAnalyzing, setIsItemAnalyzing] = useState(false);
   const scoreRequestRef = useRef(0);
   const itemAnalysisRequestRef = useRef(0);
-  const itemAnalysisCacheRef = useRef<Map<string, { notes: ItemAnalysisNote[]; verdict: string; source: string }>>(new Map());
+  const itemAnalysisCacheRef = useRef<Map<string, { notes: ItemAnalysisNote[]; verdict: string; source: string; analysis?: StylistAnalysis | null }>>(new Map());
   const localClashIdRef = useRef<string | null>(null);
+  const localSignalsRef = useRef<DetectedSignals | null>(null);
+  const localScoreBreakdownRef = useRef<Record<string, unknown> | null>(null);
 
   const layoutMetrics = useMemo(() => {
     const centerWidth = SW * COMPACT_CENTER_RATIO;
@@ -337,7 +342,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const compactRowHeight = useMemo(() => {
     const headerBlock = 52;
     const scoreBlock = 58;
-    const notesBlock = itemNotes.length > 0 ? 112 : 0;
+    const notesBlock = itemNotes.length > 0 ? (stylistAnalysis?.adjustments?.length ? 148 : 112) : 0;
     const bottomChrome = showSaveButton
       ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
       : bottomNavClearance;
@@ -346,7 +351,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
     return Math.max(78, Math.min(134, perRow));
-  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, itemNotes.length]);
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, itemNotes.length, stylistAnalysis?.adjustments?.length]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
     setSelection(prev => ({ ...prev, [cat]: id }));
@@ -377,18 +382,40 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     setScoreExplanations([]);
     setScoreHeadline(null);
     localClashIdRef.current = local.clashId || null;
+    localSignalsRef.current = local.signals || null;
+    localScoreBreakdownRef.current = {
+      score: local.score,
+      footwearScore: local.footwearScore ?? null,
+      hardCap: local.hardCap ?? null,
+      tailoringClash: local.tailoringClash ?? false,
+      clashId: local.clashId || null,
+      lanesPresent: local.signals?.lanesPresent || [],
+    };
 
-    // Instant deterministic per-item notes while AI settles
+    // Instant deterministic stylist voice while AI settles
     if (selectedWardrobeItems.length >= 2) {
+      const analysis = local.stylistAnalysis || buildStylistAnalysis(selectedWardrobeItems, {
+        score: local.score,
+        signals: local.signals,
+        aesthetic: local.aesthetic,
+        hint: local.hint,
+        clashId: local.clashId,
+      });
+      setStylistAnalysis(analysis);
       setItemNotes(buildDeterministicItemNotes(selectedWardrobeItems, {
         score: local.score,
         clashId: local.clashId,
         clashHint: local.hint,
         aesthetic: local.aesthetic,
+        signals: local.signals,
       }));
       setItemAnalysisSource('deterministic');
+      if (analysis.summary) {
+        setStyleHint(analysis.summary);
+      }
     } else {
       setItemNotes([]);
+      setStylistAnalysis(null);
       setItemAnalysisSource(null);
     }
 
@@ -462,6 +489,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         if (itemAnalysisRequestRef.current === analysisRequestId) {
           setItemNotes(cached.notes);
           setItemAnalysisSource(cached.source as 'ai' | 'deterministic' | 'cache');
+          if (cached.analysis) setStylistAnalysis(cached.analysis);
           if (cached.verdict && finalScore >= 70) {
             setScoreHeadline((prev) => prev || cached.verdict);
           }
@@ -476,6 +504,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           score: finalScore,
           hint: finalHint,
           clashId: localClashIdRef.current || undefined,
+          signals: localSignalsRef.current || undefined,
+          scoreBreakdown: localScoreBreakdownRef.current || undefined,
         });
         if (itemAnalysisRequestRef.current !== analysisRequestId) return;
         if (analysis.success && Array.isArray(analysis.itemNotes) && analysis.itemNotes.length) {
@@ -485,16 +515,20 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             name: n.name,
             note: n.note,
           }));
+          const structured = analysis.stylistAnalysis || null;
           setItemNotes(notes);
+          if (structured) setStylistAnalysis(structured as StylistAnalysis);
           setItemAnalysisSource(analysis.source || 'ai');
           itemAnalysisCacheRef.current.set(cacheKey, {
             notes,
-            verdict: analysis.overallVerdict || '',
+            verdict: analysis.overallVerdict || structured?.summary || '',
             source: analysis.source || 'ai',
+            analysis: structured as StylistAnalysis | null,
           });
-          if (analysis.overallVerdict && finalScore >= 55 && !/refine footwear/i.test(analysis.overallVerdict)) {
+          const verdict = structured?.summary || analysis.overallVerdict;
+          if (verdict && finalScore >= 55 && !/refine footwear/i.test(verdict)) {
             setStyleHint((prev) => (
-              /refine footwear|confused/i.test(prev) ? analysis.overallVerdict : prev
+              /refine footwear|confused/i.test(prev) ? verdict : (structured?.summary || prev)
             ));
           }
         }
@@ -616,7 +650,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             Style match
           </ThemedText>
           <ThemedText type="caption" style={{ color: secondaryText }} numberOfLines={2}>
-            {scoreHeadline || styleHint}
+            {stylistAnalysis?.summary || scoreHeadline || styleHint}
             {aiScoreApplied ? ' · AI refined' : isAiScoring ? ' · AI refining…' : ''}
           </ThemedText>
           {scoreDimensions ? (
@@ -647,6 +681,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           <View style={styles.itemNotesHeader}>
             <ThemedText type="caption" style={{ fontWeight: '700', color: theme.text }}>
               Piece notes
+              {stylistAnalysis?.overallTone ? ` · ${stylistAnalysis.overallTone}` : ''}
             </ThemedText>
             <ThemedText type="caption" style={{ color: secondaryText, fontSize: 10 }}>
               {isItemAnalyzing
@@ -656,6 +691,20 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
                   : 'Quick read'}
             </ThemedText>
           </View>
+          {stylistAnalysis?.adjustments?.length ? (
+            <View style={{ marginBottom: 6, paddingHorizontal: 2 }}>
+              {stylistAnalysis.adjustments.slice(0, 2).map((adj) => (
+                <ThemedText
+                  key={adj}
+                  type="caption"
+                  style={{ color: secondaryText, fontSize: 11, lineHeight: 15, marginBottom: 2 }}
+                  numberOfLines={2}
+                >
+                  → {adj}
+                </ThemedText>
+              ))}
+            </View>
+          ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {itemNotes.map((note) => (
               <View

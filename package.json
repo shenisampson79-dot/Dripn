@@ -24,7 +24,9 @@
     "verify:allocator": "npx tsx scripts/verify-allocator-hard-validity.ts",
     "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts",
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
-    "verify:safe-render": "npx tsx scripts/verify-safe-render.ts"
+    "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
+    "verify:outfit-score": "npx tsx scripts/verify-outfit-score.ts",
+    "verify:style-coherence": "npx tsx scripts/verify-style-coherence.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

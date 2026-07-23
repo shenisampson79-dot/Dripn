@@ -22,8 +22,26 @@ import {
   selectAnalysisHint,
   type ItemAnalysisNote,
 } from '@/utils/outfitAnalysisStatements';
+import {
+  evaluateStyleCoherence,
+  type DetectedSignals,
+  type CoherenceBreakdown,
+} from '@/utils/styleCoherenceEngine';
+import {
+  buildStylistAnalysis,
+  type StylistAnalysis,
+} from '@/utils/stylistVoiceEngine';
 
 export type { OutfitClash, FormalityTier, ItemSignals } from '@/utils/outfitClashRules';
+export type { DetectedSignals, StyleLane, FootwearClass } from '@/utils/styleCoherenceEngine';
+export {
+  getStyleLane,
+  classifyFootwear,
+  evaluateStyleCoherence,
+  serializeDetectedSignals,
+} from '@/utils/styleCoherenceEngine';
+export type { StylistAnalysis, StylistTone, StylistItemNote } from '@/utils/stylistVoiceEngine';
+export { buildStylistAnalysis, stylistAnalysisToItemNotes } from '@/utils/stylistVoiceEngine';
 export {
   classifyItem,
   detectOutfitClashes,
@@ -52,6 +70,12 @@ export interface OutfitScoreResult {
   colorHarmony?: ColorHarmonyResult;
   silhouette?: SilhouetteScoreResult;
   hardCap?: number;
+  /** Style Coherence Engine signals — authority for stylist voice. */
+  signals?: DetectedSignals;
+  coherence?: CoherenceBreakdown;
+  stylistAnalysis?: StylistAnalysis;
+  footwearScore?: number;
+  tailoringClash?: boolean;
 }
 
 export type OutfitApiScoreResult = {
@@ -111,14 +135,66 @@ export function computeLocalOutfitScore(
   }
 
   const aesthetic = analyzeOutfitAesthetic(selected);
+  const coherence = evaluateStyleCoherence(selected);
+  const signals = coherence.signals;
 
   const primaryClash = detectOutfitClashes(selected, regional);
   const isHardClash = primaryClash?.severity === 'fatal' || primaryClash?.severity === 'major';
+
+  // Style Coherence hard caps (multi-lane nuke, invalid 2-lane, tailoring, footwear)
+  // Prefer the lower of clash-rule score vs coherence cap so both authorities hold.
+  // Specific garment clash ids win for clashId/hint when fatal/major rules also fire.
+  if (coherence.mode === 'hard_cap' && coherence.hardCap != null) {
+    let score = coherence.hardCap;
+    let hint = coherence.hint || primaryClash?.hint || 'Style lanes conflict';
+    let clashId = coherence.clashId || primaryClash?.id;
+    let severity: OutfitScoreResult['severity'] = coherence.severity || primaryClash?.severity || 'major';
+
+    if (primaryClash && isHardClash) {
+      const extra = collectSecondaryClashPenalty(selected, primaryClash, regional);
+      const clashCap = primaryClash.severity === 'fatal' ? 35 : 40;
+      const clashScore = Math.min(clashToScore(primaryClash.penalty, extra), clashCap);
+      score = Math.min(score, clashScore);
+      // Always prefer specific garment clash identity over generic coherence ids
+      hint = primaryClash.hint;
+      clashId = primaryClash.id;
+      severity = primaryClash.severity;
+    }
+
+    const stylistAnalysis = buildStylistAnalysis(selected, {
+      score,
+      signals,
+      aesthetic,
+      hint,
+      clashId,
+    });
+
+    return {
+      score,
+      hint,
+      clashId,
+      severity,
+      aesthetic,
+      hardCap: Math.min(coherence.hardCap, score),
+      signals,
+      coherence,
+      stylistAnalysis,
+      footwearScore: coherence.footwearScore,
+      tailoringClash: coherence.tailoringClash || signals.tailoringClash,
+    };
+  }
 
   if (primaryClash && isHardClash) {
     const extra = collectSecondaryClashPenalty(selected, primaryClash, regional);
     const cap = primaryClash.severity === 'fatal' ? 35 : 40;
     const score = Math.min(clashToScore(primaryClash.penalty, extra), cap);
+    const stylistAnalysis = buildStylistAnalysis(selected, {
+      score,
+      signals,
+      aesthetic,
+      hint: primaryClash.hint,
+      clashId: primaryClash.id,
+    });
     return {
       score,
       hint: primaryClash.hint,
@@ -126,30 +202,64 @@ export function computeLocalOutfitScore(
       severity: primaryClash.severity,
       aesthetic,
       hardCap: cap,
+      signals,
+      coherence,
+      stylistAnalysis,
+      footwearScore: coherence.footwearScore,
+      tailoringClash: signals.tailoringClash,
     };
   }
 
   const aestheticRejection = evaluateAestheticRejection(selected);
   if (aestheticRejection) {
+    const score = aestheticRejection.scoreCap;
+    const stylistAnalysis = buildStylistAnalysis(selected, {
+      score,
+      signals,
+      aesthetic: aestheticRejection.analysis,
+      hint: aestheticRejection.hint,
+      clashId: aestheticRejection.clashId,
+    });
     return {
-      score: aestheticRejection.scoreCap,
+      score,
       hint: aestheticRejection.hint,
       clashId: aestheticRejection.clashId,
       severity: aestheticRejection.severity,
       aesthetic: aestheticRejection.analysis,
       hardCap: aestheticRejection.scoreCap,
+      signals,
+      coherence,
+      stylistAnalysis,
+      footwearScore: coherence.footwearScore,
+      tailoringClash: signals.tailoringClash,
     };
   }
 
   if (primaryClash) {
     const extra = collectSecondaryClashPenalty(selected, primaryClash, regional);
-    const score = clashToScore(primaryClash.penalty, extra);
+    let score = clashToScore(primaryClash.penalty, extra);
+    // Soft coherence may only tighten further — never inflate a clash score
+    if (coherence.mode === 'adjust' && coherence.scoreImpact < 0) {
+      score = Math.max(5, Math.min(94, score + coherence.scoreImpact));
+    }
+    const stylistAnalysis = buildStylistAnalysis(selected, {
+      score,
+      signals,
+      aesthetic,
+      hint: primaryClash.hint,
+      clashId: primaryClash.id,
+    });
     return {
       score,
       hint: primaryClash.hint,
       clashId: primaryClash.id,
       severity: primaryClash.severity,
       aesthetic,
+      signals,
+      coherence,
+      stylistAnalysis,
+      footwearScore: coherence.footwearScore,
+      tailoringClash: signals.tailoringClash,
     };
   }
 
@@ -177,6 +287,11 @@ export function computeLocalOutfitScore(
   }
 
   if (!aesthetic.footwearBreaksIntent && hasShoes) score += 6;
+
+  // Style Coherence soft adjust (footwearScore + lane purity bonuses)
+  if (coherence.mode === 'adjust') {
+    score += coherence.scoreImpact;
+  }
 
   // ── Execution (earned, not passive) ───────────────────────────────────
   if (hasDress && !hasBottom) score += 6;
@@ -217,7 +332,7 @@ export function computeLocalOutfitScore(
   const majorConfused = isMajorConfusedLook(aesthetic, {
     allowsSmartCasualTrainers,
     clashId: primaryClash?.id,
-  });
+  }) || signals.multiLaneChaos;
   if (majorConfused) {
     score = Math.min(score, 58);
   }
@@ -241,12 +356,32 @@ export function computeLocalOutfitScore(
     severity: primaryClash?.severity,
   });
 
+  const stylistAnalysis = buildStylistAnalysis(selected, {
+    score,
+    signals,
+    aesthetic,
+    hint,
+    clashId: primaryClash?.id,
+  });
+
+  // Prefer stylist summary when signals drove a clearer read than band templates
+  if (stylistAnalysis.overallTone === 'excellent' || stylistAnalysis.overallTone === 'good') {
+    hint = stylistAnalysis.summary;
+  } else if (signals.laneConflict || signals.footwearMismatch || signals.tailoringClash) {
+    hint = stylistAnalysis.summary;
+  }
+
   return {
     score,
     hint,
     aesthetic,
     colorHarmony,
     silhouette,
+    signals,
+    coherence,
+    stylistAnalysis,
+    footwearScore: coherence.footwearScore,
+    tailoringClash: signals.tailoringClash,
   };
 }
 
