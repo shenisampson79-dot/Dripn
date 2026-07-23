@@ -1964,9 +1964,13 @@ class ApiService {
     excludeItemIds?: Array<string | number>;
     /** Soft anti-repeat — recently recommended/worn item ids. */
     penalizeItemIds?: Array<string | number>;
+    /** Hard diversity — recent full outfits as item-id lists (most recent first). */
+    priorOutfits?: Array<Array<string | number>>;
+    recentOutfits?: Array<Array<string | number>>;
     environment?: {
       weather?: unknown;
       occasion?: string;
+      dateKey?: string;
       dressCode?: string;
       location?: unknown;
       intent?: string;

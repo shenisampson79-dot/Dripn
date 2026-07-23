@@ -1,5 +1,5 @@
 /**
- * Today's Outfit dateKey + soft anti-repeat checks.
+ * Today's Outfit dateKey + hard diversity checks.
  * Run: npx tsx scripts/verify-todays-outfit-date-rotation.ts
  */
 import { readFileSync } from 'node:fs';
@@ -8,6 +8,12 @@ import { resolve } from 'node:path';
 import { localDateKey, TODAYS_OUTFIT_ANTI_REPEAT_DAYS } from '../utils/localDateKey';
 import type { WardrobeItem } from '../contexts/WardrobeContext';
 import { allocateSingleDayOutfit } from '../utils/wardrobeAllocationEngine';
+import {
+  countTrioChanges,
+  daySeededPick,
+  hashDaySeed,
+  isTooSimilar,
+} from '../utils/outfitDiversityHard';
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -28,7 +34,7 @@ function item(partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'catego
   };
 }
 
-console.log("=== Today's outfit dateKey + anti-repeat ===\n");
+console.log("=== Today's outfit dateKey + hard diversity ===\n");
 
 const generatorSource = readFileSync(
   resolve(__dirname, '../services/TodaysOutfitGenerator.ts'),
@@ -40,6 +46,10 @@ const cardSource = readFileSync(
 );
 const prefsSource = readFileSync(
   resolve(__dirname, '../utils/todaysOutfitPrefs.ts'),
+  'utf8',
+);
+const diversitySource = readFileSync(
+  resolve(__dirname, '../utils/outfitDiversityHard.ts'),
   'utf8',
 );
 
@@ -64,6 +74,10 @@ assert(
   'server + offline anti-repeat wiring required',
 );
 assert(
+  generatorSource.includes('isTooSimilar') || generatorSource.includes('outfitDiversityHard'),
+  'hard diversity wiring required',
+);
+assert(
   generatorSource.includes('dateKey:') && generatorSource.includes('itemIds:'),
   'generate logging must include dateKey + itemIds',
 );
@@ -71,6 +85,8 @@ assert(cardSource.includes('day_rollover') || cardSource.includes('ensureFreshFo
 assert(cardSource.includes('auto_popup') || cardSource.includes('maybeAutoOpenPopup'), 'auto popup required');
 assert(prefsSource.includes('getHours()'), 'popup window uses local hours');
 assert(TODAYS_OUTFIT_ANTI_REPEAT_DAYS >= 5, 'anti-repeat window should cover several days');
+assert(diversitySource.includes('isTooSimilar'), 'hard isTooSimilar required');
+assert(diversitySource.includes('pickDiverseFromTopK'), 'top-K pick required');
 
 const teeA = item({ id: 'tee-a', category: 'tops', name: 'Cream Tee', color: 'cream' });
 const teeB = item({ id: 'tee-b', category: 'tops', name: 'Blue Tee', color: 'blue' });
@@ -79,9 +95,25 @@ const pantsB = item({ id: 'pants-b', category: 'bottoms', name: 'Grey Trousers',
 const shoesA = item({ id: 'shoes-a', category: 'shoes', name: 'Brown Shoes', color: 'brown' });
 const shoesB = item({ id: 'shoes-b', category: 'shoes', name: 'Black Shoes', color: 'black' });
 const jacket = item({ id: 'jacket', category: 'outerwear', name: 'Black Puffer', color: 'black' });
+const blazer = item({ id: 'blazer', category: 'outerwear', name: 'Windowpane Blazer', color: 'grey' });
 const bag = item({ id: 'bag', category: 'accessories', name: 'Tote', color: 'cream', subcategory: 'bag' });
 
-const wardrobe = [teeA, teeB, pantsA, pantsB, shoesA, shoesB, jacket, bag];
+const outfitA = [jacket, teeA, pantsA, bag, shoesA];
+const outfitAPrime = [blazer, teeA, pantsA, bag, shoesB];
+const outfitB = [blazer, teeB, pantsB, bag, shoesB];
+
+assert(isTooSimilar(outfitA, outfitAPrime) === true, 'jacket-swap A′ must be REJECTED');
+assert(isTooSimilar(outfitA, outfitB) === false, 'different top+bottom must be ACCEPTED');
+assert(countTrioChanges(outfitB, outfitA) >= 2, 'B changes ≥2 of trio');
+
+assert(hashDaySeed('2026-07-23') === hashDaySeed('2026-07-23'), 'day seed stable');
+assert(hashDaySeed('2026-07-23') !== hashDaySeed('2026-07-24'), 'day seed differs by day');
+assert(
+  daySeededPick(['a', 'b', 'c'], '2026-07-23') === daySeededPick(['a', 'b', 'c'], '2026-07-23'),
+  'daySeededPick stable for same dateKey',
+);
+
+const wardrobe = [teeA, teeB, pantsA, pantsB, shoesA, shoesB, jacket, blazer, bag];
 
 const day1 = allocateSingleDayOutfit({
   wardrobe,
@@ -100,11 +132,10 @@ assert(day2.ok === true, 'day2 allocation must succeed');
 if (day1.ok && day2.ok) {
   const sameExact =
     [...day1.itemIds].sort().join('|') === [...day2.itemIds].sort().join('|');
-  // Soft diversity should usually break exact repeats when alternatives exist
   assert(
     !sameExact,
     'priorOutfits soft anti-repeat should change the outfit when alternatives exist',
   );
 }
 
-console.log('All dateKey + anti-repeat checks passed.');
+console.log('All dateKey + hard diversity checks passed.');

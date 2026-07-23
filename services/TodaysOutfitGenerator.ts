@@ -34,6 +34,13 @@ import {
   TODAYS_OUTFIT_ANTI_REPEAT_DAYS,
 } from '@/utils/localDateKey';
 import { apiService } from '@/services/ApiService';
+import {
+  countTrioChanges,
+  diversityExcludeIdsFromHistory,
+  isTooSimilar,
+  TODAY_DIVERSITY_HISTORY,
+} from '@/utils/outfitDiversityHard';
+import { isTopItem, isBottomItem, isShoesItem } from '@/utils/completeOutfit';
 
 export type WeatherSnapshot = {
   temperature: number;
@@ -156,17 +163,30 @@ export async function getRecentTodaysOutfitItemIds(options?: {
 function priorOutfitsFromHistory(
   history: TodaysOutfitHistoryEntry[],
   wardrobeItems: WardrobeItem[],
-  _today: string,
+  today: string,
 ): WardrobeItem[][] {
   const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
   return history
-    .slice(0, TODAYS_OUTFIT_ANTI_REPEAT_DAYS)
+    .filter((e) => e.dateKey !== today)
+    .slice(0, TODAY_DIVERSITY_HISTORY)
     .map((e) =>
       e.itemIds
         .map((id) => byId.get(String(id)))
         .filter((item): item is WardrobeItem => Boolean(item)),
     )
     .filter((items) => items.length >= 2);
+}
+
+/** Prior outfit id lists for server hard diversity (most recent first). */
+function priorOutfitIdListsFromHistory(
+  history: TodaysOutfitHistoryEntry[],
+  today: string,
+): string[][] {
+  return history
+    .filter((e) => e.dateKey !== today)
+    .slice(0, TODAY_DIVERSITY_HISTORY)
+    .map((e) => e.itemIds.map(String).filter(Boolean))
+    .filter((ids) => ids.length >= 2);
 }
 
 export function stableTodaysOutfitId(date: string, itemIds: string[]): string {
@@ -309,15 +329,33 @@ function allocateLocal(
   tryOccasion: OutfitOccasionId,
   laundryProfile = laundryProfileFromUser(null),
   priorOutfits: WardrobeItem[][] = [],
+  excludeItemIds: string[] = [],
 ): WardrobeItem[] | null {
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
     occasionType: tryOccasion,
     laundryProfile,
     priorOutfits,
+    excludeItemIds,
   });
   if (!allocated.ok || allocated.items.length < MIN_OUTFIT_ITEMS) return null;
   if (!isOutfitValid(allocated.items)) return null;
+
+  // Hard diversity reject — jacket-only / same base look vs recent history
+  if (priorOutfits.length && priorOutfits.some((h) => isTooSimilar(allocated.items, h))) {
+    return null;
+  }
+  // Prefer changing ≥2 of {top,bottom,footwear} vs yesterday when alternatives exist
+  const yesterday = priorOutfits[0];
+  if (yesterday?.length) {
+    const trioChanges = countTrioChanges(allocated.items, yesterday);
+    const hasAltTop = wardrobeItems.filter(isTopItem).length > 1;
+    const hasAltBottom = wardrobeItems.filter(isBottomItem).length > 1;
+    const hasAltShoes = wardrobeItems.filter(isShoesItem).length > 1;
+    if (trioChanges < 2 && (hasAltTop || hasAltBottom || hasAltShoes)) {
+      return null;
+    }
+  }
   return allocated.items;
 }
 
@@ -327,6 +365,7 @@ function generateLocalTiered(params: {
   deadlineMs: number;
   laundryProfile?: LaundryProfile;
   priorOutfits?: WardrobeItem[][];
+  dateKey?: string;
 }): LocalGenerationResult | null {
   const {
     wardrobeItems,
@@ -337,49 +376,93 @@ function generateLocalTiered(params: {
   } = params;
   const cascade = allocationCascadeFor(occasionType);
   const started = Date.now();
-
   const withinBudget = () => Date.now() - started < deadlineMs;
 
-  // strict — occasion standard + hard validity
-  for (const tryOccasion of cascade) {
-    if (!withinBudget()) break;
-    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile, priorOutfits);
-    if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
-      return {
-        items,
-        vibeLabel: occasionLabelForType(tryOccasion),
-        stylistMessage: `Here's a ${occasionLabelForType(tryOccasion).toLowerCase()} look from pieces you already own.`,
-        allocatedOccasion: tryOccasion,
-        tier: 'strict',
-      };
+  const hardExcludeRounds: string[][] = [
+    [],
+    diversityExcludeIdsFromHistory(priorOutfits),
+  ];
+
+  // strict — occasion standard + hard validity + hard diversity
+  for (const excludeItemIds of hardExcludeRounds) {
+    for (const tryOccasion of cascade) {
+      if (!withinBudget()) break;
+      const items = allocateLocal(
+        wardrobeItems,
+        tryOccasion,
+        laundryProfile,
+        priorOutfits,
+        excludeItemIds,
+      );
+      if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
+        return {
+          items,
+          vibeLabel: occasionLabelForType(tryOccasion),
+          stylistMessage: `Here's a ${occasionLabelForType(tryOccasion).toLowerCase()} look from pieces you already own.`,
+          allocatedOccasion: tryOccasion,
+          tier: 'strict',
+        };
+      }
     }
   }
 
   void traceTodaysOutfit('fallback', { tier: 'relaxed' });
 
-  // relaxed — hard validity only
-  for (const tryOccasion of cascade) {
-    if (!withinBudget()) break;
-    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile, priorOutfits);
-    if (items) {
-      return {
-        items,
-        vibeLabel: occasionLabelForType(tryOccasion),
-        stylistMessage: `Here's a ${occasionLabelForType(tryOccasion).toLowerCase()} look from pieces you already own.`,
-        allocatedOccasion: tryOccasion,
-        tier: 'relaxed',
-      };
+  // relaxed — hard validity + hard diversity
+  for (const excludeItemIds of hardExcludeRounds) {
+    for (const tryOccasion of cascade) {
+      if (!withinBudget()) break;
+      const items = allocateLocal(
+        wardrobeItems,
+        tryOccasion,
+        laundryProfile,
+        priorOutfits,
+        excludeItemIds,
+      );
+      if (items) {
+        return {
+          items,
+          vibeLabel: occasionLabelForType(tryOccasion),
+          stylistMessage: `Here's a ${occasionLabelForType(tryOccasion).toLowerCase()} look from pieces you already own.`,
+          allocatedOccasion: tryOccasion,
+          tier: 'relaxed',
+        };
+      }
     }
   }
 
   void traceTodaysOutfit('fallback', { tier: 'minimal' });
 
-  // minimal — casual_day allocator only
+  // minimal — casual_day; last resort allow soft-similar if wardrobe too small
   if (withinBudget()) {
-    const items = allocateLocal(wardrobeItems, 'casual_day', laundryProfile, priorOutfits);
-    if (items) {
+    for (const excludeItemIds of hardExcludeRounds) {
+      const items = allocateLocal(
+        wardrobeItems,
+        'casual_day',
+        laundryProfile,
+        priorOutfits,
+        excludeItemIds,
+      );
+      if (items) {
+        return {
+          items,
+          vibeLabel: occasionLabelForType('casual_day'),
+          stylistMessage: "Here's an everyday look from pieces you already own.",
+          allocatedOccasion: 'casual_day',
+          tier: 'minimal',
+        };
+      }
+    }
+    // Absolute last resort: allocator without hard trio preference (still clash-valid)
+    const fallback = allocateSingleDayOutfit({
+      wardrobe: wardrobeItems,
+      occasionType: 'casual_day',
+      laundryProfile,
+      priorOutfits,
+    });
+    if (fallback.ok && fallback.items.length >= MIN_OUTFIT_ITEMS && isOutfitValid(fallback.items)) {
       return {
-        items,
+        items: fallback.items,
         vibeLabel: occasionLabelForType('casual_day'),
         stylistMessage: "Here's an everyday look from pieces you already own.",
         allocatedOccasion: 'casual_day',
@@ -594,6 +677,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
   stylistId?: string;
   weather?: WeatherSnapshot | null;
   penalizeItemIds?: string[];
+  priorOutfits?: string[][];
   dateKey?: string;
 }): Promise<{ outfit: WardrobeTodaysOutfit; items: WardrobeItem[] } | null> {
   try {
@@ -616,6 +700,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       stylistId: params.stylistId || 'ruby',
       dateKey: today,
       penalizeItemIds: params.penalizeItemIds || [],
+      priorOutfits: params.priorOutfits || [],
       weather: params.weather
         ? {
             temperature: params.weather.temperature,
@@ -628,6 +713,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
         occasion: params.occasionType === 'todays_look' ? 'casual_day' : params.occasionType,
         dressCode: params.dressFor,
         intent: 'today',
+        dateKey: today,
         weather: params.weather || undefined,
       },
     });
@@ -794,6 +880,7 @@ export async function generateTodaysWardrobeOutfit(params: {
   const today = dateKey();
   const history = await loadTodaysOutfitHistory();
   const priorOutfits = priorOutfitsFromHistory(history, wardrobeItems, today);
+  const priorOutfitIdLists = priorOutfitIdListsFromHistory(history, today);
   // Include prior same-day recommendation when regenerating (Settings clear / forceRefresh)
   // so stuck users get a new look immediately, not only after midnight.
   const penalizeItemIds = await getRecentTodaysOutfitItemIds({
@@ -816,6 +903,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       stylistId: userContext.stylistId,
       weather,
       penalizeItemIds,
+      priorOutfits: priorOutfitIdLists,
       dateKey: today,
     });
 
@@ -837,6 +925,7 @@ export async function generateTodaysWardrobeOutfit(params: {
         network: true,
         whyCount: outfit.why?.length || 0,
         penalizeCount: penalizeItemIds.length,
+        priorOutfitCount: priorOutfitIdLists.length,
       });
       if (outfit.weatherTemp == null) {
         void enrichOutfitWeatherInBackground(outfit);
@@ -855,6 +944,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       deadlineMs: TODAYS_OUTFIT_GENERATION_BUDGET_MS,
       laundryProfile: laundryProfileFromUser(user),
       priorOutfits,
+      dateKey: today,
     });
 
     if (!generated) {
