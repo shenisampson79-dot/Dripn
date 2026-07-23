@@ -29,6 +29,10 @@ import {
 } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
+import {
+  localDateKey,
+  TODAYS_OUTFIT_ANTI_REPEAT_DAYS,
+} from '@/utils/localDateKey';
 import { apiService } from '@/services/ApiService';
 
 export type WeatherSnapshot = {
@@ -77,10 +81,93 @@ export const TODAYS_OUTFIT_GENERATION_BUDGET_MS = 2000;
 export const TODAYS_OUTFIT_OFFLINE_FALLBACK = true;
 
 const STORAGE_KEY = '@dripn_todays_wardrobe_outfit';
+const HISTORY_KEY = '@dripn_todays_outfit_history';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-function dateKey() {
-  return new Date().toISOString().slice(0, 10);
+/** Local calendar day — must match dismiss keys and user-facing “today”. */
+export function dateKey(now: Date = new Date()) {
+  return localDateKey(now);
+}
+
+type TodaysOutfitHistoryEntry = {
+  dateKey: string;
+  itemIds: string[];
+};
+
+async function loadTodaysOutfitHistory(): Promise<TodaysOutfitHistoryEntry[]> {
+  try {
+    const raw = await AsyncStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as TodaysOutfitHistoryEntry[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e) => e && typeof e.dateKey === 'string' && Array.isArray(e.itemIds),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function rememberTodaysOutfitRecommendation(
+  outfit: WardrobeTodaysOutfit,
+): Promise<void> {
+  const today = outfit.dateKey || dateKey();
+  const itemIds = (outfit.itemIds || []).map(String).filter(Boolean);
+  if (!itemIds.length) return;
+  try {
+    const existing = await loadTodaysOutfitHistory();
+    const next = [
+      { dateKey: today, itemIds },
+      ...existing.filter((e) => e.dateKey !== today),
+    ].slice(0, Math.max(TODAYS_OUTFIT_ANTI_REPEAT_DAYS * 2, 14));
+    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // non-fatal
+  }
+}
+
+/**
+ * Soft anti-repeat: item ids recommended/shown in the last N local days
+ * (excluding today). Used as server penalize + offline priorOutfits.
+ */
+export async function getRecentTodaysOutfitItemIds(options?: {
+  days?: number;
+  now?: Date;
+  excludeToday?: boolean;
+}): Promise<string[]> {
+  const days = options?.days ?? TODAYS_OUTFIT_ANTI_REPEAT_DAYS;
+  const now = options?.now ?? new Date();
+  const today = dateKey(now);
+  const cutoff = new Date(now);
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffKey = dateKey(cutoff);
+
+  const history = await loadTodaysOutfitHistory();
+  const ids = new Set<string>();
+  for (const entry of history) {
+    if (options?.excludeToday !== false && entry.dateKey === today) continue;
+    if (entry.dateKey < cutoffKey) continue;
+    for (const id of entry.itemIds) ids.add(String(id));
+  }
+  return [...ids];
+}
+
+function priorOutfitsFromHistory(
+  history: TodaysOutfitHistoryEntry[],
+  wardrobeItems: WardrobeItem[],
+  today: string,
+): WardrobeItem[][] {
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
+  return history
+    .filter((e) => e.dateKey !== today)
+    .slice(0, TODAYS_OUTFIT_ANTI_REPEAT_DAYS)
+    .map((e) =>
+      e.itemIds
+        .map((id) => byId.get(String(id)))
+        .filter((item): item is WardrobeItem => Boolean(item)),
+    )
+    .filter((items) => items.length >= 2);
 }
 
 export function stableTodaysOutfitId(date: string, itemIds: string[]): string {
@@ -222,11 +309,13 @@ function allocateLocal(
   wardrobeItems: WardrobeItem[],
   tryOccasion: OutfitOccasionId,
   laundryProfile = laundryProfileFromUser(null),
+  priorOutfits: WardrobeItem[][] = [],
 ): WardrobeItem[] | null {
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
     occasionType: tryOccasion,
     laundryProfile,
+    priorOutfits,
   });
   if (!allocated.ok || allocated.items.length < MIN_OUTFIT_ITEMS) return null;
   if (!isOutfitValid(allocated.items)) return null;
@@ -238,8 +327,15 @@ function generateLocalTiered(params: {
   occasionType: OutfitOccasionId | 'todays_look';
   deadlineMs: number;
   laundryProfile?: LaundryProfile;
+  priorOutfits?: WardrobeItem[][];
 }): LocalGenerationResult | null {
-  const { wardrobeItems, occasionType, deadlineMs, laundryProfile = laundryProfileFromUser(null) } = params;
+  const {
+    wardrobeItems,
+    occasionType,
+    deadlineMs,
+    laundryProfile = laundryProfileFromUser(null),
+    priorOutfits = [],
+  } = params;
   const cascade = allocationCascadeFor(occasionType);
   const started = Date.now();
 
@@ -248,7 +344,7 @@ function generateLocalTiered(params: {
   // strict — occasion standard + hard validity
   for (const tryOccasion of cascade) {
     if (!withinBudget()) break;
-    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile);
+    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile, priorOutfits);
     if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
       return {
         items,
@@ -265,7 +361,7 @@ function generateLocalTiered(params: {
   // relaxed — hard validity only
   for (const tryOccasion of cascade) {
     if (!withinBudget()) break;
-    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile);
+    const items = allocateLocal(wardrobeItems, tryOccasion, laundryProfile, priorOutfits);
     if (items) {
       return {
         items,
@@ -281,7 +377,7 @@ function generateLocalTiered(params: {
 
   // minimal — casual_day allocator only
   if (withinBudget()) {
-    const items = allocateLocal(wardrobeItems, 'casual_day', laundryProfile);
+    const items = allocateLocal(wardrobeItems, 'casual_day', laundryProfile, priorOutfits);
     if (items) {
       return {
         items,
@@ -417,6 +513,7 @@ export async function loadStoredTodaysWardrobeOutfit(): Promise<WardrobeTodaysOu
 export async function storeTodaysWardrobeOutfit(outfit: WardrobeTodaysOutfit): Promise<void> {
   const stable = withStableId(outfit);
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stable));
+  await rememberTodaysOutfitRecommendation(stable);
 }
 
 function buildOutfitFromLocal(
@@ -467,6 +564,7 @@ function buildOutfitFromServer(params: {
   vibeLabel?: string;
   why?: string[];
   serverId?: string;
+  dateKeyOverride?: string;
 }): WardrobeTodaysOutfit {
   const honest = reconcileHonestOccasion(
     params.items,
@@ -476,7 +574,7 @@ function buildOutfitFromServer(params: {
 
   return withStableId({
     id: params.serverId,
-    dateKey: dateKey(),
+    dateKey: params.dateKeyOverride || dateKey(),
     itemIds: params.itemIds,
     stylistMessage: params.stylistMessage,
     vibeLabel: params.vibeLabel || honest.occasionLabel,
@@ -496,8 +594,11 @@ async function tryGenerateTodaysOutfitFromServer(params: {
   dayLabel: string;
   stylistId?: string;
   weather?: WeatherSnapshot | null;
+  penalizeItemIds?: string[];
+  dateKey?: string;
 }): Promise<{ outfit: WardrobeTodaysOutfit; items: WardrobeItem[] } | null> {
   try {
+    const today = params.dateKey || dateKey();
     const localItems = params.wardrobeItems.slice(0, 120).map((item) => ({
       id: item.id,
       name: item.name,
@@ -514,6 +615,8 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       occasionType: params.occasionType === 'todays_look' ? 'casual_day' : params.occasionType,
       dressFor: params.dressFor,
       stylistId: params.stylistId || 'ruby',
+      dateKey: today,
+      penalizeItemIds: params.penalizeItemIds || [],
       weather: params.weather
         ? {
             temperature: params.weather.temperature,
@@ -555,6 +658,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       vibeLabel: result.outfit.vibeLabel,
       why: result.why,
       serverId: result.outfit.id,
+      dateKeyOverride: today,
     });
 
     return { outfit, items };
@@ -631,6 +735,7 @@ export async function prewarmTodaysWardrobeOutfit(params: {
   const cached = await resolveCachedTodaysOutfit(params);
   if (cached) {
     await traceTodaysOutfit('cache_hit', { id: cached.outfit.id });
+    await rememberTodaysOutfitRecommendation(cached.outfit);
     if (cached.outfit.weatherTemp == null) {
       void enrichOutfitWeatherInBackground(cached.outfit);
     }
@@ -658,6 +763,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
     if (cached) {
       await traceTodaysOutfit('cache_hit', { id: cached.outfit.id });
+      await rememberTodaysOutfitRecommendation(cached.outfit);
       if (cached.outfit.weatherTemp == null) {
         void enrichOutfitWeatherInBackground(cached.outfit);
       }
@@ -686,6 +792,11 @@ export async function generateTodaysWardrobeOutfit(params: {
     popupPrefs,
   );
 
+  const today = dateKey();
+  const history = await loadTodaysOutfitHistory();
+  const priorOutfits = priorOutfitsFromHistory(history, wardrobeItems, today);
+  const penalizeItemIds = await getRecentTodaysOutfitItemIds({ excludeToday: true });
+
   const started = Date.now();
   try {
     // Authority: shared server stylist engine (intent: today). Weather goes in context.environment.
@@ -701,11 +812,14 @@ export async function generateTodaysWardrobeOutfit(params: {
       dayLabel,
       stylistId: userContext.stylistId,
       weather,
+      penalizeItemIds,
+      dateKey: today,
     });
 
     if (fromServer) {
       const outfit = withStableId({
         ...fromServer.outfit,
+        dateKey: today,
         weatherTemp: weather?.temperature,
         weatherCondition: weather?.condition,
         weatherLocation: weather?.location,
@@ -713,10 +827,13 @@ export async function generateTodaysWardrobeOutfit(params: {
       await storeTodaysWardrobeOutfit(outfit);
       await traceTodaysOutfit('generate', {
         id: outfit.id,
+        dateKey: today,
+        itemIds: outfit.itemIds,
         source: 'server',
         elapsedMs: Date.now() - started,
         network: true,
         whyCount: outfit.why?.length || 0,
+        penalizeCount: penalizeItemIds.length,
       });
       if (outfit.weatherTemp == null) {
         void enrichOutfitWeatherInBackground(outfit);
@@ -734,6 +851,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       occasionType,
       deadlineMs: TODAYS_OUTFIT_GENERATION_BUDGET_MS,
       laundryProfile: laundryProfileFromUser(user),
+      priorOutfits,
     });
 
     if (!generated) {
@@ -745,10 +863,13 @@ export async function generateTodaysWardrobeOutfit(params: {
 
     await traceTodaysOutfit('generate', {
       id: outfit.id,
+      dateKey: outfit.dateKey,
+      itemIds: outfit.itemIds,
       tier: generated.tier,
       source: 'offline_fallback',
       elapsedMs: Date.now() - started,
       network: false,
+      penalizeCount: penalizeItemIds.length,
     });
 
     void enrichOutfitWeatherInBackground(outfit);

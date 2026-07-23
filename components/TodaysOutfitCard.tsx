@@ -29,8 +29,7 @@ import {
   generateTodaysWardrobeOutfit,
   prewarmTodaysWardrobeOutfit,
   resolveCachedTodaysOutfit,
-  stableTodaysOutfitId,
-  TODAYS_OUTFIT_GENERATION_BUDGET_MS,
+  dateKey as todaysLocalDateKey,
   type WardrobeTodaysOutfit,
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
@@ -82,7 +81,7 @@ function mapOccasionToPlannedEvent(
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return todaysLocalDateKey();
 }
 
 function todayPlannedDateIso() {
@@ -251,6 +250,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const autoPopupCheckedRef = useRef(false);
   /** Buttons only act on this stable outfit id once cardState is ready. */
   const actionOutfitIdRef = useRef<string | null>(null);
+  /** Last local calendar day we loaded / showed — detects midnight rollover. */
+  const activeDateKeyRef = useRef<string>(todayKey());
 
   const generating = cardState === 'loading';
   const actionsEnabled =
@@ -377,7 +378,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       setCardState('idle');
       return;
     }
-    void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id });
+    activeDateKeyRef.current = todayKey();
+    void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
     void load(false);
   }, [user?.id, wardrobeItems.length]);
 
@@ -402,11 +404,31 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       if (prefs.enabled && isWithinTodaysOutfitPopupWindow(prefs)) {
         setDismissed(false);
         setVisible(true);
+        void traceTodaysOutfit('trigger', {
+          source: 'auto_popup',
+          dateKey: todayKey(),
+          appearAtHour: prefs.appearAtHour,
+        });
       }
     } catch {
       // ignore
     }
   }, [user, outfit, visible, gapVisible, generating, wardrobeItems]);
+
+  /** New local calendar day → drop stale cache UI and regenerate once. */
+  const ensureFreshForToday = useCallback(async () => {
+    const today = todayKey();
+    if (activeDateKeyRef.current === today) {
+      void maybeAutoOpenPopup();
+      return;
+    }
+    activeDateKeyRef.current = today;
+    autoPopupCheckedRef.current = false;
+    setDismissed(false);
+    setVisible(false);
+    void traceTodaysOutfit('trigger', { source: 'day_rollover', dateKey: today });
+    await load(false);
+  }, [load, maybeAutoOpenPopup]);
 
   useEffect(() => {
     if (!outfit || autoPopupCheckedRef.current) return;
@@ -416,16 +438,16 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      void maybeAutoOpenPopup();
-    }, 60_000);
+      void ensureFreshForToday();
+    }, 30_000);
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void maybeAutoOpenPopup();
+      if (state === 'active') void ensureFreshForToday();
     });
     return () => {
       clearInterval(intervalId);
       sub.remove();
     };
-  }, [maybeAutoOpenPopup]);
+  }, [ensureFreshForToday]);
 
   const handleClose = async (
     signal: 'wore' | 'skipped' | null = 'skipped',

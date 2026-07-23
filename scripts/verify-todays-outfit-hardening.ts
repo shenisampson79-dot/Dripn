@@ -71,8 +71,8 @@ assert(
   'weather must enrich in background only',
 );
 assert(
-  !/export async function generateTodaysWardrobeOutfit[\s\S]*?await fetchWeatherSnapshot/.test(generatorSource),
-  'generateTodaysWardrobeOutfit must not await weather',
+  generatorSource.includes('Promise.race') && generatorSource.includes('fetchWeatherSnapshot'),
+  'weather fetch must be time-boxed via Promise.race',
 );
 assert(generatorSource.includes('generateLocalTiered'), 'tiered local fallback must exist');
 assert(

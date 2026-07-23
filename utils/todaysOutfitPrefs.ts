@@ -101,7 +101,9 @@ export function formatHourLabel(hour: number): string {
 /**
  * True when the popup is eligible: enabled, and local time is at/after appearAtHour
  * on the current calendar day. It stays eligible until the user dismisses/acts
- * (dismissal is tracked separately per day).
+ * (dismissal is tracked separately per local day).
+ *
+ * Uses local getHours() — matches Settings "Appear at" labels.
  */
 export function isWithinTodaysOutfitPopupWindow(
   prefs: TodaysOutfitPopupPrefs,

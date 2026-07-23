@@ -1948,6 +1948,8 @@ class ApiService {
     } | null;
     dressFor?: string | null;
     stylistId?: string;
+    /** Client local calendar day (YYYY-MM-DD). */
+    dateKey?: string;
     localItems?: Array<{
       id?: string | number;
       name?: string;
@@ -1960,6 +1962,8 @@ class ApiService {
       imageUrl?: string;
     }>;
     excludeItemIds?: Array<string | number>;
+    /** Soft anti-repeat — recently recommended/worn item ids. */
+    penalizeItemIds?: Array<string | number>;
     environment?: {
       weather?: unknown;
       occasion?: string;

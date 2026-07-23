@@ -294,6 +294,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       setOutfitPopupPrefs(next);
       // Force next Stylist open to rebuild for the new occasion / window
       await AsyncStorage.removeItem('@dripn_todays_wardrobe_outfit');
+      // Changing appear time / re-enabling should allow today's popup again
+      if (partial.enabled === true || typeof partial.appearAtHour === 'number') {
+        const y = new Date().getFullYear();
+        const m = String(new Date().getMonth() + 1).padStart(2, '0');
+        const d = String(new Date().getDate()).padStart(2, '0');
+        await AsyncStorage.removeItem(`@dripn_todays_outfit_dismissed_${y}-${m}-${d}`);
+      }
     } catch (err) {
       console.warn('[Settings] Failed to save outfit popup prefs:', err);
       Alert.alert(t('common.error') || 'Error', t('settings.couldNotSaveOutfitPopup') || 'Could not save outfit popup settings.');
