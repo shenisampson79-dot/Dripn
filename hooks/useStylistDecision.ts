@@ -12,6 +12,7 @@ import {
   DecisionAccessStatus,
   DecisionResponse,
   DecisionRequest,
+  shouldDisplayStyleRating,
 } from '@/services/DecisionService';
 import { apiService } from '@/services/ApiService';
 import {
@@ -67,6 +68,21 @@ const DECISION_TYPE_MAP: Record<string, 'sanity_check' | 'shopping' | 'what_to_w
   'event-outfit': 'event_outfit',
 };
 
+function isWardrobeGapError(error: {
+  message?: string;
+  error?: string;
+  errorCode?: string;
+}): boolean {
+  const code = error?.error || error?.errorCode || '';
+  const raw = error?.message || '';
+  return (
+    code === 'wardrobe_gap'
+    || code === 'no_wardrobe'
+    || code === 'no_outfit_possible'
+    || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
+  );
+}
+
 function formatSubmitError(
   error: {
     message?: string;
@@ -100,11 +116,7 @@ function formatSubmitError(
   if (raw.includes('Add photos or describe')) {
     return raw;
   }
-  if (
-    code === 'wardrobe_gap'
-    || code === 'no_wardrobe'
-    || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
-  ) {
+  if (isWardrobeGapError(error)) {
     return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
   }
   return raw || 'Something went wrong. Please try again.';
@@ -540,6 +552,9 @@ export function useStylistDecision({
     errorCode?: string;
     status?: number;
     maxAllowed?: number;
+    suggestions?: string[];
+    missingPieces?: string[];
+    stylistResponse?: string;
   }) => {
     console.warn('[StylistDecision] Submit failed:', {
       decisionType,
@@ -566,16 +581,54 @@ export function useStylistDecision({
           },
         ],
       );
-    } else {
-      Alert.alert(
-        t('askStylist.unableToSubmit'),
-        formatSubmitError(error, {
-          photoLimit: getUploadLimit(),
-          wardrobeLimit: getWardrobeSelectLimit(),
-          usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
-        }),
-      );
+      return;
     }
+
+    // First-class refuse / wardrobe gap — show in-flow sheet, not a fake score card
+    if (isWardrobeGapError(error)) {
+      const copy = formatSubmitError(error, {
+        photoLimit: getUploadLimit(),
+        wardrobeLimit: getWardrobeSelectLimit(),
+        usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
+      });
+      const suggestions = Array.isArray(error.suggestions) && error.suggestions.length
+        ? error.suggestions
+        : Array.isArray(error.missingPieces) && error.missingPieces.length
+          ? error.missingPieces
+          : [
+              'Tailored trousers or a smart skirt',
+              'Crisp shirt, blouse, or knit that reads polished',
+              'Closed smart shoes (oxfords, loafers, or low heels)',
+            ];
+      const gapResult: DecisionResponse = {
+        id: `gap-${Date.now()}`,
+        requestId: `request-${Date.now()}`,
+        recommendation: copy,
+        reasoning: '',
+        success: false,
+        status: (error.error || error.errorCode || 'wardrobe_gap') as DecisionResponse['status'],
+        suggestions,
+        missingPieces: suggestions,
+        styleRating: null,
+        ratingLabel: null,
+        outfitPieces: undefined,
+        outfitSummary: undefined,
+        stylistId: (user?.stylistPreferences?.selectedStylistId || 'ruby') as DecisionResponse['stylistId'],
+        timestamp: new Date().toISOString(),
+      };
+      setResponse(gapResult);
+      setStep('response');
+      return;
+    }
+
+    Alert.alert(
+      t('askStylist.unableToSubmit'),
+      formatSubmitError(error, {
+        photoLimit: getUploadLimit(),
+        wardrobeLimit: getWardrobeSelectLimit(),
+        usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
+      }),
+    );
   };
 
   const submitDecision = async (surpriseMe = false, opts?: { force?: boolean }) => {
@@ -704,10 +757,16 @@ export function useStylistDecision({
           || apiResult.response
           || '',
         reasoning: apiResult.reasoning || '',
-        styleRating: apiResult.styleRating ?? null,
-        ratingLabel: apiResult.ratingLabel ?? null,
+        styleRating: shouldDisplayStyleRating(apiResult.styleRating ?? null)
+          ? (apiResult.styleRating ?? null)
+          : null,
+        ratingLabel: shouldDisplayStyleRating(apiResult.styleRating ?? null)
+          ? (apiResult.ratingLabel ?? null)
+          : null,
+        status: 'ok',
         outfitPieces: (() => {
           // Prefer server occasion-locked pieces; local allocator is best-effort only
+          // Never merge local pieces after a server refuse (wardrobe_gap throws before here)
           const pieces = sanitizeOutfitPieces(apiResult.outfitPieces || localPieces || []);
           return pieces.length > 0 ? pieces : null;
         })(),
@@ -718,6 +777,7 @@ export function useStylistDecision({
         outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
         uploadedImages: imageUris,
         recommendedIndex: enforced.payload.recommendedIndex,
+        success: true,
       };
 
       await persistResult(result, imageUris);

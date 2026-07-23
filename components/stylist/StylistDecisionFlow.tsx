@@ -643,7 +643,75 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     const res = flow.response;
     if (!res) return null;
 
-    const uploaded = res.uploadedImages || [];
+    const stylistName = getStylistName(res.stylistId || flow.user?.stylistPreferences?.selectedStylistId || 'ruby');
+    const stylistIcon = getStylistIcon(res.stylistId);
+    const stylistGradient = getStylistGradient(res.stylistId);
+    const isGap =
+      res.status === 'wardrobe_gap'
+      || res.status === 'no_outfit_possible'
+      || res.status === 'refused'
+      || res.success === false;
+
+    if (isGap) {
+      const suggestions = res.suggestions || res.missingPieces || [];
+      return (
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
+          <View style={styles.stylistHeader}>
+            <LinearGradient colors={stylistGradient} style={styles.stylistAvatar}>
+              <Feather name={stylistIcon} size={24} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              {stylistName}
+            </ThemedText>
+          </View>
+
+          <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+            <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+              Wardrobe gap
+            </ThemedText>
+            <ThemedText type="body" style={styles.responseBody}>
+              {res.recommendation || 'I won\'t recommend a look that misses this occasion. Add a few more polished pieces and try again.'}
+            </ThemedText>
+            {suggestions.length > 0 ? (
+              <View style={{ marginTop: Spacing.md }}>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                  Pieces that would help
+                </ThemedText>
+                {suggestions.map((tip) => (
+                  <ThemedText key={tip} type="body" style={{ marginBottom: Spacing.xs }}>
+                    · {tip}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.responseActions}>
+            {renderPrimaryButton(
+              t('stylistFlow.editAndRerun'),
+              () => {
+                void flow.editAndRerun();
+              },
+            )}
+            <Pressable
+              onPress={() => navigation.navigate?.('Wardrobe')}
+              style={styles.secondaryButton}
+            >
+              <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                Open wardrobe
+              </ThemedText>
+            </Pressable>
+            <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
+              <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                {t('stylistFlow.startOver')}
+              </ThemedText>
+            </Pressable>
+          </View>
+        </Animated.View>
+      );
+    }
+
+    const uploaded = res.uploadedImages || flow.images || [];
     const winnerUri =
       res.recommendedIndex != null
       && res.recommendedIndex >= 0
@@ -652,6 +720,10 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         : uploaded.length === 1
           ? uploaded[0]
           : null;
+
+    const showRating =
+      res.styleRating != null
+      && Number(res.styleRating) > 5.4;
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -688,7 +760,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-          {res.styleRating != null ? (
+          {showRating ? (
             <View style={styles.ratingRow}>
               <ThemedText type="h2">{Number(res.styleRating).toFixed(1)}</ThemedText>
               <ThemedText type="small">/10</ThemedText>

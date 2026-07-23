@@ -239,10 +239,19 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const formatSubmitError = (error: any) => {
-    const raw = error?.message || '';
-    if (raw === 'too_many_images' || raw.includes('too_many_images')) {
+    const raw = error?.message || error?.stylistResponse || '';
+    const code = error?.error || error?.errorCode || '';
+    if (raw === 'too_many_images' || raw.includes('too_many_images') || code === 'too_many_images') {
       const limit = getUploadLimit();
       return `You can add up to ${limit} photos for this question. Remove a few and try again.`;
+    }
+    if (
+      code === 'wardrobe_gap'
+      || code === 'no_wardrobe'
+      || code === 'no_outfit_possible'
+      || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
+    ) {
+      return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
     }
     return raw || 'Something went wrong. Please try again.';
   };
@@ -1893,7 +1902,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       ) : null}
 
       <View style={styles.responseCard}>
-        {response?.styleRating != null ? (
+        {response?.styleRating != null && Number(response.styleRating) > 5.4 ? (
           <View style={styles.styleRatingRow}>
             <View style={styles.styleRatingBadge}>
               <ThemedText type="h2" style={styles.styleRatingNumber}>

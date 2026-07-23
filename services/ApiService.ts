@@ -348,6 +348,9 @@ class ApiService {
         maxAllowed?: number;
         voiceCreditsExhausted?: boolean;
         limitCopy?: unknown;
+        suggestions?: string[];
+        missingPieces?: string[];
+        stylistResponse?: string;
       };
       apiError.status = response.status;
       apiError.statusCode = response.status;
@@ -365,6 +368,15 @@ class ApiService {
       }
       if (error.limitCopy) {
         apiError.limitCopy = error.limitCopy;
+      }
+      if (Array.isArray(error.suggestions)) {
+        apiError.suggestions = error.suggestions.filter((s: unknown) => typeof s === 'string');
+      }
+      if (Array.isArray(error.missingPieces)) {
+        apiError.missingPieces = error.missingPieces.filter((s: unknown) => typeof s === 'string');
+      }
+      if (typeof error.stylistResponse === 'string') {
+        apiError.stylistResponse = error.stylistResponse;
       }
       throw apiError;
     }
@@ -1934,12 +1946,20 @@ class ApiService {
       stylistId?: string;
       decisionType?: string;
       error?: string;
+      status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | string;
       stylistResponse?: string;
       message?: string;
+      suggestions?: string[];
+      missingPieces?: string[];
       outfitImageUrl?: string;
       recommendedIndex?: number | null;
       selectedOptionIndex?: number | null;
       unifiedScore?: number | null;
+      stylistConfidence?: {
+        score?: number;
+        confidence?: number;
+        hardFails?: string[];
+      } | null;
     }>('/api/decision/check/resilient', {
       method: 'POST',
       timeout: 90000,

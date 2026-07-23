@@ -86,6 +86,7 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
   const goal = payload.goalText ? ` My notes: ${payload.goalText}.` : '';
   const score =
     payload.verdict.styleRating != null
+    && Number(payload.verdict.styleRating) > 5.4
       ? ` You scored it ${payload.verdict.styleRating}/10${payload.verdict.ratingLabel ? ` (${payload.verdict.ratingLabel})` : ''}.`
       : '';
   const verdictBit = payload.verdict.recommendation

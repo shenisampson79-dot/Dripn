@@ -37,6 +37,10 @@ export interface DecisionResponse {
   success?: boolean;
   decision?: string;
   response?: string;
+  /** Refuse / gap — never show a fake score card when set */
+  status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | string;
+  suggestions?: string[];
+  missingPieces?: string[];
   styleRating?: number | null;
   ratingLabel?: string | null;
   recommendedIndex?: number;
@@ -64,6 +68,15 @@ export interface DecisionResponse {
     color_score?: number;
     fit_score?: number;
   } | null;
+}
+
+/** Client floor — never display scores at/below occasion-fail cap. */
+export const STYLE_RATING_DISPLAY_FLOOR = 5.4;
+export const STYLE_RATING_RECOMMEND_FLOOR = 7.0;
+
+export function shouldDisplayStyleRating(rating: number | null | undefined): boolean {
+  if (rating == null || !Number.isFinite(Number(rating))) return false;
+  return Number(rating) > STYLE_RATING_DISPLAY_FLOOR;
 }
 
 export interface SecondOpinionResponse {
