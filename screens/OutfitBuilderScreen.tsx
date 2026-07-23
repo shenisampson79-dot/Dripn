@@ -370,11 +370,16 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   );
 
   useEffect(() => {
+    const mixUserProfile = {
+      stylePreference: user?.stylePreference || null,
+      lifestyle: user?.extendedPreferences?.lifestyle || user?.lifestyle || null,
+      preferredStyles: regionalContext.styleTags || user?.preferredStyles || [],
+    };
     const local = computeLocalOutfitScore(
       selectedWardrobeItems,
       regionalContext,
       user?.colorScanData?.colorSeasonType ?? null,
-      null,
+      mixUserProfile,
       {
         occasion: eventType,
         source: 'outfit_mix',
@@ -513,6 +518,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           scoreBreakdown: localScoreBreakdownRef.current || undefined,
           occasion: eventType,
           outfitIntent: (localSignalsRef.current as any)?.intent || undefined,
+          userProfile: {
+            stylePreference: user?.stylePreference || null,
+            lifestyle: (user as any)?.extendedPreferences?.lifestyle || (user as any)?.lifestyle || null,
+            preferredStyles: regionalContext.styleTags || (user as any)?.preferredStyles || [],
+          },
         });
         if (itemAnalysisRequestRef.current !== analysisRequestId) return;
         if (analysis.success && Array.isArray(analysis.itemNotes) && analysis.itemNotes.length) {
@@ -549,7 +559,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, 1100);
 
     return () => clearTimeout(timer);
-  }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry]);
+  }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry, user?.stylePreference, user?.extendedPreferences?.lifestyle]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -640,6 +650,44 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>Reset</ThemedText>
         </Pressable>
       </View>
+
+      {/* Live occasion → intent (same chips drive score + analysis) */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.liveOccasionRow}
+        style={styles.liveOccasionScroll}
+      >
+        {EVENT_TYPES.map((et) => {
+          const selected = eventType === et.value;
+          return (
+            <Pressable
+              key={et.value}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEventType(et.value);
+              }}
+              style={[
+                styles.liveOccasionChip,
+                {
+                  backgroundColor: selected ? theme.link : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                },
+              ]}
+            >
+              <ThemedText
+                type="caption"
+                style={{
+                  color: selected ? '#fff' : theme.text,
+                  fontWeight: selected ? '700' : '500',
+                  fontSize: 12,
+                }}
+              >
+                {et.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       {/* Live style score */}
       <View style={[styles.scoreBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
@@ -994,6 +1042,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     gap: Spacing.md,
+  },
+  liveOccasionScroll: {
+    marginTop: Spacing.xs,
+    marginBottom: 2,
+    maxHeight: 40,
+  },
+  liveOccasionRow: {
+    paddingHorizontal: Spacing.lg,
+    gap: 8,
+    alignItems: 'center',
+  },
+  liveOccasionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
   },
   scoreRing: {
     width: 52,

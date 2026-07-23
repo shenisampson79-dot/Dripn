@@ -4697,6 +4697,11 @@ class ApiService {
     occasion?: string;
     dressFor?: string;
     outfitIntent?: string;
+    userProfile?: {
+      stylePreference?: string | null;
+      lifestyle?: string | null;
+      preferredStyles?: string[];
+    } | null;
   }) {
     return this.request<{
       success: boolean;
