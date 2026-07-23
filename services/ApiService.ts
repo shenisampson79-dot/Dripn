@@ -1901,6 +1901,10 @@ class ApiService {
     selectedContexts?: string[];
     eventDetails?: Record<string, string>;
     selectedWardrobeIds?: Array<string | number>;
+    /** App Store storefront / billing hint for regional shop links. */
+    storeCountry?: string;
+    appStoreCountry?: string;
+    deviceCountry?: string;
     wardrobeItems?: Array<{
       id?: string | number;
       name?: string;
@@ -1919,6 +1923,30 @@ class ApiService {
     console.log('[Ask Stylist] Number of images:', images.length, 'approxKb:', approxKb, 'surpriseMe:', data.surpriseMe);
     if ((data.clientImageCount || 0) > 0 && images.length === 0) {
       throw new Error('Photos were selected but could not be attached. Please re-add them and try again.');
+    }
+
+    let storeCountry = data.storeCountry || data.appStoreCountry || undefined;
+    let deviceCountry = data.deviceCountry || undefined;
+    if (!storeCountry) {
+      try {
+        const { getAppStoreCountryCode } = await import('./AppleIAPService');
+        storeCountry = (await getAppStoreCountryCode()) || undefined;
+      } catch {
+        // Storefront optional — server falls back to billing_country / GB
+      }
+    }
+    if (!deviceCountry) {
+      try {
+        const Localization = await import('expo-localization');
+        const region = Localization.getLocales?.()?.[0]?.regionCode
+          || (Localization as { region?: string }).region
+          || null;
+        if (region && typeof region === 'string') {
+          deviceCountry = region.trim().toUpperCase() === 'UK' ? 'GB' : region.trim().toUpperCase();
+        }
+      } catch {
+        // ignore
+      }
     }
 
     return this.request<{
@@ -1957,6 +1985,10 @@ class ApiService {
       message?: string;
       suggestions?: string[];
       missingPieces?: string[];
+      market?: string;
+      retailRegion?: string;
+      retailCountry?: string;
+      retailCountrySource?: string;
       missing?: Array<{
         role?: string;
         label?: string;
@@ -1978,7 +2010,13 @@ class ApiService {
     }>('/api/decision/check/resilient', {
       method: 'POST',
       timeout: 90000,
-      body: JSON.stringify({ ...data, images }),
+      body: JSON.stringify({
+        ...data,
+        images,
+        storeCountry: storeCountry || undefined,
+        appStoreCountry: storeCountry || undefined,
+        deviceCountry: deviceCountry || undefined,
+      }),
     });
   }
 

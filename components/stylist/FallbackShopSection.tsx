@@ -27,6 +27,9 @@ export type FallbackMissingItem = {
       appleMaps?: string;
       googleMaps?: string;
     }>;
+    country?: string;
+    retailRegion?: string;
+    market?: string;
   };
 };
 
