@@ -9,6 +9,13 @@ export interface FashionRule {
   colorSwatches?: Array<{ name: string; hex: string }>;
 }
 
+/**
+ * Canonical Style Rules corpus (105). Product source of truth for Style Rules UI
+ * and Dripn-Server AI (synced via scripts/sync-fashion-rules-corpus.mjs →
+ * data/fashionRulesCorpus.json). Keep ids 1–105 stable; server Chat / Decisions /
+ * Outfit Mix cite these #ids — do not invent a third RULE 1–20 list.
+ */
+
 export interface CategoryInfo {
   name: string;
   count: number;
