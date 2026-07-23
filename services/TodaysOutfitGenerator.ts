@@ -156,11 +156,10 @@ export async function getRecentTodaysOutfitItemIds(options?: {
 function priorOutfitsFromHistory(
   history: TodaysOutfitHistoryEntry[],
   wardrobeItems: WardrobeItem[],
-  today: string,
+  _today: string,
 ): WardrobeItem[][] {
   const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
   return history
-    .filter((e) => e.dateKey !== today)
     .slice(0, TODAYS_OUTFIT_ANTI_REPEAT_DAYS)
     .map((e) =>
       e.itemIds
@@ -795,7 +794,11 @@ export async function generateTodaysWardrobeOutfit(params: {
   const today = dateKey();
   const history = await loadTodaysOutfitHistory();
   const priorOutfits = priorOutfitsFromHistory(history, wardrobeItems, today);
-  const penalizeItemIds = await getRecentTodaysOutfitItemIds({ excludeToday: true });
+  // Include prior same-day recommendation when regenerating (Settings clear / forceRefresh)
+  // so stuck users get a new look immediately, not only after midnight.
+  const penalizeItemIds = await getRecentTodaysOutfitItemIds({
+    excludeToday: false,
+  });
 
   const started = Date.now();
   try {
