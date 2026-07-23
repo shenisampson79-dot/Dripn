@@ -23,8 +23,8 @@ console.log('=== Client wardrobe duplicate match ===\n');
 
 {
   const score = attributeSimilarity(
-    { name: 'Plain Black Tee', category: 'tops', color: 'black' },
-    { name: 'Black Graphic Band Tee', category: 'tops', color: 'black' },
+    { name: 'Plain Black Tee', category: 'tops', color: 'black', subcategory: 't-shirt' },
+    { name: 'Black Graphic Band Tee', category: 'tops', color: 'black', subcategory: 't-shirt' },
   );
   assert.ok(score < 0.82, `two black tees should not soft-block (got ${score})`);
   console.log('✓ two black tees not blocked');

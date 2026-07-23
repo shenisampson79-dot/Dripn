@@ -88,12 +88,7 @@ export function attributeSimilarity(
 ): number {
   if (!categoriesCompatible(candidate.category, existing.category)) return 0;
 
-  const nameSim = Math.max(
-    jaccard(candidate.name, existing.name),
-    jaccard(candidate.subcategory, existing.subcategory),
-    jaccard(candidate.name, existing.subcategory),
-    jaccard(candidate.subcategory, existing.name),
-  );
+  const nameSim = jaccard(candidate.name, existing.name);
 
   const candColor = normalizeColor(candidate.color);
   const existColor = normalizeColor(existing.color);
@@ -130,8 +125,9 @@ export function attributeSimilarity(
   if (sameColor) score += 0.15;
   if (sameBrand) score += 0.12;
 
-  if (sameColor && nameSim < 0.35 && !sameBrand && !sameSub) {
-    score = Math.min(score, 0.72);
+  // Same colour + shared subtype alone should not soft-block distinct items (two black tees)
+  if (sameColor && nameSim < 0.45 && !sameBrand) {
+    score = Math.min(score, 0.78);
   }
 
   return Math.max(0, Math.min(1, score));
