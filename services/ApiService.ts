@@ -2013,6 +2013,13 @@ class ApiService {
       };
       why?: string[];
       scores?: Record<string, unknown> | null;
+      diversity?: {
+        historyCount?: number;
+        rejectedSimilar?: number;
+        wardrobeLocked?: boolean;
+        hardExcludeApplied?: boolean;
+        pickedItemIds?: string[];
+      } | null;
       error?: string;
       message?: string;
     }>('/api/stylist/generate', {

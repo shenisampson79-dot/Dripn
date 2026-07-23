@@ -556,8 +556,17 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const openTodaysOutfit = () => {
     void traceTodaysOutfit('trigger', { source: 'chip_tap' });
     if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
-      setDismissed(false);
-      setVisible(true);
+      // Still re-validate cache diversity — stuck same look must regenerate.
+      void (async () => {
+        const profile = await onboardingProfileService.getProfile();
+        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+        if (cached && cached.outfit.id === outfit.id) {
+          setDismissed(false);
+          setVisible(true);
+          return;
+        }
+        void load(true);
+      })();
       return;
     }
     if (!hasPaidTodaysOutfitAccess(user?.subscriptionTier)) {
@@ -765,6 +774,14 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                     style={[styles.reason, { color: theme.tabIconDefault }]}
                   >
                     {outfit.stylistMessage}
+                  </ThemedText>
+                ) : null}
+                {outfit?.diversity?.wardrobeLocked ? (
+                  <ThemedText
+                    type="small"
+                    style={[styles.reason, { color: theme.tabIconDefault, marginTop: 6 }]}
+                  >
+                    Limited wardrobe variety — add another bottom or shoes for more daily change.
                   </ThemedText>
                 ) : null}
               </ScrollView>

@@ -36,6 +36,7 @@ import {
 import { apiService } from '@/services/ApiService';
 import {
   countTrioChanges,
+  diversityBanBottomAndShoes,
   diversityExcludeIdsFromHistory,
   isTooSimilar,
   TODAY_DIVERSITY_HISTORY,
@@ -57,6 +58,15 @@ export type OutfitUserContext = {
   stylistId?: string;
 };
 
+export type TodaysOutfitDiversityMeta = {
+  historyCount: number;
+  rejectedSimilar?: number;
+  wardrobeLocked?: boolean;
+  cacheHit?: boolean;
+  forceRefresh?: boolean;
+  pickedItemIds?: string[];
+};
+
 export type WardrobeTodaysOutfit = {
   /** Stable id for button actions — dateKey + sorted item ids. */
   id: string;
@@ -75,6 +85,7 @@ export type WardrobeTodaysOutfit = {
   why?: string[];
   /** true when built via POST /api/stylist/generate; false for offline fallback. */
   fromServer?: boolean;
+  diversity?: TodaysOutfitDiversityMeta;
 };
 
 export type TodaysOutfitFallbackTier = 'strict' | 'relaxed' | 'minimal' | 'emergency';
@@ -89,7 +100,17 @@ export const TODAYS_OUTFIT_OFFLINE_FALLBACK = true;
 
 const STORAGE_KEY = '@dripn_todays_wardrobe_outfit';
 const HISTORY_KEY = '@dripn_todays_outfit_history';
+/** Last non-today recommendation kept so day-rollover / OTA can seed priorOutfits. */
+const PREVIOUS_KEY = '@dripn_todays_wardrobe_outfit_previous';
+/** One-shot: clear stuck same-day cache after hard-diversity cache-bust ship. */
+const DIVERSITY_BUST_KEY = '@dripn_todays_diversity_bust_v3';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Loud diversity diagnostics — always on (user already frustrated by silent repeats). */
+function logDiversity(tag: string, detail: Record<string, unknown>): void {
+  console.warn(`[TodaysOutfit:diversity:${tag}]`, detail);
+  void traceTodaysOutfit('generate', { diversityTag: tag, ...detail });
+}
 
 /** Local calendar day — must match dismiss keys and user-facing “today”. */
 export function dateKey(now: Date = new Date()) {
@@ -115,21 +136,132 @@ async function loadTodaysOutfitHistory(): Promise<TodaysOutfitHistoryEntry[]> {
   }
 }
 
+async function persistHistory(entries: TodaysOutfitHistoryEntry[]): Promise<void> {
+  const next = entries
+    .filter((e) => e && typeof e.dateKey === 'string' && Array.isArray(e.itemIds) && e.itemIds.length)
+    .slice(0, Math.max(TODAYS_OUTFIT_ANTI_REPEAT_DAYS * 2, 14));
+  await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+}
+
+async function mergeHistoryEntry(entry: TodaysOutfitHistoryEntry): Promise<void> {
+  const itemIds = (entry.itemIds || []).map(String).filter(Boolean);
+  if (!itemIds.length || !entry.dateKey) return;
+  try {
+    const existing = await loadTodaysOutfitHistory();
+    await persistHistory([
+      { dateKey: entry.dateKey, itemIds },
+      ...existing.filter((e) => e.dateKey !== entry.dateKey),
+    ]);
+  } catch {
+    // non-fatal
+  }
+}
+
+async function loadRawStoredOutfit(): Promise<WardrobeTodaysOutfit | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WardrobeTodaysOutfit;
+    if (!parsed?.itemIds?.length) return null;
+    return withStableId(parsed);
+  } catch {
+    return null;
+  }
+}
+
+async function loadPreviousOutfit(): Promise<WardrobeTodaysOutfit | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PREVIOUS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WardrobeTodaysOutfit;
+    if (!parsed?.itemIds?.length) return null;
+    return withStableId(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function yesterdayDateKey(now: Date = new Date()): string {
+  const y = new Date(now);
+  y.setHours(12, 0, 0, 0);
+  y.setDate(y.getDate() - 1);
+  return dateKey(y);
+}
+
+/**
+ * Seed history from previous-day cache / previous key so first request after OTA
+ * still has priorOutfits for hard diversity (empty history was the silent fail).
+ */
+export async function seedTodaysOutfitHistoryFromStorage(): Promise<{
+  historyCount: number;
+  seededFrom: string[];
+}> {
+  const today = dateKey();
+  const seededFrom: string[] = [];
+  let history = await loadTodaysOutfitHistory();
+
+  const ensurePrior = async (source: string, outfit: WardrobeTodaysOutfit | null) => {
+    if (!outfit?.itemIds?.length) return;
+    const day = outfit.dateKey || today;
+    const entryDay = day < today ? day : yesterdayDateKey();
+    const sig = [...outfit.itemIds].map(String).sort().join('|');
+    const hasPriorDay = history.some((e) => e.dateKey !== today);
+    const dup = history.some(
+      (e) => [...e.itemIds].map(String).sort().join('|') === sig && e.dateKey !== today,
+    );
+    if (dup || (hasPriorDay && history.some((e) => e.dateKey === entryDay))) return;
+    await mergeHistoryEntry({ dateKey: entryDay, itemIds: outfit.itemIds.map(String) });
+    seededFrom.push(source);
+    history = await loadTodaysOutfitHistory();
+  };
+
+  await ensurePrior('previous_key', await loadPreviousOutfit());
+
+  const rawStored = await loadRawStoredOutfit();
+  if (rawStored?.dateKey && rawStored.dateKey < today) {
+    await ensurePrior('stale_today_cache', rawStored);
+  }
+
+  // Stuck same-day cache after OTA: treat as yesterday so hard filter has a prior.
+  if (!history.some((e) => e.dateKey !== today) && rawStored?.itemIds?.length) {
+    await ensurePrior('today_cache_as_yesterday', rawStored);
+  }
+
+  history = await loadTodaysOutfitHistory();
+  const historyCount = history.filter((e) => e.dateKey !== today).length;
+  logDiversity('seed_history', { dateKey: today, historyCount, seededFrom });
+  return { historyCount, seededFrom };
+}
+
 async function rememberTodaysOutfitRecommendation(
   outfit: WardrobeTodaysOutfit,
 ): Promise<void> {
   const today = outfit.dateKey || dateKey();
   const itemIds = (outfit.itemIds || []).map(String).filter(Boolean);
   if (!itemIds.length) return;
+  await mergeHistoryEntry({ dateKey: today, itemIds });
+}
+
+export async function clearTodaysOutfitCache(): Promise<void> {
   try {
-    const existing = await loadTodaysOutfitHistory();
-    const next = [
-      { dateKey: today, itemIds },
-      ...existing.filter((e) => e.dateKey !== today),
-    ].slice(0, Math.max(TODAYS_OUTFIT_ANTI_REPEAT_DAYS * 2, 14));
-    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    const raw = await loadRawStoredOutfit();
+    if (raw?.itemIds?.length) {
+      await AsyncStorage.setItem(PREVIOUS_KEY, JSON.stringify(raw));
+      const priorDay =
+        raw.dateKey && raw.dateKey < dateKey() ? raw.dateKey : yesterdayDateKey();
+      await mergeHistoryEntry({ dateKey: priorDay, itemIds: raw.itemIds.map(String) });
+    }
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    logDiversity('clear_cache', {
+      dateKey: dateKey(),
+      clearedItemIds: raw?.itemIds || [],
+    });
   } catch {
-    // non-fatal
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -150,6 +282,7 @@ export async function getRecentTodaysOutfitItemIds(options?: {
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffKey = dateKey(cutoff);
 
+  await seedTodaysOutfitHistoryFromStorage();
   const history = await loadTodaysOutfitHistory();
   const ids = new Set<string>();
   for (const entry of history) {
@@ -380,6 +513,7 @@ function generateLocalTiered(params: {
 
   const hardExcludeRounds: string[][] = [
     [],
+    diversityBanBottomAndShoes(priorOutfits),
     diversityExcludeIdsFromHistory(priorOutfits),
   ];
 
@@ -594,6 +728,22 @@ export async function loadStoredTodaysWardrobeOutfit(): Promise<WardrobeTodaysOu
 
 export async function storeTodaysWardrobeOutfit(outfit: WardrobeTodaysOutfit): Promise<void> {
   const stable = withStableId(outfit);
+  try {
+    const prev = await loadRawStoredOutfit();
+    if (
+      prev?.itemIds?.length
+      && prev.dateKey
+      && prev.dateKey !== stable.dateKey
+    ) {
+      await AsyncStorage.setItem(PREVIOUS_KEY, JSON.stringify(prev));
+      await mergeHistoryEntry({
+        dateKey: prev.dateKey,
+        itemIds: prev.itemIds.map(String),
+      });
+    }
+  } catch {
+    // non-fatal
+  }
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stable));
   await rememberTodaysOutfitRecommendation(stable);
 }
@@ -679,6 +829,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
   penalizeItemIds?: string[];
   priorOutfits?: string[][];
   dateKey?: string;
+  excludeItemIds?: string[];
 }): Promise<{ outfit: WardrobeTodaysOutfit; items: WardrobeItem[] } | null> {
   try {
     const today = params.dateKey || dateKey();
@@ -701,6 +852,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       dateKey: today,
       penalizeItemIds: params.penalizeItemIds || [],
       priorOutfits: params.priorOutfits || [],
+      excludeItemIds: params.excludeItemIds || [],
       weather: params.weather
         ? {
             temperature: params.weather.temperature,
@@ -733,6 +885,7 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       return null;
     }
 
+    const diversityMeta = (result as { diversity?: TodaysOutfitDiversityMeta }).diversity;
     const outfit = buildOutfitFromServer({
       itemIds,
       items,
@@ -745,6 +898,13 @@ async function tryGenerateTodaysOutfitFromServer(params: {
       serverId: result.outfit.id,
       dateKeyOverride: today,
     });
+    if (diversityMeta) {
+      outfit.diversity = {
+        ...diversityMeta,
+        pickedItemIds: itemIds,
+        cacheHit: false,
+      };
+    }
 
     return { outfit, items };
   } catch (error) {
@@ -762,7 +922,10 @@ export async function resolveCachedTodaysOutfit(params: {
   user?: UserProfile | null;
 }): Promise<{ outfit: WardrobeTodaysOutfit; items: WardrobeItem[] } | null> {
   const stored = await loadStoredTodaysWardrobeOutfit();
-  if (!stored) return null;
+  if (!stored) {
+    logDiversity('cache_miss', { dateKey: dateKey(), reason: 'no_store' });
+    return null;
+  }
 
   const popupPrefs = await getTodaysOutfitPopupPrefs();
   const expected = resolveTodaysOccasion(
@@ -779,17 +942,62 @@ export async function resolveCachedTodaysOutfit(params: {
   );
 
   if (stored.dressFor && stored.dressFor !== expected.dressFor) {
+    logDiversity('cache_miss', { dateKey: stored.dateKey, reason: 'prefs_changed' });
     return null;
   }
 
   const items = hydrateItems(stored.itemIds, params.wardrobeItems);
-  if (items.length < MIN_OUTFIT_ITEMS) return null;
+  if (items.length < MIN_OUTFIT_ITEMS) {
+    logDiversity('cache_miss', { dateKey: stored.dateKey, reason: 'hydrate_short' });
+    return null;
+  }
+
+  // Diversity gate: never serve a cached look that is too similar to history.
+  const seeded = await seedTodaysOutfitHistoryFromStorage();
+  const history = await loadTodaysOutfitHistory();
+  const today = dateKey();
+  const priorOutfits = priorOutfitsFromHistory(history, params.wardrobeItems, today);
+  const tooSimilar = priorOutfits.some((h) => isTooSimilar(items, h));
+
+  // One-shot OTA bust: stuck users had empty history → same cache forever.
+  let migrationBust = false;
+  try {
+    const busted = await AsyncStorage.getItem(DIVERSITY_BUST_KEY);
+    if (!busted) {
+      await AsyncStorage.setItem(DIVERSITY_BUST_KEY, '1');
+      migrationBust = true;
+    }
+  } catch {
+    // ignore
+  }
+
+  if (tooSimilar || migrationBust) {
+    logDiversity('cache_reject', {
+      dateKey: today,
+      historyCount: priorOutfits.length,
+      rejectedSimilar: tooSimilar ? 1 : 0,
+      migrationBust,
+      seededFrom: seeded.seededFrom,
+      pickedItemIds: stored.itemIds,
+      cacheHit: false,
+    });
+    await clearTodaysOutfitCache();
+    return null;
+  }
 
   const honest = reconcileHonestOccasion(
     items,
     expected.occasionType,
     normalizeAllocatorOccasion(expected.occasionType),
   );
+
+  logDiversity('cache_hit', {
+    dateKey: today,
+    historyCount: priorOutfits.length,
+    rejectedSimilar: 0,
+    pickedItemIds: stored.itemIds,
+    cacheHit: true,
+  });
 
   return {
     outfit: withStableId({
@@ -799,6 +1007,12 @@ export async function resolveCachedTodaysOutfit(params: {
       occasionType: honest.occasionType,
       dressFor: dressForFromHonestOccasion(honest.occasionType, expected.dressFor),
       vibeLabel: stored.vibeLabel || honest.occasionLabel,
+      diversity: {
+        historyCount: priorOutfits.length,
+        rejectedSimilar: 0,
+        cacheHit: true,
+        pickedItemIds: stored.itemIds.map(String),
+      },
     }),
     items,
   };
@@ -844,6 +1058,10 @@ export async function generateTodaysWardrobeOutfit(params: {
 
   await traceTodaysOutfit('trigger', { forceRefresh: Boolean(forceRefresh) });
 
+  if (forceRefresh) {
+    await clearTodaysOutfitCache();
+  }
+
   if (!forceRefresh) {
     const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
     if (cached) {
@@ -878,18 +1096,32 @@ export async function generateTodaysWardrobeOutfit(params: {
   );
 
   const today = dateKey();
+  const seeded = await seedTodaysOutfitHistoryFromStorage();
   const history = await loadTodaysOutfitHistory();
   const priorOutfits = priorOutfitsFromHistory(history, wardrobeItems, today);
   const priorOutfitIdLists = priorOutfitIdListsFromHistory(history, today);
-  // Include prior same-day recommendation when regenerating (Settings clear / forceRefresh)
-  // so stuck users get a new look immediately, not only after midnight.
+  // Include prior same-day recommendation when regenerating so stuck users get a new look.
   const penalizeItemIds = await getRecentTodaysOutfitItemIds({
     excludeToday: false,
+  });
+  // Also ban last outfit's ids explicitly on force
+  if (forceRefresh && priorOutfitIdLists[0]?.length) {
+    for (const id of priorOutfitIdLists[0]) {
+      if (!penalizeItemIds.includes(String(id))) penalizeItemIds.push(String(id));
+    }
+  }
+
+  logDiversity('generate_start', {
+    dateKey: today,
+    historyCount: priorOutfits.length,
+    penalizeCount: penalizeItemIds.length,
+    forceRefresh: Boolean(forceRefresh),
+    seededFrom: seeded.seededFrom,
+    cacheHit: false,
   });
 
   const started = Date.now();
   try {
-    // Authority: shared server stylist engine (intent: today). Weather goes in context.environment.
     const weather = await Promise.race([
       fetchWeatherSnapshot(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
@@ -905,17 +1137,47 @@ export async function generateTodaysWardrobeOutfit(params: {
       penalizeItemIds,
       priorOutfits: priorOutfitIdLists,
       dateKey: today,
+      excludeItemIds: [
+        ...diversityBanBottomAndShoes(priorOutfits),
+      ],
     });
 
     if (fromServer) {
+      const stillSimilar = priorOutfits.some((h) => isTooSimilar(fromServer.items, h));
       const outfit = withStableId({
         ...fromServer.outfit,
         dateKey: today,
         weatherTemp: weather?.temperature,
         weatherCondition: weather?.condition,
         weatherLocation: weather?.location,
+        diversity: {
+          historyCount: priorOutfits.length,
+          rejectedSimilar: stillSimilar ? 1 : 0,
+          wardrobeLocked: stillSimilar,
+          forceRefresh: Boolean(forceRefresh),
+          cacheHit: false,
+          pickedItemIds: fromServer.outfit.itemIds.map(String),
+        },
+        why: [
+          ...(fromServer.outfit.why || []),
+          ...(stillSimilar
+            ? ['Your wardrobe only supports a look similar to a recent day — try adding another bottom or pair of shoes.']
+            : []),
+        ],
       });
+      if (stillSimilar) {
+        outfit.stylistMessage = `${outfit.stylistMessage || 'Here’s today’s look.'} (Limited wardrobe variety — this is close to a recent day.)`;
+      }
       await storeTodaysWardrobeOutfit(outfit);
+      logDiversity('generate_server', {
+        dateKey: today,
+        historyCount: priorOutfits.length,
+        rejectedSimilar: stillSimilar ? 1 : 0,
+        wardrobeLocked: stillSimilar,
+        pickedItemIds: outfit.itemIds,
+        cacheHit: false,
+        elapsedMs: Date.now() - started,
+      });
       await traceTodaysOutfit('generate', {
         id: outfit.id,
         dateKey: today,
@@ -937,7 +1199,6 @@ export async function generateTodaysWardrobeOutfit(params: {
       throw new Error('Could not build today’s outfit from the stylist server.');
     }
 
-    // Thin offline fallback for UX when network/auth fails — not a parallel product path.
     const generated = generateLocalTiered({
       wardrobeItems,
       occasionType,
@@ -951,8 +1212,39 @@ export async function generateTodaysWardrobeOutfit(params: {
       throw new Error('Could not build today’s outfit from your wardrobe.');
     }
 
-    const outfit = buildOutfitFromLocal(generated, occasionType, dressFor, dayLabel);
+    const stillSimilar = priorOutfits.some((h) => isTooSimilar(generated.items, h));
+    const outfit = withStableId({
+      ...buildOutfitFromLocal(generated, occasionType, dressFor, dayLabel),
+      diversity: {
+        historyCount: priorOutfits.length,
+        rejectedSimilar: stillSimilar ? 1 : 0,
+        wardrobeLocked: stillSimilar,
+        forceRefresh: Boolean(forceRefresh),
+        cacheHit: false,
+        pickedItemIds: generated.items.map((i) => String(i.id)),
+      },
+      why: [
+        'Offline fallback — local allocator (server authority unavailable).',
+        `Tier: ${generated.tier}.`,
+        ...(stillSimilar
+          ? ['Wardrobe too small for a fully distinct look vs recent days.']
+          : []),
+      ],
+    });
+    if (stillSimilar) {
+      outfit.stylistMessage = `${outfit.stylistMessage || 'Here’s today’s look.'} (Limited wardrobe variety — this is close to a recent day.)`;
+    }
     await storeTodaysWardrobeOutfit(outfit);
+
+    logDiversity('generate_offline', {
+      dateKey: outfit.dateKey,
+      historyCount: priorOutfits.length,
+      rejectedSimilar: stillSimilar ? 1 : 0,
+      wardrobeLocked: stillSimilar,
+      pickedItemIds: outfit.itemIds,
+      cacheHit: false,
+      tier: generated.tier,
+    });
 
     await traceTodaysOutfit('generate', {
       id: outfit.id,

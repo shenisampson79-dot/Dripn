@@ -234,13 +234,25 @@ export function insertTopKCandidate(
   return heap;
 }
 
-/** Item ids to hard-exclude so offline retries break yesterday's base look. */
+/**
+ * Item ids to hard-exclude so retries break yesterday's base look.
+ * Ban top + bottom + footwear (not just jacket) — cream+black+shoes must not persist.
+ */
 export function diversityExcludeIdsFromHistory(
   historyOutfits: WardrobeItem[][],
 ): string[] {
   const yesterday = historyOutfits?.[0];
   if (!yesterday?.length) return [];
   const slots = coreSlotIds(yesterday);
-  // Force at least top + one of bottom/footwear out so jacket-only can't win
-  return [slots.top, slots.bottom].filter(Boolean) as string[];
+  return [slots.top, slots.bottom, slots.footwear].filter(Boolean) as string[];
+}
+
+/** Yesterday's bottom + shoes only — aggressive day-2 ban when top alternatives are scarce. */
+export function diversityBanBottomAndShoes(
+  historyOutfits: WardrobeItem[][],
+): string[] {
+  const yesterday = historyOutfits?.[0];
+  if (!yesterday?.length) return [];
+  const slots = coreSlotIds(yesterday);
+  return [slots.bottom, slots.footwear].filter(Boolean) as string[];
 }

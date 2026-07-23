@@ -11,6 +11,8 @@ import { allocateSingleDayOutfit } from '../utils/wardrobeAllocationEngine';
 import {
   countTrioChanges,
   daySeededPick,
+  diversityBanBottomAndShoes,
+  diversityExcludeIdsFromHistory,
   hashDaySeed,
   isTooSimilar,
 } from '../utils/outfitDiversityHard';
@@ -85,6 +87,17 @@ assert(cardSource.includes('day_rollover') || cardSource.includes('ensureFreshFo
 assert(cardSource.includes('auto_popup') || cardSource.includes('maybeAutoOpenPopup'), 'auto popup required');
 assert(prefsSource.includes('getHours()'), 'popup window uses local hours');
 assert(TODAYS_OUTFIT_ANTI_REPEAT_DAYS >= 5, 'anti-repeat window should cover several days');
+assert(
+  generatorSource.includes('seedTodaysOutfitHistoryFromStorage')
+    || generatorSource.includes('DIVERSITY_BUST_KEY'),
+  'history seed / diversity cache bust required',
+);
+assert(
+  generatorSource.includes('clearTodaysOutfitCache')
+    || generatorSource.includes('forceRefresh'),
+  'force clear cache on regenerate required',
+);
+assert(diversitySource.includes('diversityBanBottomAndShoes'), 'bottom+shoes ban required');
 assert(diversitySource.includes('isTooSimilar'), 'hard isTooSimilar required');
 assert(diversitySource.includes('pickDiverseFromTopK'), 'top-K pick required');
 
@@ -101,10 +114,22 @@ const bag = item({ id: 'bag', category: 'accessories', name: 'Tote', color: 'cre
 const outfitA = [jacket, teeA, pantsA, bag, shoesA];
 const outfitAPrime = [blazer, teeA, pantsA, bag, shoesB];
 const outfitB = [blazer, teeB, pantsB, bag, shoesB];
+// Outer-only swap keeping cream + black + shoes — must be rejected
+const outfitOuterOnly = [blazer, teeA, pantsA, bag, shoesA];
 
 assert(isTooSimilar(outfitA, outfitAPrime) === true, 'jacket-swap A′ must be REJECTED');
+assert(isTooSimilar(outfitA, outfitOuterOnly) === true, 'outer-only swap keeping cream+black+shoes must be REJECTED');
 assert(isTooSimilar(outfitA, outfitB) === false, 'different top+bottom must be ACCEPTED');
 assert(countTrioChanges(outfitB, outfitA) >= 2, 'B changes ≥2 of trio');
+assert(countTrioChanges(outfitOuterOnly, outfitA) === 0, 'outer-only changes 0 of trio');
+
+const banned = diversityBanBottomAndShoes([outfitA]);
+assert(banned.includes('pants-a') && banned.includes('shoes-a'), 'must ban yesterday bottom+shoes');
+const trioBan = diversityExcludeIdsFromHistory([outfitA]);
+assert(
+  trioBan.includes('tee-a') && trioBan.includes('pants-a') && trioBan.includes('shoes-a'),
+  'full trio exclude must ban top+bottom+shoes',
+);
 
 assert(hashDaySeed('2026-07-23') === hashDaySeed('2026-07-23'), 'day seed stable');
 assert(hashDaySeed('2026-07-23') !== hashDaySeed('2026-07-24'), 'day seed differs by day');
@@ -126,6 +151,7 @@ const day2 = allocateSingleDayOutfit({
   wardrobe,
   occasionType: 'work_outfit',
   priorOutfits: prior,
+  excludeItemIds: diversityBanBottomAndShoes(prior),
 });
 assert(day2.ok === true, 'day2 allocation must succeed');
 
@@ -135,6 +161,15 @@ if (day1.ok && day2.ok) {
   assert(
     !sameExact,
     'priorOutfits soft anti-repeat should change the outfit when alternatives exist',
+  );
+  assert(
+    isTooSimilar(day2.items, day1.items) === false
+      || countTrioChanges(day2.items, day1.items) >= 2,
+    'day2 must not keep cream+black+shoes with only outer swap',
+  );
+  assert(
+    !day2.itemIds.includes('pants-a') || !day2.itemIds.includes('shoes-a'),
+    'day2 must not keep both yesterday bottom AND shoes',
   );
 }
 
