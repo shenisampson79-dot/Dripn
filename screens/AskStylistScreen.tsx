@@ -249,11 +249,104 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       code === 'wardrobe_gap'
       || code === 'no_wardrobe'
       || code === 'no_outfit_possible'
+      || code === 'refused'
+      || code === 'clash_blocked'
       || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
     ) {
       return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
     }
+    if (
+      code === 'system_error'
+      || code === 'surprise_failed'
+      || code === 'DECISION_FAILED'
+      || error?.status === 503
+    ) {
+      return raw || 'Something went wrong styling that look. Please try again in a moment.';
+    }
     return raw || 'Something went wrong. Please try again.';
+  };
+
+  const isWardrobeGapError = (error: any) => {
+    const code = error?.error || error?.errorCode || '';
+    const raw = error?.message || error?.stylistResponse || '';
+    return (
+      code === 'wardrobe_gap'
+      || code === 'no_wardrobe'
+      || code === 'no_outfit_possible'
+      || code === 'refused'
+      || code === 'clash_blocked'
+      || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
+    );
+  };
+
+  const isSystemRetryError = (error: any) => {
+    const code = error?.error || error?.errorCode || '';
+    return (
+      code === 'system_error'
+      || code === 'surprise_failed'
+      || code === 'DECISION_FAILED'
+      || error?.status === 503
+    );
+  };
+
+  const handleDecisionSubmitError = async (error: any) => {
+    if (error.limitCopy || error.message?.includes('your decision for today') || error.status === 429) {
+      await checkAccess({ showPaywallIfBlocked: true });
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
+        [
+          { text: t('common.maybeLater'), style: 'cancel' },
+          {
+            text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
+            onPress: openSubscriptionFromPaywall,
+          },
+        ],
+      );
+      return;
+    }
+
+    if (isWardrobeGapError(error)) {
+      const suggestions = Array.isArray(error.suggestions) && error.suggestions.length
+        ? error.suggestions
+        : Array.isArray(error.missingPieces) && error.missingPieces.length
+          ? error.missingPieces
+          : [
+              'Tailored trousers or a smart skirt',
+              'Crisp shirt, blouse, or knit that reads polished',
+              'Closed smart shoes (oxfords, loafers, or low heels)',
+            ];
+      const gapResult: DecisionResponse = {
+        id: `gap-${Date.now()}`,
+        requestId: `request-${Date.now()}`,
+        recommendation: formatSubmitError(error),
+        reasoning: '',
+        success: false,
+        status: (error.error || error.errorCode || 'wardrobe_gap') as DecisionResponse['status'],
+        suggestions,
+        missingPieces: suggestions,
+        styleRating: null,
+        ratingLabel: null,
+        outfitPieces: undefined,
+        outfitSummary: undefined,
+        stylistId: (user?.stylistPreferences?.selectedStylistId || 'ruby') as DecisionResponse['stylistId'],
+        timestamp: new Date().toISOString(),
+        uploadedImages: images,
+      };
+      setResponse(gapResult);
+      setStep('response');
+      return;
+    }
+
+    if (isSystemRetryError(error)) {
+      Alert.alert(
+        t('common.tryAgain') || 'Try again',
+        formatSubmitError(error),
+      );
+      return;
+    }
+
+    Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error));
   };
 
   const canUploadThirdShoppingOption = () => getUploadLimit() >= 3;
@@ -558,25 +651,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       setResponse(result);
       setStep('response');
     } catch (error: any) {
-      if (error.limitCopy || error.message?.includes("your decision for today") || error.status === 429) {
-        await checkAccess({ showPaywallIfBlocked: true });
-        Alert.alert(
-          t('askStylist.unableToSubmit'),
-          error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
-          [
-            {
-              text: t('common.maybeLater'),
-              style: 'cancel',
-            },
-            {
-              text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
-              onPress: openSubscriptionFromPaywall,
-            },
-          ]
-        );
-      } else {
-        Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error));
-      }
+      await handleDecisionSubmitError(error);
     } finally {
       setIsLoading(false);
     }
@@ -822,25 +897,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       setResponse(result);
       setStep('response');
     } catch (error: any) {
-      if (error.limitCopy || error.message?.includes("your decision for today") || error.status === 429) {
-        await checkAccess({ showPaywallIfBlocked: true });
-        Alert.alert(
-          t('askStylist.unableToSubmit'),
-          error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
-          [
-            {
-              text: t('common.maybeLater'),
-              style: 'cancel',
-            },
-            {
-              text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
-              onPress: openSubscriptionFromPaywall,
-            },
-          ]
-        );
-      } else {
-        Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error));
-      }
+      await handleDecisionSubmitError(error);
     } finally {
       setIsLoading(false);
     }
@@ -1840,7 +1897,70 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     });
   };
 
-  const renderResponse = () => (
+  const renderResponse = () => {
+    const isGap =
+      response?.status === 'wardrobe_gap'
+      || response?.status === 'no_outfit_possible'
+      || response?.status === 'refused'
+      || response?.status === 'clash_blocked'
+      || response?.status === 'no_wardrobe'
+      || response?.success === false;
+
+    if (isGap) {
+      const suggestions = response?.suggestions || response?.missingPieces || [];
+      return (
+        <View style={styles.stepContent}>
+          <View style={styles.stylistAvatarContainer}>
+            <LinearGradient colors={getStylistGradient()} style={styles.stylistAvatar}>
+              <Feather name={getStylistIcon() as any} size={28} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="small" style={styles.stylistName}>
+              {getStylistName()}
+            </ThemedText>
+          </View>
+
+          <View style={styles.responseCard}>
+            <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+              Wardrobe gap
+            </ThemedText>
+            <ThemedText type="body">
+              {response?.recommendation || 'Your wardrobe needs a few more occasion-ready pieces for this request.'}
+            </ThemedText>
+            {suggestions.length > 0 ? (
+              <View style={{ marginTop: Spacing.md }}>
+                <ThemedText type="small" style={{ marginBottom: Spacing.xs }}>
+                  Pieces that would help
+                </ThemedText>
+                {suggestions.map((tip) => (
+                  <ThemedText key={tip} type="body" style={{ marginBottom: Spacing.xs }}>
+                    · {tip}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
+          </View>
+
+          <Pressable
+            onPress={() => {
+              setResponse(null);
+              setStep(selectedType === 'event-outfit' ? 'context' : 'upload');
+            }}
+            style={styles.submitButton}
+          >
+            <LinearGradient colors={getStylistGradient()} style={styles.submitButtonGradient}>
+              <ThemedText type="body" style={styles.submitButtonText}>
+                Try again
+              </ThemedText>
+            </LinearGradient>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('Wardrobe' as never)} style={styles.backLink}>
+            <ThemedText style={styles.backLinkText}>Open wardrobe</ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
     <View style={styles.stepContent}>
       <View style={styles.stylistAvatarContainer}>
         <LinearGradient
@@ -1980,7 +2100,8 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         </Pressable>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>

@@ -335,21 +335,21 @@ function normalizeClashArg(
   regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): { regional: RegionalStyleContext | null; options: ClashDetectOptions; occasion: string | null } {
   if (!regionalOrOptions) {
-    return { regional: null, options: {}, occasion: null };
+    return { regional: null, options: { occasion: 'casual' }, occasion: 'casual' };
   }
   if (isRegionalContext(regionalOrOptions)) {
     return {
       regional: regionalOrOptions,
-      options: { regional: regionalOrOptions },
-      occasion: null,
+      options: { regional: regionalOrOptions, occasion: 'casual' },
+      occasion: 'casual',
     };
   }
   const opts = regionalOrOptions as ClashDetectOptions;
-  const occasion = opts.occasion || opts.eventType || null;
+  const occasion = opts.occasion || opts.eventType || 'casual';
   return {
     regional: opts.regional ?? null,
-    options: opts,
-    occasion: occasion ? String(occasion) : null,
+    options: { ...opts, occasion },
+    occasion: String(occasion),
   };
 }
 
@@ -635,8 +635,8 @@ export const CLASH_RULES: Array<{
     hint: 'Formal occasion needs footwear formality of 4+ — these shoes read too casual',
     severity: 'fatal',
     when: (ctx) => {
-      const occasion = String(ctx.occasion || ctx.options?.occasion || '').toLowerCase();
-      if (!occasion || !/formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
+      const occasion = String(ctx.occasion || ctx.options?.occasion || 'casual').toLowerCase();
+      if (!occasion || occasion === 'casual' || !/formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
         return false;
       }
       return ctx.signals.some((s) => {

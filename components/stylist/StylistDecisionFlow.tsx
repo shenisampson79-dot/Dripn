@@ -32,6 +32,7 @@ import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { useStylistDecision } from '@/hooks/useStylistDecision';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePicker';
+import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -605,10 +606,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     const stylistName = getStylistName(res.stylistId || flow.user?.stylistPreferences?.selectedStylistId || 'ruby');
     const stylistIcon = getStylistIcon(res.stylistId);
     const stylistGradient = getStylistGradient(res.stylistId);
-    const isGap =
+      const isGap =
       res.status === 'wardrobe_gap'
       || res.status === 'no_outfit_possible'
       || res.status === 'refused'
+      || res.status === 'clash_blocked'
+      || res.status === 'no_wardrobe'
       || res.success === false;
 
     if (isGap) {

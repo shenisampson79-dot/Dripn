@@ -409,10 +409,21 @@ export function computeUnifiedOutfitScore(
     options?.regional && typeof options.regional === 'object'
       ? options.regional
       : {};
-  const occasion = options?.context?.occasion ?? options?.occasion ?? (regional as { occasion?: string }).occasion ?? null;
+  const occasion = options?.context?.occasion
+    ?? options?.occasion
+    ?? (regional as { occasion?: string }).occasion
+    ?? 'casual';
+  const weather = (options as { weather?: unknown } | undefined)?.weather
+    ?? (options?.context as { weather?: unknown } | undefined)?.weather
+    ?? null;
+  const intent = (options as { outfitIntent?: string; intent?: string } | undefined)?.outfitIntent
+    ?? (options as { intent?: string } | undefined)?.intent
+    ?? null;
   const clashOptions = {
     ...regional,
-    ...(occasion ? { occasion } : {}),
+    occasion,
+    ...(weather ? { weather } : {}),
+    ...(intent ? { intent } : {}),
   };
   const clash = detectOutfitClashes(items, clashOptions);
 
@@ -449,14 +460,14 @@ export function computeUnifiedOutfitScore(
   const contextBlock: UnifiedContextBreakdown = options?.context
     ? {
       season: options.context.season,
-      occasion: options.context.occasion,
+      occasion: options.context.occasion ?? occasion ?? 'casual',
       brand_tiers: options.context.brand_tiers,
       brand_coherence: options.context.brand_coherence,
       season_fit: options.context.season_fit,
     }
     : {
       season: 'all-season',
-      occasion: 'casual',
+      occasion: occasion || 'casual',
       brand_tiers: [],
       brand_coherence: 0.8,
       season_fit: 0.85,

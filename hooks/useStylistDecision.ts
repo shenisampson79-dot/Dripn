@@ -80,7 +80,23 @@ function isWardrobeGapError(error: {
     || code === 'no_wardrobe'
     || code === 'no_outfit_possible'
     || code === 'refused'
+    || code === 'clash_blocked'
     || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
+  );
+}
+
+function isSystemRetryError(error: {
+  message?: string;
+  error?: string;
+  errorCode?: string;
+  status?: number;
+}): boolean {
+  const code = error?.error || error?.errorCode || '';
+  return (
+    code === 'system_error'
+    || code === 'surprise_failed'
+    || code === 'DECISION_FAILED'
+    || error?.status === 503
   );
 }
 
@@ -119,6 +135,9 @@ function formatSubmitError(
   }
   if (isWardrobeGapError(error)) {
     return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
+  }
+  if (isSystemRetryError(error)) {
+    return raw || 'Something went wrong styling that look. Please try again in a moment.';
   }
   return raw || 'Something went wrong. Please try again.';
 }
@@ -627,6 +646,19 @@ export function useStylistDecision({
       };
       setResponse(gapResult);
       setStep('response');
+      return;
+    }
+
+    // Infra / transient — soft retry, never "Unable to submit" framing
+    if (isSystemRetryError(error)) {
+      Alert.alert(
+        t('common.tryAgain') || 'Try again',
+        formatSubmitError(error, {
+          photoLimit: getUploadLimit(),
+          wardrobeLimit: getWardrobeSelectLimit(),
+          usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
+        }),
+      );
       return;
     }
 
