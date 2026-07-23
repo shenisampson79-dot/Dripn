@@ -606,13 +606,20 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     const stylistName = getStylistName(res.stylistId || flow.user?.stylistPreferences?.selectedStylistId || 'ruby');
     const stylistIcon = getStylistIcon(res.stylistId);
     const stylistGradient = getStylistGradient(res.stylistId);
-      const isGap =
-      res.status === 'wardrobe_gap'
-      || res.status === 'no_outfit_possible'
-      || res.status === 'refused'
-      || res.status === 'clash_blocked'
-      || res.status === 'no_wardrobe'
-      || res.success === false;
+    const isFallback =
+      res.status === 'fallback_outfit'
+      || res.type === 'fallback_outfit'
+      || res.isFallback === true;
+    const isGap =
+      !isFallback
+      && (
+        res.status === 'wardrobe_gap'
+        || res.status === 'no_outfit_possible'
+        || res.status === 'refused'
+        || res.status === 'clash_blocked'
+        || res.status === 'no_wardrobe'
+        || res.success === false
+      );
 
     if (isGap) {
       const suggestions = res.suggestions || res.missingPieces || [];
@@ -687,6 +694,10 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       res.styleRating != null
       && Number(res.styleRating) > 5.4;
 
+    const allPieces = sanitizeOutfitPieces(res.outfitPieces || []);
+    const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
+    const visualPieces = ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null);
+
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
         {flow.isReadOnly ? (
@@ -703,6 +714,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
         </View>
 
+        {isFallback ? (
+          <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+            Here&apos;s your best outfit — plus what to upgrade
+          </ThemedText>
+        ) : null}
+
         {winnerUri ? (
           <Image source={{ uri: winnerUri }} style={styles.responseHero} />
         ) : uploaded.length > 1 ? (
@@ -713,11 +730,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </View>
         ) : res.outfitImageUrl ? (
           <Image source={{ uri: res.outfitImageUrl }} style={styles.responseHero} />
-        ) : res.outfitPieces && res.outfitPieces.length > 0 ? (
+        ) : visualPieces.length > 0 ? (
           <SafeOutfitPieces
-            pieces={sanitizeOutfitPieces(res.outfitPieces)}
+            pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
+            label={isFallback ? 'Best from your wardrobe' : 'Your outfit'}
           />
         ) : null}
 
@@ -734,9 +752,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </View>
           ) : null}
 
-          {res.outfitSummary ? (
+          {res.stylistNote || res.outfitSummary ? (
             <ThemedText type="body" style={styles.responseBody}>
-              {res.outfitSummary}
+              {res.stylistNote || res.outfitSummary}
             </ThemedText>
           ) : (
             <ThemedText type="body" style={styles.responseBody}>
@@ -744,12 +762,29 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </ThemedText>
           )}
 
-          {res.reasoning ? (
+          {allPieces.length > 0 ? (
+            <View style={{ marginTop: Spacing.md }}>
+              {allPieces.map((piece, index) => (
+                <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
+                  <ThemedText type="body">
+                    {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                    {': '}
+                    {piece.name}
+                    {piece.type === 'recommended' ? ' · recommended' : ''}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {res.reasoning && !isFallback ? (
             <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault }]}>
               {renderMarkdownText(res.reasoning)}
             </ThemedText>
           ) : null}
         </View>
+
+        {isFallback ? <FallbackShopSection missing={res.missing} /> : null}
 
         <View style={styles.responseActions}>
           {flow.isStale ? (

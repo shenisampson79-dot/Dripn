@@ -1938,6 +1938,9 @@ class ApiService {
         category?: string | null;
         color?: string | null;
         brand?: string | null;
+        type?: 'owned' | 'recommended' | string;
+        reason?: string;
+        formality?: string;
       }> | null;
       outfitSummary?: string | null;
       why?: string[] | null;
@@ -1946,11 +1949,22 @@ class ApiService {
       stylistId?: string;
       decisionType?: string;
       error?: string;
-      status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | string;
+      status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | 'fallback_outfit' | 'system_error' | string;
+      type?: 'fallback_outfit' | string;
+      isFallback?: boolean;
+      stylistNote?: string;
       stylistResponse?: string;
       message?: string;
       suggestions?: string[];
       missingPieces?: string[];
+      missing?: Array<{
+        role?: string;
+        label?: string;
+        name?: string;
+        reason?: string;
+        products?: Array<{ retailerId?: string; retailer?: string; url?: string; searchUrl?: string }>;
+        retail?: Record<string, unknown>;
+      }>;
       outfitImageUrl?: string;
       recommendedIndex?: number | null;
       selectedOptionIndex?: number | null;
@@ -1959,6 +1973,7 @@ class ApiService {
         score?: number;
         confidence?: number;
         hardFails?: string[];
+        isFallback?: boolean;
       } | null;
     }>('/api/decision/check/resilient', {
       method: 'POST',

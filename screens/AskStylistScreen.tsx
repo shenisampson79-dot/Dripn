@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { SafeOutfitPieces } from "@/components/SafeOutfitPieces";
 import { SurpriseMeLoadingOverlay } from "@/components/SurpriseMeLoadingOverlay";
+import { FallbackShopSection } from "@/components/stylist/FallbackShopSection";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
@@ -599,11 +600,17 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         requireAdvice: true,
       });
       const recommendedIndex = enforced.payload.recommendedIndex;
+      const isFallbackResult = Boolean(
+        apiResult.isFallback
+        || apiResult.status === 'fallback_outfit'
+        || apiResult.type === 'fallback_outfit',
+      );
       const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
         recommendation:
           enforced.payload.advice
+          || apiResult.stylistNote
           || apiResult.decision
           || apiResult.recommendation
           || apiResult.response
@@ -611,12 +618,25 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
-        // Prefer constraint-engine wardrobe pieces over server inventory
+        status: apiResult.status || (isFallbackResult ? 'fallback_outfit' : 'ok'),
+        type: apiResult.type,
+        isFallback: isFallbackResult,
+        stylistNote: apiResult.stylistNote,
+        missing: apiResult.missing,
+        suggestions: apiResult.suggestions,
+        missingPieces: apiResult.missingPieces,
+        // Prefer server fallback/occasion pieces; local allocator is best-effort only
         outfitPieces: (() => {
-          const pieces = sanitizeOutfitPieces(localPieces || apiResult.outfitPieces || []);
+          const pieces = sanitizeOutfitPieces(
+            isFallbackResult
+              ? (apiResult.outfitPieces || localPieces || [])
+              : (localPieces || apiResult.outfitPieces || []),
+          );
           return pieces.length > 0 ? pieces : null;
         })(),
-        outfitSummary: localSummary || apiResult.outfitSummary || null,
+        outfitSummary: isFallbackResult
+          ? (apiResult.outfitSummary || localSummary || null)
+          : (localSummary || apiResult.outfitSummary || null),
         unifiedScore: apiResult.unifiedScore ?? null,
         isSurpriseMe: true,
         stylistId,
@@ -626,6 +646,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         recommendedIndex,
         recommendedOptionId:
           recommendedIndex != null ? `option-${recommendedIndex}` : undefined,
+        success: apiResult.success !== false,
       };
 
       if (user?.id) {
@@ -846,11 +867,17 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         });
       }
       const recommendedIndex = enforced.payload.recommendedIndex;
+      const isFallbackResult = Boolean(
+        apiResult.isFallback
+        || apiResult.status === 'fallback_outfit'
+        || apiResult.type === 'fallback_outfit',
+      );
       const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
         recommendation:
           enforced.payload.advice
+          || apiResult.stylistNote
           || apiResult.decision
           || apiResult.recommendation
           || apiResult.response
@@ -858,6 +885,13 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         reasoning: apiResult.reasoning || '',
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
+        status: apiResult.status || (isFallbackResult ? 'fallback_outfit' : 'ok'),
+        type: apiResult.type,
+        isFallback: isFallbackResult,
+        stylistNote: apiResult.stylistNote,
+        missing: apiResult.missing,
+        suggestions: apiResult.suggestions,
+        missingPieces: apiResult.missingPieces,
         outfitPieces: (() => {
           const pieces = sanitizeOutfitPieces(apiResult.outfitPieces || []);
           return pieces.length > 0 ? pieces : null;
@@ -872,6 +906,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         recommendedIndex,
         recommendedOptionId:
           recommendedIndex != null ? `option-${recommendedIndex}` : undefined,
+        success: apiResult.success !== false,
       };
 
       if (user?.id) {
@@ -1898,13 +1933,20 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const renderResponse = () => {
+    const isFallback =
+      response?.status === 'fallback_outfit'
+      || response?.type === 'fallback_outfit'
+      || response?.isFallback === true;
     const isGap =
-      response?.status === 'wardrobe_gap'
-      || response?.status === 'no_outfit_possible'
-      || response?.status === 'refused'
-      || response?.status === 'clash_blocked'
-      || response?.status === 'no_wardrobe'
-      || response?.success === false;
+      !isFallback
+      && (
+        response?.status === 'wardrobe_gap'
+        || response?.status === 'no_outfit_possible'
+        || response?.status === 'refused'
+        || response?.status === 'clash_blocked'
+        || response?.status === 'no_wardrobe'
+        || response?.success === false
+      );
 
     if (isGap) {
       const suggestions = response?.suggestions || response?.missingPieces || [];
@@ -1960,6 +2002,10 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       );
     }
 
+    const allPieces = sanitizeOutfitPieces(response?.outfitPieces || []);
+    const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
+    const visualPieces = ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null);
+
     return (
     <View style={styles.stepContent}>
       <View style={styles.stylistAvatarContainer}>
@@ -1977,6 +2023,12 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
           {getStylistName()}
         </ThemedText>
       </View>
+
+      {isFallback ? (
+        <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+          Here&apos;s your best outfit — plus what to upgrade
+        </ThemedText>
+      ) : null}
 
       {response?.uploadedImages && response.uploadedImages.length > 0 ? (
         response.recommendedIndex != null
@@ -2013,11 +2065,12 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
             style={styles.outfitImage}
           />
         </View>
-      ) : response?.outfitPieces && response.outfitPieces.length > 0 ? (
+      ) : visualPieces.length > 0 ? (
         <SafeOutfitPieces
-          pieces={sanitizeOutfitPieces(response.outfitPieces)}
+          pieces={visualPieces}
           wardrobeItems={wardrobeItems}
           large
+          label={isFallback ? 'Best from your wardrobe' : 'Your outfit'}
         />
       ) : null}
 
@@ -2053,18 +2106,19 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
           </ThemedText>
         ) : null}
 
-        {response?.outfitSummary ? (
+        {response?.stylistNote || response?.outfitSummary ? (
           <ThemedText type="body" style={[styles.responseText, styles.outfitSummaryText]}>
-            {response.outfitSummary}
+            {response.stylistNote || response.outfitSummary}
           </ThemedText>
         ) : null}
 
-        {response?.outfitPieces && response.outfitPieces.length > 0 ? (
+        {allPieces.length > 0 ? (
           <View style={styles.outfitPiecesList}>
-            {sanitizeOutfitPieces(response.outfitPieces).map((piece, index) => (
-              <View key={`piece-${piece.wardrobeItemId || index}`} style={styles.outfitPieceRow}>
+            {allPieces.map((piece, index) => (
+              <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={styles.outfitPieceRow}>
                 <ThemedText type="small" style={styles.outfitPieceRole}>
                   {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                  {piece.type === 'recommended' ? ' · rec' : ''}
                 </ThemedText>
                 <ThemedText type="body" style={styles.outfitPieceName}>
                   {piece.name}
@@ -2079,12 +2133,14 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
           </ThemedText>
         )}
 
-        {response?.reasoning ? (
+        {response?.reasoning && !isFallback ? (
           <ThemedText style={styles.reasoningText}>
             {renderMarkdownText(response.reasoning)}
           </ThemedText>
         ) : null}
       </View>
+
+      {isFallback ? <FallbackShopSection missing={response?.missing} /> : null}
 
       <View style={styles.responseActions}>
         <Pressable onPress={handleHelpful} style={styles.helpfulButton}>

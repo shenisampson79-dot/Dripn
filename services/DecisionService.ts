@@ -46,10 +46,33 @@ export interface DecisionResponse {
   success?: boolean;
   decision?: string;
   response?: string;
-  /** Refuse / gap — never show a fake score card when set */
-  status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | string;
+  /** Refuse / gap / graceful fallback — never show a fake score card on gap */
+  status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | 'fallback_outfit' | 'system_error' | string;
+  type?: 'fallback_outfit' | string;
+  isFallback?: boolean;
+  stylistNote?: string;
   suggestions?: string[];
   missingPieces?: string[];
+  missing?: Array<{
+    role?: string;
+    label?: string;
+    name?: string;
+    reason?: string;
+    color?: string;
+    formality?: string;
+    products?: Array<{
+      retailerId?: string;
+      retailer?: string;
+      url?: string;
+      searchUrl?: string;
+    }>;
+    retail?: {
+      query?: string;
+      nearby?: { appleMaps?: string; googleMaps?: string; query?: string };
+      nearbyByBrand?: Array<{ brand?: string; appleMaps?: string; googleMaps?: string }>;
+      online?: Array<{ retailerId?: string; retailer?: string; url?: string }>;
+    };
+  }>;
   styleRating?: number | null;
   ratingLabel?: string | null;
   recommendedIndex?: number;
@@ -60,6 +83,11 @@ export interface DecisionResponse {
     wardrobeItemId?: number | string;
     imageUrl?: string | null;
     category?: string | null;
+    type?: 'owned' | 'recommended' | string;
+    stylingNote?: string;
+    reason?: string;
+    color?: string | null;
+    formality?: string;
   }>;
   outfitSummary?: string;
   unifiedScore?: {

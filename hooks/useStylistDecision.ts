@@ -804,7 +804,14 @@ export function useStylistDecision({
         ratingLabel: shouldDisplayStyleRating(apiResult.styleRating ?? null)
           ? (apiResult.ratingLabel ?? null)
           : null,
-        status: 'ok',
+        status: (apiResult.status as DecisionResponse['status'])
+          || (apiResult.isFallback || apiResult.type === 'fallback_outfit' ? 'fallback_outfit' : 'ok'),
+        type: apiResult.type,
+        isFallback: Boolean(apiResult.isFallback || apiResult.status === 'fallback_outfit' || apiResult.type === 'fallback_outfit'),
+        stylistNote: apiResult.stylistNote,
+        missing: apiResult.missing,
+        suggestions: apiResult.suggestions,
+        missingPieces: apiResult.missingPieces,
         outfitPieces: (() => {
           // Prefer server occasion-locked pieces; local allocator is best-effort only
           // Never merge local pieces after a server refuse (wardrobe_gap throws before here)
@@ -818,7 +825,7 @@ export function useStylistDecision({
         outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
         uploadedImages: imageUris,
         recommendedIndex: enforced.payload.recommendedIndex,
-        success: true,
+        success: apiResult.success !== false,
       };
 
       await persistResult(result, imageUris);

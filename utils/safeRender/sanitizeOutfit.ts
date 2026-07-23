@@ -14,6 +14,11 @@ export type SanitizedOutfitPiece = {
   imageUrl?: string | null;
   stylingNote?: string;
   category?: string | null;
+  /** owned | recommended — fallback_outfit placeholders */
+  type?: 'owned' | 'recommended' | string;
+  reason?: string;
+  color?: string | null;
+  formality?: string;
 };
 
 /** Minimal wardrobe visual shape (avoids circular import with wardrobeMentionMatcher). */
@@ -101,6 +106,18 @@ export function sanitizeOutfitPieces(
         imageUrl: isNonEmptyString(piece.imageUrl) ? piece.imageUrl.trim() : (piece.imageUrl ?? null),
         stylingNote: typeof piece.stylingNote === 'string' ? piece.stylingNote : undefined,
         category: typeof piece.category === 'string' ? piece.category : (piece.category ?? null),
+        type: typeof (piece as { type?: string }).type === 'string'
+          ? (piece as { type?: string }).type
+          : undefined,
+        reason: typeof (piece as { reason?: string }).reason === 'string'
+          ? (piece as { reason?: string }).reason
+          : undefined,
+        color: typeof (piece as { color?: string }).color === 'string'
+          ? (piece as { color?: string }).color
+          : ((piece as { color?: string | null }).color ?? null),
+        formality: typeof (piece as { formality?: string }).formality === 'string'
+          ? (piece as { formality?: string }).formality
+          : undefined,
       });
     }
 
