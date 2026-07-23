@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,7 +17,6 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
@@ -118,7 +117,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
-  const stackNavigation = useNavigation();
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
   const stylistGradient = getStylistGradient(stylistId);
@@ -129,7 +127,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   // footer is a flex sibling, not position:absolute).
   const stickyFooterClearance = Spacing.md + 52 + (hasTabBar ? tabAwarePaddingBottom : Spacing.lg);
 
-  // Collapsed flows: context chips live on the input step (no separate context page)
+  // Collapsed flows: context chips live on the first input step (event details for event-outfit)
   const steps = useMemo(() => {
     if (decisionType === 'event-outfit') {
       return ['event', 'input', 'response'] as const;
@@ -140,26 +138,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const stepIndex = steps.indexOf(flow.step as typeof steps[number]);
   const progress = stepIndex >= 0 ? (stepIndex + 1) / steps.length : 0;
 
-  // Header back: step back when on step 2+, exit only on first step / locked result
-  useLayoutEffect(() => {
-    const handleHeaderBack = () => {
-      if (flow.goBackOneStep()) return;
-      navigation.goBack();
-    };
-    stackNavigation.setOptions({
-      headerLeft: () => (
-        <Pressable
-          onPress={handleHeaderBack}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          hitSlop={12}
-          style={{ paddingHorizontal: 4, paddingVertical: 8, marginLeft: Platform.OS === 'ios' ? 0 : 4 }}
-        >
-          <Feather name="chevron-left" size={28} color={theme.text} />
-        </Pressable>
-      ),
-    });
-  }, [flow.goBackOneStep, flow.step, navigation, stackNavigation, t, theme.text]);
+  // Occasion/vibe already collected on event step 1 — omit duplicate chips there.
+  const visibleContextChips = useMemo(
+    () => decisionService.getContextChips(decisionType),
+    [decisionType],
+  );
 
   const introCopy = {
     shopping: {
@@ -331,7 +314,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {subtitle || t('stylistFlow.contextHelper')}
       </ThemedText>
       <View style={styles.chipRow}>
-        {flow.contextChips.map((chip) => {
+        {visibleContextChips.map((chip) => {
           const selected = flow.selectedContexts.includes(chip.id);
           return (
             <Pressable
@@ -350,6 +333,24 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           );
         })}
       </View>
+      <TextInput
+        style={[
+          styles.textArea,
+          { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
+        ]}
+        placeholder={
+          decisionType === 'shopping'
+            ? t('stylistFlow.shopping.describePlaceholder')
+            : t('common.addAnyExtraDetailsOptional')
+        }
+        placeholderTextColor={theme.tabIconDefault}
+        value={flow.contextNotes}
+        onChangeText={flow.setContextNotes}
+        multiline
+        numberOfLines={decisionType === 'shopping' ? 4 : 3}
+        maxLength={decisionType === 'shopping' ? 400 : 200}
+        editable={!flow.isReadOnly}
+      />
     </View>
   );
 
@@ -399,20 +400,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         </View>
 
         {renderContextChips()}
-
-        <TextInput
-          style={[
-            styles.textArea,
-            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-          ]}
-          placeholder={t('stylistFlow.shopping.describePlaceholder')}
-          placeholderTextColor={theme.tabIconDefault}
-          value={flow.contextNotes}
-          onChangeText={flow.setContextNotes}
-          multiline
-          numberOfLines={4}
-          maxLength={400}
-        />
       </Animated.View>
     );
   };
@@ -448,20 +435,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       />
 
       {renderContextChips(t('stylistFlow.contextSubtitle'))}
-
-      <TextInput
-        style={[
-          styles.textArea,
-          { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-        ]}
-        placeholder={t('common.addAnyExtraDetailsOptional')}
-        placeholderTextColor={theme.tabIconDefault}
-        value={flow.contextNotes}
-        onChangeText={flow.setContextNotes}
-        multiline
-        numberOfLines={3}
-        maxLength={200}
-      />
     </Animated.View>
   );
 
@@ -528,22 +501,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {t('stylistFlow.surpriseMeHint')}
         </ThemedText>
       </View>
-
-      {renderContextChips(t('stylistFlow.contextEventSubtitle'))}
-
-      <TextInput
-        style={[
-          styles.textArea,
-          { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-        ]}
-        placeholder={t('common.addAnyExtraDetailsOptional')}
-        placeholderTextColor={theme.tabIconDefault}
-        value={flow.contextNotes}
-        onChangeText={flow.setContextNotes}
-        multiline
-        numberOfLines={3}
-        maxLength={200}
-      />
     </Animated.View>
   );
 
@@ -636,6 +593,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         value={flow.eventDetails.venue}
         onChangeText={(venue) => flow.setEventDetails((p) => ({ ...p, venue }))}
       />
+
+      {renderContextChips(t('stylistFlow.contextEventSubtitle'))}
     </Animated.View>
   );
 

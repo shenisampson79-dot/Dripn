@@ -5,7 +5,16 @@ import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { apiService } from '@/services/ApiService';
 
 export type DecisionType = 'shopping' | 'what-to-wear' | 'event-outfit' | 'sanity-check';
-export type DecisionContext = 'work-appropriate' | 'casual' | 'formal' | 'date-night' | 'comfort' | 'versatility' | 'budget' | 'trendy';
+export type DecisionContext =
+  | 'work-appropriate'
+  | 'casual'
+  | 'formal'
+  | 'date-night'
+  | 'comfort'
+  | 'versatility'
+  | 'budget'
+  | 'trendy'
+  | 'weather';
 
 export interface DecisionTypeOption {
   id: DecisionType;
@@ -153,7 +162,16 @@ const CONTEXT_CHIPS: { id: DecisionContext; label: string }[] = [
   { id: 'versatility', label: 'Versatility' },
   { id: 'budget', label: 'Budget' },
   { id: 'trendy', label: 'Trendy vs timeless' },
+  { id: 'weather', label: 'Weather-related' },
 ];
+
+/** Occasion/vibe chips already covered by event step 1 (event type + dress code). */
+const EVENT_OUTFIT_OCCASION_CHIP_IDS: ReadonlySet<DecisionContext> = new Set([
+  'work-appropriate',
+  'casual',
+  'formal',
+  'date-night',
+]);
 
 const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
   free: {
@@ -245,7 +263,10 @@ class DecisionService {
     return DECISION_TYPES;
   }
 
-  getContextChips(): { id: DecisionContext; label: string }[] {
+  getContextChips(decisionType?: DecisionType): { id: DecisionContext; label: string }[] {
+    if (decisionType === 'event-outfit') {
+      return CONTEXT_CHIPS.filter((chip) => !EVENT_OUTFIT_OCCASION_CHIP_IDS.has(chip.id));
+    }
     return CONTEXT_CHIPS;
   }
 
@@ -410,6 +431,9 @@ class DecisionService {
     }
     if (contexts.includes('date-night')) {
       reasonings.push("Perfect for making a great impression.");
+    }
+    if (contexts.includes('weather')) {
+      reasonings.push("Chosen with the conditions in mind.");
     }
 
     if (reasonings.length === 0) {

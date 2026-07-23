@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Alert, BackHandler } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -162,7 +162,15 @@ export function useStylistDecision({
   const sessionRef = useRef<DecisionSession | null>(null);
   const contextHashRef = useRef<string>('');
 
-  const contextChips = decisionService.getContextChips();
+  const contextChips = decisionService.getContextChips(decisionType);
+  const allowedContextIds = useMemo(
+    () => new Set(contextChips.map((chip) => chip.id)),
+    [contextChips],
+  );
+  const activeContexts = useMemo(
+    () => selectedContexts.filter((id) => allowedContextIds.has(id)),
+    [allowedContextIds, selectedContexts],
+  );
   // Data-truth: recommendation locks the UI; step is derived, not trusted from storage
   const derivedStep: StylistFlowStep = response
     ? 'response'
@@ -178,7 +186,7 @@ export function useStylistDecision({
     setStep(next);
   }, [response]);
 
-  /** True when header/hardware back should step within the flow instead of exiting. */
+  /** True when in-flow / hardware back should step within the flow instead of exiting. */
   const canGoBackOneStep = Boolean(
     !isReadOnly
     && (
@@ -405,7 +413,7 @@ export function useStylistDecision({
   };
 
   const buildDecisionContext = (): string => {
-    const situational = decisionService.formatContextForApi(selectedContexts);
+    const situational = decisionService.formatContextForApi(activeContexts);
     const notes = contextNotes.trim() || undefined;
     const wardrobeBlock = buildSelectedWardrobeContext();
 
@@ -419,7 +427,7 @@ export function useStylistDecision({
       return sections.join('\n\n');
     }
 
-    const base = decisionService.formatContextForApi(selectedContexts, notes);
+    const base = decisionService.formatContextForApi(activeContexts, notes);
     return [base, wardrobeBlock].filter(Boolean).join('\n\n');
   };
 
@@ -536,7 +544,7 @@ export function useStylistDecision({
         type: decisionType,
         images: imageUris,
         contextNotes: contextNotes.trim() || undefined,
-        contextChips: selectedContexts,
+        contextChips: activeContexts,
         timestamp: new Date().toISOString(),
         stylistId: stylistId as DecisionRequest['stylistId'],
       };
@@ -638,7 +646,7 @@ export function useStylistDecision({
     if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping') {
       return;
     }
-    if (!surpriseMe && decisionType === 'shopping' && imageUris.length === 0 && !contextNotes.trim() && selectedContexts.length === 0) {
+    if (!surpriseMe && decisionType === 'shopping' && imageUris.length === 0 && !contextNotes.trim() && activeContexts.length === 0) {
       return;
     }
 
@@ -722,7 +730,7 @@ export function useStylistDecision({
         surpriseMe,
         clientImageCount: surpriseMe ? 0 : imageUris.length,
         decisionSessionId: sessionRef.current?.id,
-        selectedContexts,
+        selectedContexts: activeContexts,
         eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
         selectedWardrobeIds: selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
@@ -897,6 +905,7 @@ export function useStylistDecision({
   };
 
   const toggleContext = (context: DecisionContext) => {
+    if (!allowedContextIds.has(context)) return;
     setSelectedContexts((prev) =>
       prev.includes(context) ? prev.filter((c) => c !== context) : [...prev, context],
     );
@@ -1020,7 +1029,7 @@ export function useStylistDecision({
   const canProceedFromInput = () => {
     if (isReadOnly) return false;
     if (decisionType === 'shopping') {
-      return images.length >= 1 || contextNotes.trim().length > 0 || selectedContexts.length > 0;
+      return images.length >= 1 || contextNotes.trim().length > 0 || activeContexts.length > 0;
     }
     if (decisionType === 'sanity-check') {
       return images.length >= 1 || selectedWardrobeIds.length >= 1;
