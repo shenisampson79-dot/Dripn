@@ -92,6 +92,7 @@ import {
   type WardrobeVisualPayload,
 } from '@/utils/wardrobeMentionMatcher';
 import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
+import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import weatherService from '@/services/WeatherService';
@@ -191,6 +192,9 @@ interface ChatMessage {
   /** When set by server, client must not rebuild wardrobe strip from chat prose. */
   visualAuthority?: 'server';
   hasOutfitRecommendation?: boolean;
+  isFallback?: boolean;
+  missing?: FallbackMissingItem[];
+  stylistNote?: string;
 }
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -296,6 +300,11 @@ function attachWardrobeVisualToMessage(
     visualAuthority?: 'server' | string | null;
     hasOutfitRecommendation?: boolean;
     isVisualizingOutfit?: boolean;
+    isFallback?: boolean;
+    type?: string;
+    status?: string;
+    missing?: FallbackMissingItem[];
+    stylistNote?: string;
   },
   wardrobeItems: WardrobeItem[],
   subscriptionTier?: string | null,
@@ -315,11 +324,19 @@ function attachWardrobeVisualToMessage(
       || wardrobeVisual.pieces?.length
     ),
   );
+  const isFallback = Boolean(
+    response.isFallback
+    || response.status === 'fallback_outfit'
+    || response.type === 'fallback_outfit',
+  );
   const enriched: ChatMessage = {
     ...message,
     content: stripStructuredOutfitMarkers(message.content),
     visualAuthority: 'server',
     hasOutfitRecommendation: response.hasOutfitRecommendation,
+    isFallback: isFallback || undefined,
+    missing: Array.isArray(response.missing) ? response.missing : undefined,
+    stylistNote: response.stylistNote,
   };
 
   if (response.outfitVisualSuggestion?.source === 'generated') {
@@ -3218,7 +3235,25 @@ export default function AIStylistScreen() {
               {renderMarkdownText(item.content)}
             </ThemedText>
           ) : (
-            renderAssistantContent(item, index)
+            <>
+              {renderAssistantContent(item, index)}
+              {item.isFallback && item.missing?.length ? (
+                <View style={{ marginTop: Spacing.sm }}>
+                  {item.missing.map((gap, gapIdx) => (
+                    <ThemedText
+                      key={`gap-${gap.role || gapIdx}-${gap.label || gap.name || gapIdx}`}
+                      style={[styles.messageText, { opacity: 0.8, marginBottom: 2 }]}
+                    >
+                      · {gap.label || gap.name || gap.role || 'Upgrade'} · recommended
+                    </ThemedText>
+                  ))}
+                  <FallbackShopSection
+                    missing={item.missing}
+                    headline="Get the missing piece"
+                  />
+                </View>
+              ) : null}
+            </>
           )}
           
           {item.imageUri && (

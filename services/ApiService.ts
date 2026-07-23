@@ -1712,6 +1712,10 @@ class ApiService {
     lon?: number;
     location?: string;
     countryCode?: string;
+    /** App Store storefront / billing hint for regional shop links. */
+    storeCountry?: string;
+    appStoreCountry?: string;
+    deviceCountry?: string;
     decisionContinuity?: Record<string, unknown>;
     fromDecisionSessionId?: string;
     useRecentDecisionContinuity?: boolean;
@@ -1761,6 +1765,23 @@ class ApiService {
     guestMessagesRemaining?: number;
     hasOutfitRecommendation?: boolean;
     visualAuthority?: 'server' | null;
+    isFallback?: boolean;
+    type?: string;
+    status?: string;
+    missing?: Array<{
+      role?: string;
+      label?: string;
+      name?: string;
+      reason?: string;
+      products?: Array<{ retailerId?: string; retailer?: string; url?: string; searchUrl?: string }>;
+      retail?: Record<string, unknown>;
+    }>;
+    outfitPieces?: Array<Record<string, unknown>>;
+    suggestions?: string[];
+    missingPieces?: string[];
+    stylistNote?: string;
+    retailCountry?: string;
+    retailRegion?: string;
   }> {
     const { stylistId, ...rest } = data;
     
@@ -1781,6 +1802,30 @@ class ApiService {
     }
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
+    }
+
+    let storeCountry = data.storeCountry || data.appStoreCountry || undefined;
+    let deviceCountry = data.deviceCountry || undefined;
+    if (!storeCountry) {
+      try {
+        const { getAppStoreCountryCode } = await import('./AppleIAPService');
+        storeCountry = (await getAppStoreCountryCode()) || undefined;
+      } catch {
+        // Storefront optional — server falls back to billing_country / GB
+      }
+    }
+    if (!deviceCountry) {
+      try {
+        const Localization = await import('expo-localization');
+        const region = Localization.getLocales?.()?.[0]?.regionCode
+          || (Localization as { region?: string }).region
+          || null;
+        if (region && typeof region === 'string') {
+          deviceCountry = region.trim().toUpperCase() === 'UK' ? 'GB' : region.trim().toUpperCase();
+        }
+      } catch {
+        // ignore
+      }
     }
     
     // Use resilient endpoint that works with or without authentication
@@ -1834,11 +1879,36 @@ class ApiService {
       sessionBackup?: string;
       hasOutfitRecommendation?: boolean;
       visualAuthority?: 'server' | null;
+      isFallback?: boolean;
+      type?: string;
+      status?: string;
+      missing?: Array<{
+        role?: string;
+        label?: string;
+        name?: string;
+        reason?: string;
+        products?: Array<{ retailerId?: string; retailer?: string; url?: string; searchUrl?: string }>;
+        retail?: Record<string, unknown>;
+      }>;
+      outfitPieces?: Array<Record<string, unknown>>;
+      suggestions?: string[];
+      missingPieces?: string[];
+      stylistNote?: string;
+      retailCountry?: string;
+      retailRegion?: string;
     }>('/api/chat/resilient', {
       method: 'POST',
       headers,
       timeout: 90000,
-      body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage, language: data.language }),
+      body: JSON.stringify({
+        ...rest,
+        stylist: stylistId,
+        message: data.userMessage,
+        language: data.language,
+        storeCountry,
+        appStoreCountry: storeCountry,
+        deviceCountry,
+      }),
     });
     
     // Store session backup and guest token for future requests
@@ -1863,6 +1933,11 @@ class ApiService {
     // Map backend 'response' field to frontend 'content' field
     const mappedContent = result.response || result.content || '';
     console.log('Final mapped content:', mappedContent);
+    const isFallback = Boolean(
+      result.isFallback
+      || result.status === 'fallback_outfit'
+      || result.type === 'fallback_outfit',
+    );
     
     return {
       content: mappedContent,
@@ -1874,6 +1949,16 @@ class ApiService {
       guestMessagesRemaining: result.guestMessagesRemaining,
       hasOutfitRecommendation: result.hasOutfitRecommendation,
       visualAuthority: result.visualAuthority ?? null,
+      isFallback: isFallback || undefined,
+      type: isFallback ? 'fallback_outfit' : result.type,
+      status: isFallback ? 'fallback_outfit' : result.status,
+      missing: result.missing,
+      outfitPieces: result.outfitPieces,
+      suggestions: result.suggestions,
+      missingPieces: result.missingPieces,
+      stylistNote: result.stylistNote,
+      retailCountry: result.retailCountry,
+      retailRegion: result.retailRegion,
     };
   }
 
@@ -1886,6 +1971,86 @@ class ApiService {
     }>('/api/stylist/detect-mood', {
       method: 'POST',
       body: JSON.stringify({ message }),
+    });
+  }
+
+  /**
+   * Regional shop links for missing wardrobe roles (travel capsule / packing gaps).
+   * Reuses server productSuggestions — search links only, no scraping.
+   */
+  async enrichShopSuggestions(data: {
+    wardrobeItems?: Array<{
+      id?: string | number;
+      name?: string;
+      category?: string;
+      color?: string;
+      brand?: string;
+    }>;
+    missing?: Array<{ role?: string; label?: string; name?: string; reason?: string }>;
+    occasion?: string;
+    climate?: string;
+    gender?: string;
+    city?: string;
+    countryCode?: string;
+    storeCountry?: string;
+    appStoreCountry?: string;
+    deviceCountry?: string;
+    stylistId?: string;
+  }) {
+    let storeCountry = data.storeCountry || data.appStoreCountry || undefined;
+    let deviceCountry = data.deviceCountry || undefined;
+    if (!storeCountry) {
+      try {
+        const { getAppStoreCountryCode } = await import('./AppleIAPService');
+        storeCountry = (await getAppStoreCountryCode()) || undefined;
+      } catch {
+        // optional
+      }
+    }
+    if (!deviceCountry) {
+      try {
+        const Localization = await import('expo-localization');
+        const region = Localization.getLocales?.()?.[0]?.regionCode
+          || (Localization as { region?: string }).region
+          || null;
+        if (region && typeof region === 'string') {
+          deviceCountry = region.trim().toUpperCase() === 'UK' ? 'GB' : region.trim().toUpperCase();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return this.request<{
+      success: boolean;
+      isFallback?: boolean;
+      type?: string;
+      status?: string;
+      missing?: Array<{
+        role?: string;
+        label?: string;
+        name?: string;
+        reason?: string;
+        products?: Array<{ retailerId?: string; retailer?: string; url?: string; searchUrl?: string }>;
+        retail?: Record<string, unknown>;
+      }>;
+      outfitPieces?: Array<Record<string, unknown>>;
+      stylistNote?: string;
+      suggestions?: string[];
+      missingPieces?: string[];
+      retailCountry?: string;
+      retailRegion?: string;
+      retailCountrySource?: string;
+      error?: string;
+      message?: string;
+    }>('/api/wardrobe/shop-suggestions', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        storeCountry,
+        appStoreCountry: storeCountry,
+        deviceCountry,
+      }),
     });
   }
 

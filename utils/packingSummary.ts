@@ -33,6 +33,12 @@ export type PackingSummary = {
   estimatedCombos: number;
   tripDays: number;
   optionalAddOns: string[];
+  /** Structured gaps for FallbackShopSection (roles missing from capsule). */
+  shoppingGaps?: Array<{
+    role: string;
+    label: string;
+    reason: string;
+  }>;
 };
 
 function itemName(item: WardrobeItem): string {
@@ -152,6 +158,47 @@ export function generatePackingSummary(params: {
     optionalAddOns.push('+1 backup top if you want more variety');
   }
 
+  const shoppingGaps: NonNullable<PackingSummary['shoppingGaps']> = [];
+  const topsCount = grouped.find((g) => g.key === 'tops')?.items.length || 0;
+  const bottomsCount = grouped.find((g) => g.key === 'bottoms')?.items.length || 0;
+  const shoesCount = grouped.find((g) => g.key === 'shoes')?.items.length || 0;
+  const layersCount = grouped.find((g) => g.key === 'layers')?.items.length || 0;
+  if (topsCount < 1) {
+    shoppingGaps.push({
+      role: 'top',
+      label: 'Versatile travel top',
+      reason: 'A packable top would unlock more daily mixes.',
+    });
+  }
+  if (bottomsCount < 1) {
+    shoppingGaps.push({
+      role: 'bottom',
+      label: 'Travel-ready bottom',
+      reason: 'You need a bottom that pairs across your tops.',
+    });
+  }
+  if (shoesCount < 1) {
+    shoppingGaps.push({
+      role: 'shoes',
+      label: 'Comfortable travel shoes',
+      reason: 'Shoes finish every look — pack at least one walkable pair.',
+    });
+  }
+  if (tempMax != null && tempMax < 14 && layersCount < 1) {
+    shoppingGaps.push({
+      role: 'outerwear',
+      label: 'Light travel layer',
+      reason: 'Cooler forecast — a packable layer keeps daily looks wearable.',
+    });
+  }
+  if (activities.includes('dinner') && topsCount + bottomsCount < 3) {
+    shoppingGaps.push({
+      role: 'top',
+      label: 'Elevated dinner piece',
+      reason: 'You\'re very close — one sharper piece covers dinner plans.',
+    });
+  }
+
   return {
     title: `You only need ${capsuleItems.length} items for this trip`,
     coverageText,
@@ -163,5 +210,6 @@ export function generatePackingSummary(params: {
     estimatedCombos: combos,
     tripDays,
     optionalAddOns,
+    shoppingGaps: shoppingGaps.length ? shoppingGaps : undefined,
   };
 }

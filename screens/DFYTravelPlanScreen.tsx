@@ -37,7 +37,9 @@ import { DatePartsInput } from '@/components/DatePartsInput';
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/Button';
+import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
+import { apiService } from '@/services/ApiService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe } from '@/contexts/WardrobeContext';
@@ -117,6 +119,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
   const [packingSummary, setPackingSummary] = useState<
     import('@/utils/packingSummary').PackingSummary | null
   >(null);
+  const [shoppingGaps, setShoppingGaps] = useState<FallbackMissingItem[] | null>(null);
   const [loadedPlan, setLoadedPlan] = useState<TravelPlan | null>(null);
   const [activeTripId, setActiveTripId] = useState<string | undefined>(routeTripId);
   const [hasExistingLooks, setHasExistingLooks] = useState(false);
@@ -295,6 +298,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     const dest = destination.trim();
     setIsBuilding(true);
     setError(null);
+    setShoppingGaps(null);
     setStatusLine(
       t('dfy.travel.buildingStatus')?.replace('{destination}', dest)
       || `Building your Travel Capsule for ${dest}…`,
@@ -374,6 +378,37 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
 
       setPackingSummary(generated.packingSummary || null);
       setStatusLine(generated.packingSummary?.activityLine || generated.capsuleNotes?.[0] || null);
+
+      // Regional shop chips when capsule lacks core categories for climate/occasion
+      let enrichedGaps: FallbackMissingItem[] | null = null;
+      try {
+        const localGaps = generated.packingSummary?.shoppingGaps || [];
+        if (localGaps.length || (generated.capsuleItemIds?.length || 0) < 6) {
+          const shopResult = await apiService.enrichShopSuggestions({
+            wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              color: item.color,
+              brand: item.brand,
+            })),
+            missing: localGaps.length ? localGaps : undefined,
+            occasion: plan.vibe || 'travel',
+            stylistId,
+          });
+          if (shopResult?.missing?.length) {
+            enrichedGaps = shopResult.missing as FallbackMissingItem[];
+          } else if (localGaps.length) {
+            enrichedGaps = localGaps;
+          }
+        }
+      } catch (shopErr) {
+        console.warn('[DFYTravelPlan] shop suggestions skipped:', shopErr);
+        if (generated.packingSummary?.shoppingGaps?.length) {
+          enrichedGaps = generated.packingSummary.shoppingGaps;
+        }
+      }
+      setShoppingGaps(enrichedGaps);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (!generated.packingSummary) {
@@ -634,6 +669,27 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
                 • {line}
               </ThemedText>
             ))}
+
+            {shoppingGaps?.length ? (
+              <View style={{ marginTop: Spacing.md }}>
+                <ThemedText type="small" style={{ opacity: 0.85, marginBottom: Spacing.xs }}>
+                  You&apos;re very close — just one upgrade for this trip…
+                </ThemedText>
+                {shoppingGaps.map((gap, gapIdx) => (
+                  <ThemedText
+                    key={`shop-gap-${gap.role || gapIdx}-${gap.label || gap.name || gapIdx}`}
+                    type="small"
+                    style={{ opacity: 0.8, marginBottom: 2 }}
+                  >
+                    · {gap.label || gap.name || gap.role || 'Upgrade'} · recommended
+                  </ThemedText>
+                ))}
+                <FallbackShopSection
+                  missing={shoppingGaps}
+                  headline="Shop the missing piece"
+                />
+              </View>
+            ) : null}
 
             <Button onPress={continueToPlan} style={{ marginTop: Spacing.lg }}>
               {t('dfy.travel.seeLooksCta') || 'See my looks'}

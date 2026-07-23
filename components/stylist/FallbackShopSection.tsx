@@ -21,6 +21,12 @@ export type FallbackMissingItem = {
   }>;
   retail?: {
     query?: string;
+    online?: Array<{
+      retailerId?: string;
+      retailer?: string;
+      url?: string;
+      searchUrl?: string;
+    }>;
     nearby?: { appleMaps?: string; googleMaps?: string; query?: string };
     nearbyByBrand?: Array<{
       brand?: string;
