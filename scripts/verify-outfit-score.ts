@@ -9,6 +9,18 @@ import {
   analyzeOutfitAesthetic,
 } from '../utils/outfitCompatibilityScore';
 import { detectOutfitClashes, detectAllOutfitClashes, isOutfitValid } from '../utils/outfitClashRules';
+import {
+  getAnalysisStatementInventory,
+  sanitizeHintForScore,
+  selectAnalysisHint,
+  isMajorConfusedLook,
+  EXPECTED_CLASH_HINT_COUNT,
+  EXPECTED_BAND_TEMPLATE_COUNT,
+  EXPECTED_CONTEXTUAL_TEMPLATE_COUNT,
+  EXPECTED_AESTHETIC_TEMPLATE_COUNT,
+  buildDeterministicItemNotes,
+} from '../utils/outfitAnalysisStatements';
+import { DEFAULT_SMART_CASUAL_REGIONAL } from '../utils/outfitRegionalContext';
 import { getStyleTagDatasetEntryCount } from '../utils/outfitStyleTagMatcher';
 import calibrationData from '../data/outfitStyleCalibration.json';
 import calibrationExtended from '../data/outfitStyleCalibrationExtended.json';
@@ -103,7 +115,13 @@ const CLASH_MATRIX: ClashCase[] = [
   { id: 'tier_spread_3', items: [leggings, hoodie, shirt], maxScore: 55 },
   { id: 'tier_spread_2_athletic_formal', items: [tank, blazer], maxScore: 65 },
   { id: 'dress_shorts', items: [dress, shorts], maxScore: 45 },
-  { id: 'joggers_blazer', items: [joggers, blazer], maxScore: 45 },
+  { id: 'joggers_blazer', items: [joggers, blazer], maxScore: 40 },
+  { id: 'blazer_chunky_trainers', items: [
+    blazer,
+    item({ id: 'polo-g', category: 'tops', name: 'Green Polo Shirt', color: 'green' }),
+    item({ id: 'khaki-ok', category: 'bottoms', name: 'Khaki Chinos', color: 'beige' }),
+    item({ id: 'chunky', category: 'shoes', name: 'White Chunky Trainers', color: 'white' }),
+  ], maxScore: 40 },
   { id: 'athletic_outerwear_formal', items: [puffer, tie, oxfords], maxScore: 55 },
   { id: 'athletic_top_non_athletic_shoes', items: [tank, clogs], maxScore: 75 },
   { id: 'blazer_hoodie_no_jeans', items: [blazer, hoodie, chinos], maxScore: 45 },
@@ -215,7 +233,67 @@ const userOutfit = computeLocalOutfitScore([
   trainers,
 ]);
 assert(userOutfit.score <= 15, `blazer + running vest should score ~10%, got ${userOutfit.score}`);
-assert(userOutfit.clashId === 'blazer_athletic_top', `expected blazer_athletic_top, got ${userOutfit.clashId}`);
+assert(
+  userOutfit.clashId === 'blazer_athletic_top' || userOutfit.clashId === 'formality_span_lock',
+  `expected blazer_athletic_top or formality_span_lock, got ${userOutfit.clashId}`,
+);
+
+// ── User report: blazer + track bottoms + chunky ≪ outdoor casual; plain white OK ──
+const confusedBlazerTrackChunky = computeLocalOutfitScore([
+  item({ id: 'wp-blazer', category: 'outerwear', name: 'Grey Windowpane Blazer', color: 'grey' }),
+  item({ id: 'green-polo', category: 'tops', name: 'Green Polo Shirt', color: 'green' }),
+  item({ id: 'track-bottoms', category: 'bottoms', name: 'Navy Tracksuit Bottoms', color: 'navy' }),
+  item({ id: 'chunky-tr', category: 'shoes', name: 'White Chunky Trainers', color: 'white' }),
+], { countryCode: 'GB', allowsSmartCasualTrainers: true, typicalDressCode: 'smart-casual', styleTags: [] });
+
+const outdoorCasualConfused = computeLocalOutfitScore([
+  item({ id: 'fleece', category: 'outerwear', name: 'Olive Fleece Jacket', color: 'olive' }),
+  item({ id: 'green-tee', category: 'tops', name: 'Green T-Shirt', color: 'green' }),
+  item({ id: 'black-trousers', category: 'bottoms', name: 'Black Trousers', color: 'black' }),
+  item({ id: 'chunky-tr2', category: 'shoes', name: 'White Chunky Trainers', color: 'white' }),
+], { countryCode: 'GB', allowsSmartCasualTrainers: true, typicalDressCode: 'smart-casual', styleTags: [] });
+
+const blazerPlainWhiteSmart = computeLocalOutfitScore([
+  item({ id: 'navy-blazer', category: 'outerwear', name: 'Navy Blazer', color: 'navy' }),
+  item({ id: 'oxford-w', category: 'tops', name: 'White Oxford Shirt', color: 'white' }),
+  item({ id: 'khaki', category: 'bottoms', name: 'Khaki Chinos', color: 'beige' }),
+  item({ id: 'white-lifestyle', category: 'shoes', name: 'White Leather Sneakers', color: 'white' }),
+], { countryCode: 'GB', allowsSmartCasualTrainers: true, typicalDressCode: 'smart-casual', styleTags: [] });
+
+assert(
+  confusedBlazerTrackChunky.score <= 40,
+  `blazer+tracksuit+chunky must score ≤40, got ${confusedBlazerTrackChunky.score}`,
+);
+assert(
+  /clash|chunky|jogger|tracksuit|confused|lane|formality|tiers/i.test(confusedBlazerTrackChunky.hint),
+  `blazer+track+chunky hint should explain clash, got: ${confusedBlazerTrackChunky.hint}`,
+);
+assert(
+  outdoorCasualConfused.score <= 70,
+  `confused outdoor casual must not sit near 80%, got ${outdoorCasualConfused.score}`,
+);
+assert(
+  confusedBlazerTrackChunky.score < outdoorCasualConfused.score - 8,
+  `blazer+track+chunky (${confusedBlazerTrackChunky.score}) must score clearly below outdoor casual (${outdoorCasualConfused.score})`,
+);
+assert(
+  blazerPlainWhiteSmart.score >= 62,
+  `blazer + plain white lifestyle sneakers + khakis should pass reasonably, got ${blazerPlainWhiteSmart.score}`,
+);
+assert(
+  !/confused/i.test(blazerPlainWhiteSmart.hint),
+  `plain white smart casual should not read confused, got: ${blazerPlainWhiteSmart.hint}`,
+);
+
+const mergedConfused = mergeOutfitScores(confusedBlazerTrackChunky, {
+  score: 88,
+  verdict: 'Strong outfit',
+  unifiedScoreApplied: true,
+});
+assert(
+  mergedConfused.score <= 40,
+  `AI must not inflate blazer+chunky+track bottoms, got ${mergedConfused.score}`,
+);
 
 // ── Structured shirt + sweat bottoms vs tee + sweat bottoms ───────────────
 const denimShirtSweatShorts = [
@@ -432,6 +510,105 @@ assert(unifiedGood.record.feedback.length >= 0, 'feedback array should exist');
 const totalCalibration =
   calibrationData.examples.length + calibrationExtended.examples.length;
 
+const inventory = getAnalysisStatementInventory();
+assert(
+  inventory.clashHints === EXPECTED_CLASH_HINT_COUNT,
+  `clash hint inventory expected ${EXPECTED_CLASH_HINT_COUNT}, got ${inventory.clashHints}`,
+);
+assert(
+  inventory.bandTemplates === EXPECTED_BAND_TEMPLATE_COUNT,
+  `band templates expected ${EXPECTED_BAND_TEMPLATE_COUNT}, got ${inventory.bandTemplates}`,
+);
+assert(
+  inventory.contextualTemplates === EXPECTED_CONTEXTUAL_TEMPLATE_COUNT,
+  `contextual templates expected ${EXPECTED_CONTEXTUAL_TEMPLATE_COUNT}, got ${inventory.contextualTemplates}`,
+);
+assert(
+  inventory.aestheticTemplates === EXPECTED_AESTHETIC_TEMPLATE_COUNT,
+  `aesthetic templates expected ${EXPECTED_AESTHETIC_TEMPLATE_COUNT}, got ${inventory.aestheticTemplates}`,
+);
+assert(
+  inventory.uniqueStatementCount >= 55,
+  `unique statements should cover clash+band inventory (≥55), got ${inventory.uniqueStatementCount}`,
+);
+
+// 93% must never nag refine-footwear
+const excellentSanitize = sanitizeHintForScore(
+  'Solid smart casual base — refine footwear or one finishing detail to elevate',
+  93,
+);
+assert(!/refine footwear/i.test(excellentSanitize), `93% must not say refine footwear, got: ${excellentSanitize}`);
+assert(/excellent|cohesive|polished|intentional|strong/i.test(excellentSanitize), `93% should praise, got: ${excellentSanitize}`);
+
+const confusedAtHigh = sanitizeHintForScore(
+  'This look reads confused — commit to one style lane (athleisure, smart casual, tailoring, etc.)',
+  88,
+);
+assert(!/confused/i.test(confusedAtHigh), `88% must not keep confused copy, got: ${confusedAtHigh}`);
+
+// Confused only with major multi-lane — not soft lifestyle trainers + blazer
+const lifestyleSmart = computeLocalOutfitScore(
+  [
+    blazer,
+    item({ id: 'oxford', category: 'tops', name: 'White Oxford Shirt', color: 'white' }),
+    chinos,
+    item({ id: 'white-lifestyle', category: 'shoes', name: 'Plain White Leather Sneakers', color: 'white' }),
+  ],
+  DEFAULT_SMART_CASUAL_REGIONAL,
+);
+assert(
+  !/confused|commit to one style lane/i.test(lifestyleSmart.hint),
+  `blazer + lifestyle sneakers must not say confused, got: ${lifestyleSmart.hint} @${lifestyleSmart.score}`,
+);
+assert(
+  lifestyleSmart.score >= 65 || lifestyleSmart.clashId !== 'blazer_chunky_trainers',
+  'lifestyle sneakers must not hard-clash as chunky trainers',
+);
+
+// Blazer + chunky athletic trainers — low score + major / specific copy
+const chunky = computeLocalOutfitScore([
+  blazer,
+  item({ id: 'oxford2', category: 'tops', name: 'White Oxford Shirt', color: 'white' }),
+  chinos,
+  item({ id: 'hoka', category: 'shoes', name: 'Chunky Hoka Running Trainers', color: 'white' }),
+]);
+assert(chunky.score <= 45, `blazer+chunky trainers must score low, got ${chunky.score}`);
+assert(
+  chunky.clashId === 'blazer_chunky_trainers' || /chunky|athletic trainers|running/i.test(chunky.hint),
+  `expected chunky trainers clash copy, got ${chunky.clashId} / ${chunky.hint}`,
+);
+assert(!isMajorConfusedLook(chunky.aesthetic, { clashId: 'blazer_trainers', allowsSmartCasualTrainers: true }), 'soft blazer_trainers is not major confused');
+
+// High local score path: selectAnalysisHint never returns refine-footwear at ≥90
+const highHint = selectAnalysisHint({
+  score: 93,
+  hasShoes: true,
+  hasCompleteBase: true,
+  allowsSmartCasualTrainers: false,
+  majorConfused: false,
+  primaryClash: null,
+  aesthetic: strong.aesthetic || null,
+});
+assert(!/refine footwear/i.test(highHint), `selectAnalysisHint@93 must not refine footwear: ${highHint}`);
+
+const notes93 = buildDeterministicItemNotes(
+  [shirt, trousers, loafers, blazer],
+  { score: 93, aesthetic: strong.aesthetic },
+);
+assert(notes93.length === 4, 'per-item notes should cover each piece');
+assert(
+  !notes93.some((n) => /refine footwear/i.test(n.note)),
+  '93% item notes must not nag refine footwear',
+);
+
+// Merge path: AI cannot leave refine-footwear on a 93 blend
+const mergedHigh = mergeOutfitScores(
+  { score: 91, hint: 'Excellent combo — polished and intentional', aesthetic: strong.aesthetic },
+  { score: 93, verdict: 'Solid smart casual base — refine footwear or one finishing detail to elevate' },
+);
+assert(mergedHigh.score >= 88, `merged high score expected ≥88, got ${mergedHigh.score}`);
+assert(!/refine footwear/i.test(mergedHigh.hint), `merged 93 must not refine footwear: ${mergedHigh.hint}`);
+
 console.log(
-  `verify-outfit-score: ${CLASH_MATRIX.length} clash rules + ${totalCalibration} calibration + ${pairwiseData.pairs.length} pairwise + unified engine passed`,
+  `verify-outfit-score: ${CLASH_MATRIX.length} clash rules + ${totalCalibration} calibration + ${pairwiseData.pairs.length} pairwise + unified engine + analysis inventory (${inventory.uniqueStatementCount} unique statements) passed`,
 );

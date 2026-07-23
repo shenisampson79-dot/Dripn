@@ -2,6 +2,8 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import {
   isIntentionalSmartCasualTrainerLook,
   DEFAULT_SMART_CASUAL_REGIONAL,
+  isChunkyOrTechTrainer as isChunkyOrTechTrainerFn,
+  isFashionTrainer as isFashionTrainerFn,
   type RegionalStyleContext,
 } from '@/utils/outfitRegionalContext';
 
@@ -23,6 +25,8 @@ export type ItemSignals = {
   isBoots: boolean;
   isHeels: boolean;
   isCasualTrainer: boolean;
+  isChunkyOrTechTrainer: boolean;
+  isFashionTrainer: boolean;
   isSwimwear: boolean;
   isSleepwear: boolean;
   isJeans: boolean;
@@ -85,16 +89,18 @@ export function isBlazerItem(item: WardrobeItem): boolean {
 }
 
 export function isAthleticTop(item: WardrobeItem): boolean {
+  const cat = String(item.category || '').toLowerCase();
+  if (cat === 'shoes' || cat === 'bottoms' || cat === 'activewear_bottoms') return false;
   const t = itemText(item);
   return item.category === 'activewear_tops'
     || item.category === 'activewear'
-    || /singlet|tank|sleeveless|jersey|running vest|gym vest|training vest|athletic vest|performance vest|running|athletic|gym|training|performance|compression|sports top|sports bra/.test(t);
+    || /singlet|tank|sleeveless|jersey|running vest|gym vest|training vest|athletic vest|performance vest|running top|athletic top|gym top|training top|performance top|compression|sports top|sports bra/.test(t);
 }
 
 export function isAthleticBottom(item: WardrobeItem): boolean {
   const t = itemText(item);
   return item.category === 'activewear_bottoms'
-    || /jogger|track pant|legging|gym short|athletic short|sweatpant|sweat pant|training pant|sweat short|jersey short|french terry|sweat bottom/.test(t);
+    || /jogger|track ?pant|tracksuit|track suit|legging|gym short|athletic short|sweatpant|sweat pant|training pant|sweat short|jersey short|french terry|sweat bottom/.test(t);
 }
 
 /** Structured button-down family — dress, oxford, denim, chambray. Not denim jacket. */
@@ -156,6 +162,14 @@ export function isCasualTrainer(item: WardrobeItem): boolean {
   return /trainer|sneaker|runner|athletic|sport|tennis|gym|asics|nike|adidas|new balance|skate shoe|canvas shoe/.test(t);
 }
 
+export function isChunkyOrTechTrainer(item: WardrobeItem): boolean {
+  return isChunkyOrTechTrainerFn(item);
+}
+
+export function isLifestyleFashionTrainer(item: WardrobeItem): boolean {
+  return isFashionTrainerFn(item);
+}
+
 export function classifyItem(item: WardrobeItem): ItemSignals {
   const t = itemText(item);
   const cat = item.category || '';
@@ -172,7 +186,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const isShorts = isShortsItem(item);
   const isJeans = /jean|denim/.test(t) && cat === 'bottoms';
   const isHoodie = /hoodie|hooded sweat/.test(t);
-  const isJoggers = /jogger|sweatpant|track pant/.test(t);
+  const isJoggers = /jogger|sweatpant|sweat pant|track ?pant|tracksuit|track suit|sweat bottom/.test(t);
   const isDressShirt = /dress shirt|button-down|button down|button-up|button up|oxford shirt/.test(t)
     || /denim.{0,24}shirt/.test(t);
   const structuredShirt = isStructuredShirt(item) || isDressShirt;
@@ -185,6 +199,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const dressyBoots = isDressyBootFootwear(item);
   const heels = /heel|pump|stiletto/.test(t) && cat === 'shoes';
   const casualTrainer = isCasualTrainer(item);
+  const chunkyOrTechTrainer = isChunkyOrTechTrainer(item);
+  const fashionTrainer = isLifestyleFashionTrainer(item);
   const isUggs = /\bugg|shearling boot|sheepskin/.test(t);
   const isFleeceOrInsulated = /fleece|insulated|puffer|down jacket|parka|quilted|thermal outer|winter coat/.test(t)
     && (cat === 'outerwear' || /jacket|coat|fleece|parka|puffer/.test(t));
@@ -227,6 +243,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isBoots: boots,
     isHeels: heels,
     isCasualTrainer: casualTrainer,
+    isChunkyOrTechTrainer: chunkyOrTechTrainer,
+    isFashionTrainer: fashionTrainer,
     isSwimwear,
     isSleepwear,
     isJeans,
@@ -269,7 +287,8 @@ export function buildOutfitContext(
   };
 }
 
-const CLASH_RULES: Array<{
+/** Exported for Outfit Mix statement inventory / audits. */
+export const CLASH_RULES: Array<{
   id: string;
   penalty: number;
   hint: string;
@@ -315,7 +334,7 @@ const CLASH_RULES: Array<{
   {
     id: 'tie_low_formality_base',
     penalty: 86,
-    hint: 'Tie needs smart-casual+ bottoms and shoes � not lounge or ultra-casual bases',
+    hint: 'Tie needs smart-casual+ bottoms and shoes — not lounge or ultra-casual bases',
     severity: 'fatal',
     when: (ctx) => {
       if (!ctx.any('isTie')) return false;
@@ -339,7 +358,7 @@ const CLASH_RULES: Array<{
   {
     id: 'fleece_shorts_season',
     penalty: 86,
-    hint: 'Fleece/insulated outerwear with shorts � seasonal clash',
+    hint: 'Fleece/insulated outerwear with shorts — seasonal clash',
     severity: 'fatal',
     when: (ctx) => ctx.any('isFleeceOrInsulated') && ctx.any('isShorts'),
   },
@@ -497,6 +516,21 @@ const CLASH_RULES: Array<{
       ),
   },
   {
+    id: 'blazer_chunky_trainers',
+    penalty: 78,
+    hint: 'Chunky or technical athletic trainers with a blazer — keep tailoring with plain lifestyle sneakers or dress shoes',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isChunkyOrTechTrainer'),
+  },
+  {
+    id: 'joggers_blazer',
+    penalty: 76,
+    hint: 'Joggers or tracksuit bottoms with a blazer — athleisure and tailoring clash',
+    severity: 'major',
+    when: (ctx) => (ctx.any('isJoggers') || ctx.any('isAthleticBottom') || ctx.any('isLoungeBottom'))
+      && ctx.any('isBlazer'),
+  },
+  {
     id: 'hoodie_formal_trousers',
     penalty: 68,
     hint: 'Hoodie with dress trousers and formal shoes',
@@ -510,9 +544,13 @@ const CLASH_RULES: Array<{
     penalty: 52,
     hint: 'Blazer + trainers skew casual — chinos and loafers elevate this',
     severity: 'moderate',
+    // Soft path: plain/minimal lifestyle trainers + smart bottoms can pass via isSmartCasualLook.
+    // Chunky/tech already major via blazer_chunky_trainers; generic athletic trainers still penalize.
     when: (ctx) => !ctx.isSmartCasualLook
       && ctx.any('isBlazer')
       && ctx.any('isCasualTrainer')
+      && !ctx.any('isFashionTrainer')
+      && !ctx.any('isChunkyOrTechTrainer')
       && !ctx.any('isJeans')
       && !ctx.any('isAthleticTop'),
   },
@@ -533,7 +571,7 @@ const CLASH_RULES: Array<{
   {
     id: 'formality_span_lock',
     penalty: 82,
-    hint: 'Formality span too wide � keep pieces within 2 tiers of each other',
+    hint: 'Formality span too wide — keep pieces within 2 tiers of each other',
     severity: 'fatal',
     when: (ctx) => ctx.tierSpread > 2,
   },
@@ -557,13 +595,6 @@ const CLASH_RULES: Array<{
     hint: 'Dress with shorts underneath reads accidental — choose one hero piece',
     severity: 'moderate',
     when: (ctx) => ctx.any('isDress') && ctx.any('isShorts'),
-  },
-  {
-    id: 'joggers_blazer',
-    penalty: 64,
-    hint: 'Joggers with a blazer — athleisure needs intentional styling to work',
-    severity: 'moderate',
-    when: (ctx) => ctx.any('isJoggers') && ctx.any('isBlazer'),
   },
   {
     id: 'athletic_outerwear_formal',
@@ -650,7 +681,17 @@ export function detectOutfitClashes(
 ): OutfitClash | null {
   const matched = detectAllOutfitClashes(items, regional);
   if (matched.length === 0) return null;
-  return matched[0];
+
+  // Prefer specific garment clashes over generic formality/tier span when both fire.
+  const primary = matched[0];
+  if (/^formality_span|^tier_spread/.test(primary.id)) {
+    const specific = matched.find(
+      (c) => !/^formality_span|^tier_spread/.test(c.id)
+        && (c.severity === 'fatal' || c.severity === 'major'),
+    );
+    if (specific) return specific;
+  }
+  return primary;
 }
 
 /**
@@ -723,11 +764,13 @@ export function clashToScore(penalty: number, extraPenalty = 0): number {
   return Math.max(5, Math.min(100, 100 - penalty - extraPenalty));
 }
 
+/** Band-aligned short labels (Style match %). Prefer selectAnalysisHint for full captions. */
 export function scoreHintForValue(score: number, clashHint?: string): string {
   if (clashHint) return clashHint;
-  if (score >= 82) return 'Strong outfit';
-  if (score >= 68) return 'Good combo';
-  if (score >= 45) return 'Room to refine';
+  if (score >= 90) return 'Excellent combo — polished and intentional';
+  if (score >= 80) return 'Strong outfit';
+  if (score >= 65) return 'Acceptable colour story — simplify to 2–3 tones';
+  if (score >= 45) return 'Commit to one style lane — swap the piece that breaks the story';
   if (score >= 30) return 'Needs work';
   return 'Clash risk';
 }

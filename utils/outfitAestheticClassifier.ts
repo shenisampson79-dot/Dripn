@@ -211,7 +211,7 @@ function detectCoherentAthleisureUniform(
   styleScores: Partial<Record<StyleArchetype, number>>,
 ): boolean {
   const allText = items.map(itemText).join(' ');
-  const hasAthleisureBottom = /\b(joggers?|sweatpants?|sweat pants|leggings?|track pants|track trousers|gym shorts|athletic shorts)\b/.test(allText);
+  const hasAthleisureBottom = /\b(joggers?|sweatpants?|sweat pants|leggings?|track ?pants?|tracksuits?|track suit|gym shorts|athletic shorts|sweat bottoms?)\b/.test(allText);
   const hasAthleticFootwear = items.some(
     (item) => String(item.category || '').toLowerCase() === 'shoes'
       && /\b(sneakers?|trainers?|running shoes?|running sneakers?|sport shoes?)\b/.test(itemText(item)),
@@ -242,16 +242,28 @@ function detectAcceptedStreetwearLayering(items: ItemLike[]): boolean {
   return hasBlazer && hasHoodie && hasJeans && hasTrainer;
 }
 
-/** Blazer/chinos + clean trainers is valid smart casual — not an athleisure clash. */
+/** Blazer/chinos + clean lifestyle trainers is valid smart casual — not an athleisure clash. */
 function detectValidSmartCasualTrainers(items: ItemLike[]): boolean {
   const text = items.map(itemText).join(' ');
-  const hasTrainer = items.some(
+  const hasChunkyOrTech = items.some(
     (item) => String(item.category || '').toLowerCase() === 'shoes'
-      && /\b(sneakers?|trainers?)\b/.test(itemText(item)),
+      && /\b(trainers?|sneakers?|runners?)\b/.test(itemText(item))
+      && /chunky|dad shoe|bulky|technical|trail|hoka|running|gym|training|performance|athletic|ultraboost|pegasus|fresh foam/.test(itemText(item)),
   );
-  const hasTailoringAnchor = /\b(blazer|chinos?|trousers?|oxford shirt|dress shirt)\b/.test(text);
-  const hasGymwear = /\b(joggers?|sweatpants?|leggings?|gym shorts|running vest|track pants)\b/.test(text);
-  return hasTrainer && hasTailoringAnchor && !hasGymwear;
+  if (hasChunkyOrTech) return false;
+
+  const hasLifestyleTrainer = items.some((item) => {
+    if (String(item.category || '').toLowerCase() !== 'shoes') return false;
+    const t = itemText(item);
+    if (!/\b(sneakers?|trainers?)\b/.test(t)) return false;
+    if (/chunky|running|gym|training|performance|athletic|trail|hoka/.test(t)) return false;
+    const color = String(item.color || '').toLowerCase();
+    return /samba|gazelle|leather|minimal|plain|clean|white|stan smith|air force|converse|veja|lifestyle/.test(t)
+      || /white|cream|ivory/.test(color);
+  });
+  const hasTailoringAnchor = /\b(blazer|chinos?|trousers?|oxford shirt|dress shirt|khaki)\b/.test(text);
+  const hasGymwear = /\b(joggers?|sweatpants?|leggings?|gym shorts|running vest|track ?pants?|tracksuits?|track suit|sweat bottoms?)\b/.test(text);
+  return hasLifestyleTrainer && hasTailoringAnchor && !hasGymwear;
 }
 
 /** Suit jacket + denim + fashion trainers = intentional high-low contrast. */
@@ -358,7 +370,11 @@ export function analyzeOutfitAesthetic(items: ItemLike[]): OutfitAestheticAnalys
     primaryStyle: resolvedPrimaryStyle,
     styleScores,
     confidence: Math.round(confidence * 100) / 100,
-    purity: Math.round((coherentAthleisureUniform || coherentStreetwearUniform ? Math.max(purity, 0.68) : purity) * 100) / 100,
+    purity: Math.round((
+      coherentAthleisureUniform || coherentStreetwearUniform || validSmartCasualTrainers
+        ? Math.max(purity, 0.68)
+        : purity
+    ) * 100) / 100,
     aestheticConflict: suppressStyleConflict ? false : aestheticConflict,
     conflictReason: suppressStyleConflict ? null : conflictReason,
     conflictingStyles: suppressStyleConflict ? null : conflictingStyles,
@@ -395,6 +411,14 @@ function detectFootwearBreaksIntent(
 
   if (athleisureSignal && isDressyShoe) return true;
   if ((tailoringSignal || formalSignal) && isAthleticShoe && primaryStyle !== 'smart_casual') return true;
+  // Chunky/tech athletic trainers break tailored / blazer intent even if primary drifts to smart_casual
+  if (
+    (tailoringSignal || formalSignal || /\b(blazer|suit jacket|tailored)\b/.test(items.map(itemText).join(' ')))
+    && items.some((item) => String(item.category || '').toLowerCase() === 'shoes'
+      && /chunky|dad shoe|technical|running|gym|training|performance|athletic|ultraboost|hoka|pegasus/.test(itemText(item)))
+  ) {
+    return true;
+  }
   if (primaryStyle === 'athleisure' && isDressyShoe) return true;
   if (primaryStyle === 'streetwear' && isDressyShoe) return true;
   if (primaryStyle === 'formal' && (isAthleticShoe || isCombatBoot)) return true;
@@ -444,6 +468,10 @@ export function evaluateAestheticRejection(items: ItemLike[]): AestheticRejectio
       analysis,
     };
   }
+
+  // Do NOT reject on low purity alone — smart_casual + classic_tailoring often share a cluster
+  // with purity ~0.4 while still reading as intentional (blazer + tee + chinos).
+  // "Confused" copy is reserved for aestheticConflict / unclearIdentity / multi-lane clash ids.
 
   return null;
 }

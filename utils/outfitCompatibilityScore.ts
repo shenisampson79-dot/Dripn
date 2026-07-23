@@ -14,8 +14,14 @@ import {
   collectSecondaryClashPenalty,
   detectOutfitClashes,
   localScoreLooksLikeClash,
-  scoreHintForValue,
 } from '@/utils/outfitClashRules';
+import {
+  buildDeterministicItemNotes,
+  isMajorConfusedLook,
+  sanitizeHintForScore,
+  selectAnalysisHint,
+  type ItemAnalysisNote,
+} from '@/utils/outfitAnalysisStatements';
 
 export type { OutfitClash, FormalityTier, ItemSignals } from '@/utils/outfitClashRules';
 export {
@@ -69,7 +75,11 @@ export type MergedOutfitScore = {
   dimensions: Record<string, number> | null;
   explanations: string[];
   aiApplied: boolean;
+  itemNotes?: ItemAnalysisNote[];
 };
+
+export type { ItemAnalysisNote };
+export { buildDeterministicItemNotes, sanitizeHintForScore, selectAnalysisHint, isMajorConfusedLook };
 
 const CASUAL_CATEGORIES = new Set([
   'activewear', 'activewear_tops', 'activewear_bottoms', 'sleepwear', 'swimwear',
@@ -202,28 +212,34 @@ export function computeLocalOutfitScore(
 
   score = Math.max(5, Math.min(94, Math.round(score)));
 
-  let hint: string;
-  if (!hasShoes) {
-    hint = 'Add occasion-appropriate footwear — shoes define the outfit\'s intent';
-  } else if (!(hasDress || (hasTop && hasBottom))) {
-    hint = 'Add the missing top or bottom so the silhouette reads as a complete outfit';
-  } else if (aesthetic.purity < 0.6) {
-    hint = 'This look reads confused — commit to one style lane (athleisure, smart casual, tailoring, etc.)';
-  } else if (colorHarmony.score < 50) {
-    hint = colorHarmony.summary;
-  } else if (silhouette.overall < 5.5) {
-    hint = 'Proportions read off — balance fitted and relaxed pieces or commit to one silhouette';
-  } else if (uniqueColors.size >= 4) {
-    hint = 'Reduce competing colours or repeat one accent to unify the palette';
-  } else if (allowsSmartCasualTrainers) {
-    hint = `Intentional ${styleArchetypeLabel(aesthetic.primaryStyle)} — tailored pieces with clean fashion trainers read cohesive`;
-  } else if (score >= 82 && aesthetic.purity >= 0.7) {
-    hint = scoreHintForValue(score);
-  } else if (score >= 65) {
-    hint = `Solid ${styleArchetypeLabel(aesthetic.primaryStyle)} base — refine footwear or one finishing detail to elevate`;
-  } else {
-    hint = 'This outfit lacks editorial clarity — swap the piece that breaks the style story';
+  // Confused multi-lane looks must not sit near 80% — align % with feedback severity.
+  // Only major multi-lane confusion (not soft blazer + lifestyle trainers).
+  const majorConfused = isMajorConfusedLook(aesthetic, {
+    allowsSmartCasualTrainers,
+    clashId: primaryClash?.id,
+  });
+  if (majorConfused) {
+    score = Math.min(score, 58);
   }
+
+  let hint = selectAnalysisHint({
+    score,
+    hasShoes,
+    hasCompleteBase: hasDress || (hasTop && hasBottom),
+    allowsSmartCasualTrainers,
+    majorConfused,
+    primaryClash,
+    aesthetic,
+    colorSummary: colorHarmony.summary,
+    colorScore: colorHarmony.score,
+    silhouetteOverall: silhouette.overall,
+    uniqueColorCount: uniqueColors.size,
+  });
+
+  hint = sanitizeHintForScore(hint, score, {
+    clashId: primaryClash?.id,
+    severity: primaryClash?.severity,
+  });
 
   return {
     score,
@@ -270,6 +286,8 @@ export function mergeOutfitScores(
     // When the server ran the unified (context-aware) engine, prioritize it for UX consistency.
     finalScore = local.hardCap != null ? Math.min(aiScore, local.hardCap) : aiScore;
     if (fatalOrMajor) finalScore = Math.min(finalScore, local.score);
+    // Don't let unified AI pull weak/confused local scores into the 80s
+    else if (local.score < 70) finalScore = Math.min(finalScore, local.score + 8);
   } else if (apiFallback || tasteRejection) {
     finalScore = local.hardCap != null
       ? Math.min(local.score, local.hardCap)
@@ -278,6 +296,9 @@ export function mergeOutfitScores(
     finalScore = Math.min(aiScore, local.score, local.hardCap ?? (fatalOrMajor ? 35 : 40));
   } else if (localIsClash && !regionalSmartCasual) {
     finalScore = Math.min(aiScore, local.score, local.hardCap ?? 45);
+  } else if (/confused|style lane|incompatible style/i.test(local.hint)) {
+    // Keep confused-lane feedback honest — never let AI pull these into the 70–80s
+    finalScore = Math.min(aiScore, local.score, local.hardCap ?? 58);
   } else if (local.score < 50) {
     finalScore = Math.min(aiScore, local.score + 5);
   } else {
@@ -293,12 +314,31 @@ export function mergeOutfitScores(
       ? (local.hint || api.analysis || api.verdict || violationHint || 'Needs refinement')
       : (api.verdict || api.explanations?.[0] || api.analysis || local.hint);
 
-  const hint =
+  let hint =
     (tasteRejection || finalScore < 55) && local.hint
       ? local.hint
       : api.headline && finalScore >= 70 && !violationHint && !localIsClash && !tasteRejection
         ? api.headline
         : (honestHint || local.hint);
+
+  hint = sanitizeHintForScore(hint, finalScore, {
+    clashId: local.clashId,
+    severity: local.severity,
+    fallbackPraise: local.hint && !/refine footwear|confused|style lane/i.test(local.hint)
+      ? local.hint
+      : undefined,
+  });
+
+  // At excellent scores, prefer local praise over AI "improve X" nags
+  if (finalScore >= 90 && /refine|improve|swap|confused|needs work/i.test(hint) && local.hint) {
+    const localClean = sanitizeHintForScore(local.hint, finalScore, {
+      clashId: local.clashId,
+      severity: local.severity,
+    });
+    if (!/refine footwear|confused/i.test(localClean)) {
+      hint = localClean;
+    }
+  }
 
   return {
     score: finalScore,

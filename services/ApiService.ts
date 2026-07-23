@@ -4686,6 +4686,29 @@ class ApiService {
     });
   }
 
+  /** Paid Outfit Mix — meticulous per-item notes (cached server-side by outfit signature). */
+  async analyzeOutfitMix(data: {
+    items: string[];
+    score: number;
+    hint?: string;
+    clashId?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      score: number;
+      overallVerdict: string;
+      itemNotes: Array<{ id: string; role: string; name: string; note: string }>;
+      source: 'ai' | 'deterministic' | 'cache';
+      model?: string | null;
+      error?: string;
+      message?: string;
+    }>('/api/dfy/core/wardrobe/outfit-mix-analysis', {
+      method: 'POST',
+      timeout: 60000,
+      body: JSON.stringify(data),
+    });
+  }
+
   async scoreOutfit(data: {
     items: string[];
     stylistId?: string;

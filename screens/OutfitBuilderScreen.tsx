@@ -38,7 +38,8 @@ import {
   messageFromOutfitSaveError,
   saveGeneratedOutfitToProfile,
 } from '@/utils/saveGeneratedOutfit';
-import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
+import { computeLocalOutfitScore, mergeOutfitScores, buildDeterministicItemNotes } from '@/utils/outfitCompatibilityScore';
+import type { ItemAnalysisNote } from '@/utils/outfitAnalysisStatements';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import * as Location from 'expo-location';
 import {
@@ -289,7 +290,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [scoreHeadline, setScoreHeadline] = useState<string | null>(null);
   const [isAiScoring, setIsAiScoring] = useState(false);
   const [aiScoreApplied, setAiScoreApplied] = useState(false);
+  const [itemNotes, setItemNotes] = useState<ItemAnalysisNote[]>([]);
+  const [itemAnalysisSource, setItemAnalysisSource] = useState<'ai' | 'deterministic' | 'cache' | null>(null);
+  const [isItemAnalyzing, setIsItemAnalyzing] = useState(false);
   const scoreRequestRef = useRef(0);
+  const itemAnalysisRequestRef = useRef(0);
+  const itemAnalysisCacheRef = useRef<Map<string, { notes: ItemAnalysisNote[]; verdict: string; source: string }>>(new Map());
+  const localClashIdRef = useRef<string | null>(null);
 
   const layoutMetrics = useMemo(() => {
     const centerWidth = SW * COMPACT_CENTER_RATIO;
@@ -330,15 +337,16 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const compactRowHeight = useMemo(() => {
     const headerBlock = 52;
     const scoreBlock = 58;
+    const notesBlock = itemNotes.length > 0 ? 112 : 0;
     const bottomChrome = showSaveButton
       ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
       : bottomNavClearance;
     const rowGap = 8;
-    const available = SH - insets.top - headerBlock - scoreBlock - bottomChrome;
+    const available = SH - insets.top - headerBlock - scoreBlock - notesBlock - bottomChrome;
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
     return Math.max(78, Math.min(134, perRow));
-  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton]);
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, itemNotes.length]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
     setSelection(prev => ({ ...prev, [cat]: id }));
@@ -368,18 +376,39 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     setScoreDimensions(null);
     setScoreExplanations([]);
     setScoreHeadline(null);
+    localClashIdRef.current = local.clashId || null;
+
+    // Instant deterministic per-item notes while AI settles
+    if (selectedWardrobeItems.length >= 2) {
+      setItemNotes(buildDeterministicItemNotes(selectedWardrobeItems, {
+        score: local.score,
+        clashId: local.clashId,
+        clashHint: local.hint,
+        aesthetic: local.aesthetic,
+      }));
+      setItemAnalysisSource('deterministic');
+    } else {
+      setItemNotes([]);
+      setItemAnalysisSource(null);
+    }
 
     if (selectedWardrobeItems.length < 2) {
       setIsAiScoring(false);
+      setIsItemAnalyzing(false);
       return;
     }
 
     const requestId = ++scoreRequestRef.current;
+    const analysisRequestId = ++itemAnalysisRequestRef.current;
     setIsAiScoring(true);
     const itemIdsForRequest = selectedWardrobeItems.map((item) => item.id);
+    const selectionSig = itemIdsForRequest.slice().sort().join('|');
     const { lat, lon } = scoringLocationRef.current;
 
     const timer = setTimeout(async () => {
+      let finalScore = local.score;
+      let finalHint = local.hint;
+
       try {
         const result = await apiService.checkOutfitCompatibility({
           items: itemIdsForRequest,
@@ -409,6 +438,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           }, {
             allowsSmartCasualTrainers: regionalContext.allowsSmartCasualTrainers,
           });
+          finalScore = merged.score;
+          finalHint = merged.hint;
           setStyleScore(merged.score);
           setStyleHint(merged.hint);
           setScoreDimensions(merged.dimensions);
@@ -423,7 +454,58 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           setIsAiScoring(false);
         }
       }
-    }, 900);
+
+      // Per-item meticulous analysis — cache by outfit signature; settle after score
+      const cacheKey = `${selectionSig}::${finalScore}`;
+      const cached = itemAnalysisCacheRef.current.get(cacheKey);
+      if (cached) {
+        if (itemAnalysisRequestRef.current === analysisRequestId) {
+          setItemNotes(cached.notes);
+          setItemAnalysisSource(cached.source as 'ai' | 'deterministic' | 'cache');
+          if (cached.verdict && finalScore >= 70) {
+            setScoreHeadline((prev) => prev || cached.verdict);
+          }
+        }
+        return;
+      }
+
+      setIsItemAnalyzing(true);
+      try {
+        const analysis = await apiService.analyzeOutfitMix({
+          items: itemIdsForRequest,
+          score: finalScore,
+          hint: finalHint,
+          clashId: localClashIdRef.current || undefined,
+        });
+        if (itemAnalysisRequestRef.current !== analysisRequestId) return;
+        if (analysis.success && Array.isArray(analysis.itemNotes) && analysis.itemNotes.length) {
+          const notes = analysis.itemNotes.map((n) => ({
+            id: n.id,
+            role: n.role,
+            name: n.name,
+            note: n.note,
+          }));
+          setItemNotes(notes);
+          setItemAnalysisSource(analysis.source || 'ai');
+          itemAnalysisCacheRef.current.set(cacheKey, {
+            notes,
+            verdict: analysis.overallVerdict || '',
+            source: analysis.source || 'ai',
+          });
+          if (analysis.overallVerdict && finalScore >= 55 && !/refine footwear/i.test(analysis.overallVerdict)) {
+            setStyleHint((prev) => (
+              /refine footwear|confused/i.test(prev) ? analysis.overallVerdict : prev
+            ));
+          }
+        }
+      } catch {
+        // Deterministic notes already shown
+      } finally {
+        if (itemAnalysisRequestRef.current === analysisRequestId) {
+          setIsItemAnalyzing(false);
+        }
+      }
+    }, 1100);
 
     return () => clearTimeout(timer);
   }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry]);
@@ -559,6 +641,41 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           {selectedItemIds.length} pcs
         </ThemedText>
       </View>
+
+      {itemNotes.length > 0 ? (
+        <View style={[styles.itemNotesWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }]}>
+          <View style={styles.itemNotesHeader}>
+            <ThemedText type="caption" style={{ fontWeight: '700', color: theme.text }}>
+              Piece notes
+            </ThemedText>
+            <ThemedText type="caption" style={{ color: secondaryText, fontSize: 10 }}>
+              {isItemAnalyzing
+                ? 'Stylist reading…'
+                : itemAnalysisSource === 'ai' || itemAnalysisSource === 'cache'
+                  ? 'AI stylist'
+                  : 'Quick read'}
+            </ThemedText>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {itemNotes.map((note) => (
+              <View
+                key={note.id}
+                style={[styles.itemNoteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff' }]}
+              >
+                <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 2 }} numberOfLines={1}>
+                  {note.name}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: secondaryText, fontSize: 10, marginBottom: 4 }}>
+                  {note.role}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: secondaryText, lineHeight: 16 }} numberOfLines={4}>
+                  {note.note}
+                </ThemedText>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       {activeReels.length === 0 ? (
         <View style={styles.emptyState}>
@@ -834,6 +951,26 @@ const styles = StyleSheet.create({
   scoreTextBlock: {
     flex: 1,
     gap: 2,
+  },
+  itemNotesWrap: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  itemNotesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 2,
+  },
+  itemNoteCard: {
+    width: 168,
+    marginRight: 8,
+    borderRadius: BorderRadius.md,
+    padding: 10,
   },
   dimPill: {
     flexDirection: 'row',

@@ -216,10 +216,9 @@
         { "name": "Black Slim Jeans", "category": "bottoms", "color": "black" },
         { "name": "White Chunky Sneakers", "category": "shoes", "color": "white" }
       ],
-      "label": "good",
-      "minScore": 55,
-      "maxScore": 94,
-      "edgeCase": "fashion_forward_contrast"
+      "label": "bad",
+      "maxScore": 45,
+      "edgeCase": "blazer_chunky_trainers_rejected"
     },
     {
       "id": "e4_chinos_tee_loafers",
