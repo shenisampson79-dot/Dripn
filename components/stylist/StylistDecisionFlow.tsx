@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
@@ -117,6 +118,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
+  const stackNavigation = useNavigation();
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
   const stylistGradient = getStylistGradient(stylistId);
@@ -137,6 +139,27 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
   const stepIndex = steps.indexOf(flow.step as typeof steps[number]);
   const progress = stepIndex >= 0 ? (stepIndex + 1) / steps.length : 0;
+
+  // Header back: step back when on step 2+, exit only on first step / locked result
+  useLayoutEffect(() => {
+    const handleHeaderBack = () => {
+      if (flow.goBackOneStep()) return;
+      navigation.goBack();
+    };
+    stackNavigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={handleHeaderBack}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          hitSlop={12}
+          style={{ paddingHorizontal: 4, paddingVertical: 8, marginLeft: Platform.OS === 'ios' ? 0 : 4 }}
+        >
+          <Feather name="chevron-left" size={28} color={theme.text} />
+        </Pressable>
+      ),
+    });
+  }, [flow.goBackOneStep, flow.step, navigation, stackNavigation, t, theme.text]);
 
   const introCopy = {
     shopping: {
@@ -190,20 +213,38 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   })();
 
   const renderProgress = () => (
-    <View style={styles.progressRow}>
-      <View style={[styles.progressTrack, { backgroundColor: theme.backgroundSecondary }]}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${Math.max(progress * 100, 12)}%`, backgroundColor: LuxuryColors.gold },
-          ]}
-        />
+    <View style={styles.progressBlock}>
+      {flow.canGoBackOneStep ? (
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            flow.goBackOneStep();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          style={styles.stepBackRow}
+        >
+          <Feather name="arrow-left" size={16} color={LuxuryColors.gold} />
+          <ThemedText type="caption" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+            {t('common.back')}
+          </ThemedText>
+        </Pressable>
+      ) : null}
+      <View style={styles.progressRow}>
+        <View style={[styles.progressTrack, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${Math.max(progress * 100, 12)}%`, backgroundColor: LuxuryColors.gold },
+            ]}
+          />
+        </View>
+        <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+          {t('stylistFlow.stepOf')
+            .replace('{current}', String(Math.max(stepIndex + 1, 1)))
+            .replace('{total}', String(steps.length))}
+        </ThemedText>
       </View>
-      <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-        {t('stylistFlow.stepOf')
-          .replace('{current}', String(Math.max(stepIndex + 1, 1)))
-          .replace('{total}', String(steps.length))}
-      </ThemedText>
     </View>
   );
 
@@ -886,8 +927,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   progressRow: {
-    marginTop: Spacing.md,
     gap: Spacing.xs,
+  },
+  progressBlock: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  stepBackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
   },
   progressTrack: {
     height: 4,

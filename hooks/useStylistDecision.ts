@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert } from 'react-native';
+import { Alert, BackHandler } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +40,7 @@ import {
   buildDecisionContinuity,
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
+import { resolveEventOutfitOccasion } from '@/utils/eventOutfitOccasion';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -99,6 +100,13 @@ function formatSubmitError(
   if (raw.includes('Add photos or describe')) {
     return raw;
   }
+  if (
+    code === 'wardrobe_gap'
+    || code === 'no_wardrobe'
+    || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
+  ) {
+    return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
+  }
   return raw || 'Something went wrong. Please try again.';
 }
 
@@ -157,6 +165,33 @@ export function useStylistDecision({
     if (next === 'response') return;
     setStep(next);
   }, [response]);
+
+  /** True when header/hardware back should step within the flow instead of exiting. */
+  const canGoBackOneStep = Boolean(
+    !isReadOnly
+    && (
+      (decisionType === 'event-outfit' && derivedStep === 'input')
+      || (derivedStep === 'response' && !response) // shouldn't happen; keep safe
+    ),
+  );
+
+  const goBackOneStep = useCallback((): boolean => {
+    if (isReadOnly) return false;
+    if (decisionType === 'event-outfit' && step === 'input') {
+      setDraftStep('event');
+      return true;
+    }
+    return false;
+  }, [decisionType, isReadOnly, setDraftStep, step]);
+
+  // Android hardware back: step back when possible, else leave screen
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (goBackOneStep()) return true;
+      return false;
+    });
+    return () => sub.remove();
+  }, [goBackOneStep]);
 
   const getUploadLimit = useCallback(() => {
     // Gallery / camera only — wardrobe selection uses getWardrobeSelectLimit()
@@ -511,6 +546,8 @@ export function useStylistDecision({
       message: error?.message,
       error: error?.error,
       status: error?.status,
+      eventType: eventDetails?.eventType,
+      surpriseMe: isSurpriseMe,
     });
     if (
       error.limitCopy
@@ -580,8 +617,13 @@ export function useStylistDecision({
 
       if (surpriseMe && decisionType === 'event-outfit' && wardrobeItems.length >= 3) {
         try {
+          const occasionResolved = resolveEventOutfitOccasion({
+            eventDetails,
+            context,
+            decisionType: 'event_outfit',
+          });
           const local = await generateWardrobeOutfit({
-            occasionType: 'evening_out',
+            occasionType: occasionResolved.allocatorOccasion,
             wardrobeItems,
             stylistId,
             user,
@@ -665,10 +707,11 @@ export function useStylistDecision({
         styleRating: apiResult.styleRating ?? null,
         ratingLabel: apiResult.ratingLabel ?? null,
         outfitPieces: (() => {
-          const pieces = sanitizeOutfitPieces(localPieces || apiResult.outfitPieces || []);
+          // Prefer server occasion-locked pieces; local allocator is best-effort only
+          const pieces = sanitizeOutfitPieces(apiResult.outfitPieces || localPieces || []);
           return pieces.length > 0 ? pieces : null;
         })(),
-        outfitSummary: localSummary || apiResult.outfitSummary || null,
+        outfitSummary: apiResult.outfitSummary || localSummary || null,
         unifiedScore: apiResult.unifiedScore ?? null,
         stylistId: stylistId as DecisionResponse['stylistId'],
         timestamp: new Date().toISOString(),
@@ -932,6 +975,8 @@ export function useStylistDecision({
   return {
     step: derivedStep,
     setStep: setDraftStep,
+    goBackOneStep,
+    canGoBackOneStep,
     images,
     selectedWardrobeIds,
     contextNotes,
