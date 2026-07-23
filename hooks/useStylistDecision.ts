@@ -32,6 +32,10 @@ import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { safeEnforceDecisionContract } from '@/utils/decisionContract';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
+import {
+  MAX_DECISION_WARDROBE_ITEMS,
+  MAX_SANITY_CHECK_PHOTOS,
+} from '@/utils/decisionWardrobeGroups';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -54,9 +58,31 @@ const DECISION_TYPE_MAP: Record<string, 'sanity_check' | 'shopping' | 'what_to_w
   'event-outfit': 'event_outfit',
 };
 
-function formatSubmitError(error: { message?: string; error?: string; status?: number }, limit: number) {
+function formatSubmitError(
+  error: {
+    message?: string;
+    error?: string;
+    errorCode?: string;
+    status?: number;
+    maxAllowed?: number;
+  },
+  opts: { photoLimit: number; wardrobeLimit: number; usedWardrobe: boolean },
+) {
   const raw = error?.message || error?.error || '';
-  if (raw === 'too_many_images' || raw.includes('too_many_images')) {
+  const code = error?.error || error?.errorCode || '';
+  const maxAllowed = typeof error?.maxAllowed === 'number' ? error.maxAllowed : null;
+  const tooMany =
+    code === 'too_many_images'
+    || raw === 'too_many_images'
+    || raw.includes('too_many_images')
+    || /up to \d+ (photos|items) for this question/i.test(raw)
+    || /Too many (photos|items) for this question/i.test(raw);
+  if (tooMany) {
+    if (opts.usedWardrobe) {
+      const limit = maxAllowed ?? opts.wardrobeLimit;
+      return `You can select up to ${limit} wardrobe items for this question. Remove a few and try again.`;
+    }
+    const limit = maxAllowed ?? opts.photoLimit;
     return `You can add up to ${limit} photos for this question. Remove a few and try again.`;
   }
   if (raw.includes('Images required')) {
@@ -125,7 +151,8 @@ export function useStylistDecision({
   }, [response]);
 
   const getUploadLimit = useCallback(() => {
-    if (decisionType === 'sanity-check') return 1;
+    // Gallery / camera only — wardrobe selection uses getWardrobeSelectLimit()
+    if (decisionType === 'sanity-check') return MAX_SANITY_CHECK_PHOTOS;
     if (decisionType === 'shopping') {
       const comparisonMax =
         accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
@@ -136,6 +163,8 @@ export function useStylistDecision({
     }
     return accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
   }, [accessStatus, decisionType, user?.subscriptionTier]);
+
+  const getWardrobeSelectLimit = useCallback(() => MAX_DECISION_WARDROBE_ITEMS, []);
 
   const resolveContextHash = useCallback(async () => {
     const hash = await computeContextHash({
@@ -302,9 +331,28 @@ export function useStylistDecision({
     return true;
   };
 
+  const buildSelectedWardrobeContext = (): string | undefined => {
+    if (selectedWardrobeIds.length === 0) return undefined;
+    const lines = selectedWardrobeIds
+      .map((id) => wardrobeItems.find((item) => String(item.id) === id))
+      .filter(Boolean)
+      .map((item) => {
+        const parts = [
+          item!.name || 'Item',
+          item!.category ? `(${item!.category})` : null,
+          item!.color ? `colour: ${item!.color}` : null,
+          item!.brand ? `brand: ${item!.brand}` : null,
+        ].filter(Boolean);
+        return `- ${parts.join(' · ')} [id:${item!.id}]`;
+      });
+    if (lines.length === 0) return undefined;
+    return `Selected wardrobe pieces to evaluate as one outfit:\n${lines.join('\n')}`;
+  };
+
   const buildDecisionContext = (): string => {
     const situational = decisionService.formatContextForApi(selectedContexts);
     const notes = contextNotes.trim() || undefined;
+    const wardrobeBlock = buildSelectedWardrobeContext();
 
     if (decisionType === 'event-outfit') {
       const eventParts: string[] = [];
@@ -312,11 +360,12 @@ export function useStylistDecision({
       if (eventDetails.dressCode) eventParts.push(`Dress code: ${eventDetails.dressCode}`);
       if (eventDetails.timeOfDay) eventParts.push(`Time of day: ${eventDetails.timeOfDay}`);
       if (eventDetails.venue?.trim()) eventParts.push(`Venue: ${eventDetails.venue.trim()}`);
-      const sections = [situational, eventParts.join('\n'), notes].filter(Boolean);
+      const sections = [situational, eventParts.join('\n'), wardrobeBlock, notes].filter(Boolean);
       return sections.join('\n\n');
     }
 
-    return decisionService.formatContextForApi(selectedContexts, notes);
+    const base = decisionService.formatContextForApi(selectedContexts, notes);
+    return [base, wardrobeBlock].filter(Boolean).join('\n\n');
   };
 
   const buildUserProfile = () => {
@@ -345,8 +394,14 @@ export function useStylistDecision({
   const collectImageUris = (): string[] => {
     if (images.length > 0) return images;
 
-    if (decisionType === 'sanity-check' && selectedWardrobeIds.length > 0) {
+    // Wardrobe picks become outfit-piece images for vision (Sanity + Event).
+    // Cap is getWardrobeSelectLimit(), not the gallery photo cap.
+    if (
+      (decisionType === 'sanity-check' || decisionType === 'event-outfit')
+      && selectedWardrobeIds.length > 0
+    ) {
       return selectedWardrobeIds
+        .slice(0, getWardrobeSelectLimit())
         .map((id) => wardrobeItems.find((item) => String(item.id) === id))
         .filter(Boolean)
         .map((item) => item!.enhancedImageUri || item!.imageUri)
@@ -439,7 +494,9 @@ export function useStylistDecision({
     limitCopy?: { message?: string; cta?: string };
     message?: string;
     error?: string;
+    errorCode?: string;
     status?: number;
+    maxAllowed?: number;
   }) => {
     console.warn('[StylistDecision] Submit failed:', {
       decisionType,
@@ -465,7 +522,14 @@ export function useStylistDecision({
         ],
       );
     } else {
-      Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error, getUploadLimit()));
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        formatSubmitError(error, {
+          photoLimit: getUploadLimit(),
+          wardrobeLimit: getWardrobeSelectLimit(),
+          usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
+        }),
+      );
     }
   };
 
@@ -554,6 +618,7 @@ export function useStylistDecision({
         userProfile: buildUserProfile(),
         surpriseMe,
         clientImageCount: surpriseMe ? 0 : imageUris.length,
+        selectedWardrobeIds: selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
           id: item.id,
           name: item.name,
@@ -694,9 +759,17 @@ export function useStylistDecision({
   const toggleWardrobeItem = (id: string) => {
     setImages([]);
     setImageDataUris([]);
+    const wardrobeLimit = getWardrobeSelectLimit();
     setSelectedWardrobeIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 4) return prev;
+      if (prev.length >= wardrobeLimit) {
+        Alert.alert(
+          t('askStylist.maxImagesReached') || 'Selection limit reached',
+          (t('stylistFlow.maxWardrobeItemsMessage') || 'You can select up to {n} wardrobe items for this question.')
+            .replace('{n}', String(wardrobeLimit)),
+        );
+        return prev;
+      }
       return [...prev, id];
     });
   };
@@ -801,7 +874,8 @@ export function useStylistDecision({
       return images.length >= 1 || selectedWardrobeIds.length >= 1;
     }
     if (decisionType === 'event-outfit') {
-      return images.length >= 1;
+      // Photos, wardrobe picks, or Surprise Me (submitDecision(true) bypasses this)
+      return images.length >= 1 || selectedWardrobeIds.length >= 1;
     }
     return false;
   };
@@ -830,6 +904,7 @@ export function useStylistDecision({
     isStale,
     brokenImageCount,
     getUploadLimit,
+    getWardrobeSelectLimit,
     canProceedFromInput,
     handlePickImage,
     handleTakePhoto,

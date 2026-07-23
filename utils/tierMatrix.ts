@@ -16,7 +16,7 @@ export interface TierFeatureMatrix {
 
   decisionsPerDay: number | 'unlimited';
   maxComparisonImages: number;
-  /** Max photos for What should I wear? / Outfit for an event */
+  /** Max gallery photos for What should I wear? / Outfit for an event (wardrobe picks use MAX_DECISION_WARDROBE_ITEMS). */
   maxOutfitDecisionImages: number;
   hasDecisionHistory: boolean;
   hasWardrobeAwareDecisions: boolean;

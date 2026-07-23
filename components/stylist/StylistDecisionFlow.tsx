@@ -31,9 +31,10 @@ import { decisionService } from '@/services/DecisionService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { useStylistDecision } from '@/hooks/useStylistDecision';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
+import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePicker';
+import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const WARDROBE_THUMB = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.sm * 2) / 3;
 
 const EVENT_TYPES = [
   { id: 'wedding', labelKey: 'stylistFlow.event.wedding' },
@@ -393,37 +394,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {t('stylistFlow.orFromWardrobe')}
       </ThemedText>
 
-      {flow.wardrobeItems.length === 0 ? (
-        <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-          {t('stylistFlow.emptyWardrobeHint')}
-        </ThemedText>
-      ) : (
-        <View style={styles.wardrobeGrid}>
-          {flow.wardrobeItems.slice(0, 12).map((item) => {
-            const id = String(item.id);
-            const selected = flow.selectedWardrobeIds.includes(id);
-            const uri = item.enhancedImageUri || item.imageUri;
-            if (!uri) return null;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => flow.toggleWardrobeItem(id)}
-                style={[
-                  styles.wardrobeThumb,
-                  selected && { borderColor: LuxuryColors.gold, borderWidth: 2 },
-                ]}
-              >
-                <Image source={{ uri }} style={styles.wardrobeThumbImage} />
-                {selected ? (
-                  <View style={styles.wardrobeCheck}>
-                    <Feather name="check" size={12} color="#FFFFFF" />
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      <DecisionWardrobePicker
+        items={flow.wardrobeItems}
+        selectedIds={flow.selectedWardrobeIds}
+        onToggle={flow.toggleWardrobeItem}
+        maxItems={flow.getWardrobeSelectLimit?.() ?? MAX_DECISION_WARDROBE_ITEMS}
+        disabled={flow.isReadOnly}
+      />
 
       {renderContextChips(t('stylistFlow.contextSubtitle'))}
 
@@ -473,6 +450,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       </View>
 
       {flow.images.length < flow.getUploadLimit() ? renderUploadActions() : null}
+
+      <ThemedText type="body" style={styles.orLabel}>
+        {t('stylistFlow.orFromWardrobe')}
+      </ThemedText>
+
+      <DecisionWardrobePicker
+        items={flow.wardrobeItems}
+        selectedIds={flow.selectedWardrobeIds}
+        onToggle={flow.toggleWardrobeItem}
+        maxItems={flow.getWardrobeSelectLimit?.() ?? MAX_DECISION_WARDROBE_ITEMS}
+        disabled={flow.isReadOnly}
+      />
 
       <View style={styles.surpriseSection}>
         <ThemedText type="caption" style={[styles.orLabel, { color: theme.tabIconDefault }]}>
@@ -1016,34 +1005,6 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH - Spacing.xl * 2,
     height: (SCREEN_WIDTH - Spacing.xl * 2) * 1.1,
     borderRadius: BorderRadius.lg,
-  },
-  wardrobeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  wardrobeThumb: {
-    width: WARDROBE_THUMB,
-    height: WARDROBE_THUMB,
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  wardrobeThumbImage: {
-    width: '100%',
-    height: '100%',
-  },
-  wardrobeCheck: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: LuxuryColors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pieceGrid: {
     flexDirection: 'row',

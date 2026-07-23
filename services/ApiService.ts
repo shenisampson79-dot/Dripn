@@ -279,10 +279,11 @@ class ApiService {
       }
 
       if (error.error === 'too_many_images') {
+        // Keep code-friendly fallback — callers distinguish wardrobe vs gallery photos
         errorMessage = error.stylistResponse
           || (error.maxAllowed
-            ? `You can add up to ${error.maxAllowed} photos for this question. Remove a few and try again.`
-            : 'Too many photos for this question. Remove a few and try again.');
+            ? `You can add up to ${error.maxAllowed} items for this question. Remove a few and try again.`
+            : 'Too many items for this question. Remove a few and try again.');
       } else if (error.stylistResponse && typeof error.stylistResponse === 'string') {
         errorMessage = error.stylistResponse;
       } else if (error.hint === 'stripe_portal_not_configured') {
@@ -343,6 +344,8 @@ class ApiService {
         statusCode?: number;
         errorCode?: string;
         code?: string;
+        error?: string;
+        maxAllowed?: number;
         voiceCreditsExhausted?: boolean;
         limitCopy?: unknown;
       };
@@ -350,6 +353,10 @@ class ApiService {
       apiError.statusCode = response.status;
       apiError.errorCode = rawCode || undefined;
       apiError.code = (typeof error.code === 'string' && error.code) || rawCode || undefined;
+      apiError.error = rawCode || undefined;
+      if (typeof error.maxAllowed === 'number') {
+        apiError.maxAllowed = error.maxAllowed;
+      }
       if (error.errorCode) {
         apiError.errorCode = String(error.errorCode);
       }
@@ -1875,6 +1882,7 @@ class ApiService {
     userProfile?: any;
     surpriseMe?: boolean;
     clientImageCount?: number;
+    selectedWardrobeIds?: Array<string | number>;
     wardrobeItems?: Array<{
       id?: string | number;
       name?: string;
