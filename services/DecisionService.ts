@@ -105,6 +105,21 @@ export interface DecisionResponse {
     color_score?: number;
     fit_score?: number;
   } | null;
+  /** Shopping / sanity: uploaded photos that match owned wardrobe items */
+  alreadyOwned?: Array<{
+    optionIndex: number;
+    matches: Array<{
+      id?: number | string;
+      name?: string;
+      category?: string | null;
+      color?: string | null;
+      brand?: string | null;
+      imageUrl?: string | null;
+      confidence?: string;
+      reason?: string;
+    }>;
+  }>;
+  alreadyOwnedMatches?: DecisionResponse['alreadyOwned'];
 }
 
 /** Client floor — never display scores at/below occasion-fail cap. */

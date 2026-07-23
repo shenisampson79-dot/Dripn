@@ -740,6 +740,25 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+          {Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
+            <View style={{ marginBottom: Spacing.md }}>
+              <ThemedText type="small" style={{ color: theme.link, marginBottom: Spacing.xs }}>
+                {t('wardrobe.alreadyOwnPurchase') || 'You already own this'}
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                {(t('wardrobe.alreadyOwnPurchaseMessage')
+                  || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
+                  .replace(
+                    '{names}',
+                    res.alreadyOwned
+                      .flatMap((entry) => (entry.matches || []).map((m) => m.name || 'item'))
+                      .filter(Boolean)
+                      .slice(0, 4)
+                      .join(', '),
+                  )}
+              </ThemedText>
+            </View>
+          ) : null}
           {showRating ? (
             <View style={styles.ratingRow}>
               <ThemedText type="h2">{Number(res.styleRating).toFixed(1)}</ThemedText>

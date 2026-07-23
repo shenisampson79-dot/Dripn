@@ -72,6 +72,10 @@ import {
 import { permanentWardrobePhotoPath } from "@/utils/persistWardrobePhoto";
 import { invalidateWardrobeImageCache } from "@/utils/wardrobeImageLoader";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import {
+  findLocalWardrobeDuplicates,
+  formatDuplicateNames,
+} from "@/utils/wardrobeDuplicateMatch";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -766,7 +770,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (opts?: { allowDuplicate?: boolean }) => {
     const missingFields: string[] = [];
     if (!imageUri) missingFields.push("Photo");
     if (!name.trim()) missingFields.push("Name");
@@ -814,13 +818,76 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     try {
       // Convert image to base64 for backend processing
       const { base64: imageBase64 } = await toJpegBase64(imageUri);
-      
+      const sanitizedName = sanitizeWardrobeItemName(name.trim(), { color, brand: undefined });
+
+      if (!opts?.allowDuplicate) {
+        let matches: Array<{ id?: string | number; name?: string; imageUrl?: string | null }> = [];
+        try {
+          const check = await apiService.checkWardrobeDuplicates([{
+            name: sanitizedName,
+            category,
+            color,
+            brand: brand.trim() || undefined,
+            imageBase64,
+          }]);
+          const first = check?.results?.[0];
+          if (first?.isDuplicate && first.matches?.length) {
+            matches = first.matches;
+          }
+        } catch {
+          matches = findLocalWardrobeDuplicates(
+            { name: sanitizedName, category, color, brand: brand.trim() || undefined },
+            items.map((it) => ({
+              id: String(it.id),
+              name: it.name,
+              category: it.category,
+              subcategory: it.subcategory,
+              color: it.color,
+              brand: it.brand,
+              imageUri: it.imageUri,
+              origin: it.origin,
+            })),
+          );
+        }
+
+        if (matches.length > 0) {
+          setIsSubmitting(false);
+          const matchNames = formatDuplicateNames(matches);
+          const existingId = matches[0]?.id;
+          Alert.alert(
+            t('wardrobe.alreadyHaveThis') || 'Looks like you already have this',
+            (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to {names} in your wardrobe.')
+              .replace('{names}', matchNames),
+            [
+              { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+              ...(existingId
+                ? [{
+                    text: t('wardrobe.viewExisting') || 'View existing',
+                    onPress: () => {
+                      try {
+                        (navigation as any).navigate('WardrobeItemDetail', { itemId: String(existingId) });
+                      } catch {
+                        (navigation as any).navigate('Wardrobe');
+                      }
+                    },
+                  }]
+                : []),
+              {
+                text: t('common.addAnyway') || 'Add Anyway',
+                onPress: () => { void handleSave({ allowDuplicate: true }); },
+              },
+            ],
+          );
+          return;
+        }
+      }
+
       const newItem = await addItem({
         imageUri,
         originalImageUri: originalImageUri || imageUri,
         imageProcessed,
         imageBase64,
-        name: sanitizeWardrobeItemName(name.trim(), { color, brand: undefined }),
+        name: sanitizedName,
         category,
         color,
         seasons,
@@ -830,7 +897,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         origin,
         aiAnalyzed,
         isFavorite: false,
-      });
+        allowDuplicate: opts?.allowDuplicate === true,
+      } as any);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -888,7 +956,23 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           .replace('{gap}', describeOutfitPlanningGap(outfitCounts, t)),
         [{ text: t('common.keepBuilding'), onPress: () => navigation.goBack() }],
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.duplicate || error?.error === 'DUPLICATE_WARDROBE_ITEM' || error?.status === 409) {
+        const matchNames = formatDuplicateNames(error.matches || []);
+        Alert.alert(
+          t('wardrobe.alreadyHaveThis') || 'Looks like you already have this',
+          (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to {names} in your wardrobe.')
+            .replace('{names}', matchNames || 'an existing item'),
+          [
+            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+            {
+              text: t('common.addAnyway') || 'Add Anyway',
+              onPress: () => { void handleSave({ allowDuplicate: true }); },
+            },
+          ],
+        );
+        return;
+      }
       Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToAddItemToWardrobePleaseTryAgain') || "Failed to add item to wardrobe. Please try again.");
     } finally {
       setIsSubmitting(false);

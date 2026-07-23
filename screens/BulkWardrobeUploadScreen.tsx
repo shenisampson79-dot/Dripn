@@ -38,6 +38,12 @@ import {
   COLOR_LABELS,
 } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  findLocalWardrobeDuplicates,
+  formatDuplicateNames,
+} from "@/utils/wardrobeDuplicateMatch";
+import { apiService } from "@/services/ApiService";
+import { convertImageToBase64 } from "@/services/VisionAnalysisService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getTierFeatures } from "@/utils/tierMatrix";
 import {
@@ -645,8 +651,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const checkForDuplicate = (itemName: string, category: string): boolean => {
     const normalizedName = itemName.toLowerCase().trim();
     return existingItems.some(existing => 
-      existing.name.toLowerCase().trim() === normalizedName && 
-      existing.category === category
+      existing.origin !== 'inspiration'
+      && existing.origin !== 'wishlist'
+      && existing.name.toLowerCase().trim() === normalizedName
+      && existing.category === category
     );
   };
 
@@ -657,34 +665,109 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       return;
     }
 
-    const duplicates = selectedItems.filter(item => 
-      checkForDuplicate(item.suggestedName, item.category)
-    );
+    // Prefer server visual+attribute check; fall back to local attribute / name match
+    let duplicateIds = new Set<string>();
+    let duplicateLabelMap: Record<string, string> = {};
+
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Checking for duplicates...');
+      setProcessingDetail('Comparing with your wardrobe');
+      const payloads = [];
+      for (const item of selectedItems) {
+        let imageBase64: string | undefined;
+        if (item.imageUri && !item.imageUri.startsWith('http')) {
+          try {
+            imageBase64 = await convertImageToBase64(item.imageUri);
+          } catch {
+            // attribute-only still works
+          }
+        }
+        payloads.push({
+          name: item.suggestedName,
+          category: item.category,
+          color: item.color,
+          brand: item.brand,
+          imageBase64,
+          imageUrl: item.imageUri?.startsWith('http') ? item.imageUri : undefined,
+        });
+      }
+      const check = await apiService.checkWardrobeDuplicates(payloads);
+      (check.results || []).forEach((r) => {
+        if (!r.isDuplicate || !r.matches?.length) return;
+        const src = selectedItems[r.index];
+        if (!src) return;
+        duplicateIds.add(src.id);
+        duplicateLabelMap[src.id] = formatDuplicateNames(r.matches);
+      });
+    } catch {
+      selectedItems.forEach((item) => {
+        const local = findLocalWardrobeDuplicates(
+          {
+            name: item.suggestedName,
+            category: item.category,
+            color: item.color,
+            brand: item.brand,
+          },
+          existingItems.map((it) => ({
+            id: String(it.id),
+            name: it.name,
+            category: it.category,
+            subcategory: it.subcategory,
+            color: it.color,
+            brand: it.brand,
+            imageUri: it.imageUri,
+            origin: it.origin,
+          })),
+        );
+        if (local.length > 0 || checkForDuplicate(item.suggestedName, item.category)) {
+          duplicateIds.add(item.id);
+          duplicateLabelMap[item.id] = formatDuplicateNames(
+            local.length > 0 ? local : [{ name: item.suggestedName }],
+          );
+        }
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage('');
+      setProcessingDetail('');
+    }
+
+    const duplicates = selectedItems.filter((item) => duplicateIds.has(item.id));
 
     if (duplicates.length > 0) {
-      const duplicateNames = duplicates.map(d => d.suggestedName).join(', ');
+      const duplicateNames = duplicates
+        .map((d) => duplicateLabelMap[d.id] || d.suggestedName)
+        .join(', ');
       Alert.alert(
-        t('wardrobe.duplicateItemsFound'),
-        t('wardrobe.duplicateItemsMessage').replace('{names}', duplicateNames),
+        t('wardrobe.alreadyHaveThis') || t('wardrobe.duplicateItemsFound'),
+        (t('wardrobe.duplicateItemsMessage') || 'The following item(s) are already in your wardrobe: {names}. Would you like to add them anyway?')
+          .replace('{names}', duplicateNames),
         [
           {
             text: t('common.skipDuplicates'),
             style: 'cancel',
-            onPress: () => saveItems(selectedItems.filter(item => !checkForDuplicate(item.suggestedName, item.category))),
+            onPress: () => saveItems(
+              selectedItems.filter((item) => !duplicateIds.has(item.id)),
+              { allowDuplicates: false },
+            ),
           },
           {
-            text: t('common.addAll'),
-            onPress: () => saveItems(selectedItems),
+            text: t('common.addAnyway') || t('common.addAll'),
+            onPress: () => saveItems(selectedItems, { allowDuplicates: true }),
           },
-        ]
+        ],
       );
       return;
     }
 
-    await saveItems(selectedItems);
+    await saveItems(selectedItems, { allowDuplicates: false });
   };
 
-  const saveItems = async (itemsToSave: PendingItem[]) => {
+  const saveItems = async (
+    itemsToSave: PendingItem[],
+    opts?: { allowDuplicates?: boolean },
+  ) => {
     if (itemsToSave.length === 0) {
       Alert.alert(t('wardrobe.noItemsToAdd') || "No Items to Add", t('wardrobe.allSelectedItemsAreAlreadyInYourWardrobe') || "All selected items are already in your wardrobe.");
       return;
@@ -711,7 +794,9 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         isFavorite: false,
       }));
 
-      const savedItems = await addItemsBatch(batchItems);
+      const savedItems = await addItemsBatch(batchItems, {
+        allowDuplicates: opts?.allowDuplicates === true,
+      });
       savedCount = savedItems.length;
     } catch (error) {
       console.error('Failed to save items:', error);

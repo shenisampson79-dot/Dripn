@@ -351,6 +351,10 @@ class ApiService {
         suggestions?: string[];
         missingPieces?: string[];
         stylistResponse?: string;
+        matches?: unknown[];
+        allowForce?: boolean;
+        candidatePhash?: string | null;
+        duplicate?: boolean;
       };
       apiError.status = response.status;
       apiError.statusCode = response.status;
@@ -377,6 +381,16 @@ class ApiService {
       }
       if (typeof error.stylistResponse === 'string') {
         apiError.stylistResponse = error.stylistResponse;
+      }
+      if (response.status === 409 || rawCode === 'DUPLICATE_WARDROBE_ITEM') {
+        apiError.duplicate = true;
+        apiError.allowForce = error.allowForce !== false;
+        if (Array.isArray(error.matches)) apiError.matches = error.matches;
+        if (error.candidatePhash) apiError.candidatePhash = error.candidatePhash;
+        if (!errorMessage || looksLikeCode(errorMessage)) {
+          apiError.message =
+            'Looks like you already have this (or something very similar) in your wardrobe.';
+        }
       }
       throw apiError;
     }
@@ -3273,10 +3287,47 @@ class ApiService {
     metadata?: Record<string, any>;
     imageBase64?: string;
     imageUrl?: string;
+    allowDuplicate?: boolean;
+    imagePhash?: string;
   }): Promise<{ success: boolean; item: any }> {
     return this.request<{ success: boolean; item: any }>('/api/wardrobe', {
       method: 'POST',
       body: JSON.stringify(item),
+    });
+  }
+
+  async checkWardrobeDuplicates(items: Array<{
+    name?: string;
+    category?: string;
+    subcategory?: string;
+    color?: string;
+    brand?: string;
+    imageBase64?: string;
+    imageUrl?: string;
+    imagePhash?: string;
+  }>): Promise<{
+    success: boolean;
+    hasDuplicates: boolean;
+    results: Array<{
+      index: number;
+      isDuplicate: boolean;
+      candidatePhash?: string | null;
+      matches: Array<{
+        id: number | string;
+        name?: string;
+        category?: string;
+        color?: string;
+        brand?: string;
+        imageUrl?: string | null;
+        confidence?: string;
+        reason?: string;
+      }>;
+    }>;
+  }> {
+    return this.request('/api/wardrobe/check-duplicates', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+      timeout: 60000,
     });
   }
 
@@ -3305,13 +3356,14 @@ class ApiService {
 
   async batchAddWardrobeItems(
     items: any[],
-    options?: { processImagesAfterSave?: boolean },
-  ): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
-    return this.request<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }>('/api/wardrobe/batch', {
+    options?: { processImagesAfterSave?: boolean; allowDuplicates?: boolean },
+  ): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[]; duplicates?: any[] }> {
+    return this.request<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[]; duplicates?: any[] }>('/api/wardrobe/batch', {
       method: 'POST',
       body: JSON.stringify({
         items,
         processImagesAfterSave: options?.processImagesAfterSave !== false,
+        allowDuplicates: options?.allowDuplicates === true,
       }),
       timeout: 120000,
     });

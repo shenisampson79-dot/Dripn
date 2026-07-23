@@ -226,6 +226,7 @@ interface WardrobeContextType {
     options?: {
       onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void;
       waitForBackgroundRemoval?: boolean;
+      allowDuplicates?: boolean;
     },
   ) => Promise<WardrobeItem[]>;
   updateItem: (id: string, updates: Partial<WardrobeItem>) => Promise<void>;
@@ -1022,7 +1023,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, user?.id, loadWardrobe]);
 
   const addItem = useCallback(async (
-    itemData: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>
+    itemData: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'> & {
+      allowDuplicate?: boolean;
+    }
   ): Promise<WardrobeItem> => {
     if (!user) throw new Error('Not authenticated');
     const tierFeatures = getTierFeatures(user.subscriptionTier);
@@ -1033,7 +1036,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
 
     try {
-      const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, imageBase64, ...rest } = itemData as any;
+      const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, imageBase64, allowDuplicate, ...rest } = itemData as any;
       const metadata = { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed };
 
       // If imageUri is a remote URL (e.g. Replicate CDN after background removal), pass it directly
@@ -1052,6 +1055,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         metadata,
         imageBase64: imageBase64 || undefined,
         imageUrl: remoteImageUrl,
+        allowDuplicate: allowDuplicate === true,
       });
 
       if (response?.success && response.item) {
@@ -1077,11 +1081,64 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         await saveFullLocalCache(updatedItems);
         return newItem;
       }
-    } catch (err) {
+
+      // Server may return the item at top-level (legacy shape)
+      if (response && (response as any).id) {
+        const backendId = String((response as any).id);
+        const newItem: WardrobeItem = await attachPersistedLocalPhotos({
+          ...itemData,
+          id: backendId,
+          userId: user.id,
+          timesWorn: 0,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await updateImageCacheEntry(backendId, {
+          imageUri: newItem.imageUri,
+          enhancedImageUri: newItem.enhancedImageUri,
+          originalImageUri: newItem.originalImageUri,
+          imageProcessed,
+        });
+        const updatedItems = [...itemsRef.current, newItem];
+        setItems(updatedItems);
+        await saveFullLocalCache(updatedItems);
+        return newItem;
+      }
+    } catch (err: any) {
+      // Never silently local-save a server-detected duplicate
+      if (err?.duplicate || err?.error === 'DUPLICATE_WARDROBE_ITEM' || err?.status === 409) {
+        throw err;
+      }
       console.log('[WardrobeContext] Backend addItem failed, saving locally:', err);
     }
 
-    // Local-only fallback (offline / backend down)
+    // Local-only fallback (offline / backend down) — still soft-check attributes
+    if (!(itemData as any).allowDuplicate) {
+      const localDupes = itemsRef.current.filter((existing) => {
+        if (existing.origin === 'inspiration' || existing.origin === 'wishlist') return false;
+        const sameName =
+          String(existing.name || '').toLowerCase().trim()
+          === String(itemData.name || '').toLowerCase().trim();
+        return sameName && existing.category === itemData.category;
+      });
+      if (localDupes.length > 0) {
+        const dupeErr = new Error(
+          'Looks like you already have this (or something very similar) in your wardrobe.',
+        ) as Error & { duplicate?: boolean; matches?: unknown[]; allowForce?: boolean };
+        dupeErr.duplicate = true;
+        dupeErr.allowForce = true;
+        dupeErr.matches = localDupes.map((m) => ({
+          id: m.id,
+          name: m.name,
+          category: m.category,
+          color: m.color,
+          brand: m.brand,
+          imageUrl: m.imageUri,
+        }));
+        throw dupeErr;
+      }
+    }
+
     const tempItem: WardrobeItem = await attachPersistedLocalPhotos({
       ...itemData,
       id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1102,6 +1159,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     options?: {
       onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void;
       waitForBackgroundRemoval?: boolean;
+      allowDuplicates?: boolean;
     },
   ): Promise<WardrobeItem[]> => {
     if (!user) throw new Error('Not authenticated');
@@ -1147,6 +1205,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
       const response = await apiService.batchAddWardrobeItems(batchPayload, {
         processImagesAfterSave: false,
+        allowDuplicates: options?.allowDuplicates === true,
       });
 
       if (response?.success && response.items?.length > 0) {

@@ -826,6 +826,8 @@ export function useStylistDecision({
         uploadedImages: imageUris,
         recommendedIndex: enforced.payload.recommendedIndex,
         success: apiResult.success !== false,
+        alreadyOwned: apiResult.alreadyOwned || apiResult.alreadyOwnedMatches,
+        alreadyOwnedMatches: apiResult.alreadyOwnedMatches || apiResult.alreadyOwned,
       };
 
       await persistResult(result, imageUris);
