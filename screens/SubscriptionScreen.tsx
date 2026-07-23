@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -283,6 +283,41 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [devTestingMode, setDevTestingMode] = useState(false);
   const useAppleIAP = shouldUseAppleIAP();
 
+  const applyCatalogPrices = useCallback(() => {
+    const catalog = currencyService.resetPricesToCatalog();
+    setLocalizedPrices(catalog.monthly);
+    setYearlyPrices(catalog.yearly);
+    setDfyPrices(catalog.dfy);
+  }, []);
+
+  const applyDerivedPrices = useCallback((
+    nextMonthly: LocalizedPrices,
+    nextYearly: LocalizedPrices,
+    nextDfy: { outfit_setup: string; wardrobe_setup: string },
+  ) => {
+    const catalog = currencyService.resetPricesToCatalog();
+    const guard = currencyService.assertConsistentDisplayPrices(
+      [
+        nextMonthly.personal_stylist,
+        nextMonthly.stylist_unlimited,
+        nextYearly.personal_stylist,
+        nextYearly.stylist_unlimited,
+        nextDfy.outfit_setup,
+        nextDfy.wardrobe_setup,
+      ],
+      catalog,
+    );
+    if (!guard.ok) {
+      setLocalizedPrices(guard.snapshot.monthly);
+      setYearlyPrices(guard.snapshot.yearly);
+      setDfyPrices(guard.snapshot.dfy);
+      return;
+    }
+    setLocalizedPrices(nextMonthly);
+    setYearlyPrices(nextYearly);
+    setDfyPrices(nextDfy);
+  }, []);
+
   useEffect(() => {
     shouldApplyTestingUnlock(user).then(setDevTestingMode).catch(() => {});
   }, [user?.email, user?.isAdmin, user?.role]);
@@ -291,7 +326,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     let cancelled = false;
 
     const loadPrices = async () => {
-      // Catalog / locale currency first — never leave USD as a transient default.
+      // Session-locked catalog first — StoreKit is a validated overlay only.
       await currencyService.initialize();
       if (cancelled) return;
 
@@ -314,9 +349,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               entry.interval === 'monthly'
                 ? catalogMonthly[entry.tier]
                 : catalogYearly[entry.tier];
-            const resolved = currencyService.resolveStorePrice(
-              entry.priceString,
-              entry.currencyCode,
+            const resolved = currencyService.getDisplayPrice(
+              { priceString: entry.priceString, currencyCode: entry.currencyCode },
               fallback,
             );
             if (entry.interval === 'monthly') {
@@ -331,18 +365,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             if (entry.tier === 'lite') {
               nextDfy = {
                 ...nextDfy,
-                outfit_setup: currencyService.resolveStorePrice(
-                  entry.priceString,
-                  entry.currencyCode,
+                outfit_setup: currencyService.getDisplayPrice(
+                  { priceString: entry.priceString, currencyCode: entry.currencyCode },
                   catalogDfy.outfit_setup,
                 ),
               };
             } else if (entry.tier === 'core') {
               nextDfy = {
                 ...nextDfy,
-                wardrobe_setup: currencyService.resolveStorePrice(
-                  entry.priceString,
-                  entry.currencyCode,
+                wardrobe_setup: currencyService.getDisplayPrice(
+                  { priceString: entry.priceString, currencyCode: entry.currencyCode },
                   catalogDfy.wardrobe_setup,
                 ),
               };
@@ -350,21 +382,19 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           }
         } catch (error) {
           console.warn('[Subscription] Apple IAP price load failed:', error);
-          // Keep catalog GBP/EUR — do not fall back to USD on error/cancel.
+          // Keep session catalog — do not fall back to StoreKit USD on error/cancel.
         }
       }
 
       if (cancelled) return;
-      setLocalizedPrices(nextMonthly);
-      setYearlyPrices(nextYearly);
-      setDfyPrices(nextDfy);
+      applyDerivedPrices(nextMonthly, nextYearly, nextDfy);
     };
 
     loadPrices();
     return () => {
       cancelled = true;
     };
-  }, [useAppleIAP, user?.id]);
+  }, [useAppleIAP, user?.id, applyDerivedPrices]);
 
   // Recover sandbox / failed-sync purchases: if RevenueCat has a paid entitlement, push it
   // to the server even when local UI already shows a paid badge (local unlock can succeed
@@ -721,8 +751,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             await completeApplePurchase(planId as IAPSubscriptionTier, billingCycle, planName);
           } catch (error: unknown) {
             if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+              // Cancel must never leave StoreKit sandbox $ stuck in the paywall.
+              applyCatalogPrices();
               return;
             }
+            applyCatalogPrices();
             throw error;
           }
           return;
@@ -759,6 +792,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       }
     } catch (error: any) {
       console.error("Subscription error:", error);
+      applyCatalogPrices();
       const errorMessage = error?.message || t('subscription.paymentPageFailed');
       Alert.alert(t('common.error'), errorMessage);
     } finally {

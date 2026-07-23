@@ -120,7 +120,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   useEffect(() => {
     const initCurrency = async () => {
       await currencyService.initialize();
-      const catalog = currencyService.getDFYPrices();
+      const catalog = currencyService.resetPricesToCatalog().dfy;
 
       if (useAppleIAP && user?.id) {
         try {
@@ -129,18 +129,21 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           if (iapPrices.length > 0) {
             const lite = iapPrices.find((entry) => entry.tier === 'lite');
             const core = iapPrices.find((entry) => entry.tier === 'core');
-            setDfyPrices({
-              outfit_setup: currencyService.resolveStorePrice(
-                lite?.priceString,
-                lite?.currencyCode,
+            const next = {
+              outfit_setup: currencyService.getDisplayPrice(
+                { priceString: lite?.priceString, currencyCode: lite?.currencyCode },
                 catalog.outfit_setup,
               ),
-              wardrobe_setup: currencyService.resolveStorePrice(
-                core?.priceString,
-                core?.currencyCode,
+              wardrobe_setup: currencyService.getDisplayPrice(
+                { priceString: core?.priceString, currencyCode: core?.currencyCode },
                 catalog.wardrobe_setup,
               ),
-            });
+            };
+            const guard = currencyService.assertConsistentDisplayPrices(
+              [next.outfit_setup, next.wardrobe_setup],
+              currencyService.resetPricesToCatalog(),
+            );
+            setDfyPrices(guard.ok ? next : guard.snapshot.dfy);
             return;
           }
         } catch (error) {
@@ -152,6 +155,10 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     };
     initCurrency().catch(() => {});
   }, [useAppleIAP, user?.id]);
+
+  const resetDfyPricesToCatalog = useCallback(() => {
+    setDfyPrices(currencyService.resetPricesToCatalog().dfy);
+  }, []);
 
   const refreshState = useCallback(async () => {
     if (!user?.id) return;
@@ -315,6 +322,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
       // cancelled: stay on screen quietly
     } catch (error: unknown) {
       if (isApplePurchaseCancelled(error)) {
+        resetDfyPricesToCatalog();
         setTimeout(() => {
           Alert.alert(
             t('dfy.comparison.purchaseCancelledTitle'),
@@ -324,6 +332,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         }, 400);
         return;
       }
+      resetDfyPricesToCatalog();
       console.error('[DFYStart] checkout error:', error);
       setTimeout(() => {
         Alert.alert(

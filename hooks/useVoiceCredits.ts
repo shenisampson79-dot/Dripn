@@ -14,7 +14,7 @@ import {
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from '@/contexts/TranslationContext';
-import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
+import { VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
 import { currencyService } from '@/services/CurrencyService';
 export type SoftCapWarning = 'usage_high' | 'approaching_limit' | null;
 interface VoiceCreditsInternal {
@@ -78,7 +78,9 @@ const USAGE_NUDGES: Record<NonNullable<SoftCapWarning>, string> = {
   approaching_limit: "You've used your included voice replies — grace replies still available, or try 2-Day Unlimited for 48 hours of voice.",
 };
 function formatPence(pricePence?: number): string {
-  return formatVoicePricePence(pricePence);
+  if (pricePence == null) return '';
+  // Session currency authority — never hardcode £ while UI is USD/EUR.
+  return currencyService.formatPrice(pricePence / 100);
 }
 function resolvePackagePriceLabel(pkg: {
   id?: string;
@@ -87,6 +89,9 @@ function resolvePackagePriceLabel(pkg: {
   discountedPrice?: number;
   chargePence?: number;
 }): string {
+  if (pkg.id === 'boost' || pkg.id === 'pro' || pkg.id === 'weekend') {
+    return currencyService.getVoicePackPrice(pkg.id);
+  }
   const chargePence = pkg.chargePence ?? pkg.discountedPrice ?? pkg.priceGBP;
   if (chargePence != null) return formatPence(chargePence);
   if (pkg.id && VOICE_PACK_PRICE_PENCE[pkg.id] != null) {
@@ -341,13 +346,18 @@ function useVoiceCreditsState() {
       if (user?.id) {
         await appleIAPService.configure(user.id);
       }
+      // AppleIAP already filters to session currency — safe overlay only.
       const prices = await appleIAPService.getVoiceCreditPrices();
       setApplePrices(prices);
     } catch (error) {
       console.log('[useVoiceCredits] Apple price fetch error:', error);
-      // Keep prior catalog GBP labels — never clear to USD on fetch failure.
+      // Drop any prior overlay — catalog labels win on failure.
+      setApplePrices([]);
     }
   }, [useAppleIAP, user?.id]);
+  const resetVoicePricesToCatalog = useCallback(() => {
+    setApplePrices([]);
+  }, []);
   useEffect(() => {
     fetchBalance();
     fetchPackages();
@@ -356,12 +366,15 @@ function useVoiceCreditsState() {
     fetchApplePrices();
   }, [fetchApplePrices]);
   const getPackagePriceLabel = useCallback((packageId: string, fallback: string): string => {
+    const catalogFallback =
+      packageId === 'boost' || packageId === 'pro' || packageId === 'weekend'
+        ? currencyService.getVoicePackPrice(packageId)
+        : fallback;
     const applePrice = applePrices.find((p) => p.packId === packageId);
-    if (!applePrice) return fallback;
-    return currencyService.resolveStorePrice(
-      applePrice.priceString,
-      applePrice.currencyCode,
-      fallback,
+    if (!applePrice) return catalogFallback;
+    return currencyService.getDisplayPrice(
+      { priceString: applePrice.priceString, currencyCode: applePrice.currencyCode },
+      catalogFallback,
     );
   }, [applePrices]);
   const updateBalance = useCallback((voiceCredits: {
@@ -430,8 +443,10 @@ function useVoiceCreditsState() {
         return result;
       } catch (error: unknown) {
         if (isPurchaseCancelledError(error)) {
+          resetVoicePricesToCatalog();
           throw error;
         }
+        resetVoicePricesToCatalog();
         console.error('[useVoiceCredits] Apple IAP error:', error);
         throw error;
       } finally {
@@ -488,15 +503,17 @@ function useVoiceCreditsState() {
       throwCancelledPurchase();
     } catch (error) {
       if (isPurchaseCancelledError(error)) {
+        resetVoicePricesToCatalog();
         await refreshBalance().catch(() => {});
         throw error;
       }
+      resetVoicePricesToCatalog();
       console.error('[useVoiceCredits] Purchase error:', error);
       throw error;
     } finally {
       setIsPurchasing(false);
     }
-  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage]);
+  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage, resetVoicePricesToCatalog]);
   const upgradeToPersonalStylist = useCallback(async () => {
     try {
       setIsPurchasing(true);
@@ -585,6 +602,7 @@ function useVoiceCreditsState() {
     shouldShowBuyPacks,
     isPurchasing,
     getPackagePriceLabel,
+    resetVoicePricesToCatalog,
     purchaseVoiceCredits,
     updateBalance,
     refreshBalance,

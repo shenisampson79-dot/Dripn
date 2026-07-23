@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -150,7 +150,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     if (isAutoCheckout) return;
     const loadPrices = async () => {
       await currencyService.initialize();
-      const fallback = currencyService.getDFYPrices();
+      const fallback = currencyService.resetPricesToCatalog().dfy;
       const catalog = {
         lite: fallback.outfit_setup,
         core: fallback.wardrobe_setup,
@@ -161,17 +161,25 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           await appleIAPService.configure(user.id);
           const iapPrices = await appleIAPService.getDFYPrices();
           if (iapPrices.length > 0) {
-            setTierPrices(() => {
-              const next = { ...catalog };
-              for (const entry of iapPrices) {
-                next[entry.tier] = currencyService.resolveStorePrice(
-                  entry.priceString,
-                  entry.currencyCode,
-                  catalog[entry.tier],
-                );
-              }
-              return next;
-            });
+            const next = { ...catalog };
+            for (const entry of iapPrices) {
+              next[entry.tier] = currencyService.getDisplayPrice(
+                { priceString: entry.priceString, currencyCode: entry.currencyCode },
+                catalog[entry.tier],
+              );
+            }
+            const guard = currencyService.assertConsistentDisplayPrices(
+              [next.lite, next.core],
+              currencyService.resetPricesToCatalog(),
+            );
+            if (!guard.ok) {
+              setTierPrices({
+                lite: guard.snapshot.dfy.outfit_setup,
+                core: guard.snapshot.dfy.wardrobe_setup,
+              });
+              return;
+            }
+            setTierPrices(next);
             return;
           }
         } catch (error) {
@@ -184,6 +192,11 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
     loadPrices().catch(() => {});
   }, [isAutoCheckout, useAppleIAP, user?.id]);
+
+  const resetDfyPricesToCatalog = useCallback(() => {
+    const dfy = currencyService.resetPricesToCatalog().dfy;
+    setTierPrices({ lite: dfy.outfit_setup, core: dfy.wardrobe_setup });
+  }, []);
 
   const leaveAfterAutoCheckout = () => {
     if (navigation.canGoBack()) {
@@ -257,6 +270,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       await completeDfyPurchaseSuccess();
     } catch (error: unknown) {
       if (isApplePurchaseCancelled(error)) {
+        resetDfyPricesToCatalog();
         Alert.alert(
           t('dfy.comparison.purchaseCancelledTitle'),
           t('dfy.comparison.purchaseCancelledMessage'),
@@ -265,6 +279,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
         if (isAutoCheckout) leaveAfterAutoCheckout();
         return;
       }
+      resetDfyPricesToCatalog();
       console.error('DFY Apple IAP error:', error);
       Alert.alert(
         t('dfy.comparison.paymentErrorTitle'),

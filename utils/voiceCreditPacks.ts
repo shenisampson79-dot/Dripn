@@ -41,9 +41,10 @@ export function getVoicePackDisplay(
   return { label: fallbackDescription, subtitle: `${credits} spoken replies` };
 }
 
-export function formatVoicePricePence(pricePence?: number): string {
+/** Legacy helper — prefers session currency via CurrencyService when available. */
+export function formatVoicePricePence(pricePence?: number, currencySymbol = '£'): string {
   if (pricePence == null) return '';
-  return `£${(pricePence / 100).toFixed(2)}`;
+  return `${currencySymbol}${(pricePence / 100).toFixed(2)}`;
 }
 
 export function formatWeekendExpiry(isoDate: string | null | undefined): string {

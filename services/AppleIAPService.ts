@@ -16,8 +16,8 @@ import Purchases, {
 
 import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
+import { currencyService } from '@/services/CurrencyService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
-import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE } from '@/utils/voiceCreditPacks';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
 
@@ -288,20 +288,31 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
     const offerings = await Purchases.getOfferings();
     const results: SubscriptionPriceInfo[] = [];
+    const sessionCurrency = currencyService.getSessionCurrency();
 
     for (const tier of Object.keys(APPLE_SUBSCRIPTION_PRODUCT_IDS) as IAPSubscriptionTier[]) {
       for (const interval of ['monthly', 'yearly'] as SubscriptionInterval[]) {
         const productId = productIdFor(tier, interval);
         const pkg = findPackageByProductId(offerings, productId);
-        if (pkg?.product.priceString) {
-          results.push({
-            tier,
-            interval,
-            productId,
-            priceString: pkg.product.priceString,
-            currencyCode: pkg.product.currencyCode ?? null,
-          });
-        }
+        if (!pkg?.product.priceString) continue;
+
+        const currencyCode = pkg.product.currencyCode ?? null;
+        currencyService.notePaymentCurrency(currencyCode);
+
+        // StoreKit is a suggestion — only surface prices that match session display currency.
+        const safe = currencyService.safeStorekitPrice(
+          { priceString: pkg.product.priceString, currencyCode, price: pkg.product.price },
+          sessionCurrency,
+        );
+        if (!safe) continue;
+
+        results.push({
+          tier,
+          interval,
+          productId,
+          priceString: safe.priceString,
+          currencyCode: safe.currencyCode,
+        });
       }
     }
 
@@ -317,6 +328,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     const productIds = Object.values(APPLE_DFY_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
     const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
+    const sessionCurrency = currencyService.getSessionCurrency();
 
     const results: DFYPriceInfo[] = [];
 
@@ -326,9 +338,21 @@ class RevenueCatAppleIAPService implements AppleIAPService {
       const storeProduct = productById.get(productId);
       const priceString = pkg?.product.priceString || storeProduct?.priceString;
       const currencyCode = pkg?.product.currencyCode ?? storeProduct?.currencyCode ?? null;
-      if (priceString) {
-        results.push({ tier, productId, priceString, currencyCode });
-      }
+      const price = pkg?.product.price ?? storeProduct?.price;
+      currencyService.notePaymentCurrency(currencyCode);
+
+      const safe = currencyService.safeStorekitPrice(
+        { priceString, currencyCode, price },
+        sessionCurrency,
+      );
+      if (!safe) continue;
+
+      results.push({
+        tier,
+        productId,
+        priceString: safe.priceString,
+        currencyCode: safe.currencyCode,
+      });
     }
 
     return results;
@@ -343,27 +367,36 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     const storeProducts = await Purchases.getProducts(productIds);
     const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
     const results: VoiceCreditPriceInfo[] = [];
+    const sessionCurrency = currencyService.getSessionCurrency();
 
     for (const packId of Object.keys(APPLE_VOICE_PRODUCT_IDS) as VoiceCreditPackId[]) {
       const productId = voiceProductIdFor(packId);
       const storeProduct = productById.get(productId);
-      // Prefer storefront string when present; currency filtering happens in UI
-      // via currencyService.resolveStorePrice so cancel/error never flips to USD.
-      const priceString = storeProduct?.priceString
-        ?? formatVoicePricePence(VOICE_PACK_PRICE_PENCE[packId]);
-      const currencyCode = storeProduct?.currencyCode
-        ?? (storeProduct?.priceString ? null : 'GBP');
-      const weekendUnlimited = packId === 'weekend';
-      if (priceString) {
-        results.push({
-          packId,
-          productId,
-          credits: weekendUnlimited ? 0 : (APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0),
-          priceString,
+      // Never invent a GBP catalog string here — CurrencyService owns catalog fallbacks.
+      if (!storeProduct?.priceString) continue;
+
+      const currencyCode = storeProduct.currencyCode ?? null;
+      currencyService.notePaymentCurrency(currencyCode);
+
+      const safe = currencyService.safeStorekitPrice(
+        {
+          priceString: storeProduct.priceString,
           currencyCode,
-          weekendUnlimited,
-        });
-      }
+          price: storeProduct.price,
+        },
+        sessionCurrency,
+      );
+      if (!safe) continue;
+
+      const weekendUnlimited = packId === 'weekend';
+      results.push({
+        packId,
+        productId,
+        credits: weekendUnlimited ? 0 : (APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0),
+        priceString: safe.priceString,
+        currencyCode: safe.currencyCode,
+        weekendUnlimited,
+      });
     }
 
     return results;
