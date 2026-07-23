@@ -28,6 +28,7 @@ import {
   outfitMeetsOccasionStandard,
 } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
+import { stripIllegalOuterwearForWeather } from '@/utils/weatherOuterwear';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
 import {
   localDateKey,
@@ -463,6 +464,7 @@ function allocateLocal(
   laundryProfile = laundryProfileFromUser(null),
   priorOutfits: WardrobeItem[][] = [],
   excludeItemIds: string[] = [],
+  weather: WeatherSnapshot | null = null,
 ): WardrobeItem[] | null {
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
@@ -470,18 +472,27 @@ function allocateLocal(
     laundryProfile,
     priorOutfits,
     excludeItemIds,
+    weather: weather
+      ? { temperature: weather.temperature, condition: weather.condition }
+      : null,
   });
   if (!allocated.ok || allocated.items.length < MIN_OUTFIT_ITEMS) return null;
-  if (!isOutfitValid(allocated.items)) return null;
+  const weatherSafe = stripIllegalOuterwearForWeather(
+    allocated.items,
+    weather
+      ? { temperature: weather.temperature, condition: weather.condition }
+      : null,
+  );
+  if (weatherSafe.length < MIN_OUTFIT_ITEMS || !isOutfitValid(weatherSafe)) return null;
 
   // Hard diversity reject — jacket-only / same base look vs recent history
-  if (priorOutfits.length && priorOutfits.some((h) => isTooSimilar(allocated.items, h))) {
+  if (priorOutfits.length && priorOutfits.some((h) => isTooSimilar(weatherSafe, h))) {
     return null;
   }
   // Prefer changing ≥2 of {top,bottom,footwear} vs yesterday when alternatives exist
   const yesterday = priorOutfits[0];
   if (yesterday?.length) {
-    const trioChanges = countTrioChanges(allocated.items, yesterday);
+    const trioChanges = countTrioChanges(weatherSafe, yesterday);
     const hasAltTop = wardrobeItems.filter(isTopItem).length > 1;
     const hasAltBottom = wardrobeItems.filter(isBottomItem).length > 1;
     const hasAltShoes = wardrobeItems.filter(isShoesItem).length > 1;
@@ -489,7 +500,7 @@ function allocateLocal(
       return null;
     }
   }
-  return allocated.items;
+  return weatherSafe;
 }
 
 function generateLocalTiered(params: {
@@ -499,6 +510,7 @@ function generateLocalTiered(params: {
   laundryProfile?: LaundryProfile;
   priorOutfits?: WardrobeItem[][];
   dateKey?: string;
+  weather?: WeatherSnapshot | null;
 }): LocalGenerationResult | null {
   const {
     wardrobeItems,
@@ -506,6 +518,7 @@ function generateLocalTiered(params: {
     deadlineMs,
     laundryProfile = laundryProfileFromUser(null),
     priorOutfits = [],
+    weather = null,
   } = params;
   const cascade = allocationCascadeFor(occasionType);
   const started = Date.now();
@@ -527,6 +540,7 @@ function generateLocalTiered(params: {
         laundryProfile,
         priorOutfits,
         excludeItemIds,
+        weather,
       );
       if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
         return {
@@ -552,6 +566,7 @@ function generateLocalTiered(params: {
         laundryProfile,
         priorOutfits,
         excludeItemIds,
+        weather,
       );
       if (items) {
         return {
@@ -576,6 +591,7 @@ function generateLocalTiered(params: {
         laundryProfile,
         priorOutfits,
         excludeItemIds,
+        weather,
       );
       if (items) {
         return {
@@ -593,6 +609,9 @@ function generateLocalTiered(params: {
       occasionType: 'casual_day',
       laundryProfile,
       priorOutfits,
+      weather: weather
+        ? { temperature: weather.temperature, condition: weather.condition }
+        : null,
     });
     if (fallback.ok && fallback.items.length >= MIN_OUTFIT_ITEMS && isOutfitValid(fallback.items)) {
       return {
@@ -607,14 +626,20 @@ function generateLocalTiered(params: {
 
   void traceTodaysOutfit('fallback', { tier: 'emergency' });
 
-  // emergency — completeOutfitItemIds heuristic
+  // emergency — completeOutfitItemIds heuristic (still weather-strip heavy outerwear)
   if (withinBudget()) {
     const fallbackIds = completeOutfitItemIds([], wardrobeItems, occasionType);
     const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
-    const items = sortOutfitItemsByVisualOrder(
+    let items = sortOutfitItemsByVisualOrder(
       fallbackIds
         .map((id) => byId.get(String(id)))
         .filter((item): item is WardrobeItem => Boolean(item)),
+    );
+    items = stripIllegalOuterwearForWeather(
+      items,
+      weather
+        ? { temperature: weather.temperature, condition: weather.condition }
+        : null,
     );
     if (items.length >= MIN_OUTFIT_ITEMS && isOutfitValid(items)) {
       return {
@@ -1220,6 +1245,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       laundryProfile: laundryProfileFromUser(user),
       priorOutfits,
       dateKey: today,
+      weather,
     });
 
     if (!generated) {

@@ -39,6 +39,13 @@ import {
   reuseScoreComponent,
   type LaundryProfile,
 } from '@/utils/wearRules';
+import {
+  filterOuterwearCandidatesForWeather,
+  outerwearWeatherPolicy,
+  parseWeatherTempC,
+  weatherOuterwearScoreAdjustment,
+  type WeatherLike,
+} from '@/utils/weatherOuterwear';
 
 export type AllocationMode = 'strict' | 'soft' | 'rotation' | 'failure';
 
@@ -256,6 +263,7 @@ function scoreCombo(
   referenceDate: Date,
   wardrobePressure: number,
   diversity?: DiversityTracker | null,
+  weather?: WeatherLike | null,
 ): number {
   let score = 0;
   const gym = occasion === 'gym';
@@ -312,8 +320,14 @@ function scoreCombo(
     }
   }
 
-  // Hard incomplete would be filtered out; small bonus for optional pieces
-  if (items.some(isOuterwearItem)) score += 0.5;
+  // Hard incomplete would be filtered out; small bonus for optional pieces —
+  // reversed when weather prefers bare summer looks
+  const weatherAdj = weatherOuterwearScoreAdjustment(items, weather);
+  if (weatherAdj !== 0) {
+    score += weatherAdj;
+  } else if (items.some(isOuterwearItem)) {
+    score += 0.5;
+  }
 
   return score;
 }
@@ -459,6 +473,7 @@ function allocateWithMode(params: {
   laundryProfile?: LaundryProfile;
   referenceDate?: Date;
   diversityTracker?: DiversityTracker;
+  weather?: WeatherLike | null;
 }): DayAllocation[] | null {
   const {
     wardrobe,
@@ -468,6 +483,7 @@ function allocateWithMode(params: {
     laundryProfile = DEFAULT_LAUNDRY_PROFILE,
     referenceDate = new Date(),
     diversityTracker,
+    weather = null,
   } = params;
   const primaryOccasion = occasionTypes[0] || 'casual_day';
   const log: UsageLog = { lastDay: new Map(), weekCount: new Map() };
@@ -587,17 +603,45 @@ function allocateWithMode(params: {
           // Hard filter before soft reuse/variety scoring — invalid outfits never enter the candidate set
           if (!isOutfitValid(baseItems)) continue;
 
-          const outerwear = pickValidOptional(
-            boundPools.outerwear,
-            baseItems,
-            dayIndex,
-            log,
-            mode,
-            occasionType,
-            laundryProfile,
-            planDate,
-            canWearRelaxLevel,
+          const tempC = parseWeatherTempC(weather);
+          const weatherPolicy = outerwearWeatherPolicy(
+            tempC,
+            weather?.condition || weather?.conditions || '',
           );
+          const outerwearPool = filterOuterwearCandidatesForWeather(boundPools.outerwear, weather);
+          let outerwear: WardrobeItem | undefined;
+          if (weatherPolicy.forceEmpty) {
+            outerwear = undefined;
+          } else {
+            outerwear = pickValidOptional(
+              outerwearPool,
+              baseItems,
+              dayIndex,
+              log,
+              mode,
+              occasionType,
+              laundryProfile,
+              planDate,
+              canWearRelaxLevel,
+            );
+            // Warm: light rare — omit outerwear when preferEmpty (soft omit after hard heavy-block)
+            if (weatherPolicy.preferEmpty && outerwear) {
+              outerwear = undefined;
+            }
+            if (weatherPolicy.requireWhenAvailable && !outerwear && outerwearPool.length) {
+              outerwear = pickValidOptional(
+                outerwearPool,
+                baseItems,
+                dayIndex,
+                log,
+                mode,
+                occasionType,
+                laundryProfile,
+                planDate,
+                canWearRelaxLevel,
+              );
+            }
+          }
           const withOuterwear = outerwear ? [...baseItems, outerwear] : baseItems;
           const accessory =
             occasionType === 'gym'
@@ -632,6 +676,7 @@ function allocateWithMode(params: {
             planDate,
             wardrobePressure,
             diversity,
+            weather,
           );
           if (score > bestScore) {
             bestScore = score;
@@ -681,6 +726,8 @@ export function allocateMultiDayPlan(params: {
   /** Prior outfits (e.g. earlier week) seed diversity so regenerations avoid sameness */
   priorOutfits?: WardrobeItem[][];
   diversityTracker?: DiversityTracker;
+  /** Ambient weather — hard-gates outerwear (fleece impossible when hot) */
+  weather?: WeatherLike | null;
 }): AllocationResult {
   const {
     wardrobe,
@@ -692,6 +739,7 @@ export function allocateMultiDayPlan(params: {
     referenceDate = new Date(),
     priorOutfits,
     diversityTracker,
+    weather = null,
   } = params;
 
   const planDiversity =
@@ -759,6 +807,7 @@ export function allocateMultiDayPlan(params: {
       laundryProfile,
       referenceDate,
       diversityTracker: cloneDiversityTracker(planDiversity),
+      weather,
     });
     if (!allocated) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -793,6 +842,7 @@ export function allocateMultiDayPlan(params: {
     laundryProfile,
     referenceDate,
     diversityTracker: cloneDiversityTracker(planDiversity),
+    weather,
   });
 
   if (!allocated) {
@@ -919,6 +969,8 @@ export function allocateSingleDayOutfit(params: {
   referenceDate?: Date;
   /** Recent outfits to diversify against (stylist regenerations, weekly planner). */
   priorOutfits?: WardrobeItem[][];
+  /** Ambient weather — hard-gates outerwear (fleece impossible when hot) */
+  weather?: WeatherLike | null;
 }): SingleDayAllocation {
   const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
@@ -931,6 +983,7 @@ export function allocateSingleDayOutfit(params: {
     params.excludeItemIds,
     seedDiversityTracker(params.priorOutfits || []),
   );
+  const weather = params.weather ?? null;
 
   for (const mode of ['strict', 'soft', 'rotation'] as const) {
     const plan = allocateMultiDayPlan({
@@ -940,6 +993,7 @@ export function allocateSingleDayOutfit(params: {
       laundryProfile,
       referenceDate,
       diversityTracker: cloneDiversityTracker(diversityTracker),
+      weather,
     });
     if (plan.ok && plan.days[0]?.itemIds?.length) {
       const byId = new Map(params.wardrobe.map((w) => [String(w.id), w]));
