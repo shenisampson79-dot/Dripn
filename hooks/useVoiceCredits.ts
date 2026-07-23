@@ -15,6 +15,7 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
+import { currencyService } from '@/services/CurrencyService';
 export type SoftCapWarning = 'usage_high' | 'approaching_limit' | null;
 interface VoiceCreditsInternal {
   remaining: number;
@@ -336,6 +337,7 @@ function useVoiceCreditsState() {
       return;
     }
     try {
+      await currencyService.initialize();
       if (user?.id) {
         await appleIAPService.configure(user.id);
       }
@@ -343,6 +345,7 @@ function useVoiceCreditsState() {
       setApplePrices(prices);
     } catch (error) {
       console.log('[useVoiceCredits] Apple price fetch error:', error);
+      // Keep prior catalog GBP labels — never clear to USD on fetch failure.
     }
   }, [useAppleIAP, user?.id]);
   useEffect(() => {
@@ -354,7 +357,12 @@ function useVoiceCreditsState() {
   }, [fetchApplePrices]);
   const getPackagePriceLabel = useCallback((packageId: string, fallback: string): string => {
     const applePrice = applePrices.find((p) => p.packId === packageId);
-    return applePrice?.priceString || fallback;
+    if (!applePrice) return fallback;
+    return currencyService.resolveStorePrice(
+      applePrice.priceString,
+      applePrice.currencyCode,
+      fallback,
+    );
   }, [applePrices]);
   const updateBalance = useCallback((voiceCredits: {
     remaining?: string | number;

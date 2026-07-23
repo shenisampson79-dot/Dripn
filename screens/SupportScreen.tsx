@@ -63,7 +63,7 @@ export default function SupportScreen() {
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(null);
   const [ticketDescription, setTicketDescription] = useState('');
   const [showQuickActions, setShowQuickActions] = useState(true);
-  const [currencySymbol, setCurrencySymbol] = useState('$');
+  const [currencySymbol, setCurrencySymbol] = useState('£');
 
   useLayoutEffect(() => {
     navigation.setOptions({

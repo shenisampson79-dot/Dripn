@@ -149,15 +149,26 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   useEffect(() => {
     if (isAutoCheckout) return;
     const loadPrices = async () => {
+      await currencyService.initialize();
+      const fallback = currencyService.getDFYPrices();
+      const catalog = {
+        lite: fallback.outfit_setup,
+        core: fallback.wardrobe_setup,
+      };
+
       if (useAppleIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
           const iapPrices = await appleIAPService.getDFYPrices();
           if (iapPrices.length > 0) {
-            setTierPrices((prev) => {
-              const next = { ...prev };
+            setTierPrices(() => {
+              const next = { ...catalog };
               for (const entry of iapPrices) {
-                next[entry.tier] = entry.priceString;
+                next[entry.tier] = currencyService.resolveStorePrice(
+                  entry.priceString,
+                  entry.currencyCode,
+                  catalog[entry.tier],
+                );
               }
               return next;
             });
@@ -168,16 +179,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
         }
       }
 
-      try {
-        await currencyService.initialize();
-        const fallback = currencyService.getDFYPrices();
-        setTierPrices({
-          lite: fallback.outfit_setup,
-          core: fallback.wardrobe_setup,
-        });
-      } catch {
-        // Keep default GBP strings
-      }
+      setTierPrices(catalog);
     };
 
     loadPrices().catch(() => {});

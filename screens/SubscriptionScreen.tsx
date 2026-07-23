@@ -144,12 +144,6 @@ const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<
   },
 });
 
-const getPlanSavings = (t: (key: string) => string): Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> => ({
-  free: { save: '' },
-  personal_stylist: { save: '£23.89', altSuffix: t('subscription.save20Percent'), badge: t('subscription.save20Percent') },
-  stylist_unlimited: { save: '£47.89', altSuffix: t('subscription.save20Percent'), badge: t('subscription.save20Percent') },
-});
-
 const buildPlanPricing = (
   t: (key: string) => string,
   displayTier: DisplayTier,
@@ -159,12 +153,12 @@ const buildPlanPricing = (
 ): { price: string; altPrice: string; savingsLabel: string; period: string } => {
   const monthly = monthlyPrices[displayTier];
   const yearly = yearlyPrices[displayTier];
-  const savings = getPlanSavings(t)[displayTier];
 
   if (isYearly) {
-    const savePart = savings.altSuffix
-      ? `${savings.altSuffix} / ${savings.save} ${t('subscription.off')}`
-      : `${t('subscription.save')} ${savings.save}`;
+    const saveAmount = currencyService.formatYearlySavings(monthly, yearly);
+    const savePart = saveAmount
+      ? `${t('subscription.save20Percent')} / ${saveAmount} ${t('subscription.off')}`
+      : t('subscription.save20Percent');
     return {
       price: yearly,
       altPrice: `${monthly}${t('subscription.perMonth')}`,
@@ -294,35 +288,82 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   }, [user?.email, user?.isAdmin, user?.role]);
 
   useEffect(() => {
-    if (!useAppleIAP || !user?.id) return;
+    let cancelled = false;
 
-    const initAppleIAP = async () => {
-      try {
-        await appleIAPService.configure(user.id);
-        const prices = await appleIAPService.getSubscriptionPrices();
-        if (prices.length === 0) return;
+    const loadPrices = async () => {
+      // Catalog / locale currency first — never leave USD as a transient default.
+      await currencyService.initialize();
+      if (cancelled) return;
 
-        const monthlyUpdates: Partial<LocalizedPrices> = {};
-        const yearlyUpdates: Partial<LocalizedPrices> = {};
-        for (const entry of prices) {
-          if (entry.interval === 'monthly') {
-            monthlyUpdates[entry.tier] = entry.priceString;
-          } else {
-            yearlyUpdates[entry.tier] = entry.priceString;
+      const catalogMonthly = currencyService.getLocalizedPrices();
+      const catalogYearly = currencyService.getYearlyPrices();
+      const catalogDfy = currencyService.getDFYPrices();
+
+      let nextMonthly = { ...catalogMonthly };
+      let nextYearly = { ...catalogYearly };
+      let nextDfy = { ...catalogDfy };
+
+      if (useAppleIAP && user?.id) {
+        try {
+          await appleIAPService.configure(user.id);
+          if (cancelled) return;
+
+          const prices = await appleIAPService.getSubscriptionPrices();
+          for (const entry of prices) {
+            const fallback =
+              entry.interval === 'monthly'
+                ? catalogMonthly[entry.tier]
+                : catalogYearly[entry.tier];
+            const resolved = currencyService.resolveStorePrice(
+              entry.priceString,
+              entry.currencyCode,
+              fallback,
+            );
+            if (entry.interval === 'monthly') {
+              nextMonthly = { ...nextMonthly, [entry.tier]: resolved };
+            } else {
+              nextYearly = { ...nextYearly, [entry.tier]: resolved };
+            }
           }
+
+          const dfyIap = await appleIAPService.getDFYPrices();
+          for (const entry of dfyIap) {
+            if (entry.tier === 'lite') {
+              nextDfy = {
+                ...nextDfy,
+                outfit_setup: currencyService.resolveStorePrice(
+                  entry.priceString,
+                  entry.currencyCode,
+                  catalogDfy.outfit_setup,
+                ),
+              };
+            } else if (entry.tier === 'core') {
+              nextDfy = {
+                ...nextDfy,
+                wardrobe_setup: currencyService.resolveStorePrice(
+                  entry.priceString,
+                  entry.currencyCode,
+                  catalogDfy.wardrobe_setup,
+                ),
+              };
+            }
+          }
+        } catch (error) {
+          console.warn('[Subscription] Apple IAP price load failed:', error);
+          // Keep catalog GBP/EUR — do not fall back to USD on error/cancel.
         }
-        if (Object.keys(monthlyUpdates).length > 0) {
-          setLocalizedPrices((prev) => ({ ...prev, ...monthlyUpdates }));
-        }
-        if (Object.keys(yearlyUpdates).length > 0) {
-          setYearlyPrices((prev) => ({ ...prev, ...yearlyUpdates }));
-        }
-      } catch (error) {
-        console.warn('[Subscription] Apple IAP price load failed:', error);
       }
+
+      if (cancelled) return;
+      setLocalizedPrices(nextMonthly);
+      setYearlyPrices(nextYearly);
+      setDfyPrices(nextDfy);
     };
 
-    initAppleIAP();
+    loadPrices();
+    return () => {
+      cancelled = true;
+    };
   }, [useAppleIAP, user?.id]);
 
   // Recover sandbox / failed-sync purchases: if RevenueCat has a paid entitlement, push it
@@ -410,16 +451,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       }
     }
   }, [route?.params, t]);
-
-  useEffect(() => {
-    const initCurrency = async () => {
-      await currencyService.initialize();
-      setLocalizedPrices(currencyService.getLocalizedPrices());
-      setYearlyPrices(currencyService.getYearlyPrices());
-      setDfyPrices(currencyService.getDFYPrices());
-    };
-    initCurrency();
-  }, []);
 
   const openPaidDfyCheckout = async (tier: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -953,7 +984,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const renderPlanCard = (plan: Plan) => {
     const isSelected = selectedPlan === plan.id;
     const isCurrent = plan.id === normalizedTier;
-    const savingsInfo = getPlanSavings(t)[plan.displayTier];
+    const savingsBadge = plan.bestValue ? t('subscription.save20Percent') : '';
     const anchorStyles = {
       highlight: { priceSize: 36, cardOpacity: 1, priceOpacity: 1 },
       normal: { priceSize: 30, cardOpacity: 1, priceOpacity: 1 },
@@ -1051,10 +1082,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               <ThemedText type="small" style={styles.savingsLabel}>
                 ({plan.savingsLabel})
               </ThemedText>
-              {plan.bestValue && savingsInfo.badge ? (
+              {plan.bestValue && savingsBadge ? (
                 <View style={styles.bestValueBadge}>
                   <ThemedText type="caption" style={styles.bestValueText}>
-                    {savingsInfo.badge}
+                    {savingsBadge}
                   </ThemedText>
                 </View>
               ) : null}

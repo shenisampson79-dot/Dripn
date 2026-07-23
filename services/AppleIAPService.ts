@@ -83,12 +83,14 @@ export interface SubscriptionPriceInfo {
   interval: SubscriptionInterval;
   productId: string;
   priceString: string;
+  currencyCode?: string | null;
 }
 
 export interface DFYPriceInfo {
   tier: IAPDFYTier;
   productId: string;
   priceString: string;
+  currencyCode?: string | null;
 }
 
 export interface VoiceCreditPriceInfo {
@@ -96,6 +98,7 @@ export interface VoiceCreditPriceInfo {
   productId: string;
   credits: number;
   priceString: string;
+  currencyCode?: string | null;
   weekendUnlimited?: boolean;
 }
 
@@ -296,6 +299,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
             interval,
             productId,
             priceString: pkg.product.priceString,
+            currencyCode: pkg.product.currencyCode ?? null,
           });
         }
       }
@@ -321,8 +325,9 @@ class RevenueCatAppleIAPService implements AppleIAPService {
       const pkg = findPackageByProductId(offerings, productId);
       const storeProduct = productById.get(productId);
       const priceString = pkg?.product.priceString || storeProduct?.priceString;
+      const currencyCode = pkg?.product.currencyCode ?? storeProduct?.currencyCode ?? null;
       if (priceString) {
-        results.push({ tier, productId, priceString });
+        results.push({ tier, productId, priceString, currencyCode });
       }
     }
 
@@ -342,8 +347,12 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     for (const packId of Object.keys(APPLE_VOICE_PRODUCT_IDS) as VoiceCreditPackId[]) {
       const productId = voiceProductIdFor(packId);
       const storeProduct = productById.get(productId);
+      // Prefer storefront string when present; currency filtering happens in UI
+      // via currencyService.resolveStorePrice so cancel/error never flips to USD.
       const priceString = storeProduct?.priceString
         ?? formatVoicePricePence(VOICE_PACK_PRICE_PENCE[packId]);
+      const currencyCode = storeProduct?.currencyCode
+        ?? (storeProduct?.priceString ? null : 'GBP');
       const weekendUnlimited = packId === 'weekend';
       if (priceString) {
         results.push({
@@ -351,6 +360,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
           productId,
           credits: weekendUnlimited ? 0 : (APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0),
           priceString,
+          currencyCode,
           weekendUnlimited,
         });
       }

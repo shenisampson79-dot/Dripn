@@ -119,16 +119,27 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   useEffect(() => {
     const initCurrency = async () => {
+      await currencyService.initialize();
+      const catalog = currencyService.getDFYPrices();
+
       if (useAppleIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
           const iapPrices = await appleIAPService.getDFYPrices();
           if (iapPrices.length > 0) {
-            const litePrice = iapPrices.find((entry) => entry.tier === 'lite')?.priceString;
-            const corePrice = iapPrices.find((entry) => entry.tier === 'core')?.priceString;
+            const lite = iapPrices.find((entry) => entry.tier === 'lite');
+            const core = iapPrices.find((entry) => entry.tier === 'core');
             setDfyPrices({
-              outfit_setup: litePrice || '£19.99',
-              wardrobe_setup: corePrice || '£39.99',
+              outfit_setup: currencyService.resolveStorePrice(
+                lite?.priceString,
+                lite?.currencyCode,
+                catalog.outfit_setup,
+              ),
+              wardrobe_setup: currencyService.resolveStorePrice(
+                core?.priceString,
+                core?.currencyCode,
+                catalog.wardrobe_setup,
+              ),
             });
             return;
           }
@@ -137,8 +148,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         }
       }
 
-      await currencyService.initialize();
-      setDfyPrices(currencyService.getDFYPrices());
+      setDfyPrices(catalog);
     };
     initCurrency().catch(() => {});
   }, [useAppleIAP, user?.id]);

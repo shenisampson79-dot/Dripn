@@ -42,7 +42,7 @@ const DEFAULT_DFY_PRICES: DfyPrices = {
   wardrobe_setup: 39.99,
 };
 
-function parsePriceString(price: string | undefined): number | null {
+export function parsePriceString(price: string | undefined | null): number | null {
   if (!price) return null;
   const match = price.replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
   return match ? parseFloat(match[1]) : null;
@@ -53,31 +53,54 @@ function centsToAmount(value: number | undefined): number | null {
   return value >= 100 ? value / 100 : value;
 }
 
+function isSimpleCurrency(code: string | null | undefined): code is SimpleCurrency {
+  return code === 'GBP' || code === 'EUR' || code === 'USD';
+}
+
+/** Infer currency from a StoreKit / formatted price string when currencyCode is missing. */
+export function inferCurrencyFromPriceString(priceString: string | null | undefined): SimpleCurrency | null {
+  if (!priceString) return null;
+  if (priceString.includes('£')) return 'GBP';
+  if (priceString.includes('€')) return 'EUR';
+  // US dollar (avoid matching other locales that put $ after the amount)
+  if (/^\$|\s\$|USD/i.test(priceString) || priceString.trim().startsWith('$')) return 'USD';
+  if (priceString.includes('$')) return 'USD';
+  return null;
+}
+
+function detectPreferredCurrency(): SimpleCurrency {
+  try {
+    const locales = Localization.getLocales();
+    if (locales && locales.length > 0) {
+      const locale = locales[0];
+      const regionCode = locale.regionCode?.toUpperCase();
+      const localeCurrency = (locale as { currencyCode?: string }).currencyCode?.toUpperCase();
+
+      if (regionCode === 'GB' || regionCode === 'UK') return 'GBP';
+      if (regionCode === 'US') return 'USD';
+      if (regionCode && EUROZONE_COUNTRIES.includes(regionCode)) return 'EUR';
+      if (isSimpleCurrency(localeCurrency)) return localeCurrency;
+    }
+  } catch {
+    // Fall through to GBP — never leave callers on an uninitialized USD default.
+  }
+  return 'GBP';
+}
+
 class CurrencyService {
-  private userCurrency: SimpleCurrency = 'USD';
+  // Prefer GBP until initialize() runs — never flash USD for UK users.
+  private userCurrency: SimpleCurrency = 'GBP';
   private initialized = false;
-  private subscriptionPrices: SubscriptionPrices = { ...DEFAULT_SUBSCRIPTION_PRICES };
+  private subscriptionPrices: SubscriptionPrices = {
+    personal_stylist: { ...DEFAULT_SUBSCRIPTION_PRICES.personal_stylist },
+    stylist_unlimited: { ...DEFAULT_SUBSCRIPTION_PRICES.stylist_unlimited },
+  };
   private dfyPrices: DfyPrices = { ...DEFAULT_DFY_PRICES };
   private refreshInFlight: Promise<void> | null = null;
 
   async initialize(): Promise<void> {
     if (!this.initialized) {
-      try {
-        this.userCurrency = 'GBP';
-
-        const locales = Localization.getLocales();
-        if (locales && locales.length > 0) {
-          const locale = locales[0];
-          const regionCode = locale.regionCode?.toUpperCase();
-
-          if (regionCode && EUROZONE_COUNTRIES.includes(regionCode)) {
-            this.userCurrency = 'EUR';
-          }
-        }
-      } catch {
-        this.userCurrency = 'GBP';
-      }
-
+      this.userCurrency = detectPreferredCurrency();
       this.initialized = true;
     }
 
@@ -187,12 +210,62 @@ class CurrencyService {
     return CURRENCIES[code || this.userCurrency].symbol;
   }
 
-  formatPrice(amount: number): string {
-    const symbol = this.getCurrencySymbol();
+  /**
+   * Only accept App Store / RevenueCat price strings when they match the
+   * user's preferred currency. Prevents USD storefront prices from overwriting
+   * GBP catalog display after purchase sheet open/cancel.
+   */
+  shouldAcceptStoreCurrency(storeCurrencyCode?: string | null, priceString?: string | null): boolean {
+    const inferred =
+      (isSimpleCurrency(storeCurrencyCode?.toUpperCase() ?? null)
+        ? (storeCurrencyCode!.toUpperCase() as SimpleCurrency)
+        : null) ?? inferCurrencyFromPriceString(priceString ?? undefined);
+    if (!inferred) return false;
+    return inferred === this.userCurrency;
+  }
+
+  /**
+   * Prefer storefront price when currency matches; otherwise keep catalog fallback.
+   * Never treats cancel/error as a reason to switch currency.
+   */
+  resolveStorePrice(
+    storePriceString: string | null | undefined,
+    storeCurrencyCode: string | null | undefined,
+    fallback: string,
+  ): string {
+    if (
+      storePriceString &&
+      this.shouldAcceptStoreCurrency(storeCurrencyCode, storePriceString)
+    ) {
+      return storePriceString;
+    }
+    return fallback;
+  }
+
+  formatPrice(amount: number, code?: SimpleCurrency): string {
+    const symbol = this.getCurrencySymbol(code);
     if (amount === 0) {
       return 'Free';
     }
     return `${symbol}${amount.toFixed(2)}`;
+  }
+
+  /**
+   * Yearly vs monthly×12 savings, using the same currency symbol as the
+   * displayed yearly price (or the preferred catalog currency).
+   */
+  formatYearlySavings(monthlyPrice: string, yearlyPrice: string): string {
+    const monthly = parsePriceString(monthlyPrice);
+    const yearly = parsePriceString(yearlyPrice);
+    if (monthly == null || yearly == null) return '';
+
+    const savings = monthly * 12 - yearly;
+    if (!(savings > 0.009)) return '';
+
+    const leading = yearlyPrice.match(/^[^\d\s.,]+/);
+    const fromCode = inferCurrencyFromPriceString(yearlyPrice);
+    const displaySymbol = leading?.[0] || (fromCode ? CURRENCIES[fromCode].symbol : this.getCurrencySymbol());
+    return `${displaySymbol}${savings.toFixed(2)}`;
   }
 
   getLocalizedPrices(): { free: string; personal_stylist: string; stylist_unlimited: string } {
