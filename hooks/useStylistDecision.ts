@@ -79,6 +79,7 @@ function isWardrobeGapError(error: {
     code === 'wardrobe_gap'
     || code === 'no_wardrobe'
     || code === 'no_outfit_possible'
+    || code === 'refused'
     || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
   );
 }

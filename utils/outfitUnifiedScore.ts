@@ -404,16 +404,25 @@ export function computeUnifiedOutfitScore(
   const weights = { ...DEFAULT_UNIFIED_WEIGHTS, ...options?.weights };
   const aesthetic = analyzeOutfitAesthetic(items);
   const aestheticRejection = evaluateAestheticRejection(items);
-  const clash = detectOutfitClashes(items, options?.regional ?? null);
+  // Never pass null into clash/style builders — default params do not coerce null.
+  const regional =
+    options?.regional && typeof options.regional === 'object'
+      ? options.regional
+      : {};
+  const occasion = options?.context?.occasion ?? options?.occasion ?? (regional as { occasion?: string }).occasion ?? null;
+  const clashOptions = {
+    ...regional,
+    ...(occasion ? { occasion } : {}),
+  };
+  const clash = detectOutfitClashes(items, clashOptions);
 
-  const occasion = options?.context?.occasion ?? options?.occasion ?? null;
   const userSeason = options?.userSeason
     ?? (options?.context?.season ? options.context.season : null);
 
   const style = computeStyleBreakdown(
     items,
     aesthetic,
-    options?.regional ?? null,
+    clashOptions,
     occasion,
     clash,
     Boolean(aestheticRejection),
