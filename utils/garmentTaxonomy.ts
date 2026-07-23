@@ -23,6 +23,7 @@ export type GarmentMeta = {
   avoidWith: string[];
   isRevealing?: boolean;
   isTailored?: boolean;
+  aliases?: string[];
 };
 
 export type GarmentClassification = {
@@ -49,17 +50,49 @@ type TaxonomyCorpus = {
 
 const corpus = corpusJson as TaxonomyCorpus;
 
+let _aliasIndex: Map<string, GarmentMeta> | null = null;
+
 function loadCorpus(): TaxonomyCorpus {
   return corpus;
+}
+
+function buildAliasIndex(): Map<string, GarmentMeta> {
+  if (_aliasIndex) return _aliasIndex;
+  const map = new Map<string, GarmentMeta>();
+  for (const g of loadCorpus().garments || []) {
+    map.set(g.subtype, g);
+    for (const a of g.aliases || []) {
+      map.set(a, g);
+    }
+  }
+  // Legacy renames without requiring aliases on every consumer
+  const legacy: Record<string, string> = {
+    dress_shoe: 'oxfords',
+    loafer: 'loafers',
+    sandals: 'leather_sandals',
+    chunky_boots: 'combat_boots',
+    classic_heels: 'stilettos',
+  };
+  for (const [from, to] of Object.entries(legacy)) {
+    if (!map.has(from) && map.has(to)) map.set(from, map.get(to)!);
+  }
+  _aliasIndex = map;
+  return _aliasIndex;
 }
 
 export function getGarmentDb(): GarmentMeta[] {
   return loadCorpus().garments;
 }
 
+export function resolveSubtype(subtype: string | null | undefined): string | null {
+  if (!subtype) return null;
+  const hit = buildAliasIndex().get(subtype);
+  return hit?.subtype || subtype;
+}
+
 export function getGarmentBySubtype(subtype: string | null | undefined): GarmentMeta | null {
   if (!subtype) return null;
-  return getGarmentDb().find((g) => g.subtype === subtype) || null;
+  return buildAliasIndex().get(subtype) || null;
 }
 
 export function getStyleProfiles() {
@@ -112,37 +145,102 @@ function isShortsText(t) {
 
 /** Ordered keyword rules: first match wins. */
 const CLASSIFIER_RULES = [
-  // Footwear (oxford shoe before oxford shirt)
+  // Footwear — specific before generic
   { subtype: 'uggs', test: (t, cat) => cat === 'footwear' && /\bugg|shearling|sheepskin/.test(t) },
-  { subtype: 'heels', test: (t, cat) => cat === 'footwear' && /heel|pump|stiletto|court shoe/.test(t) },
+  {
+    subtype: 'stilettos',
+    test: (t, cat) => cat === 'footwear' && /stiletto|pump|court shoe|classic heel/.test(t),
+  },
+  {
+    subtype: 'block_heels',
+    test: (t, cat) => cat === 'footwear' && /block\s*heel/.test(t),
+  },
+  {
+    subtype: 'statement_heels',
+    test: (t, cat) => cat === 'footwear' && /statement\s*heel|sculptural\s*heel|platform\s*heel|embellished\s*heel/.test(t),
+  },
+  {
+    subtype: 'heels',
+    test: (t, cat) => cat === 'footwear' && /heel/.test(t) && !/block|stiletto|statement|boot/.test(t),
+  },
+  {
+    subtype: 'chelsea_boots',
+    test: (t, cat) =>
+      cat === 'footwear'
+      && /chelsea|desert boot|chukka/.test(t)
+      && !/\bugg|shearling|combat|doc\b|dr\.?\s*marten/.test(t),
+  },
+  {
+    subtype: 'combat_boots',
+    test: (t, cat) =>
+      cat === 'footwear'
+      && /combat|doc\b|dr\.?\s*marten|lace-?up boot|chunky boot|hiking boot|work boot|timberland/.test(t)
+      && !/\bugg|shearling|chelsea|desert/.test(t),
+  },
+  {
+    subtype: 'slides',
+    test: (t, cat) => cat === 'footwear' && /slide|flip.?flop|pool slide|shower slide/.test(t),
+  },
+  {
+    subtype: 'espadrilles',
+    test: (t, cat) => cat === 'footwear' && /espadrille/.test(t),
+  },
+  {
+    subtype: 'leather_sandals',
+    test: (t, cat) => cat === 'footwear' && /sandal|birkenstock|fisherman sandal/.test(t),
+  },
+  {
+    subtype: 'runner',
+    test: (t, cat) =>
+      cat === 'footwear'
+      && (
+        /\b(runners?|running shoe|tech runner)\b/.test(t)
+        || /hoka|salomon|pegasus|zoomx|vaporfly|ultraboost|fresh foam|gel-?kayano|nimbus|vomero|invincible|cloudmonster/.test(t)
+        || (
+          /\b(trainers?|sneakers?)\b/.test(t)
+          && /gym|training|performance|asics gel|tech runner/.test(t)
+        )
+      ),
+  },
   {
     subtype: 'chunky_trainer',
     test: (t, cat) =>
       cat === 'footwear'
-      && /\b(trainers?|sneakers?|runners?)\b/.test(t)
-      && /chunky|dad shoe|bulky|technical|trail|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|running|gym|training|performance|asics gel|gel-?kayano|nimbus|vomero|invincible|vaporfly|cloudmonster|max cushion|platform sneaker/.test(t),
+      && /\b(trainers?|sneakers?)\b/.test(t)
+      && /chunky|dad shoe|bulky|technical|trail|platform sneaker|max cushion|tech sneaker|cross.?train/.test(t),
   },
   {
     subtype: 'minimal_sneaker',
     test: (t, cat) =>
       cat === 'footwear'
-      && /\b(trainers?|sneakers?|runners?)\b/.test(t)
-      && !/chunky|hoka|running|gym|ultraboost|pegasus|trail|dad shoe/.test(t),
+      && (
+        /stan smith|common projects|clean court|white leather low-?top|plain white (trainer|sneaker)|lifestyle sneaker/.test(t)
+        || (
+          /\b(trainers?|sneakers?|runners?)\b/.test(t)
+          && !/chunky|hoka|salomon|running|gym|ultraboost|pegasus|trail|dad shoe|tech|platform/.test(t)
+        )
+      ),
   },
-  { subtype: 'loafer', test: (t, cat) => cat === 'footwear' && /loafer/.test(t) },
   {
-    subtype: 'dress_shoe',
+    subtype: 'loafers',
+    test: (t, cat) => cat === 'footwear' && /loafer|penny loafer/.test(t),
+  },
+  {
+    subtype: 'derby',
+    test: (t, cat) => cat === 'footwear' && /\bderby\b/.test(t) && !/shirt/.test(t),
+  },
+  {
+    subtype: 'oxfords',
     test: (t, cat) =>
-      cat === 'footwear' && /oxford|derby|brogue|dress shoe|formal shoe/.test(t) && !/shirt/.test(t),
+      cat === 'footwear' && /oxford|brogue|dress shoe|formal shoe/.test(t) && !/shirt/.test(t),
   },
   {
     subtype: 'ankle_boots',
     test: (t, cat) =>
       cat === 'footwear'
-      && /ankle boot|chelsea|heeled boot|leather boot|riding boot|\bboots?\b/.test(t)
-      && !/\bugg|shearling|trainer|sneaker/.test(t),
+      && /ankle boot|heeled boot|leather boot|riding boot|\bboots?\b/.test(t)
+      && !/\bugg|shearling|trainer|sneaker|chelsea|combat|doc\b|dr\.?\s*marten|desert|chukka/.test(t),
   },
-  { subtype: 'sandals', test: (t, cat) => cat === 'footwear' && /sandal|espadrille|slide|flip.?flop/.test(t) },
 
   // Dresses — no generic invent; only keyword hits
   { subtype: 'slip_dress', test: (t, cat) => (cat === 'dress' || /\bdress\b/.test(t)) && /slip\s*dress|bias\s*cut|silk\s*slip|satin\s*slip/.test(t) },
@@ -285,7 +383,7 @@ export function classifyGarment(item) {
             }
           }
         }
-        const confidence = /windowpane|hoka|oxford shirt|button-up|button up|sweat short|chunky|slip dress|tailored short/.test(t)
+        const confidence = /windowpane|hoka|salomon|stan smith|chelsea|combat|stiletto|oxford shirt|button-up|button up|sweat short|chunky|slip dress|tailored short/.test(t)
           ? 0.92
           : 0.78;
         return {
@@ -350,10 +448,14 @@ export function scoreSubtypePair(a, b) {
   if (!ca?.subtype || !cb?.subtype || !ca.meta || !cb.meta) return 0;
 
   let delta = 0;
-  if (ca.meta.avoidWith?.includes(cb.subtype) || cb.meta.avoidWith?.includes(ca.subtype)) {
+  if (ca.meta.avoidWith?.includes(cb.subtype) || cb.meta.avoidWith?.includes(ca.subtype)
+    || ca.meta.avoidWith?.includes(resolveSubtype(cb.subtype))
+    || cb.meta.avoidWith?.includes(resolveSubtype(ca.subtype))) {
     delta -= 10;
   }
-  if (ca.meta.worksWith?.includes(cb.subtype) || cb.meta.worksWith?.includes(ca.subtype)) {
+  if (ca.meta.worksWith?.includes(cb.subtype) || cb.meta.worksWith?.includes(ca.subtype)
+    || ca.meta.worksWith?.includes(resolveSubtype(cb.subtype))
+    || cb.meta.worksWith?.includes(resolveSubtype(ca.subtype))) {
     delta += 4;
   }
 
@@ -374,15 +476,162 @@ export function scoreSubtypePair(a, b) {
     if (!ok.has(`${la}+${lb}`)) delta -= 3;
   }
 
+  // Visual weight stack — heavy footwear + heavy top/outer soft penalty
+  if (ca.meta.category === 'footwear' || cb.meta.category === 'footwear') {
+    const shoe = ca.meta.category === 'footwear' ? ca.meta : cb.meta;
+    const other = ca.meta.category === 'footwear' ? cb.meta : ca.meta;
+    if (shoe.visualWeight === 'heavy' && other.visualWeight === 'heavy'
+      && (other.category === 'top' || other.category === 'outerwear')) {
+      delta -= 3;
+    }
+  }
+
   return delta;
 }
 
+const STREET_ATHLEISURE_FOOTWEAR = new Set([
+  'chunky_trainer', 'runner', 'combat_boots', 'slides', 'uggs',
+]);
+const TAILORED_BRIDGE_FOOTWEAR = new Set([
+  'minimal_sneaker', 'chelsea_boots', 'ankle_boots', 'loafers', 'derby', 'oxfords',
+  'heels', 'stilettos', 'block_heels',
+]);
+const TAILORED_PIECES = new Set([
+  'blazer', 'tailored_trousers', 'oxford_shirt', 'tie', 'tailored_coat', 'tailored_shorts',
+]);
+
+function labelSubtype(subtype: string | null | undefined): string {
+  return String(subtype || 'footwear').replace(/_/g, ' ');
+}
+
+export function footwearVoiceHint(subtype: string | null | undefined, kind = 'lane_mismatch'): string {
+  const name = labelSubtype(subtype);
+  if (kind === 'anchor_ok') {
+    if (subtype === 'chelsea_boots') return 'Chelsea boots anchor this tailored look';
+    if (subtype === 'oxfords' || subtype === 'derby') return `${name} lock in the tailored direction`;
+    if (subtype === 'minimal_sneaker') return 'Minimal sneakers keep this smart-casual intentional';
+    return `${name} set a clear footwear direction`;
+  }
+  if (kind === 'dress') {
+    if (subtype === 'combat_boots') return 'Combat boots undercut a dress — swap to heels or ankle boots';
+    if (subtype === 'chunky_trainer' || subtype === 'runner') {
+      return 'Chunky trainers pull this dress out of evening — heels or minimal sneakers fit better';
+    }
+    return `${name} fights the dress silhouette`;
+  }
+  if (subtype === 'chunky_trainer' || subtype === 'runner') {
+    return 'Chunky trainers pull this out of tailoring';
+  }
+  if (subtype === 'combat_boots') return 'Combat boots pull this into street — drop the blazer or swap boots';
+  if (subtype === 'slides') return 'Slides collapse tailored formality — swap to loafers or minimal sneakers';
+  if (subtype === 'uggs') return 'UGGs fight tailored pieces — keep them with casual/athleisure bases';
+  return `${name} sets a different lane than the rest of this outfit`;
+}
+
 /**
- * Soft outfit bonus from pairwise subtype compatibility.
+ * Footwear-as-anchor scoring for Outfit Mix / allocator.
+ * Exposes footwear_lane_mismatch when street/athleisure shoes fight tailored without a bridge.
  */
-export function scoreOutfitSubtypeCompatibility(items) {
+export function scoreFootwearDirection(items, options: { occasion?: string; eventType?: string } = {}) {
+  const classifications = (items || []).map((item) => classifyGarment(item));
+  const shoes = classifications.filter((c) => c.meta?.category === 'footwear');
+  if (!shoes.length) {
+    return { adjustment: 0, signals: [], classifications };
+  }
+
+  const shoe = shoes[0];
+  const shoeSubtype = shoe.subtype;
+  const shoeLane = coherenceLaneFromDb(shoe.lane) || shoe.lane;
+  const others = classifications.filter((c) => c !== shoe && c.subtype);
+  const hasTailored = others.some((c) => TAILORED_PIECES.has(c.subtype) || c.lane === 'tailored' || c.meta?.isTailored);
+  const hasBlazer = others.some((c) => c.subtype === 'blazer');
+  const hasDress = others.some((c) => c.meta?.category === 'dress' || c.subtype?.includes('dress'));
+  const signals = [];
+  let adjustment = 0;
+
+  const streetAthleisureShoe = STREET_ATHLEISURE_FOOTWEAR.has(shoeSubtype)
+    || shoeLane === 'street'
+    || shoeLane === 'athleisure';
+
+  if (streetAthleisureShoe && hasTailored && !TAILORED_BRIDGE_FOOTWEAR.has(shoeSubtype)) {
+    const bridgeOk = shoeSubtype === 'minimal_sneaker' && hasBlazer;
+    if (!bridgeOk) {
+      adjustment -= 12;
+      signals.push({
+        id: 'footwear_lane_mismatch',
+        severity: 'major',
+        hint: footwearVoiceHint(shoeSubtype, 'lane_mismatch'),
+        shoeSubtype,
+      });
+    }
+  }
+
+  if (shoe.meta?.visualWeight === 'heavy') {
+    const heavyStack = others.some(
+      (c) => c.meta?.visualWeight === 'heavy'
+        && (c.meta.category === 'outerwear' || c.meta.category === 'top'),
+    );
+    if (heavyStack) {
+      adjustment -= 4;
+      signals.push({
+        id: 'footwear_visual_weight',
+        severity: 'soft',
+        hint: 'Heavy footwear plus a heavy top/outer stacks visual weight',
+        shoeSubtype,
+      });
+    }
+  }
+
+  if (hasDress && (shoeSubtype === 'chunky_trainer' || shoeSubtype === 'runner' || shoeSubtype === 'combat_boots')) {
+    adjustment -= 14;
+    signals.push({
+      id: 'dress_street_footwear',
+      severity: 'major',
+      hint: footwearVoiceHint(shoeSubtype, 'dress'),
+      shoeSubtype,
+    });
+  }
+
+  const occasion = String(options.occasion || options.eventType || '').toLowerCase();
+  if (occasion && /formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
+    const f = shoe.formality ?? shoe.meta?.formality ?? 2;
+    if (f < 4) {
+      adjustment -= 16;
+      signals.push({
+        id: 'occasion_footwear_lock',
+        severity: 'hard',
+        hint: `Formal occasion needs smarter footwear — ${labelSubtype(shoeSubtype)} reads too casual`,
+        shoeSubtype,
+      });
+    }
+  }
+
+  if (shoeSubtype === 'chelsea_boots' && hasBlazer) {
+    adjustment += 5;
+    signals.push({
+      id: 'footwear_anchor_ok',
+      severity: 'info',
+      hint: footwearVoiceHint(shoeSubtype, 'anchor_ok'),
+      shoeSubtype,
+    });
+  }
+  if ((shoeSubtype === 'oxfords' || shoeSubtype === 'derby') && hasTailored) {
+    adjustment += 4;
+  }
+  if ((shoeSubtype === 'stilettos' || shoeSubtype === 'heels' || shoeSubtype === 'block_heels') && hasDress) {
+    adjustment += 4;
+  }
+
+  adjustment = Math.max(-18, Math.min(8, adjustment));
+  return { adjustment, signals, classifications, shoeSubtype, shoeLane };
+}
+
+/**
+ * Soft outfit bonus from pairwise subtype compatibility + footwear direction.
+ */
+export function scoreOutfitSubtypeCompatibility(items, options: { occasion?: string; eventType?: string } = {}) {
   if (!Array.isArray(items) || items.length < 2) {
-    return { adjustment: 0, pairs: [], classifications: [] };
+    return { adjustment: 0, pairs: [], classifications: [], footwearSignals: [] };
   }
 
   const classifications = items.map((item) => classifyGarment(item));
@@ -405,9 +654,17 @@ export function scoreOutfitSubtypeCompatibility(items) {
     }
   }
 
+  const footwear = scoreFootwearDirection(items, options);
+  total += footwear.adjustment * Math.max(1, counted / 2);
+
   // Cap soft influence so clash authority stays primary
-  const adjustment = Math.max(-14, Math.min(10, Math.round(total / Math.max(1, counted / 2))));
-  return { adjustment, pairs, classifications };
+  const adjustment = Math.max(-16, Math.min(12, Math.round(total / Math.max(1, counted / 2))));
+  return {
+    adjustment,
+    pairs,
+    classifications,
+    footwearSignals: footwear.signals,
+  };
 }
 
 /**
@@ -488,12 +745,29 @@ export function detectSubtypeConflicts(items) {
       const aAvoids = a.meta.avoidWith?.includes(b.subtype);
       const bAvoids = b.meta.avoidWith?.includes(a.subtype);
       if (aAvoids || bAvoids) {
+        const shoe = a.meta.category === 'footwear' ? a : (b.meta.category === 'footwear' ? b : null);
+        const other = shoe === a ? b : a;
+        let hint = `${a.subtype.replace(/_/g, ' ')} clashes with ${b.subtype.replace(/_/g, ' ')}`;
+        if (shoe) {
+          if (shoe.subtype === 'chelsea_boots' && other.subtype === 'blazer') {
+            hint = 'Chelsea boots anchor this tailored look';
+          } else if (['chunky_trainer', 'runner'].includes(shoe.subtype) && (other.subtype === 'blazer' || other.meta?.isTailored)) {
+            hint = 'Chunky trainers pull this out of tailoring';
+          } else if (shoe.subtype === 'combat_boots' && (other.subtype === 'blazer' || other.subtype === 'slip_dress')) {
+            hint = footwearVoiceHint(shoe.subtype, other.subtype === 'slip_dress' ? 'dress' : 'lane_mismatch');
+          } else if (shoe.subtype === 'slides' && (other.subtype === 'blazer' || other.meta?.isTailored)) {
+            hint = footwearVoiceHint('slides');
+          } else if (a.meta.category === 'footwear' || b.meta.category === 'footwear') {
+            hint = footwearVoiceHint(shoe.subtype);
+          }
+        }
         conflicts.push({
           a: a.subtype,
           b: b.subtype,
           itemA: a.item,
           itemB: b.item,
-          hint: `${a.subtype.replace(/_/g, ' ')} clashes with ${b.subtype.replace(/_/g, ' ')}`,
+          hint,
+          footwearAnchor: Boolean(shoe),
         });
       }
       if (a.meta.isRevealing && b.meta.isRevealing) {
@@ -508,6 +782,23 @@ export function detectSubtypeConflicts(items) {
       }
     }
   }
+
+  const footwear = scoreFootwearDirection(items);
+  for (const sig of footwear.signals) {
+    if (sig.severity === 'info') continue;
+    const shoeCls = classifications.find((c) => c.subtype === sig.shoeSubtype);
+    if (!shoeCls) continue;
+    conflicts.push({
+      a: sig.shoeSubtype,
+      b: null,
+      itemA: shoeCls.item,
+      itemB: null,
+      hint: sig.hint,
+      id: sig.id,
+      footwearAnchor: true,
+    });
+  }
+
   return { conflicts, classifications };
 }
 

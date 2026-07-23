@@ -53,6 +53,10 @@ export type ItemSignals = {
   isFormalAccessory: boolean;
   isRevealing?: boolean;
   isSlipDress?: boolean;
+  isCombatBoots?: boolean;
+  isChelseaBoots?: boolean;
+  isSlides?: boolean;
+  isLeatherSandals?: boolean;
 };
 
 export type OutfitClash = {
@@ -60,6 +64,12 @@ export type OutfitClash = {
   penalty: number;
   hint: string;
   severity: 'fatal' | 'major' | 'moderate' | 'minor';
+};
+
+export type ClashDetectOptions = {
+  regional?: RegionalStyleContext | null;
+  occasion?: string | null;
+  eventType?: string | null;
 };
 
 export type OutfitContext = {
@@ -70,6 +80,8 @@ export type OutfitContext = {
   minTier: FormalityTier;
   tierSpread: number;
   regional: RegionalStyleContext | null;
+  options?: ClashDetectOptions;
+  occasion?: string | null;
   isSmartCasualLook: boolean;
   has: (flag: keyof ItemSignals) => boolean;
   any: (flag: keyof ItemSignals) => boolean;
@@ -215,14 +227,25 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   const athleticBottom = subtype === 'athletic_shorts' || subtype === 'joggers' || subtype === 'tracksuit_bottoms'
     || isAthleticBottom(item) || isJoggers;
   const athleticShoes = isAthleticFootwear(item);
-  const formalShoes = subtype === 'dress_shoe' || subtype === 'loafer' || isFormalFootwear(item);
-  const boots = subtype === 'ankle_boots' || subtype === 'uggs' || isBootFootwear(item);
-  const dressyBoots = subtype === 'ankle_boots' || isDressyBootFootwear(item);
-  const heels = subtype === 'heels' || (/heel|pump|stiletto/.test(t) && cat === 'shoes');
-  const casualTrainer = subtype === 'minimal_sneaker' || subtype === 'chunky_trainer' || isCasualTrainer(item);
-  const chunkyOrTechTrainer = subtype === 'chunky_trainer' || isChunkyOrTechTrainer(item);
+  const formalShoes = ['oxfords', 'derby', 'loafers', 'dress_shoe', 'loafer'].includes(subtype || '')
+    || isFormalFootwear(item);
+  const boots = ['ankle_boots', 'uggs', 'chelsea_boots', 'combat_boots'].includes(subtype || '')
+    || isBootFootwear(item);
+  const dressyBoots = subtype === 'ankle_boots' || subtype === 'chelsea_boots' || isDressyBootFootwear(item);
+  const heels = ['heels', 'stilettos', 'block_heels', 'statement_heels'].includes(subtype || '')
+    || (/heel|pump|stiletto/.test(t) && cat === 'shoes');
+  const casualTrainer = ['minimal_sneaker', 'chunky_trainer', 'runner'].includes(subtype || '')
+    || isCasualTrainer(item);
+  const chunkyOrTechTrainer = subtype === 'chunky_trainer' || subtype === 'runner'
+    || isChunkyOrTechTrainer(item);
   const fashionTrainer = subtype === 'minimal_sneaker' || isLifestyleFashionTrainer(item);
   const isUggs = subtype === 'uggs' || /\bugg|shearling boot|sheepskin/.test(t);
+  const isCombatBoots = subtype === 'combat_boots'
+    || (/combat|doc\b|dr\.?\s*marten|chunky boot|lace-?up boot/.test(t) && cat === 'shoes');
+  const isChelseaBoots = subtype === 'chelsea_boots' || /chelsea|desert boot|chukka/.test(t);
+  const isSlides = subtype === 'slides' || /slide|flip.?flop|pool slide/.test(t);
+  const isLeatherSandals = subtype === 'leather_sandals' || subtype === 'espadrilles'
+    || (/sandal|birkenstock|espadrille/.test(t) && cat === 'shoes' && !isSlides);
   const isFleeceOrInsulated = subtype === 'fleece' || subtype === 'puffer'
     || (/fleece|insulated|puffer|down jacket|parka|quilted|thermal outer|winter coat/.test(t)
       && (cat === 'outerwear' || /jacket|coat|fleece|parka|puffer/.test(t)));
@@ -235,21 +258,21 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
 
   let formalityTier: FormalityTier = 3;
 
-  if (isSwimwear || athleticTop || athleticBottom || isJoggers || (isShorts && athleticBottom && !isTailoredShorts)) {
+  if (isSwimwear || athleticTop || athleticBottom || isJoggers || (isShorts && athleticBottom && !isTailoredShorts) || isSlides) {
     formalityTier = 1;
-  } else if (isSleepwear || isHoodie || (isShorts && !isTailoredShorts) || casualTrainer || athleticShoes || isUggs) {
+  } else if (isSleepwear || isHoodie || (isShorts && !isTailoredShorts) || casualTrainer || athleticShoes || isUggs || isLeatherSandals) {
     formalityTier = 2;
-  } else if (isJeans || isTailoredShorts || (boots && !isUggs)) {
+  } else if (isJeans || isTailoredShorts || (boots && !isUggs && !isCombatBoots)) {
     formalityTier = 3;
-  } else if (structuredShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
+  } else if (structuredShirt || isTie || isSuitPiece || isBlazer) {
     formalityTier = 4;
   }
 
   if (isEveningWear || isGown || (isTie && isSuitPiece)) formalityTier = 5;
   if (athleticTop || athleticBottom) formalityTier = Math.min(formalityTier, 1) as FormalityTier;
-  if (formalShoes || heels || dressyBoots) formalityTier = Math.max(formalityTier, 4) as FormalityTier;
+  if (formalShoes || heels || isChelseaBoots) formalityTier = Math.max(formalityTier, 4) as FormalityTier;
   if (athleticShoes && !formalShoes) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
-  if (isUggs) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
+  if (isUggs || isSlides || isCombatBoots) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
   if (isFleeceOrInsulated) formalityTier = Math.min(formalityTier, 3) as FormalityTier;
 
   if (garment.formality != null && garment.confidence >= 0.75 && !garment.coarseOnly) {
@@ -297,19 +320,55 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isFormalAccessory,
     isRevealing,
     isSlipDress,
+    isCombatBoots,
+    isChelseaBoots,
+    isSlides,
+    isLeatherSandals,
+  };
+}
+
+function isRegionalContext(v: unknown): v is RegionalStyleContext {
+  return !!v && typeof v === 'object' && 'allowsSmartCasualTrainers' in (v as object);
+}
+
+function normalizeClashArg(
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
+): { regional: RegionalStyleContext | null; options: ClashDetectOptions; occasion: string | null } {
+  if (!regionalOrOptions) {
+    return { regional: null, options: {}, occasion: null };
+  }
+  if (isRegionalContext(regionalOrOptions)) {
+    return {
+      regional: regionalOrOptions,
+      options: { regional: regionalOrOptions },
+      occasion: null,
+    };
+  }
+  const opts = regionalOrOptions as ClashDetectOptions;
+  const occasion = opts.occasion || opts.eventType || null;
+  return {
+    regional: opts.regional ?? null,
+    options: opts,
+    occasion: occasion ? String(occasion) : null,
   };
 }
 
 export function buildOutfitContext(
   items: WardrobeItem[],
-  regional: RegionalStyleContext | null = null,
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): OutfitContext {
+  const { regional, options, occasion: occasionFromOpts } = normalizeClashArg(regionalOrOptions);
   const signals = items.map(classifyItem);
   const tiers = signals.map((s) => s.formalityTier);
   const maxTier = Math.max(...tiers, 1) as FormalityTier;
   const minTier = Math.min(...tiers, 5) as FormalityTier;
   const isSmartCasualLook = isIntentionalSmartCasualTrainerLook(items, regional)
     || (regional == null && isIntentionalSmartCasualTrainerLook(items, DEFAULT_SMART_CASUAL_REGIONAL));
+  const itemOccasion = items
+    .map((i) => (i as WardrobeItem & { occasion?: string; eventType?: string }).occasion
+      || (i as WardrobeItem & { eventType?: string }).eventType)
+    .find(Boolean) || null;
+  const resolvedOccasion = occasionFromOpts || itemOccasion;
 
   return {
     items,
@@ -319,6 +378,8 @@ export function buildOutfitContext(
     minTier,
     tierSpread: maxTier - minTier,
     regional,
+    options,
+    occasion: resolvedOccasion ? String(resolvedOccasion) : null,
     isSmartCasualLook,
     has: (flag) => signals.every((s) => s[flag]),
     any: (flag) => signals.some((s) => s[flag]),
@@ -530,6 +591,63 @@ export const CLASH_RULES: Array<{
       && ctx.any('isChunkyOrTechTrainer'),
   },
   {
+    id: 'slip_dress_combat_boots',
+    penalty: 80,
+    hint: 'Slip dress with combat boots — street footwear undercuts the evening read',
+    severity: 'major',
+    when: (ctx) => (ctx.any('isSlipDress') || ctx.signals.some((s) => s.subtype === 'slip_dress' || s.subtype === 'bodycon_dress'))
+      && ctx.any('isCombatBoots'),
+  },
+  {
+    id: 'blazer_slides',
+    penalty: 84,
+    hint: 'Slides with a blazer — athleisure footwear collapses tailored formality',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isSlides'),
+  },
+  {
+    id: 'blazer_combat_boots',
+    penalty: 76,
+    hint: 'Combat boots pull a blazer into street — keep combat with cargo/denim, not tailoring',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isCombatBoots'),
+  },
+  {
+    id: 'blazer_leather_sandals',
+    penalty: 72,
+    hint: 'Leather sandals with a blazer — open casual footwear fights structured tailoring',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isLeatherSandals'),
+  },
+  {
+    id: 'footwear_lane_mismatch',
+    penalty: 78,
+    hint: 'Footwear lane fights the rest of the outfit — shoes set the direction',
+    severity: 'major',
+    when: (ctx) => {
+      const { conflicts } = detectSubtypeConflicts(ctx.items);
+      return conflicts.some((c) => c.id === 'footwear_lane_mismatch' || c.id === 'dress_street_footwear');
+    },
+  },
+  {
+    id: 'occasion_footwear_lock',
+    penalty: 88,
+    hint: 'Formal occasion needs footwear formality of 4+ — these shoes read too casual',
+    severity: 'fatal',
+    when: (ctx) => {
+      const occasion = String(ctx.occasion || ctx.options?.occasion || '').toLowerCase();
+      if (!occasion || !/formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
+        return false;
+      }
+      return ctx.signals.some((s) => {
+        if (!s.subtype) return false;
+        const shoeLike = s.isCasualTrainer || s.isFormalShoes || s.isHeels || s.isBoots
+          || s.isSlides || s.isLeatherSandals || s.isUggs;
+        return shoeLike && (s.formalityTier ?? 3) < 4;
+      });
+    },
+  },
+  {
     id: 'revealing_stack',
     penalty: 70,
     hint: 'Two revealing pieces compete — pick one hero silhouette',
@@ -548,13 +666,21 @@ export const CLASH_RULES: Array<{
         if (pair.has('athletic_shorts') && pair.has('blazer')) return false;
         if (pair.has('joggers') && pair.has('blazer')) return false;
         if (pair.has('chunky_trainer') && pair.has('blazer')) return false;
+        if (pair.has('runner') && pair.has('blazer')) return false;
         if (pair.has('slip_dress') && pair.has('chunky_trainer')) return false;
-        if (c.id === 'revealing_stack') return false;
+        if (pair.has('slip_dress') && pair.has('combat_boots')) return false;
+        if (pair.has('blazer') && pair.has('slides')) return false;
+        if (pair.has('blazer') && pair.has('combat_boots')) return false;
+        if (c.id === 'revealing_stack' || c.id === 'footwear_lane_mismatch' || c.id === 'dress_street_footwear') return false;
         const hard: Array<[string, string]> = [
           ['oxford_shirt', 'athletic_shorts'],
           ['oxford_shirt', 'joggers'],
           ['tie', 'athletic_shorts'],
           ['heels', 'athletic_shorts'],
+          ['stilettos', 'athletic_shorts'],
+          ['oxfords', 'athletic_shorts'],
+          ['loafers', 'athletic_shorts'],
+          ['chelsea_boots', 'athletic_shorts'],
         ];
         return hard.some(([x, y]) => pair.has(x) && pair.has(y));
       });
@@ -764,9 +890,9 @@ export const CLASH_RULES: Array<{
 
 export function detectOutfitClashes(
   items: WardrobeItem[],
-  regional: RegionalStyleContext | null = null,
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): OutfitClash | null {
-  const matched = detectAllOutfitClashes(items, regional);
+  const matched = detectAllOutfitClashes(items, regionalOrOptions);
   if (matched.length === 0) return null;
 
   // Prefer specific garment clashes over generic formality/tier span when both fire.
@@ -788,21 +914,21 @@ export function detectOutfitClashes(
  */
 export function isOutfitValid(
   items: WardrobeItem[],
-  regional: RegionalStyleContext | null = null,
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): boolean {
   if (!items || items.length < 2) return true;
-  const clashes = detectAllOutfitClashes(items, regional);
+  const clashes = detectAllOutfitClashes(items, regionalOrOptions);
   return !clashes.some((c) => c.severity === 'fatal' || c.severity === 'major');
 }
 
 /** All clash rules that match, sorted by severity then penalty (highest first). */
 export function detectAllOutfitClashes(
   items: WardrobeItem[],
-  regional: RegionalStyleContext | null = null,
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): OutfitClash[] {
   if (items.length < 2) return [];
 
-  const ctx = buildOutfitContext(items, regional);
+  const ctx = buildOutfitContext(items, regionalOrOptions);
   const matched = CLASH_RULES.filter((rule) => rule.when(ctx));
   if (matched.length === 0) return [];
 
@@ -831,11 +957,11 @@ export function detectAllOutfitClashes(
 export function collectSecondaryClashPenalty(
   items: WardrobeItem[],
   primary: OutfitClash | null,
-  regional: RegionalStyleContext | null = null,
+  regionalOrOptions: RegionalStyleContext | ClashDetectOptions | null = null,
 ): number {
   if (items.length < 2) return 0;
 
-  const ctx = buildOutfitContext(items, regional);
+  const ctx = buildOutfitContext(items, regionalOrOptions);
   const matched = CLASH_RULES.filter((rule) => rule.when(ctx));
   if (matched.length <= 1) return 0;
 
@@ -846,6 +972,21 @@ export function collectSecondaryClashPenalty(
 
   return Math.min(12, extra);
 }
+
+/** Actionable fix copy for clash IDs (mirrors server CLASH_SUGGESTIONS). */
+export const CLASH_SUGGESTIONS: Record<string, string> = {
+  slip_dress_chunky_trainer: 'Swap chunky trainers for heels or minimal sneakers with a slip dress',
+  slip_dress_combat_boots: 'Swap combat boots for heels, stilettos, or polished ankle boots',
+  blazer_slides: 'Swap slides for loafers, oxfords, or minimal sneakers under a blazer',
+  blazer_combat_boots: 'Keep combat boots with cargo/denim — or swap to Chelsea boots under a blazer',
+  blazer_leather_sandals: 'Swap sandals for loafers or minimal sneakers with a blazer',
+  footwear_lane_mismatch: 'Let footwear set one direction — match shoes to the tailored or street lane',
+  occasion_footwear_lock: 'Formal occasions need loafers, oxfords, heels, or Chelsea boots',
+  blazer_chunky_trainers: 'Swap chunky athletic trainers for plain white lifestyle sneakers, or drop the blazer',
+  athletic_shorts_blazer: 'Swap athletic shorts for tailored shorts, chinos, or trousers',
+  revealing_stack: 'Keep one revealing hero piece — tone down the second silhouette',
+  subtype_avoid_pair: 'Swap one piece so subtypes share a lane',
+};
 
 export function clashToScore(penalty: number, extraPenalty = 0): number {
   return Math.max(5, Math.min(100, 100 - penalty - extraPenalty));

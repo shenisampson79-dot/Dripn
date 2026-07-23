@@ -22,6 +22,8 @@ export type FootwearClass =
   | 'minimal_sneaker'
   | 'chunky_sneaker'
   | 'runner'
+  | 'combat_boots'
+  | 'slides'
   | 'other'
   | null;
 
@@ -29,6 +31,7 @@ export type DetectedSignals = {
   laneConflict: boolean;
   multiLaneChaos: boolean;
   footwearMismatch: boolean;
+  footwearLaneMismatch?: boolean;
   colorClash?: boolean;
   overdressedPiece?: string | null;
   underdressedPiece?: string | null;
@@ -119,23 +122,29 @@ export function getStyleLane(item: ItemLike, signals?: ItemSignals): StyleLane {
 export function classifyFootwear(item: ItemLike | null | undefined): FootwearClass {
   if (!item || String(item.category || '').toLowerCase() !== 'shoes') return null;
   const sig = classifyItem(item as WardrobeItem);
+  const garment = classifyGarment(item);
+  const subtype = garment.subtype || sig.subtype;
   const t = itemText(item);
 
-  if (sig.isFormalShoes || sig.isHeels || sig.isDressyBoots) return 'dress';
-  // Sandals / slides are not lifestyle sneakers — keep as other
-  if (/sandal|slide|flip.?flop|pool slide|espadrille/.test(t)) return 'other';
-  if (isRunnerFootwear(item)) return 'runner';
-  if (sig.isChunkyOrTechTrainer || isChunkyOrTechTrainer(item)) return 'chunky_sneaker';
-  if (sig.isFashionTrainer || isFashionTrainer(item) || /minimal|plain white|clean white|lifestyle|samba|gazelle|stan smith|air force|af1/.test(t)) {
+  if (['oxfords', 'derby', 'loafers', 'heels', 'stilettos', 'block_heels', 'statement_heels', 'chelsea_boots'].includes(subtype || '')
+    || sig.isFormalShoes || sig.isHeels || sig.isDressyBoots || sig.isChelseaBoots) {
+    return 'dress';
+  }
+  if (subtype === 'slides' || subtype === 'leather_sandals' || subtype === 'espadrilles'
+    || /sandal|slide|flip.?flop|pool slide|espadrille/.test(t)) {
+    return subtype === 'slides' ? 'slides' : 'other';
+  }
+  if (subtype === 'runner' || isRunnerFootwear(item)) return 'runner';
+  if (subtype === 'chunky_trainer' || subtype === 'combat_boots'
+    || sig.isChunkyOrTechTrainer || isChunkyOrTechTrainer(item)) {
+    return subtype === 'combat_boots' ? 'combat_boots' : 'chunky_sneaker';
+  }
+  if (subtype === 'minimal_sneaker' || sig.isFashionTrainer || isFashionTrainer(item)
+    || /minimal|plain white|clean white|lifestyle|samba|gazelle|stan smith|air force|af1|common projects/.test(t)) {
     return 'minimal_sneaker';
   }
-  if (sig.isCasualTrainer) {
-    return 'minimal_sneaker';
-  }
-  // Generic athletic shoes without trainer/sneaker cues stay other (e.g. cleats)
-  if (sig.isAthleticShoes && /\b(trainers?|sneakers?)\b/.test(t)) {
-    return 'minimal_sneaker';
-  }
+  if (sig.isCasualTrainer) return 'minimal_sneaker';
+  if (sig.isAthleticShoes && /\b(trainers?|sneakers?)\b/.test(t)) return 'minimal_sneaker';
   return 'other';
 }
 
@@ -205,6 +214,7 @@ export function evaluateStyleCoherence(items: ItemLike[]): CoherenceBreakdown {
     laneConflict: false,
     multiLaneChaos: false,
     footwearMismatch: false,
+    footwearLaneMismatch: false,
     colorClash: false,
     overdressedPiece: null,
     underdressedPiece: null,
@@ -264,10 +274,12 @@ export function evaluateStyleCoherence(items: ItemLike[]): CoherenceBreakdown {
   const hasShorts = signals.some((s) => s.isShorts);
   let footwearMismatch = false;
   let footwearScore = 0; // contribution when good; negative when bad
+  let footwearLaneMismatch = false;
 
-  if (hasTailoredLane && (footwearClass === 'chunky_sneaker' || footwearClass === 'runner')) {
+  if (hasTailoredLane && (footwearClass === 'chunky_sneaker' || footwearClass === 'runner' || footwearClass === 'combat_boots' || footwearClass === 'slides')) {
     footwearMismatch = true;
-    footwearScore = -28;
+    footwearLaneMismatch = true;
+    footwearScore = footwearClass === 'slides' ? -30 : -28;
   } else if (hasBlazer && footwearClass === 'minimal_sneaker' && smartBottoms && !hasAthleisureBottom && !hasShorts) {
     // Blazer + khaki + white minimal — intentional smart casual (modest bonus; avoid double-dip)
     footwearMismatch = false;
@@ -312,6 +324,7 @@ export function evaluateStyleCoherence(items: ItemLike[]): CoherenceBreakdown {
     laneConflict,
     multiLaneChaos,
     footwearMismatch,
+    footwearLaneMismatch,
     colorClash,
     overdressedPiece,
     underdressedPiece,
@@ -371,8 +384,15 @@ export function evaluateStyleCoherence(items: ItemLike[]): CoherenceBreakdown {
     };
   }
 
-  // Footwear-only hard fail under blazer (chunky/runner) even if bottoms are smart
+  // Footwear-only hard fail under blazer (chunky/runner/combat/slides) even if bottoms are smart
   if (hasBlazer && footwearMismatch) {
+    const shoeHint = footwearClass === 'runner'
+      ? 'Running shoes fight a blazer — swap to plain lifestyle sneakers or dress shoes'
+      : footwearClass === 'slides'
+        ? 'Slides collapse tailored formality — swap to loafers or minimal sneakers'
+        : footwearClass === 'combat_boots'
+          ? 'Combat boots pull this out of tailoring — try Chelsea boots or drop the blazer'
+          : 'Chunky trainers pull this out of tailoring';
     return {
       mode: 'hard_cap',
       scoreImpact: 36,
@@ -380,10 +400,8 @@ export function evaluateStyleCoherence(items: ItemLike[]): CoherenceBreakdown {
       footwearScore,
       tailoringClash: false,
       signals: detected,
-      hint: footwearClass === 'runner'
-        ? 'Running shoes fight a blazer — swap to plain lifestyle sneakers or dress shoes'
-        : 'Chunky or technical athletic trainers with a blazer — keep tailoring with plain lifestyle sneakers or dress shoes',
-      clashId: 'coherence_footwear_mismatch',
+      hint: shoeHint,
+      clashId: footwearLaneMismatch ? 'footwear_lane_mismatch' : 'coherence_footwear_mismatch',
       severity: 'major',
     };
   }
@@ -427,6 +445,7 @@ export function serializeDetectedSignals(signals: DetectedSignals): Record<strin
     laneConflict: signals.laneConflict,
     multiLaneChaos: signals.multiLaneChaos,
     footwearMismatch: signals.footwearMismatch,
+    footwearLaneMismatch: Boolean(signals.footwearLaneMismatch),
     colorClash: Boolean(signals.colorClash),
     overdressedPiece: signals.overdressedPiece || null,
     underdressedPiece: signals.underdressedPiece || null,

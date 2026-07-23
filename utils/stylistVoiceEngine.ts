@@ -12,7 +12,11 @@ import {
   type StyleLane,
 } from '@/utils/styleCoherenceEngine';
 import { classifyItem } from '@/utils/outfitClashRules';
-import { detectSubtypeConflicts, classifyGarment } from '@/utils/garmentTaxonomy';
+import {
+  detectSubtypeConflicts,
+  classifyGarment,
+  footwearVoiceHint,
+} from '@/utils/garmentTaxonomy';
 
 export type StylistTone = 'excellent' | 'good' | 'mixed' | 'off';
 
@@ -49,7 +53,7 @@ function toneFromScoreAndSignals(score: number, signals: DetectedSignals): Styli
   if (signals.multiLaneChaos || signals.tailoringClash || (signals.laneConflict && signals.footwearMismatch)) {
     return 'off';
   }
-  if (signals.laneConflict || signals.footwearMismatch || signals.invalidTwoLaneMix) {
+  if (signals.laneConflict || signals.footwearMismatch || signals.footwearLaneMismatch || signals.invalidTwoLaneMix) {
     return score < 50 ? 'off' : 'mixed';
   }
   if (score >= 90) return 'excellent';
@@ -72,9 +76,13 @@ function buildAdjustments(signals: DetectedSignals, items: WardrobeItem[]): stri
   if (signals.tailoringClash) {
     out.push('Swap tracksuit/joggers for chinos or tailored trousers — or drop the blazer');
   }
-  if (signals.footwearMismatch) {
+  if (signals.footwearMismatch || signals.footwearLaneMismatch) {
     if (signals.footwearClass === 'runner') {
       out.push('Replace running shoes with plain lifestyle sneakers or loafers');
+    } else if (signals.footwearClass === 'slides') {
+      out.push('Swap slides for loafers or minimal sneakers');
+    } else if (signals.footwearClass === 'combat_boots') {
+      out.push('Swap combat boots for Chelsea boots — or drop the blazer');
     } else {
       out.push('Replace chunky trainers with plain white lifestyle sneakers or dress shoes');
     }
@@ -132,16 +140,45 @@ function commentForItem(
   if (sig.isSlipDress && signals.footwearMismatch) {
     return {
       verdict: 'fights',
-      comment: `${name} wants heels or minimal footwear — chunky trainers undercut the evening read.`,
+      comment: footwearVoiceHint(
+        sig.subtype === 'combat_boots' ? 'combat_boots' : 'chunky_trainer',
+        'dress',
+      ),
       suggestion: 'Swap to heels or plain lifestyle sneakers.',
     };
   }
 
-  if (sig.subtype === 'chunky_trainer' && (signals.footwearMismatch || signals.tailoringClash)) {
+  if (role === 'footwear' && sig.isChelseaBoots && !signals.footwearMismatch && !signals.tailoringClash) {
+    return {
+      verdict: 'works',
+      comment: footwearVoiceHint('chelsea_boots', 'anchor_ok'),
+    };
+  }
+
+  if (
+    (sig.subtype === 'chunky_trainer' || sig.subtype === 'runner' || sig.isChunkyOrTechTrainer)
+    && (signals.footwearMismatch || signals.footwearLaneMismatch || signals.tailoringClash)
+  ) {
     return {
       verdict: 'swap',
-      comment: 'Chunky trainers pull this into the wrong lane under tailored or evening pieces.',
+      comment: footwearVoiceHint(sig.subtype === 'runner' ? 'runner' : 'chunky_trainer'),
       suggestion: 'Swap to plain white lifestyle sneakers, loafers, or heels.',
+    };
+  }
+
+  if (sig.isCombatBoots && (signals.footwearMismatch || signals.footwearLaneMismatch || signals.tailoringClash)) {
+    return {
+      verdict: 'swap',
+      comment: footwearVoiceHint('combat_boots'),
+      suggestion: 'Swap to Chelsea boots or drop the blazer.',
+    };
+  }
+
+  if (sig.isSlides && (signals.footwearMismatch || signals.footwearLaneMismatch)) {
+    return {
+      verdict: 'swap',
+      comment: footwearVoiceHint('slides'),
+      suggestion: 'Swap to loafers or minimal sneakers.',
     };
   }
 
@@ -170,10 +207,16 @@ function commentForItem(
   }
 
   if (signals.underdressedPiece === id || (role === 'footwear' && signals.footwearMismatch)) {
-    const kind = signals.footwearClass === 'runner' ? 'running shoes' : 'chunky trainers';
+    const hint = signals.footwearClass === 'runner'
+      ? footwearVoiceHint('runner')
+      : signals.footwearClass === 'slides'
+        ? footwearVoiceHint('slides')
+        : signals.footwearClass === 'combat_boots'
+          ? footwearVoiceHint('combat_boots')
+          : footwearVoiceHint('chunky_trainer');
     return {
       verdict: 'swap',
-      comment: `${kind.charAt(0).toUpperCase() + kind.slice(1)} pull this into the wrong lane under tailored pieces.`,
+      comment: hint,
       suggestion: 'Swap to plain white lifestyle sneakers or loafers.',
     };
   }
@@ -282,6 +325,7 @@ export function buildStylistAnalysis(
   const majorSignal = signals.multiLaneChaos
     || signals.tailoringClash
     || signals.footwearMismatch
+    || signals.footwearLaneMismatch
     || signals.invalidTwoLaneMix
     || signals.laneConflict;
 
@@ -318,12 +362,19 @@ export function buildStylistAnalysis(
         subtypeHit
         && (clashId === 'athletic_shorts_blazer'
           || clashId === 'slip_dress_chunky_trainer'
+          || clashId === 'slip_dress_combat_boots'
+          || clashId === 'blazer_slides'
+          || clashId === 'blazer_combat_boots'
+          || clashId === 'blazer_leather_sandals'
+          || clashId === 'footwear_lane_mismatch'
+          || clashId === 'occasion_footwear_lock'
           || clashId === 'subtype_avoid_pair'
           || clashId === 'revealing_stack'
-          || note.verdict === 'neutral')
+          || note.verdict === 'neutral'
+          || subtypeHit.footwearAnchor)
       ) {
         const g = classifyGarment(item);
-        if (g.subtype && (subtypeHit.a === g.subtype || subtypeHit.b === g.subtype)) {
+        if (g.subtype && (subtypeHit.a === g.subtype || subtypeHit.b === g.subtype || subtypeHit.footwearAnchor)) {
           note.verdict = note.verdict === 'works' ? 'fights' : note.verdict;
           note.comment = subtypeHit.hint || note.comment;
           note.suggestion = note.suggestion || 'Swap this piece for a subtype that shares the outfit lane.';

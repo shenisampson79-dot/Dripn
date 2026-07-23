@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "schema": {
     "subtype": "string",
     "category": "top|bottom|outerwear|footwear|accessory|dress",
@@ -12,7 +12,8 @@
     "worksWith": "subtype[]",
     "avoidWith": "subtype[]",
     "isRevealing": "boolean optional",
-    "isTailored": "boolean optional"
+    "isTailored": "boolean optional",
+    "aliases": "string[] optional — legacy / classifier synonyms"
   },
   "garments": [
     {
@@ -29,16 +30,20 @@
         "linen_shirt",
         "polo",
         "blazer",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "minimal_sneaker",
+        "chelsea_boots",
         "belt"
       ],
       "avoidWith": [
         "chunky_trainer",
+        "runner",
+        "combat_boots",
         "athletic_shorts",
         "hoodie",
         "uggs",
+        "slides",
         "tie"
       ],
       "isTailored": true
@@ -62,8 +67,8 @@
       "avoidWith": [
         "blazer",
         "oxford_shirt",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "heels",
         "tie",
         "tailored_trousers"
@@ -90,7 +95,7 @@
       "avoidWith": [
         "blazer",
         "tie",
-        "dress_shoe",
+        "oxfords",
         "heels",
         "slip_dress"
       ]
@@ -109,11 +114,13 @@
         "polo",
         "oxford_shirt",
         "minimal_sneaker",
-        "loafer",
-        "sandals"
+        "loafers",
+        "leather_sandals",
+        "espadrilles"
       ],
       "avoidWith": [
         "chunky_trainer",
+        "runner",
         "hoodie",
         "uggs",
         "tie"
@@ -133,9 +140,13 @@
         "blouse",
         "blazer",
         "knit_top",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
+        "derby",
+        "chelsea_boots",
         "heels",
+        "stilettos",
+        "block_heels",
         "minimal_sneaker",
         "tie",
         "belt"
@@ -143,6 +154,9 @@
       "avoidWith": [
         "athletic_shorts",
         "chunky_trainer",
+        "runner",
+        "combat_boots",
+        "slides",
         "uggs",
         "hoodie"
       ],
@@ -164,8 +178,8 @@
         "blazer",
         "knit_top",
         "oversized_tee",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "minimal_sneaker",
         "belt"
       ],
@@ -194,8 +208,8 @@
       "avoidWith": [
         "blazer",
         "oxford_shirt",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "heels",
         "tie",
         "slip_dress"
@@ -220,8 +234,8 @@
       "avoidWith": [
         "blazer",
         "oxford_shirt",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "heels",
         "tie"
       ]
@@ -248,7 +262,7 @@
       "avoidWith": [
         "blazer",
         "tie",
-        "dress_shoe",
+        "oxfords",
         "heels",
         "slip_dress"
       ]
@@ -271,7 +285,7 @@
         "denim_jacket",
         "knit_top",
         "minimal_sneaker",
-        "loafer",
+        "loafers",
         "ankle_boots",
         "heels",
         "belt"
@@ -296,8 +310,8 @@
         "tailored_shorts",
         "jeans",
         "blazer",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "minimal_sneaker",
         "tie",
         "belt"
@@ -325,9 +339,9 @@
         "chinos",
         "tailored_shorts",
         "jeans",
-        "loafer",
+        "loafers",
         "minimal_sneaker",
-        "sandals"
+        "leather_sandals"
       ],
       "avoidWith": [
         "chunky_trainer",
@@ -351,7 +365,7 @@
         "linen_shorts",
         "blazer",
         "minimal_sneaker",
-        "loafer"
+        "loafers"
       ],
       "avoidWith": [
         "tie",
@@ -382,7 +396,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "heels",
         "blazer"
       ]
@@ -402,13 +416,13 @@
         "blazer",
         "denim_jacket",
         "minimal_sneaker",
-        "loafer",
+        "loafers",
         "chunky_trainer",
         "tailored_shorts"
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe"
+        "oxfords"
       ]
     },
     {
@@ -426,7 +440,7 @@
         "jeans",
         "blazer",
         "heels",
-        "loafer",
+        "loafers",
         "minimal_sneaker",
         "ankle_boots"
       ],
@@ -456,7 +470,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "blazer"
       ],
       "isRevealing": true
@@ -478,7 +492,7 @@
         "blazer",
         "cardigan",
         "minimal_sneaker",
-        "loafer",
+        "loafers",
         "heels"
       ],
       "avoidWith": [
@@ -507,7 +521,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "heels",
         "oxford_shirt"
       ]
@@ -523,6 +537,8 @@
       "visualWeight": "light",
       "worksWith": [
         "heels",
+        "stilettos",
+        "block_heels",
         "ankle_boots",
         "blazer",
         "cardigan",
@@ -531,6 +547,9 @@
       ],
       "avoidWith": [
         "chunky_trainer",
+        "runner",
+        "combat_boots",
+        "slides",
         "uggs",
         "athletic_shorts",
         "joggers",
@@ -573,7 +592,7 @@
       "visualWeight": "medium",
       "worksWith": [
         "heels",
-        "loafer",
+        "loafers",
         "ankle_boots",
         "minimal_sneaker",
         "cardigan",
@@ -595,7 +614,7 @@
       "fabric": "cotton",
       "visualWeight": "medium",
       "worksWith": [
-        "loafer",
+        "loafers",
         "minimal_sneaker",
         "ankle_boots",
         "belt",
@@ -617,7 +636,7 @@
       "fabric": "flowing",
       "visualWeight": "medium",
       "worksWith": [
-        "sandals",
+        "leather_sandals",
         "heels",
         "minimal_sneaker",
         "ankle_boots",
@@ -652,7 +671,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "uggs"
       ],
       "isRevealing": true
@@ -672,7 +691,7 @@
         "oxford_shirt",
         "blazer",
         "heels",
-        "loafer",
+        "loafers",
         "minimal_sneaker",
         "ankle_boots"
       ],
@@ -696,7 +715,7 @@
         "knit_top",
         "oxford_shirt",
         "blazer",
-        "loafer",
+        "loafers",
         "heels",
         "minimal_sneaker"
       ],
@@ -726,7 +745,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "uggs"
       ]
     },
@@ -774,9 +793,13 @@
         "jeans",
         "tailored_shorts",
         "midi_skirt",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
+        "derby",
+        "chelsea_boots",
         "heels",
+        "stilettos",
+        "block_heels",
         "minimal_sneaker",
         "tie"
       ],
@@ -785,7 +808,11 @@
         "joggers",
         "tracksuit_bottoms",
         "chunky_trainer",
+        "runner",
+        "combat_boots",
+        "slides",
         "uggs",
+        "leather_sandals",
         "cargo_shorts"
       ],
       "isTailored": true
@@ -811,7 +838,7 @@
       ],
       "avoidWith": [
         "tie",
-        "dress_shoe",
+        "oxfords",
         "oxford_shirt"
       ]
     },
@@ -862,7 +889,7 @@
         "tailored_shorts",
         "heels",
         "tie",
-        "dress_shoe",
+        "oxfords",
         "blazer"
       ]
     },
@@ -883,7 +910,7 @@
         "chinos",
         "midi_skirt",
         "slip_dress",
-        "loafer",
+        "loafers",
         "minimal_sneaker",
         "heels"
       ],
@@ -907,8 +934,8 @@
         "blazer",
         "tailored_trousers",
         "midi_skirt",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "heels",
         "ankle_boots"
       ],
@@ -949,7 +976,7 @@
       "subtype": "minimal_sneaker",
       "category": "footwear",
       "gender": "unisex",
-      "formality": 2,
+      "formality": 3,
       "lane": "casual",
       "silhouette": "low_top",
       "fabric": "leather",
@@ -957,14 +984,23 @@
       "worksWith": [
         "blazer",
         "chinos",
+        "tailored_trousers",
         "jeans",
         "oxford_shirt",
         "oversized_tee",
         "tailored_shorts",
         "slip_dress",
-        "hoodie"
+        "hoodie",
+        "knit_top",
+        "polo"
       ],
-      "avoidWith": []
+      "avoidWith": [
+        "uggs"
+      ],
+      "aliases": [
+        "fashion_sneaker",
+        "court_sneaker"
+      ]
     },
     {
       "subtype": "chunky_trainer",
@@ -982,6 +1018,41 @@
         "athletic_shorts",
         "cargo_pants",
         "jeans",
+        "cap",
+        "denim_jacket",
+        "cargo_shorts"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "slip_dress",
+        "bodycon_dress",
+        "tie",
+        "oxfords",
+        "tailored_trousers",
+        "tailored_coat"
+      ],
+      "aliases": [
+        "dad_sneaker",
+        "platform_sneaker"
+      ]
+    },
+    {
+      "subtype": "runner",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "athleisure",
+      "silhouette": "runner",
+      "fabric": "technical",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "joggers",
+        "athletic_shorts",
+        "tracksuit_bottoms",
+        "fleece",
         "cap"
       ],
       "avoidWith": [
@@ -990,13 +1061,20 @@
         "slip_dress",
         "bodycon_dress",
         "tie",
-        "dress_shoe"
+        "oxfords",
+        "tailored_trousers",
+        "tailored_coat",
+        "midi_skirt"
+      ],
+      "aliases": [
+        "tech_runner",
+        "running_shoe"
       ]
     },
     {
-      "subtype": "dress_shoe",
+      "subtype": "oxfords",
       "category": "footwear",
-      "gender": "unisex",
+      "gender": "menswear",
       "formality": 5,
       "lane": "tailored",
       "silhouette": "oxford",
@@ -1014,12 +1092,50 @@
         "athletic_shorts",
         "joggers",
         "hoodie",
-        "chunky_trainer"
+        "chunky_trainer",
+        "runner",
+        "slides",
+        "uggs"
       ],
-      "isTailored": true
+      "isTailored": true,
+      "aliases": [
+        "dress_shoe",
+        "brogues"
+      ]
     },
     {
-      "subtype": "loafer",
+      "subtype": "derby",
+      "category": "footwear",
+      "gender": "menswear",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "derby",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blazer",
+        "tailored_trousers",
+        "chinos",
+        "tailored_shorts",
+        "jeans",
+        "tie"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "chunky_trainer",
+        "runner",
+        "slides"
+      ],
+      "isTailored": true,
+      "aliases": [
+        "derby_shoe"
+      ]
+    },
+    {
+      "subtype": "loafers",
       "category": "footwear",
       "gender": "unisex",
       "formality": 4,
@@ -1035,14 +1151,23 @@
         "tailored_shorts",
         "linen_shorts",
         "jeans",
-        "midi_skirt"
+        "midi_skirt",
+        "polo",
+        "linen_shirt"
       ],
       "avoidWith": [
         "athletic_shorts",
         "joggers",
-        "hoodie"
+        "hoodie",
+        "chunky_trainer",
+        "runner",
+        "slides"
       ],
-      "isTailored": true
+      "isTailored": true,
+      "aliases": [
+        "loafer",
+        "penny_loafer"
+      ]
     },
     {
       "subtype": "heels",
@@ -1068,7 +1193,171 @@
         "athletic_shorts",
         "joggers",
         "hoodie",
+        "cap",
+        "chunky_trainer",
+        "runner",
+        "combat_boots"
+      ],
+      "aliases": [
+        "classic_heels",
+        "pumps"
+      ]
+    },
+    {
+      "subtype": "stilettos",
+      "category": "footwear",
+      "gender": "womenswear",
+      "formality": 5,
+      "lane": "evening",
+      "silhouette": "stiletto",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "slip_dress",
+        "bodycon_dress",
+        "wrap_dress",
+        "blouse",
+        "midi_skirt",
+        "mini_skirt",
+        "tailored_trousers",
+        "blazer"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "cap",
+        "chunky_trainer",
+        "runner",
+        "combat_boots",
+        "uggs",
+        "slides"
+      ]
+    },
+    {
+      "subtype": "block_heels",
+      "category": "footwear",
+      "gender": "womenswear",
+      "formality": 4,
+      "lane": "evening",
+      "silhouette": "block_heel",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "slip_dress",
+        "wrap_dress",
+        "blouse",
+        "midi_skirt",
+        "jeans",
+        "tailored_trousers",
+        "blazer",
+        "chinos"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "chunky_trainer",
+        "runner",
         "cap"
+      ]
+    },
+    {
+      "subtype": "statement_heels",
+      "category": "footwear",
+      "gender": "womenswear",
+      "formality": 4,
+      "lane": "evening",
+      "silhouette": "statement",
+      "fabric": "varied",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "slip_dress",
+        "bodycon_dress",
+        "wrap_dress",
+        "blouse",
+        "midi_skirt",
+        "mini_skirt"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "cap",
+        "chunky_trainer",
+        "runner",
+        "oversized_tee",
+        "cargo_pants",
+        "cropped_jacket"
+      ]
+    },
+    {
+      "subtype": "chelsea_boots",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "chelsea",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "tailored_trousers",
+        "chinos",
+        "jeans",
+        "blazer",
+        "oxford_shirt",
+        "knit_top",
+        "midi_skirt",
+        "tailored_shorts"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "slides",
+        "uggs",
+        "chunky_trainer",
+        "runner"
+      ],
+      "isTailored": true,
+      "aliases": [
+        "desert_boots",
+        "chukka"
+      ]
+    },
+    {
+      "subtype": "combat_boots",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "combat",
+      "fabric": "leather",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "jeans",
+        "cargo_pants",
+        "cargo_shorts",
+        "denim_jacket",
+        "mini_skirt",
+        "cropped_jacket",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "slip_dress",
+        "bodycon_dress",
+        "tie",
+        "oxfords",
+        "tailored_trousers",
+        "oxford_shirt",
+        "tailored_coat"
+      ],
+      "aliases": [
+        "chunky_boots",
+        "doc_martens",
+        "lace_up_boots"
       ]
     },
     {
@@ -1087,11 +1376,15 @@
         "blouse",
         "knit_top",
         "tailored_trousers",
-        "blazer"
+        "blazer",
+        "chinos",
+        "wrap_dress"
       ],
       "avoidWith": [
         "athletic_shorts",
-        "linen_shorts"
+        "linen_shorts",
+        "slides",
+        "runner"
       ]
     },
     {
@@ -1099,7 +1392,7 @@
       "category": "footwear",
       "gender": "unisex",
       "formality": 1,
-      "lane": "casual",
+      "lane": "athleisure",
       "silhouette": "shearling",
       "fabric": "shearling",
       "visualWeight": "heavy",
@@ -1108,7 +1401,8 @@
         "joggers",
         "hoodie",
         "knit_top",
-        "puffer"
+        "puffer",
+        "fleece"
       ],
       "avoidWith": [
         "blazer",
@@ -1116,11 +1410,17 @@
         "slip_dress",
         "tie",
         "heels",
-        "tailored_shorts"
+        "stilettos",
+        "tailored_shorts",
+        "oxfords",
+        "tailored_trousers"
+      ],
+      "aliases": [
+        "shearling_boots"
       ]
     },
     {
-      "subtype": "sandals",
+      "subtype": "leather_sandals",
       "category": "footwear",
       "gender": "unisex",
       "formality": 2,
@@ -1133,13 +1433,79 @@
         "linen_shirt",
         "maxi_dress",
         "wrap_dress",
-        "chinos"
+        "chinos",
+        "jeans",
+        "shirt_dress"
       ],
       "avoidWith": [
         "blazer",
         "tie",
         "joggers",
+        "hoodie",
+        "tailored_coat",
+        "oxfords"
+      ],
+      "aliases": [
+        "sandals",
+        "birkenstocks"
+      ]
+    },
+    {
+      "subtype": "slides",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 0,
+      "lane": "athleisure",
+      "silhouette": "slide",
+      "fabric": "varied",
+      "visualWeight": "light",
+      "worksWith": [
+        "joggers",
+        "athletic_shorts",
+        "oversized_tee",
         "hoodie"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "tie",
+        "tailored_trousers",
+        "slip_dress",
+        "oxfords",
+        "heels",
+        "stilettos",
+        "tailored_coat"
+      ],
+      "aliases": [
+        "flip_flops",
+        "pool_slides"
+      ]
+    },
+    {
+      "subtype": "espadrilles",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "espadrille",
+      "fabric": "canvas",
+      "visualWeight": "light",
+      "worksWith": [
+        "linen_shorts",
+        "linen_shirt",
+        "chinos",
+        "maxi_dress",
+        "wrap_dress",
+        "jeans",
+        "polo"
+      ],
+      "avoidWith": [
+        "blazer",
+        "tie",
+        "joggers",
+        "hoodie",
+        "chunky_trainer",
+        "runner"
       ]
     },
     {
@@ -1156,7 +1522,7 @@
         "jeans",
         "blazer",
         "heels",
-        "loafer"
+        "loafers"
       ],
       "avoidWith": []
     },
@@ -1215,7 +1581,7 @@
         "oxford_shirt",
         "blazer",
         "tailored_trousers",
-        "dress_shoe"
+        "oxfords"
       ],
       "avoidWith": [
         "athletic_shorts",
@@ -1278,16 +1644,20 @@
         "chinos",
         "tailored_trousers",
         "knit_top",
-        "loafer",
-        "blazer"
+        "loafers",
+        "blazer",
+        "chelsea_boots"
       ],
       "avoidSubtypes": [
         "chunky_trainer",
+        "runner",
+        "combat_boots",
         "cargo_pants",
         "cargo_shorts",
         "cap",
         "oversized_tee",
-        "bodycon_dress"
+        "bodycon_dress",
+        "slides"
       ],
       "laneBonus": 4,
       "subtypeBonus": 3
@@ -1304,15 +1674,20 @@
         "wrap_dress",
         "midi_skirt",
         "heels",
+        "stilettos",
+        "block_heels",
         "cardigan",
         "handbag"
       ],
       "avoidSubtypes": [
         "cargo_pants",
         "chunky_trainer",
+        "runner",
+        "combat_boots",
         "hoodie",
         "cap",
-        "athletic_shorts"
+        "athletic_shorts",
+        "slides"
       ],
       "laneBonus": 4,
       "subtypeBonus": 3
@@ -1328,14 +1703,16 @@
         "hoodie",
         "cargo_pants",
         "chunky_trainer",
+        "combat_boots",
         "cap",
         "denim_jacket",
         "cropped_jacket"
       ],
       "avoidSubtypes": [
         "tie",
-        "dress_shoe",
-        "tailored_coat"
+        "oxfords",
+        "tailored_coat",
+        "stilettos"
       ],
       "laneBonus": 4,
       "subtypeBonus": 3
@@ -1349,20 +1726,25 @@
         "blazer",
         "oxford_shirt",
         "tailored_trousers",
-        "dress_shoe",
-        "loafer",
+        "oxfords",
+        "loafers",
         "heels",
+        "stilettos",
         "slip_dress",
         "tailored_coat",
-        "tie"
+        "tie",
+        "chelsea_boots"
       ],
       "avoidSubtypes": [
         "athletic_shorts",
         "joggers",
         "chunky_trainer",
+        "runner",
         "uggs",
         "cap",
-        "cargo_shorts"
+        "cargo_shorts",
+        "slides",
+        "combat_boots"
       ],
       "laneBonus": 5,
       "subtypeBonus": 4
@@ -1383,7 +1765,7 @@
     "creative": "STREET",
     "trendsetter": "STREET"
   },
-  "syncedAt": "2026-07-23T09:08:18.774Z",
-  "sourceHash": "76f7f729bb85188b",
+  "syncedAt": "2026-07-23T09:44:31.498Z",
+  "sourceHash": "f3c9fa8357856f93",
   "source": "Dripn-Server/data/garmentTaxonomy.json"
 }
