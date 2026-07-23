@@ -12,6 +12,7 @@ import {
   type StyleLane,
 } from '@/utils/styleCoherenceEngine';
 import { classifyItem } from '@/utils/outfitClashRules';
+import { detectSubtypeConflicts, classifyGarment } from '@/utils/garmentTaxonomy';
 
 export type StylistTone = 'excellent' | 'good' | 'mixed' | 'off';
 
@@ -120,6 +121,30 @@ function commentForItem(
   }
 
   // Mixed / off — name actual conflicts
+  if (sig.isAthleticShorts && signals.tailoringClash) {
+    return {
+      verdict: 'swap',
+      comment: `${name} reads athletic — it fights tailored pieces in this mix.`,
+      suggestion: 'Swap to tailored shorts, chinos, or trousers.',
+    };
+  }
+
+  if (sig.isSlipDress && signals.footwearMismatch) {
+    return {
+      verdict: 'fights',
+      comment: `${name} wants heels or minimal footwear — chunky trainers undercut the evening read.`,
+      suggestion: 'Swap to heels or plain lifestyle sneakers.',
+    };
+  }
+
+  if (sig.subtype === 'chunky_trainer' && (signals.footwearMismatch || signals.tailoringClash)) {
+    return {
+      verdict: 'swap',
+      comment: 'Chunky trainers pull this into the wrong lane under tailored or evening pieces.',
+      suggestion: 'Swap to plain white lifestyle sneakers, loafers, or heels.',
+    };
+  }
+
   if (signals.overdressedPiece === id || (sig.isBlazer && (signals.tailoringClash || signals.footwearMismatch || signals.multiLaneChaos))) {
     if (signals.tailoringClash) {
       return {
@@ -263,6 +288,8 @@ export function buildStylistAnalysis(
   const tone = toneFromScoreAndSignals(score, signals);
   // Excellent path: no adjustments unless somehow a major signal slipped through (shouldn't)
   const excellentClean = score >= 90 && !majorSignal;
+  const subtypeConflicts = detectSubtypeConflicts(items).conflicts;
+  const clashId = options.clashId || null;
 
   const itemNotes = items.map((item) => {
     const { verdict, comment, suggestion } = commentForItem(
@@ -282,6 +309,27 @@ export function buildStylistAnalysis(
         : comment,
     };
     if (!excellentClean && suggestion) note.suggestion = suggestion;
+
+    if (!excellentClean) {
+      const subtypeHit = subtypeConflicts.find(
+        (c) => String(c.itemA?.id) === String(item.id) || String(c.itemB?.id) === String(item.id),
+      );
+      if (
+        subtypeHit
+        && (clashId === 'athletic_shorts_blazer'
+          || clashId === 'slip_dress_chunky_trainer'
+          || clashId === 'subtype_avoid_pair'
+          || clashId === 'revealing_stack'
+          || note.verdict === 'neutral')
+      ) {
+        const g = classifyGarment(item);
+        if (g.subtype && (subtypeHit.a === g.subtype || subtypeHit.b === g.subtype)) {
+          note.verdict = note.verdict === 'works' ? 'fights' : note.verdict;
+          note.comment = subtypeHit.hint || note.comment;
+          note.suggestion = note.suggestion || 'Swap this piece for a subtype that shares the outfit lane.';
+        }
+      }
+    }
     return note;
   });
 

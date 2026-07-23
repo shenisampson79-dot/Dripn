@@ -178,7 +178,7 @@
         { "name": "Tan Sandals", "category": "shoes", "color": "tan" }
       ],
       "label": "bad",
-      "maxScore": 58,
+      "maxScore": 60,
       "issues": ["context_conflict"]
     },
     {

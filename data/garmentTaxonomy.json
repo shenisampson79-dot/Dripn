@@ -1,0 +1,1389 @@
+{
+  "version": 1,
+  "schema": {
+    "subtype": "string",
+    "category": "top|bottom|outerwear|footwear|accessory|dress",
+    "gender": "menswear|womenswear|unisex",
+    "formality": "0-5",
+    "lane": "tailored|casual|street|athleisure|evening",
+    "silhouette": "optional",
+    "fabric": "optional",
+    "visualWeight": "light|medium|heavy optional",
+    "worksWith": "subtype[]",
+    "avoidWith": "subtype[]",
+    "isRevealing": "boolean optional",
+    "isTailored": "boolean optional"
+  },
+  "garments": [
+    {
+      "subtype": "tailored_shorts",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "tailored",
+      "silhouette": "tailored",
+      "fabric": "wool_blend",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "linen_shirt",
+        "polo",
+        "blazer",
+        "dress_shoe",
+        "loafer",
+        "minimal_sneaker",
+        "belt"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "athletic_shorts",
+        "hoodie",
+        "uggs",
+        "tie"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "athletic_shorts",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "athleisure",
+      "silhouette": "athletic",
+      "fabric": "performance",
+      "visualWeight": "light",
+      "worksWith": [
+        "oversized_tee",
+        "knit_top",
+        "chunky_trainer",
+        "minimal_sneaker",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "tie",
+        "tailored_trousers"
+      ],
+      "isTailored": false
+    },
+    {
+      "subtype": "cargo_shorts",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "utilitarian",
+      "fabric": "cotton",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "polo",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "tie",
+        "dress_shoe",
+        "heels",
+        "slip_dress"
+      ]
+    },
+    {
+      "subtype": "linen_shorts",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "relaxed",
+      "fabric": "linen",
+      "visualWeight": "light",
+      "worksWith": [
+        "linen_shirt",
+        "polo",
+        "oxford_shirt",
+        "minimal_sneaker",
+        "loafer",
+        "sandals"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "hoodie",
+        "uggs",
+        "tie"
+      ]
+    },
+    {
+      "subtype": "tailored_trousers",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "tailored",
+      "fabric": "wool",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blouse",
+        "blazer",
+        "knit_top",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "minimal_sneaker",
+        "tie",
+        "belt"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "chunky_trainer",
+        "uggs",
+        "hoodie"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "chinos",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "straight",
+      "fabric": "cotton_twill",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "polo",
+        "linen_shirt",
+        "blazer",
+        "knit_top",
+        "oversized_tee",
+        "dress_shoe",
+        "loafer",
+        "minimal_sneaker",
+        "belt"
+      ],
+      "avoidWith": [
+        "uggs",
+        "athletic_shorts"
+      ]
+    },
+    {
+      "subtype": "joggers",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "athleisure",
+      "silhouette": "tapered",
+      "fabric": "fleece",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "knit_top",
+        "chunky_trainer",
+        "minimal_sneaker",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "tie",
+        "slip_dress"
+      ]
+    },
+    {
+      "subtype": "tracksuit_bottoms",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "athleisure",
+      "silhouette": "athletic",
+      "fabric": "jersey",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "chunky_trainer",
+        "minimal_sneaker",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "tie"
+      ]
+    },
+    {
+      "subtype": "cargo_pants",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "utilitarian",
+      "fabric": "cotton",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "knit_top",
+        "denim_jacket",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "cap",
+        "belt"
+      ],
+      "avoidWith": [
+        "blazer",
+        "tie",
+        "dress_shoe",
+        "heels",
+        "slip_dress"
+      ]
+    },
+    {
+      "subtype": "jeans",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "straight",
+      "fabric": "denim",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "oversized_tee",
+        "blouse",
+        "hoodie",
+        "blazer",
+        "denim_jacket",
+        "knit_top",
+        "minimal_sneaker",
+        "loafer",
+        "ankle_boots",
+        "heels",
+        "belt"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "uggs"
+      ]
+    },
+    {
+      "subtype": "oxford_shirt",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "structured",
+      "fabric": "cotton",
+      "visualWeight": "medium",
+      "worksWith": [
+        "tailored_trousers",
+        "chinos",
+        "tailored_shorts",
+        "jeans",
+        "blazer",
+        "dress_shoe",
+        "loafer",
+        "minimal_sneaker",
+        "tie",
+        "belt"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "tracksuit_bottoms",
+        "chunky_trainer",
+        "uggs"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "linen_shirt",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "relaxed",
+      "fabric": "linen",
+      "visualWeight": "light",
+      "worksWith": [
+        "linen_shorts",
+        "chinos",
+        "tailored_shorts",
+        "jeans",
+        "loafer",
+        "minimal_sneaker",
+        "sandals"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "hoodie"
+      ]
+    },
+    {
+      "subtype": "polo",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "fitted",
+      "fabric": "pique",
+      "visualWeight": "light",
+      "worksWith": [
+        "chinos",
+        "jeans",
+        "tailored_shorts",
+        "linen_shorts",
+        "blazer",
+        "minimal_sneaker",
+        "loafer"
+      ],
+      "avoidWith": [
+        "tie",
+        "uggs",
+        "athletic_shorts"
+      ]
+    },
+    {
+      "subtype": "oversized_tee",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "oversized",
+      "fabric": "cotton",
+      "visualWeight": "light",
+      "worksWith": [
+        "jeans",
+        "cargo_pants",
+        "joggers",
+        "athletic_shorts",
+        "cargo_shorts",
+        "hoodie",
+        "denim_jacket",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "cap"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "heels",
+        "blazer"
+      ]
+    },
+    {
+      "subtype": "basic_tee",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "regular",
+      "fabric": "cotton",
+      "visualWeight": "light",
+      "worksWith": [
+        "jeans",
+        "chinos",
+        "blazer",
+        "denim_jacket",
+        "minimal_sneaker",
+        "loafer",
+        "chunky_trainer",
+        "tailored_shorts"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe"
+      ]
+    },
+    {
+      "subtype": "blouse",
+      "category": "top",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "tailored",
+      "silhouette": "fluid",
+      "fabric": "silk",
+      "visualWeight": "light",
+      "worksWith": [
+        "tailored_trousers",
+        "midi_skirt",
+        "jeans",
+        "blazer",
+        "heels",
+        "loafer",
+        "minimal_sneaker",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "chunky_trainer",
+        "uggs"
+      ]
+    },
+    {
+      "subtype": "crop_top",
+      "category": "top",
+      "gender": "womenswear",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "cropped",
+      "fabric": "cotton",
+      "visualWeight": "light",
+      "worksWith": [
+        "high_rise_jeans",
+        "midi_skirt",
+        "mini_skirt",
+        "cargo_pants",
+        "minimal_sneaker",
+        "heels",
+        "chunky_trainer"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "blazer"
+      ],
+      "isRevealing": true
+    },
+    {
+      "subtype": "knit_top",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "fitted",
+      "fabric": "knit",
+      "visualWeight": "medium",
+      "worksWith": [
+        "jeans",
+        "chinos",
+        "tailored_trousers",
+        "midi_skirt",
+        "blazer",
+        "cardigan",
+        "minimal_sneaker",
+        "loafer",
+        "heels"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "uggs"
+      ]
+    },
+    {
+      "subtype": "hoodie",
+      "category": "top",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "relaxed",
+      "fabric": "fleece",
+      "visualWeight": "medium",
+      "worksWith": [
+        "jeans",
+        "joggers",
+        "cargo_pants",
+        "oversized_tee",
+        "denim_jacket",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "cap"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "heels",
+        "oxford_shirt"
+      ]
+    },
+    {
+      "subtype": "slip_dress",
+      "category": "dress",
+      "gender": "womenswear",
+      "formality": 4,
+      "lane": "evening",
+      "silhouette": "column",
+      "fabric": "silk",
+      "visualWeight": "light",
+      "worksWith": [
+        "heels",
+        "ankle_boots",
+        "blazer",
+        "cardigan",
+        "minimal_sneaker",
+        "handbag"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts",
+        "joggers",
+        "cap"
+      ],
+      "isRevealing": true
+    },
+    {
+      "subtype": "bodycon_dress",
+      "category": "dress",
+      "gender": "womenswear",
+      "formality": 4,
+      "lane": "evening",
+      "silhouette": "fitted",
+      "fabric": "jersey",
+      "visualWeight": "medium",
+      "worksWith": [
+        "heels",
+        "ankle_boots",
+        "blazer",
+        "handbag"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts",
+        "joggers",
+        "cap"
+      ],
+      "isRevealing": true
+    },
+    {
+      "subtype": "wrap_dress",
+      "category": "dress",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "wrap",
+      "fabric": "jersey",
+      "visualWeight": "medium",
+      "worksWith": [
+        "heels",
+        "loafer",
+        "ankle_boots",
+        "minimal_sneaker",
+        "cardigan",
+        "handbag"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts"
+      ]
+    },
+    {
+      "subtype": "shirt_dress",
+      "category": "dress",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "shirt",
+      "fabric": "cotton",
+      "visualWeight": "medium",
+      "worksWith": [
+        "loafer",
+        "minimal_sneaker",
+        "ankle_boots",
+        "belt",
+        "handbag"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts"
+      ]
+    },
+    {
+      "subtype": "maxi_dress",
+      "category": "dress",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "long",
+      "fabric": "flowing",
+      "visualWeight": "medium",
+      "worksWith": [
+        "sandals",
+        "heels",
+        "minimal_sneaker",
+        "ankle_boots",
+        "cardigan",
+        "handbag"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts",
+        "cap"
+      ]
+    },
+    {
+      "subtype": "mini_skirt",
+      "category": "bottom",
+      "gender": "womenswear",
+      "formality": 2,
+      "lane": "street",
+      "silhouette": "short",
+      "fabric": "varied",
+      "visualWeight": "light",
+      "worksWith": [
+        "oversized_tee",
+        "blouse",
+        "knit_top",
+        "crop_top",
+        "heels",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "uggs"
+      ],
+      "isRevealing": true
+    },
+    {
+      "subtype": "midi_skirt",
+      "category": "bottom",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "midi",
+      "fabric": "varied",
+      "visualWeight": "medium",
+      "worksWith": [
+        "blouse",
+        "knit_top",
+        "oxford_shirt",
+        "blazer",
+        "heels",
+        "loafer",
+        "minimal_sneaker",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "athletic_shorts"
+      ]
+    },
+    {
+      "subtype": "pleated_skirt",
+      "category": "bottom",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "tailored",
+      "silhouette": "pleated",
+      "fabric": "wool_blend",
+      "visualWeight": "medium",
+      "worksWith": [
+        "blouse",
+        "knit_top",
+        "oxford_shirt",
+        "blazer",
+        "loafer",
+        "heels",
+        "minimal_sneaker"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "hoodie"
+      ]
+    },
+    {
+      "subtype": "denim_skirt",
+      "category": "bottom",
+      "gender": "womenswear",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "denim",
+      "fabric": "denim",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oversized_tee",
+        "blouse",
+        "knit_top",
+        "denim_jacket",
+        "minimal_sneaker",
+        "heels",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "uggs"
+      ]
+    },
+    {
+      "subtype": "slip_skirt",
+      "category": "bottom",
+      "gender": "womenswear",
+      "formality": 3,
+      "lane": "evening",
+      "silhouette": "bias",
+      "fabric": "silk",
+      "visualWeight": "light",
+      "worksWith": [
+        "blouse",
+        "knit_top",
+        "crop_top",
+        "heels",
+        "ankle_boots",
+        "minimal_sneaker",
+        "blazer"
+      ],
+      "avoidWith": [
+        "chunky_trainer",
+        "uggs",
+        "cap"
+      ],
+      "isRevealing": true
+    },
+    {
+      "subtype": "blazer",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "structured",
+      "fabric": "wool",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blouse",
+        "polo",
+        "knit_top",
+        "tailored_trousers",
+        "chinos",
+        "jeans",
+        "tailored_shorts",
+        "midi_skirt",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "minimal_sneaker",
+        "tie"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "tracksuit_bottoms",
+        "chunky_trainer",
+        "uggs",
+        "cargo_shorts"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "denim_jacket",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "boxy",
+      "fabric": "denim",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "knit_top",
+        "jeans",
+        "cargo_pants",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "tie",
+        "dress_shoe",
+        "oxford_shirt"
+      ]
+    },
+    {
+      "subtype": "puffer",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "insulated",
+      "fabric": "nylon",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "jeans",
+        "joggers",
+        "hoodie",
+        "knit_top",
+        "minimal_sneaker",
+        "chunky_trainer",
+        "uggs",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "tailored_shorts",
+        "athletic_shorts",
+        "heels",
+        "tie"
+      ]
+    },
+    {
+      "subtype": "fleece",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "athleisure",
+      "silhouette": "relaxed",
+      "fabric": "fleece",
+      "visualWeight": "medium",
+      "worksWith": [
+        "joggers",
+        "jeans",
+        "hoodie",
+        "oversized_tee",
+        "minimal_sneaker",
+        "chunky_trainer"
+      ],
+      "avoidWith": [
+        "tailored_shorts",
+        "heels",
+        "tie",
+        "dress_shoe",
+        "blazer"
+      ]
+    },
+    {
+      "subtype": "cardigan",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "soft",
+      "fabric": "knit",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blouse",
+        "knit_top",
+        "jeans",
+        "chinos",
+        "midi_skirt",
+        "slip_dress",
+        "loafer",
+        "minimal_sneaker",
+        "heels"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "chunky_trainer"
+      ]
+    },
+    {
+      "subtype": "tailored_coat",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "long",
+      "fabric": "wool",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "oxford_shirt",
+        "blouse",
+        "blazer",
+        "tailored_trousers",
+        "midi_skirt",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "ankle_boots"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "chunky_trainer",
+        "uggs"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "cropped_jacket",
+      "category": "outerwear",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "street",
+      "silhouette": "cropped",
+      "fabric": "varied",
+      "visualWeight": "medium",
+      "worksWith": [
+        "crop_top",
+        "oversized_tee",
+        "blouse",
+        "jeans",
+        "mini_skirt",
+        "midi_skirt",
+        "minimal_sneaker",
+        "heels",
+        "chunky_trainer"
+      ],
+      "avoidWith": [
+        "tie",
+        "uggs"
+      ]
+    },
+    {
+      "subtype": "minimal_sneaker",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "low_top",
+      "fabric": "leather",
+      "visualWeight": "light",
+      "worksWith": [
+        "blazer",
+        "chinos",
+        "jeans",
+        "oxford_shirt",
+        "oversized_tee",
+        "tailored_shorts",
+        "slip_dress",
+        "hoodie"
+      ],
+      "avoidWith": []
+    },
+    {
+      "subtype": "chunky_trainer",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "street",
+      "silhouette": "chunky",
+      "fabric": "technical",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "joggers",
+        "athletic_shorts",
+        "cargo_pants",
+        "jeans",
+        "cap"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "slip_dress",
+        "bodycon_dress",
+        "tie",
+        "dress_shoe"
+      ]
+    },
+    {
+      "subtype": "dress_shoe",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 5,
+      "lane": "tailored",
+      "silhouette": "oxford",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blazer",
+        "tailored_trousers",
+        "chinos",
+        "tailored_shorts",
+        "tie"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "chunky_trainer"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "loafer",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 4,
+      "lane": "tailored",
+      "silhouette": "loafer",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "oxford_shirt",
+        "blazer",
+        "tailored_trousers",
+        "chinos",
+        "tailored_shorts",
+        "linen_shorts",
+        "jeans",
+        "midi_skirt"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "heels",
+      "category": "footwear",
+      "gender": "womenswear",
+      "formality": 4,
+      "lane": "evening",
+      "silhouette": "heel",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "slip_dress",
+        "bodycon_dress",
+        "wrap_dress",
+        "blouse",
+        "midi_skirt",
+        "mini_skirt",
+        "tailored_trousers",
+        "blazer",
+        "jeans"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "cap"
+      ]
+    },
+    {
+      "subtype": "ankle_boots",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "ankle",
+      "fabric": "leather",
+      "visualWeight": "medium",
+      "worksWith": [
+        "jeans",
+        "midi_skirt",
+        "slip_dress",
+        "blouse",
+        "knit_top",
+        "tailored_trousers",
+        "blazer"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "linen_shorts"
+      ]
+    },
+    {
+      "subtype": "uggs",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "casual",
+      "silhouette": "shearling",
+      "fabric": "shearling",
+      "visualWeight": "heavy",
+      "worksWith": [
+        "jeans",
+        "joggers",
+        "hoodie",
+        "knit_top",
+        "puffer"
+      ],
+      "avoidWith": [
+        "blazer",
+        "oxford_shirt",
+        "slip_dress",
+        "tie",
+        "heels",
+        "tailored_shorts"
+      ]
+    },
+    {
+      "subtype": "sandals",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "open",
+      "fabric": "leather",
+      "visualWeight": "light",
+      "worksWith": [
+        "linen_shorts",
+        "linen_shirt",
+        "maxi_dress",
+        "wrap_dress",
+        "chinos"
+      ],
+      "avoidWith": [
+        "blazer",
+        "tie",
+        "joggers",
+        "hoodie"
+      ]
+    },
+    {
+      "subtype": "handbag",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "bag",
+      "visualWeight": "medium",
+      "worksWith": [
+        "slip_dress",
+        "blouse",
+        "jeans",
+        "blazer",
+        "heels",
+        "loafer"
+      ],
+      "avoidWith": []
+    },
+    {
+      "subtype": "tote_bag",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "tote",
+      "visualWeight": "medium",
+      "worksWith": [
+        "jeans",
+        "chinos",
+        "oversized_tee",
+        "linen_shirt",
+        "minimal_sneaker"
+      ],
+      "avoidWith": [
+        "evening"
+      ]
+    },
+    {
+      "subtype": "cap",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 1,
+      "lane": "street",
+      "silhouette": "cap",
+      "visualWeight": "light",
+      "worksWith": [
+        "oversized_tee",
+        "hoodie",
+        "joggers",
+        "athletic_shorts",
+        "chunky_trainer",
+        "minimal_sneaker"
+      ],
+      "avoidWith": [
+        "blazer",
+        "slip_dress",
+        "tie",
+        "heels",
+        "oxford_shirt"
+      ]
+    },
+    {
+      "subtype": "tie",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 5,
+      "lane": "tailored",
+      "silhouette": "neckwear",
+      "visualWeight": "light",
+      "worksWith": [
+        "oxford_shirt",
+        "blazer",
+        "tailored_trousers",
+        "dress_shoe"
+      ],
+      "avoidWith": [
+        "athletic_shorts",
+        "joggers",
+        "hoodie",
+        "oversized_tee",
+        "chunky_trainer",
+        "uggs",
+        "cap"
+      ],
+      "isTailored": true
+    },
+    {
+      "subtype": "belt",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "belt",
+      "visualWeight": "light",
+      "worksWith": [
+        "chinos",
+        "jeans",
+        "tailored_trousers",
+        "tailored_shorts",
+        "shirt_dress",
+        "oxford_shirt"
+      ],
+      "avoidWith": []
+    },
+    {
+      "subtype": "scarf",
+      "category": "accessory",
+      "gender": "unisex",
+      "formality": 3,
+      "lane": "casual",
+      "silhouette": "drape",
+      "visualWeight": "light",
+      "worksWith": [
+        "coat",
+        "blazer",
+        "knit_top",
+        "blouse",
+        "jeans"
+      ],
+      "avoidWith": [
+        "athletic_shorts"
+      ]
+    }
+  ],
+  "styleProfiles": {
+    "MINIMALIST": {
+      "preferLanes": [
+        "casual",
+        "tailored"
+      ],
+      "preferSubtypes": [
+        "minimal_sneaker",
+        "oxford_shirt",
+        "chinos",
+        "tailored_trousers",
+        "knit_top",
+        "loafer",
+        "blazer"
+      ],
+      "avoidSubtypes": [
+        "chunky_trainer",
+        "cargo_pants",
+        "cargo_shorts",
+        "cap",
+        "oversized_tee",
+        "bodycon_dress"
+      ],
+      "laneBonus": 4,
+      "subtypeBonus": 3
+    },
+    "FEMININE": {
+      "preferLanes": [
+        "evening",
+        "casual",
+        "tailored"
+      ],
+      "preferSubtypes": [
+        "blouse",
+        "slip_dress",
+        "wrap_dress",
+        "midi_skirt",
+        "heels",
+        "cardigan",
+        "handbag"
+      ],
+      "avoidSubtypes": [
+        "cargo_pants",
+        "chunky_trainer",
+        "hoodie",
+        "cap",
+        "athletic_shorts"
+      ],
+      "laneBonus": 4,
+      "subtypeBonus": 3
+    },
+    "STREET": {
+      "preferLanes": [
+        "street",
+        "athleisure",
+        "casual"
+      ],
+      "preferSubtypes": [
+        "oversized_tee",
+        "hoodie",
+        "cargo_pants",
+        "chunky_trainer",
+        "cap",
+        "denim_jacket",
+        "cropped_jacket"
+      ],
+      "avoidSubtypes": [
+        "tie",
+        "dress_shoe",
+        "tailored_coat"
+      ],
+      "laneBonus": 4,
+      "subtypeBonus": 3
+    },
+    "LUXURY": {
+      "preferLanes": [
+        "tailored",
+        "evening"
+      ],
+      "preferSubtypes": [
+        "blazer",
+        "oxford_shirt",
+        "tailored_trousers",
+        "dress_shoe",
+        "loafer",
+        "heels",
+        "slip_dress",
+        "tailored_coat",
+        "tie"
+      ],
+      "avoidSubtypes": [
+        "athletic_shorts",
+        "joggers",
+        "chunky_trainer",
+        "uggs",
+        "cap",
+        "cargo_shorts"
+      ],
+      "laneBonus": 5,
+      "subtypeBonus": 4
+    }
+  },
+  "stylePreferenceMap": {
+    "luxury": "LUXURY",
+    "business": "LUXURY",
+    "smart-casual": "MINIMALIST",
+    "minimalist": "MINIMALIST",
+    "streetwear": "STREET",
+    "edgy": "STREET",
+    "sporty": "STREET",
+    "boho": "FEMININE",
+    "casual": "MINIMALIST",
+    "professional": "LUXURY",
+    "active": "STREET",
+    "creative": "STREET",
+    "trendsetter": "STREET"
+  },
+  "syncedAt": "2026-07-23T09:08:18.774Z",
+  "sourceHash": "76f7f729bb85188b",
+  "source": "Dripn-Server/data/garmentTaxonomy.json"
+}

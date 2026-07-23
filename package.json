@@ -26,7 +26,8 @@
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
     "verify:outfit-score": "npx tsx scripts/verify-outfit-score.ts",
-    "verify:style-coherence": "npx tsx scripts/verify-style-coherence.ts"
+    "verify:style-coherence": "npx tsx scripts/verify-style-coherence.ts",
+    "verify:garment-taxonomy": "npx tsx scripts/verify-garment-taxonomy.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

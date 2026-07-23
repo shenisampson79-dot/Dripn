@@ -28,6 +28,11 @@ import {
   type CoherenceBreakdown,
 } from '@/utils/styleCoherenceEngine';
 import {
+  scoreOutfitSubtypeCompatibility,
+  scoreStyleProfileBias,
+  detectSubtypeConflicts,
+} from '@/utils/garmentTaxonomy';
+import {
   buildStylistAnalysis,
   type StylistAnalysis,
 } from '@/utils/stylistVoiceEngine';
@@ -125,6 +130,7 @@ export function computeLocalOutfitScore(
   selected: WardrobeItem[],
   regional: RegionalStyleContext | null = null,
   userSeason: string | null = null,
+  userProfile: { stylePreference?: string | null; lifestyle?: string | null } | null = null,
 ): OutfitScoreResult {
   if (selected.length === 0) {
     return { score: 0, hint: 'Swipe rows to build a look' };
@@ -291,6 +297,18 @@ export function computeLocalOutfitScore(
   // Style Coherence soft adjust (footwearScore + lane purity bonuses)
   if (coherence.mode === 'adjust') {
     score += coherence.scoreImpact;
+  }
+
+  // Subtype worksWith/avoidWith soft pairing + style profile bias
+  try {
+    const subtypeScore = scoreOutfitSubtypeCompatibility(selected);
+    score += Math.max(-3, Math.min(3, Math.round(subtypeScore.adjustment * 0.25)));
+    if (userProfile) {
+      const profileBias = scoreStyleProfileBias(selected, userProfile);
+      score += Math.max(-4, Math.min(4, profileBias.adjustment));
+    }
+  } catch {
+    // optional
   }
 
   // ── Execution (earned, not passive) ───────────────────────────────────

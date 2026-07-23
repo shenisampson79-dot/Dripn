@@ -13,6 +13,7 @@ import {
   isChunkyOrTechTrainer,
   isFashionTrainer,
 } from '@/utils/outfitRegionalContext';
+import { classifyGarment, coherenceLaneFromDb } from '@/utils/garmentTaxonomy';
 
 export type StyleLane = 'tailored' | 'casual' | 'athleisure' | 'street';
 
@@ -68,6 +69,16 @@ export function getStyleLane(item: ItemLike, signals?: ItemSignals): StyleLane {
   const sig = signals || classifyItem(item as WardrobeItem);
   const t = itemText(item);
   const cat = String(item.category || '').toLowerCase();
+
+  if (sig.garmentLane && (sig.garmentConfidence || 0) >= 0.7) {
+    const mapped = coherenceLaneFromDb(sig.garmentLane);
+    if (mapped) return mapped as StyleLane;
+  }
+  const garment = classifyGarment(item);
+  if (!garment.coarseOnly && garment.lane && garment.confidence >= 0.7) {
+    const mapped = coherenceLaneFromDb(garment.lane);
+    if (mapped) return mapped as StyleLane;
+  }
 
   // Footwear lanes first — shoes often define the street/athleisure pull
   if (cat === 'shoes') {

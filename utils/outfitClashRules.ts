@@ -6,17 +6,26 @@ import {
   isFashionTrainer as isFashionTrainerFn,
   type RegionalStyleContext,
 } from '@/utils/outfitRegionalContext';
+import {
+  classifyGarment,
+  detectSubtypeConflicts,
+} from '@/utils/garmentTaxonomy';
 
 /** 1 = athletic · 2 = casual · 3 = smart casual · 4 = business · 5 = formal */
 export type FormalityTier = 1 | 2 | 3 | 4 | 5;
 
 export type ItemSignals = {
   formalityTier: FormalityTier;
+  subtype?: string | null;
+  garmentLane?: string | null;
+  garmentConfidence?: number;
   isAthleticTop: boolean;
   isAthleticBottom: boolean;
   isBlazer: boolean;
   isSuitPiece: boolean;
   isShorts: boolean;
+  isTailoredShorts?: boolean;
+  isAthleticShorts?: boolean;
   isDress: boolean;
   isSkirt: boolean;
   isTie: boolean;
@@ -42,6 +51,8 @@ export type ItemSignals = {
   isFleeceOrInsulated: boolean;
   isLoungeBottom: boolean;
   isFormalAccessory: boolean;
+  isRevealing?: boolean;
+  isSlipDress?: boolean;
 };
 
 export type OutfitClash = {
@@ -173,49 +184,62 @@ export function isLifestyleFashionTrainer(item: WardrobeItem): boolean {
 export function classifyItem(item: WardrobeItem): ItemSignals {
   const t = itemText(item);
   const cat = item.category || '';
+  const garment = classifyGarment(item);
+  const subtype = garment.subtype || null;
 
   const isSwimwear = cat === 'swimwear' || /swim|bikini|trunks|swimsuit/.test(t);
   const isSleepwear = cat === 'sleepwear' || /pyjama|pajama|nightdress|robe|loungewear|sleep/.test(t);
-  const isTie = /\btie\b|necktie|bow tie/.test(t);
+  const isTie = subtype === 'tie' || /\btie\b|necktie|bow tie/.test(t);
   const isDress = cat === 'dresses' || /\bdress\b/.test(t) && !/dress shoe|dress shirt/.test(t);
   const isGown = /gown|evening dress|ballgown|cocktail dress/.test(t);
-  const isEveningWear = isGown || (cat === 'formal' && /evening|gala/.test(t));
-  const isSuitPiece = /suit trouser|suit pant|dress trouser|dress pant|tailored trouser/.test(t)
+  const isEveningWear = isGown || (cat === 'formal' && /evening|gala/.test(t))
+    || garment.lane === 'evening';
+  const isSuitPiece = subtype === 'tailored_trousers'
+    || /suit trouser|suit pant|dress trouser|dress pant|tailored trouser/.test(t)
     || (cat === 'formal' && /suit/.test(t));
-  const isBlazer = isBlazerItem(item);
-  const isShorts = isShortsItem(item);
-  const isJeans = /jean|denim/.test(t) && cat === 'bottoms';
-  const isHoodie = /hoodie|hooded sweat/.test(t);
-  const isJoggers = /jogger|sweatpant|sweat pant|track ?pant|tracksuit|track suit|sweat bottom/.test(t);
-  const isDressShirt = /dress shirt|button-down|button down|button-up|button up|oxford shirt/.test(t)
+  const isBlazer = subtype === 'blazer' || isBlazerItem(item);
+  const isShorts = isShortsItem(item)
+    || ['tailored_shorts', 'athletic_shorts', 'cargo_shorts', 'linen_shorts'].includes(subtype || '');
+  const isTailoredShorts = subtype === 'tailored_shorts';
+  const isAthleticShorts = subtype === 'athletic_shorts';
+  const isJeans = subtype === 'jeans' || (/jean|denim/.test(t) && cat === 'bottoms');
+  const isHoodie = subtype === 'hoodie' || /hoodie|hooded sweat/.test(t);
+  const isJoggers = subtype === 'joggers' || subtype === 'tracksuit_bottoms'
+    || /jogger|sweatpant|sweat pant|track ?pant|tracksuit|track suit|sweat bottom/.test(t);
+  const isDressShirt = subtype === 'oxford_shirt'
+    || /dress shirt|button-down|button down|button-up|button up|oxford shirt/.test(t)
     || /denim.{0,24}shirt/.test(t);
-  const structuredShirt = isStructuredShirt(item) || isDressShirt;
-  const isSkirt = cat === 'bottoms' && /skirt/.test(t);
+  const structuredShirt = subtype === 'oxford_shirt' || isStructuredShirt(item) || isDressShirt;
+  const isSkirt = Boolean(subtype?.endsWith('_skirt')) || (cat === 'bottoms' && /skirt/.test(t));
   const athleticTop = isAthleticTop(item);
-  const athleticBottom = isAthleticBottom(item) || isJoggers;
+  const athleticBottom = subtype === 'athletic_shorts' || subtype === 'joggers' || subtype === 'tracksuit_bottoms'
+    || isAthleticBottom(item) || isJoggers;
   const athleticShoes = isAthleticFootwear(item);
-  const formalShoes = isFormalFootwear(item);
-  const boots = isBootFootwear(item);
-  const dressyBoots = isDressyBootFootwear(item);
-  const heels = /heel|pump|stiletto/.test(t) && cat === 'shoes';
-  const casualTrainer = isCasualTrainer(item);
-  const chunkyOrTechTrainer = isChunkyOrTechTrainer(item);
-  const fashionTrainer = isLifestyleFashionTrainer(item);
-  const isUggs = /\bugg|shearling boot|sheepskin/.test(t);
-  const isFleeceOrInsulated = /fleece|insulated|puffer|down jacket|parka|quilted|thermal outer|winter coat/.test(t)
-    && (cat === 'outerwear' || /jacket|coat|fleece|parka|puffer/.test(t));
+  const formalShoes = subtype === 'dress_shoe' || subtype === 'loafer' || isFormalFootwear(item);
+  const boots = subtype === 'ankle_boots' || subtype === 'uggs' || isBootFootwear(item);
+  const dressyBoots = subtype === 'ankle_boots' || isDressyBootFootwear(item);
+  const heels = subtype === 'heels' || (/heel|pump|stiletto/.test(t) && cat === 'shoes');
+  const casualTrainer = subtype === 'minimal_sneaker' || subtype === 'chunky_trainer' || isCasualTrainer(item);
+  const chunkyOrTechTrainer = subtype === 'chunky_trainer' || isChunkyOrTechTrainer(item);
+  const fashionTrainer = subtype === 'minimal_sneaker' || isLifestyleFashionTrainer(item);
+  const isUggs = subtype === 'uggs' || /\bugg|shearling boot|sheepskin/.test(t);
+  const isFleeceOrInsulated = subtype === 'fleece' || subtype === 'puffer'
+    || (/fleece|insulated|puffer|down jacket|parka|quilted|thermal outer|winter coat/.test(t)
+      && (cat === 'outerwear' || /jacket|coat|fleece|parka|puffer/.test(t)));
   const isLoungeBottom = athleticBottom || isJoggers
     || (cat === 'bottoms' && /sweat|french terry|jersey short|lounge/.test(t));
   const isFormalAccessory = isTie
     || (cat === 'accessories' && /cufflink|pocket square|lapel|cravat|ascot/.test(t));
+  const isRevealing = Boolean(garment.meta?.isRevealing);
+  const isSlipDress = subtype === 'slip_dress';
 
   let formalityTier: FormalityTier = 3;
 
-  if (isSwimwear || athleticTop || athleticBottom || isJoggers || (isShorts && athleticBottom)) {
+  if (isSwimwear || athleticTop || athleticBottom || isJoggers || (isShorts && athleticBottom && !isTailoredShorts)) {
     formalityTier = 1;
-  } else if (isSleepwear || isHoodie || isShorts || casualTrainer || athleticShoes || isUggs) {
+  } else if (isSleepwear || isHoodie || (isShorts && !isTailoredShorts) || casualTrainer || athleticShoes || isUggs) {
     formalityTier = 2;
-  } else if (isJeans || (boots && !isUggs)) {
+  } else if (isJeans || isTailoredShorts || (boots && !isUggs)) {
     formalityTier = 3;
   } else if (structuredShirt || isTie || isSuitPiece || isBlazer || dressyBoots) {
     formalityTier = 4;
@@ -228,13 +252,25 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   if (isUggs) formalityTier = Math.min(formalityTier, 2) as FormalityTier;
   if (isFleeceOrInsulated) formalityTier = Math.min(formalityTier, 3) as FormalityTier;
 
+  if (garment.formality != null && garment.confidence >= 0.75 && !garment.coarseOnly) {
+    formalityTier = Math.max(1, Math.min(5, Math.round(garment.formality) || formalityTier)) as FormalityTier;
+  }
+  // Evening / gown / black-tie always win over DB formality
+  if (isEveningWear || isGown || (isTie && isSuitPiece)) formalityTier = 5;
+  if (athleticTop || athleticBottom) formalityTier = Math.min(formalityTier, 1) as FormalityTier;
+
   return {
     formalityTier,
+    subtype,
+    garmentLane: garment.lane || null,
+    garmentConfidence: garment.confidence || 0,
     isAthleticTop: athleticTop,
     isAthleticBottom: athleticBottom,
     isBlazer,
     isSuitPiece,
     isShorts,
+    isTailoredShorts,
+    isAthleticShorts,
     isDress,
     isSkirt,
     isTie,
@@ -259,6 +295,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isFleeceOrInsulated,
     isLoungeBottom,
     isFormalAccessory,
+    isRevealing,
+    isSlipDress,
   };
 }
 
@@ -454,32 +492,80 @@ export const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isBlazer') && ctx.any('isAthleticTop'),
   },
   {
+    id: 'athletic_shorts_blazer',
+    penalty: 88,
+    hint: 'Athletic shorts with a blazer — sportswear and tailoring do not mix',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isBlazer') && (ctx.any('isAthleticShorts')
+      || ctx.signals.some((s) => s.subtype === 'athletic_shorts' || s.subtype === 'cargo_shorts')),
+  },
+  {
     id: 'blazer_shorts_uggs',
     penalty: 84,
     hint: 'Blazer, shorts & UGGs clash',
     severity: 'major',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isUggs'),
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isUggs') && !ctx.any('isTailoredShorts'),
   },
   {
     id: 'blazer_shorts_trainers',
     penalty: 78,
     hint: 'Blazer, shorts & trainers — formality lanes mixed',
     severity: 'major',
-    when: (ctx) => !ctx.isSmartCasualLook && ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isCasualTrainer'),
+    when: (ctx) => !ctx.isSmartCasualLook && ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isCasualTrainer')
+      && !ctx.any('isTailoredShorts'),
   },
   {
     id: 'blazer_shorts',
     penalty: 74,
-    hint: 'Blazer + shorts clash — tailoring reads office, shorts read leisure',
+    hint: 'Blazer + casual shorts clash — keep blazers with tailored shorts, chinos, or trousers',
     severity: 'major',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isShorts'),
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isShorts') && !ctx.any('isTailoredShorts'),
+  },
+  {
+    id: 'slip_dress_chunky_trainer',
+    penalty: 82,
+    hint: 'Slip dress with chunky trainers — evening silhouette needs heels or minimal footwear',
+    severity: 'major',
+    when: (ctx) => (ctx.any('isSlipDress') || ctx.signals.some((s) => s.subtype === 'slip_dress' || s.subtype === 'bodycon_dress'))
+      && ctx.any('isChunkyOrTechTrainer'),
+  },
+  {
+    id: 'revealing_stack',
+    penalty: 70,
+    hint: 'Two revealing pieces compete — pick one hero silhouette',
+    severity: 'major',
+    when: (ctx) => ctx.signals.filter((s) => s.isRevealing).length >= 2,
+  },
+  {
+    id: 'subtype_avoid_pair',
+    penalty: 76,
+    hint: 'Garment subtypes clash — lanes or pairing rules conflict',
+    severity: 'major',
+    when: (ctx) => {
+      const { conflicts } = detectSubtypeConflicts(ctx.items);
+      return conflicts.some((c) => {
+        const pair = new Set([c.a, c.b]);
+        if (pair.has('athletic_shorts') && pair.has('blazer')) return false;
+        if (pair.has('joggers') && pair.has('blazer')) return false;
+        if (pair.has('chunky_trainer') && pair.has('blazer')) return false;
+        if (pair.has('slip_dress') && pair.has('chunky_trainer')) return false;
+        if (c.id === 'revealing_stack') return false;
+        const hard: Array<[string, string]> = [
+          ['oxford_shirt', 'athletic_shorts'],
+          ['oxford_shirt', 'joggers'],
+          ['tie', 'athletic_shorts'],
+          ['heels', 'athletic_shorts'],
+        ];
+        return hard.some(([x, y]) => pair.has(x) && pair.has(y));
+      });
+    },
   },
   {
     id: 'evening_athletic_bottom',
     penalty: 80,
     hint: 'Evening wear with athletic bottoms',
     severity: 'major',
-    when: (ctx) => ctx.any('isEveningWear') && (ctx.any('isAthleticBottom') || ctx.any('isJoggers') || ctx.any('isShorts')),
+    when: (ctx) => ctx.any('isEveningWear') && (ctx.any('isAthleticBottom') || ctx.any('isJoggers') || (ctx.any('isShorts') && !ctx.any('isTailoredShorts'))),
   },
   {
     id: 'dress_jeans',
@@ -559,14 +645,15 @@ export const CLASH_RULES: Array<{
     penalty: 58,
     hint: 'Shorts with formal shoes — sandals or trainers match better',
     severity: 'moderate',
-    when: (ctx) => ctx.any('isShorts') && (ctx.any('isFormalShoes') || ctx.any('isHeels')),
+    when: (ctx) => ctx.any('isShorts') && !ctx.any('isTailoredShorts')
+      && (ctx.any('isFormalShoes') || ctx.any('isHeels')),
   },
   {
     id: 'shorts_boots',
     penalty: 48,
     hint: 'Shorts + heavy boots can feel unbalanced — try trainers or loafers',
     severity: 'moderate',
-    when: (ctx) => ctx.any('isShorts') && ctx.any('isBoots') && !ctx.any('isAthleticTop'),
+    when: (ctx) => ctx.any('isShorts') && ctx.any('isBoots') && !ctx.any('isAthleticTop') && !ctx.any('isTailoredShorts'),
   },
   {
     id: 'formality_span_lock',

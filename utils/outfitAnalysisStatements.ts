@@ -325,7 +325,7 @@ export function getAnalysisStatementInventory(): AnalysisStatementInventory {
 }
 
 /** Expected inventory size after this change (asserted in verify-outfit-score). */
-export const EXPECTED_CLASH_HINT_COUNT = 46;
+export const EXPECTED_CLASH_HINT_COUNT = 50;
 export const EXPECTED_BAND_TEMPLATE_COUNT = BAND_STATEMENT_TEMPLATES.length;
 export const EXPECTED_CONTEXTUAL_TEMPLATE_COUNT = CONTEXTUAL_STATEMENT_TEMPLATES.length;
 export const EXPECTED_AESTHETIC_TEMPLATE_COUNT = AESTHETIC_STATEMENT_TEMPLATES.length;
