@@ -120,38 +120,15 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   useEffect(() => {
     const initCurrency = async () => {
       await currencyService.initialize();
-      const catalog = currencyService.resetPricesToCatalog().dfy;
-
       if (useAppleIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
-          const iapPrices = await appleIAPService.getDFYPrices();
-          if (iapPrices.length > 0) {
-            const lite = iapPrices.find((entry) => entry.tier === 'lite');
-            const core = iapPrices.find((entry) => entry.tier === 'core');
-            const next = {
-              outfit_setup: currencyService.getDisplayPrice(
-                { priceString: lite?.priceString, currencyCode: lite?.currencyCode },
-                catalog.outfit_setup,
-              ),
-              wardrobe_setup: currencyService.getDisplayPrice(
-                { priceString: core?.priceString, currencyCode: core?.currencyCode },
-                catalog.wardrobe_setup,
-              ),
-            };
-            const guard = currencyService.assertConsistentDisplayPrices(
-              [next.outfit_setup, next.wardrobe_setup],
-              currencyService.resetPricesToCatalog(),
-            );
-            setDfyPrices(guard.ok ? next : guard.snapshot.dfy);
-            return;
-          }
+          await appleIAPService.getDFYPrices();
         } catch (error) {
           console.warn('[DFYStart] Apple DFY price fetch failed:', error);
         }
       }
-
-      setDfyPrices(catalog);
+      setDfyPrices(currencyService.resetPricesToCatalog().dfy);
     };
     initCurrency().catch(() => {});
   }, [useAppleIAP, user?.id]);

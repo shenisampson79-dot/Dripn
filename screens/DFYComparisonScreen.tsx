@@ -150,44 +150,20 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     if (isAutoCheckout) return;
     const loadPrices = async () => {
       await currencyService.initialize();
-      const fallback = currencyService.resetPricesToCatalog().dfy;
-      const catalog = {
-        lite: fallback.outfit_setup,
-        core: fallback.wardrobe_setup,
-      };
-
       if (useAppleIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
-          const iapPrices = await appleIAPService.getDFYPrices();
-          if (iapPrices.length > 0) {
-            const next = { ...catalog };
-            for (const entry of iapPrices) {
-              next[entry.tier] = currencyService.getDisplayPrice(
-                { priceString: entry.priceString, currencyCode: entry.currencyCode },
-                catalog[entry.tier],
-              );
-            }
-            const guard = currencyService.assertConsistentDisplayPrices(
-              [next.lite, next.core],
-              currencyService.resetPricesToCatalog(),
-            );
-            if (!guard.ok) {
-              setTierPrices({
-                lite: guard.snapshot.dfy.outfit_setup,
-                core: guard.snapshot.dfy.wardrobe_setup,
-              });
-              return;
-            }
-            setTierPrices(next);
-            return;
-          }
+          // Reinforce storefront; paywall stays on session catalog (never StoreKit string).
+          await appleIAPService.getDFYPrices();
         } catch (error) {
           console.warn('[DFYComparison] Apple DFY price fetch failed:', error);
         }
       }
-
-      setTierPrices(catalog);
+      const fallback = currencyService.resetPricesToCatalog().dfy;
+      setTierPrices({
+        lite: fallback.outfit_setup,
+        core: fallback.wardrobe_setup,
+      });
     };
 
     loadPrices().catch(() => {});

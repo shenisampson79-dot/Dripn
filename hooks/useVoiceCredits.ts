@@ -346,12 +346,12 @@ function useVoiceCreditsState() {
       if (user?.id) {
         await appleIAPService.configure(user.id);
       }
-      // AppleIAP already filters to session currency — safe overlay only.
-      const prices = await appleIAPService.getVoiceCreditPrices();
-      setApplePrices(prices);
+      // Warm StoreKit + reinforce GB storefront — do NOT overlay raw StoreKit strings on UI.
+      // Paywall labels always come from session catalog (getPackagePriceLabel).
+      await appleIAPService.getVoiceCreditPrices();
+      setApplePrices([]);
     } catch (error) {
       console.log('[useVoiceCredits] Apple price fetch error:', error);
-      // Drop any prior overlay — catalog labels win on failure.
       setApplePrices([]);
     }
   }, [useAppleIAP, user?.id]);
@@ -366,17 +366,23 @@ function useVoiceCreditsState() {
     fetchApplePrices();
   }, [fetchApplePrices]);
   const getPackagePriceLabel = useCallback((packageId: string, fallback: string): string => {
+    // Catalog-only display — never paint StoreKit / RevenueCat priceString on the paywall.
+    if (packageId === 'boost' || packageId === 'pro' || packageId === 'weekend') {
+      return currencyService.getVoicePackPrice(packageId);
+    }
     const catalogFallback =
-      packageId === 'boost' || packageId === 'pro' || packageId === 'weekend'
-        ? currencyService.getVoicePackPrice(packageId)
+      packageId && VOICE_PACK_PRICE_PENCE[packageId] != null
+        ? currencyService.formatPrice(VOICE_PACK_PRICE_PENCE[packageId] / 100)
         : fallback;
-    const applePrice = applePrices.find((p) => p.packId === packageId);
-    if (!applePrice) return catalogFallback;
-    return currencyService.getDisplayPrice(
-      { priceString: applePrice.priceString, currencyCode: applePrice.currencyCode },
-      catalogFallback,
+    const guard = currencyService.assertConsistentDisplayPrices(
+      [catalogFallback],
+      currencyService.resetPricesToCatalog(),
     );
-  }, [applePrices]);
+    if (!guard.ok && (packageId === 'boost' || packageId === 'pro' || packageId === 'weekend')) {
+      return guard.snapshot.voice[packageId as 'boost' | 'pro' | 'weekend'];
+    }
+    return catalogFallback;
+  }, []);
   const updateBalance = useCallback((voiceCredits: {
     remaining?: string | number;
     monthlyAllowance?: number;

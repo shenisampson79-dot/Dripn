@@ -326,75 +326,32 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     let cancelled = false;
 
     const loadPrices = async () => {
-      // Session-locked catalog first — StoreKit is a validated overlay only.
+      // Session-locked catalog is the only paywall display source.
+      // StoreKit / RevenueCat priceString is never painted (sandbox $ must not leak).
       await currencyService.initialize();
       if (cancelled) return;
 
-      const catalogMonthly = currencyService.getLocalizedPrices();
-      const catalogYearly = currencyService.getYearlyPrices();
-      const catalogDfy = currencyService.getDFYPrices();
-
-      let nextMonthly = { ...catalogMonthly };
-      let nextYearly = { ...catalogYearly };
-      let nextDfy = { ...catalogDfy };
-
+      // If Apple IAP is up, reinforce GBP from GB storefront before snapshotting catalog.
       if (useAppleIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
-          if (cancelled) return;
-
-          const prices = await appleIAPService.getSubscriptionPrices();
-          for (const entry of prices) {
-            const fallback =
-              entry.interval === 'monthly'
-                ? catalogMonthly[entry.tier]
-                : catalogYearly[entry.tier];
-            const resolved = currencyService.getDisplayPrice(
-              { priceString: entry.priceString, currencyCode: entry.currencyCode },
-              fallback,
-            );
-            if (entry.interval === 'monthly') {
-              nextMonthly = { ...nextMonthly, [entry.tier]: resolved };
-            } else {
-              nextYearly = { ...nextYearly, [entry.tier]: resolved };
-            }
-          }
-
-          const dfyIap = await appleIAPService.getDFYPrices();
-          for (const entry of dfyIap) {
-            if (entry.tier === 'lite') {
-              nextDfy = {
-                ...nextDfy,
-                outfit_setup: currencyService.getDisplayPrice(
-                  { priceString: entry.priceString, currencyCode: entry.currencyCode },
-                  catalogDfy.outfit_setup,
-                ),
-              };
-            } else if (entry.tier === 'core') {
-              nextDfy = {
-                ...nextDfy,
-                wardrobe_setup: currencyService.getDisplayPrice(
-                  { priceString: entry.priceString, currencyCode: entry.currencyCode },
-                  catalogDfy.wardrobe_setup,
-                ),
-              };
-            }
-          }
+          // Warm StoreKit + note storefront (reinforces UK) — discard price overlays.
+          await appleIAPService.getSubscriptionPrices();
+          await appleIAPService.getDFYPrices();
         } catch (error) {
           console.warn('[Subscription] Apple IAP price load failed:', error);
-          // Keep session catalog — do not fall back to StoreKit USD on error/cancel.
         }
       }
 
       if (cancelled) return;
-      applyDerivedPrices(nextMonthly, nextYearly, nextDfy);
+      applyCatalogPrices();
     };
 
     loadPrices();
     return () => {
       cancelled = true;
     };
-  }, [useAppleIAP, user?.id, applyDerivedPrices]);
+  }, [useAppleIAP, user?.id, applyCatalogPrices]);
 
   // Recover sandbox / failed-sync purchases: if RevenueCat has a paid entitlement, push it
   // to the server even when local UI already shows a paid badge (local unlock can succeed

@@ -281,10 +281,20 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     throw new Error(this.lastConfigureFailure || IAP_UNAVAILABLE_MESSAGE);
   }
 
+  /** Pull storefront + reinforce GBP for UK App Store accounts before reading prices. */
+  private async syncCurrencyAuthorityFromStore(): Promise<void> {
+    const storeCountry = await getAppStoreCountryCode();
+    if (storeCountry) {
+      currencyService.noteStorefrontCountry(storeCountry);
+    }
+  }
+
   async getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]> {
     if (!this.isAvailable()) return [];
     if (this.configurePromise) await this.configurePromise;
     if (!this.isConfigured()) return [];
+
+    await this.syncCurrencyAuthorityFromStore();
 
     const offerings = await Purchases.getOfferings();
     const results: SubscriptionPriceInfo[] = [];
@@ -300,9 +310,10 @@ class RevenueCatAppleIAPService implements AppleIAPService {
         currencyService.notePaymentCurrency(currencyCode);
 
         // StoreKit is a suggestion — only surface prices that match session display currency.
+        // safe.priceString is session-formatted (never raw StoreKit "$…").
         const safe = currencyService.safeStorekitPrice(
           { priceString: pkg.product.priceString, currencyCode, price: pkg.product.price },
-          sessionCurrency,
+          currencyService.getSessionCurrency(),
         );
         if (!safe) continue;
 
@@ -324,11 +335,12 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     if (this.configurePromise) await this.configurePromise;
     if (!this.isConfigured()) return [];
 
+    await this.syncCurrencyAuthorityFromStore();
+
     const offerings = await Purchases.getOfferings();
     const productIds = Object.values(APPLE_DFY_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
     const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
-    const sessionCurrency = currencyService.getSessionCurrency();
 
     const results: DFYPriceInfo[] = [];
 
@@ -343,7 +355,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
       const safe = currencyService.safeStorekitPrice(
         { priceString, currencyCode, price },
-        sessionCurrency,
+        currencyService.getSessionCurrency(),
       );
       if (!safe) continue;
 
@@ -363,11 +375,12 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     if (this.configurePromise) await this.configurePromise;
     if (!this.isConfigured()) return [];
 
+    await this.syncCurrencyAuthorityFromStore();
+
     const productIds = Object.values(APPLE_VOICE_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
     const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
     const results: VoiceCreditPriceInfo[] = [];
-    const sessionCurrency = currencyService.getSessionCurrency();
 
     for (const packId of Object.keys(APPLE_VOICE_PRODUCT_IDS) as VoiceCreditPackId[]) {
       const productId = voiceProductIdFor(packId);
@@ -384,7 +397,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
           currencyCode,
           price: storeProduct.price,
         },
-        sessionCurrency,
+        currencyService.getSessionCurrency(),
       );
       if (!safe) continue;
 

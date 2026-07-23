@@ -6,6 +6,7 @@ export type Currency = 'GBP' | 'USD' | 'EUR';
 /** @deprecated Prefer `Currency` — kept for existing imports. */
 export type SimpleCurrency = Currency;
 
+/** UK-first product: default display currency is GBP. */
 export const DEFAULT_CURRENCY: Currency = 'GBP';
 
 export interface CurrencyInfo {
@@ -16,8 +17,15 @@ export interface CurrencyInfo {
 
 export type CurrencySignal = {
   deviceRegion: string;
+  /** Extra ISO regions from secondary locales (e.g. en-GB alongside en-US). */
+  localeRegions?: string[];
+  /** BCP-47 tags e.g. en-GB, en-US. */
+  languageTags?: string[];
   appStoreCurrency?: string;
+  /** App Store storefront country (ISO 3166-1 alpha-2). */
+  storefrontCountry?: string;
   ipCountry?: string;
+  preferredCurrency?: Currency;
 };
 
 const CURRENCIES: Record<Currency, CurrencyInfo> = {
@@ -117,6 +125,12 @@ function isCurrency(code: string | null | undefined): code is Currency {
   return code === 'GBP' || code === 'EUR' || code === 'USD';
 }
 
+function normalizeRegion(code: string | null | undefined): string {
+  if (!code) return '';
+  const upper = code.trim().toUpperCase();
+  return upper === 'UK' ? 'GB' : upper;
+}
+
 /** Infer currency from a StoreKit / formatted price string when currencyCode is missing. */
 export function inferCurrencyFromPriceString(priceString: string | null | undefined): Currency | null {
   if (!priceString) return null;
@@ -128,35 +142,110 @@ export function inferCurrencyFromPriceString(priceString: string | null | undefi
 }
 
 function currencyFromRegion(regionCode: string | null | undefined): Currency | null {
-  if (!regionCode) return null;
-  const region = regionCode.toUpperCase();
-  if (region === 'GB' || region === 'UK') return 'GBP';
+  const region = normalizeRegion(regionCode);
+  if (!region) return null;
+  if (region === 'GB') return 'GBP';
   if (region === 'US') return 'USD';
   if (EUROZONE_COUNTRIES.includes(region)) return 'EUR';
   return null;
 }
 
-function readDeviceRegion(): string {
-  try {
-    const locales = Localization.getLocales();
-    const region = locales?.[0]?.regionCode?.toUpperCase();
-    if (region) return region;
-  } catch {
-    // ignore
-  }
-  return '';
+function languageTagSuggestsUk(tag: string | null | undefined): boolean {
+  if (!tag) return false;
+  const lower = tag.toLowerCase().replace(/_/g, '-');
+  return lower === 'en-gb' || lower.endsWith('-gb') || lower.includes('-gb-') || lower.startsWith('en-gb');
 }
 
 /**
- * Multi-signal reconciliation (priority order):
- * deviceRegion → appStoreCurrency (validated) → ipCountry → DEFAULT GBP
+ * UK-first: any GB storefront / locale / language / GBP payment currency wins.
+ * Prevents en-US-on-UK-phone from locking the session to USD sandbox prices.
+ */
+export function signalsSuggestUk(signals: CurrencySignal): boolean {
+  if (signals.preferredCurrency === 'GBP') return true;
+  if (normalizeRegion(signals.deviceRegion) === 'GB') return true;
+  if (normalizeRegion(signals.storefrontCountry) === 'GB') return true;
+  if (signals.appStoreCurrency?.toUpperCase() === 'GBP') return true;
+  if (currencyFromRegion(signals.ipCountry) === 'GBP') return true;
+
+  const regions = [
+    signals.deviceRegion,
+    ...(signals.localeRegions ?? []),
+  ].map(normalizeRegion);
+  if (regions.some((r) => r === 'GB')) return true;
+
+  const tags = signals.languageTags ?? [];
+  if (tags.some(languageTagSuggestsUk)) return true;
+
+  return false;
+}
+
+function readLocaleSignals(): {
+  deviceRegion: string;
+  localeRegions: string[];
+  languageTags: string[];
+} {
+  const localeRegions: string[] = [];
+  const languageTags: string[] = [];
+  try {
+    const locales = Localization.getLocales() ?? [];
+    for (const locale of locales) {
+      const region = normalizeRegion(locale?.regionCode);
+      if (region) localeRegions.push(region);
+      const tag = locale?.languageTag ?? locale?.languageCode;
+      if (tag) languageTags.push(String(tag));
+    }
+  } catch {
+    // ignore
+  }
+  return {
+    deviceRegion: localeRegions[0] ?? '',
+    localeRegions,
+    languageTags,
+  };
+}
+
+function readDeviceRegion(): string {
+  return readLocaleSignals().deviceRegion;
+}
+
+/**
+ * Multi-signal reconciliation (UK-first):
+ * any UK signal → GBP
+ * storefront / App Store currency → that currency
+ * eurozone device → EUR
+ * lone en-US device region → GBP (do NOT trust language region alone; sandbox $ bug)
+ * ip → …
+ * DEFAULT GBP
+ *
+ * Critical: en-US region alone must NOT lock USD and then accept StoreKit `$` overlays.
  */
 export function resolveCurrencyFromSignals(signals: CurrencySignal): Currency {
-  const fromDevice = currencyFromRegion(signals.deviceRegion);
-  if (fromDevice) return fromDevice;
+  if (signals.preferredCurrency && isCurrency(signals.preferredCurrency)) {
+    return signals.preferredCurrency;
+  }
+
+  if (signalsSuggestUk(signals)) {
+    return 'GBP';
+  }
+
+  const storefront = currencyFromRegion(signals.storefrontCountry);
+  if (storefront) return storefront;
 
   const store = signals.appStoreCurrency?.toUpperCase();
   if (isCurrency(store)) return store;
+
+  // Secondary locales (non-UK already handled above).
+  for (const region of signals.localeRegions ?? []) {
+    const fromLocale = currencyFromRegion(region);
+    if (fromLocale === 'EUR') return 'EUR';
+    if (fromLocale === 'GBP') return 'GBP';
+  }
+
+  const fromDevice = currencyFromRegion(signals.deviceRegion);
+  // Eurozone device region is trustworthy; lone US region is not (en-US on UK phones).
+  if (fromDevice === 'EUR') return 'EUR';
+  if (fromDevice === 'GBP') return 'GBP';
+  // fromDevice === 'USD' without storefront evidence → fall through to DEFAULT GBP
 
   const fromIp = currencyFromRegion(signals.ipCountry);
   if (fromIp) return fromIp;
@@ -185,8 +274,14 @@ export function detectSharedPriceCurrency(
   return shared;
 }
 
+/** True when a display string looks like a dollar price (not Free / em dash). */
+export function displayStringLooksLikeUsd(price: string | null | undefined): boolean {
+  if (!price || price === 'Free' || price === '—') return false;
+  return inferCurrencyFromPriceString(price) === 'USD';
+}
+
 class CurrencyService {
-  /** Session-locked display currency — never switches mid-session. */
+  /** Session-locked display currency — never switches mid-session (except one-way UK reinforce). */
   private displayCurrency: Currency = DEFAULT_CURRENCY;
   /** StoreKit / Apple sheet currency when it differs from display. */
   private paymentCurrency: Currency | null = null;
@@ -202,23 +297,83 @@ class CurrencyService {
   private ipLookupStarted = false;
 
   /**
-   * Resolve ONCE per session and lock. StoreKit must not override after lock.
+   * Resolve ONCE per session and lock. StoreKit USD must not override after lock.
+   * UK signals (storefront / GBP / en-GB) always win over a lone en-US regionCode.
    */
   async initialize(signals?: Partial<CurrencySignal>): Promise<void> {
     if (!this.sessionLocked) {
-      const deviceRegion = signals?.deviceRegion ?? readDeviceRegion();
+      const locale = readLocaleSignals();
+      const deviceRegion = signals?.deviceRegion ?? locale.deviceRegion;
       this.displayCurrency = resolveCurrencyFromSignals({
         deviceRegion,
+        localeRegions: signals?.localeRegions ?? locale.localeRegions,
+        languageTags: signals?.languageTags ?? locale.languageTags,
         appStoreCurrency: signals?.appStoreCurrency,
+        storefrontCountry: signals?.storefrontCountry,
         ipCountry: signals?.ipCountry ?? this.ipCountryCache ?? undefined,
+        preferredCurrency: signals?.preferredCurrency,
       });
       this.sessionLocked = true;
       this.seedAmountsFromCatalog(this.displayCurrency);
+    } else if (signals) {
+      // One-way reinforce: unlock USD→GBP when UK storefront arrives after early lock.
+      this.reinforceUkFromSignals(signals);
     }
 
     this.initialized = true;
     this.kickIpCountryLookupSoft();
     await this.refreshPrices();
+  }
+
+  /**
+   * Reinforce session currency from storefront / UK signals after an early lock.
+   * - UK evidence always upgrades → GBP
+   * - US/EUR storefront can correct provisional DEFAULT GBP once (real US App Store users)
+   * - Never downgrades GBP → USD when any UK signal is present
+   */
+  reinforceUkFromSignals(signals: Partial<CurrencySignal>): boolean {
+    const locale = readLocaleSignals();
+    const merged: CurrencySignal = {
+      deviceRegion: signals.deviceRegion ?? locale.deviceRegion,
+      localeRegions: signals.localeRegions ?? locale.localeRegions,
+      languageTags: signals.languageTags ?? locale.languageTags,
+      appStoreCurrency: signals.appStoreCurrency,
+      storefrontCountry: signals.storefrontCountry,
+      ipCountry: signals.ipCountry ?? this.ipCountryCache ?? undefined,
+      preferredCurrency: signals.preferredCurrency,
+    };
+
+    if (signalsSuggestUk(merged)) {
+      if (this.displayCurrency === 'GBP') return false;
+      this.displayCurrency = 'GBP';
+      this.sessionLocked = true;
+      this.seedAmountsFromCatalog('GBP');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('[CurrencyAuthority] Reinforced session currency → GBP (UK signal)');
+      }
+      return true;
+    }
+
+    const storefront = currencyFromRegion(merged.storefrontCountry);
+    const storeCode = merged.appStoreCurrency?.toUpperCase();
+    const confirmed =
+      storefront ?? (isCurrency(storeCode) ? (storeCode as Currency) : null);
+    if (
+      confirmed &&
+      confirmed !== this.displayCurrency &&
+      this.displayCurrency === 'GBP' &&
+      (confirmed === 'USD' || confirmed === 'EUR')
+    ) {
+      this.displayCurrency = confirmed;
+      this.sessionLocked = true;
+      this.seedAmountsFromCatalog(confirmed);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn(`[CurrencyAuthority] Storefront confirmed session currency → ${confirmed}`);
+      }
+      return true;
+    }
+
+    return false;
   }
 
   /** Soft geo-IP — never blocks UI; only used if somehow unlocked (tests / early). */
@@ -247,17 +402,44 @@ class CurrencyService {
   }
 
   /**
-   * Record Apple payment currency without changing locked display currency.
-   * If session is not yet locked, validated StoreKit currency may participate in resolution.
+   * Record Apple payment currency without changing locked display currency
+   * (except one-way UK reinforce when StoreKit reports GBP / we learn GB storefront).
    */
   notePaymentCurrency(storeCurrencyCode?: string | null): void {
     const code = storeCurrencyCode?.toUpperCase();
     if (!isCurrency(code)) return;
     this.paymentCurrency = code;
+
+    if (code === 'GBP') {
+      this.reinforceUkFromSignals({ appStoreCurrency: 'GBP' });
+    }
+
     if (!this.sessionLocked) {
+      const locale = readLocaleSignals();
       this.displayCurrency = resolveCurrencyFromSignals({
-        deviceRegion: readDeviceRegion(),
+        deviceRegion: locale.deviceRegion,
+        localeRegions: locale.localeRegions,
+        languageTags: locale.languageTags,
         appStoreCurrency: code,
+        ipCountry: this.ipCountryCache ?? undefined,
+      });
+      this.sessionLocked = true;
+      this.seedAmountsFromCatalog(this.displayCurrency);
+    }
+  }
+
+  /** Note App Store storefront country — reinforces GBP for GB accounts. */
+  noteStorefrontCountry(countryCode?: string | null): void {
+    const country = normalizeRegion(countryCode);
+    if (!country) return;
+    this.reinforceUkFromSignals({ storefrontCountry: country });
+    if (!this.sessionLocked) {
+      const locale = readLocaleSignals();
+      this.displayCurrency = resolveCurrencyFromSignals({
+        deviceRegion: locale.deviceRegion,
+        localeRegions: locale.localeRegions,
+        languageTags: locale.languageTags,
+        storefrontCountry: country,
         ipCountry: this.ipCountryCache ?? undefined,
       });
       this.sessionLocked = true;
@@ -403,6 +585,8 @@ class CurrencyService {
   /**
    * Strict StoreKit filter: reject when product currency ≠ session display currency.
    * Sandbox / TestFlight USD must not overwrite GBP catalog.
+   * When matched, returns a DISPLAY string formatted from amount + session symbol —
+   * never the raw StoreKit `priceString` (which can still show $ even when code is wrong).
    */
   safeStorekitPrice(
     product: StoreKitPriceLike,
@@ -424,20 +608,23 @@ class CurrencyService {
       return null;
     }
 
-    const priceString = product.priceString?.trim();
-    if (!priceString) return null;
-
     const amount =
       (typeof product.price === 'number' && Number.isFinite(product.price)
         ? product.price
-        : null) ?? parsePriceString(priceString);
+        : null) ?? parsePriceString(product.priceString ?? undefined);
     if (amount == null) return null;
 
-    return { priceString, amount, currencyCode: code };
+    // Belt-and-suspenders: always format with session symbol — never trust StoreKit string.
+    return {
+      priceString: this.formatPrice(amount, userCurrency),
+      amount,
+      currencyCode: code,
+    };
   }
 
   /**
-   * Display price: StoreKit only when safe match, else catalog / fallback.
+   * Display price: StoreKit amount only when currency matches session; else catalog.
+   * NEVER returns raw StoreKit `priceString`.
    */
   getDisplayPrice(
     storeProduct: StoreKitPriceLike,
@@ -445,7 +632,22 @@ class CurrencyService {
     userCurrency: Currency = this.displayCurrency,
   ): string {
     const safe = this.safeStorekitPrice(storeProduct, userCurrency);
-    return safe?.priceString ?? catalogFallback;
+    if (safe) return safe.priceString;
+
+    // Defensive remap: if session is GBP and StoreKit handed us a $ amount with no safe match,
+    // still never paint `$` — catalog fallback (or reformat amount into session currency).
+    if (userCurrency === 'GBP' && displayStringLooksLikeUsd(storeProduct?.priceString)) {
+      const amount =
+        (typeof storeProduct?.price === 'number' && Number.isFinite(storeProduct.price)
+          ? storeProduct.price
+          : null) ?? parsePriceString(storeProduct?.priceString ?? undefined);
+      if (amount != null && catalogFallback) {
+        // Prefer catalog string (authoritative UK list price) over remapping sandbox USD.
+        return catalogFallback;
+      }
+    }
+
+    return catalogFallback;
   }
 
   /**
@@ -563,8 +765,8 @@ class CurrencyService {
   }
 
   /**
-   * Hard UI guard: all displayed price strings must share one currency.
-   * On mismatch: __DEV__ logs loudly; production falls back to catalog (never crash users).
+   * Hard UI guard: all displayed price strings must share one currency AND match session.
+   * If session is GBP and any string still has `$` → force catalog (never show USD on UK paywall).
    */
   assertConsistentDisplayPrices(
     prices: Array<string | null | undefined>,
@@ -572,6 +774,17 @@ class CurrencyService {
   ): { ok: boolean; snapshot: CatalogPriceSnapshot } {
     const catalogFallback = fallback ?? this.resetPricesToCatalog();
     const priced = prices.filter((p) => p && p !== 'Free' && p !== '—') as string[];
+
+    if (this.displayCurrency === 'GBP' && priced.some(displayStringLooksLikeUsd)) {
+      const message = `[CurrencyAuthority] $ detected while session is GBP — forcing catalog: ${priced.join(', ')}`;
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.error(message);
+      } else {
+        console.warn(message);
+      }
+      return { ok: false, snapshot: catalogFallback };
+    }
+
     const inferred = priced
       .map((p) => inferCurrencyFromPriceString(p))
       .filter((c): c is Currency => c != null);
@@ -615,12 +828,15 @@ export function safeStorekitPricePure(
     (isCurrency(codeRaw) ? codeRaw : null) ??
     inferCurrencyFromPriceString(product.priceString ?? undefined);
   if (!code || code !== userCurrency) return null;
-  const priceString = product.priceString?.trim();
-  if (!priceString) return null;
   const amount =
     (typeof product.price === 'number' && Number.isFinite(product.price)
       ? product.price
-      : null) ?? parsePriceString(priceString);
+      : null) ?? parsePriceString(product.priceString ?? undefined);
   if (amount == null) return null;
-  return { priceString, amount, currencyCode: code };
+  const symbol = CURRENCIES[userCurrency].symbol;
+  return {
+    priceString: amount === 0 ? 'Free' : `${symbol}${amount.toFixed(2)}`,
+    amount,
+    currencyCode: code,
+  };
 }
