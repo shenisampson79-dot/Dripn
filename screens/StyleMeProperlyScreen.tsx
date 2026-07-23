@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -77,6 +78,10 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   useEffect(() => {
+    if (FEATURE_FLAGS.hideDfyPurchaseUi) {
+      navigation.replace("Auth", { mode: 'signup' });
+      return;
+    }
     loadSetupOptions();
   }, []);
 

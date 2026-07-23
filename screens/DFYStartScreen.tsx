@@ -47,6 +47,7 @@ import {
   runDfyCheckout,
 } from "@/utils/dfyCheckout";
 import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 type DFYStartScreenProps = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -418,6 +419,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   };
 
   const renderPaidAddOnSection = (options?: { bothPaths?: boolean }) => {
+    if (FEATURE_FLAGS.hideDfyPurchaseUi) return null;
     const showBoth = options?.bothPaths || benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint';
     const isStandalonePurchase = benefit === 'none' || options?.bothPaths;
     return (
@@ -474,7 +476,10 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         <ThemedText type="body" style={[styles.heroSubtitle, { color: theme.tabIconDefault }]}>
           {accessStatus?.hasAccess && accessStatus.tier
             ? getDfyActiveWindowSubtitle(accessStatus.tier)
-            : benefit === 'none'
+            : FEATURE_FLAGS.hideDfyPurchaseUi
+              ? (t('dfy.start.travelOnlySubtitle') ||
+                'Plan a Travel Capsule for your next trip — Full Wardrobe Setup is temporarily unavailable.')
+              : benefit === 'none'
               ? (t('dfy.start.noBenefitSubtitle') ||
                 'Buy a one-time stylist setup — Travel Capsule for your next trip, or Full Setup to digitise your wardrobe.')
               : getDfyBenefitSubtitle(benefit)}
@@ -501,7 +506,27 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
       {benefit === 'none' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          {renderPaidAddOnSection({ bothPaths: true })}
+          {FEATURE_FLAGS.hideDfyPurchaseUi ? (
+            <>
+              <ThemedText type="h4" style={styles.sectionTitle}>
+                {t('dfy.start.travelCapsuleTitle') || 'Travel Capsule'}
+              </ThemedText>
+              <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
+                {t('dfy.start.travelCapsuleSubscribeHint') ||
+                  'Subscribe to unlock Travel Capsule planning for your trips.'}
+              </ThemedText>
+              <Pressable
+                onPress={() => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' })}
+                style={styles.membershipLink}
+              >
+                <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
+                  {t('dfy.start.seePlans') || 'See membership plans'}
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : (
+            renderPaidAddOnSection({ bothPaths: true })
+          )}
         </View>
       ) : null}
 
@@ -516,7 +541,14 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             </ThemedText>
           ) : null}
           {!showPaidAddOn ? renderPathCard('lite') : null}
-          {showPaidAddOn ? renderPaidAddOnSection() : (
+          {showPaidAddOn && !FEATURE_FLAGS.hideDfyPurchaseUi ? renderPaidAddOnSection() : null}
+          {showPaidAddOn && FEATURE_FLAGS.hideDfyPurchaseUi ? (
+            <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
+              {t('dfy.start.setupUsedTravelHint') ||
+                'Your included setup was used. You can still edit Travel Capsule trips in Settings.'}
+            </ThemedText>
+          ) : null}
+          {!showPaidAddOn && !FEATURE_FLAGS.hideDfyPurchaseUi ? (
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
                 {t('dfy.start.oneSetupNote') ||
@@ -528,18 +560,23 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
                 </ThemedText>
               </Pressable>
             </>
-          )}
+          ) : null}
         </View>
       ) : null}
 
       {benefit === 'full_wardrobe_setup' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('dfy.start.chooseIncludedPath') || 'Choose your included path'}
+            {FEATURE_FLAGS.hideDfyPurchaseUi
+              ? (t('dfy.start.includedSetup') || 'Your included setup')
+              : (t('dfy.start.chooseIncludedPath') || 'Choose your included path')}
           </ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            {t('dfy.start.chooseIncludedPathDesc') ||
-              'Your plan includes one setup — pick Travel Capsule or Full Setup to begin.'}
+            {FEATURE_FLAGS.hideDfyPurchaseUi
+              ? (t('dfy.start.travelOnlyIncludedDesc') ||
+                'Start a Travel Capsule for your next trip. Full Wardrobe Setup is temporarily unavailable.')
+              : (t('dfy.start.chooseIncludedPathDesc') ||
+                'Your plan includes one setup — pick Travel Capsule or Full Setup to begin.')}
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
@@ -549,15 +586,16 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {!showPaidAddOn ? (
             <>
               {renderPathCard('lite')}
-              {renderPathCard('core', { recommended: true })}
+              {!FEATURE_FLAGS.hideDfyPurchaseUi ? renderPathCard('core', { recommended: true }) : null}
             </>
           ) : null}
-          {showPaidAddOn ? renderPaidAddOnSection() : (
+          {showPaidAddOn && !FEATURE_FLAGS.hideDfyPurchaseUi ? renderPaidAddOnSection() : null}
+          {!showPaidAddOn && !FEATURE_FLAGS.hideDfyPurchaseUi ? (
             <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
               {t('dfy.start.quickVsFullNote') ||
                 'Travel Capsule packs a trip wardrobe fast. Full Setup is for when you want your whole closet digitised.'}
             </ThemedText>
-          )}
+          ) : null}
         </View>
       ) : null}
 

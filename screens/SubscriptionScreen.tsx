@@ -42,6 +42,9 @@ import {
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { DFYTier } from "@/services/DFYService";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
+
+const SHOW_DFY_PURCHASE_UI = !FEATURE_FLAGS.hideDfyPurchaseUi;
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -508,8 +511,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     navigation.navigate('DFYStart');
   };
 
-  // Scroll to DFY section if navigated from upgrade flow
+  // Scroll to DFY section if navigated from upgrade flow (no-op while purchase UI is hidden)
   useEffect(() => {
+    if (!SHOW_DFY_PURCHASE_UI) return;
     if (route?.params?.scrollToDFY && scrollViewRef.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -1352,202 +1356,206 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         </ThemedText>
       </View>
 
-      <View style={styles.dfySection}>
-        <View style={styles.dfySectionHeader}>
-          <ThemedText type="h2" style={styles.sectionTitle}>
-            {t('subscription.dfy.includedSectionTitle')}
-          </ThemedText>
-          <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            {dfyBenefit === 'none' ? t('subscription.dfy.includedSectionSubtitle') : getDfyBenefitDisplaySubtitle()}
-          </ThemedText>
-        </View>
+      {SHOW_DFY_PURCHASE_UI ? (
+        <>
+          <View style={styles.dfySection}>
+            <View style={styles.dfySectionHeader}>
+              <ThemedText type="h2" style={styles.sectionTitle}>
+                {t('subscription.dfy.includedSectionTitle')}
+              </ThemedText>
+              <ThemedText type="body" style={styles.dfySectionSubtitle}>
+                {dfyBenefit === 'none' ? t('subscription.dfy.includedSectionSubtitle') : getDfyBenefitDisplaySubtitle()}
+              </ThemedText>
+            </View>
 
-        <Pressable
-          style={styles.dfyCardWrapper}
-          onPress={handleStartIncludedDfy}
-        >
-          <LinearGradient
-            colors={
-              dfyBenefit === 'full_wardrobe_setup'
-                ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-                : dfyBenefit === 'styling_sprint'
-                  ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
-                  : [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.dfyCard, dfyBenefit === 'full_wardrobe_setup' && styles.dfyCardFeatured]}
-          >
-            {dfyBenefit !== 'none' ? (
-              <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  {t('subscription.dfy.yourBenefit')}
-                </ThemedText>
-              </View>
-            ) : null}
-            <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Feather name="gift" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
-                  {getDfyBenefitDisplayTitle()}
-                </ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
+            <Pressable
+              style={styles.dfyCardWrapper}
+              onPress={handleStartIncludedDfy}
+            >
+              <LinearGradient
+                colors={
+                  dfyBenefit === 'full_wardrobe_setup'
+                    ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+                    : dfyBenefit === 'styling_sprint'
+                      ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+                      : [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.dfyCard, dfyBenefit === 'full_wardrobe_setup' && styles.dfyCardFeatured]}
+              >
+                {dfyBenefit !== 'none' ? (
+                  <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                      {t('subscription.dfy.yourBenefit')}
+                    </ThemedText>
+                  </View>
+                ) : null}
+                <View style={styles.dfyCardHeader}>
+                  <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Feather name="gift" size={18} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.dfyCardTitleContainer}>
+                    <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
+                      {getDfyBenefitDisplayTitle()}
+                    </ThemedText>
+                    <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                      {dfyBenefit === 'none'
+                        ? t('subscription.dfy.included.defaultCaption')
+                        : t('subscription.dfy.included.benefitCaption').replace('{tier}', subscriptionTierDisplayName(normalizedTier))}
+                    </ThemedText>
+                  </View>
+                </View>
+                <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
                   {dfyBenefit === 'none'
-                    ? t('subscription.dfy.included.defaultCaption')
-                    : t('subscription.dfy.included.benefitCaption').replace('{tier}', subscriptionTierDisplayName(normalizedTier))}
+                    ? t('subscription.dfy.included.noneDescription')
+                    : dfyBenefit === 'styling_sprint'
+                      ? t('subscription.dfy.included.sprintDescription')
+                      : t('subscription.dfy.included.fullDescription')}
                 </ThemedText>
-              </View>
-            </View>
-            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
-              {dfyBenefit === 'none'
-                ? t('subscription.dfy.included.noneDescription')
-                : dfyBenefit === 'styling_sprint'
-                  ? t('subscription.dfy.included.sprintDescription')
-                  : t('subscription.dfy.included.fullDescription')}
-            </ThemedText>
-            <View style={styles.dfyFeatures}>
-              {getDfyIncludedFeatureKeys().map((featureKey, idx) => (
-                <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <Feather name="check" size={12} color="#FFFFFF" />
-                  </View>
-                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
+                <View style={styles.dfyFeatures}>
+                  {getDfyIncludedFeatureKeys().map((featureKey, idx) => (
+                    <View key={idx} style={styles.dfyFeatureRow}>
+                      <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                        <Feather name="check" size={12} color="#FFFFFF" />
+                      </View>
+                      <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-              <Pressable style={styles.dfyButtonInner} onPress={handleStartIncludedDfy}>
-                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                  {dfyBenefit === 'none' ? t('subscription.dfy.seeWhatsIncluded') : t('subscription.dfy.startMySetup')}
-                </ThemedText>
-              </Pressable>
-            </View>
-          </LinearGradient>
-        </Pressable>
-      </View>
+                <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                  <Pressable style={styles.dfyButtonInner} onPress={handleStartIncludedDfy}>
+                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                      {dfyBenefit === 'none' ? t('subscription.dfy.seeWhatsIncluded') : t('subscription.dfy.startMySetup')}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </View>
 
-      <View style={styles.dfySection}>
-        <View style={styles.dfySectionHeader}>
-          <ThemedText type="h2" style={styles.sectionTitle}>
-            {t('subscription.dfy.paidSectionTitle')}
-          </ThemedText>
-          <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            {t('subscription.dfy.paidSectionSubtitle')}
-          </ThemedText>
-        </View>
-
-        <Pressable style={styles.dfyCardWrapper}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.dfyCard, styles.dfyCardFeatured]}
-          >
-            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
-                {t('subscription.dfy.structural')}
+          <View style={styles.dfySection}>
+            <View style={styles.dfySectionHeader}>
+              <ThemedText type="h2" style={styles.sectionTitle}>
+                {t('subscription.dfy.paidSectionTitle')}
+              </ThemedText>
+              <ThemedText type="body" style={styles.dfySectionSubtitle}>
+                {t('subscription.dfy.paidSectionSubtitle')}
               </ThemedText>
             </View>
-            <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-                <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
-              </View>
-              <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>{t('subscription.dfy.wardrobe.title')}</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
-              </View>
-            </View>
-            <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>
-                {dfyPrices.wardrobe_setup}
-              </ThemedText>
-            </View>
-            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
-              {t('subscription.dfy.wardrobe.description')}
-            </ThemedText>
-            <View style={styles.dfyFeatures}>
-              {getWardrobeSetupFeatureKeys().map((featureKey, idx) => (
-                <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
-                    <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
-                  </View>
-                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{t(featureKey)}</ThemedText>
-                </View>
-              ))}
-            </View>
-            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-              <Pressable
-                style={styles.dfyButtonInner}
-                onPress={() => openPaidDfyCheckout('core')}
+
+            <Pressable style={styles.dfyCardWrapper}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.dfyCard, styles.dfyCardFeatured]}
               >
-                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>
-                  {t('subscription.dfy.wardrobe.cta')}
+                <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
+                  <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
+                    {t('subscription.dfy.structural')}
+                  </ThemedText>
+                </View>
+                <View style={styles.dfyCardHeader}>
+                  <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
+                    <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
+                  </View>
+                  <View style={styles.dfyCardTitleContainer}>
+                    <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>{t('subscription.dfy.wardrobe.title')}</ThemedText>
+                    <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
+                  </View>
+                </View>
+                <View style={styles.dfyPriceRow}>
+                  <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>
+                    {dfyPrices.wardrobe_setup}
+                  </ThemedText>
+                </View>
+                <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
+                  {t('subscription.dfy.wardrobe.description')}
                 </ThemedText>
-              </Pressable>
-            </View>
-          </LinearGradient>
-        </Pressable>
+                <View style={styles.dfyFeatures}>
+                  {getWardrobeSetupFeatureKeys().map((featureKey, idx) => (
+                    <View key={idx} style={styles.dfyFeatureRow}>
+                      <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
+                        <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
+                      </View>
+                      <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{t(featureKey)}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+                <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
+                  <Pressable
+                    style={styles.dfyButtonInner}
+                    onPress={() => openPaidDfyCheckout('core')}
+                  >
+                    <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>
+                      {t('subscription.dfy.wardrobe.cta')}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </LinearGradient>
+            </Pressable>
 
-        <Pressable style={styles.dfyCardWrapper}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.coral, '#C46A4F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.dfyCard}
-          >
-            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>{t('subscription.dfy.tactical')}</ThemedText>
-            </View>
-            <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Feather name="package" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>{t('subscription.dfy.occasion.title')}</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
-              </View>
-            </View>
-            <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: '#FFFFFF' }]}>
-                {dfyPrices.outfit_setup}
-              </ThemedText>
-            </View>
-            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
-              {t('subscription.dfy.occasion.description')}
-            </ThemedText>
-            <View style={styles.dfyFeatures}>
-              {getOccasionReadyFeatureKeys().map((featureKey, idx) => (
-                <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <Feather name="check" size={12} color="#FFFFFF" />
-                  </View>
-                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
-                </View>
-              ))}
-              {getOccasionReadyExcludedKeys().map((featureKey, idx) => (
-                <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                    <Feather name="x" size={12} color="rgba(255,255,255,0.4)" />
-                  </View>
-                  <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(featureKey)}</ThemedText>
-                </View>
-              ))}
-            </View>
-            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-              <Pressable
-                style={styles.dfyButtonInner}
-                onPress={() => openPaidDfyCheckout('lite')}
+            <Pressable style={styles.dfyCardWrapper}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.dfyCard}
               >
-                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                  {t('subscription.dfy.occasion.cta')}
+                <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>{t('subscription.dfy.tactical')}</ThemedText>
+                </View>
+                <View style={styles.dfyCardHeader}>
+                  <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Feather name="package" size={18} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.dfyCardTitleContainer}>
+                    <ThemedText type="h3" style={{ color: '#FFFFFF' }}>{t('subscription.dfy.occasion.title')}</ThemedText>
+                    <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
+                  </View>
+                </View>
+                <View style={styles.dfyPriceRow}>
+                  <ThemedText type="h1" style={[styles.dfyPrice, { color: '#FFFFFF' }]}>
+                    {dfyPrices.outfit_setup}
+                  </ThemedText>
+                </View>
+                <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
+                  {t('subscription.dfy.occasion.description')}
                 </ThemedText>
-              </Pressable>
-            </View>
-          </LinearGradient>
-        </Pressable>
-      </View>
+                <View style={styles.dfyFeatures}>
+                  {getOccasionReadyFeatureKeys().map((featureKey, idx) => (
+                    <View key={idx} style={styles.dfyFeatureRow}>
+                      <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                        <Feather name="check" size={12} color="#FFFFFF" />
+                      </View>
+                      <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
+                    </View>
+                  ))}
+                  {getOccasionReadyExcludedKeys().map((featureKey, idx) => (
+                    <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
+                      <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                        <Feather name="x" size={12} color="rgba(255,255,255,0.4)" />
+                      </View>
+                      <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(featureKey)}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+                <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                  <Pressable
+                    style={styles.dfyButtonInner}
+                    onPress={() => openPaidDfyCheckout('lite')}
+                  >
+                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                      {t('subscription.dfy.occasion.cta')}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </>
+      ) : null}
 
       {normalizedTier !== 'free' ? (
         <Pressable

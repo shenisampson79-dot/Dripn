@@ -1555,7 +1555,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     : '3-5 core outfits for your chosen occasion'}
                 </ThemedText>
               </View>
-            ) : (
+            ) : !FEATURE_FLAGS.hideDfyPurchaseUi ? (
               <Pressable 
                 onPress={() => {
                   setShowAIOutfitModal(false);
@@ -1574,7 +1574,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
                 </View>
               </Pressable>
-            )}
+            ) : null}
 
             <OccasionPickerList
               generatingOccasionId={generatingOccasion}

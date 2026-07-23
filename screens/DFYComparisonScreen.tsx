@@ -47,6 +47,7 @@ import {
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { currencyService } from "@/services/CurrencyService";
 import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -109,6 +110,16 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const isAutoCheckout = Boolean(routeParams?.autoCheckout && routeParams?.selectedTier);
   const autoCheckoutStarted = useRef(false);
+
+  // Soft-gate DFY Core / Full Wardrobe purchase UI — keep ASC/RC products, stop selling here.
+  useEffect(() => {
+    if (!FEATURE_FLAGS.hideDfyPurchaseUi) return;
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('Subscription' as any);
+    }
+  }, [navigation]);
 
   const promptPackageNameThen = async (tier: DFYTier, continueFn: () => void) => {
     try {
@@ -550,6 +561,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       </Animated.View>
     );
   };
+
+  if (FEATURE_FLAGS.hideDfyPurchaseUi) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: LUXURY_COLORS.obsidian }}>
+        <ActivityIndicator size="large" color={LUXURY_COLORS.gold} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
