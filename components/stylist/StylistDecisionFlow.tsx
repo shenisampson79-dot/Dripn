@@ -207,7 +207,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     onPress: () => void,
     disabled = false,
     loading = false,
-    opts?: { showArrow?: boolean },
   ) => (
     <Pressable
       onPress={() => {
@@ -221,14 +220,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <>
-            <ThemedText type="body" style={styles.primaryButtonText}>
-              {label}
-            </ThemedText>
-            {opts?.showArrow !== false ? (
-              <Feather name="arrow-right" size={18} color="#FFFFFF" />
-            ) : null}
-          </>
+          <ThemedText type="body" style={styles.primaryButtonText}>
+            {label}
+          </ThemedText>
         )}
       </LinearGradient>
     </Pressable>
@@ -706,9 +700,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </>
           ) : (
             <>
-              {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose(), false, false, {
-                showArrow: false,
-              })}
+              {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())}
               <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
                 <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                   {t('stylistFlow.editAndRerun')}
