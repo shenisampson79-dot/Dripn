@@ -4694,6 +4694,9 @@ class ApiService {
     clashId?: string;
     signals?: Record<string, unknown>;
     scoreBreakdown?: Record<string, unknown>;
+    occasion?: string;
+    dressFor?: string;
+    outfitIntent?: string;
   }) {
     return this.request<{
       success: boolean;

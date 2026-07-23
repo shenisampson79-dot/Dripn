@@ -33,6 +33,10 @@ import {
   detectSubtypeConflicts,
 } from '@/utils/garmentTaxonomy';
 import {
+  resolveOutfitIntent,
+  scoreOutfitIntentBias,
+} from '@/utils/outfitIntent';
+import {
   buildStylistAnalysis,
   type StylistAnalysis,
 } from '@/utils/stylistVoiceEngine';
@@ -131,6 +135,13 @@ export function computeLocalOutfitScore(
   regional: RegionalStyleContext | null = null,
   userSeason: string | null = null,
   userProfile: { stylePreference?: string | null; lifestyle?: string | null } | null = null,
+  options: {
+    occasion?: string | null;
+    dressFor?: string | null;
+    query?: string | null;
+    intent?: string | null;
+    source?: string | null;
+  } = {},
 ): OutfitScoreResult {
   if (selected.length === 0) {
     return { score: 0, hint: 'Swipe rows to build a look' };
@@ -142,7 +153,18 @@ export function computeLocalOutfitScore(
 
   const aesthetic = analyzeOutfitAesthetic(selected);
   const coherence = evaluateStyleCoherence(selected);
-  const signals = coherence.signals;
+  const resolvedIntent = resolveOutfitIntent({
+    occasion: options.occasion,
+    dressFor: options.dressFor,
+    query: options.query,
+    intent: options.intent,
+    source: options.source || 'outfit_mix',
+  });
+  const signals: DetectedSignals = {
+    ...coherence.signals,
+    intent: resolvedIntent.name,
+    intentLabel: resolvedIntent.intent?.label || resolvedIntent.name,
+  };
 
   const primaryClash = detectOutfitClashes(selected, regional);
   const isHardClash = primaryClash?.severity === 'fatal' || primaryClash?.severity === 'major';
@@ -299,14 +321,24 @@ export function computeLocalOutfitScore(
     score += coherence.scoreImpact;
   }
 
-  // Subtype worksWith/avoidWith soft pairing + style profile bias
+  // Subtype worksWith/avoidWith soft pairing + style profile + outfit intent bias
   try {
-    const subtypeScore = scoreOutfitSubtypeCompatibility(selected);
+    const subtypeScore = scoreOutfitSubtypeCompatibility(selected, {
+      occasion: options.occasion || undefined,
+    });
     score += Math.max(-3, Math.min(3, Math.round(subtypeScore.adjustment * 0.25)));
     if (userProfile) {
       const profileBias = scoreStyleProfileBias(selected, userProfile);
       score += Math.max(-4, Math.min(4, profileBias.adjustment));
     }
+    const intentBias = scoreOutfitIntentBias(selected, {
+      occasion: options.occasion,
+      dressFor: options.dressFor,
+      query: options.query,
+      intent: resolvedIntent.name,
+      source: options.source || 'outfit_mix',
+    });
+    score += Math.max(-5, Math.min(6, Math.round(intentBias.adjustment * 0.5)));
   } catch {
     // optional
   }
@@ -380,6 +412,7 @@ export function computeLocalOutfitScore(
     aesthetic,
     hint,
     clashId: primaryClash?.id,
+    intent: resolvedIntent.name,
   });
 
   // Prefer stylist summary when signals drove a clearer read than band templates

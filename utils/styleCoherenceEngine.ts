@@ -40,6 +40,9 @@ export type DetectedSignals = {
   footwearClass: FootwearClass;
   tailoringClash: boolean;
   invalidTwoLaneMix: boolean;
+  /** Soft Outfit Intent name (why worn) — never a hard clash. */
+  intent?: string | null;
+  intentLabel?: string | null;
 };
 
 export type CoherenceBreakdown = {
@@ -453,5 +456,7 @@ export function serializeDetectedSignals(signals: DetectedSignals): Record<strin
     footwearClass: signals.footwearClass,
     tailoringClash: signals.tailoringClash,
     invalidTwoLaneMix: signals.invalidTwoLaneMix,
+    intent: signals.intent || null,
+    intentLabel: signals.intentLabel || null,
   };
 }

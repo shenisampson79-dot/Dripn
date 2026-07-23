@@ -255,14 +255,36 @@ function summaryFor(
   aesthetic: OutfitAestheticAnalysis | null | undefined,
   fallbackHint?: string | null,
 ): string {
+  const intentPhrase = signals.intent
+    ? (signals.intentLabel
+      ? `This reads as ${String(signals.intentLabel).charAt(0).toLowerCase()}${String(signals.intentLabel).slice(1)}`
+      : null)
+    : null;
+  // Prefer catalog summaryTone via intent name when present
+  const catalogTone = signals.intent
+    ? ({
+      effortless: 'This reads as effortless casual',
+      power: 'This reads as power dressing',
+      date_night: 'This reads as date-night polish',
+      editorial: 'This reads as editorial / high-fashion',
+      casual_day: 'This reads as everyday casual',
+      smart_casual: 'This reads as smart casual',
+    } as Record<string, string>)[signals.intent] || intentPhrase
+    : null;
+
   if (tone === 'excellent') {
+    if (catalogTone && aesthetic?.primaryStyle) {
+      return `${catalogTone} — intentional ${styleArchetypeLabel(aesthetic.primaryStyle)}, cohesive end to end.`;
+    }
     if (aesthetic?.primaryStyle) {
       return `Excellent — intentional ${styleArchetypeLabel(aesthetic.primaryStyle)}, cohesive end to end.`;
     }
-    return 'Excellent combo — polished and intentional.';
+    return catalogTone ? `${catalogTone} — polished and intentional.` : 'Excellent combo — polished and intentional.';
   }
   if (tone === 'good') {
-    return 'Strong outfit — pieces sit in the same story.';
+    return catalogTone
+      ? `${catalogTone} — pieces sit in the same story.`
+      : 'Strong outfit — pieces sit in the same story.';
   }
   if (signals.multiLaneChaos) {
     return `Off — ${signals.lanesPresent.map(laneLabel).join(', ')} are fighting each other. Commit to one lane.`;
@@ -291,6 +313,7 @@ export type BuildStylistAnalysisOptions = {
   aesthetic?: OutfitAestheticAnalysis | null;
   hint?: string | null;
   clashId?: string | null;
+  intent?: string | null;
 };
 
 /**

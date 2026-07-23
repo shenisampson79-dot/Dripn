@@ -374,6 +374,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       selectedWardrobeItems,
       regionalContext,
       user?.colorScanData?.colorSeasonType ?? null,
+      null,
+      {
+        occasion: eventType,
+        source: 'outfit_mix',
+      },
     );
     setStyleScore(local.score);
     setStyleHint(local.hint);
@@ -506,6 +511,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           clashId: localClashIdRef.current || undefined,
           signals: localSignalsRef.current || undefined,
           scoreBreakdown: localScoreBreakdownRef.current || undefined,
+          occasion: eventType,
+          outfitIntent: (localSignalsRef.current as any)?.intent || undefined,
         });
         if (itemAnalysisRequestRef.current !== analysisRequestId) return;
         if (analysis.success && Array.isArray(analysis.itemNotes) && analysis.itemNotes.length) {

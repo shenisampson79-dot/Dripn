@@ -46,6 +46,20 @@ type TaxonomyCorpus = {
     subtypeBonus: number;
   }>;
   stylePreferenceMap: Record<string, string>;
+  outfitIntents?: Record<string, {
+    name: string;
+    label?: string;
+    summaryTone?: string;
+    formalityTarget?: number | null;
+    structureBias?: string;
+    effortLevel?: string;
+    boldness?: string;
+    colorRules?: Record<string, unknown>;
+    silhouetteRules?: Record<string, unknown>;
+    preferredSubtypes?: string[];
+    avoidedSubtypes?: string[];
+    rules?: Record<string, unknown>;
+  }>;
 };
 
 const corpus = corpusJson as TaxonomyCorpus;
@@ -101,6 +115,16 @@ export function getStyleProfiles() {
 
 export function getStylePreferenceMap() {
   return loadCorpus().stylePreferenceMap || {};
+}
+
+export function getOutfitIntents() {
+  return loadCorpus().outfitIntents || {};
+}
+
+export function getOutfitIntent(name?: string | null) {
+  if (!name) return null;
+  const key = String(name).toLowerCase().trim();
+  return getOutfitIntents()[key] || null;
 }
 
 type ItemLike = {

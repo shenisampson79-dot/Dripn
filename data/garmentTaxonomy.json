@@ -1765,7 +1765,234 @@
     "creative": "STREET",
     "trendsetter": "STREET"
   },
-  "syncedAt": "2026-07-23T09:44:31.498Z",
-  "sourceHash": "f3c9fa8357856f93",
+  "outfitIntents": {
+    "effortless": {
+      "name": "effortless",
+      "label": "Effortless casual",
+      "summaryTone": "This reads as effortless casual",
+      "formalityTarget": 2,
+      "structureBias": "relaxed",
+      "effortLevel": "low",
+      "boldness": "low",
+      "colorRules": {
+        "maxColors": 2,
+        "preferMonochrome": true
+      },
+      "silhouetteRules": {
+        "preferRelaxed": true,
+        "allowOversized": true
+      },
+      "preferredSubtypes": [
+        "linen_shirt",
+        "linen_shorts",
+        "chinos",
+        "jeans",
+        "knit_top",
+        "basic_tee",
+        "minimal_sneaker",
+        "leather_sandals",
+        "espadrilles",
+        "cardigan"
+      ],
+      "avoidedSubtypes": [
+        "blazer",
+        "tie",
+        "oxfords",
+        "stilettos",
+        "statement_heels",
+        "tailored_coat"
+      ],
+      "rules": {
+        "restrictLayers": 3
+      }
+    },
+    "power": {
+      "name": "power",
+      "label": "Power dressing",
+      "summaryTone": "This reads as power dressing",
+      "formalityTarget": 5,
+      "structureBias": "structured",
+      "effortLevel": "high",
+      "boldness": "medium",
+      "colorRules": {
+        "maxColors": 3,
+        "preferMonochrome": false
+      },
+      "silhouetteRules": {
+        "preferStructured": true,
+        "allowOversized": false
+      },
+      "preferredSubtypes": [
+        "blazer",
+        "tailored_trousers",
+        "oxford_shirt",
+        "oxfords",
+        "derby",
+        "heels",
+        "stilettos",
+        "block_heels",
+        "chelsea_boots",
+        "tailored_coat",
+        "tie"
+      ],
+      "avoidedSubtypes": [
+        "slides",
+        "athletic_shorts",
+        "uggs",
+        "chunky_trainer",
+        "runner",
+        "joggers",
+        "tracksuit_bottoms",
+        "hoodie",
+        "cap"
+      ],
+      "rules": {
+        "requireAnchor": true,
+        "restrictLayers": 4
+      }
+    },
+    "date_night": {
+      "name": "date_night",
+      "label": "Date night",
+      "summaryTone": "This reads as date-night polish",
+      "formalityTarget": 4,
+      "structureBias": "balanced",
+      "effortLevel": "medium",
+      "boldness": "medium",
+      "colorRules": {
+        "maxColors": 3
+      },
+      "silhouetteRules": {
+        "preferBalanced": true
+      },
+      "preferredSubtypes": [
+        "slip_dress",
+        "bodycon_dress",
+        "blouse",
+        "heels",
+        "stilettos",
+        "block_heels",
+        "tailored_trousers",
+        "blazer",
+        "knit_top",
+        "midi_skirt"
+      ],
+      "avoidedSubtypes": [
+        "athletic_shorts",
+        "slides",
+        "runner",
+        "hoodie",
+        "cap",
+        "uggs",
+        "cargo_shorts"
+      ],
+      "rules": {
+        "requireAnchor": true
+      }
+    },
+    "editorial": {
+      "name": "editorial",
+      "label": "Editorial",
+      "summaryTone": "This reads as editorial / high-fashion",
+      "formalityTarget": null,
+      "structureBias": "any",
+      "effortLevel": "high",
+      "boldness": "high",
+      "colorRules": {
+        "allowContrast": true,
+        "maxColors": 5
+      },
+      "silhouetteRules": {
+        "allowOversized": true,
+        "preferContrast": true
+      },
+      "preferredSubtypes": [
+        "statement_heels",
+        "combat_boots",
+        "oversized_tee",
+        "blazer",
+        "slip_dress",
+        "cropped_jacket",
+        "crop_top",
+        "pleated_skirt"
+      ],
+      "avoidedSubtypes": [],
+      "rules": {
+        "requireAnchor": true
+      }
+    },
+    "casual_day": {
+      "name": "casual_day",
+      "label": "Casual day",
+      "summaryTone": "This reads as everyday casual",
+      "formalityTarget": 2,
+      "structureBias": "relaxed",
+      "effortLevel": "low",
+      "boldness": "low",
+      "colorRules": {
+        "maxColors": 3
+      },
+      "silhouetteRules": {
+        "preferRelaxed": true,
+        "allowOversized": true
+      },
+      "preferredSubtypes": [
+        "jeans",
+        "chinos",
+        "basic_tee",
+        "knit_top",
+        "minimal_sneaker",
+        "denim_jacket",
+        "hoodie",
+        "loafers"
+      ],
+      "avoidedSubtypes": [
+        "tie",
+        "stilettos",
+        "oxfords",
+        "tailored_coat"
+      ],
+      "rules": {}
+    },
+    "smart_casual": {
+      "name": "smart_casual",
+      "label": "Smart casual",
+      "summaryTone": "This reads as smart casual",
+      "formalityTarget": 3,
+      "structureBias": "balanced",
+      "effortLevel": "medium",
+      "boldness": "low",
+      "colorRules": {
+        "maxColors": 3,
+        "preferMonochrome": false
+      },
+      "silhouetteRules": {
+        "preferBalanced": true
+      },
+      "preferredSubtypes": [
+        "chinos",
+        "oxford_shirt",
+        "polo",
+        "loafers",
+        "minimal_sneaker",
+        "blazer",
+        "knit_top",
+        "chelsea_boots",
+        "jeans"
+      ],
+      "avoidedSubtypes": [
+        "athletic_shorts",
+        "slides",
+        "uggs",
+        "tracksuit_bottoms",
+        "runner"
+      ],
+      "rules": {
+        "requireAnchor": false
+      }
+    }
+  },
+  "syncedAt": "2026-07-23T10:24:11.820Z",
+  "sourceHash": "a5fedffa33290231",
   "source": "Dripn-Server/data/garmentTaxonomy.json"
 }
