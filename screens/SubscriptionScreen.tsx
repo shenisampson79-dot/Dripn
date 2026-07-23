@@ -23,7 +23,7 @@ import {
   appleIAPService,
   IAP_UNAVAILABLE_MESSAGE,
   resolveTierFromCustomerInfo,
-  serializeCustomerInfoForSync,
+  serializeCustomerInfoForSyncWithStorefront,
   serializeDfyCustomerInfoForSync,
   type IAPSubscriptionTier,
 } from "@/services/AppleIAPService";
@@ -416,7 +416,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           await applyLocalSubscriptionTier(tier);
         }
 
-        const syncPayload = serializeCustomerInfoForSync(customerInfo);
+        const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
         if (!syncPayload.tier || syncPayload.tier === 'free') {
           syncPayload.tier = tier;
         }
@@ -595,7 +595,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     const unlockedTier = fromRc !== 'free' ? fromRc : normalizeSubscriptionTier(tier);
     await applyLocalSubscriptionTier(unlockedTier);
 
-    const syncPayload = serializeCustomerInfoForSync(customerInfo);
+    const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
     // Ensure sync payload carries the purchased tier when RC entitlement mapping is delayed
     if (!syncPayload.tier || syncPayload.tier === 'free') {
       syncPayload.tier = unlockedTier;
@@ -632,7 +632,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const iapReady = await appleIAPService.configure(user.id);
       if (!iapReady) throw new Error(IAP_UNAVAILABLE_MESSAGE);
       const customerInfo = await appleIAPService.restorePurchases();
-      const subscriptionPayload = serializeCustomerInfoForSync(customerInfo);
+      const subscriptionPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
       const dfyPayload = serializeDfyCustomerInfoForSync(customerInfo);
 
       let restoredSomething = false;

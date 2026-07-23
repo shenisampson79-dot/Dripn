@@ -602,6 +602,34 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
   };
 }
 
+/** App Store account storefront country (ISO 3166-1 alpha-2), when available. */
+export async function getAppStoreCountryCode(): Promise<string | null> {
+  try {
+    if (typeof Purchases.getStorefront !== 'function') return null;
+    const storefront = await Purchases.getStorefront();
+    const code = (storefront as { countryCode?: string } | null)?.countryCode;
+    if (!code || typeof code !== 'string') return null;
+    return code.trim().toUpperCase() === 'UK' ? 'GB' : code.trim().toUpperCase();
+  } catch {
+    return null;
+  }
+}
+
+/** Subscription sync payload including storefront country for regional entitlement caps. */
+export async function serializeCustomerInfoForSyncWithStorefront(customerInfo: CustomerInfo) {
+  const base = serializeCustomerInfoForSync(customerInfo);
+  const storeCountry = await getAppStoreCountryCode();
+  return {
+    ...base,
+    storeCountry: storeCountry || undefined,
+    customerInfo: {
+      ...base,
+      storeCountry: storeCountry || undefined,
+      storefront: storeCountry || undefined,
+    },
+  };
+}
+
 /** Serialize CustomerInfo for DFY one-time server sync */
 export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
   const activeEntitlements = Object.entries(customerInfo.entitlements.active).map(([id, ent]) => ({

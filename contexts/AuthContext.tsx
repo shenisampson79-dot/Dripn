@@ -25,7 +25,7 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import {
   appleIAPService,
   resolveTierFromCustomerInfo,
-  serializeCustomerInfoForSync,
+  serializeCustomerInfoForSyncWithStorefront,
 } from '@/services/AppleIAPService';
 WebBrowser.maybeCompleteAuthSession();
 
@@ -1006,7 +1006,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const tier = resolveTierFromCustomerInfo(customerInfo);
             if (tier !== 'free') {
               await applyLocalSubscriptionTier(tier);
-              const syncPayload = serializeCustomerInfoForSync(customerInfo);
+              const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
               if (!syncPayload.tier || syncPayload.tier === 'free') {
                 syncPayload.tier = tier;
               }

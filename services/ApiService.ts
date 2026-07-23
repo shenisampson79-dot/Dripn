@@ -2477,6 +2477,7 @@ class ApiService {
     tier?: string;
     productId?: string;
     originalTransactionId?: string;
+    storeCountry?: string;
     customerInfo?: Record<string, unknown>;
   }) {
     await this.refreshToken();
