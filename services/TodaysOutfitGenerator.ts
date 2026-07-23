@@ -972,17 +972,29 @@ export async function resolveCachedTodaysOutfit(params: {
   }
 
   if (tooSimilar || migrationBust) {
-    logDiversity('cache_reject', {
-      dateKey: today,
-      historyCount: priorOutfits.length,
-      rejectedSimilar: tooSimilar ? 1 : 0,
-      migrationBust,
-      seededFrom: seeded.seededFrom,
-      pickedItemIds: stored.itemIds,
-      cacheHit: false,
-    });
-    await clearTodaysOutfitCache();
-    return null;
+    // Do not thrash when wardrobe truly cannot diversify — serve locked look.
+    if (tooSimilar && !migrationBust && stored.diversity?.wardrobeLocked) {
+      logDiversity('cache_hit_locked', {
+        dateKey: today,
+        historyCount: priorOutfits.length,
+        rejectedSimilar: 1,
+        wardrobeLocked: true,
+        pickedItemIds: stored.itemIds,
+        cacheHit: true,
+      });
+    } else {
+      logDiversity('cache_reject', {
+        dateKey: today,
+        historyCount: priorOutfits.length,
+        rejectedSimilar: tooSimilar ? 1 : 0,
+        migrationBust,
+        seededFrom: seeded.seededFrom,
+        pickedItemIds: stored.itemIds,
+        cacheHit: false,
+      });
+      await clearTodaysOutfitCache();
+      return null;
+    }
   }
 
   const honest = reconcileHonestOccasion(
@@ -994,7 +1006,8 @@ export async function resolveCachedTodaysOutfit(params: {
   logDiversity('cache_hit', {
     dateKey: today,
     historyCount: priorOutfits.length,
-    rejectedSimilar: 0,
+    rejectedSimilar: tooSimilar ? 1 : 0,
+    wardrobeLocked: Boolean(stored.diversity?.wardrobeLocked || tooSimilar),
     pickedItemIds: stored.itemIds,
     cacheHit: true,
   });
@@ -1009,7 +1022,8 @@ export async function resolveCachedTodaysOutfit(params: {
       vibeLabel: stored.vibeLabel || honest.occasionLabel,
       diversity: {
         historyCount: priorOutfits.length,
-        rejectedSimilar: 0,
+        rejectedSimilar: tooSimilar ? 1 : 0,
+        wardrobeLocked: Boolean(stored.diversity?.wardrobeLocked || tooSimilar),
         cacheHit: true,
         pickedItemIds: stored.itemIds.map(String),
       },
