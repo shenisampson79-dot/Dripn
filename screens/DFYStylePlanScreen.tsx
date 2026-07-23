@@ -33,7 +33,9 @@ import {
   DFYLiteDelivery,
   DFYAccessStatus,
   StylistId,
+  resolveLiteTotalDays,
 } from "@/services/DFYService";
+import { formatTravelLookbookTitle } from "@/utils/travelCapsule";
 import { apiService } from "@/services/ApiService";
 import { weatherService } from "@/services/WeatherService";
 import {
@@ -171,7 +173,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     let liteDelivery = existingDelivery as DFYLiteDelivery;
     const beforeJson = JSON.stringify(liteDelivery.outfits);
 
-    if (countFilledLookbookDays(liteDelivery) < (liteDelivery.totalDays || 14)) {
+    if (countFilledLookbookDays(liteDelivery) < resolveLiteTotalDays(liteDelivery)) {
       try {
         const remote = await apiService.getDFYLookbook();
         if (remote.success && remote.outfits && remote.outfits.length > 0) {
@@ -189,7 +191,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     const alreadyPacked =
       Boolean(liteDelivery.travelPlan)
       && (liteDelivery.capsuleItemIds?.length || 0) >= 6
-      && countFilledLookbookDays(liteDelivery) >= (liteDelivery.totalDays || 14);
+      && countFilledLookbookDays(liteDelivery) >= resolveLiteTotalDays(liteDelivery);
 
     if (!alreadyPacked && wardrobeItems.length >= 3) {
       let forecast = null as Awaited<ReturnType<typeof weatherService.getForecastForDestination>> | null;
@@ -448,11 +450,16 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
           <View style={styles.dayIndicator}>
+            <ThemedText type="small" style={[styles.daySubtext, { marginBottom: 2 }]} numberOfLines={1}>
+              {delivery.lookbookTitle
+                || formatTravelLookbookTitle(delivery.travelPlan)
+                || 'Lookbook'}
+            </ThemedText>
             <ThemedText type="h3" style={styles.dayText}>
               Day {currentOutfit.dayNumber}
             </ThemedText>
             <ThemedText type="small" style={styles.daySubtext}>
-              of {delivery.totalDays}
+              of {resolveLiteTotalDays(delivery)}
             </ThemedText>
           </View>
           <Pressable onPress={handleSave} style={styles.saveButton}>

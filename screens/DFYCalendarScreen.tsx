@@ -23,7 +23,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { DFYTier, StylistId, dfyService, DFYLiteDelivery } from '@/services/DFYService';
+import { DFYTier, StylistId, dfyService, DFYLiteDelivery, resolveLiteTotalDays, LITE_LOOKBOOK_DAYS } from '@/services/DFYService';
 import apiService from '@/services/ApiService';
 import { useWardrobe, type WardrobeItem } from '@/contexts/WardrobeContext';
 import {
@@ -103,7 +103,6 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [packageNameDefault, setPackageNameDefault] = useState('');
   const [renamePackageId, setRenamePackageId] = useState<string | null>(null);
 
-  const totalDays = tier === 'lite' ? 14 : 30;
   const todayStart = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -115,6 +114,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
    * without a real trip anchor (see loadLookbookCalendarOutfits).
    */
   const [planStartDate, setPlanStartDate] = useState<Date>(todayStart);
+  const [liteTotalDays, setLiteTotalDays] = useState(LITE_LOOKBOOK_DAYS);
+  const totalDays = tier === 'lite' ? liteTotalDays : 30;
   const startDate = planStartDate;
 
   const resolveLookbookPlanStart = (delivery: DFYLiteDelivery | null | undefined): Date | null => {
@@ -182,6 +183,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       setPlanStartDate((prev) =>
         formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
       );
+      setLiteTotalDays(resolveLiteTotalDays(saved as DFYLiteDelivery));
       return mapLookbookDeliveryToCalendarOutfits(saved as DFYLiteDelivery, planStart, wardrobeItems);
     }
 
@@ -201,6 +203,9 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         planStart.setHours(0, 0, 0, 0);
         setPlanStartDate((prev) =>
           formatDateKey(prev) === formatDateKey(planStart) ? prev : planStart,
+        );
+        setLiteTotalDays(
+          Math.max(1, remote.outfits.length || remote.travelPlan?.tripDays || LITE_LOOKBOOK_DAYS),
         );
         return mapApiLookbookToCalendarOutfits(remote.outfits, planStart, wardrobeItems, 'ruby');
       }

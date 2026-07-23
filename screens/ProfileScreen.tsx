@@ -36,7 +36,9 @@ import { SafeOutfitPieces } from "@/components/SafeOutfitPieces";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
 import { DFYPackageNameModal } from "@/components/outfit/DFYPackageNameModal";
-import { dfyService, SavedLookbookOutfit, type DfyPackageSummary } from "@/services/DFYService";
+import { dfyService, SavedLookbookOutfit, type DfyPackageSummary, type TravelTripSummary } from "@/services/DFYService";
+import { formatDisplayDate } from "@/utils/lookbookTripDay";
+import { destinationForDisplay } from "@/utils/travelCapsule";
 import {
   buildSavedOutfitTableRows,
   findLookbookOutfitByRowId,
@@ -79,6 +81,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
   const [stylePackages, setStylePackages] = useState<DfyPackageSummary[]>([]);
   const [loadingStylePackages, setLoadingStylePackages] = useState(false);
+  const [travelTrips, setTravelTrips] = useState<TravelTripSummary[]>([]);
+  const [loadingTravelTrips, setLoadingTravelTrips] = useState(false);
   const [renamePackage, setRenamePackage] = useState<DfyPackageSummary | null>(null);
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
   const [showOutfitDetailModal, setShowOutfitDetailModal] = useState(false);
@@ -231,11 +235,28 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
   }, [user?.id]);
 
+  const loadTravelTrips = useCallback(async () => {
+    if (!user?.id) {
+      setTravelTrips([]);
+      return;
+    }
+    try {
+      setLoadingTravelTrips(true);
+      const trips = await dfyService.listTravelTrips(user.id);
+      setTravelTrips(trips);
+    } catch {
+      setTravelTrips([]);
+    } finally {
+      setLoadingTravelTrips(false);
+    }
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       loadSavedLookbookOutfits();
       loadStylePackages();
-    }, [loadSavedLookbookOutfits, loadStylePackages]),
+      loadTravelTrips();
+    }, [loadSavedLookbookOutfits, loadStylePackages, loadTravelTrips]),
   );
 
   // Dynamic colors from palette
@@ -351,6 +372,23 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       screen: 'DFYLookbook',
       params: { packageId: pkg.id },
     });
+  };
+
+  const handleOpenTravelTrip = async (trip: TravelTripSummary) => {
+    if (!user?.id) return;
+    const activated = await dfyService.activateTravelTrip(user.id, trip.id);
+    if (!activated) {
+      Alert.alert(
+        t('profile.couldNotOpenTrip') || 'Could not open trip',
+        t('profile.pleaseTryAgain') || 'Please try again.',
+      );
+      return;
+    }
+    navigation.getParent()?.navigate?.('WardrobeTab', { screen: 'DFYLookbook' });
+  };
+
+  const handlePlanNewTrip = () => {
+    navigation.navigate('DFYTravelPlan', { mode: 'create' });
   };
 
   const handleRenameStylePackage = (pkg: DfyPackageSummary) => {
@@ -815,6 +853,83 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </View>
         ) : null}
       </View>
+
+      {!loadingTravelTrips && travelTrips.length > 0 ? (
+        <View style={styles.stylePlansSection}>
+          <View style={styles.savedOutfitsSectionHeader}>
+            <Feather name="briefcase" size={18} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
+              {t('profile.trips') || 'Trips'}
+            </ThemedText>
+            <Pressable onPress={handlePlanNewTrip} hitSlop={12} style={styles.stylePlanEditButton}>
+              <Feather name="plus" size={18} color="rgba(255,255,255,0.75)" />
+            </Pressable>
+          </View>
+          <View style={styles.stylePlansList}>
+            {travelTrips.map((trip) => (
+              <Pressable
+                key={trip.id}
+                onPress={() => handleOpenTravelTrip(trip)}
+                onLongPress={() =>
+                  navigation.navigate('DFYTravelPlan', { mode: 'edit', tripId: trip.id })
+                }
+                delayLongPress={350}
+                style={({ pressed }) => [
+                  styles.stylePlanRow,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+                    opacity: pressed ? 0.88 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.stylePlanRowContent}>
+                  <ThemedText type="body" style={styles.stylePlanTitle} numberOfLines={1}>
+                    {trip.title || destinationForDisplay(trip.destination) || 'Trip'}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.stylePlanSubtitle} numberOfLines={1}>
+                    {dfyService.formatTravelTripSubtitle(trip)
+                      || [formatDisplayDate(trip.startDate), formatDisplayDate(trip.endDate)]
+                          .filter(Boolean)
+                          .join(' – ')}
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.65)" />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : !loadingTravelTrips ? (
+        <View style={styles.stylePlansSection}>
+          <View style={styles.savedOutfitsSectionHeader}>
+            <Feather name="briefcase" size={18} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
+              {t('profile.trips') || 'Trips'}
+            </ThemedText>
+          </View>
+          <View style={styles.stylePlansList}>
+            <Pressable
+              onPress={handlePlanNewTrip}
+              style={({ pressed }) => [
+                styles.stylePlanRow,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+                  opacity: pressed ? 0.88 : 1,
+                },
+              ]}
+            >
+              <View style={styles.stylePlanRowContent}>
+                <ThemedText type="body" style={styles.stylePlanTitle}>
+                  {t('profile.planTrip') || 'Plan a trip'}
+                </ThemedText>
+                <ThemedText type="small" style={styles.stylePlanSubtitle}>
+                  {t('profile.planTripHint') || 'Build a Travel Capsule lookbook for your dates'}
+                </ThemedText>
+              </View>
+              <Feather name="plus" size={18} color="rgba(255,255,255,0.65)" />
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {!loadingStylePackages && stylePackages.length > 0 ? (
         <View style={styles.stylePlansSection}>
@@ -1341,6 +1456,7 @@ const styles = StyleSheet.create({
   savedOutfitsSectionTitle: {
     fontWeight: '700',
     color: '#FFFFFF',
+    flex: 1,
   },
   contentSection: {
     minHeight: 200,

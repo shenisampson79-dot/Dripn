@@ -82,7 +82,7 @@ export type ProfileStackParamList = {
   ColdOpen: undefined;
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
   DFYStart: undefined;
-  DFYTravelPlan: { mode?: 'create' | 'edit' } | undefined;
+  DFYTravelPlan: { mode?: 'create' | 'edit'; tripId?: string } | undefined;
   DFYStylePlan: { initialDay?: number } | undefined;
   DFYExpiry: undefined;
   DFYUpload: { type: "outfit" | "core" };

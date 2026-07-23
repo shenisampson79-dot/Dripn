@@ -50,6 +50,8 @@ export type TravelPlan = {
   lat?: number;
   lon?: number;
   createdAt: string;
+  /** Stable id when this plan belongs to a saved multi-trip capsule. */
+  tripId?: string;
 };
 
 export type TravelCapsuleResult = {
@@ -498,5 +500,23 @@ export function defaultTravelPlan(partial?: Partial<TravelPlan>): TravelPlan {
     lat: partial?.lat,
     lon: partial?.lon,
     createdAt: partial?.createdAt || new Date().toISOString(),
+    tripId: partial?.tripId,
   };
+}
+
+/**
+ * Lookbook / Profile title, e.g. "Barcelona trip July 2026".
+ * Uses destination + start month/year so multiple trips stay distinct.
+ */
+export function formatTravelLookbookTitle(
+  plan?: Partial<TravelPlan> | null,
+  fallback = 'Travel Capsule',
+): string {
+  const dest = destinationForDisplay(plan?.destination);
+  const start = plan?.startDate ? parseLocalDateOnly(plan.startDate) : null;
+  if (!dest && !start) return fallback;
+  if (!start) return dest ? `${dest} trip` : fallback;
+  const monthYear = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  if (!dest) return `Trip ${monthYear}`;
+  return `${dest} trip ${monthYear}`;
 }

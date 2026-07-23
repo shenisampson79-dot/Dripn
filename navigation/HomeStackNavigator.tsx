@@ -19,7 +19,7 @@ export type HomeStackParamList = {
   Subscription: { highlightPlan?: string } | undefined;
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
   DFYStart: undefined;
-  DFYTravelPlan: { mode?: 'create' | 'edit' } | undefined;
+  DFYTravelPlan: { mode?: 'create' | 'edit'; tripId?: string } | undefined;
   DFYStylePlan: { initialDay?: number } | undefined;
   DFYUpload: { type: "outfit" | "core" };
 };

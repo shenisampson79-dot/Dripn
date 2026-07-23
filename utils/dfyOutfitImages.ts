@@ -14,7 +14,7 @@ import { LITE_LOOKBOOK_ENGINE_VERSION } from '@/utils/coreCalendarEngine';
 import { wardrobeCanBuildCompleteOutfit } from '@/utils/completeOutfit';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { passesHardOutfitChecks } from '@/utils/outfitDiversity';
-import { buildTravelCapsule, defaultTravelPlan, resolveTravelTripDays, type TravelPlan } from '@/utils/travelCapsule';
+import { buildTravelCapsule, defaultTravelPlan, formatTravelLookbookTitle, resolveTravelTripDays, type TravelPlan } from '@/utils/travelCapsule';
 import {
   ACTIVITY_CONSTRAINTS,
   assignDayActivities,
@@ -764,9 +764,9 @@ export function ensureLookbookOutfitsHaveFootwear(
 }
 
 /**
- * Guaranteed 14-day Travel Capsule lookbook.
- * Packs a capsule subset, then allocates 14 looks with travel-friendly reuse.
- * Never trusts server inventory. Always exactly 14 days.
+ * Guaranteed Travel Capsule lookbook — one look per trip day (from dates).
+ * Packs a capsule subset, then allocates looks with travel-friendly reuse.
+ * Never trusts server inventory.
  *
  * @param options.fillGapsOnly — keep existing filled days; only allocate empty slots
  * @param options.force — full regenerate (ignores fillGapsOnly)
@@ -840,7 +840,11 @@ export function generateLiteLookbook(params: {
     });
 
   const tripDays = resolveTravelTripDays(capsulePlan);
-  const lookbookDays = tripDays;
+  // Gap-fill keeps previously generated length until an explicit rebuild (force).
+  const lookbookDays =
+    fillGapsOnly && existing?.totalDays
+      ? Math.max(1, existing.totalDays)
+      : tripDays;
 
   const capsule = buildTravelCapsule(wardrobeItems, capsulePlan, {
     tempMin: avgMin,
@@ -993,6 +997,8 @@ export function generateLiteLookbook(params: {
       nudgesShown: existing?.nudgesShown || [],
       outfits,
       travelPlan: capsulePlan,
+      tripId: existing?.tripId || capsulePlan.tripId,
+      lookbookTitle: formatTravelLookbookTitle(capsulePlan),
       capsuleItemIds: capsule.itemIds,
       capsuleNotes: [
         ...capsule.notes,

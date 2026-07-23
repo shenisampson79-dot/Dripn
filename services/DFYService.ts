@@ -7,7 +7,11 @@ import {
   isDfyTierAllowedForSubscription,
 } from '@/utils/dfyEntitlements';
 import type { TravelPlan, TravelVibe, TravelActivity } from '@/utils/travelCapsule';
-import { resolveTravelTripDays } from '@/utils/travelCapsule';
+import {
+  formatTravelLookbookTitle,
+  resolveTravelTripDays,
+} from '@/utils/travelCapsule';
+import { formatDisplayDate } from '@/utils/lookbookTripDay';
 
 export type { StylistId };
 export type { TravelPlan, TravelVibe, TravelActivity };
@@ -18,13 +22,18 @@ export type DFYOccasion = 'work' | 'holiday' | 'event' | 'casual' | 'browsing';
 /** Travel Capsule (DFY Lite) default lookbook length when trip dates are unknown. */
 export const LITE_LOOKBOOK_DAYS = 14;
 
+/** Prefer last-generated lookbook length; fall back to trip dates, then default. */
+export function resolveLiteTotalDays(
+  delivery?: Pick<DFYLiteDelivery, 'totalDays' | 'travelPlan'> | null,
+): number {
+  if (typeof delivery?.totalDays === 'number' && delivery.totalDays > 0) {
+    return Math.max(1, Math.round(delivery.totalDays));
+  }
+  return Math.max(1, resolveTravelTripDays(delivery?.travelPlan) || LITE_LOOKBOOK_DAYS);
+}
+
 export function normalizeLiteDelivery(delivery: DFYLiteDelivery): DFYLiteDelivery {
-  const totalDays = Math.max(
-    1,
-    delivery.totalDays
-    || resolveTravelTripDays(delivery.travelPlan)
-    || LITE_LOOKBOOK_DAYS,
-  );
+  const totalDays = resolveLiteTotalDays(delivery);
   // Prefer immutable trip anchor — never invent "today" when travelPlan/startDate exist.
   const anchorIso =
     delivery.travelPlan?.startDate
@@ -118,19 +127,44 @@ export interface DFYLiteDelivery {
   tier: 'lite';
   startDate: string;
   expiryDate: string;
-  /** Lite is 14; package mapper may temporarily carry Core length when reusing this shape. */
-  totalDays: 14 | 30;
+  /** Lookbook length = trip days when dates are set (fallback 14). */
+  totalDays: number;
   outfits: DFYOutfit[];
   currentDay: number;
   completed: boolean;
   nudgesShown: number[];
   /** Trip context for Travel Capsule packing + destination weather */
   travelPlan?: TravelPlan | null;
+  /** Stable id linking this delivery to the local multi-trip list. */
+  tripId?: string;
+  /** e.g. "Barcelona trip July 2026" */
+  lookbookTitle?: string;
   /** Item IDs in the packed capsule (subset of wardrobe) */
   capsuleItemIds?: string[];
   capsuleNotes?: string[];
   packingSummary?: import('@/utils/packingSummary').PackingSummary | null;
   engineVersion?: string;
+}
+
+/** Saved Travel Capsule trip (local multi-trip list). */
+export interface TravelTripRecord {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  delivery: DFYLiteDelivery;
+}
+
+export interface TravelTripSummary {
+  id: string;
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  tripDays: number;
+  vibe: TravelVibe;
+  updatedAt: string;
+  hasLooks: boolean;
 }
 
 export interface DFYCoreDelivery {
@@ -216,6 +250,29 @@ const DFY_ACCESS_KEY = '@dripn_dfy_access';
 const DFY_DELIVERY_KEY = '@dripn_dfy_delivery';
 const DFY_CORE_CALENDAR_KEY = '@dripn_dfy_core_calendar';
 const DFY_ACTIVATIONS_KEY = '@dripn_dfy_activations';
+const TRAVEL_TRIPS_KEY = '@dripn_travel_trips';
+const ACTIVE_TRAVEL_TRIP_KEY = '@dripn_active_travel_trip';
+
+function newTravelTripId(): string {
+  return `trip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function travelTripSummaryFromRecord(record: TravelTripRecord): TravelTripSummary {
+  const plan = record.delivery.travelPlan;
+  return {
+    id: record.id,
+    title: record.title || formatTravelLookbookTitle(plan),
+    destination: plan?.destination || '',
+    startDate: plan?.startDate || record.delivery.startDate || '',
+    endDate: plan?.endDate || '',
+    tripDays:
+      plan?.tripDays
+      || resolveLiteTotalDays(record.delivery),
+    vibe: plan?.vibe || 'mixed',
+    updatedAt: record.updatedAt,
+    hasLooks: (record.delivery.outfits || []).some((o) => (o.items?.length || 0) > 0),
+  };
+}
 const COLD_OPEN_KEY = '@dripn_cold_open';
 
 export type DfyActivationBlockCode = 'no_benefit' | 'active_window' | 'included_used';
@@ -727,6 +784,177 @@ class DFYService {
     } catch (error) {
       console.error('Error saving DFY delivery:', error);
     }
+  }
+
+  private async readTravelTrips(userId: string): Promise<TravelTripRecord[]> {
+    try {
+      const raw = await AsyncStorage.getItem(`${TRAVEL_TRIPS_KEY}_${userId}`);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as TravelTripRecord[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async writeTravelTrips(userId: string, trips: TravelTripRecord[]): Promise<void> {
+    await AsyncStorage.setItem(`${TRAVEL_TRIPS_KEY}_${userId}`, JSON.stringify(trips));
+  }
+
+  async getActiveTravelTripId(userId: string): Promise<string | null> {
+    try {
+      return (await AsyncStorage.getItem(`${ACTIVE_TRAVEL_TRIP_KEY}_${userId}`)) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setActiveTravelTripId(userId: string, tripId: string): Promise<void> {
+    await AsyncStorage.setItem(`${ACTIVE_TRAVEL_TRIP_KEY}_${userId}`, tripId);
+  }
+
+  /**
+   * List saved Travel Capsule trips (local). Seeds from active delivery if empty.
+   */
+  async listTravelTrips(userId: string): Promise<TravelTripSummary[]> {
+    let trips = await this.readTravelTrips(userId);
+    if (trips.length === 0) {
+      const delivery = await this.getDFYDelivery(userId);
+      if (delivery?.tier === 'lite' && delivery.travelPlan?.destination) {
+        await this.upsertTravelTripFromDelivery(delivery, { activate: true, syncLooks: true });
+        trips = await this.readTravelTrips(userId);
+      }
+    }
+    return trips
+      .map(travelTripSummaryFromRecord)
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  }
+
+  async getTravelTrip(userId: string, tripId: string): Promise<TravelTripRecord | null> {
+    const trips = await this.readTravelTrips(userId);
+    return trips.find((t) => t.id === tripId) || null;
+  }
+
+  /**
+   * Upsert a trip from the active Lite delivery.
+   * - Metadata-only saves update plan/title without wiping looks when syncLooks is false
+   *   and an existing trip already has outfits (caller usually passes syncLooks true with
+   *   the delivery they intend to persist).
+   */
+  async upsertTravelTripFromDelivery(
+    delivery: DFYLiteDelivery,
+    options?: {
+      tripId?: string;
+      activate?: boolean;
+      syncLooks?: boolean;
+      /** Always create a new list entry (Plan a new trip). */
+      forceNew?: boolean;
+    },
+  ): Promise<TravelTripRecord | null> {
+    if (!delivery?.userId || delivery.tier !== 'lite') return null;
+    const userId = delivery.userId;
+    const plan = delivery.travelPlan;
+    if (!plan?.destination && !delivery.lookbookTitle) {
+      // Nothing meaningful to list yet
+      return null;
+    }
+
+    const trips = await this.readTravelTrips(userId);
+    const activeId = options?.forceNew
+      ? undefined
+      : (options?.tripId
+        || delivery.tripId
+        || plan?.tripId
+        || (await this.getActiveTravelTripId(userId)));
+
+    let existing = activeId ? trips.find((t) => t.id === activeId) : undefined;
+    // Match by destination + start when id missing (migration / first save)
+    if (!existing && !options?.forceNew && plan?.destination && plan?.startDate) {
+      existing = trips.find(
+        (t) =>
+          t.delivery.travelPlan?.destination === plan.destination
+          && t.delivery.travelPlan?.startDate === plan.startDate,
+      );
+    }
+
+    const tripId = existing?.id || activeId || newTravelTripId();
+    const title =
+      delivery.lookbookTitle
+      || formatTravelLookbookTitle(plan)
+      || existing?.title
+      || 'Travel Capsule';
+    const now = new Date().toISOString();
+    const syncLooks = options?.syncLooks !== false;
+
+    const nextDelivery: DFYLiteDelivery = normalizeLiteDelivery({
+      ...delivery,
+      tripId,
+      lookbookTitle: title,
+      travelPlan: plan
+        ? { ...plan, tripId }
+        : delivery.travelPlan,
+      outfits: syncLooks || !existing
+        ? delivery.outfits
+        : (existing.delivery.outfits?.length ? existing.delivery.outfits : delivery.outfits),
+      totalDays: syncLooks || !existing
+        ? delivery.totalDays
+        : (existing.delivery.totalDays || delivery.totalDays),
+      capsuleItemIds: syncLooks || !existing
+        ? delivery.capsuleItemIds
+        : (existing.delivery.capsuleItemIds || delivery.capsuleItemIds),
+      packingSummary: syncLooks || !existing
+        ? delivery.packingSummary
+        : (existing.delivery.packingSummary || delivery.packingSummary),
+    });
+
+    const record: TravelTripRecord = {
+      id: tripId,
+      title,
+      createdAt: existing?.createdAt || plan?.createdAt || now,
+      updatedAt: now,
+      delivery: nextDelivery,
+    };
+
+    const nextTrips = [record, ...trips.filter((t) => t.id !== tripId)];
+    await this.writeTravelTrips(userId, nextTrips);
+    if (options?.activate !== false) {
+      await this.setActiveTravelTripId(userId, tripId);
+    }
+    return record;
+  }
+
+  /**
+   * Activate a saved trip as the current Lite lookbook delivery.
+   */
+  async activateTravelTrip(userId: string, tripId: string): Promise<DFYLiteDelivery | null> {
+    const record = await this.getTravelTrip(userId, tripId);
+    if (!record) return null;
+    const delivery = normalizeLiteDelivery({
+      ...record.delivery,
+      userId,
+      tripId: record.id,
+      lookbookTitle: record.title,
+      travelPlan: record.delivery.travelPlan
+        ? { ...record.delivery.travelPlan, tripId: record.id }
+        : record.delivery.travelPlan,
+    });
+    // Persist without recursive upsert churn: write delivery then mark active
+    await AsyncStorage.setItem(`${DFY_DELIVERY_KEY}_${userId}`, JSON.stringify(delivery));
+    await this.setActiveTravelTripId(userId, tripId);
+    return delivery;
+  }
+
+  formatTravelTripSubtitle(summary: TravelTripSummary): string {
+    const start = formatDisplayDate(summary.startDate);
+    const end = formatDisplayDate(summary.endDate);
+    const dates = start && end ? `${start} – ${end}` : start || end || '';
+    const vibe = summary.vibe ? summary.vibe.charAt(0).toUpperCase() + summary.vibe.slice(1) : '';
+    const parts = [
+      dates,
+      summary.tripDays ? `${summary.tripDays}-day` : '',
+      vibe,
+    ].filter(Boolean);
+    return parts.join(' · ');
   }
 
   async saveCoreCalendarCache(

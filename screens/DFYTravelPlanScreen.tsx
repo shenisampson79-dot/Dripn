@@ -20,6 +20,7 @@ import { generateLiteLookbook } from '@/utils/dfyOutfitImages';
 import {
   defaultTravelPlan,
   destinationForDisplay,
+  formatTravelLookbookTitle,
   isPlaceholderDestination,
   tripLengthDays,
   type TravelActivity,
@@ -28,12 +29,11 @@ import {
 } from '@/utils/travelCapsule';
 import {
   addLocalDays,
-  formatDisplayDate,
-  formatLocalDateKey,
   LOOKBOOK_DEFAULT_TOTAL_DAYS,
-  parseDisplayDate,
+  formatLocalDateKey,
   startOfLocalDay,
 } from '@/utils/lookbookTripDay';
+import { DatePartsInput } from '@/components/DatePartsInput';
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/Button';
@@ -44,7 +44,7 @@ import { useWardrobe } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 
 type TravelPlanRouteParams = {
-  DFYTravelPlan: { mode?: 'create' | 'edit' } | undefined;
+  DFYTravelPlan: { mode?: 'create' | 'edit'; tripId?: string } | undefined;
 };
 
 type Props = {
@@ -77,6 +77,7 @@ function buildPlanFromForm(
   activities: TravelActivity[],
   geo: { name?: string; lat?: number; lon?: number } | null,
   createdAt?: string,
+  tripId?: string,
 ): TravelPlan {
   const dest = destination.trim();
   const resolvedName = geo?.name && !isPlaceholderDestination(geo.name) ? geo.name : dest;
@@ -90,12 +91,14 @@ function buildPlanFromForm(
     lat: geo?.lat,
     lon: geo?.lon,
     createdAt,
+    tripId,
   });
 }
 
 export default function DFYTravelPlanScreen({ navigation }: Props) {
   const route = useRoute<RouteProp<TravelPlanRouteParams, 'DFYTravelPlan'>>();
   const isEditMode = route.params?.mode === 'edit';
+  const routeTripId = route.params?.tripId;
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
@@ -105,10 +108,6 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState(todayIso());
   const [endDate, setEndDate] = useState(addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1));
-  const [startDateInput, setStartDateInput] = useState(formatDisplayDate(todayIso()));
-  const [endDateInput, setEndDateInput] = useState(
-    formatDisplayDate(addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1)),
-  );
   const [vibe, setVibe] = useState<TravelVibe>('mixed');
   const [activities, setActivities] = useState<TravelActivity[]>(['explore']);
   const [isBuilding, setIsBuilding] = useState(false);
@@ -119,38 +118,67 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     import('@/utils/packingSummary').PackingSummary | null
   >(null);
   const [loadedPlan, setLoadedPlan] = useState<TravelPlan | null>(null);
+  const [activeTripId, setActiveTripId] = useState<string | undefined>(routeTripId);
   const [hasExistingLooks, setHasExistingLooks] = useState(false);
 
-  const tripDays = useMemo(() => {
-    const start = parseDisplayDate(startDateInput) || startDate;
-    const end = parseDisplayDate(endDateInput) || endDate;
-    return tripLengthDays(start, end);
-  }, [startDate, endDate, startDateInput, endDateInput]);
+  const tripDays = useMemo(
+    () => tripLengthDays(startDate, endDate),
+    [startDate, endDate],
+  );
+
+  const lookbookPreviewTitle = useMemo(
+    () => formatTravelLookbookTitle({
+      destination: destination.trim(),
+      startDate,
+    }),
+    [destination, startDate],
+  );
 
   useEffect(() => {
-    if (!user?.id || !isEditMode) return;
+    if (!user?.id) return;
+    // Create mode without tripId = brand-new trip (don't preload active)
+    if (!isEditMode && !routeTripId) return;
+
     let cancelled = false;
     (async () => {
+      if (routeTripId) {
+        const record = await dfyService.getTravelTrip(user.id, routeTripId);
+        if (cancelled || !record) return;
+        const plan = record.delivery.travelPlan;
+        if (!plan) return;
+        setActiveTripId(record.id);
+        setLoadedPlan(plan);
+        setHasExistingLooks((record.delivery.outfits || []).some((o) => (o.items?.length || 0) > 0));
+        setDestination(destinationForDisplay(plan.destination));
+        const loadedStart = plan.startDate || todayIso();
+        const loadedEnd = plan.endDate || addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1);
+        setStartDate(loadedStart);
+        setEndDate(loadedEnd);
+        setVibe(plan.vibe || 'mixed');
+        setActivities(plan.activities?.length ? plan.activities : ['explore']);
+        return;
+      }
+
       const delivery = await dfyService.getDFYDelivery(user.id);
       if (cancelled || delivery?.tier !== 'lite') return;
-      setHasExistingLooks((delivery.outfits?.length ?? 0) > 0);
+      setHasExistingLooks((delivery.outfits?.length ?? 0) > 0
+        && delivery.outfits.some((o) => (o.items?.length || 0) > 0));
       const plan = delivery.travelPlan;
       if (!plan) return;
+      setActiveTripId(delivery.tripId || plan.tripId);
       setLoadedPlan(plan);
       setDestination(destinationForDisplay(plan.destination));
       const loadedStart = plan.startDate || todayIso();
       const loadedEnd = plan.endDate || addLocalDays(todayIso(), LOOKBOOK_DEFAULT_TOTAL_DAYS - 1);
       setStartDate(loadedStart);
       setEndDate(loadedEnd);
-      setStartDateInput(formatDisplayDate(loadedStart));
-      setEndDateInput(formatDisplayDate(loadedEnd));
       setVibe(plan.vibe || 'mixed');
       setActivities(plan.activities?.length ? plan.activities : ['explore']);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isEditMode]);
+  }, [user?.id, isEditMode, routeTripId]);
 
   const toggleActivity = (id: TravelActivity) => {
     Haptics.selectionAsync();
@@ -167,33 +195,13 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
     return null;
   };
 
-  const commitStartDate = (): boolean => {
-    const nextStart = parseDisplayDate(startDateInput);
-    if (!nextStart) {
-      setStartDateInput(formatDisplayDate(startDate));
-      return false;
-    }
-    setStartDate(nextStart);
-    setStartDateInput(formatDisplayDate(nextStart));
-    return true;
-  };
-
-  const commitEndDate = (): boolean => {
-    const nextEnd = parseDisplayDate(endDateInput);
-    if (!nextEnd) {
-      setEndDateInput(formatDisplayDate(endDate));
-      return false;
-    }
-    setEndDate(nextEnd);
-    setEndDateInput(formatDisplayDate(nextEnd));
-    return true;
-  };
-
-  const commitDateInputs = (): boolean => {
-    const startOk = commitStartDate();
-    const endOk = commitEndDate();
-    if (!startOk || !endOk) {
+  const validateDates = (): boolean => {
+    if (!startDate || !endDate) {
       setError(t('dfy.travel.invalidDates') || 'Enter dates as DD/MM/YYYY.');
+      return false;
+    }
+    if (tripLengthDays(startDate, endDate) < 1 || endDate < startDate) {
+      setError(t('dfy.travel.invalidDateRange') || 'End date must be on or after the start date.');
       return false;
     }
     setError(null);
@@ -202,7 +210,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
 
   const saveTripDetails = async () => {
     if (!user?.id) return;
-    if (!commitDateInputs()) return;
+    if (!validateDates()) return;
     const validationError = validateDestination();
     if (validationError) {
       setError(validationError);
@@ -225,19 +233,38 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
         activities,
         geo,
         loadedPlan?.createdAt,
+        activeTripId,
       );
 
-      let existing = await dfyService.getDFYDelivery(user.id);
-      if (existing?.tier !== 'lite') {
+      const tripRecord = activeTripId
+        ? await dfyService.getTravelTrip(user.id, activeTripId)
+        : null;
+
+      let existing =
+        tripRecord?.delivery
+        || (await dfyService.getDFYDelivery(user.id));
+      if (!existing || existing.tier !== 'lite') {
         const stylistId = (user.stylistPreferences?.selectedStylistId || 'ruby') as StylistId;
         existing = await dfyService.createMockLiteDelivery(user.id, stylistId);
       }
 
-      await dfyService.saveDFYDelivery({
+      const title = formatTravelLookbookTitle(plan);
+      const next = {
         ...existing,
+        userId: user.id,
         travelPlan: plan,
         startDate: plan.startDate,
+        tripId: activeTripId || existing.tripId,
+        lookbookTitle: title,
+      };
+
+      await dfyService.saveDFYDelivery(next);
+      const record = await dfyService.upsertTravelTripFromDelivery(next, {
+        tripId: activeTripId || existing.tripId,
+        activate: true,
+        syncLooks: false,
       });
+      if (record?.id) setActiveTripId(record.id);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
@@ -251,7 +278,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
 
   const buildCapsule = async () => {
     if (!user?.id) return;
-    if (!commitDateInputs()) return;
+    if (!validateDates()) return;
     const validationError = validateDestination();
     if (validationError) {
       setError(validationError);
@@ -286,6 +313,7 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
         activities,
         geo,
         loadedPlan?.createdAt,
+        activeTripId,
       );
 
       setStatusLine(
@@ -299,19 +327,25 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
         plan.lon,
       );
 
-      const existing = await dfyService.getDFYDelivery(user.id);
-      const base =
-        existing?.tier === 'lite'
+      const tripRecord = activeTripId
+        ? await dfyService.getTravelTrip(user.id, activeTripId)
+        : null;
+      const existing = tripRecord?.delivery || (await dfyService.getDFYDelivery(user.id));
+
+      // Edit / known trip: rebuild that capsule. Create mode: fresh generate.
+      const existingForGenerate =
+        (isEditMode || routeTripId) && existing?.tier === 'lite'
           ? existing
-          : await dfyService.createMockLiteDelivery(user.id, stylistId);
+          : null;
 
       const generated = generateLiteLookbook({
         userId: user.id,
         wardrobeItems,
         stylistId,
-        existing: base?.tier === 'lite' ? base : null,
+        existing: existingForGenerate,
         forecast,
         travelPlan: plan,
+        options: { force: true },
       });
 
       if (!generated) {
@@ -322,7 +356,22 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
         return;
       }
 
-      await dfyService.saveDFYDelivery(generated);
+      const titled = {
+        ...generated,
+        tripId: activeTripId || generated.tripId,
+        lookbookTitle: formatTravelLookbookTitle(plan),
+        travelPlan: { ...plan, tripId: activeTripId || plan.tripId },
+      };
+
+      await dfyService.saveDFYDelivery(titled);
+      const record = await dfyService.upsertTravelTripFromDelivery(titled, {
+        tripId: activeTripId,
+        forceNew: !isEditMode && !routeTripId && !activeTripId,
+        activate: true,
+        syncLooks: true,
+      });
+      if (record?.id) setActiveTripId(record.id);
+
       setPackingSummary(generated.packingSummary || null);
       setStatusLine(generated.packingSummary?.activityLine || generated.capsuleNotes?.[0] || null);
 
@@ -357,6 +406,13 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
   const continueToPlan = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.replace('DFYStylePlan');
+  };
+
+  const dateFieldColors = {
+    color: theme.text,
+    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+    placeholderColor: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
   };
 
   return (
@@ -400,13 +456,13 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
             value={destination}
             onChangeText={setDestination}
             placeholder={t('dfy.travel.destinationPlaceholder') || 'e.g. Barcelona, London, NYC'}
-            placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
+            placeholderTextColor={dateFieldColors.placeholderColor}
             style={[
               styles.input,
               {
-                color: theme.text,
-                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                color: dateFieldColors.color,
+                borderColor: dateFieldColors.borderColor,
+                backgroundColor: dateFieldColors.backgroundColor,
               },
             ]}
             autoCapitalize="words"
@@ -417,43 +473,43 @@ export default function DFYTravelPlanScreen({ navigation }: Props) {
             {t('dfy.travel.datesLabel') || 'Dates'}
           </ThemedText>
           <View style={styles.row}>
-            <TextInput
-              value={startDateInput}
-              onChangeText={setStartDateInput}
-              onBlur={commitStartDate}
-              placeholder={t('dfy.travel.startDatePlaceholder') || 'DD/MM/YYYY'}
-              placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
-              style={[
-                styles.input,
-                styles.half,
-                {
-                  color: theme.text,
-                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                },
-              ]}
+            <DatePartsInput
+              value={startDate}
+              onChangeIso={(iso) => {
+                setStartDate(iso);
+                if (endDate < iso) setEndDate(iso);
+              }}
+              onInvalidBlur={() =>
+                setError(t('dfy.travel.invalidDates') || 'Enter dates as DD/MM/YYYY.')
+              }
+              textColor={dateFieldColors.color}
+              borderColor={dateFieldColors.borderColor}
+              backgroundColor={dateFieldColors.backgroundColor}
+              placeholderColor={dateFieldColors.placeholderColor}
+              accessibilityLabel={t('dfy.travel.startDatePlaceholder') || 'Start date DD/MM/YYYY'}
             />
-            <TextInput
-              value={endDateInput}
-              onChangeText={setEndDateInput}
-              onBlur={commitEndDate}
-              placeholder={t('dfy.travel.endDatePlaceholder') || 'DD/MM/YYYY'}
-              placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
-              style={[
-                styles.input,
-                styles.half,
-                {
-                  color: theme.text,
-                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                },
-              ]}
+            <DatePartsInput
+              value={endDate}
+              onChangeIso={setEndDate}
+              onInvalidBlur={() =>
+                setError(t('dfy.travel.invalidDates') || 'Enter dates as DD/MM/YYYY.')
+              }
+              textColor={dateFieldColors.color}
+              borderColor={dateFieldColors.borderColor}
+              backgroundColor={dateFieldColors.backgroundColor}
+              placeholderColor={dateFieldColors.placeholderColor}
+              accessibilityLabel={t('dfy.travel.endDatePlaceholder') || 'End date DD/MM/YYYY'}
             />
           </View>
           <ThemedText type="small" style={{ opacity: 0.6, marginTop: Spacing.sm }}>
             {(t('dfy.travel.tripLengthHint') || '{days}-day trip')
               .replace('{days}', String(tripDays))}
           </ThemedText>
+          {destination.trim() ? (
+            <ThemedText type="small" style={{ opacity: 0.55, marginTop: 4 }}>
+              {lookbookPreviewTitle}
+            </ThemedText>
+          ) : null}
 
           <ThemedText type="caption" style={[styles.label, { marginTop: Spacing.lg }]}>
             {t('dfy.travel.vibeLabel') || 'Trip vibe'}
@@ -667,7 +723,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   row: { flexDirection: 'row', gap: Spacing.sm },
-  half: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {
     paddingHorizontal: Spacing.md,
