@@ -98,6 +98,11 @@ import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
+import {
+  loadLastDecisionContinuity,
+  toApiDecisionContinuity,
+  type DecisionContinuityPayload,
+} from '@/utils/decisionContinuity';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -1386,6 +1391,14 @@ export default function AIStylistScreen() {
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
   const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
   const initialPromptSentRef = useRef(false);
+  const decisionContinuityRef = useRef<DecisionContinuityPayload | null>(
+    route.params?.decisionContinuity || null,
+  );
+  const [continuityBanner, setContinuityBanner] = useState<string | null>(
+    route.params?.decisionContinuity
+      ? route.params.decisionContinuity.flow
+      : null,
+  );
   const tabBarHeightContext = useContext(BottomTabBarHeightContext);
   const insets = useSafeAreaInsets();
   const tabBarHeight: number =
@@ -1405,6 +1418,39 @@ export default function AIStylistScreen() {
   const isNearBottomRef = useRef(true);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
+
+  const continuityApiFields = useCallback(() => {
+    const payload = decisionContinuityRef.current;
+    const api = toApiDecisionContinuity(payload);
+    if (!api) return {};
+    return {
+      decisionContinuity: api as unknown as Record<string, unknown>,
+      fromDecisionSessionId: payload?.decisionSessionId,
+    };
+  }, []);
+
+  useEffect(() => {
+    const fromRoute = route.params?.decisionContinuity;
+    if (fromRoute) {
+      decisionContinuityRef.current = fromRoute;
+      setContinuityBanner(fromRoute.flow);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) return;
+      const recent = await loadLastDecisionContinuity(user.id);
+      if (cancelled || !recent) return;
+      // Soft attach only — do not auto-send; user opening chat soon after a decision
+      if (!decisionContinuityRef.current) {
+        decisionContinuityRef.current = recent;
+        setContinuityBanner(recent.flow);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params?.decisionContinuity, route.params?.fromDecisionSessionId, user?.id]);
 
   const greetingWardrobe = useMemo((): StylistGreetingWardrobe => {
     const owned = wardrobeItems.filter((item) => !item.origin || item.origin === 'owned');
@@ -1989,6 +2035,7 @@ export default function AIStylistScreen() {
         ...locationDataVoice,
         location: user?.country || actualCountry || undefined,
         countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
+        ...continuityApiFields(),
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderVoice,
@@ -2360,6 +2407,7 @@ export default function AIStylistScreen() {
         ...locationData,
         location: user?.country || actualCountry || locationData.location,
         countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
+        ...continuityApiFields(),
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderText,
@@ -2484,7 +2532,11 @@ export default function AIStylistScreen() {
       pendingInitialPromptRef.current = route.params.initialPrompt;
       initialPromptSentRef.current = false;
     }
-  }, [route.params?.initialPrompt]);
+    if (route.params?.decisionContinuity) {
+      decisionContinuityRef.current = route.params.decisionContinuity;
+      setContinuityBanner(route.params.decisionContinuity.flow);
+    }
+  }, [route.params?.initialPrompt, route.params?.decisionContinuity]);
 
   // When the keyboard rises, re-stick to the latest message so it isn't covered.
   useEffect(() => {
@@ -3539,6 +3591,32 @@ export default function AIStylistScreen() {
           </Pressable>
         </View>
       </View>
+
+      {continuityBanner ? (
+        <View
+          style={[
+            styles.continuityBanner,
+            { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+          ]}
+        >
+          <Feather name="git-branch" size={14} color={LUXURY_COLORS.gold} />
+          <ThemedText style={{ color: theme.tabIconDefault, flex: 1, fontSize: 12 }}>
+            {(t('stylistFlow.continuityBanner') || 'Continuing from {flow}').replace(
+              '{flow}',
+              continuityBanner === 'sanity-check'
+                ? 'Quick Sanity Check'
+                : continuityBanner === 'event-outfit'
+                  ? 'Outfit for Event'
+                  : continuityBanner === 'shopping'
+                    ? 'Choosing What to Buy'
+                    : continuityBanner,
+            )}
+          </ThemedText>
+          <Pressable onPress={() => setContinuityBanner(null)} hitSlop={8}>
+            <Feather name="x" size={14} color={theme.tabIconDefault} />
+          </Pressable>
+        </View>
+      ) : null}
       
       {showUpgradeTeaser ? (
         <View 
@@ -3959,6 +4037,16 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     paddingHorizontal: Spacing.xl,
+  },
+  continuityBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',

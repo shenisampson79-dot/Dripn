@@ -1700,6 +1700,9 @@ class ApiService {
     lon?: number;
     location?: string;
     countryCode?: string;
+    decisionContinuity?: Record<string, unknown>;
+    fromDecisionSessionId?: string;
+    useRecentDecisionContinuity?: boolean;
   }): Promise<{
     content: string;
     wardrobeVisual?: {
@@ -1882,6 +1885,9 @@ class ApiService {
     userProfile?: any;
     surpriseMe?: boolean;
     clientImageCount?: number;
+    decisionSessionId?: string;
+    selectedContexts?: string[];
+    eventDetails?: Record<string, string>;
     selectedWardrobeIds?: Array<string | number>;
     wardrobeItems?: Array<{
       id?: string | number;

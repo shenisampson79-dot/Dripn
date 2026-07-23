@@ -66,7 +66,11 @@ type FlowDecisionType = Exclude<DecisionType, 'what-to-wear'>;
 
 interface StylistDecisionFlowProps {
   decisionType: FlowDecisionType;
-  navigation: { goBack: () => void; navigate?: (name: string) => void; dispatch?: (action: unknown) => void };
+  navigation: {
+    goBack: () => void;
+    navigate?: (name: string, params?: Record<string, unknown>) => void;
+    dispatch?: (action: unknown) => void;
+  };
 }
 
 function getStylistGradient(stylistId?: string): readonly [string, string] {
@@ -681,6 +685,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 false,
                 flow.isLoading,
               )}
+              {renderPrimaryButton(
+                t('stylistFlow.yesHelpMe').replace('{name}', stylistName),
+                () => {
+                  void flow.continueInChat();
+                },
+              )}
               <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
                 <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                   {t('stylistFlow.editAndRerun')}
@@ -689,7 +699,17 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </>
           ) : (
             <>
-              {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())}
+              {renderPrimaryButton(
+                t('stylistFlow.yesHelpMe').replace('{name}', stylistName),
+                () => {
+                  void flow.continueInChat();
+                },
+              )}
+              <Pressable onPress={() => flow.completeAndClose()} style={styles.secondaryButton}>
+                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                  {t('stylistFlow.done')}
+                </ThemedText>
+              </Pressable>
               <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
                 <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                   {t('stylistFlow.editAndRerun')}

@@ -25,13 +25,18 @@ import EventOutfitScreen from "@/screens/EventOutfitScreen";
 import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import type { DecisionType } from "@/services/DecisionService";
+import type { DecisionContinuityPayload } from "@/utils/decisionContinuity";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 export type UserStylistStackParamList = {
   StylistHub: undefined;
-  AIStylist: { initialPrompt?: string } | undefined;
+  AIStylist: {
+    initialPrompt?: string;
+    decisionContinuity?: DecisionContinuityPayload;
+    fromDecisionSessionId?: string;
+  } | undefined;
   StyleShuffle: undefined;
   VisualSearch: undefined;
   DreamOutfitGenerator: undefined;

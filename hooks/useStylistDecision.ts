@@ -36,6 +36,10 @@ import {
   MAX_DECISION_WARDROBE_ITEMS,
   MAX_SANITY_CHECK_PHOTOS,
 } from '@/utils/decisionWardrobeGroups';
+import {
+  buildDecisionContinuity,
+  saveLastDecisionContinuity,
+} from '@/utils/decisionContinuity';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -48,7 +52,11 @@ export interface EventDetails {
 
 export interface UseStylistDecisionOptions {
   decisionType: Exclude<DecisionType, 'what-to-wear'>;
-  navigation: { goBack: () => void; navigate?: (name: string) => void; dispatch?: (action: unknown) => void };
+  navigation: {
+    goBack: () => void;
+    navigate?: (name: string, params?: Record<string, unknown>) => void;
+    dispatch?: (action: unknown) => void;
+  };
   initialStep?: StylistFlowStep;
 }
 
@@ -618,6 +626,9 @@ export function useStylistDecision({
         userProfile: buildUserProfile(),
         surpriseMe,
         clientImageCount: surpriseMe ? 0 : imageUris.length,
+        decisionSessionId: sessionRef.current?.id,
+        selectedContexts,
+        eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
         selectedWardrobeIds: selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
           id: item.id,
@@ -678,6 +689,14 @@ export function useStylistDecision({
         sessionRef.current = completed;
         setSessionStatus(completed.status);
         await decisionSessionManager.persist(completed);
+        const continuity = buildDecisionContinuity({
+          session: completed,
+          response: result,
+          stylistId: result.stylistId || stylistId,
+        });
+        if (continuity && user?.id) {
+          await saveLastDecisionContinuity(user.id, continuity);
+        }
       }
       setResponse(result);
       setStep('response');
@@ -807,6 +826,36 @@ export function useStylistDecision({
     navigation.goBack();
   };
 
+  /** Build continuity snapshot for Stylist Chat handoff (no image payloads). */
+  const getDecisionContinuity = () => {
+    if (!sessionRef.current || !response) return null;
+    const stylistId = (response.stylistId
+      || user?.stylistPreferences?.selectedStylistId
+      || 'ruby') as string;
+    return buildDecisionContinuity({
+      session: sessionRef.current,
+      response,
+      stylistId,
+    });
+  };
+
+  /** Primary CTA: open AI Stylist with same stylist + seeded follow-up + continuity. */
+  const continueInChat = async () => {
+    const continuity = getDecisionContinuity();
+    if (!continuity) {
+      navigation.navigate?.('AIStylist');
+      return;
+    }
+    if (user?.id) {
+      await saveLastDecisionContinuity(user.id, continuity);
+    }
+    navigation.navigate?.('AIStylist', {
+      initialPrompt: continuity.followUpPrompt,
+      decisionContinuity: continuity,
+      fromDecisionSessionId: continuity.decisionSessionId,
+    });
+  };
+
   /** Unlock completed/stale snapshot for a new run with same photos/notes. */
   const editAndRerun = async () => {
     if (!user?.id) return;
@@ -914,6 +963,8 @@ export function useStylistDecision({
     submitDecision,
     resetFlow,
     completeAndClose,
+    continueInChat,
+    getDecisionContinuity,
     editAndRerun,
     refreshStaleRecommendation,
     openSubscriptionFromPaywall,
