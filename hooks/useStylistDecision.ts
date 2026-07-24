@@ -850,6 +850,7 @@ export function useStylistDecision({
               : undefined),
         recommendedOutfit: apiResult.recommendedOutfit || null,
         retailers: apiResult.retailers || undefined,
+        retailOutfit: apiResult.retailOutfit || null,
         stylistNote: apiResult.stylistNote
           ? sanitizeStylistUserText(apiResult.stylistNote)
           : undefined,

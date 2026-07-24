@@ -5474,6 +5474,80 @@ class ApiService {
     });
   }
 
+  /** Curated retail outfit for SHOP_REQUIRED (product cards + optional AI preview). */
+  async getShopOutfit(opts: {
+    dressCode?: string;
+    occasion?: string;
+    country?: string;
+    gender?: string;
+    generatePreview?: boolean;
+    recommendedOutfit?: Record<string, string>;
+  } = {}) {
+    return this.request<{
+      success: boolean;
+      displayState?: string;
+      recommendedOutfit?: Record<string, string>;
+      outfit?: Record<string, {
+        id?: string;
+        title?: string;
+        brand?: string;
+        price?: number;
+        currency?: string;
+        priceFormatted?: string;
+        image?: string;
+        url?: string | null;
+        searchUrl?: string | null;
+        retailer?: string;
+        retailerId?: string;
+        category?: string;
+      }>;
+      products?: Array<{
+        id?: string;
+        title?: string;
+        brand?: string;
+        price?: number;
+        currency?: string;
+        priceFormatted?: string;
+        image?: string;
+        url?: string | null;
+        searchUrl?: string | null;
+        retailer?: string;
+        retailerId?: string;
+        category?: string;
+      }>;
+      retailers?: Array<{ name?: string; url?: string; items?: string[] }>;
+      previewImageUrl?: string | null;
+      dressCodeKey?: string;
+      dressCodeLabel?: string;
+      message?: string;
+    }>('/api/stylist/shop-outfit', {
+      method: 'POST',
+      body: JSON.stringify(opts),
+    });
+  }
+
+  /** AI full-look preview (server-cached; cost-metered on miss). */
+  async getOutfitPreview(opts: {
+    top?: string;
+    bottom?: string;
+    shoes?: string;
+    outerwear?: string;
+    dressCode?: string;
+    gender?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      imageUrl?: string;
+      cached?: boolean;
+      provider?: string;
+      cacheKey?: string;
+      error?: string;
+    }>('/api/stylist/outfit-preview', {
+      method: 'POST',
+      body: JSON.stringify(opts),
+    });
+  }
+
   // Shopping - Wishlist Management
   async getWishlist() {
     return this.request<{

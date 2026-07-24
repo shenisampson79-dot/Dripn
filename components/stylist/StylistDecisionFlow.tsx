@@ -35,6 +35,7 @@ import { useStylistDecision } from '@/hooks/useStylistDecision';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePicker';
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
+import { RetailOutfitSection } from '@/components/stylist/RetailOutfitSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
@@ -703,36 +704,57 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </ThemedText>
           </View>
 
-          <Image
-            source={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
-            style={styles.responseHero}
-            resizeMode="cover"
-          />
-
-          <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-              You don&apos;t own suitable pieces
-            </ThemedText>
-            <ThemedText type="body" style={styles.responseBody}>
-              {gapCopy}
-            </ThemedText>
-            {inspirationRows.length > 0 ? (
-              <View style={{ marginTop: Spacing.md }}>
-                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-                  Look for this instead
-                </ThemedText>
-                {inspirationRows.map(([role, label]) => (
-                  <ThemedText key={role} type="body" style={{ marginBottom: Spacing.xs }}>
-                    {formatOutfitPieceRoleLabel(role)}: {label}
+          {res.retailOutfit?.products?.length || res.retailOutfit?.outfit ? (
+            <RetailOutfitSection
+              retailOutfit={res.retailOutfit}
+              recommendedOutfit={recommended}
+              dressCode={res.retailOutfit?.dressCodeKey || undefined}
+              requestPreview
+              fallbackHeroSource={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+              headline="Shop this look"
+              lead={
+                <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                  <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+                    You don&apos;t own suitable pieces
                   </ThemedText>
-                ))}
+                  <ThemedText type="body" style={styles.responseBody}>
+                    {gapCopy}
+                  </ThemedText>
+                </View>
+              }
+            />
+          ) : (
+            <>
+              <Image
+                source={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+                style={styles.responseHero}
+                resizeMode="cover"
+              />
+              <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+                  You don&apos;t own suitable pieces
+                </ThemedText>
+                <ThemedText type="body" style={styles.responseBody}>
+                  {gapCopy}
+                </ThemedText>
+                {inspirationRows.length > 0 ? (
+                  <View style={{ marginTop: Spacing.md }}>
+                    <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                      Look for this instead
+                    </ThemedText>
+                    {inspirationRows.map(([role, label]) => (
+                      <ThemedText key={role} type="body" style={{ marginBottom: Spacing.xs }}>
+                        {formatOutfitPieceRoleLabel(role)}: {label}
+                      </ThemedText>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-          </View>
-
-          {shopMissing.length > 0 ? (
-            <FallbackShopSection missing={shopMissing} headline="Shop this look" />
-          ) : null}
+              {shopMissing.length > 0 ? (
+                <FallbackShopSection missing={shopMissing} headline="Shop this look" />
+              ) : null}
+            </>
+          )}
 
           {Array.isArray(res.retailers) && res.retailers.length > 0 ? (
             <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>

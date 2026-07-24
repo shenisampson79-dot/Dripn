@@ -65,6 +65,41 @@ export interface DecisionResponse {
     url?: string;
     items?: string[];
   }>;
+  /** Ranked product cards for SHOP_REQUIRED */
+  retailOutfit?: {
+    outfit?: Record<string, {
+      id?: string;
+      title?: string;
+      brand?: string;
+      price?: number;
+      currency?: string;
+      priceFormatted?: string;
+      image?: string;
+      url?: string | null;
+      searchUrl?: string | null;
+      retailer?: string;
+      retailerId?: string;
+      category?: string;
+    }>;
+    products?: Array<{
+      id?: string;
+      title?: string;
+      brand?: string;
+      price?: number;
+      currency?: string;
+      priceFormatted?: string;
+      image?: string;
+      url?: string | null;
+      searchUrl?: string | null;
+      retailer?: string;
+      retailerId?: string;
+      category?: string;
+    }>;
+    previewImageUrl?: string | null;
+    dressCodeKey?: string;
+    dressCodeLabel?: string;
+    country?: string;
+  } | null;
   stylistNote?: string;
   suggestions?: string[];
   missingPieces?: string[];
