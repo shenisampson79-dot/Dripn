@@ -47,6 +47,16 @@ function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhance
   );
 }
 
+/** Local carpet cached as "processed" after the July 5 overwrite bug — not a real cutout. */
+function itemFalselyMarkedProcessed(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'originalImageUri' | 'imageProcessed'>): boolean {
+  if (!item.imageProcessed) return false;
+  if (itemHasProcessedCdnImage(item)) return false;
+  const display = item.enhancedImageUri || item.imageUri || '';
+  if (!display || isRemoteImageUri(display) || isProcessedWardrobeCdnUrl(display)) return false;
+  const original = item.originalImageUri || '';
+  return !original || display === original;
+}
+
 function getLocalImageUri(item: WardrobeItem, imageCache: ImageCache): string | null {
   const cached = imageCache[String(item.id)];
   const candidates = [
@@ -430,12 +440,15 @@ async function syncBackgroundRemovalForItems(
 
   for (const item of items) {
     if (idFilter && !idFilter.has(String(item.id))) continue;
-    // Skip anything that already has a cutout — do not re-bill Replicate
+    // Skip real cutouts — do not re-bill Replicate. Re-queue carpet falsely marked processed.
     if (
-      item.imageProcessed ||
-      itemHasProcessedCdnImage(item) ||
-      isProcessedWardrobeCdnUrl(item.enhancedImageUri || '') ||
-      isProcessedWardrobeCdnUrl(item.imageUri || '')
+      !itemFalselyMarkedProcessed(item)
+      && (
+        item.imageProcessed ||
+        itemHasProcessedCdnImage(item) ||
+        isProcessedWardrobeCdnUrl(item.enhancedImageUri || '') ||
+        isProcessedWardrobeCdnUrl(item.imageUri || '')
+      )
     ) {
       skipped += 1;
       continue;
@@ -899,6 +912,32 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
               isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
 
             if (cacheEntry?.imageProcessed && cacheEntry.imageUri) {
+              const cacheLocal = !isRemoteImageUri(cacheEntry.imageUri);
+              const serverCutout =
+                isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
+                isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
+              // Never let a local carpet cache overwrite a server cutout (regression repair)
+              if (cacheLocal && (serverCutout || (serverProcessed && mapped.imageUri && isRemoteImageUri(mapped.imageUri)))) {
+                return {
+                  ...mapped,
+                  originalImageUri:
+                    cacheEntry.originalImageUri
+                    || mapped.originalImageUri
+                    || cacheEntry.imageUri,
+                  imageProcessed: true,
+                };
+              }
+              const cacheOrig = cacheEntry.originalImageUri || '';
+              if (cacheLocal && cacheOrig && cacheEntry.imageUri === cacheOrig && !serverProcessed) {
+                // Carpet falsely marked processed — keep original, allow rembg retry
+                return {
+                  ...mapped,
+                  originalImageUri: cacheOrig,
+                  imageUri: cacheOrig,
+                  enhancedImageUri: cacheOrig,
+                  imageProcessed: false,
+                };
+              }
               return {
                 ...mapped,
                 imageUri: cacheEntry.imageUri,
