@@ -875,6 +875,10 @@ export function useStylistDecision({
         success: apiResult.success !== false,
         alreadyOwned: apiResult.alreadyOwned || apiResult.alreadyOwnedMatches,
         alreadyOwnedMatches: apiResult.alreadyOwnedMatches || apiResult.alreadyOwned,
+        ownershipDecision: apiResult.ownershipDecision,
+        purchaseDecision: apiResult.purchaseDecision,
+        wardrobeCoverage: apiResult.wardrobeCoverage,
+        alreadyOwnedOverride: Boolean(apiResult.alreadyOwnedOverride),
       };
 
       await persistResult(result, imageUris);

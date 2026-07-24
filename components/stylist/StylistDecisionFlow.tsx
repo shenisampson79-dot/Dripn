@@ -730,7 +730,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     const showRating =
       res.styleRating != null
-      && Number(res.styleRating) > 5.4;
+      && Number(res.styleRating) > 5.4
+      && res.purchaseDecision?.decision !== 'DO_NOT_BUY'
+      && !res.alreadyOwnedOverride;
 
     const allPieces = sanitizeOutfitPieces(res.outfitPieces || []);
     const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
@@ -781,20 +783,78 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
             <View style={{ marginBottom: Spacing.md }}>
               <ThemedText type="small" style={{ color: theme.link, marginBottom: Spacing.xs }}>
-                {t('wardrobe.alreadyOwnPurchase') || 'You already own something very similar'}
+                {res.alreadyOwned[0]?.confidenceLabel
+                  || res.ownershipDecision?.message
+                  || t('wardrobe.alreadyOwnPurchase')
+                  || 'You already own this'}
               </ThemedText>
+              {(res.alreadyOwned[0]?.confidencePercent != null
+                || res.purchaseDecision?.confidencePercent != null) ? (
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                  {`${res.alreadyOwned[0]?.confidencePercent
+                    ?? res.purchaseDecision?.confidencePercent}% match`}
+                </ThemedText>
+              ) : null}
               <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                {(t('wardrobe.alreadyOwnPurchaseMessage')
-                  || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
-                  .replace(
-                    '{names}',
-                    res.alreadyOwned
-                      .flatMap((entry) => (entry.matches || []).map((m) => m.name || 'item'))
-                      .filter(Boolean)
-                      .slice(0, 4)
-                      .join(', '),
-                  )}
+                {res.alreadyOwned[0]?.coverage?.explanation
+                  || res.alreadyOwned[0]?.message
+                  || (t('wardrobe.alreadyOwnPurchaseMessage')
+                    || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
+                    .replace(
+                      '{names}',
+                      res.alreadyOwned
+                        .flatMap((entry) => (entry.matches || []).map((m) => m.name || 'item'))
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .join(', '),
+                    )}
               </ThemedText>
+
+              {/* Visual proof: shopping photo vs wardrobe match */}
+              {res.alreadyOwned.map((entry) => {
+                const shopUri = uploaded[entry.optionIndex] || (uploaded.length === 1 ? uploaded[0] : null);
+                const match = entry.comparison?.wardrobeItem || entry.matches?.[0];
+                const wardrobeUri = match?.imageUrl || null;
+                if (!shopUri && !wardrobeUri) return null;
+                return (
+                  <View
+                    key={`owned-compare-${entry.optionIndex}`}
+                    style={{
+                      flexDirection: 'row',
+                      gap: Spacing.sm,
+                      marginBottom: Spacing.sm,
+                      alignItems: 'stretch',
+                    }}
+                  >
+                    {shopUri ? (
+                      <View style={{ flex: 1 }}>
+                        <Image
+                          source={{ uri: shopUri }}
+                          style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
+                          Considering
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                    {wardrobeUri ? (
+                      <View style={{ flex: 1 }}>
+                        <Image
+                          source={{ uri: String(wardrobeUri) }}
+                          style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
+                          {match?.name || 'In your wardrobe'}
+                          {entry.confidencePercent != null ? ` · ${entry.confidencePercent}%` : ''}
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+
               <View style={{ gap: Spacing.sm }}>
                 <Pressable
                   onPress={() => {
@@ -809,7 +869,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                         return;
                       } catch { /* fall through */ }
                     }
-                    // Stub cleanly: open outfit calendar with owned pieces when detail route unavailable
                     try {
                       navigation.navigate?.('OutfitCalendar', {
                         seedWardrobeItemIds: ownedIds,

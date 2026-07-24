@@ -108,8 +108,32 @@ export interface DecisionResponse {
   /** Shopping / sanity: uploaded photos that match owned wardrobe items */
   alreadyOwned?: Array<{
     optionIndex: number;
-    type?: 'already_owned';
+    type?: 'already_owned' | 'redundant';
+    verdict?: string;
     message?: string;
+    confidence?: number;
+    confidencePercent?: number;
+    confidenceBand?: 'already_owned' | 'very_similar' | 'similar_style' | null;
+    confidenceLabel?: string | null;
+    coverage?: {
+      redundancy?: number;
+      gapScore?: number;
+      versatility?: number;
+      explanation?: string;
+      similarCount?: number;
+      overIndexed?: string | null;
+    };
+    comparison?: {
+      wardrobeItem: {
+        id?: number | string;
+        name?: string;
+        imageUrl?: string | null;
+        color?: string | null;
+        brand?: string | null;
+      };
+      shoppingOptionIndex: number;
+      similarityPercent?: number;
+    } | null;
     matches: Array<{
       id?: number | string;
       name?: string;
@@ -118,16 +142,35 @@ export interface DecisionResponse {
       brand?: string | null;
       imageUrl?: string | null;
       confidence?: string;
+      similarityPercent?: number;
       reason?: string;
       message?: string;
     }>;
   }>;
   alreadyOwnedMatches?: DecisionResponse['alreadyOwned'];
   ownershipDecision?: {
-    type: 'already_owned' | 'ok' | 'similar_item' | 'duplicate';
+    type: 'already_owned' | 'ok' | 'similar_item' | 'duplicate' | string;
+    decision?: 'DO_NOT_BUY' | 'STRONG_BUY' | 'SMART_BUY' | 'OK' | string;
+    verdict?: string;
     matches: Array<Record<string, unknown>>;
     message?: string;
+    confidence?: number;
+    confidencePercent?: number;
+    matchedItemId?: number | string | null;
+    coverage?: Record<string, unknown>;
   };
+  purchaseDecision?: {
+    decision?: string;
+    verdict?: string;
+    reason?: string | null;
+    matchedItemId?: number | string | null;
+    matchedItem?: Record<string, unknown> | null;
+    confidence?: number;
+    confidencePercent?: number;
+    coverage?: Record<string, unknown> | null;
+  };
+  wardrobeCoverage?: Record<string, unknown> | null;
+  alreadyOwnedOverride?: boolean;
 }
 
 /** Client floor — never display scores at/below occasion-fail cap. */
