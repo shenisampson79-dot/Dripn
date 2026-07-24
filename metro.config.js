@@ -2,6 +2,11 @@ const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
+// Bundled on-device YOLO weights (react-native-fast-tflite)
+if (!config.resolver.assetExts.includes("tflite")) {
+  config.resolver.assetExts.push("tflite");
+}
+
 if (
   process.env.NODE_ENV === "production" &&
   !process.env.CI &&

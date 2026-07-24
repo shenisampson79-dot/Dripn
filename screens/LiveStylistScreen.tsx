@@ -1,6 +1,7 @@
 /**
  * Live Stylist — continuous camera sampling (~1 fps) + AR overlays.
- * Uses expo-camera (OTA-safe). On-device YOLO is stubbed; cloud Vision is the live path.
+ * Uses expo-camera. Prefers on-device YOLO TFLite when the native module is linked
+ * (EAS binary); otherwise posts the JPEG to cloud Vision. OTA alone cannot add TFLite.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -34,6 +35,7 @@ import { apiService } from '@/services/ApiService';
 import {
   detectGarmentsOnDevice,
   getOnDeviceYoloStatus,
+  warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
 import { framesLikelySame, hashBase64Frame, stripBase64Prefix } from '@/utils/liveFrameHash';
@@ -83,6 +85,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     mountedRef.current = true;
+    void warmUpOnDeviceYolo();
     return () => {
       mountedRef.current = false;
       setIsLive(false);
@@ -265,11 +268,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           </ThemedText>
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
-        {!yoloStatus.available ? (
-          <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
-            On-device YOLO needs a native build — using cloud sampling
-          </ThemedText>
-        ) : null}
+        <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
+          {yoloStatus.available
+            ? 'On-device YOLO ready — cloud Vision only if detection fails'
+            : yoloStatus.requiresNativeRebuild
+              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
+              : 'On-device YOLO unavailable — using cloud sampling'}
+        </ThemedText>
 
         <View style={styles.actions}>
           <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>

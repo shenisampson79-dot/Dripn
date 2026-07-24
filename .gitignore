@@ -37,6 +37,9 @@ yarn-error.*
 # Replit / Cursor local agent state (never commit)
 .local/
 
+# Local portable Python / YOLO export scratch (do not commit)
+.tools/
+
 # typescript
 *.tsbuildinfo
 

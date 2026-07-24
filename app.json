@@ -57,6 +57,13 @@
     "plugins": [
       "expo-dev-client",
       "expo-asset",
+      [
+        "react-native-fast-tflite",
+        {
+          "enableCoreMLDelegate": true,
+          "enableAndroidGpuLibraries": true
+        }
+      ],
       "expo-video",
       "expo-secure-store",
       [

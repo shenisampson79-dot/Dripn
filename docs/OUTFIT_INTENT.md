@@ -117,6 +117,10 @@ Asserted: power prefers blazer+oxfords over slides; effortless prefers linen+min
 
 ## Live Stylist (Phase 2)
 
-- Screen: `LiveStylistScreen` — `expo-camera` sampling ~1 fps, SVG AR overlays, cloud Vision via `POST /api/wardrobe/scan-wardrobe/live-frame`.
-- On-device YOLO: stub in `services/onDeviceGarmentDetector.ts` — needs native EAS rebuild when a TFLite/Core ML plugin is linked. OTA alone is enough for the cloud live path.
+- Screen: `LiveStylistScreen` — `expo-camera` sampling ~1 fps, SVG AR overlays, `POST /api/wardrobe/scan-wardrobe/live-frame`.
+- On-device YOLO (real): `react-native-fast-tflite` + bundled `assets/models/garment-yolo-n320.tflite` (~11.6 MB float32, YOLOv8n clothing / Fashionpedia 4-class @ 320). JS: `services/onDeviceGarmentDetector.ts` (`ON_DEVICE_YOLO_NATIVE = true`). Feature-detects the native module; old binaries / Expo Go fall back to cloud Vision without crashing.
+- Cost path: when on-device boxes exist, client sends `detections[]` only (no frame upload → no Vision spend); server styles from metadata. Empty/failed on-device → cloud Vision JPEG path.
+- **Binary required:** linking TFLite/Nitro needs a new **EAS native build**. `eas update` / OTA alone cannot enable on-device YOLO on older installs. Cloud live path remains OTA-safe.
+- Model limits: classes are Clothing / Shoes / Bags / Accessories — Clothing is remapped to tops/bottoms/dresses/outerwear via bbox geometry (not a fine-grained garment taxonomy).
 - Entry: Stylist Hub **Live stylist**; Scan Wardrobe **Live camera**.
+- Rebuild notes: see `docs/ON_DEVICE_YOLO.md`.

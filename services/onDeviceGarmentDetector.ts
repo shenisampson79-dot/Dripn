@@ -1,21 +1,27 @@
 /**
- * On-device garment detector plugin boundary.
+ * On-device garment detector (YOLOv8n clothing TFLite via react-native-fast-tflite).
  *
- * Expo SDK 56 managed / current binary: no TFLite / Core ML YOLO package is
- * wired. This module always reports unavailable and returns null so the live
- * stylist uses cloud Vision sampling (OTA-safe).
+ * Requires a native EAS binary that links Nitro + TFLite. OTA JS on older binaries
+ * feature-detects and falls back to cloud Vision — do not rely on Expo Go / OTA alone.
  *
- * To enable later (requires new EAS native build + custom dev client):
- * 1. Add a maintained TFLite / Core ML / MediaPipe package compatible with RN 0.85.
- * 2. Set ON_DEVICE_YOLO_NATIVE = true after linking.
- * 3. Implement detectGarmentsOnDevice to return bbox detections.
- * 4. LiveStylistScreen already posts `detections` to /live-frame when present.
+ * Model: assets/models/garment-yolo-n320.tflite (~11.6 MB float32)
+ * Source: kesimeg/yolov8n-clothing-detection (Fashionpedia 4-class) exported @ 320.
+ * Classes: Clothing, Shoes, Bags, Accessories — Clothing is remapped via bbox geometry.
  */
 
-import type { LiveTrackedItem } from '@/types/liveStylist';
+import { Platform } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { decode as decodeJpeg } from 'jpeg-js';
 
-/** Flip only after a native module is linked in an EAS build. */
-export const ON_DEVICE_YOLO_NATIVE = false;
+import type { LiveTrackedItem } from '@/types/liveStylist';
+import {
+  mapYoloClassToWardrobeCategory,
+  parseYoloGarmentOutput,
+  type ParsedYoloBox,
+} from '@/services/yoloGarmentParse';
+
+/** Flip true once the TFLite native path ships in JS (this build). */
+export const ON_DEVICE_YOLO_NATIVE = true;
 
 export type OnDeviceDetection = {
   name?: string;
@@ -28,8 +34,95 @@ export type OnDeviceDetection = {
   trackId?: string;
 };
 
+const INPUT_SIZE = 320;
+const MODEL_ASSET = require('../assets/models/garment-yolo-n320.tflite');
+
+type TfLiteModel = {
+  inputs: Array<{ shape: number[]; dataType: string }>;
+  outputs: Array<{ shape: number[]; dataType: string }>;
+  run: (inputs: ArrayBuffer[]) => Promise<ArrayBuffer[]>;
+};
+
+type LoadFn = (
+  source: number | { url: string },
+  delegates: Array<'core-ml' | 'metal' | 'nnapi' | 'android-gpu'>,
+) => Promise<TfLiteModel>;
+
+let loadModelFn: LoadFn | null | undefined;
+let modelPromise: Promise<TfLiteModel | null> | null = null;
+let nativeUnavailableReason: string | null = null;
+
+function tryGetLoadFn(): LoadFn | null {
+  if (loadModelFn !== undefined) return loadModelFn;
+  if (Platform.OS === 'web') {
+    loadModelFn = null;
+    nativeUnavailableReason = 'On-device YOLO is not supported on web.';
+    return null;
+  }
+  try {
+    // Dynamic require: module init creates Nitro hybrid objects and throws on
+    // binaries that were not rebuilt with react-native-fast-tflite.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('react-native-fast-tflite') as {
+      loadTensorflowModel: LoadFn;
+    };
+    if (typeof mod?.loadTensorflowModel !== 'function') {
+      loadModelFn = null;
+      nativeUnavailableReason = 'TFLite native module missing loadTensorflowModel.';
+      return null;
+    }
+    loadModelFn = mod.loadTensorflowModel;
+    return loadModelFn;
+  } catch (err) {
+    loadModelFn = null;
+    nativeUnavailableReason =
+      err instanceof Error
+        ? err.message
+        : 'TFLite native module not linked in this binary.';
+    return null;
+  }
+}
+
+function preferredDelegates(): Array<'core-ml' | 'metal' | 'nnapi' | 'android-gpu'> {
+  if (Platform.OS === 'ios') return ['core-ml'];
+  if (Platform.OS === 'android') return ['nnapi'];
+  return [];
+}
+
+async function ensureModel(): Promise<TfLiteModel | null> {
+  if (!ON_DEVICE_YOLO_NATIVE) return null;
+  const load = tryGetLoadFn();
+  if (!load) return null;
+  if (!modelPromise) {
+    modelPromise = (async () => {
+      try {
+        try {
+          return await load(MODEL_ASSET, preferredDelegates());
+        } catch {
+          // Delegate unsupported on some devices — fall back to CPU.
+          return await load(MODEL_ASSET, []);
+        }
+      } catch (err) {
+        nativeUnavailableReason =
+          err instanceof Error ? err.message : 'Failed to load garment YOLO model.';
+        console.warn('[onDeviceYolo] model load failed:', nativeUnavailableReason);
+        return null;
+      }
+    })();
+  }
+  return modelPromise;
+}
+
+/** Prefetch TFLite weights (safe no-op when native module is missing). */
+export async function warmUpOnDeviceYolo(): Promise<boolean> {
+  const model = await ensureModel();
+  return model != null;
+}
+
 export function isOnDeviceYoloAvailable(): boolean {
-  return ON_DEVICE_YOLO_NATIVE;
+  if (!ON_DEVICE_YOLO_NATIVE || Platform.OS === 'web') return false;
+  if (nativeUnavailableReason) return false;
+  return tryGetLoadFn() != null;
 }
 
 export function getOnDeviceYoloStatus(): {
@@ -37,19 +130,163 @@ export function getOnDeviceYoloStatus(): {
   reason: string;
   requiresNativeRebuild: boolean;
 } {
-  if (ON_DEVICE_YOLO_NATIVE) {
+  if (!ON_DEVICE_YOLO_NATIVE) {
     return {
-      available: true,
-      reason: 'Native YOLO plugin linked',
+      available: false,
+      reason: 'On-device YOLO flag disabled in JS.',
+      requiresNativeRebuild: true,
+    };
+  }
+  if (Platform.OS === 'web') {
+    return {
+      available: false,
+      reason: 'On-device YOLO is mobile-only.',
       requiresNativeRebuild: false,
     };
   }
+  if (tryGetLoadFn() == null) {
+    return {
+      available: false,
+      reason:
+        nativeUnavailableReason ||
+        'On-device YOLO is not linked in this binary. Install a new EAS build (OTA is not enough).',
+      requiresNativeRebuild: true,
+    };
+  }
+  if (nativeUnavailableReason) {
+    return {
+      available: false,
+      reason: `On-device YOLO unavailable — ${nativeUnavailableReason}. Falling back to cloud Vision.`,
+      requiresNativeRebuild: /not linked|hybrid|nitro|native/i.test(nativeUnavailableReason),
+    };
+  }
   return {
-    available: false,
-    reason:
-      'On-device YOLO is not linked in this binary. Live mode uses cloud Vision (~1 fps). A new EAS native build is required for YOLO.',
-    requiresNativeRebuild: true,
+    available: true,
+    reason: 'Native YOLO TFLite linked (garment-yolo-n320 ~11.6 MB).',
+    requiresNativeRebuild: false,
   };
+}
+
+function estimateColorFromRoi(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  bbox: [number, number, number, number],
+): string {
+  const [nx, ny, nw, nh] = bbox;
+  const x0 = Math.max(0, Math.floor(nx * width));
+  const y0 = Math.max(0, Math.floor(ny * height));
+  const x1 = Math.min(width, Math.ceil((nx + nw) * width));
+  const y1 = Math.min(height, Math.ceil((ny + nh) * height));
+  if (x1 <= x0 || y1 <= y0) return 'unknown';
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let n = 0;
+  const stepX = Math.max(1, Math.floor((x1 - x0) / 24));
+  const stepY = Math.max(1, Math.floor((y1 - y0) / 24));
+  for (let y = y0; y < y1; y += stepY) {
+    for (let x = x0; x < x1; x += stepX) {
+      const i = (y * width + x) * 4;
+      r += rgba[i] ?? 0;
+      g += rgba[i + 1] ?? 0;
+      b += rgba[i + 2] ?? 0;
+      n += 1;
+    }
+  }
+  if (!n) return 'unknown';
+  r = Math.round(r / n);
+  g = Math.round(g / n);
+  b = Math.round(b / n);
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 40) return 'black';
+  if (min > 210) return 'white';
+  if (max - min < 25) {
+    if (max < 90) return 'charcoal';
+    if (max < 160) return 'gray';
+    return 'light gray';
+  }
+  if (r > g + 25 && r > b + 25) return r > 160 ? 'red' : 'burgundy';
+  if (g > r + 25 && g > b + 20) return 'green';
+  if (b > r + 25 && b > g + 20) return 'blue';
+  if (r > 150 && g > 120 && b < 90) return 'mustard';
+  if (r > 160 && g > 100 && b < 100) return 'orange';
+  if (r > 140 && g < 100 && b > 120) return 'purple';
+  if (r > 150 && g > 130 && b > 100) return 'beige';
+  return 'multicolor';
+}
+
+function letterboxRgbToFloat32(
+  rgba: Uint8Array,
+  srcW: number,
+  srcH: number,
+  dst = INPUT_SIZE,
+): { tensor: Float32Array; scale: number; padX: number; padY: number } {
+  const scale = Math.min(dst / srcW, dst / srcH);
+  const newW = Math.max(1, Math.round(srcW * scale));
+  const newH = Math.max(1, Math.round(srcH * scale));
+  const padX = Math.floor((dst - newW) / 2);
+  const padY = Math.floor((dst - newH) / 2);
+  const tensor = new Float32Array(dst * dst * 3);
+  const fill = 114 / 255;
+  tensor.fill(fill);
+
+  for (let y = 0; y < newH; y++) {
+    const srcY = Math.min(srcH - 1, Math.floor(y / scale));
+    for (let x = 0; x < newW; x++) {
+      const srcX = Math.min(srcW - 1, Math.floor(x / scale));
+      const si = (srcY * srcW + srcX) * 4;
+      const di = ((y + padY) * dst + (x + padX)) * 3;
+      tensor[di] = (rgba[si] ?? 0) / 255;
+      tensor[di + 1] = (rgba[si + 1] ?? 0) / 255;
+      tensor[di + 2] = (rgba[si + 2] ?? 0) / 255;
+    }
+  }
+  return { tensor, scale, padX, padY };
+}
+
+async function loadRgbaFromUri(imageUri: string): Promise<{
+  data: Uint8Array;
+  width: number;
+  height: number;
+}> {
+  // Downscale before decode to keep jpeg-js cheap at ~1 fps.
+  const resized = await ImageManipulator.manipulateAsync(
+    imageUri,
+    [{ resize: { width: 640 } }],
+    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+  );
+  const res = await fetch(resized.uri);
+  const buf = await res.arrayBuffer();
+  const decoded = decodeJpeg(new Uint8Array(buf), { useTArray: true });
+  return {
+    data: decoded.data as Uint8Array,
+    width: decoded.width,
+    height: decoded.height,
+  };
+}
+
+function boxesToDetections(
+  boxes: ParsedYoloBox[],
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+): OnDeviceDetection[] {
+  return boxes.map((box, i) => {
+    const mapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
+    return {
+      name: mapped.name,
+      category: mapped.category,
+      subcategory: mapped.subcategory,
+      color: estimateColorFromRoi(rgba, width, height, box.bbox),
+      confidence: box.confidence,
+      bbox: box.bbox,
+      trackId: `yolo_${mapped.category}_${i}`,
+    };
+  });
 }
 
 /**
@@ -57,11 +294,44 @@ export function getOnDeviceYoloStatus(): {
  * @returns detections or null to fall back to cloud Vision.
  */
 export async function detectGarmentsOnDevice(
-  _imageUri: string,
+  imageUri: string,
 ): Promise<OnDeviceDetection[] | null> {
-  if (!isOnDeviceYoloAvailable()) return null;
-  // Native path placeholder — implement when TFLite/Core ML plugin is added.
-  return null;
+  if (!ON_DEVICE_YOLO_NATIVE) return null;
+
+  const model = await ensureModel();
+  if (!model) return null;
+
+  try {
+    const { data, width, height } = await loadRgbaFromUri(imageUri);
+    const { tensor, scale, padX, padY } = letterboxRgbToFloat32(data, width, height, INPUT_SIZE);
+    const inputBuffer = tensor.buffer.slice(
+      tensor.byteOffset,
+      tensor.byteOffset + tensor.byteLength,
+    );
+
+    const outputs = await model.run([inputBuffer]);
+    const outBuf = outputs?.[0];
+    if (!outBuf) return null;
+
+    const output = new Float32Array(outBuf);
+    const boxes = parseYoloGarmentOutput(output, {
+      inputSize: INPUT_SIZE,
+      scale,
+      padX,
+      padY,
+      srcWidth: width,
+      srcHeight: height,
+    });
+
+    if (!boxes.length) {
+      // Empty on-device result → let cloud Vision try (better UX than "no garments").
+      return null;
+    }
+    return boxesToDetections(boxes, data, width, height);
+  } catch (err) {
+    console.warn('[onDeviceYolo] inference failed, falling back to cloud:', err);
+    return null;
+  }
 }
 
 /** Map on-device boxes into the live overlay item shape (client-side preview). */
