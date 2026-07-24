@@ -36,7 +36,7 @@ import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePic
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
-import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -661,6 +661,17 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     if (isGap) {
       const suggestions = res.suggestions || res.missingPieces || [];
+      const gapCopy = sanitizeStylistUserText(
+        res.recommendation || res.stylistNote || res.reasoning
+        || 'I won\'t recommend a look that misses this occasion. You don\'t have suitable pieces yet — shop the options below.',
+      );
+      const shopMissing = Array.isArray(res.missing) && res.missing.length
+        ? res.missing
+        : (suggestions || []).map((tip) => ({
+          role: 'piece',
+          label: typeof tip === 'string' ? tip : String(tip),
+          reason: 'Needed for this occasion',
+        }));
       return (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
           <View style={styles.stylistHeader}>
@@ -674,24 +685,19 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
             <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-              Wardrobe gap
+              Nothing suitable in your wardrobe
             </ThemedText>
             <ThemedText type="body" style={styles.responseBody}>
-              {res.recommendation || 'I won\'t recommend a look that misses this occasion. Add a few more polished pieces and try again.'}
+              {gapCopy}
             </ThemedText>
-            {suggestions.length > 0 ? (
-              <View style={{ marginTop: Spacing.md }}>
-                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-                  Pieces that would help
-                </ThemedText>
-                {suggestions.map((tip) => (
-                  <ThemedText key={tip} type="body" style={{ marginBottom: Spacing.xs }}>
-                    · {tip}
-                  </ThemedText>
-                ))}
-              </View>
-            ) : null}
           </View>
+
+          {shopMissing.length > 0 ? (
+            <FallbackShopSection
+              missing={shopMissing}
+              headline="What to buy instead"
+            />
+          ) : null}
 
           <View style={styles.responseActions}>
             {renderPrimaryButton(
@@ -719,24 +725,32 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     }
 
     const uploaded = res.uploadedImages || flow.images || [];
-    const winnerUri =
-      res.recommendedIndex != null
-      && res.recommendedIndex >= 0
-      && res.recommendedIndex < uploaded.length
-        ? uploaded[res.recommendedIndex]
-        : uploaded.length === 1
-          ? uploaded[0]
-          : null;
-
-    const showRating =
-      res.styleRating != null
-      && Number(res.styleRating) > 5.4
-      && res.purchaseDecision?.decision !== 'DO_NOT_BUY'
-      && !res.alreadyOwnedOverride;
-
     const allPieces = sanitizeOutfitPieces(res.outfitPieces || []);
+    const rejected = isOutfitRejectedByStylist(
+      `${res.recommendation || ''} ${res.reasoning || ''} ${res.stylistNote || ''}`,
+    )
+      || res.purchaseDecision?.decision === 'DO_NOT_BUY';
+    const recommendedPieces = allPieces.filter((p) => p.type === 'recommended');
     const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
-    const visualPieces = ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null);
+    // When stylist rejects the user's look, never re-show that outfit — showcase the preferred/shop look.
+    const displayPieces = rejected
+      ? (recommendedPieces.length > 0 ? recommendedPieces : [])
+      : allPieces;
+    const visualPieces = rejected
+      ? recommendedPieces.filter((p) => p.wardrobeItemId != null || p.imageUrl)
+      : (ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null));
+
+    const winnerUri = rejected
+      ? null
+      : (
+        res.recommendedIndex != null
+        && res.recommendedIndex >= 0
+        && res.recommendedIndex < uploaded.length
+          ? uploaded[res.recommendedIndex]
+          : uploaded.length === 1
+            ? uploaded[0]
+            : null
+      );
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -762,20 +776,24 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
         {winnerUri ? (
           <Image source={{ uri: winnerUri }} style={styles.responseHero} />
-        ) : uploaded.length > 1 ? (
+        ) : !rejected && uploaded.length > 1 ? (
           <View style={styles.responseOptionsRow}>
             {uploaded.map((uri, index) => (
               <Image key={`${uri}-${index}`} source={{ uri }} style={styles.responseOptionThumb} />
             ))}
           </View>
-        ) : res.outfitImageUrl ? (
+        ) : res.outfitImageUrl && !rejected ? (
           <Image source={{ uri: res.outfitImageUrl }} style={styles.responseHero} />
         ) : visualPieces.length > 0 ? (
           <SafeOutfitPieces
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
-            label={isFallback ? 'Best from your wardrobe' : 'Your outfit'}
+            label={
+              rejected || isFallback
+                ? 'Suggested look'
+                : 'Your outfit'
+            }
           />
         ) : null}
 
@@ -901,17 +919,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               </View>
             </View>
           ) : null}
-          {showRating ? (
-            <View style={styles.ratingRow}>
-              <ThemedText type="h2">{Number(res.styleRating).toFixed(1)}</ThemedText>
-              <ThemedText type="small">/10</ThemedText>
-              {res.ratingLabel ? (
-                <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
-                  {sanitizeStylistUserText(res.ratingLabel)}
-                </ThemedText>
-              ) : null}
-            </View>
-          ) : null}
 
           {(() => {
             const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
@@ -933,12 +940,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                   </ThemedText>
                 ) : null}
 
-                {allPieces.length > 0 ? (
+                {displayPieces.length > 0 ? (
                   <View style={{ marginTop: headline ? Spacing.md : 0 }}>
-                    {allPieces.map((piece, index) => (
+                    {displayPieces.map((piece, index) => (
                       <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
                         <ThemedText type="body">
-                          {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                          {formatOutfitPieceRoleLabel(piece.role)}
                           {': '}
                           {piece.name}
                           {piece.type === 'recommended' ? ' · recommended' : ''}
@@ -964,7 +971,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           })()}
         </View>
 
-        {isFallback ? <FallbackShopSection missing={res.missing} /> : null}
+        {(isFallback || (rejected && Array.isArray(res.missing) && res.missing.length > 0)) ? (
+          <FallbackShopSection
+            missing={res.missing}
+            headline={rejected ? 'What to buy instead' : 'Get the missing piece'}
+          />
+        ) : null}
 
         <View style={styles.responseActions}>
           {(() => {
