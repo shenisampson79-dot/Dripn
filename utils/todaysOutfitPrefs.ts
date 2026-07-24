@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { DressFor } from '@/services/OnboardingProfileService';
+import {
+  getHourInTimeZone,
+  TODAYS_OUTFIT_TIMEZONE,
+} from '@/utils/todaysOutfitTime';
 
 const PREFS_KEY = '@dripn_todays_outfit_popup_prefs';
 
@@ -10,8 +14,8 @@ export type TodaysOutfitPopupPrefs = {
   /** When false, never auto-show the popup (manual chip still works). */
   enabled: boolean;
   /**
-   * Local hour (0–23) when the popup becomes eligible.
-   * Once that time has passed today, it stays until the user acts on it.
+   * Hour (0–23) when the popup becomes eligible — interpreted in Europe/London
+   * so "8:00 am" means UK time even if the phone is abroad.
    */
   appearAtHour: number;
   /** Force an occasion, or auto = time-aware. */
@@ -88,6 +92,15 @@ export async function saveTodaysOutfitPopupPrefs(
   const current = await getTodaysOutfitPopupPrefs();
   const next = normalizeTodaysOutfitPopupPrefs({ ...current, ...partial });
   await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(next));
+  // Keep daily local notification in sync with Appear-at hour / enabled.
+  try {
+    const { syncTodaysOutfitLocalNotification } = await import(
+      '@/services/todaysOutfitLocalNotify'
+    );
+    void syncTodaysOutfitLocalNotification(next);
+  } catch {
+    // non-fatal
+  }
   return next;
 }
 
@@ -95,22 +108,19 @@ export function formatHourLabel(hour: number): string {
   const h = clampHour(hour, 0);
   const suffix = h >= 12 ? 'pm' : 'am';
   const twelve = h % 12 === 0 ? 12 : h % 12;
-  return `${twelve}:00 ${suffix}`;
+  return `${twelve}:00 ${suffix} UK`;
 }
 
 /**
- * True when the popup is eligible: enabled, and local time is at/after appearAtHour
- * on the current calendar day. It stays eligible until the user dismisses/acts
- * (dismissal is tracked separately per local day).
- *
- * Uses local getHours() — matches Settings "Appear at" labels.
+ * True when the popup is eligible: enabled, and Europe/London time is at/after
+ * appearAtHour on the current UK calendar day.
  */
 export function isWithinTodaysOutfitPopupWindow(
   prefs: TodaysOutfitPopupPrefs,
   now: Date = new Date(),
 ): boolean {
   if (!prefs.enabled) return false;
-  return now.getHours() >= prefs.appearAtHour;
+  return getHourInTimeZone(now, TODAYS_OUTFIT_TIMEZONE) >= prefs.appearAtHour;
 }
 
 export function getOccasionPrefLabel(pref: TodaysOutfitOccasionPref): string {

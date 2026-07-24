@@ -29,7 +29,6 @@ import {
   generateTodaysWardrobeOutfit,
   prewarmTodaysWardrobeOutfit,
   resolveCachedTodaysOutfit,
-  dateKey as todaysLocalDateKey,
   type WardrobeTodaysOutfit,
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
@@ -40,6 +39,16 @@ import {
 } from '@/utils/todaysOutfitPrefs';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
+import {
+  consumeTodaysOutfitOpenPending,
+  isTodaysOutfitNotification,
+  markTodaysOutfitOpenPending,
+  syncTodaysOutfitLocalNotification,
+} from '@/services/todaysOutfitLocalNotify';
+import { getNavigationRef } from '@/components/ErrorFallback';
+import * as Notifications from 'expo-notifications';
+import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
+import { dateKeyInTimeZone, TODAYS_OUTFIT_TIMEZONE } from '@/utils/todaysOutfitTime';
 
 import {
   countWardrobeOutfitBasics,
@@ -80,8 +89,9 @@ function mapOccasionToPlannedEvent(
   return 'everyday';
 }
 
-function todayKey() {
-  return todaysLocalDateKey();
+function todayKey(now: Date = new Date()) {
+  // Align dismiss / rollover with UK calendar day (Appear-at is Europe/London).
+  return dateKeyInTimeZone(now, TODAYS_OUTFIT_TIMEZONE);
 }
 
 function todayPlannedDateIso() {
@@ -247,6 +257,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [wearBusy, setWearBusy] = useState(false);
+  const [differsFromYesterday, setDiffersFromYesterday] = useState<boolean | null>(null);
+  const [rotationLabel, setRotationLabel] = useState<string | null>(null);
   const autoPopupCheckedRef = useRef(false);
   /** Buttons only act on this stable outfit id once cardState is ready. */
   const actionOutfitIdRef = useRef<string | null>(null);
@@ -267,7 +279,22 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     setErrorMessage(null);
     setCardState('ready');
     void traceTodaysOutfit('render', { id: nextOutfit.id, pieceCount: nextPieces.length });
-  }, []);
+    void analyzeRotationVsYesterday(nextPieces, wardrobeItems).then((r) => {
+      setDiffersFromYesterday(r.hasPrior ? r.differsFromYesterday : null);
+      setRotationLabel(r.hasPrior ? r.label : null);
+      void traceTodaysOutfit('generate', {
+        diversityTag: 'vs_yesterday',
+        differs: r.differsFromYesterday,
+        similarYesterday: r.similarYesterday,
+        trioChanges: r.trioChanges,
+        hasPrior: r.hasPrior,
+        sharedIds: r.sharedIds,
+        repetitionDays: r.repetitionDays,
+        badge: r.badge,
+        outfitId: nextOutfit.id,
+      });
+    });
+  }, [wardrobeItems]);
 
   const load = useCallback(
     async (forceRefresh = false) => {
@@ -381,7 +408,78 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     activeDateKeyRef.current = todayKey();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
     void load(false);
+    void syncTodaysOutfitLocalNotification();
   }, [user?.id, wardrobeItems.length]);
+
+  /** Local notification at Appear-at hour + open modal when tapped / delivered. */
+  useEffect(() => {
+    if (!user) return;
+
+    const openFromNotification = async () => {
+      await markTodaysOutfitOpenPending();
+      try {
+        const rootNav = getNavigationRef();
+        if (rootNav?.isReady()) {
+          rootNav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
+        }
+      } catch {
+        // ignore
+      }
+      // Clear dismiss so the day's look can show again after a notification tap.
+      try {
+        await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
+      } catch {
+        // ignore
+      }
+      setDismissed(false);
+      setVisible(true);
+      void load(false);
+    };
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as Record<string, unknown> | undefined;
+      if (isTodaysOutfitNotification(data)) {
+        void openFromNotification();
+      }
+    });
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+      if (isTodaysOutfitNotification(data)) {
+        void openFromNotification();
+      }
+    });
+
+    void (async () => {
+      if (await consumeTodaysOutfitOpenPending()) {
+        await openFromNotification();
+        return;
+      }
+      try {
+        const last = await Notifications.getLastNotificationResponseAsync();
+        const data = last?.notification.request.content.data as Record<string, unknown> | undefined;
+        if (isTodaysOutfitNotification(data)) {
+          // Only honor if the response is from today (avoid reopening on every launch).
+          const when = last?.notification.date;
+          const notifDay =
+            typeof when === 'number'
+              ? todayKey(new Date(when * (when < 1e12 ? 1000 : 1)))
+              : when
+                ? todayKey(new Date(when))
+                : null;
+          if (notifDay === todayKey()) {
+            await openFromNotification();
+          }
+        }
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      receivedSub.remove();
+      responseSub.remove();
+    };
+  }, [user?.id, load]);
 
   useEffect(() => {
     if (!user || wardrobeItems.length < 4) return;
@@ -702,7 +800,12 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                   {t('home.todaysOutfit') || "Today's outfit"}
                 </ThemedText>
                 <ThemedText type="small" style={[styles.sub, { color: theme.tabIconDefault }]}>
-                  Curated from your wardrobe
+                  {rotationLabel
+                    || (differsFromYesterday === true
+                      ? 'Different from yesterday'
+                      : differsFromYesterday === false
+                        ? 'Limited wardrobe options today'
+                        : 'Curated from your wardrobe')}
                 </ThemedText>
 
                 {weatherLine ? (

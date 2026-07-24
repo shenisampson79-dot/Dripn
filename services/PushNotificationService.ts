@@ -15,7 +15,12 @@ Notifications.setNotificationHandler({
 });
 
 export interface NotificationData {
-  type: 'event_reminder' | 'style_of_the_day' | 'trend_alert' | 'personalized_offer';
+  type:
+    | 'event_reminder'
+    | 'style_of_the_day'
+    | 'trend_alert'
+    | 'personalized_offer'
+    | 'todays_outfit';
   eventId?: string;
   eventTitle?: string;
   eventDate?: string;

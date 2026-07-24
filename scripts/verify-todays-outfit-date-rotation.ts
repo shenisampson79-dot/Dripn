@@ -85,7 +85,10 @@ assert(
 );
 assert(cardSource.includes('day_rollover') || cardSource.includes('ensureFreshForToday'), 'day rollover required');
 assert(cardSource.includes('auto_popup') || cardSource.includes('maybeAutoOpenPopup'), 'auto popup required');
-assert(prefsSource.includes('getHours()'), 'popup window uses local hours');
+assert(
+  prefsSource.includes('Europe/London') || prefsSource.includes('getHourInTimeZone'),
+  'popup window must use UK timezone hour',
+);
 assert(TODAYS_OUTFIT_ANTI_REPEAT_DAYS >= 5, 'anti-repeat window should cover several days');
 assert(
   generatorSource.includes('seedTodaysOutfitHistoryFromStorage')

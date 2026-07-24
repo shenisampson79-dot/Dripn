@@ -40,6 +40,7 @@ import {
   diversityBanBottomAndShoes,
   diversityExcludeIdsFromHistory,
   isTooSimilar,
+  MIN_TRIO_CHANGES,
   TODAY_DIVERSITY_HISTORY,
 } from '@/utils/outfitDiversityHard';
 import { isTopItem, isBottomItem, isShoesItem } from '@/utils/completeOutfit';
@@ -170,7 +171,7 @@ async function loadRawStoredOutfit(): Promise<WardrobeTodaysOutfit | null> {
   }
 }
 
-async function loadPreviousOutfit(): Promise<WardrobeTodaysOutfit | null> {
+export async function loadPreviousOutfit(): Promise<WardrobeTodaysOutfit | null> {
   try {
     const raw = await AsyncStorage.getItem(PREVIOUS_KEY);
     if (!raw) return null;
@@ -180,6 +181,56 @@ async function loadPreviousOutfit(): Promise<WardrobeTodaysOutfit | null> {
   } catch {
     return null;
   }
+}
+
+/** True when today's look differs enough from yesterday (or no prior to compare). */
+export async function todaysOutfitDiffersFromYesterday(
+  todayItems: WardrobeItem[],
+  wardrobeItems: WardrobeItem[] = [],
+): Promise<{ differs: boolean; trioChanges: number; hasPrior: boolean; sharedIds: number }> {
+  const prior = await loadPreviousOutfit();
+  if (!prior?.itemIds?.length) {
+    return { differs: true, trioChanges: 3, hasPrior: false, sharedIds: 0 };
+  }
+
+  const todayIds = todayItems.map((i) => String(i.id));
+  const priorIds = prior.itemIds.map(String);
+  const todaySet = new Set(todayIds);
+  const sharedIds = priorIds.filter((id) => todaySet.has(id)).length;
+  const exactSame =
+    sharedIds === priorIds.length
+    && sharedIds === todayIds.length
+    && priorIds.length > 0;
+
+  if (exactSame) {
+    return { differs: false, trioChanges: 0, hasPrior: true, sharedIds };
+  }
+
+  const pool = wardrobeItems.length ? wardrobeItems : todayItems;
+  const priorResolved = priorIds
+    .map((id) => pool.find((w) => String(w.id) === id))
+    .filter(Boolean) as WardrobeItem[];
+
+  if (priorResolved.length >= 2 && todayItems.length >= 2) {
+    const tooClose = isTooSimilar(todayItems, priorResolved);
+    const trioChanges = countTrioChanges(todayItems, priorResolved);
+    return {
+      differs: !tooClose && trioChanges >= MIN_TRIO_CHANGES,
+      trioChanges,
+      hasPrior: true,
+      sharedIds,
+    };
+  }
+
+  // Id-only fallback when prior pieces aren't in the current wardrobe snapshot.
+  const maxLen = Math.max(priorIds.length, todayIds.length, 1);
+  const differs = sharedIds / maxLen < 0.67;
+  return {
+    differs,
+    trioChanges: Math.max(0, Math.min(3, maxLen - sharedIds)),
+    hasPrior: true,
+    sharedIds,
+  };
 }
 
 function yesterdayDateKey(now: Date = new Date()): string {
