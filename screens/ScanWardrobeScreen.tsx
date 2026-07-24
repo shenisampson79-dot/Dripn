@@ -357,6 +357,14 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
             {t('wardrobe.takePhoto') || 'Take Photo'}
           </ThemedText>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate('LiveStylist')}
+          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+        >
+          <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+            Live camera
+          </ThemedText>
+        </Pressable>
         <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
           <ThemedText type="body" style={{ color: theme.text }}>
             {t('wardrobe.chooseFromGallery') || 'Choose from Gallery'}

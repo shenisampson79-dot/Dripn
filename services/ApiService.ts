@@ -1186,6 +1186,71 @@ class ApiService {
     });
   }
 
+  /** Phase 2 live stylist — sampled frame or on-device detections. */
+  async liveScanFrame(data: {
+    imageBase64?: string;
+    imageUrl?: string;
+    detections?: Array<Record<string, unknown>>;
+    previousItems?: Array<Record<string, unknown>>;
+    previousFeedback?: Record<string, unknown> | null;
+    occasionType?: string;
+    hybridMatch?: boolean;
+    frameHash?: string | null;
+    detectorSource?: string;
+    sceneType?: string;
+    lightingQuality?: string;
+    overallSuggestion?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      frameHash?: string | null;
+      source?: string;
+      sceneType?: string;
+      itemCount?: number;
+      items: Array<{
+        tempId: string;
+        trackId: string;
+        name: string;
+        category: string;
+        subcategory?: string | null;
+        color: string;
+        confidence: number;
+        bbox?: [number, number, number, number] | null;
+        suggestion?: string | null;
+        needsConfirm: boolean;
+        wardrobeMatch?: {
+          id: string | number;
+          name?: string;
+          category?: string;
+          color?: string;
+          imageUrl?: string | null;
+          score?: number;
+        } | null;
+        source?: string;
+      }>;
+      feedback: {
+        score: number;
+        colourHarmony?: string | null;
+        issues: string[];
+        hints: string[];
+        suggestions: string[];
+        sceneType?: string;
+        lightingQuality?: string;
+        itemCount?: number;
+        avgConfidence?: number;
+      };
+      feedbackChanged: boolean;
+      shopHints?: Array<Record<string, unknown>>;
+      yoloAvailable?: boolean;
+      yoloNote?: string;
+      message?: string;
+    }>('/api/wardrobe/scan-wardrobe/live-frame', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      timeout: 45000,
+    });
+  }
+
   isConfigured() {
     return Boolean(API_URL);
   }

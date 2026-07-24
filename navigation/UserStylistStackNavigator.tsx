@@ -10,6 +10,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
+import LiveStylistScreen from "@/screens/LiveStylistScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
@@ -44,6 +45,7 @@ export type UserStylistStackParamList = {
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
+  LiveStylist: { occasionType?: string } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   WeatherOutfit: undefined;
@@ -134,6 +136,11 @@ export default function UserStylistStackNavigator() {
         name="ScanWardrobe"
         component={ScanWardrobeScreen}
         options={{ headerTitle: "Scan Wardrobe", headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="LiveStylist"
+        component={LiveStylistScreen}
+        options={{ headerTitle: "Live Stylist", headerShown: false, presentation: "fullScreenModal" }}
       />
       <Stack.Screen
         name="BulkWardrobeUpload"

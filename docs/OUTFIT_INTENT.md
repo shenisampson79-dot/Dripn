@@ -114,3 +114,9 @@ Asserted: power prefers blazer+oxfords over slides; effortless prefers linen+min
 2. Power look (blazer + oxfords) scores above same look with slides under power intent.
 3. Chat “interview outfit” / “date night” resolves intent in plan metadata; clash still hard.
 4. After StyleWise JS changes: `eas update --channel production` and `--channel preview`.
+
+## Live Stylist (Phase 2)
+
+- Screen: `LiveStylistScreen` — `expo-camera` sampling ~1 fps, SVG AR overlays, cloud Vision via `POST /api/wardrobe/scan-wardrobe/live-frame`.
+- On-device YOLO: stub in `services/onDeviceGarmentDetector.ts` — needs native EAS rebuild when a TFLite/Core ML plugin is linked. OTA alone is enough for the cloud live path.
+- Entry: Stylist Hub **Live stylist**; Scan Wardrobe **Live camera**.

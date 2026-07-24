@@ -4,6 +4,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
+import LiveStylistScreen from "@/screens/LiveStylistScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
@@ -25,6 +26,7 @@ export type WardrobeStackParamList = {
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
+  LiveStylist: { occasionType?: string } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   OutfitBuilder: undefined;
@@ -72,6 +74,15 @@ export default function WardrobeStackNavigator() {
           title: "Scan Wardrobe",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="LiveStylist"
+        component={LiveStylistScreen}
+        options={{
+          title: "Live Stylist",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
       <Stack.Screen

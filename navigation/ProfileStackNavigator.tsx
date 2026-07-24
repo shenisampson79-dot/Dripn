@@ -14,6 +14,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
+import LiveStylistScreen from "@/screens/LiveStylistScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
@@ -68,6 +69,7 @@ export type ProfileStackParamList = {
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
+  LiveStylist: { occasionType?: string } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   Support: undefined;
@@ -216,6 +218,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Scan Wardrobe",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="LiveStylist"
+        component={LiveStylistScreen}
+        options={{
+          title: "Live Stylist",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
       <Stack.Screen
