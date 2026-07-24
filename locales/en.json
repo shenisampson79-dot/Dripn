@@ -2044,7 +2044,7 @@
   "stylistFlow.yesHelpMe": "Yes, help me — {name}",
   "stylistFlow.refineWithStylist": "Refine this — {name}",
   "stylistFlow.continueInChat": "Continue in chat",
-  "stylistFlow.continuityBanner": "Continuing from {flow}",
+  "stylistFlow.continuityBanner": "Following on from {flow}",
   "stylistFlow.lastRecommendation": "Your last recommendation",
   "stylistFlow.editAndRerun": "Edit & re-run",
   "stylistFlow.refreshRecommendation": "Refresh recommendation",
