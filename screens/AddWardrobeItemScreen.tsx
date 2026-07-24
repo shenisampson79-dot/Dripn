@@ -55,6 +55,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
 import { sanitizeWardrobeItemName, reconcileWardrobeBrandName } from "@/utils/wardrobeItemName";
 import {
+  resolveSeasonChips,
+  resolveOccasionChips,
+} from "@/utils/wardrobeSeasonOccasion";
+import {
   getOutfitReelImageScale,
   getOutfitReelPreviewAspectRatio,
 } from "@/utils/outfitReelImage";
@@ -229,8 +233,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   }) => {
     const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
     const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
-    const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
-    const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
     const typeToCategory: Record<string, ClothingCategory> = {
       'shirt': 'tops', 'blouse': 'tops', 't-shirt': 'tops', 'top': 'tops', 'sweater': 'tops', 'hoodie': 'tops',
@@ -258,8 +260,15 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
     if (analysis.description) setName(analysis.description.slice(0, 50));
     if (analysis.brand) setBrand(analysis.brand);
-    if (analysis.seasons) setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
-    if (analysis.occasions) setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
+
+    const chipCtx = {
+      category: mappedCategory || detectedType,
+      style: analysis.style || null,
+      type: analysis.type || null,
+    };
+    // Always pre-select seasons/occasions so the user can tap ✓ without hunting chips.
+    setSeasons(resolveSeasonChips(analysis.seasons, chipCtx) as ClothingSeason[]);
+    setOccasions(resolveOccasionChips(analysis.occasions, chipCtx) as ClothingOccasion[]);
 
     setAiAnalyzed(true);
   };
@@ -309,9 +318,15 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         // Autofill labels only — never swap imageUri from analysis / wardrobe matches.
         if (analysis) {
           applyClothingAnalysis(analysis);
+        } else {
+          // Still pre-select chips so save isn't blocked when AI returns no labels.
+          setSeasons(resolveSeasonChips([]) as ClothingSeason[]);
+          setOccasions(resolveOccasionChips([]) as ClothingOccasion[]);
         }
       } else {
         console.log('Clothing analysis failed:', extractOutcome.reason?.message || extractOutcome.reason);
+        setSeasons(resolveSeasonChips([]) as ClothingSeason[]);
+        setOccasions(resolveOccasionChips([]) as ClothingOccasion[]);
       }
 
       if (didRemoveBg) {
@@ -342,8 +357,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     
     const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
     const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
-    const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
-    const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
     
     try {
       const { base64: imageBase64 } = await toJpegBase64(imageUri);
@@ -452,54 +465,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         lemon: 'yellow',
       };
       
-      // Season mapping for API values
-      const seasonMap: Record<string, ClothingSeason> = {
-        fall: 'autumn',
-        'all-year': 'all-season',
-        'all year': 'all-season',
-        'all season': 'all-season',
-        'all seasons': 'all-season',
-        allseason: 'all-season',
-        'year-round': 'all-season',
-        'year round': 'all-season',
-      };
-      
-      // Occasion mapping for API values
-      const occasionMap: Record<string, ClothingOccasion> = {
-        sport: 'workout',
-        sports: 'workout',
-        gym: 'workout',
-        sportswear: 'workout',
-        athletic: 'workout',
-        exercise: 'workout',
-        'smart-casual': 'casual',
-        'smart casual': 'casual',
-        outdoor: 'casual',
-        outdoors: 'casual',
-        travel: 'vacation',
-        office: 'work',
-        professional: 'work',
-        business: 'work',
-        evening: 'date-night',
-        night: 'date-night',
-        'night out': 'date-night',
-        nightout: 'date-night',
-        beach: 'vacation',
-        lounge: 'casual',
-        loungewear: 'casual',
-        special: 'formal',
-        'special occasion': 'formal',
-        wedding: 'formal',
-        gala: 'formal',
-        cocktail: 'party',
-        festival: 'party',
-        club: 'party',
-        brunch: 'casual',
-        daily: 'everyday',
-        day: 'everyday',
-        daytime: 'everyday',
-      };
-      
       if (analysis) {
         console.log('[AI Analysis] Setting fields from analysis...');
         const analysisFields = analysis as typeof analysis & {
@@ -525,12 +490,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         }
         
         // Handle category — map generic 'activewear' to subcategory based on item name
+        let resolvedCategory: ClothingCategory | null = null;
         if (analysis.category) {
           const cat = analysis.category.toLowerCase();
           const nameForMapping = (itemName || '').toLowerCase();
           console.log('[AI Analysis] Category from API:', cat);
-          
-          let resolvedCategory: ClothingCategory | null = null;
           
           if (cat === 'activewear') {
             // Determine if top or bottom by inspecting the item name
@@ -562,41 +526,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           }
         }
         
-        // Handle seasons - map values like "fall" to "autumn"
-        if (analysis.seasons && analysis.seasons.length > 0) {
-          console.log('[AI Analysis] Seasons from API:', analysis.seasons);
-          const mappedSeasons = analysis.seasons
-            .map((s: string) => {
-              const lower = s.toLowerCase();
-              if (validSeasons.includes(lower as ClothingSeason)) return lower;
-              if (seasonMap[lower]) return seasonMap[lower];
-              return null;
-            })
-            .filter((s: ClothingSeason | null): s is ClothingSeason => s !== null);
-          
-          if (mappedSeasons.length > 0) {
-            console.log('[AI Analysis] Setting mapped seasons:', mappedSeasons);
-            setSeasons(mappedSeasons);
-          }
-        }
-        
-        // Handle occasions - map values like "outdoor" to "casual"
-        if (analysis.occasions && analysis.occasions.length > 0) {
-          console.log('[AI Analysis] Occasions from API:', analysis.occasions);
-          const mappedOccasions = analysis.occasions
-            .map((o: string) => {
-              const lower = o.toLowerCase();
-              if (validOccasions.includes(lower as ClothingOccasion)) return lower;
-              if (occasionMap[lower]) return occasionMap[lower];
-              return null;
-            })
-            .filter((o: ClothingOccasion | null): o is ClothingOccasion => o !== null);
-          
-          if (mappedOccasions.length > 0) {
-            console.log('[AI Analysis] Setting mapped occasions:', mappedOccasions);
-            setOccasions(mappedOccasions);
-          }
-        }
+        const chipCtx = {
+          category: resolvedCategory || analysis.category || null,
+          style: null,
+          type: analysis.category || itemName || null,
+        };
+        const mappedSeasons = resolveSeasonChips(analysis.seasons, chipCtx) as ClothingSeason[];
+        const mappedOccasions = resolveOccasionChips(analysis.occasions, chipCtx) as ClothingOccasion[];
+        console.log('[AI Analysis] Setting seasons/occasions:', mappedSeasons, mappedOccasions);
+        setSeasons(mappedSeasons);
+        setOccasions(mappedOccasions);
         
         // Handle brand
         if (analysis.brand) {

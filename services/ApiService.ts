@@ -1076,6 +1076,8 @@ class ApiService {
           material?: string;
           brand?: string | null;
           features?: string[];
+          seasons?: string[];
+          occasions?: string[];
         };
         suggestedCategory?: string;
         suggestedName?: string;
@@ -1097,6 +1099,8 @@ class ApiService {
           material: raw.analysis.mainItem.material,
           brand: raw.analysis.mainItem.brand || undefined,
           features: raw.analysis.mainItem.features,
+          seasons: raw.analysis.mainItem.seasons,
+          occasions: raw.analysis.mainItem.occasions,
           description: raw.analysis.suggestedName || undefined,
         }
       : undefined;
