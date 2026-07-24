@@ -60,11 +60,14 @@ export function passesEditorialOccasionGate(
   if (isSleepwear(item)) return false;
   if (isBeachwear(item)) return false;
   if (SOCIAL_OR_PROFESSIONAL.has(occasion) && isActive(item)) return false;
-  if (occasion === 'work_outfit' && (isCasualLoungewear(item) || isAthleticFootwear(item))) return false;
-  if (occasion === 'evening_out' && isCasualLoungewear(item)) return false;
+  if (occasion === 'work_outfit' && (isCasualLoungewear(item) || isAthleticFootwear(item) || isActive(item))) {
+    return false;
+  }
+  if (occasion === 'evening_out' && (isCasualLoungewear(item) || isActive(item))) return false;
   if (occasion === 'smart_casual' && /\b(hoodies?|hooded sweat|joggers?|sweatpants?|track pants?)\b/.test(itemText(item))) {
     return false;
   }
+  if (occasion === 'smart_casual' && isActive(item)) return false;
   if (occasion === 'gym' && isFormalShoes(item)) return false;
   return true;
 }
@@ -79,8 +82,11 @@ export function outfitMeetsOccasionStandard(
 
   const signals = items.map((item) => classifyItem(item as WardrobeItem));
   const minTier = Math.min(...signals.map((s) => s.formalityTier));
+  const hasAthletic = items.some(isActive) || signals.some((s) => s.isAthleticTop || s.isAthleticBottom);
 
+  // Weddings / ceremonies allocate as work_outfit — never crown sports kit
   if (occasion === 'work_outfit') {
+    if (hasAthletic) return false;
     if (minTier < 3) return false;
     if (signals.some((s) => s.isHoodie || s.isJoggers || s.isAthleticTop || s.isAthleticBottom)) {
       return false;
@@ -91,7 +97,12 @@ export function outfitMeetsOccasionStandard(
   }
 
   if (occasion === 'smart_casual') {
+    if (hasAthletic) return false;
     if (signals.some((s) => s.isHoodie || s.isJoggers || s.isAthleticBottom)) return false;
+  }
+
+  if (occasion === 'evening_out' || occasion === 'date_night') {
+    if (hasAthletic || signals.some((s) => s.isHoodie || s.isJoggers)) return false;
   }
 
   return true;
