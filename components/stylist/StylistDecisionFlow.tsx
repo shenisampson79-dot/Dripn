@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -648,30 +649,49 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       res.status === 'fallback_outfit'
       || res.type === 'fallback_outfit'
       || res.isFallback === true;
-    const isGap =
-      !isFallback
-      && (
-        res.status === 'wardrobe_gap'
-        || res.status === 'no_outfit_possible'
-        || res.status === 'refused'
-        || res.status === 'clash_blocked'
-        || res.status === 'no_wardrobe'
-        || res.success === false
-      );
+    const textReject = isOutfitRejectedByStylist(
+      `${res.recommendation || ''} ${res.reasoning || ''} ${res.stylistNote || ''}`,
+    )
+      || res.purchaseDecision?.decision === 'DO_NOT_BUY';
+    const displayState: 'APPROVED' | 'REJECTED_WARDROBE_FIX' | 'SHOP_REQUIRED' =
+      res.displayState === 'APPROVED'
+      || res.displayState === 'REJECTED_WARDROBE_FIX'
+      || res.displayState === 'SHOP_REQUIRED'
+        ? res.displayState
+        : (res.status === 'SHOP_REQUIRED' || res.type === 'shop_required')
+          ? 'SHOP_REQUIRED'
+          : isFallback
+            ? 'REJECTED_WARDROBE_FIX'
+            : (
+              res.status === 'wardrobe_gap'
+              || res.status === 'no_outfit_possible'
+              || res.status === 'refused'
+              || res.status === 'clash_blocked'
+              || res.status === 'no_wardrobe'
+              || res.success === false
+              || textReject
+            )
+              ? 'SHOP_REQUIRED'
+              : 'APPROVED';
 
-    if (isGap) {
-      const suggestions = res.suggestions || res.missingPieces || [];
+    // State 3: SHOP_REQUIRED — hide user outfit; inspiration + retail
+    if (displayState === 'SHOP_REQUIRED') {
       const gapCopy = sanitizeStylistUserText(
         res.recommendation || res.stylistNote || res.reasoning
-        || 'I won\'t recommend a look that misses this occasion. You don\'t have suitable pieces yet — shop the options below.',
+        || "You don't currently own suitable pieces for this occasion.",
       );
+      const recommended = res.recommendedOutfit || null;
       const shopMissing = Array.isArray(res.missing) && res.missing.length
         ? res.missing
-        : (suggestions || []).map((tip) => ({
+        : (res.suggestions || res.missingPieces || []).map((tip) => ({
           role: 'piece',
           label: typeof tip === 'string' ? tip : String(tip),
           reason: 'Needed for this occasion',
         }));
+      const inspirationRows = recommended
+        ? Object.entries(recommended).filter(([, v]) => !!v)
+        : [];
+
       return (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
           <View style={styles.stylistHeader}>
@@ -683,40 +703,63 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </ThemedText>
           </View>
 
+          <Image
+            source={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+            style={styles.responseHero}
+            resizeMode="cover"
+          />
+
           <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
             <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-              Nothing suitable in your wardrobe
+              You don&apos;t own suitable pieces
             </ThemedText>
             <ThemedText type="body" style={styles.responseBody}>
               {gapCopy}
             </ThemedText>
+            {inspirationRows.length > 0 ? (
+              <View style={{ marginTop: Spacing.md }}>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                  Look for this instead
+                </ThemedText>
+                {inspirationRows.map(([role, label]) => (
+                  <ThemedText key={role} type="body" style={{ marginBottom: Spacing.xs }}>
+                    {formatOutfitPieceRoleLabel(role)}: {label}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
           </View>
 
           {shopMissing.length > 0 ? (
-            <FallbackShopSection
-              missing={shopMissing}
-              headline="What to buy instead"
-            />
+            <FallbackShopSection missing={shopMissing} headline="Shop this look" />
+          ) : null}
+
+          {Array.isArray(res.retailers) && res.retailers.length > 0 ? (
+            <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>
+              {res.retailers.slice(0, 4).map((r) => (
+                <Pressable
+                  key={r.name || r.url}
+                  onPress={() => {
+                    if (r.url) {
+                      Linking.openURL(r.url).catch(() => {});
+                    }
+                  }}
+                  style={styles.secondaryButton}
+                >
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                    {r.name || 'Shop'}
+                    {r.items?.length ? ` — ${r.items.slice(0, 2).join(', ')}` : ''}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
           ) : null}
 
           <View style={styles.responseActions}>
-            {renderPrimaryButton(
-              t('stylistFlow.editAndRerun'),
-              () => {
-                void flow.editAndRerun();
-              },
-            )}
-            <Pressable
-              onPress={() => navigation.navigate?.('Wardrobe')}
-              style={styles.secondaryButton}
-            >
+            {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())}
+            <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
               <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                Open wardrobe
-              </ThemedText>
-            </Pressable>
-            <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
-              <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                {t('stylistFlow.startOver')}
+                {t('stylistFlow.editAndRerun')}
               </ThemedText>
             </Pressable>
           </View>
@@ -726,18 +769,17 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     const uploaded = res.uploadedImages || flow.images || [];
     const allPieces = sanitizeOutfitPieces(res.outfitPieces || []);
-    const rejected = isOutfitRejectedByStylist(
-      `${res.recommendation || ''} ${res.reasoning || ''} ${res.stylistNote || ''}`,
-    )
-      || res.purchaseDecision?.decision === 'DO_NOT_BUY';
+    const rejected = displayState === 'REJECTED_WARDROBE_FIX';
     const recommendedPieces = allPieces.filter((p) => p.type === 'recommended');
     const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
-    // When stylist rejects the user's look, never re-show that outfit — showcase the preferred/shop look.
+    // State 2: hide user outfit; show stylist wardrobe rebuild
     const displayPieces = rejected
-      ? (recommendedPieces.length > 0 ? recommendedPieces : [])
+      ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces)
       : allPieces;
     const visualPieces = rejected
-      ? recommendedPieces.filter((p) => p.wardrobeItemId != null || p.imageUrl)
+      ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces).filter(
+        (p) => p.wardrobeItemId != null || p.imageUrl,
+      )
       : (ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null));
 
     const winnerUri = rejected
@@ -768,9 +810,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
         </View>
 
-        {isFallback ? (
+        {rejected ? (
           <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-            Here&apos;s your best outfit — plus what to upgrade
+            Better option from your wardrobe
           </ThemedText>
         ) : null}
 
@@ -789,11 +831,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
-            label={
-              rejected || isFallback
-                ? 'Suggested look'
-                : 'Your outfit'
-            }
+            label={rejected ? 'Suggested look' : 'Your outfit'}
           />
         ) : null}
 
@@ -955,7 +993,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                   </View>
                 ) : null}
 
-                {analysis && !isFallback ? (
+                {analysis ? (
                   <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault, marginTop: Spacing.md }]}>
                     {renderMarkdownText(analysis)}
                   </ThemedText>
@@ -971,10 +1009,10 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           })()}
         </View>
 
-        {(isFallback || (rejected && Array.isArray(res.missing) && res.missing.length > 0)) ? (
+        {(rejected && Array.isArray(res.missing) && res.missing.length > 0) ? (
           <FallbackShopSection
             missing={res.missing}
-            headline={rejected ? 'What to buy instead' : 'Get the missing piece'}
+            headline="Optional upgrades"
           />
         ) : null}
 

@@ -842,6 +842,14 @@ export function useStylistDecision({
           || (apiResult.isFallback || apiResult.type === 'fallback_outfit' ? 'fallback_outfit' : 'ok'),
         type: apiResult.type,
         isFallback: Boolean(apiResult.isFallback || apiResult.status === 'fallback_outfit' || apiResult.type === 'fallback_outfit'),
+        displayState: apiResult.displayState
+          || (apiResult.status === 'SHOP_REQUIRED' || apiResult.type === 'shop_required'
+            ? 'SHOP_REQUIRED'
+            : apiResult.isFallback || apiResult.status === 'fallback_outfit'
+              ? 'REJECTED_WARDROBE_FIX'
+              : undefined),
+        recommendedOutfit: apiResult.recommendedOutfit || null,
+        retailers: apiResult.retailers || undefined,
         stylistNote: apiResult.stylistNote
           ? sanitizeStylistUserText(apiResult.stylistNote)
           : undefined,

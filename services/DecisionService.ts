@@ -47,9 +47,24 @@ export interface DecisionResponse {
   decision?: string;
   response?: string;
   /** Refuse / gap / graceful fallback — never show a fake score card on gap */
-  status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | 'fallback_outfit' | 'system_error' | string;
-  type?: 'fallback_outfit' | string;
+  status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | 'fallback_outfit' | 'SHOP_REQUIRED' | 'system_error' | string;
+  type?: 'fallback_outfit' | 'shop_required' | string;
   isFallback?: boolean;
+  /** Explicit UI contract: APPROVED | REJECTED_WARDROBE_FIX | SHOP_REQUIRED */
+  displayState?: 'APPROVED' | 'REJECTED_WARDROBE_FIX' | 'SHOP_REQUIRED' | string;
+  /** Inspiration labels when wardrobe cannot satisfy dress code */
+  recommendedOutfit?: {
+    top?: string;
+    bottom?: string;
+    shoes?: string;
+    outerwear?: string;
+    [role: string]: string | undefined;
+  } | null;
+  retailers?: Array<{
+    name?: string;
+    url?: string;
+    items?: string[];
+  }>;
   stylistNote?: string;
   suggestions?: string[];
   missingPieces?: string[];
