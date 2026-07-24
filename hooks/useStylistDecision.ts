@@ -1037,6 +1037,36 @@ export function useStylistDecision({
 
   /** Done: navigate only — never mutate/clear the completed session. */
   const completeAndClose = () => {
+    // Taste learning: accepting an approved look reinforces preferences
+    try {
+      const pieces = response?.outfitPieces || [];
+      const displayState = response?.displayState;
+      if (
+        pieces.length >= 2
+        && displayState !== 'SHOP_REQUIRED'
+        && response?.success !== false
+      ) {
+        void apiService.recordOutfitEngagement({
+          items: pieces
+            .map((p) => ({
+              id: String(p.wardrobeItemId ?? p.id ?? ''),
+              name: p.name || 'item',
+              category: p.category || undefined,
+              color: (p as { color?: string }).color,
+            }))
+            .filter((p) => p.id),
+          signal: 'liked',
+          occasion: eventDetails?.eventType || decisionType || undefined,
+          contextSnapshot: {
+            source: 'stylist_decision',
+            displayState: displayState || null,
+            decisionType,
+          },
+        });
+      }
+    } catch {
+      // non-blocking
+    }
     navigation.goBack();
   };
 
