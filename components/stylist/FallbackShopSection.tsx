@@ -1,10 +1,11 @@
 import React from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 
 export type FallbackMissingItem = {
   role?: string;
@@ -55,6 +56,13 @@ async function openUrl(url?: string | null) {
   }
 }
 
+/** Prefer the platform maps app; one nearby chip, not Google + Apple together. */
+function preferredMapsUrl(links?: { appleMaps?: string; googleMaps?: string } | null): string | null {
+  if (!links) return null;
+  if (Platform.OS === 'ios') return links.appleMaps || links.googleMaps || null;
+  return links.googleMaps || links.appleMaps || null;
+}
+
 /**
  * "Get the missing piece" — curated retailer search + nearby maps deep links.
  */
@@ -72,10 +80,11 @@ export function FallbackShopSection({
         {headline}
       </ThemedText>
       {items.map((item, index) => {
-        const title = item.label || item.name || item.role || 'Upgrade';
+        const title = sanitizeStylistUserText(item.label || item.name || item.role || 'Upgrade');
         const products = item.products || item.retail?.online || [];
         const nearby = item.retail?.nearby;
         const nearbyBrands = item.retail?.nearbyByBrand || [];
+        const generalNearby = preferredMapsUrl(nearby);
         return (
           <View key={`${title}-${index}`} style={styles.itemBlock}>
             <ThemedText type="body" style={styles.itemTitle}>
@@ -83,7 +92,7 @@ export function FallbackShopSection({
             </ThemedText>
             {item.reason ? (
               <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                {item.reason}
+                {sanitizeStylistUserText(item.reason)}
               </ThemedText>
             ) : null}
 
@@ -105,36 +114,31 @@ export function FallbackShopSection({
               </View>
             ) : null}
 
-            {(nearby?.googleMaps || nearby?.appleMaps || nearbyBrands.length > 0) ? (
+            {(generalNearby || nearbyBrands.length > 0) ? (
               <View style={[styles.linkRow, { marginTop: Spacing.xs }]}>
-                {nearby?.googleMaps ? (
+                {nearbyBrands.slice(0, 3).map((b) => {
+                  const url = preferredMapsUrl(b);
+                  if (!url) return null;
+                  return (
+                    <Pressable
+                      key={b.brand}
+                      onPress={() => openUrl(url)}
+                      style={[styles.chip, { borderColor: theme.border }]}
+                    >
+                      <Feather name="map-pin" size={12} color={theme.text} />
+                      <ThemedText type="small">{b.brand} near you</ThemedText>
+                    </Pressable>
+                  );
+                })}
+                {nearbyBrands.length === 0 && generalNearby ? (
                   <Pressable
-                    onPress={() => openUrl(nearby.googleMaps)}
+                    onPress={() => openUrl(generalNearby)}
                     style={[styles.chip, { borderColor: theme.border }]}
                   >
                     <Feather name="map-pin" size={12} color={theme.text} />
-                    <ThemedText type="small">Nearby (Google)</ThemedText>
+                    <ThemedText type="small">Stores near you</ThemedText>
                   </Pressable>
                 ) : null}
-                {nearby?.appleMaps ? (
-                  <Pressable
-                    onPress={() => openUrl(nearby.appleMaps)}
-                    style={[styles.chip, { borderColor: theme.border }]}
-                  >
-                    <Feather name="map" size={12} color={theme.text} />
-                    <ThemedText type="small">Nearby (Apple)</ThemedText>
-                  </Pressable>
-                ) : null}
-                {nearbyBrands.slice(0, 2).map((b) => (
-                  <Pressable
-                    key={b.brand}
-                    onPress={() => openUrl(b.googleMaps || b.appleMaps)}
-                    style={[styles.chip, { borderColor: theme.border }]}
-                  >
-                    <Feather name="map-pin" size={12} color={theme.text} />
-                    <ThemedText type="small">{b.brand} near you</ThemedText>
-                  </Pressable>
-                ))}
               </View>
             ) : null}
           </View>

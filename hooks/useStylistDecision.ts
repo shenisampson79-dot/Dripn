@@ -43,6 +43,7 @@ import {
 } from '@/utils/decisionContinuity';
 import { resolveEventOutfitOccasion } from '@/utils/eventOutfitOccasion';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
+import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -823,24 +824,27 @@ export function useStylistDecision({
       const result: DecisionResponse = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation:
+        recommendation: sanitizeStylistUserText(
           enforced.payload.advice
           || apiResult.decision
           || apiResult.recommendation
           || apiResult.response
           || '',
-        reasoning: apiResult.reasoning || '',
+        ),
+        reasoning: sanitizeStylistUserText(apiResult.reasoning || ''),
         styleRating: shouldDisplayStyleRating(apiResult.styleRating ?? null)
           ? (apiResult.styleRating ?? null)
           : null,
         ratingLabel: shouldDisplayStyleRating(apiResult.styleRating ?? null)
-          ? (apiResult.ratingLabel ?? null)
+          ? sanitizeStylistUserText(apiResult.ratingLabel ?? '') || null
           : null,
         status: (apiResult.status as DecisionResponse['status'])
           || (apiResult.isFallback || apiResult.type === 'fallback_outfit' ? 'fallback_outfit' : 'ok'),
         type: apiResult.type,
         isFallback: Boolean(apiResult.isFallback || apiResult.status === 'fallback_outfit' || apiResult.type === 'fallback_outfit'),
-        stylistNote: apiResult.stylistNote,
+        stylistNote: apiResult.stylistNote
+          ? sanitizeStylistUserText(apiResult.stylistNote)
+          : undefined,
         missing: apiResult.missing,
         suggestions: apiResult.suggestions,
         missingPieces: apiResult.missingPieces,
@@ -850,7 +854,9 @@ export function useStylistDecision({
           );
           return pieces.length > 0 ? pieces : null;
         })(),
-        outfitSummary: apiResult.outfitSummary || localSummary || null,
+        outfitSummary: sanitizeStylistUserText(
+          apiResult.outfitSummary || localSummary || '',
+        ) || null,
         unifiedScore: apiResult.unifiedScore ?? null,
         stylistId: stylistId as DecisionResponse['stylistId'],
         timestamp: new Date().toISOString(),

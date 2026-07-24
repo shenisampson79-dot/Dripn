@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
+import type { KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
@@ -35,6 +36,7 @@ import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePic
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
+import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -119,6 +121,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
   const stylistGradient = getStylistGradient(stylistId);
@@ -139,6 +142,14 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
   const stepIndex = steps.indexOf(flow.step as typeof steps[number]);
   const progress = stepIndex >= 0 ? (stepIndex + 1) / steps.length : 0;
+
+  useEffect(() => {
+    if (flow.step !== 'response') return;
+    const id = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [flow.step, flow.response?.id]);
 
   // Occasion/vibe already collected on event step 1 — omit duplicate chips there.
   const visibleContextChips = useMemo(
@@ -839,11 +850,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           {res.stylistNote || res.outfitSummary ? (
             <ThemedText type="body" style={styles.responseBody}>
-              {res.stylistNote || res.outfitSummary}
+              {sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '')}
             </ThemedText>
           ) : (
             <ThemedText type="body" style={styles.responseBody}>
-              {renderMarkdownText(res.recommendation)}
+              {renderMarkdownText(sanitizeStylistUserText(res.recommendation))}
             </ThemedText>
           )}
 
@@ -864,7 +875,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           {res.reasoning && !isFallback ? (
             <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault }]}>
-              {renderMarkdownText(res.reasoning)}
+              {renderMarkdownText(sanitizeStylistUserText(res.reasoning))}
             </ThemedText>
           ) : null}
         </View>
@@ -942,6 +953,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     // flex column → KeyboardAwareScrollView → KeyboardStickyView → SafeAreaView → Continue
     <View style={[styles.root, { backgroundColor: theme.backgroundRoot }]}>
       <ScreenKeyboardAwareScrollView
+        ref={scrollRef}
         style={styles.flex}
         opaqueHeader
         keyboardDismissMode="on-drag"
