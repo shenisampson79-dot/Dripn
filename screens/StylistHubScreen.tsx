@@ -17,6 +17,7 @@ import {
   FEATURE_FLAGS,
   LAUNCH_HIDDEN_STYLIST_FEATURE_IDS,
 } from "@/constants/featureFlags";
+import { consumePendingCameraWow } from "@/services/CameraWowIntentService";
 
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
@@ -51,9 +52,9 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   },
   {
     id: "scan-wardrobe",
-    title: t('wardrobe.scanWardrobe') || "Scan wardrobe",
-    description: "Photograph multiple pieces at once",
-    icon: "maximize",
+    title: t('wardrobe.getOutfitsNow') || "Get outfits now",
+    description: "Scan a few pieces → up to 3 looks",
+    icon: "camera",
     screen: "ScanWardrobe",
     gradientKey: "jewel",
     category: "wardrobe",
@@ -61,7 +62,7 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   {
     id: "live-stylist",
     title: "Live stylist",
-    description: "Camera AR tips on your outfit",
+    description: "Camera tips on your outfit",
     icon: "aperture",
     screen: "LiveStylist",
     gradientKey: "accent",
@@ -147,15 +148,16 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
 /** Fixed 2-column grid order — do not persist or allow reorder. */
 const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
   ? [
+      "scan-wardrobe",
+      "live-stylist",
       "choosing-what-to-buy",
       "quick-sanity-check",
       "ai-stylist",
-      "live-stylist",
       "outfit-for-event",
       "fashion-blog",
       "style-rules",
     ]
-  : ["ai-stylist", "scan-wardrobe", "live-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
+  : ["scan-wardrobe", "ai-stylist", "live-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
 
 const getGradientColors = (key: GradientKey, palette: any): readonly [string, string] => {
   const gradientMap: Record<GradientKey, readonly [string, string]> = {
@@ -173,6 +175,19 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const { limits } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
   const { t } = useTranslations();
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = await consumePendingCameraWow();
+      if (!cancelled && pending) {
+        navigation.navigate("ScanWardrobe");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigation]);
 
   const features = React.useMemo(() => {
     const base = getFeatures(t);

@@ -38,7 +38,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
-import type { ScanSessionItem, ScanWardrobeStep } from '@/types/scanWardrobe';
+import type { ScanSessionItem, ScanWardrobeStep, ScanOutfitOption } from '@/types/scanWardrobe';
 import {
   correctWardrobeImageOrientation,
   promptWardrobeOrientationReview,
@@ -98,6 +98,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [showOutfitModal, setShowOutfitModal] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfitModalData | null>(null);
+  const [outfitOptions, setOutfitOptions] = useState<ScanOutfitOption[]>([]);
+  const [wowMessage, setWowMessage] = useState<string | null>(null);
   const [selectedOccasion, setSelectedOccasion] = useState<OutfitOccasionId>('casual_day');
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
@@ -227,7 +229,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     if (confirmedItems.length < 3) {
       Alert.alert(
         t('wardrobe.moreItemsNeeded') || 'More Items Needed',
-        'Confirm at least 3 items before generating an outfit.',
+        'Confirm at least 3 items before generating outfits.',
       );
       return;
     }
@@ -238,22 +240,44 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         sessionWardrobe: confirmedItems,
         hybridMerge,
         occasionType: selectedOccasion,
+        optionCount: 3,
       });
       if (!result.success) {
-        throw new Error(result.message || 'Could not generate outfit');
+        throw new Error(result.message || 'Could not generate outfits');
       }
       const wardrobePool = [
         ...confirmedItems.map(sessionItemToWardrobeItem),
         ...(hybridMerge ? savedWardrobe : []),
       ];
-      const apiItems = result.hydratedItems || result.outfit?.items || [];
-      const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
-      setGeneratedOutfit({
-        items: hydrated,
-        stylistMessage: result.stylistMessage || result.outfit?.stylistMessage,
-      });
-      setShowOutfitModal(true);
+      const options: ScanOutfitOption[] = (result.outfits?.length
+        ? result.outfits
+        : [{
+            id: 'look_1',
+            label: 'Look 1',
+            vibeLabel: result.vibeLabel,
+            stylistMessage: result.stylistMessage,
+            outfit: result.outfit,
+            hydratedItems: result.hydratedItems,
+          }]) as ScanOutfitOption[];
+
+      setOutfitOptions(options);
+      setWowMessage(
+        result.wowMessage
+        || `You have ${result.usableItemCount || confirmedItems.length} usable items. Here are ${options.length} looks.`,
+      );
+      setStep('looks');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Auto-open first look for instant wow
+      const first = options[0];
+      if (first) {
+        const apiItems = first.hydratedItems || first.outfit?.items || [];
+        const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
+        setGeneratedOutfit({
+          items: hydrated,
+          stylistMessage: first.stylistMessage || result.stylistMessage || undefined,
+        });
+        setShowOutfitModal(true);
+      }
     } catch (error) {
       Alert.alert(
         t('wardrobe.error') || 'Error',
@@ -263,6 +287,21 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const openLook = (option: ScanOutfitOption) => {
+    const wardrobePool = [
+      ...confirmedItems.map(sessionItemToWardrobeItem),
+      ...(hybridMerge ? savedWardrobe : []),
+    ];
+    const apiItems = option.hydratedItems || option.outfit?.items || [];
+    const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
+    setGeneratedOutfit({
+      items: hydrated,
+      stylistMessage: option.stylistMessage || undefined,
+    });
+    setShowOutfitModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
@@ -336,10 +375,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const renderCapture = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        {t('wardrobe.scanWardrobe') || 'Scan Wardrobe'}
+        {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
-        Photograph multiple pieces at once — flat-lay works best.
+        Point your camera at a few pieces — we’ll find what’s usable and build up to 3 looks in seconds.
       </ThemedText>
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
@@ -347,14 +386,14 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
           <Feather name="camera" size={48} color={LuxuryColors.gold} />
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
-            Flat-lay works best
+            Flat-lay works best · ~2–5s scan
           </ThemedText>
         </View>
       )}
       <View style={styles.captureActions}>
         <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {t('wardrobe.takePhoto') || 'Take Photo'}
+            {t('wardrobe.scanForOutfits') || 'Scan for outfits'}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -362,7 +401,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-            Live camera
+            Live camera tips
           </ThemedText>
         </Pressable>
         <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
@@ -442,10 +481,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const renderConfirm = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        We found {confirmedItems.length} item{confirmedItems.length === 1 ? '' : 's'}
+        You have {confirmedItems.length} usable item{confirmedItems.length === 1 ? '' : 's'}
       </ThemedText>
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-        Scene: {sceneType.replace(/_/g, ' ')}{sessionId ? ` · ${sessionId.slice(0, 8)}` : ''}
+        Quick check optional — then get up to 3 looks. Scene: {sceneType.replace(/_/g, ' ')}
       </ThemedText>
       <FlatList
         data={confirmedItems}
@@ -455,7 +494,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
       />
       <View style={styles.mergeRow}>
-        <ThemedText type="body">Merge saved wardrobe for outfit</ThemedText>
+        <ThemedText type="body">Include saved wardrobe pieces</ThemedText>
         <Switch
           value={hybridMerge}
           onValueChange={setHybridMerge}
@@ -475,7 +514,63 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || confirmedItems.length < 3 ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {isGenerating ? 'Generating…' : 'Generate outfit'}
+            {isGenerating ? 'Building looks…' : 'Show me 3 outfits'}
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={handleSaveToWardrobe}
+          disabled={isSaving}
+          style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving ? 0.5 : 1 }]}
+        >
+          <ThemedText type="body" style={{ color: theme.text }}>
+            Save key pieces later?
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderLooks = () => (
+    <View style={styles.stepBody}>
+      <ThemedText type="h2" style={styles.title}>
+        {wowMessage || `Here are ${outfitOptions.length} looks`}
+      </ThemedText>
+      <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+        Tap a look to open details. Saving to wardrobe is optional.
+      </ThemedText>
+      {outfitOptions.map((option, index) => {
+        const pieceCount = (option.hydratedItems || option.outfit?.items || []).length;
+        return (
+          <Pressable
+            key={option.id || `look_${index}`}
+            onPress={() => openLook(option)}
+            style={[styles.lookCard, { backgroundColor: isDark ? theme.surface : '#FFF', borderColor: theme.border }]}
+          >
+            <View style={styles.lookCardHeader}>
+              <ThemedText type="body" style={{ fontWeight: '700' }}>
+                {option.label || `Look ${index + 1}`}
+              </ThemedText>
+              <Feather name="chevron-right" size={20} color={LuxuryColors.gold} />
+            </View>
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              {option.vibeLabel || selectedOccasion.replace(/_/g, ' ')} · {pieceCount} piece{pieceCount === 1 ? '' : 's'}
+            </ThemedText>
+            {option.stylistMessage ? (
+              <ThemedText type="caption" style={{ color: theme.text, marginTop: 6 }} numberOfLines={2}>
+                {option.stylistMessage}
+              </ThemedText>
+            ) : null}
+          </Pressable>
+        );
+      })}
+      <View style={styles.footerActions}>
+        <Pressable
+          onPress={handleGenerateOutfit}
+          disabled={isGenerating}
+          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold, opacity: isGenerating ? 0.5 : 1 }]}
+        >
+          <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+            Refresh looks
           </ThemedText>
         </Pressable>
         <Pressable
@@ -485,6 +580,11 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         >
           <ThemedText type="body" style={{ color: theme.text }}>
             Save these key pieces to wardrobe?
+          </ThemedText>
+        </Pressable>
+        <Pressable onPress={() => setStep('confirm')} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
+          <ThemedText type="body" style={{ color: theme.textSecondary }}>
+            Edit items
           </ThemedText>
         </Pressable>
       </View>
@@ -511,7 +611,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           <Feather name="x" size={24} color="#FFF" />
         </Pressable>
         <ThemedText type="h3" style={{ color: '#FFF' }}>
-          {t('wardrobe.scanWardrobe') || 'Scan Wardrobe'}
+          {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
         </ThemedText>
         <View style={{ width: 32 }} />
       </LinearGradient>
@@ -523,6 +623,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         {step === 'capture' && renderCapture()}
         {step === 'scanning' && renderScanning()}
         {(step === 'confirm' || step === 'outfit') && renderConfirm()}
+        {step === 'looks' && renderLooks()}
         {step === 'save' && renderSave()}
       </KeyboardAwareScrollView>
 
@@ -656,5 +757,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     alignItems: 'center',
+  },
+  lookCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  lookCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
 });

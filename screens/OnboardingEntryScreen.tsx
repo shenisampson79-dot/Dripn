@@ -48,15 +48,15 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   const copy = useMemo(
     () => ({
-      title: t("onboardingEntry.title") || "We decide. You look better.",
+      title: t("onboardingEntry.title") || "Instant stylist. Zero inventory grind.",
       subtitle:
         t("onboardingEntry.subtitle") ||
-        "Zero effort — your stylist picks the outfit so you outdress the room.",
-      decideLabel: t("onboardingEntry.decideForMe") || "Decide for me",
-      decideSubtitle: t("onboardingEntry.decideForMeSubtitle") || "One answer. Out the door.",
+        "Point your camera — get outfits in seconds. Digitize later if you want.",
+      decideLabel: t("onboardingEntry.getOutfitsNow") || "Get outfits now",
+      decideSubtitle: t("onboardingEntry.getOutfitsNowSubtitle") || "Scan a few pieces. See 3 looks.",
       styleLabel: t("onboardingEntry.styleMeProperly") || "Style me properly",
       styleSubtitle:
-        t("onboardingEntry.styleMeProperlySubtitle") || "Using my wardrobe when ready",
+        t("onboardingEntry.styleMeProperlySubtitle") || "Full wardrobe setup when you’re ready",
       signIn:
         t("onboardingEntry.alreadyHaveAccount") || "Already have an account? Sign in",
       trust:
@@ -72,8 +72,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       console.log("Failed to track path selection");
     }
 
-    if (entryPointId === "decide_for_me") {
-      navigation.navigate("DecideForMe");
+    if (entryPointId === "decide_for_me" || entryPointId === "camera_wow") {
+      const { markPendingCameraWow } = await import("@/services/CameraWowIntentService");
+      await markPendingCameraWow();
+      navigation.navigate("SoftSignupGate", { fromPath: "camera_wow" });
     } else {
       navigation.navigate("StyleMeProperly");
     }
@@ -138,7 +140,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
               styles.primaryCta,
               { opacity: pressed ? 0.9 : 1 },
             ]}
-            onPress={() => handleEntryChoice("decide_for_me")}
+            onPress={() => handleEntryChoice("camera_wow")}
           >
             <LinearGradient
               colors={ScreenGradients.decideForMe.primary}
@@ -156,7 +158,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
                   </ThemedText>
                 </View>
                 <View style={styles.ctaIconWrapper}>
-                  <Feather name="zap" size={24} color="#FFFFFF" />
+                  <Feather name="camera" size={24} color="#FFFFFF" />
                 </View>
               </View>
             </LinearGradient>

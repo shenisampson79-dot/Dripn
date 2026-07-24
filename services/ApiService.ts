@@ -1151,16 +1151,24 @@ class ApiService {
     occasionType?: string;
     stylistId?: string;
     weather?: { temperature: number; condition?: string; unit?: string };
+    /** Camera-first wow: request up to 3 looks (server clamps 1–3). */
+    optionCount?: number;
   }) {
     return this.request<{
       success: boolean;
       message?: string;
+      wow?: boolean;
+      wowMessage?: string;
+      usableItemCount?: number;
+      optionCount?: number;
       occasionType?: string;
       vibeLabel?: string;
       colourHarmony?: string | null;
       stylingTips?: string[];
       stylistMessage?: string | null;
       allocationMode?: string;
+      freeTier?: boolean;
+      freeWowRemaining?: number | null;
       outfit?: {
         items: Array<{
           id: string;
@@ -1178,6 +1186,29 @@ class ApiService {
         category: string;
         color?: string;
         imageUrl?: string | null;
+      }>;
+      outfits?: Array<{
+        id: string;
+        label?: string;
+        vibeLabel?: string;
+        stylistMessage?: string | null;
+        outfit?: {
+          items: Array<{
+            id: string;
+            name: string;
+            category: string;
+            color?: string;
+            imageUrl?: string | null;
+            stylingNote?: string;
+          }>;
+        };
+        hydratedItems?: Array<{
+          id: string;
+          name: string;
+          category: string;
+          color?: string;
+          imageUrl?: string | null;
+        }>;
       }>;
     }>('/api/wardrobe/scan-wardrobe/generate-outfit', {
       method: 'POST',

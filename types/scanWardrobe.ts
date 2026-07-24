@@ -36,4 +36,28 @@ export type ScanWardrobeResponse = {
   message?: string;
 };
 
-export type ScanWardrobeStep = 'capture' | 'scanning' | 'confirm' | 'outfit' | 'save';
+export type ScanWardrobeStep = 'capture' | 'scanning' | 'confirm' | 'outfit' | 'looks' | 'save';
+
+export type ScanOutfitOption = {
+  id: string;
+  label?: string;
+  vibeLabel?: string;
+  stylistMessage?: string | null;
+  outfit?: {
+    items: Array<{
+      id: string;
+      name: string;
+      category: string;
+      color?: string;
+      imageUrl?: string | null;
+      stylingNote?: string;
+    }>;
+  };
+  hydratedItems?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    color?: string;
+    imageUrl?: string | null;
+  }>;
+};

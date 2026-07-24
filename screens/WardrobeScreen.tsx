@@ -834,14 +834,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           style={styles.emptyIconGradient}
         >
-          <Feather name="inbox" size={32} color="#FFFFFF" />
+          <Feather name="camera" size={32} color="#FFFFFF" />
         </LinearGradient>
       </LinearGradient>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        {t('wardrobe.wardrobeAwaits') || 'Your wardrobe awaits'}
+        {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        {t('wardrobe.wardrobeAwaitsDesc') || 'Start building your digital closet by adding photos of your favourite pieces'}
+        {t('wardrobe.getOutfitsNowDesc') || 'Point your camera at a few pieces — skip the full digitization and get looks in seconds.'}
       </ThemedText>
       <LinearGradient
         colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -849,19 +849,28 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         end={{ x: 1, y: 0 }}
         style={styles.emptyButtonGradient}
       >
-        <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
-          <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
+        <Pressable onPress={handleScanWardrobe} style={styles.emptyButtonInner}>
+          <Feather name="maximize" size={18} color={LUXURY_COLORS.midnight} />
           <ThemedText type="body" style={styles.emptyButtonText}>
-            {t('wardrobe.quickAddMultiple') || 'Bulk Add Items'}
+            {t('wardrobe.scanForOutfits') || 'Scan for outfits'}
           </ThemedText>
         </Pressable>
       </LinearGradient>
       <Pressable
-        onPress={handleAddItem}
+        onPress={handleQuickAdd}
         style={[styles.emptyButtonSecondary, { borderColor: LUXURY_COLORS.gold }]}
       >
-        <Feather name="plus" size={18} color={LUXURY_COLORS.gold} />
+        <Feather name="layers" size={18} color={LUXURY_COLORS.gold} />
         <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
+          {t('wardrobe.quickAddMultiple') || 'Bulk Add Items'}
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={handleAddItem}
+        style={[styles.emptyButtonSecondary, { borderColor: theme.border, marginTop: Spacing.sm }]}
+      >
+        <Feather name="plus" size={18} color={theme.textSecondary} />
+        <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: theme.textSecondary }}>
           {t('wardrobe.addSingleItem') || 'Add Single Item'}
         </ThemedText>
       </Pressable>

@@ -59,6 +59,8 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
   const getContextMessage = () => {
     switch (fromPath) {
+      case "camera_wow":
+        return t("softSignup.msg.camera_wow") || "Create a free account to scan your closet and get outfits in seconds.";
       case "second_opinion_urgent":
         return t("softSignup.msg.second_opinion_urgent") || "Sign up to get Fast feedback from our community";
       case "quick_start":
@@ -77,6 +79,13 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
   };
 
   const getBenefits = () => {
+    if (fromPath === "camera_wow") {
+      return [
+        { icon: "camera" as const, text: t("softSignup.benefit.camera.0") || "Scan a few pieces — get looks fast" },
+        { icon: "zap" as const, text: t("softSignup.benefit.camera.1") || "Up to 3 outfits from one photo" },
+        { icon: "inbox" as const, text: t("softSignup.benefit.camera.2") || "Digitize your full wardrobe later" },
+      ];
+    }
     if (fromPath === "second_opinion_urgent") {
       return [
         { icon: "users" as const, text: t("softSignup.benefit.urgent.0") || "Get real feedback from real people" },
@@ -99,14 +108,18 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
   };
 
   const primaryCta =
-    fromPath === "second_opinion_urgent"
+    fromPath === "camera_wow"
+      ? t("softSignup.cta.getOutfitsNow") || "Create free account & scan"
+      : fromPath === "second_opinion_urgent"
       ? t("softSignup.cta.getFastFeedback") || "Get Fast feedback"
       : fromPath === "browsing" || fromPath === "farewell"
         ? t("softSignup.cta.saveMyPicks") || t("common.saveMyPicks") || "Save my picks"
         : t("softSignup.cta.signUpToSave") || t("common.signUpToSave") || "Sign up to save";
 
   const secondaryCta =
-    fromPath === "second_opinion_urgent"
+    fromPath === "camera_wow"
+      ? t("softSignup.cta.browseAsGuest") || "Browse as guest instead"
+      : fromPath === "second_opinion_urgent"
       ? t("softSignup.cta.maybeLater") || t("common.maybeLater") || "Maybe later"
       : fromPath === "browsing" || fromPath === "farewell"
         ? t("softSignup.cta.browseAsGuest") || "Browse as guest"
