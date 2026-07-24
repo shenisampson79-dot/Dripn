@@ -1,81 +1,10 @@
-# EAS Build upload ignore — keep archive well under the 2 GB limit.
-# IMPORTANT: When .easignore exists, EAS does NOT use .gitignore.
-# CRITICAL: Use ".git" (no trailing slash). EAS only deletes the cloned
-# .git directory when ignore.ignores('.git') is true; ".git/" fails that
-# check and leaves ~1.7GB+ of attached_assets blobs in the upload tarball.
-
-# --- Must exclude (EAS installs deps; shallow clone otherwise keeps blobs) ---
-.git
-node_modules
-
-# --- Local / agent / IDE junk ---
-.local
-.cursor
-.agents
-.config
-.expo
-.vercel
-.kotlin
-.DS_Store
-
-# --- Native local folders (managed Expo; remote prebuild) ---
-/ios
-/android
-
-# --- Build / web outputs ---
-dist
-web-build
-coverage
-*.log
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-.metro-health-check*
-
-# --- Huge scratch / source dumps NOT used by the app bundle ---
-attached_assets
-backend-code
-marketing-website
-marketing-website.tar
-marketing-website.zip
-dripn-backend.zip
-dev-qr
-
-# Store / marketing screenshots (not require()'d by the app)
-assets/screenshots
-
-# Unused decorative silk loops (not referenced in JS/TS)
-assets/videos/champagne_gold_silk_flow.mp4
-assets/videos/light_pale_champagne_silk.mp4
-assets/videos/seamless_looping_pale_silk.mp4
-assets/videos/woman_indecisive_outfit.mp4
-assets/images/splash-icon.backup.png
-
-# Root agent / extract leftovers
-_*.json
-_*.txt
-_*.tsx
-tsc-errors*.txt
-.eas-size-audit.txt
-scripts/download-confidence-videos.mjs
-scripts/_*.txt
-
-# Env / secrets / keys (never upload)
-.env
-.env*.local
-*.pem
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Misc local noise
-replit.md
-.replit
-skills-lock.json
-expo-tunnel-qr.png
-expo-dev-qr-tunnel.png
-dripn-ios-install-qr.png
-subscription_screen.png
-tmp-test-ignore*.js
+# Keep EAS archives lean (mirrors / extends .gitignore for upload)
+.tools/
+.local/
+.expo/
+node_modules/
+web-build/
+dist/
+**/.git/
+*.pt
+*.onnx
