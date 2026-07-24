@@ -653,15 +653,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const renderQuickActionsBar = useCallback(() => (
     <View style={styles.quickActionsBar}>
       <Pressable
-        onPress={handleAICreateOutfit}
-        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
-      >
-        <Feather name="zap" size={15} color="#FFFFFF" />
-        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          {t('wardrobe.aiOutfit') || 'AI Outfit'}
-        </ThemedText>
-      </Pressable>
-      <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           navigation.navigate('OutfitBuilder');
@@ -701,7 +692,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
     </View>
-  ), [handleAICreateOutfit, handleQuickAdd, handleScanWardrobe, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
+  ), [handleQuickAdd, handleScanWardrobe, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed === true;
