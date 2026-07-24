@@ -493,7 +493,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           style={({ pressed }) => [styles.surpriseButton, pressed && { opacity: 0.9 }]}
         >
           <LinearGradient colors={[LuxuryColors.gold, LuxuryColors.deepGold]} style={styles.surpriseGradient}>
-            <Feather name="shuffle" size={18} color={LuxuryColors.obsidian} />
             <ThemedText type="body" style={styles.surpriseText}>
               {t('stylistFlow.surpriseMe')}
             </ThemedText>
@@ -596,7 +595,28 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         onChangeText={(venue) => flow.setEventDetails((p) => ({ ...p, venue }))}
       />
 
-      {renderContextChips(t('stylistFlow.contextEventSubtitle'))}
+      <View style={styles.contextBlock}>
+        <ThemedText type="body" style={styles.contextBlockTitle}>
+          {t('stylistFlow.contextTitle')}
+        </ThemedText>
+        <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+          {t('stylistFlow.contextEventSubtitle')}
+        </ThemedText>
+        <TextInput
+          style={[
+            styles.textArea,
+            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
+          ]}
+          placeholder={t('common.addAnyExtraDetailsOptional')}
+          placeholderTextColor={theme.tabIconDefault}
+          value={flow.contextNotes}
+          onChangeText={flow.setContextNotes}
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+          editable={!flow.isReadOnly}
+        />
+      </View>
     </Animated.View>
   );
 

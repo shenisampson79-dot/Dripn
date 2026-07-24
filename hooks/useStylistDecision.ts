@@ -42,6 +42,7 @@ import {
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
 import { resolveEventOutfitOccasion } from '@/utils/eventOutfitOccasion';
+import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -429,7 +430,11 @@ export function useStylistDecision({
         return `- ${parts.join(' · ')} [id:${item!.id}]`;
       });
     if (lines.length === 0) return undefined;
-    return `Selected wardrobe pieces to evaluate as one outfit:\n${lines.join('\n')}`;
+    const mode = resolveWardrobeSelectionMode(selectedWardrobeIds, wardrobeItems);
+    if (mode === 'pick_one') {
+      return `Selected wardrobe pieces in the SAME category — pick the best one for this request:\n${lines.join('\n')}`;
+    }
+    return `Selected wardrobe pieces proposed as ONE outfit — sanity-check the full look (approve, tweak, or suggest an alternative if inappropriate):\n${lines.join('\n')}`;
   };
 
   const buildDecisionContext = (): string => {
@@ -676,7 +681,14 @@ export function useStylistDecision({
     if (!opts?.force && !guardAccess()) return;
 
     const imageUris = collectImageUris();
-    if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping') {
+    const wardrobeSelectionMode = resolveWardrobeSelectionMode(selectedWardrobeIds, wardrobeItems);
+    const hasWardrobeOnly =
+      !surpriseMe
+      && imageUris.length === 0
+      && selectedWardrobeIds.length > 0
+      && (decisionType === 'event-outfit' || decisionType === 'sanity-check');
+
+    if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping' && !hasWardrobeOnly) {
       return;
     }
     if (!surpriseMe && decisionType === 'shopping' && imageUris.length === 0 && !contextNotes.trim() && activeContexts.length === 0) {
@@ -738,6 +750,22 @@ export function useStylistDecision({
         }
       }
 
+      // Manual multi-category picks → show the full proposed look, not a single "winner" piece.
+      const selectionPieces =
+        !surpriseMe && wardrobeSelectionMode === 'evaluate_outfit'
+          ? selectedWardrobeIds
+            .slice(0, getWardrobeSelectLimit())
+            .map((id) => wardrobeItems.find((item) => String(item.id) === id))
+            .filter(Boolean)
+            .map((item) => ({
+              wardrobeItemId: String(item!.id),
+              name: item!.name || 'Item',
+              category: item!.category,
+              imageUrl: item!.enhancedImageUri || item!.imageUri || undefined,
+              type: 'owned' as const,
+            }))
+          : null;
+
       const mappedType = DECISION_TYPE_MAP[decisionType] || 'sanity_check';
       const approxKb = Math.round(
         base64Images.reduce((sum, img) => sum + img.length, 0) / 1024,
@@ -751,6 +779,7 @@ export function useStylistDecision({
         stylist: stylistId,
         surpriseMe,
         wardrobeSelected: selectedWardrobeIds.length,
+        wardrobeSelectionMode,
         wardrobeAvailable: wardrobeItems.length,
       });
 
@@ -766,6 +795,7 @@ export function useStylistDecision({
         selectedContexts: activeContexts,
         eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
         selectedWardrobeIds: selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
+        wardrobeSelectionMode: wardrobeSelectionMode || undefined,
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
           id: item.id,
           name: item.name,
@@ -777,12 +807,14 @@ export function useStylistDecision({
         })),
       });
 
-      // Contract BEFORE result UI — never invent a multi-compare winner (no ?? 0)
+      // Evaluate-outfit: pieces of one look — never require a multi-compare winner.
+      const contractOptionCount =
+        wardrobeSelectionMode === 'evaluate_outfit' ? 0 : imageUris.length;
       const enforced = safeEnforceDecisionContract(apiResult, {
-        optionCount: imageUris.length,
+        optionCount: contractOptionCount,
         requireAdvice: true,
       });
-      if (!enforced.ok && imageUris.length >= 2) {
+      if (!enforced.ok && imageUris.length >= 2 && wardrobeSelectionMode !== 'evaluate_outfit') {
         console.warn('[StylistDecision] Multi-compare contract soft-fail; showing all options', {
           issues: enforced.issues,
         });
@@ -813,9 +845,9 @@ export function useStylistDecision({
         suggestions: apiResult.suggestions,
         missingPieces: apiResult.missingPieces,
         outfitPieces: (() => {
-          // Prefer server occasion-locked pieces; local allocator is best-effort only
-          // Never merge local pieces after a server refuse (wardrobe_gap throws before here)
-          const pieces = sanitizeOutfitPieces(apiResult.outfitPieces || localPieces || []);
+          const pieces = sanitizeOutfitPieces(
+            apiResult.outfitPieces || selectionPieces || localPieces || [],
+          );
           return pieces.length > 0 ? pieces : null;
         })(),
         outfitSummary: apiResult.outfitSummary || localSummary || null,
@@ -823,8 +855,12 @@ export function useStylistDecision({
         stylistId: stylistId as DecisionResponse['stylistId'],
         timestamp: new Date().toISOString(),
         outfitImageUrl: localPieces ? undefined : apiResult.outfitImageUrl,
-        uploadedImages: imageUris,
-        recommendedIndex: enforced.payload.recommendedIndex,
+        // Evaluate mode: hide multi-photo "winner" framing so the full outfit grid shows.
+        uploadedImages: wardrobeSelectionMode === 'evaluate_outfit' ? [] : imageUris,
+        recommendedIndex:
+          wardrobeSelectionMode === 'evaluate_outfit'
+            ? undefined
+            : enforced.payload.recommendedIndex,
         success: apiResult.success !== false,
         alreadyOwned: apiResult.alreadyOwned || apiResult.alreadyOwnedMatches,
         alreadyOwnedMatches: apiResult.alreadyOwnedMatches || apiResult.alreadyOwned,

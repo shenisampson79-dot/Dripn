@@ -216,14 +216,6 @@ const CONTEXT_CHIPS: { id: DecisionContext; label: string }[] = [
   { id: 'weather', label: 'Weather-related' },
 ];
 
-/** Occasion/vibe chips already covered by event step 1 (event type + dress code). */
-const EVENT_OUTFIT_OCCASION_CHIP_IDS: ReadonlySet<DecisionContext> = new Set([
-  'work-appropriate',
-  'casual',
-  'formal',
-  'date-night',
-]);
-
 const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
   free: {
     tier: 'free',
@@ -315,8 +307,9 @@ class DecisionService {
   }
 
   getContextChips(decisionType?: DecisionType): { id: DecisionContext; label: string }[] {
+    // Event step 1 already captures occasion/dress code; free-text notes cover the rest.
     if (decisionType === 'event-outfit') {
-      return CONTEXT_CHIPS.filter((chip) => !EVENT_OUTFIT_OCCASION_CHIP_IDS.has(chip.id));
+      return [];
     }
     return CONTEXT_CHIPS;
   }

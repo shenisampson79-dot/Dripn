@@ -2253,6 +2253,8 @@ class ApiService {
     selectedContexts?: string[];
     eventDetails?: Record<string, string>;
     selectedWardrobeIds?: Array<string | number>;
+    /** Manual wardrobe picks: mixed categories = evaluate look; same category = pick one. */
+    wardrobeSelectionMode?: 'evaluate_outfit' | 'pick_one';
     /** App Store storefront / billing hint for regional shop links. */
     storeCountry?: string;
     appStoreCountry?: string;
