@@ -86,15 +86,12 @@ export async function hydrateWardrobeItemWithLocalPhoto(item: WardrobeItem): Pro
   const permanent = await resolvePermanentWardrobePhoto(item.id);
 
   if (item.imageProcessed) {
-    if (permanent) {
-      return {
-        ...item,
-        imageUri: permanent,
-        enhancedImageUri: permanent,
-        originalImageUri: item.originalImageUri || permanent,
-      };
-    }
-    return item;
+    // Permanent disk file is usually the ORIGINAL (pre-rembg). Never use it as the
+    // display cutout — that reintroduced carpet photos after successful processing.
+    return {
+      ...item,
+      originalImageUri: item.originalImageUri || permanent || item.originalImageUri,
+    };
   }
 
   const local = permanent || (await resolveLocalWardrobePhoto(item.id, item));
@@ -118,10 +115,9 @@ export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[
     const existing = await resolvePermanentWardrobePhoto(item.id);
     if (existing) {
       if (item.imageProcessed) {
+        // Keep cutout display URIs; only backfill originalImageUri from permanent original
         migrated.push({
           ...item,
-          imageUri: existing,
-          enhancedImageUri: existing,
           originalImageUri: item.originalImageUri || existing,
         });
       } else {
@@ -145,12 +141,19 @@ export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[
     }
 
     if (saved) {
-      migrated.push({
-        ...item,
-        originalImageUri: saved,
-        imageUri: saved,
-        enhancedImageUri: saved,
-      });
+      if (item.imageProcessed) {
+        migrated.push({
+          ...item,
+          originalImageUri: item.originalImageUri || saved,
+        });
+      } else {
+        migrated.push({
+          ...item,
+          originalImageUri: saved,
+          imageUri: saved,
+          enhancedImageUri: saved,
+        });
+      }
     } else {
       migrated.push(item);
     }

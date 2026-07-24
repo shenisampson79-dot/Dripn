@@ -3462,6 +3462,7 @@ class ApiService {
     metadata?: Record<string, any>;
     imageBase64?: string;
     imageUrl?: string;
+    processedImageUrl?: string;
     allowDuplicate?: boolean;
     imagePhash?: string;
   }): Promise<{ success: boolean; item: any }> {

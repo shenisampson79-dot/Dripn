@@ -370,15 +370,43 @@ const BACKFILL_ATTEMPTED = new Set<string>();
 const BG_REMOVAL_CONCURRENCY = 2;
 
 async function attachPersistedLocalPhotos(item: WardrobeItem): Promise<WardrobeItem> {
-  const source = item.originalImageUri || item.imageUri;
-  if (!source || isRemoteImageUri(source)) return item;
-  const persisted = await persistWardrobePhotoToAppStorage(source, item.id);
-  if (!persisted) return item;
+  const displayUri = item.enhancedImageUri || item.imageUri || '';
+  const isProcessed = Boolean(
+    item.imageProcessed
+    || isProcessedWardrobeCdnUrl(displayUri)
+    || isProcessedWardrobeCdnUrl(item.imageUri || '')
+    || isProcessedWardrobeCdnUrl(item.enhancedImageUri || ''),
+  );
+
+  // Prefer persisting the ORIGINAL (carpet) only — never replace a rembg cutout
+  // display URI with the local original (July 5 regression).
+  const originalSource =
+    item.originalImageUri
+    && !isRemoteImageUri(item.originalImageUri)
+      ? item.originalImageUri
+      : (!isProcessed && item.imageUri && !isRemoteImageUri(item.imageUri)
+        ? item.imageUri
+        : null);
+
+  let persistedOriginal = item.originalImageUri || undefined;
+  if (originalSource) {
+    persistedOriginal = (await persistWardrobePhotoToAppStorage(originalSource, item.id)) || originalSource;
+  }
+
+  if (isProcessed) {
+    return {
+      ...item,
+      originalImageUri: persistedOriginal || item.originalImageUri,
+      // Keep imageUri / enhancedImageUri as the cutout (remote or already local cutout)
+    };
+  }
+
+  if (!persistedOriginal) return item;
   return {
     ...item,
-    originalImageUri: persisted,
-    imageUri: persisted,
-    enhancedImageUri: persisted,
+    originalImageUri: persistedOriginal,
+    imageUri: persistedOriginal,
+    enhancedImageUri: persistedOriginal,
   };
 }
 
@@ -1055,11 +1083,20 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         metadata,
         imageBase64: imageBase64 || undefined,
         imageUrl: remoteImageUrl,
+        // Durable cutout hint when rembg already ran on the client
+        ...(imageProcessed && remoteImageUrl
+          ? { processedImageUrl: remoteImageUrl }
+          : {}),
         allowDuplicate: allowDuplicate === true,
       });
 
       if (response?.success && response.item) {
         const backendId = response.item.id;
+        const serverCutout =
+          response.item.processedImageUrl
+          || response.item.processed_image_url
+          || (imageProcessed && remoteImageUrl ? remoteImageUrl : null)
+          || null;
         const newItem: WardrobeItem = await attachPersistedLocalPhotos({
           ...itemData,
           id: backendId,
@@ -1067,13 +1104,16 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           timesWorn: 0,
           createdAt: now,
           updatedAt: now,
+          imageUri: serverCutout || itemData.imageUri,
+          enhancedImageUri: serverCutout || itemData.enhancedImageUri || itemData.imageUri,
+          imageProcessed: Boolean(imageProcessed || response.item.backgroundRemoved || serverCutout),
         });
 
         await updateImageCacheEntry(backendId, {
           imageUri: newItem.imageUri,
           enhancedImageUri: newItem.enhancedImageUri,
           originalImageUri: newItem.originalImageUri,
-          imageProcessed,
+          imageProcessed: Boolean(newItem.imageProcessed),
         });
 
         const updatedItems = [...itemsRef.current, newItem];
