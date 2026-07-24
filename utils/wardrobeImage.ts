@@ -53,10 +53,189 @@ export function wardrobeProcessedTileBackground(): string {
   return WARDROBE_CUTOUT_TILE_BG;
 }
 
-type ImageFields = Pick<
+export type GarmentImageFields = Pick<
   WardrobeItem,
   'id' | 'imageUri' | 'enhancedImageUri' | 'originalImageUri' | 'imageProcessed' | 'aiAnalyzed'
 >;
+
+type ImageFields = GarmentImageFields;
+
+function trimUri(uri?: string | null): string {
+  return typeof uri === 'string' ? uri.trim() : '';
+}
+
+export function isLikelyLocalGarmentUri(uri?: string | null): boolean {
+  const value = trimUri(uri);
+  if (!value) return false;
+  if (value.startsWith('data:')) return false;
+  return !isRemoteImageUri(value);
+}
+
+/**
+ * URI evidence of a cutout. Never trust `imageProcessed` alone —
+ * that flag is what poisoned the carpet cache.
+ */
+export function hasVerifiedCutoutUri(item: Pick<ImageFields, 'imageUri' | 'enhancedImageUri'>): boolean {
+  for (const uri of [item.enhancedImageUri, item.imageUri]) {
+    const value = trimUri(uri);
+    if (!value) continue;
+    if (isProxyWardrobeImageUri(value)) return true;
+    if (isRemoteImageUri(value) && isProcessedWardrobeCdnUrl(value)) return true;
+  }
+  return false;
+}
+
+/**
+ * Classic failure mode: imageProcessed=true but display URIs still point at the
+ * local carpet original (hydration overwrite).
+ */
+export function isFalselyMarkedProcessed(item: ImageFields): boolean {
+  if (!item.imageProcessed) return false;
+  if (hasVerifiedCutoutUri(item)) return false;
+
+  const display = trimUri(item.enhancedImageUri) || trimUri(item.imageUri);
+  // Missing display URIs is not carpet poison — proxy may still serve the cutout.
+  if (!display) return false;
+  if (isRemoteImageUri(display) || isProxyWardrobeImageUri(display)) return false;
+
+  const original = trimUri(item.originalImageUri);
+  return !original || display === original;
+}
+
+/**
+ * True when UI may treat the item as a rembg cutout (white tile / Pro badge).
+ * Requires verified URI evidence, or a non-poisoned processed flag that can use proxy.
+ */
+export function itemHasProcessedCutout(item: ImageFields): boolean {
+  if (isFalselyMarkedProcessed(item)) return false;
+  if (hasVerifiedCutoutUri(item)) return true;
+  if ((item.imageProcessed || item.aiAnalyzed) && item.id) return true;
+  return false;
+}
+
+/**
+ * Strict display priority (processed assets are immutable and always win):
+ * 1. Verified processed CDN / Replicate cutout
+ * 2. Auth proxy when server cutout is expected
+ * 3. Other remote durable URLs
+ * 4. Local display (never when a cutout is expected)
+ * 5. Local original / fallback
+ */
+export function resolveWardrobeImageUri(item: ImageFields): string {
+  const enhanced = trimUri(item.enhancedImageUri);
+  const image = trimUri(item.imageUri);
+  const original = trimUri(item.originalImageUri);
+  const candidates = [enhanced, image].filter(Boolean);
+
+  // 1. Verified cutout CDN
+  for (const uri of candidates) {
+    if (isRemoteImageUri(uri) && isProcessedWardrobeCdnUrl(uri)) return uri;
+  }
+
+  // 2. Proxy when cutout is expected (server is source of truth)
+  if (item.id && itemHasProcessedCutout(item)) {
+    const proxy = candidates.find(isProxyWardrobeImageUri);
+    return proxy || buildWardrobeImageProxyUrl(item.id);
+  }
+
+  // 3. Local original only when NOT processed (carpet is fallback, never truth after rembg)
+  if (original && isLikelyLocalGarmentUri(original) && !itemHasProcessedCutout(item)) {
+    return original;
+  }
+
+  const localDisplay = candidates.find((uri) => isLikelyLocalGarmentUri(uri));
+  if (localDisplay && !itemHasProcessedCutout(item)) return localDisplay;
+
+  // 4. Durable remote (non-proxy)
+  const durableCdn = candidates.find(
+    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri) && isDurableWardrobeCdnUrl(uri),
+  );
+  if (durableCdn) return durableCdn;
+
+  const remoteCdn = candidates.find(
+    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri),
+  );
+  if (remoteCdn) return remoteCdn;
+
+  if (candidates[0]) return candidates[0];
+  if (original) return original;
+
+  if (item.id) return buildWardrobeImageProxyUrl(item.id);
+  return '';
+}
+
+/**
+ * Last-mile guard: never leave display URIs equal to the carpet original when a
+ * cutout exists / is expected. Clears poisoned processed flags.
+ */
+export function coerceWardrobeDisplayImages<T extends ImageFields>(item: T): T {
+  if (isFalselyMarkedProcessed(item)) {
+    const original = trimUri(item.originalImageUri) || trimUri(item.imageUri);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[WardrobeImage] invalid state: imageProcessed with local original only', item.id);
+    }
+    return {
+      ...item,
+      imageProcessed: false,
+      originalImageUri: original || item.originalImageUri,
+      imageUri: original || item.imageUri,
+      enhancedImageUri: original || item.enhancedImageUri,
+    };
+  }
+
+  if (!hasVerifiedCutoutUri(item) && !itemHasProcessedCutout(item)) {
+    return item;
+  }
+
+  const original = trimUri(item.originalImageUri);
+  const display = trimUri(item.enhancedImageUri) || trimUri(item.imageUri);
+  if (original && display && isLikelyLocalGarmentUri(display) && display === original) {
+    const cutout =
+      [item.enhancedImageUri, item.imageUri].find(
+        (uri) =>
+          !!uri &&
+          (isProcessedWardrobeCdnUrl(uri) || isProxyWardrobeImageUri(uri)),
+      ) || (item.id ? buildWardrobeImageProxyUrl(item.id) : '');
+
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[WardrobeImage] invalid state: cutout expected but local original used', item.id);
+    }
+
+    if (!cutout) return item;
+    return {
+      ...item,
+      imageUri: cutout,
+      enhancedImageUri: cutout,
+      originalImageUri: original,
+      imageProcessed: true,
+    };
+  }
+
+  return item;
+}
+
+/**
+ * Safe hydration write: never copy local original onto display fields when a
+ * cutout already exists or is expected.
+ */
+export function assignLocalOriginalOnly<T extends ImageFields>(
+  item: T,
+  localOriginal: string | null | undefined,
+): T {
+  if (!localOriginal) return item;
+  if (itemHasProcessedCutout(item) || hasVerifiedCutoutUri(item)) {
+    return {
+      ...item,
+      originalImageUri: item.originalImageUri || localOriginal,
+    };
+  }
+  return {
+    ...item,
+    originalImageUri: localOriginal,
+    imageUri: localOriginal,
+    enhancedImageUri: localOriginal,
+  };
+}
 
 export function listWardrobeImageUris(item: ImageFields): string[] {
   const uris: string[] = [];
@@ -69,7 +248,7 @@ export function listWardrobeImageUris(item: ImageFields): string[] {
   const primary = resolveWardrobeImageUri(item);
   add(primary);
 
-  if (item.imageProcessed && item.id) {
+  if (itemHasProcessedCutout(item) && item.id) {
     add(buildWardrobeImageProxyUrl(item.id));
   }
 
@@ -84,80 +263,20 @@ export function listWardrobeImageUris(item: ImageFields): string[] {
   return uris;
 }
 
-export function resolveWardrobeImageUri(item: ImageFields): string {
-  const candidates = [
-    item.enhancedImageUri,
-    item.imageUri,
-  ].filter((uri): uri is string => typeof uri === 'string' && uri.length > 0);
-
-  const localOriginal =
-    typeof item.originalImageUri === 'string' && item.originalImageUri.length > 0
-      ? item.originalImageUri
-      : '';
-  if (localOriginal && !isRemoteImageUri(localOriginal) && !itemHasProcessedCutout(item)) {
-    return localOriginal;
-  }
-
-  const localFromCandidates = candidates.find((uri) => !isRemoteImageUri(uri));
-  if (localFromCandidates && !itemHasProcessedCutout(item)) return localFromCandidates;
-
-  if (itemHasProcessedCutout(item) && item.id) {
-    const proxy = candidates.find(isProxyWardrobeImageUri);
-    if (proxy) return proxy;
-    const processedCdn = candidates.find(
-      (uri) => isRemoteImageUri(uri) && isProcessedWardrobeCdnUrl(uri),
-    );
-    if (processedCdn) return processedCdn;
-    return buildWardrobeImageProxyUrl(item.id);
-  }
-
-  if (item.id) {
-    const proxy = candidates.find(isProxyWardrobeImageUri);
-    if (proxy) return proxy;
-    if (candidates.length > 0) {
-      return buildWardrobeImageProxyUrl(item.id);
-    }
-  }
-
-  const durableCdn = candidates.find(
-    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri) && isDurableWardrobeCdnUrl(uri),
-  );
-  if (durableCdn) return durableCdn;
-
-  const remoteCdn = candidates.find(
-    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri),
-  );
-  if (remoteCdn) return remoteCdn;
-
-  if (candidates[0]) return candidates[0];
-
-  if (item.id) {
-    return buildWardrobeImageProxyUrl(item.id);
-  }
-
-  return '';
-}
-
-export function itemHasProcessedCutout(item: ImageFields): boolean {
-  if (item.imageProcessed || item.aiAnalyzed) return true;
-  return [item.enhancedImageUri, item.imageUri].some(
-    (uri) => typeof uri === 'string' && (isProxyWardrobeImageUri(uri) || isProcessedWardrobeCdnUrl(uri)),
-  );
-}
-
 /** Outfit stacks / lookbook — always prefer bg-removed cutouts over carpet originals. */
 export function enrichWardrobeItemForOutfitVisual(item: ImageFields): ImageFields {
-  if (itemHasProcessedCutout(item)) {
-    const uri = resolveWardrobeImageUri(item);
-    if (!uri) return item;
+  const coerced = coerceWardrobeDisplayImages(item);
+  if (itemHasProcessedCutout(coerced)) {
+    const uri = resolveWardrobeImageUri(coerced);
+    if (!uri) return coerced;
     return {
-      ...item,
+      ...coerced,
       imageUri: uri,
-      enhancedImageUri: item.enhancedImageUri || uri,
+      enhancedImageUri: coerced.enhancedImageUri || uri,
       imageProcessed: true,
     };
   }
-  return enrichWardrobeItemForDisplay(item);
+  return enrichWardrobeItemForDisplay(coerced);
 }
 
 export function resolveWardrobeFallbackUri(
@@ -165,7 +284,7 @@ export function resolveWardrobeFallbackUri(
   primaryUri: string,
 ): string | undefined {
   const primaryIsProcessed =
-    item.imageProcessed || isProxyWardrobeImageUri(primaryUri);
+    itemHasProcessedCutout(item) || isProxyWardrobeImageUri(primaryUri);
 
   if (primaryIsProcessed) {
     const localFallback = [item.originalImageUri, item.imageUri, item.enhancedImageUri].find(
@@ -195,48 +314,49 @@ export function resolveWardrobeFallbackUri(
 }
 
 export function wardrobeImageContentFit(
-  item: Pick<WardrobeItem, 'imageProcessed' | 'aiAnalyzed'>,
+  item: Pick<WardrobeItem, 'imageProcessed' | 'aiAnalyzed' | 'id' | 'imageUri' | 'enhancedImageUri' | 'originalImageUri'>,
   usingFallback: boolean,
   preferCover = false,
 ): 'contain' | 'cover' {
-  if (item.imageProcessed || item.aiAnalyzed) return 'contain';
+  if (itemHasProcessedCutout(item as ImageFields)) return 'contain';
   if (preferCover || usingFallback) return 'cover';
   return 'cover';
 }
 
 /** Prefer on-device photos for chat/outfit visuals when available. */
 export function enrichWardrobeItemForDisplay(item: ImageFields): ImageFields {
-  if (itemHasProcessedCutout(item)) {
-    const uri = resolveWardrobeImageUri(item);
-    if (!uri) return item;
+  const coerced = coerceWardrobeDisplayImages(item);
+  if (itemHasProcessedCutout(coerced)) {
+    const uri = resolveWardrobeImageUri(coerced);
+    if (!uri) return coerced;
     return {
-      ...item,
+      ...coerced,
       imageUri: uri,
-      enhancedImageUri: item.enhancedImageUri || uri,
+      enhancedImageUri: coerced.enhancedImageUri || uri,
       imageProcessed: true,
     };
   }
 
-  const localUri = listWardrobeImageUris(item).find((uri) => !isRemoteImageUri(uri));
+  const localUri = listWardrobeImageUris(coerced).find((uri) => !isRemoteImageUri(uri));
   if (localUri) {
     return {
-      ...item,
+      ...coerced,
       imageUri: localUri,
-      enhancedImageUri: item.enhancedImageUri && !isProxyWardrobeImageUri(item.enhancedImageUri)
-        ? item.enhancedImageUri
+      enhancedImageUri: coerced.enhancedImageUri && !isProxyWardrobeImageUri(coerced.enhancedImageUri)
+        ? coerced.enhancedImageUri
         : localUri,
       imageProcessed: false,
     };
   }
 
-  const uri = resolveWardrobeImageUri(item);
-  if (!uri) return item;
-  if (item.imageUri === uri && item.enhancedImageUri) return item;
+  const uri = resolveWardrobeImageUri(coerced);
+  if (!uri) return coerced;
+  if (coerced.imageUri === uri && coerced.enhancedImageUri) return coerced;
   return {
-    ...item,
+    ...coerced,
     imageUri: uri,
-    enhancedImageUri: item.enhancedImageUri || uri,
-    imageProcessed: item.imageProcessed,
+    enhancedImageUri: coerced.enhancedImageUri || uri,
+    imageProcessed: coerced.imageProcessed,
   };
 }
 

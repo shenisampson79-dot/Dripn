@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
-import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isProcessedWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri } from '@/utils/wardrobeImage';
+import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isFalselyMarkedProcessed, isProcessedWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri, coerceWardrobeDisplayImages, assignLocalOriginalOnly, itemHasProcessedCutout } from '@/utils/wardrobeImage';
 import {
   normalizeWardrobeCategoryForGender,
   resolveUserPresentationGender,
@@ -45,16 +45,6 @@ function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhance
       !isProxyWardrobeImageUri(u) &&
       isProcessedWardrobeCdnUrl(u),
   );
-}
-
-/** Local carpet cached as "processed" after the July 5 overwrite bug — not a real cutout. */
-function itemFalselyMarkedProcessed(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'originalImageUri' | 'imageProcessed'>): boolean {
-  if (!item.imageProcessed) return false;
-  if (itemHasProcessedCdnImage(item)) return false;
-  const display = item.enhancedImageUri || item.imageUri || '';
-  if (!display || isRemoteImageUri(display) || isProcessedWardrobeCdnUrl(display)) return false;
-  const original = item.originalImageUri || '';
-  return !original || display === original;
 }
 
 function getLocalImageUri(item: WardrobeItem, imageCache: ImageCache): string | null {
@@ -380,44 +370,21 @@ const BACKFILL_ATTEMPTED = new Set<string>();
 const BG_REMOVAL_CONCURRENCY = 2;
 
 async function attachPersistedLocalPhotos(item: WardrobeItem): Promise<WardrobeItem> {
-  const displayUri = item.enhancedImageUri || item.imageUri || '';
-  const isProcessed = Boolean(
-    item.imageProcessed
-    || isProcessedWardrobeCdnUrl(displayUri)
-    || isProcessedWardrobeCdnUrl(item.imageUri || '')
-    || isProcessedWardrobeCdnUrl(item.enhancedImageUri || ''),
-  );
-
-  // Prefer persisting the ORIGINAL (carpet) only — never replace a rembg cutout
-  // display URI with the local original (July 5 regression).
+  const safe = coerceWardrobeDisplayImages(item);
   const originalSource =
-    item.originalImageUri
-    && !isRemoteImageUri(item.originalImageUri)
-      ? item.originalImageUri
-      : (!isProcessed && item.imageUri && !isRemoteImageUri(item.imageUri)
-        ? item.imageUri
+    safe.originalImageUri
+    && !isRemoteImageUri(safe.originalImageUri)
+      ? safe.originalImageUri
+      : (!itemHasProcessedCutout(safe) && safe.imageUri && !isRemoteImageUri(safe.imageUri)
+        ? safe.imageUri
         : null);
 
-  let persistedOriginal = item.originalImageUri || undefined;
+  let persistedOriginal = safe.originalImageUri || undefined;
   if (originalSource) {
-    persistedOriginal = (await persistWardrobePhotoToAppStorage(originalSource, item.id)) || originalSource;
+    persistedOriginal = (await persistWardrobePhotoToAppStorage(originalSource, safe.id)) || originalSource;
   }
 
-  if (isProcessed) {
-    return {
-      ...item,
-      originalImageUri: persistedOriginal || item.originalImageUri,
-      // Keep imageUri / enhancedImageUri as the cutout (remote or already local cutout)
-    };
-  }
-
-  if (!persistedOriginal) return item;
-  return {
-    ...item,
-    originalImageUri: persistedOriginal,
-    imageUri: persistedOriginal,
-    enhancedImageUri: persistedOriginal,
-  };
+  return assignLocalOriginalOnly(safe, persistedOriginal);
 }
 
 async function syncBackgroundRemovalForItems(
@@ -442,9 +409,9 @@ async function syncBackgroundRemovalForItems(
     if (idFilter && !idFilter.has(String(item.id))) continue;
     // Skip real cutouts — do not re-bill Replicate. Re-queue carpet falsely marked processed.
     if (
-      !itemFalselyMarkedProcessed(item)
+      !isFalselyMarkedProcessed(item)
       && (
-        item.imageProcessed ||
+        itemHasProcessedCutout(item) ||
         itemHasProcessedCdnImage(item) ||
         isProcessedWardrobeCdnUrl(item.enhancedImageUri || '') ||
         isProcessedWardrobeCdnUrl(item.imageUri || '')
@@ -714,7 +681,7 @@ function mapBackendItemToFrontend(
     (httpRaw && httpRaw !== httpProcessed ? httpRaw : httpRaw) ||
     '';
 
-  return {
+  return coerceWardrobeDisplayImages({
     id: row.id,
     userId: row.userId || row.user_id,
     name: sanitizeWardrobeItemName(row.name || (meta as any).name || 'Untitled Item', {
@@ -778,7 +745,7 @@ function mapBackendItemToFrontend(
     imageProcessed: backgroundRemoved,
     createdAt: row.createdAt || row.created_at || (meta as any).createdAt || new Date().toISOString(),
     updatedAt: row.updatedAt || row.updated_at || (meta as any).updatedAt || new Date().toISOString(),
-  };
+  });
 }
 
 export function WardrobeProvider({ children }: { children: ReactNode }) {

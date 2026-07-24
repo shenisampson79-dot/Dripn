@@ -4,9 +4,12 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
 import {
   buildWardrobeImageProxyUrl,
+  hasVerifiedCutoutUri,
+  isLikelyLocalGarmentUri,
   isProxyWardrobeImageUri,
   isRemoteImageUri,
   itemHasProcessedCutout,
+  resolveWardrobeImageUri,
 } from '@/utils/wardrobeImage';
 import {
   localWardrobeFileExists,
@@ -242,15 +245,20 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     return previewUri;
   }
 
+  const preferredResolved = resolveWardrobeImageUri(item);
+  const cutoutExpected = itemHasProcessedCutout(item) || hasVerifiedCutoutUri(item);
   const preferredProp =
+    preferredResolved ||
     (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
     (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
     null;
 
-  // Fresh local picker/camera URIs always win over a stale permanent file for this id.
+  // Fresh local picker/camera URIs win ONLY when no cutout is expected.
+  // Otherwise carpet originals poison the render cache forever.
   if (
+    !cutoutExpected &&
     preferredProp &&
-    !isRemoteImageUri(preferredProp) &&
+    isLikelyLocalGarmentUri(preferredProp) &&
     !preferredProp.startsWith('data:')
   ) {
     if (await localWardrobeFileExists(preferredProp)) {
@@ -261,17 +269,21 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     }
   }
 
-  // New remote cutout URL should invalidate an older cached file for the same item id.
-  if (preferredProp && isRemoteImageUri(preferredProp)) {
+  // New remote / proxy cutout should invalidate an older cached carpet file.
+  if (preferredProp && (isRemoteImageUri(preferredProp) || isProxyWardrobeImageUri(preferredProp) || cutoutExpected)) {
     const existing = memoryCache.get(id);
-    if (existing && existing !== preferredProp && !existing.startsWith('data:')) {
+    if (
+      existing &&
+      existing !== preferredProp &&
+      !existing.startsWith('data:') &&
+      (isLikelyLocalGarmentUri(existing) || cutoutExpected)
+    ) {
       memoryCache.delete(id);
     }
-    // Stale disk jpg for this id would otherwise beat the new CDN cutout.
     const diskPath = cachePathFor(item.id);
     if (diskPath) {
       const cached = await isFreshDiskCache(diskPath);
-      if (cached && cached !== preferredProp) {
+      if (cached && (cutoutExpected || cached !== preferredProp)) {
         try {
           await FileSystem.deleteAsync(diskPath, { idempotent: true });
         } catch {
@@ -282,7 +294,7 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
   }
 
   const existing = memoryCache.get(id);
-  if (existing) {
+  if (existing && !(cutoutExpected && isLikelyLocalGarmentUri(existing))) {
     logSource(item.id, 'memory');
     return existing;
   }
@@ -294,7 +306,8 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     await ensureCacheDir();
 
     const diskPath = cachePathFor(item.id);
-    if (diskPath) {
+    // After rembg, never serve a stale local disk jpg ahead of proxy/CDN cutout.
+    if (diskPath && !cutoutExpected) {
       const cached = await isFreshDiskCache(diskPath);
       if (cached) {
         return remember(id, cached);
@@ -302,9 +315,7 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     }
 
     // After bg removal, prefer the processed CDN/proxy cutout — not the original carpet photo.
-    const skipLocalOriginal = itemHasProcessedCutout(item);
-
-    if (!skipLocalOriginal) {
+    if (!cutoutExpected) {
       const local = await resolveLocalWardrobePhoto(item.id, item);
       if (local) {
         logSource(item.id, 'local');

@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 
 import { WardrobeImageShimmer } from '@/components/WardrobeImageShimmer';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
+import { useResolvedGarmentImage } from '@/hooks/useResolvedGarmentImage';
 import { useTheme } from '@/hooks/useTheme';
 import {
   wardrobeImageContentFit,
@@ -55,12 +56,13 @@ export function WardrobeItemImage({
   displayScale = 1,
 }: Props) {
   const { isDark } = useTheme();
-  const isProcessed = processed ?? !!(item.imageProcessed || item.aiAnalyzed);
+  const { resolvedUri, isCutout, item: safeItem } = useResolvedGarmentImage(item);
+  const isProcessed = processed ?? isCutout;
   const tileBg =
     tileBackgroundColor ??
     (isProcessed ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark));
 
-  const cached = getCachedWardrobeImageUri(item.id);
+  const cached = getCachedWardrobeImageUri(safeItem.id);
   const [uri, setUri] = useState<string | null>(cached);
   const [loading, setLoading] = useState(!cached);
   const [failed, setFailed] = useState(false);
@@ -71,18 +73,15 @@ export function WardrobeItemImage({
   useEffect(() => {
     setFailed(false);
     setRetryCount(0);
-  }, [item.id, item.imageUri, item.enhancedImageUri, item.originalImageUri, item.imageProcessed]);
+  }, [safeItem.id, safeItem.imageUri, safeItem.enhancedImageUri, safeItem.originalImageUri, safeItem.imageProcessed, resolvedUri]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const preferred =
-      (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
-      (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
-      null;
+    const preferred = resolvedUri || null;
 
     // Never reuse a stale cached URI when the item's source photo changed (retake / rotate / rembg).
-    const warm = getCachedWardrobeImageUri(item.id);
+    const warm = getCachedWardrobeImageUri(safeItem.id);
     if (warm && preferred && warm !== preferred) {
       const preferredIsConcreteSource =
         preferred.startsWith('file') ||
@@ -91,21 +90,26 @@ export function WardrobeItemImage({
         preferred.startsWith('assets-library') ||
         preferred.startsWith('data:') ||
         preferred.startsWith('http');
-      if (preferredIsConcreteSource) {
-        invalidateWardrobeImageCache(item.id);
+      if (preferredIsConcreteSource || isCutout) {
+        invalidateWardrobeImageCache(safeItem.id);
       }
     }
 
-    const warmAfter = getCachedWardrobeImageUri(item.id);
-    if (warmAfter && (!preferred || warmAfter === preferred || String(item.id) === 'preview')) {
+    const warmAfter = getCachedWardrobeImageUri(safeItem.id);
+    if (warmAfter && (!preferred || warmAfter === preferred || String(safeItem.id) === 'preview')) {
       // For preview id, always prefer the live prop URI over any accidental cache hit.
-      if (String(item.id) === 'preview' && preferred) {
+      if (String(safeItem.id) === 'preview' && preferred) {
         setUri(preferred);
         setLoading(false);
         setFailed(false);
         return;
       }
-      if (warmAfter && String(item.id) !== 'preview') {
+      // Never keep a local warm cache when resolver says cutout/proxy should win
+      if (
+        warmAfter &&
+        String(safeItem.id) !== 'preview' &&
+        !(isCutout && warmAfter !== preferred && !warmAfter.startsWith('http'))
+      ) {
         setUri(warmAfter);
         setLoading(false);
         setFailed(false);
@@ -117,7 +121,7 @@ export function WardrobeItemImage({
     setUri(null);
     setFailed(false);
 
-    loadWardrobeImageForItem(item).then((result) => {
+    loadWardrobeImageForItem(safeItem).then((result) => {
       if (cancelled) return;
       setUri(result);
       setLoading(false);
@@ -128,26 +132,28 @@ export function WardrobeItemImage({
       cancelled = true;
     };
   }, [
-    item.id,
-    item.imageUri,
-    item.enhancedImageUri,
-    item.originalImageUri,
-    item.imageProcessed,
+    safeItem.id,
+    safeItem.imageUri,
+    safeItem.enhancedImageUri,
+    safeItem.originalImageUri,
+    safeItem.imageProcessed,
+    resolvedUri,
+    isCutout,
     retryCount,
   ]);
 
   const handleError = useCallback(() => {
     if (__DEV__) {
-      console.warn('[WardrobeImage] render error', item.id, uri);
+      console.warn('[WardrobeImage] render error', safeItem.id, uri);
     }
     if (retryCount >= MAX_RENDER_RETRIES) {
       setFailed(true);
       setUri(null);
       return;
     }
-    invalidateWardrobeImageCache(item.id);
+    invalidateWardrobeImageCache(safeItem.id);
     setRetryCount((n) => n + 1);
-  }, [item.id, uri, retryCount]);
+  }, [safeItem.id, uri, retryCount]);
 
   if (loading && showLoading) {
     return (
@@ -185,10 +191,10 @@ export function WardrobeItemImage({
           { backgroundColor: tileBg },
           displayScale !== 1 ? { transform: [{ scale: displayScale }] } : null,
         ]}
-        contentFit={contentFit ?? wardrobeImageContentFit(item, false, preferCover && !isProcessed)}
+        contentFit={contentFit ?? wardrobeImageContentFit(safeItem, false, preferCover && !isProcessed)}
         transition={transition}
         onError={handleError}
-        recyclingKey={`${item.id}:${uri}:${retryCount}`}
+        recyclingKey={`${safeItem.id}:${uri}:${retryCount}`}
         cachePolicy={uri.startsWith('http') ? 'memory-disk' : undefined}
       />
     </View>

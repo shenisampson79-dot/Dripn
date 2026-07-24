@@ -21,7 +21,7 @@ import {
   itemMatchesWardrobeCategory,
   resolveUserPresentationGender,
 } from '@/utils/wardrobeCategories';
-import { isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, wardrobeProcessedTileBackground, wardrobeTileBackground } from "@/utils/wardrobeImage";
+import { isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, itemHasProcessedCutout, wardrobeProcessedTileBackground, wardrobeTileBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -695,7 +695,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   ), [handleQuickAdd, handleScanWardrobe, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
-    const hasProcessedImage = item.imageProcessed === true;
+    const hasProcessedImage = itemHasProcessedCutout(item);
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
     const tileBackground = hasProcessedImage
       ? wardrobeProcessedTileBackground()
@@ -930,7 +930,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 <View style={[
                   styles.modalImageWrapper,
                   {
-                    backgroundColor: selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                    backgroundColor: itemHasProcessedCutout(selectedItem)
                       ? wardrobeProcessedTileBackground()
                       : wardrobeTileBackground(isDark),
                   },
@@ -938,11 +938,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   <WardrobeItemImage
                     item={selectedItem}
                     style={styles.modalImage}
-                    processed={!!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
-                    preferCover={!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
+                    processed={itemHasProcessedCutout(selectedItem)}
+                    preferCover={!itemHasProcessedCutout(selectedItem)}
                     transition={300}
                     tileBackgroundColor={
-                      selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                      itemHasProcessedCutout(selectedItem)
                         ? wardrobeProcessedTileBackground()
                         : wardrobeTileBackground(isDark)
                     }

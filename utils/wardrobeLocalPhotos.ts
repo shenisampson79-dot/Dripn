@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
-import { isRemoteImageUri } from '@/utils/wardrobeImage';
+import {
+  assignLocalOriginalOnly,
+  coerceWardrobeDisplayImages,
+} from '@/utils/wardrobeImage';
 import {
   localWardrobeFileExists,
   persistWardrobePhotoToAppStorage,
@@ -83,26 +86,10 @@ export async function resolveLocalWardrobePhoto(
 }
 
 export async function hydrateWardrobeItemWithLocalPhoto(item: WardrobeItem): Promise<WardrobeItem> {
-  const permanent = await resolvePermanentWardrobePhoto(item.id);
-
-  if (item.imageProcessed) {
-    // Permanent disk file is usually the ORIGINAL (pre-rembg). Never use it as the
-    // display cutout — that reintroduced carpet photos after successful processing.
-    return {
-      ...item,
-      originalImageUri: item.originalImageUri || permanent || item.originalImageUri,
-    };
-  }
-
-  const local = permanent || (await resolveLocalWardrobePhoto(item.id, item));
-  if (!local) return item;
-
-  return {
-    ...item,
-    originalImageUri: local,
-    imageUri: local,
-    enhancedImageUri: local,
-  };
+  const safe = coerceWardrobeDisplayImages(item);
+  const permanent = await resolvePermanentWardrobePhoto(safe.id);
+  const local = permanent || (await resolveLocalWardrobePhoto(safe.id, safe));
+  return assignLocalOriginalOnly(safe, local);
 }
 
 export async function hydrateWardrobeItemsWithLocalPhotos(items: WardrobeItem[]): Promise<WardrobeItem[]> {
@@ -111,23 +98,11 @@ export async function hydrateWardrobeItemsWithLocalPhotos(items: WardrobeItem[])
 
 export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[]): Promise<WardrobeItem[]> {
   const migrated: WardrobeItem[] = [];
-  for (const item of items) {
+  for (const raw of items) {
+    const item = coerceWardrobeDisplayImages(raw);
     const existing = await resolvePermanentWardrobePhoto(item.id);
     if (existing) {
-      if (item.imageProcessed) {
-        // Keep cutout display URIs; only backfill originalImageUri from permanent original
-        migrated.push({
-          ...item,
-          originalImageUri: item.originalImageUri || existing,
-        });
-      } else {
-        migrated.push({
-          ...item,
-          originalImageUri: existing,
-          imageUri: existing,
-          enhancedImageUri: existing,
-        });
-      }
+      migrated.push(assignLocalOriginalOnly(item, existing));
       continue;
     }
 
@@ -140,23 +115,7 @@ export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[
       }
     }
 
-    if (saved) {
-      if (item.imageProcessed) {
-        migrated.push({
-          ...item,
-          originalImageUri: item.originalImageUri || saved,
-        });
-      } else {
-        migrated.push({
-          ...item,
-          originalImageUri: saved,
-          imageUri: saved,
-          enhancedImageUri: saved,
-        });
-      }
-    } else {
-      migrated.push(item);
-    }
+    migrated.push(saved ? assignLocalOriginalOnly(item, saved) : item);
   }
   return migrated;
 }
