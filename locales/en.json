@@ -2042,6 +2042,7 @@
   "stylistFlow.contextTitle": "Anything I need to know",
   "stylistFlow.done": "Done",
   "stylistFlow.yesHelpMe": "Yes, help me — {name}",
+  "stylistFlow.refineWithStylist": "Refine this — {name}",
   "stylistFlow.continueInChat": "Continue in chat",
   "stylistFlow.continuityBanner": "Continuing from {flow}",
   "stylistFlow.lastRecommendation": "Your last recommendation",

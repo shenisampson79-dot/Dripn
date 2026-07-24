@@ -34,6 +34,7 @@ import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePicker';
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
+import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -851,51 +852,66 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {isFallback ? <FallbackShopSection missing={res.missing} /> : null}
 
         <View style={styles.responseActions}>
-          {flow.isStale ? (
-            <>
-              {renderPrimaryButton(
-                t('stylistFlow.refreshRecommendation'),
-                () => flow.refreshStaleRecommendation(),
-                false,
-                flow.isLoading,
-              )}
-              {renderPrimaryButton(
-                t('stylistFlow.yesHelpMe').replace('{name}', stylistName),
-                () => {
-                  void flow.continueInChat();
-                },
-              )}
-              <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
-                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                  {t('stylistFlow.editAndRerun')}
-                </ThemedText>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              {renderPrimaryButton(
-                t('stylistFlow.yesHelpMe').replace('{name}', stylistName),
-                () => {
-                  void flow.continueInChat();
-                },
-              )}
-              <Pressable onPress={() => flow.completeAndClose()} style={styles.secondaryButton}>
-                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                  {t('stylistFlow.done')}
-                </ThemedText>
-              </Pressable>
-              <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
-                <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                  {t('stylistFlow.editAndRerun')}
-                </ThemedText>
-              </Pressable>
-              <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
-                <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                  {t('stylistFlow.startOver')}
-                </ThemedText>
-              </Pressable>
-            </>
-          )}
+          {(() => {
+            const showFollowUp =
+              decisionType === 'sanity-check' && shouldShowSanityFollowUpCta(res);
+            const followUpLabel = (t('stylistFlow.refineWithStylist') || 'Refine this — {name}').replace(
+              '{name}',
+              stylistName,
+            );
+
+            if (flow.isStale) {
+              return (
+                <>
+                  {renderPrimaryButton(
+                    t('stylistFlow.refreshRecommendation'),
+                    () => flow.refreshStaleRecommendation(),
+                    false,
+                    flow.isLoading,
+                  )}
+                  {showFollowUp
+                    ? renderPrimaryButton(followUpLabel, () => {
+                        void flow.continueInChat();
+                      })
+                    : null}
+                  <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                      {t('stylistFlow.editAndRerun')}
+                    </ThemedText>
+                  </Pressable>
+                </>
+              );
+            }
+
+            return (
+              <>
+                {showFollowUp
+                  ? renderPrimaryButton(followUpLabel, () => {
+                      void flow.continueInChat();
+                    })
+                  : null}
+                {showFollowUp ? (
+                  <Pressable onPress={() => flow.completeAndClose()} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                      {t('stylistFlow.done')}
+                    </ThemedText>
+                  </Pressable>
+                ) : (
+                  renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())
+                )}
+                <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                    {t('stylistFlow.editAndRerun')}
+                  </ThemedText>
+                </Pressable>
+                <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
+                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                    {t('stylistFlow.startOver')}
+                  </ThemedText>
+                </Pressable>
+              </>
+            );
+          })()}
         </View>
       </Animated.View>
     );
