@@ -92,12 +92,15 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
   const verdictBit = payload.verdict.recommendation
     ? ` Your verdict was: ${clip(payload.verdict.recommendation, 400)}`
     : '';
+  const summaryBit = payload.verdict.outfitSummary
+    ? ` Summary: ${clip(payload.verdict.outfitSummary, 280)}`
+    : '';
 
   if (payload.flow === 'sanity-check') {
     return (
-      `In the ${label}, you offered to help me continue.${verdictBit}${score}${goal} `
-      + `Please build me a more polished outfit from my wardrobe that addresses your feedback. `
-      + `Keep the same occasion/weather context. Treat the pieces you criticized as avoid/fix unless I say otherwise.`
+      `Following on from my ${label}.${verdictBit}${summaryBit}${score}${goal} `
+      + `Please refine this: build a stronger outfit from my wardrobe that addresses your feedback. `
+      + `Keep the same occasion and weather context. Treat the pieces you criticised as avoid or fix unless I say otherwise.`
     ).trim();
   }
 
@@ -108,14 +111,14 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
           .join(', ')
       : '';
     return (
-      `Continuing from my ${label}${eventBits ? ` (${eventBits})` : ''}.${verdictBit}${score}${goal} `
+      `Following on from my ${label}${eventBits ? ` (${eventBits})` : ''}.${verdictBit}${score}${goal} `
       + `Please keep refining this look from my wardrobe — same event and dress code.`
     ).trim();
   }
 
   return (
-    `Continuing from my ${label}.${verdictBit}${score}${goal} `
-    + `Please keep helping me with this decision — same options and context.`
+    `Following on from my ${label}.${verdictBit}${score}${goal} `
+    + `Please keep working this decision with me — same options and context.`
   ).trim();
 }
 
