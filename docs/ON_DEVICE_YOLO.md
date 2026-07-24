@@ -6,6 +6,8 @@
 `eas update` / OTA only ships JS — installs built **before** this change keep using cloud Vision.
 Ship a new **EAS preview or production** binary to enable on-device detection.
 
+**Build links (install pages):** see [`docs/builds/`](./builds/README.md) — especially [2026-07-24-on-device-yolo.md](./builds/2026-07-24-on-device-yolo.md).
+
 ## Stack
 
 | Piece | Choice |
