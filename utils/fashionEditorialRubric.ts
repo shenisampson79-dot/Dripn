@@ -12,19 +12,21 @@ function itemText(item: EditorialItem): string {
 
 function isActive(item: EditorialItem): boolean {
   return item.category.includes('activewear')
-    || /\b(gym|training|running|compression|sports bra|performance (?:tee|top|tank|hoodie|jersey|shorts?)|workout|leggings?|track pants?|joggers?|sweatpants?)\b/.test(itemText(item));
+    || /\b(gym|training|running|compression|sports?\s*bras?|football|soccer|\bfc\b|kit|jersey|athletic|sportswear|performance (?:tee|top|tank|hoodie|jersey|shorts?)|workout|leggings?|track pants?|joggers?|sweatpants?)\b/.test(itemText(item));
 }
 
-/** Hoodies, joggers, gym trainers — never office/work pool. */
+/** Hoodies, joggers, sweat shorts — never formal/evening pool. */
 function isCasualLoungewear(item: EditorialItem): boolean {
   const text = itemText(item);
-  if (/\b(hoodies?|hooded sweat|sweatshirts?|joggers?|sweatpants?|track pants?|gym shorts?|athletic shorts?)\b/.test(text)) {
-    return true;
-  }
-  if (item.category === 'shoes' && /\b(trainers?|sneakers?|runners?|canvas shoes?|skate shoes?)\b/.test(text)) {
+  if (/\b(hoodies?|hooded sweat|sweatshirts?|joggers?|sweatpants?|sweat shorts?|track pants?|gym shorts?|athletic shorts?|drawstring shorts?)\b/.test(text)) {
     return true;
   }
   return false;
+}
+
+function isAthleticFootwear(item: EditorialItem): boolean {
+  return (item.category === 'shoes' || /shoe|footwear/.test(String(item.category || '')))
+    && /\b(running|training|cross-trainers?|gym shoes?|performance sneakers?|trainers?|sneakers?|runners?|canvas shoes?)\b/.test(itemText(item));
 }
 
 function isSleepwear(item: EditorialItem): boolean {
@@ -58,7 +60,8 @@ export function passesEditorialOccasionGate(
   if (isSleepwear(item)) return false;
   if (isBeachwear(item)) return false;
   if (SOCIAL_OR_PROFESSIONAL.has(occasion) && isActive(item)) return false;
-  if (occasion === 'work_outfit' && isCasualLoungewear(item)) return false;
+  if (occasion === 'work_outfit' && (isCasualLoungewear(item) || isAthleticFootwear(item))) return false;
+  if (occasion === 'evening_out' && isCasualLoungewear(item)) return false;
   if (occasion === 'smart_casual' && /\b(hoodies?|hooded sweat|joggers?|sweatpants?|track pants?)\b/.test(itemText(item))) {
     return false;
   }

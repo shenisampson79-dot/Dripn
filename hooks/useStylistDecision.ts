@@ -854,9 +854,14 @@ export function useStylistDecision({
           );
           return pieces.length > 0 ? pieces : null;
         })(),
-        outfitSummary: sanitizeStylistUserText(
-          apiResult.outfitSummary || localSummary || '',
-        ) || null,
+        outfitSummary: (() => {
+          const fromApi = sanitizeStylistUserText(apiResult.outfitSummary || '');
+          if (fromApi && !/ · /.test(fromApi)) return fromApi;
+          // Never prefer a bare "Name · Name · Name" list as the only summary — it hides analysis.
+          const fromLocal = sanitizeStylistUserText(localSummary || '');
+          if (fromLocal && !/ · /.test(fromLocal)) return fromLocal;
+          return fromApi || null;
+        })(),
         unifiedScore: apiResult.unifiedScore ?? null,
         stylistId: stylistId as DecisionResponse['stylistId'],
         timestamp: new Date().toISOString(),

@@ -71,7 +71,7 @@ export function resolveEventOutfitOccasion(input: {
     || /\b(black[\s_-]?tie|gala|ceremony)\b/.test(blob)
   ) {
     return {
-      allocatorOccasion: 'evening_out',
+      allocatorOccasion: dressCode === 'cocktail' ? 'evening_out' : 'work_outfit',
       outfitIntent: 'power',
       editorialOccasion: 'formal',
       strict: true,

@@ -115,6 +115,12 @@ function renderMarkdownText(text: string) {
   });
 }
 
+function looksLikeItemNameList(text?: string | null): boolean {
+  const value = String(text || '').trim();
+  if (!value) return false;
+  return / · /.test(value) && !/[.!?…]/.test(value);
+}
+
 export default function StylistDecisionFlow({ decisionType, navigation }: StylistDecisionFlowProps) {
   const { theme } = useTheme();
   const { t } = useTranslations();
@@ -842,42 +848,61 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               <ThemedText type="small">/10</ThemedText>
               {res.ratingLabel ? (
                 <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
-                  {res.ratingLabel}
+                  {sanitizeStylistUserText(res.ratingLabel)}
                 </ThemedText>
               ) : null}
             </View>
           ) : null}
 
-          {res.stylistNote || res.outfitSummary ? (
-            <ThemedText type="body" style={styles.responseBody}>
-              {sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '')}
-            </ThemedText>
-          ) : (
-            <ThemedText type="body" style={styles.responseBody}>
-              {renderMarkdownText(sanitizeStylistUserText(res.recommendation))}
-            </ThemedText>
-          )}
+          {(() => {
+            const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
+            const summaryIsNameList = looksLikeItemNameList(summary);
+            const recommendation = sanitizeStylistUserText(res.recommendation || '');
+            const reasoning = sanitizeStylistUserText(res.reasoning || '');
+            const headline = summary && !summaryIsNameList ? summary : null;
+            // Prefer real analysis: reasoning, else recommendation prose that isn't just the piece dump.
+            const analysis = reasoning
+              || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
+                ? recommendation
+                : '');
 
-          {allPieces.length > 0 ? (
-            <View style={{ marginTop: Spacing.md }}>
-              {allPieces.map((piece, index) => (
-                <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
-                  <ThemedText type="body">
-                    {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
-                    {': '}
-                    {piece.name}
-                    {piece.type === 'recommended' ? ' · recommended' : ''}
+            return (
+              <>
+                {headline ? (
+                  <ThemedText type="body" style={styles.responseBody}>
+                    {headline}
                   </ThemedText>
-                </View>
-              ))}
-            </View>
-          ) : null}
+                ) : null}
 
-          {res.reasoning && !isFallback ? (
-            <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault }]}>
-              {renderMarkdownText(sanitizeStylistUserText(res.reasoning))}
-            </ThemedText>
-          ) : null}
+                {allPieces.length > 0 ? (
+                  <View style={{ marginTop: headline ? Spacing.md : 0 }}>
+                    {allPieces.map((piece, index) => (
+                      <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
+                        <ThemedText type="body">
+                          {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                          {': '}
+                          {piece.name}
+                          {piece.type === 'recommended' ? ' · recommended' : ''}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {analysis && !isFallback ? (
+                  <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault, marginTop: Spacing.md }]}>
+                    {renderMarkdownText(analysis)}
+                  </ThemedText>
+                ) : null}
+
+                {!headline && !analysis && recommendation ? (
+                  <ThemedText type="body" style={[styles.responseBody, { marginTop: Spacing.md }]}>
+                    {renderMarkdownText(recommendation)}
+                  </ThemedText>
+                ) : null}
+              </>
+            );
+          })()}
         </View>
 
         {isFallback ? <FallbackShopSection missing={res.missing} /> : null}
