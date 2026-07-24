@@ -320,6 +320,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     navigation.navigate("BulkWardrobeUpload");
   };
 
+  const handleScanWardrobe = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate("ScanWardrobe");
+  };
+
   const handleAICreateOutfit = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (items.length < 3) {
@@ -669,6 +674,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
       <Pressable
+        onPress={handleScanWardrobe}
+        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+      >
+        <Feather name="maximize" size={15} color="#FFFFFF" />
+        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
+          Scan
+        </ThemedText>
+      </Pressable>
+      <Pressable
         onPress={handleQuickAdd}
         style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
       >
@@ -687,7 +701,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
     </View>
-  ), [handleAICreateOutfit, handleQuickAdd, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
+  ), [handleAICreateOutfit, handleQuickAdd, handleScanWardrobe, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed === true;

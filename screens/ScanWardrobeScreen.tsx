@@ -1,0 +1,652 @@
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  TextInput,
+  View,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Feather } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ThemedText } from '@/components/ThemedText';
+import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/components/outfit/GeneratedOutfitModal';
+import { OccasionPickerList } from '@/components/outfit/OccasionPickerList';
+import { DuplicateComparisonSheet } from '@/components/wardrobe/DuplicateComparisonSheet';
+import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import {
+  CATEGORY_LABELS,
+  ClothingCategory,
+  useWardrobe,
+  type WardrobeItem,
+} from '@/contexts/WardrobeContext';
+import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
+import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
+import { apiService } from '@/services/ApiService';
+import { convertImageToBase64 } from '@/services/VisionAnalysisService';
+import type { ScanSessionItem, ScanWardrobeStep } from '@/types/scanWardrobe';
+import {
+  correctWardrobeImageOrientation,
+  promptWardrobeOrientationReview,
+} from '@/utils/wardrobeImageOrientation';
+import {
+  findLocalWardrobeDuplicates,
+  normalizeDuplicateDecision,
+  type NormalizedDuplicateDecision,
+} from '@/utils/wardrobeDuplicateMatch';
+import { hydrateGeneratedOutfitItems } from '@/utils/generatedOutfit';
+import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
+import { useAuth } from '@/contexts/AuthContext';
+import { onboardingProfileService } from '@/services/OnboardingProfileService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type Props = {
+  navigation: NativeStackNavigationProp<WardrobeStackParamList, 'ScanWardrobe'>;
+};
+
+function sessionItemToWardrobeItem(item: ScanSessionItem): WardrobeItem {
+  const imageUri = item.sceneCrop ? `data:image/jpeg;base64,${item.sceneCrop}` : '';
+  return {
+    id: item.tempId,
+    userId: '',
+    imageUri,
+    enhancedImageUri: imageUri || undefined,
+    imageProcessed: Boolean(item.sceneCrop),
+    category: (item.category as ClothingCategory) || 'tops',
+    subcategory: item.subcategory || undefined,
+    color: (item.color as WardrobeItem['color']) || 'multicolor',
+    brand: item.brand || undefined,
+    name: item.name,
+    seasons: ['all-season'],
+    occasions: ['everyday'],
+    timesWorn: 0,
+    isFavorite: false,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export default function ScanWardrobeScreen({ navigation }: Props) {
+  const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
+  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { items: savedWardrobe, addItemsBatch } = useWardrobe();
+
+  const [step, setStep] = useState<ScanWardrobeStep>('capture');
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sceneType, setSceneType] = useState<string>('other');
+  const [scanItems, setScanItems] = useState<ScanSessionItem[]>([]);
+  const [hybridMerge, setHybridMerge] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showOutfitModal, setShowOutfitModal] = useState(false);
+  const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfitModalData | null>(null);
+  const [selectedOccasion, setSelectedOccasion] = useState<OutfitOccasionId>('casual_day');
+  const [dupeSheet, setDupeSheet] = useState<{
+    visible: boolean;
+    decision: NormalizedDuplicateDecision;
+    pendingItems: ScanSessionItem[];
+  }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false }, pendingItems: [] });
+
+  const [onboardingProfile, setOnboardingProfile] = useState<Awaited<ReturnType<typeof onboardingProfileService.getProfile>> | null>(null);
+  React.useEffect(() => {
+    onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+  }, []);
+
+  const presentationGender = resolveUserPresentationGender(user, onboardingProfile);
+  const categoryOptions = useMemo(
+    () => getManualAddCategoryTabs(presentationGender).map((tab) => tab.key),
+    [presentationGender],
+  );
+
+  const confirmedItems = useMemo(() => scanItems.filter(Boolean), [scanItems]);
+
+  const openSettings = async () => {
+    try {
+      await Linking.openSettings();
+    } catch {
+      Alert.alert(t('wardrobe.error') || 'Error', t('wardrobe.couldNotOpenSettingsPleaseEnablePermissi') || 'Could not open settings.');
+    }
+  };
+
+  const runScan = async (uri: string) => {
+    setStep('scanning');
+    try {
+      const base64 = await convertImageToBase64(uri);
+      const result = await apiService.scanWardrobe(base64, { includeCrops: true });
+      if (!result.success || !result.items?.length) {
+        Alert.alert(
+          t('wardrobe.scanWardrobe') || 'Scan Wardrobe',
+          result.message || 'No garments detected. Try a flat-lay photo with clear separation.',
+        );
+        setStep('capture');
+        return;
+      }
+      setSessionId(result.sessionId);
+      setSceneType(result.sceneType);
+      setScanItems(result.items);
+      setStep('confirm');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.warn('[ScanWardrobe] scan failed:', error);
+      Alert.alert(
+        t('wardrobe.error') || 'Error',
+        error instanceof Error ? error.message : 'Could not scan photo. Please try again.',
+      );
+      setStep('capture');
+    }
+  };
+
+  const beginImageImport = async (asset: ImagePicker.ImagePickerAsset) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const corrected = await correctWardrobeImageOrientation(asset.uri, asset);
+      setImageUri(corrected.uri);
+      promptWardrobeOrientationReview(corrected, (uri) => {
+        setImageUri(uri);
+        runScan(uri);
+      });
+    } catch {
+      setImageUri(asset.uri);
+      runScan(asset.uri);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      if (!permission.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert(t('wardrobe.permissionRequired') || 'Permission Required', t('wardrobe.photoLibraryAccessWasDeniedPleaseEnableI') || 'Enable photo library in Settings.', [
+          { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+          { text: t('common.openSettings') || 'Settings', onPress: openSettings },
+        ]);
+      }
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+      exif: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await beginImageImport(result.assets[0]);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      if (!permission.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert(t('wardrobe.permissionRequired') || 'Permission Required', t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || 'Enable camera in Settings.', [
+          { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+          { text: t('common.openSettings') || 'Settings', onPress: openSettings },
+        ]);
+      }
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+      exif: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await beginImageImport(result.assets[0]);
+    }
+  };
+
+  const updateItem = (tempId: string, patch: Partial<ScanSessionItem>) => {
+    setScanItems((prev) => prev.map((item) => (item.tempId === tempId ? { ...item, ...patch } : item)));
+  };
+
+  const removeItem = (tempId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setScanItems((prev) => prev.filter((item) => item.tempId !== tempId));
+  };
+
+  const handleGenerateOutfit = async () => {
+    if (confirmedItems.length < 3) {
+      Alert.alert(
+        t('wardrobe.moreItemsNeeded') || 'More Items Needed',
+        'Confirm at least 3 items before generating an outfit.',
+      );
+      return;
+    }
+    setIsGenerating(true);
+    setStep('outfit');
+    try {
+      const result = await apiService.generateOutfitFromScan({
+        sessionWardrobe: confirmedItems,
+        hybridMerge,
+        occasionType: selectedOccasion,
+      });
+      if (!result.success) {
+        throw new Error(result.message || 'Could not generate outfit');
+      }
+      const wardrobePool = [
+        ...confirmedItems.map(sessionItemToWardrobeItem),
+        ...(hybridMerge ? savedWardrobe : []),
+      ];
+      const apiItems = result.hydratedItems || result.outfit?.items || [];
+      const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
+      setGeneratedOutfit({
+        items: hydrated,
+        stylistMessage: result.stylistMessage || result.outfit?.stylistMessage,
+      });
+      setShowOutfitModal(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      Alert.alert(
+        t('wardrobe.error') || 'Error',
+        error instanceof Error ? error.message : 'Outfit generation failed.',
+      );
+      setStep('confirm');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
+    setIsSaving(true);
+    try {
+      const payload = itemsToSave.map((item) => ({
+        name: item.name,
+        category: item.category as ClothingCategory,
+        subcategory: item.subcategory || undefined,
+        color: item.color as WardrobeItem['color'],
+        brand: item.brand || undefined,
+        imageUri: item.sceneCrop ? `data:image/jpeg;base64,${item.sceneCrop}` : '',
+        seasons: ['all-season'] as const,
+        occasions: ['everyday'] as const,
+        isFavorite: false,
+      }));
+      await addItemsBatch(payload, { allowDuplicates });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        t('wardrobe.saved') || 'Saved',
+        `Added ${itemsToSave.length} item${itemsToSave.length === 1 ? '' : 's'} to your wardrobe.`,
+        [{ text: t('common.done') || 'Done', onPress: () => navigation.goBack() }],
+      );
+    } catch (error) {
+      Alert.alert(t('wardrobe.error') || 'Error', error instanceof Error ? error.message : 'Save failed.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveToWardrobe = async () => {
+    if (confirmedItems.length === 0) {
+      navigation.goBack();
+      return;
+    }
+    setStep('save');
+    try {
+      const dupePayload = confirmedItems.map((item) => ({
+        name: item.name,
+        category: item.category,
+        subcategory: item.subcategory || undefined,
+        color: item.color,
+        brand: item.brand || undefined,
+        imageBase64: item.sceneCrop || undefined,
+      }));
+      const serverDupe = await apiService.checkWardrobeDuplicates(dupePayload);
+      const firstHit = serverDupe.results?.find((r) => r.isDuplicate || r.type === 'duplicate' || r.type === 'already_owned');
+      if (firstHit?.decision) {
+        setDupeSheet({
+          visible: true,
+          decision: normalizeDuplicateDecision(firstHit.decision),
+          pendingItems: confirmedItems,
+        });
+        return;
+      }
+      const local = findLocalWardrobeDuplicates(confirmedItems.map(sessionItemToWardrobeItem), savedWardrobe);
+      if (local.isDuplicate && local.matches.length > 0) {
+        setDupeSheet({
+          visible: true,
+          decision: normalizeDuplicateDecision(local),
+          pendingItems: confirmedItems,
+        });
+        return;
+      }
+      await persistItems(confirmedItems);
+    } catch {
+      await persistItems(confirmedItems);
+    }
+  };
+
+  const renderCapture = () => (
+    <View style={styles.stepBody}>
+      <ThemedText type="h2" style={styles.title}>
+        {t('wardrobe.scanWardrobe') || 'Scan Wardrobe'}
+      </ThemedText>
+      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
+        Photograph multiple pieces at once — flat-lay works best.
+      </ThemedText>
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
+      ) : (
+        <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
+          <Feather name="camera" size={48} color={LuxuryColors.gold} />
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
+            Flat-lay works best
+          </ThemedText>
+        </View>
+      )}
+      <View style={styles.captureActions}>
+        <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+            {t('wardrobe.takePhoto') || 'Take Photo'}
+          </ThemedText>
+        </Pressable>
+        <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
+          <ThemedText type="body" style={{ color: theme.text }}>
+            {t('wardrobe.chooseFromGallery') || 'Choose from Gallery'}
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderScanning = () => (
+    <View style={[styles.stepBody, styles.centered]}>
+      <ActivityIndicator size="large" color={LuxuryColors.gold} />
+      <ThemedText type="body" style={{ marginTop: Spacing.lg, color: theme.textSecondary }}>
+        Scanning your wardrobe…
+      </ThemedText>
+    </View>
+  );
+
+  const renderConfirmItem = ({ item }: { item: ScanSessionItem }) => (
+    <View style={[styles.itemCard, { backgroundColor: isDark ? theme.surface : '#FFF', borderColor: theme.border }]}>
+      <View style={styles.itemRow}>
+        {item.sceneCrop ? (
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${item.sceneCrop}` }}
+            style={styles.itemThumb}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.itemThumb, { backgroundColor: theme.surfaceSecondary }]}>
+            <Feather name="image" size={20} color={theme.textTertiary} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <TextInput
+            value={item.name}
+            onChangeText={(text) => updateItem(item.tempId, { name: text })}
+            style={[styles.nameInput, { color: theme.text, borderColor: theme.border }]}
+            placeholder="Item name"
+            placeholderTextColor={theme.textTertiary}
+          />
+          <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+            {CATEGORY_LABELS[item.category as ClothingCategory] || item.category}
+            {item.confidence < 0.55 ? ` · ${Math.round(item.confidence * 100)}% sure` : ''}
+          </ThemedText>
+          {item.needsConfirm && item.confirmPrompt ? (
+            <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 4 }}>
+              {item.confirmPrompt}
+            </ThemedText>
+          ) : null}
+        </View>
+        <Pressable onPress={() => removeItem(item.tempId)} hitSlop={8}>
+          <Feather name="x" size={20} color={theme.textSecondary} />
+        </Pressable>
+      </View>
+      <View style={styles.categoryChips}>
+        {categoryOptions.slice(0, 8).map((cat) => (
+          <Pressable
+            key={cat}
+            onPress={() => updateItem(item.tempId, { category: cat })}
+            style={[
+              styles.categoryChip,
+              item.category === cat && styles.categoryChipActive,
+              { borderColor: item.category === cat ? LuxuryColors.gold : theme.border },
+            ]}
+          >
+            <ThemedText type="caption" style={{ color: item.category === cat ? LuxuryColors.gold : theme.textSecondary }}>
+              {CATEGORY_LABELS[cat]}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderConfirm = () => (
+    <View style={styles.stepBody}>
+      <ThemedText type="h2" style={styles.title}>
+        We found {confirmedItems.length} item{confirmedItems.length === 1 ? '' : 's'}
+      </ThemedText>
+      <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+        Scene: {sceneType.replace(/_/g, ' ')}{sessionId ? ` · ${sessionId.slice(0, 8)}` : ''}
+      </ThemedText>
+      <FlatList
+        data={confirmedItems}
+        keyExtractor={(item) => item.tempId}
+        renderItem={renderConfirmItem}
+        scrollEnabled={false}
+        ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+      />
+      <View style={styles.mergeRow}>
+        <ThemedText type="body">Merge saved wardrobe for outfit</ThemedText>
+        <Switch
+          value={hybridMerge}
+          onValueChange={setHybridMerge}
+          trackColor={{ false: theme.border, true: LuxuryColors.gold }}
+        />
+      </View>
+      <OccasionPickerList
+        selectedOccasionId={selectedOccasion}
+        selectionMode="select"
+        showWeatherLink={false}
+        onSelect={setSelectedOccasion}
+      />
+      <View style={styles.footerActions}>
+        <Pressable
+          onPress={handleGenerateOutfit}
+          disabled={isGenerating || confirmedItems.length < 3}
+          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || confirmedItems.length < 3 ? 0.5 : 1 }]}
+        >
+          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+            {isGenerating ? 'Generating…' : 'Generate outfit'}
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={handleSaveToWardrobe}
+          disabled={isSaving}
+          style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving ? 0.5 : 1 }]}
+        >
+          <ThemedText type="body" style={{ color: theme.text }}>
+            Save these key pieces to wardrobe?
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderSave = () => (
+    <View style={[styles.stepBody, styles.centered]}>
+      <ActivityIndicator size="large" color={LuxuryColors.gold} />
+      <ThemedText type="body" style={{ marginTop: Spacing.lg, color: theme.textSecondary }}>
+        Saving to wardrobe…
+      </ThemedText>
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.backgroundDefault }}>
+      <LinearGradient
+        colors={['#C9A87C', '#A88B5C', LuxuryColors.obsidian] as const}
+        locations={[0, 0.35, 1]}
+        style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
+      >
+        <Pressable onPress={() => navigation.goBack()} style={styles.closeBtn} hitSlop={8}>
+          <Feather name="x" size={24} color="#FFF" />
+        </Pressable>
+        <ThemedText type="h3" style={{ color: '#FFF' }}>
+          {t('wardrobe.scanWardrobe') || 'Scan Wardrobe'}
+        </ThemedText>
+        <View style={{ width: 32 }} />
+      </LinearGradient>
+
+      <KeyboardAwareScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {step === 'capture' && renderCapture()}
+        {step === 'scanning' && renderScanning()}
+        {(step === 'confirm' || step === 'outfit') && renderConfirm()}
+        {step === 'save' && renderSave()}
+      </KeyboardAwareScrollView>
+
+      <GeneratedOutfitModal
+        visible={showOutfitModal}
+        outfit={generatedOutfit}
+        occasion={selectedOccasion}
+        onClose={() => setShowOutfitModal(false)}
+      />
+
+      <DuplicateComparisonSheet
+        visible={dupeSheet.visible}
+        type={dupeSheet.decision.type}
+        message={dupeSheet.decision.message}
+        matches={dupeSheet.decision.matches}
+        onClose={() => setDupeSheet((s) => ({ ...s, visible: false }))}
+        onAddAnyway={async () => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          await persistItems(dupeSheet.pendingItems, true);
+        }}
+        onContinue={async () => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          await persistItems(dupeSheet.pendingItems, true);
+        }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    padding: Spacing.lg,
+  },
+  stepBody: {
+    flex: 1,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 280,
+  },
+  title: {
+    marginBottom: Spacing.sm,
+  },
+  previewImage: {
+    width: SCREEN_WIDTH - Spacing.lg * 2,
+    height: (SCREEN_WIDTH - Spacing.lg * 2) * 0.75,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
+  },
+  previewPlaceholder: {
+    width: SCREEN_WIDTH - Spacing.lg * 2,
+    height: (SCREEN_WIDTH - Spacing.lg * 2) * 0.75,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  captureActions: {
+    gap: Spacing.sm,
+  },
+  itemCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  itemThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+  },
+  nameInput: {
+    borderBottomWidth: 1,
+    paddingVertical: 4,
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  categoryChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  categoryChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  categoryChipActive: {
+    backgroundColor: 'rgba(201, 168, 124, 0.12)',
+  },
+  mergeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: Spacing.md,
+  },
+  footerActions: {
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  primaryBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  secondaryBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+});

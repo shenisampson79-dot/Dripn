@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
+import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
@@ -23,6 +24,7 @@ import { DFYTier } from "@/services/DFYService";
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
+  ScanWardrobe: undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   OutfitBuilder: undefined;
@@ -59,6 +61,15 @@ export default function WardrobeStackNavigator() {
         component={AddWardrobeItemScreen}
         options={{
           title: t('navTitles.addItem') || t('wardrobe.addItem') || "Add Item",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="ScanWardrobe"
+        component={ScanWardrobeScreen}
+        options={{
+          title: "Scan Wardrobe",
           headerShown: false,
           presentation: "modal",
         }}

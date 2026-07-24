@@ -1109,6 +1109,83 @@ class ApiService {
     };
   }
 
+  async scanWardrobe(
+    imageBase64: string,
+    options?: { includeCrops?: boolean; imageUrl?: string },
+  ) {
+    return this.request<{
+      success: boolean;
+      sessionId: string;
+      sceneType: string;
+      itemCount: number;
+      items: Array<{
+        tempId: string;
+        name: string;
+        category: string;
+        subcategory?: string | null;
+        color: string;
+        brand?: string | null;
+        formality?: number;
+        confidence: number;
+        bbox?: [number, number, number, number] | null;
+        sceneCrop?: string | null;
+        classified?: Record<string, unknown>;
+        needsConfirm: boolean;
+        confirmPrompt?: string | null;
+        seasons?: string[];
+        occasions?: string[];
+      }>;
+      persisted: false;
+      autoSaved: false;
+      message?: string;
+    }>('/api/wardrobe/scan-wardrobe', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64, ...options }),
+      timeout: 120000,
+    });
+  }
+
+  async generateOutfitFromScan(data: {
+    sessionWardrobe: Array<Record<string, unknown>>;
+    hybridMerge?: boolean;
+    occasionType?: string;
+    stylistId?: string;
+    weather?: { temperature: number; condition?: string; unit?: string };
+  }) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      occasionType?: string;
+      vibeLabel?: string;
+      colourHarmony?: string | null;
+      stylingTips?: string[];
+      stylistMessage?: string | null;
+      allocationMode?: string;
+      outfit?: {
+        items: Array<{
+          id: string;
+          name: string;
+          category: string;
+          color?: string;
+          imageUrl?: string | null;
+          stylingNote?: string;
+        }>;
+        stylistMessage?: string;
+      };
+      hydratedItems?: Array<{
+        id: string;
+        name: string;
+        category: string;
+        color?: string;
+        imageUrl?: string | null;
+      }>;
+    }>('/api/wardrobe/scan-wardrobe/generate-outfit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      timeout: 90000,
+    });
+  }
+
   isConfigured() {
     return Boolean(API_URL);
   }

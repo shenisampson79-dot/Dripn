@@ -50,6 +50,15 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     category: "stylist",
   },
   {
+    id: "scan-wardrobe",
+    title: t('wardrobe.scanWardrobe') || "Scan wardrobe",
+    description: "Photograph multiple pieces at once",
+    icon: "maximize",
+    screen: "ScanWardrobe",
+    gradientKey: "jewel",
+    category: "wardrobe",
+  },
+  {
     id: "outfit-calendar",
     title: t('stylistHub.outfitCalendar') || "Outfit Calendar",
     description: t('stylistHub.outfitCalendarDesc') || "Plan your looks ahead",
@@ -136,7 +145,7 @@ const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
       "fashion-blog",
       "style-rules",
     ]
-  : ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
+  : ["ai-stylist", "scan-wardrobe", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
 
 const getGradientColors = (key: GradientKey, palette: any): readonly [string, string] => {
   const gradientMap: Record<GradientKey, readonly [string, string]> = {

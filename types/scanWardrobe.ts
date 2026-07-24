@@ -1,0 +1,39 @@
+import type { ClothingCategory } from '@/contexts/WardrobeContext';
+
+export type ScanSceneType = 'flat_lay' | 'hanging' | 'drawer' | 'worn' | 'other';
+
+export type ScanSessionItem = {
+  tempId: string;
+  name: string;
+  category: ClothingCategory | string;
+  subcategory?: string | null;
+  color: string;
+  brand?: string | null;
+  formality?: number;
+  confidence: number;
+  bbox?: [number, number, number, number] | null;
+  sceneCrop?: string | null;
+  classified?: {
+    subtype?: string | null;
+    lane?: string | null;
+    formality?: number | null;
+    confidence?: number | null;
+  };
+  needsConfirm: boolean;
+  confirmPrompt?: string | null;
+  seasons?: string[];
+  occasions?: string[];
+};
+
+export type ScanWardrobeResponse = {
+  success: boolean;
+  sessionId: string;
+  sceneType: ScanSceneType | string;
+  itemCount: number;
+  items: ScanSessionItem[];
+  persisted: false;
+  autoSaved: false;
+  message?: string;
+};
+
+export type ScanWardrobeStep = 'capture' | 'scanning' | 'confirm' | 'outfit' | 'save';
