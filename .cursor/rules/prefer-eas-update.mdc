@@ -1,25 +1,29 @@
 ---
-description: Prefer EAS Update (OTA) over full native builds when advising ship steps
+description: After StyleWise JS changes, always publish EAS OTA to production and preview
 alwaysApply: true
 ---
 
-# Prefer EAS Update over full builds
+# Ship EAS Update to production + preview
 
-When the user asks how to start a new build (EAS / TestFlight / production), **first** decide Update vs Build.
+When StyleWise JS/TS (or other OTA-eligible) changes are **committed and pushed**, always publish OTAs without waiting to be asked:
 
-## Prefer `eas update` when changes are
+```bash
+eas update --channel production --environment production --message "<short why>"
+eas update --channel preview --environment preview --message "<short why>"
+```
 
-- JS/TS app code, styles, locales
-- Assets already in the JS bundle (no new native asset pipeline)
-- Config that does **not** change native binaries
+## When to skip OTA
 
-## Recommend `eas build` only when native changed
+- Docs-only / non-app changes with no runtime effect
+- Native-only work that needs `eas build` instead (still say so; OTA cannot replace the binary)
 
-- New/changed native modules or Expo plugins
-- Native fields in `app.json` / `app.config.*` / `eas.json`
-- Icons, splash, permissions, or other changes that require a native rebuild
+## Prefer Update over full builds
 
-## Reply format
+- Prefer `eas update` for JS/TS, styles, locales, and bundled assets
+- Recommend `eas build` only for new native modules/plugins, native `app.json` / `eas.json` fields, icons, splash, or permissions
 
-1. Briefly say **why** Update or Build fits.
-2. Give the **exact commands** for that path (channel/profile as used in this project).
+## Reply format after shipping
+
+1. Confirm **production** and **preview** update group URLs (or IDs)
+2. Note if Render auto-deploy applies for server changes
+3. Remind: force-close / reopen the app to pick up the update
