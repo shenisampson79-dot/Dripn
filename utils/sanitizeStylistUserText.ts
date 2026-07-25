@@ -51,6 +51,9 @@ const ROLE_LABEL_INLINE_RE =
   /\b(?:Tops?|Bottoms?|Footwear|Shoes?|Outerwear|Layers?|Accessories?)\s*:\s*/gi;
 const WEAR_THIS_INSTEAD_DUP_RE =
   /(?:Wear this instead[.!]?\s*){2,}/gi;
+/** Ideal-outfit override lectures (different from the collage) */
+const IDEAL_OVERRIDE_RE =
+  /\b(?:a\s+blazer\s+might|might\s+elevate|would\s+elevate|better\s+still|ideally)\b[^.!?\n]*[.!?]?/gi;
 
 export function sanitizeStylistUserText(input?: string | null): string {
   if (typeof input !== 'string' || !input.trim()) return '';
@@ -64,6 +67,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(STYLE_RULE_HASH_INLINE_RE, ' ');
   text = text.replace(ROLE_LABEL_LINE_RE, ' ');
   text = text.replace(ROLE_LABEL_INLINE_RE, ' ');
+  text = text.replace(IDEAL_OVERRIDE_RE, ' ');
   text = text.replace(WEAR_THIS_INSTEAD_DUP_RE, 'Wear this instead. ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
   text = rewriteStylistCtaJargon(text);
