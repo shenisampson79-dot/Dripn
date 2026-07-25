@@ -44,6 +44,7 @@ import {
 import { resolveEventOutfitOccasion } from '@/utils/eventOutfitOccasion';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { genderAwareGapSuggestions, filterSuggestionStringsForUi } from '@/utils/shopDressCodeFilters';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -626,14 +627,16 @@ export function useStylistDecision({
         usedWardrobe: selectedWardrobeIds.length > 0 && images.length === 0,
       });
       const suggestions = Array.isArray(error.suggestions) && error.suggestions.length
-        ? error.suggestions
+        ? filterSuggestionStringsForUi(error.suggestions, {
+          gender: user?.gender,
+          dressCode: eventDetails?.dressCode || eventDetails?.eventType || 'formal',
+        })
         : Array.isArray(error.missingPieces) && error.missingPieces.length
-          ? error.missingPieces
-          : [
-              'Tailored trousers or a smart skirt',
-              'Crisp shirt, blouse, or knit that reads polished',
-              'Closed smart shoes (oxfords, loafers, or low heels)',
-            ];
+          ? filterSuggestionStringsForUi(error.missingPieces, {
+            gender: user?.gender,
+            dressCode: eventDetails?.dressCode || eventDetails?.eventType || 'formal',
+          })
+          : genderAwareGapSuggestions(user?.gender, true);
       const gapResult: DecisionResponse = {
         id: `gap-${Date.now()}`,
         requestId: `request-${Date.now()}`,
@@ -850,6 +853,8 @@ export function useStylistDecision({
               : undefined),
         recommendedOutfit: apiResult.recommendedOutfit || null,
         retailers: apiResult.retailers || undefined,
+        nearbyStores: apiResult.nearbyStores || null,
+        nearbyStoresSource: apiResult.nearbyStoresSource || null,
         retailOutfit: apiResult.retailOutfit || null,
         stylistNote: apiResult.stylistNote
           ? sanitizeStylistUserText(apiResult.stylistNote)

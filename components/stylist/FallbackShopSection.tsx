@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { filterSuggestionStringsForUi } from '@/utils/shopDressCodeFilters';
 
 export type FallbackMissingItem = {
   role?: string;
@@ -40,9 +41,21 @@ export type FallbackMissingItem = {
   };
 };
 
+export type NearbyStore = {
+  name?: string;
+  url?: string;
+  website?: string;
+  place_id?: string | null;
+  source?: string;
+  address?: string | null;
+};
+
 type Props = {
   missing?: FallbackMissingItem[] | null;
   headline?: string;
+  gender?: string | null;
+  dressCode?: string | null;
+  nearbyStores?: NearbyStore[] | null;
 };
 
 async function openUrl(url?: string | null) {
@@ -68,11 +81,25 @@ function preferredMapsUrl(links?: { appleMaps?: string; googleMaps?: string } | 
  */
 export function FallbackShopSection({
   missing,
-  headline = 'Get the missing piece',
+  headline = 'Shop the missing pieces',
+  gender = null,
+  dressCode = 'formal',
+  nearbyStores = null,
 }: Props) {
   const theme = useTheme();
-  const items = Array.isArray(missing) ? missing.filter(Boolean) : [];
-  if (!items.length) return null;
+  const rawItems = Array.isArray(missing) ? missing.filter(Boolean) : [];
+  const labels = filterSuggestionStringsForUi(
+    rawItems.map((i) => i.label || i.name || i.role || 'Upgrade'),
+    { gender, dressCode },
+  );
+  const labelSet = new Set(labels.map((l) => l.toLowerCase()));
+  const items = rawItems.filter((i) => {
+    const title = (i.label || i.name || i.role || '').toLowerCase();
+    if (!title) return true;
+    return labelSet.has(title);
+  });
+  const stores = Array.isArray(nearbyStores) ? nearbyStores.filter((s) => s?.name && (s.url || s.website)) : [];
+  if (!items.length && !stores.length) return null;
 
   return (
     <View style={[styles.wrap, { borderColor: theme.border, backgroundColor: theme.backgroundSecondary }]}>
@@ -144,6 +171,29 @@ export function FallbackShopSection({
           </View>
         );
       })}
+
+      {stores.length > 0 ? (
+        <View style={{ marginTop: Spacing.sm }}>
+          <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+            Shop formalwear
+          </ThemedText>
+          <View style={styles.linkRow}>
+            {stores.slice(0, 4).map((s) => (
+              <Pressable
+                key={`${s.name}-${s.url || s.website}`}
+                onPress={() => openUrl(s.url || s.website)}
+                style={[styles.chip, { borderColor: LuxuryColors.gold }]}
+                accessibilityRole="link"
+              >
+                <Feather name="shopping-bag" size={12} color={LuxuryColors.gold} />
+                <ThemedText type="small" style={{ color: LuxuryColors.gold }}>
+                  {s.name}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

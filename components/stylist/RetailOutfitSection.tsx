@@ -8,6 +8,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { apiService } from '@/services/ApiService';
 import { formatOutfitPieceRoleLabel } from '@/utils/sanitizeStylistUserText';
+import { filterShopItemsForUi } from '@/utils/shopDressCodeFilters';
 
 type RetailOutfitPayload = {
   outfit?: Record<string, RetailProduct>;
@@ -120,7 +121,11 @@ export function RetailOutfitSection({
     liveProducts.forEach((p, i) => cards.push({ role: p.category || `piece-${i}`, product: p }));
   }
 
-  if (!cards.length && !previewUrl && !previewLoading) return null;
+  const safeCards = cards.filter(({ product }) =>
+    filterShopItemsForUi([product], { gender, dressCode: dressCode || retailOutfit?.dressCodeKey }).length > 0,
+  );
+
+  if (!safeCards.length && !previewUrl && !previewLoading) return null;
 
   return (
     <View style={styles.wrap}>
@@ -148,7 +153,7 @@ export function RetailOutfitSection({
         {headline}
       </ThemedText>
 
-      {cards.map(({ role, product }) => (
+      {safeCards.map(({ role, product }) => (
         <ProductCard
           key={product.id || `${role}-${product.title}`}
           product={product}

@@ -705,31 +705,48 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </View>
 
           {res.retailOutfit?.products?.length || res.retailOutfit?.outfit ? (
-            <RetailOutfitSection
-              retailOutfit={res.retailOutfit}
-              recommendedOutfit={recommended}
-              dressCode={res.retailOutfit?.dressCodeKey || undefined}
-              gender={
-                flow.user?.gender === 'man'
-                  ? 'male'
-                  : flow.user?.gender === 'woman'
-                    ? 'female'
-                    : (res.gender || flow.user?.gender || null)
-              }
-              requestPreview
-              fallbackHeroSource={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
-              headline="Shop this look"
-              lead={
-                <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-                  <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-                    You don&apos;t own suitable pieces
-                  </ThemedText>
-                  <ThemedText type="body" style={styles.responseBody}>
-                    {gapCopy}
-                  </ThemedText>
-                </View>
-              }
-            />
+            <>
+              <RetailOutfitSection
+                retailOutfit={res.retailOutfit}
+                recommendedOutfit={recommended}
+                dressCode={res.retailOutfit?.dressCodeKey || undefined}
+                gender={
+                  flow.user?.gender === 'man'
+                    ? 'male'
+                    : flow.user?.gender === 'woman'
+                      ? 'female'
+                      : (res.gender || flow.user?.gender || null)
+                }
+                requestPreview
+                fallbackHeroSource={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+                headline="Shop this look"
+                lead={
+                  <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                    <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+                      You don&apos;t own suitable pieces
+                    </ThemedText>
+                    <ThemedText type="body" style={styles.responseBody}>
+                      {gapCopy}
+                    </ThemedText>
+                  </View>
+                }
+              />
+              {Array.isArray(res.nearbyStores) && res.nearbyStores.length > 0 ? (
+                <FallbackShopSection
+                  missing={[]}
+                  headline="Shop formalwear"
+                  gender={
+                    flow.user?.gender === 'man'
+                      ? 'male'
+                      : flow.user?.gender === 'woman'
+                        ? 'female'
+                        : (res.gender || flow.user?.gender || null)
+                  }
+                  dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
+                  nearbyStores={res.nearbyStores}
+                />
+              ) : null}
+            </>
           ) : (
             <>
               <Image
@@ -758,7 +775,19 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : null}
               </View>
               {shopMissing.length > 0 ? (
-                <FallbackShopSection missing={shopMissing} headline="Shop the missing pieces" />
+                <FallbackShopSection
+                  missing={shopMissing}
+                  headline="Shop the missing pieces"
+                  gender={
+                    flow.user?.gender === 'man'
+                      ? 'male'
+                      : flow.user?.gender === 'woman'
+                        ? 'female'
+                        : (res.gender || flow.user?.gender || null)
+                  }
+                  dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
+                  nearbyStores={res.nearbyStores || null}
+                />
               ) : null}
             </>
           )}

@@ -3,6 +3,8 @@
  * Keep scoring/refinement/style-rule ids for the engine — never show them to users.
  */
 
+import { rewriteStylistCtaJargon } from '@/utils/shopDressCodeFilters';
+
 const SCORED_FOR_RE = /\bScored for\b[^.!?\n]*[.!?]?/gi;
 const REFINEMENT_RE = /\bRefinement\s*:\s*[^.!?\n]*[.!?]?/gi;
 /** word_word (snake_case labels) → word word; leave URLs/emails alone. */
@@ -31,6 +33,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(STYLE_RULE_HASH_TRAIL_RE, ' ');
   text = text.replace(STYLE_RULE_HASH_INLINE_RE, ' ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
+  text = rewriteStylistCtaJargon(text);
   return text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 

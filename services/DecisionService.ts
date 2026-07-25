@@ -65,6 +65,16 @@ export interface DecisionResponse {
     url?: string;
     items?: string[];
   }>;
+  /** Curated UK formal storefronts or Google Places (real place_id only) */
+  nearbyStores?: Array<{
+    name?: string;
+    url?: string;
+    website?: string;
+    place_id?: string | null;
+    source?: string;
+    address?: string | null;
+  }> | null;
+  nearbyStoresSource?: string | null;
   /** Ranked product cards for SHOP_REQUIRED */
   retailOutfit?: {
     outfit?: Record<string, {
