@@ -1013,6 +1013,21 @@ export function useStylistDecision({
           : undefined,
         ownershipDecision: mappedType === 'shopping' ? apiResult.ownershipDecision : undefined,
         purchaseDecision: mappedType === 'shopping' ? apiResult.purchaseDecision : undefined,
+        optionLabels: mappedType === 'shopping'
+          ? (apiResult.optionLabels
+            || apiResult.purchaseDecision?.optionLabels
+            || undefined)
+          : undefined,
+        shoppingDecision: mappedType === 'shopping'
+          ? (apiResult.shoppingDecision
+            || apiResult.purchaseDecision?.shoppingDecision
+            || undefined)
+          : undefined,
+        oneLiner: mappedType === 'shopping'
+          ? (apiResult.oneLiner
+            || apiResult.purchaseDecision?.oneLiner
+            || undefined)
+          : undefined,
         wardrobeCoverage: mappedType === 'shopping' ? apiResult.wardrobeCoverage : undefined,
         alreadyOwnedOverride: mappedType === 'shopping'
           ? Boolean(apiResult.alreadyOwnedOverride)

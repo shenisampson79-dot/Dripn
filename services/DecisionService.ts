@@ -239,7 +239,24 @@ export interface DecisionResponse {
     confidence?: number;
     confidencePercent?: number;
     coverage?: Record<string, unknown> | null;
+    preferredOptionIndex?: number | null;
+    blockedOptionIndexes?: number[];
+    optionLabels?: DecisionResponse['optionLabels'];
+    shoppingDecision?: DecisionResponse['shoppingDecision'];
+    oneLiner?: string;
   };
+  /** Multi-option shopping: Best choice / Already owned / Not suitable */
+  optionLabels?: Array<{
+    optionIndex: number;
+    label: 'recommended' | 'already_owned' | 'not_suitable' | string;
+    reason?: string;
+  }>;
+  shoppingDecision?: {
+    winner?: number;
+    rejects?: Array<{ optionIndex: number; reason?: string; label?: string }>;
+    oneLiner?: string;
+  };
+  oneLiner?: string;
   wardrobeCoverage?: Record<string, unknown> | null;
   alreadyOwnedOverride?: boolean;
 }

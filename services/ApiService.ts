@@ -2400,6 +2400,20 @@ class ApiService {
       outfitImageUrl?: string;
       recommendedIndex?: number | null;
       selectedOptionIndex?: number | null;
+      optionLabels?: Array<{
+        optionIndex: number;
+        label?: string;
+        reason?: string;
+      }>;
+      shoppingDecision?: {
+        winner?: number;
+        rejects?: Array<{ optionIndex: number; reason?: string; label?: string }>;
+        oneLiner?: string;
+      };
+      oneLiner?: string;
+      alreadyOwned?: Array<Record<string, unknown>>;
+      purchaseDecision?: Record<string, unknown>;
+      ownershipDecision?: Record<string, unknown>;
       unifiedScore?: number | null;
       confidenceNote?: string;
       decisionConfidence?: {

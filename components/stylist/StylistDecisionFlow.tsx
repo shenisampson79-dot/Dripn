@@ -886,12 +886,64 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
         ) : null}
 
-        {winnerUri ? (
+        {decisionType === 'shopping' && !rejected && uploaded.length > 1 ? (
+          <View style={styles.responseOptionsRow}>
+            {uploaded.map((uri, index) => {
+              const labelMeta = (res.optionLabels || res.purchaseDecision?.optionLabels || [])
+                .find((l) => l.optionIndex === index);
+              const labelKey = labelMeta?.label || (
+                res.recommendedIndex === index
+                  ? 'recommended'
+                  : (res.alreadyOwned || []).some((e) => e.optionIndex === index)
+                    ? 'already_owned'
+                    : 'not_suitable'
+              );
+              const badge =
+                labelKey === 'recommended'
+                  ? 'Best choice'
+                  : labelKey === 'already_owned'
+                    ? 'Already owned'
+                    : labelKey === 'not_suitable'
+                      ? 'Not suitable'
+                      : `Option ${index + 1}`;
+              const isReject = labelKey === 'already_owned' || labelKey === 'not_suitable';
+              const isWinner = labelKey === 'recommended' || res.recommendedIndex === index;
+              return (
+                <View
+                  key={`${uri}-${index}`}
+                  style={[styles.responseOptionCol, isReject ? { opacity: 0.55 } : null]}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={[
+                      styles.responseOptionThumb,
+                      isWinner
+                        ? { borderWidth: 2, borderColor: LuxuryColors.gold }
+                        : null,
+                    ]}
+                  />
+                  <ThemedText
+                    type="caption"
+                    style={{
+                      marginTop: 4,
+                      color: isWinner ? LuxuryColors.gold : theme.tabIconDefault,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {badge}
+                  </ThemedText>
+                </View>
+              );
+            })}
+          </View>
+        ) : winnerUri ? (
           <Image source={{ uri: winnerUri }} style={styles.responseHero} />
         ) : !rejected && uploaded.length > 1 ? (
           <View style={styles.responseOptionsRow}>
             {uploaded.map((uri, index) => (
-              <Image key={`${uri}-${index}`} source={{ uri }} style={styles.responseOptionThumb} />
+              <View key={`${uri}-${index}`} style={styles.responseOptionCol}>
+                <Image source={{ uri }} style={styles.responseOptionThumb} />
+              </View>
             ))}
           </View>
         ) : res.outfitImageUrl && !rejected ? (
@@ -1040,6 +1092,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </View>
           ) : null}
 
+          {decisionType === 'shopping' && res.oneLiner ? (
+            <ThemedText type="body" style={[styles.responseBody, { marginBottom: Spacing.sm }]}>
+              {sanitizeStylistUserText(res.oneLiner)}
+            </ThemedText>
+          ) : null}
+
           {(() => {
             const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
             const summaryIsNameList = looksLikeItemNameList(summary);
@@ -1047,7 +1105,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             const reasoning = sanitizeStylistUserText(res.reasoning || '');
             const headline = summary && !summaryIsNameList ? summary : null;
             // Prefer real analysis: reasoning, else recommendation prose that isn't just the piece dump.
-            const analysis = reasoning
+            // When oneLiner already shown, avoid repeating it as the sole analysis.
+            const analysis = (
+              reasoning && res.oneLiner && reasoning === res.oneLiner
+                ? ''
+                : reasoning
+            )
               || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
                 ? recommendation
                 : '');
@@ -1575,8 +1638,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  responseOptionThumb: {
+  responseOptionCol: {
     flex: 1,
+  },
+  responseOptionThumb: {
+    width: '100%',
     height: 140,
     borderRadius: BorderRadius.md,
   },
