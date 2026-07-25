@@ -980,6 +980,19 @@ export function useStylistDecision({
             : apiResult.isFallback || apiResult.status === 'fallback_outfit'
               ? 'REJECTED_WARDROBE_FIX'
               : undefined),
+        message: apiResult.message
+          ? sanitizeStylistUserText(apiResult.message)
+          : undefined,
+        outfitId: apiResult.outfitId || undefined,
+        boundOutfitId: apiResult.boundOutfitId || undefined,
+        changeNote: apiResult.changeNote
+          || apiResult.displayMeta?.changeNote
+          || null,
+        displayMeta: apiResult.displayMeta || (
+          (apiResult.changeNote || apiResult.displayMeta?.changeNote)
+            ? { changeNote: apiResult.changeNote || apiResult.displayMeta?.changeNote }
+            : undefined
+        ),
         recommendedOutfit: apiResult.recommendedOutfit || null,
         retailers: apiResult.retailers || undefined,
         nearbyStores: apiResult.nearbyStores || null,

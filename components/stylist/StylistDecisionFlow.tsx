@@ -883,6 +883,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </ThemedText>
         ) : null}
 
+        {rejected && (res.changeNote || res.displayMeta?.changeNote) ? (
+          <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+            {res.changeNote || res.displayMeta?.changeNote}
+          </ThemedText>
+        ) : null}
+
         {decisionType === 'shopping' && !rejected && uploaded.length > 1 ? (
           <View style={styles.responseOptionsRow}>
             {uploaded.map((uri, index) => {

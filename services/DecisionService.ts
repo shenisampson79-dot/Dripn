@@ -63,6 +63,13 @@ export interface DecisionResponse {
   isFallback?: boolean;
   /** Explicit UI contract: APPROVED | REJECTED_WARDROBE_FIX | SHOP_REQUIRED */
   displayState?: 'APPROVED' | 'REJECTED_WARDROBE_FIX' | 'SHOP_REQUIRED' | string;
+  /** Bound FinalDecision message (preferred over recommendation/decision) */
+  message?: string;
+  outfitId?: string;
+  boundOutfitId?: string;
+  /** Mechanical swap note — separate from editorial message */
+  changeNote?: string | null;
+  displayMeta?: { changeNote?: string | null };
   /** Inspiration labels when wardrobe cannot satisfy dress code */
   recommendedOutfit?: {
     top?: string;
