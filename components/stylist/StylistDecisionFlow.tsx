@@ -709,6 +709,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               retailOutfit={res.retailOutfit}
               recommendedOutfit={recommended}
               dressCode={res.retailOutfit?.dressCodeKey || undefined}
+              gender={
+                flow.user?.gender === 'man'
+                  ? 'male'
+                  : flow.user?.gender === 'woman'
+                    ? 'female'
+                    : (res.gender || flow.user?.gender || null)
+              }
               requestPreview
               fallbackHeroSource={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
               headline="Shop this look"
@@ -751,13 +758,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : null}
               </View>
               {shopMissing.length > 0 ? (
-                <FallbackShopSection missing={shopMissing} headline="Shop this look" />
+                <FallbackShopSection missing={shopMissing} headline="Shop the missing pieces" />
               ) : null}
             </>
           )}
 
           {Array.isArray(res.retailers) && res.retailers.length > 0 ? (
             <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                Shop at
+              </ThemedText>
               {res.retailers.slice(0, 4).map((r) => (
                 <Pressable
                   key={r.name || r.url}
@@ -778,7 +788,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           ) : null}
 
           <View style={styles.responseActions}>
-            {renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())}
+            {renderPrimaryButton('Save this look', () => flow.completeAndClose())}
             <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
               <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                 {t('stylistFlow.editAndRerun')}
