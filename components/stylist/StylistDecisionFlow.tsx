@@ -910,31 +910,40 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {decisionType === 'shopping' && Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
             <View style={{ marginBottom: Spacing.md }}>
               <ThemedText type="small" style={{ color: theme.link, marginBottom: Spacing.xs }}>
-                {res.alreadyOwned[0]?.confidenceLabel
-                  || res.ownershipDecision?.message
-                  || t('wardrobe.alreadyOwnPurchase')
-                  || 'You already own this'}
+                {res.purchaseDecision?.decision === 'COMPARE_SKIP_OWNED'
+                  || res.ownershipDecision?.decision === 'COMPARE_SKIP_OWNED'
+                  ? (t('wardrobe.skipOwnedOptions') || 'Some options match your wardrobe')
+                  : (res.alreadyOwned[0]?.confidenceLabel
+                    || res.ownershipDecision?.message
+                    || t('wardrobe.alreadyOwnPurchase')
+                    || 'You already own this')}
               </ThemedText>
-              {(res.alreadyOwned[0]?.confidencePercent != null
-                || res.purchaseDecision?.confidencePercent != null) ? (
+              {res.purchaseDecision?.decision !== 'COMPARE_SKIP_OWNED'
+                && res.ownershipDecision?.decision !== 'COMPARE_SKIP_OWNED'
+                && (res.alreadyOwned[0]?.confidencePercent != null
+                  || res.purchaseDecision?.confidencePercent != null) ? (
                 <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
                   {`${res.alreadyOwned[0]?.confidencePercent
                     ?? res.purchaseDecision?.confidencePercent}% match`}
                 </ThemedText>
               ) : null}
               <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                {res.alreadyOwned[0]?.coverage?.explanation
-                  || res.alreadyOwned[0]?.message
-                  || (t('wardrobe.alreadyOwnPurchaseMessage')
-                    || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
-                    .replace(
-                      '{names}',
-                      res.alreadyOwned
-                        .flatMap((entry) => (entry.matches || []).map((m) => m.name || 'item'))
-                        .filter(Boolean)
-                        .slice(0, 4)
-                        .join(', '),
-                    )}
+                {(res.purchaseDecision?.decision === 'COMPARE_SKIP_OWNED'
+                  || res.ownershipDecision?.decision === 'COMPARE_SKIP_OWNED')
+                  ? (sanitizeStylistUserText(res.recommendation || res.decision || '')
+                    || 'Skip options that match pieces you already own — pick the free option that fits your brief.')
+                  : (res.alreadyOwned[0]?.coverage?.explanation
+                    || res.alreadyOwned[0]?.message
+                    || (t('wardrobe.alreadyOwnPurchaseMessage')
+                      || 'One or more photos look like items already in your wardrobe: {names}. We won\'t treat these as new gaps to fill.')
+                      .replace(
+                        '{names}',
+                        res.alreadyOwned
+                          .flatMap((entry) => (entry.matches || []).map((m) => m.name || 'item'))
+                          .filter(Boolean)
+                          .slice(0, 4)
+                          .join(', '),
+                      ))}
               </ThemedText>
 
               {/* Visual proof: shopping photo vs wardrobe match */}
@@ -961,7 +970,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                           resizeMode="cover"
                         />
                         <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
-                          Considering
+                          {Number.isInteger(entry.optionIndex)
+                            ? `Option ${entry.optionIndex + 1} · skip`
+                            : 'Considering'}
                         </ThemedText>
                       </View>
                     ) : null}
