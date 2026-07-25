@@ -322,7 +322,24 @@ export function intentScore(
   let formalityDelta = 0;
   if (typeof target === 'number' && avg != null) {
     formalityDelta = Math.abs(avg - target);
-    penalty += Math.min(6, formalityDelta * 1.5);
+    // Formal occasions need sharper bite when avg formality is far below target
+    const weight = target >= 4 ? 2.4 : target >= 3 ? 1.8 : 1.5;
+    penalty += Math.min(10, formalityDelta * weight);
+  }
+
+  // Athletic / performance pieces vs dressy intents (party/work/formal map here)
+  const athleticHits = classifications.filter((c) => {
+    const sub = String(c.subtype || '');
+    const lane = String(c.lane || '');
+    return lane === 'athleisure'
+      || /tank|singlet|jogger|legging|runner|athletic|performance|sports_bra/.test(sub)
+      || c.meta?.category === 'activewear';
+  }).length;
+  const dressyIntent = ['power', 'editorial', 'date_night', 'smart_casual'].includes(intent.name)
+    || (typeof target === 'number' && target >= 4);
+  if (athleticHits > 0 && dressyIntent) {
+    penalty += Math.min(12, athleticHits * 4 + (intent.name === 'power' || (typeof target === 'number' && target >= 5) ? 4 : 0));
+    hits.push({ kind: 'athletic_vs_dressy', count: athleticHits });
   }
 
   const colors = colorSignals(items as Array<{ color?: string | null }>);
@@ -381,7 +398,7 @@ export function intentScore(
     }
   }
 
-  const adjustment = Math.max(-10, Math.min(12, Math.round(bonus - penalty)));
+  const adjustment = Math.max(-14, Math.min(12, Math.round(bonus - penalty)));
   return {
     adjustment,
     intent: intent.name,

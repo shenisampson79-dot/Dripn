@@ -85,8 +85,12 @@ function buildAdjustments(signals: DetectedSignals, items: WardrobeItem[]): stri
       out.push('Swap combat boots for Chelsea boots — or drop the blazer');
     } else if (signals.footwearClass === 'chunky_sneaker') {
       out.push('Replace chunky trainers with plain white lifestyle sneakers or dress shoes');
-    } else {
+    } else if ((signals.lanesPresent || []).includes('tailored')) {
       out.push('Swap footwear to match the tailored lane — loafers, Chelsea boots, or minimal sneakers');
+    } else if ((signals.lanesPresent || []).includes('athleisure')) {
+      out.push('Swap footwear to clean lifestyle sneakers that match the athleisure lane');
+    } else {
+      out.push('Swap footwear so it matches the rest of this outfit');
     }
   }
   if (signals.multiLaneChaos && out.length < 2) {
@@ -230,7 +234,7 @@ function commentForItem(
   if (role === 'bottoms' && (sig.isJoggers || sig.isAthleticBottom || sig.isLoungeBottom) && (signals.tailoringClash || signals.multiLaneChaos)) {
     return {
       verdict: 'swap',
-      comment: 'Track/jogger bottoms clash with the blazer — athleisure vs tailoring.',
+      comment: 'Track/jogger bottoms clash with tailored pieces — athleisure vs tailoring.',
       suggestion: 'Swap to chinos or tailored trousers.',
     };
   }
@@ -260,6 +264,7 @@ function summaryFor(
   signals: DetectedSignals,
   aesthetic: OutfitAestheticAnalysis | null | undefined,
   fallbackHint?: string | null,
+  items: WardrobeItem[] = [],
 ): string {
   const intentPhrase = signals.intent
     ? (signals.intentLabel
@@ -277,6 +282,9 @@ function summaryFor(
       smart_casual: 'This reads as smart casual',
     } as Record<string, string>)[signals.intent] || intentPhrase
     : null;
+
+  const hasBlazerPiece = items.some((i) => /blazer|suit jacket/i.test(`${i.name || ''} ${i.category || ''}`));
+  const hasTailoredLane = (signals.lanesPresent || []).includes('tailored');
 
   if (tone === 'excellent') {
     if (catalogTone && aesthetic?.primaryStyle) {
@@ -296,21 +304,26 @@ function summaryFor(
     return `Off — ${signals.lanesPresent.map(laneLabel).join(', ')} are fighting each other. Commit to one lane.`;
   }
   if (signals.tailoringClash && signals.footwearMismatch) {
-    return 'Off — the blazer is fighting track bottoms and chunky trainers.';
+    return hasBlazerPiece
+      ? 'Off — the blazer is fighting track bottoms and chunky trainers.'
+      : 'Off — tailored pieces are fighting athleisure bottoms and trainers.';
   }
   if (signals.tailoringClash) {
-    return 'Off — blazer over joggers/tracksuit reads accidental, not styled.';
+    return hasBlazerPiece
+      ? 'Off — blazer over joggers/tracksuit reads accidental, not styled.'
+      : 'Off — tailoring mixed with joggers/tracksuit reads accidental, not styled.';
   }
   if (signals.footwearMismatch) {
+    const undercutTarget = hasTailoredLane ? 'the tailored pieces' : 'the rest of this outfit';
     return signals.footwearClass === 'runner'
-      ? 'Mixed — running shoes undercut the tailored pieces.'
+      ? `Mixed — running shoes undercut ${undercutTarget}.`
       : signals.footwearClass === 'combat_boots'
-        ? 'Mixed — combat boots undercut the tailored pieces.'
+        ? `Mixed — combat boots undercut ${undercutTarget}.`
         : signals.footwearClass === 'slides'
-          ? 'Mixed — slides undercut the tailored pieces.'
+          ? `Mixed — slides undercut ${undercutTarget}.`
           : signals.footwearClass === 'chunky_sneaker'
-            ? 'Mixed — chunky trainers undercut the tailored pieces.'
-            : 'Mixed — footwear undercuts the tailored pieces.';
+            ? `Mixed — chunky trainers undercut ${undercutTarget}.`
+            : `Mixed — footwear undercuts ${undercutTarget}.`;
   }
   if (signals.invalidTwoLaneMix) {
     return `Mixed — ${signals.lanesPresent.map(laneLabel).join(' + ')} isn't an allowed mix.`;
@@ -430,6 +443,7 @@ export function buildStylistAnalysis(
       signals,
       options.aesthetic,
       options.hint,
+      items,
     ),
     overallTone: excellentClean ? 'excellent' : tone,
     items: itemNotes,

@@ -1894,7 +1894,7 @@
       "name": "editorial",
       "label": "Editorial",
       "summaryTone": "This reads as editorial / high-fashion",
-      "formalityTarget": null,
+      "formalityTarget": 3,
       "structureBias": "any",
       "effortLevel": "high",
       "boldness": "high",
@@ -1916,7 +1916,13 @@
         "crop_top",
         "pleated_skirt"
       ],
-      "avoidedSubtypes": [],
+      "avoidedSubtypes": [
+        "athletic_shorts",
+        "runner",
+        "joggers",
+        "slides",
+        "sports_bra"
+      ],
       "rules": {
         "requireAnchor": true
       }

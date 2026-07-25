@@ -7,6 +7,7 @@ import {
   analyzeOutfitAesthetic,
   evaluateAestheticRejection,
   styleArchetypeLabel,
+  isPerformanceAthleticTop,
   type OutfitAestheticAnalysis,
 } from '@/utils/outfitAestheticClassifier';
 import {
@@ -14,6 +15,8 @@ import {
   collectSecondaryClashPenalty,
   detectOutfitClashes,
   localScoreLooksLikeClash,
+  isAthleticTop,
+  classifyItem,
 } from '@/utils/outfitClashRules';
 import {
   buildDeterministicItemNotes,
@@ -73,7 +76,65 @@ export {
   analyzeOutfitAesthetic,
   evaluateAestheticRejection,
   classifyItemAesthetics,
+  isPerformanceAthleticTop,
 } from '@/utils/outfitAestheticClassifier';
+
+const CASUAL_CATEGORIES = new Set([
+  'activewear_tops',
+  'activewear_bottoms',
+  'activewear',
+  'swimwear',
+  'sleepwear',
+]);
+
+/**
+ * Hard caps when athleisure / athletic pieces face dressy occasions.
+ * Soft intent bias alone (±5) was letting Party/Work/Formal sit at ~90%+.
+ */
+export function occasionFormalityHardCap(
+  occasion: string | null | undefined,
+  items: WardrobeItem[],
+  aesthetic?: OutfitAestheticAnalysis | null,
+): { cap: number; hint: string } | null {
+  if (!occasion || !items?.length) return null;
+  const occ = String(occasion).toLowerCase().trim().replace(/\s+/g, '_').replace(/-/g, '_');
+  const signals = items.map((i) => classifyItem(i));
+  const hasAthleticTop = items.some((i) => isAthleticTop(i) || isPerformanceAthleticTop(i));
+  const hasAthleticBottom = signals.some((s) => s.isAthleticBottom || s.isJoggers || s.isLoungeBottom);
+  const athleisurePrimary = aesthetic?.primaryStyle === 'athleisure'
+    || aesthetic?.coherentAthleisureUniform
+    || (hasAthleticTop && (hasAthleticBottom || signals.some((s) => s.isAthleticShoes || s.isCasualTrainer)));
+  const minTier = Math.min(...signals.map((s) => s.formalityTier));
+  const isLowFormality = athleisurePrimary || hasAthleticTop || minTier <= 1;
+
+  if (!isLowFormality) return null;
+
+  if (['wedding', 'formal', 'black_tie', 'gala', 'blacktie'].includes(occ)) {
+    return {
+      cap: 22,
+      hint: 'Athleisure and performance pieces are too casual for this occasion — dress up the stack',
+    };
+  }
+  if (['work', 'office', 'job_interview', 'interview', 'business', 'power'].includes(occ)) {
+    return {
+      cap: 28,
+      hint: 'Too casual for work — swap the athletic pieces for tailored or smart-casual ones',
+    };
+  }
+  if (['party', 'editorial', 'evening_out', 'evening'].includes(occ)) {
+    return {
+      cap: 38,
+      hint: 'Athletic tank / gym lane reads underdressed for party — elevate the top or footwear',
+    };
+  }
+  if (['date_night', 'date', 'first_date', 'dinner'].includes(occ) && hasAthleticTop) {
+    return {
+      cap: 42,
+      hint: 'Performance tops undercut date-night polish — swap to a smarter top',
+    };
+  }
+  return null;
+}
 
 export interface OutfitScoreResult {
   score: number;
@@ -118,10 +179,6 @@ export type MergedOutfitScore = {
 
 export type { ItemAnalysisNote };
 export { buildDeterministicItemNotes, sanitizeHintForScore, selectAnalysisHint, isMajorConfusedLook };
-
-const CASUAL_CATEGORIES = new Set([
-  'activewear', 'activewear_tops', 'activewear_bottoms', 'sleepwear', 'swimwear',
-]);
 
 function isAestheticRejection(result: OutfitScoreResult): boolean {
   return Boolean(
@@ -344,7 +401,12 @@ export function computeLocalOutfitScore(
       intent: resolvedIntent.name,
       source: options.source || 'outfit_mix',
     });
-    score += Math.max(-5, Math.min(6, Math.round(intentBias.adjustment * 0.5)));
+    const occKey = String(options.occasion || '').toLowerCase();
+    const dressyOccasion = /wedding|formal|party|work|office|interview|business|date|gala|black.?tie|editorial|power/.test(occKey)
+      || ['power', 'editorial', 'date_night'].includes(resolvedIntent.name);
+    // Full bite on dressy Mix chips; keep soft scale on casual so calibration stays stable
+    const intentScale = dressyOccasion ? 1 : 0.5;
+    score += Math.max(-12, Math.min(8, Math.round(intentBias.adjustment * intentScale)));
   } catch {
     // optional
   }
@@ -429,6 +491,13 @@ export function computeLocalOutfitScore(
     score = Math.min(94, score + Math.min(favCount * 2, 6));
   }
 
+  // Occasion formality gate last so favorites/weather cannot inflate athleisure past dressy occasions
+  const occGate = occasionFormalityHardCap(options.occasion, selected, aesthetic);
+  if (occGate) {
+    score = Math.min(score, occGate.cap);
+    hint = occGate.hint;
+  }
+
   const stylistAnalysis = buildStylistAnalysis(selected, {
     score,
     signals,
@@ -439,10 +508,13 @@ export function computeLocalOutfitScore(
   });
 
   // Prefer stylist summary when signals drove a clearer read than band templates
-  if (stylistAnalysis.overallTone === 'excellent' || stylistAnalysis.overallTone === 'good') {
+  // Keep occasion-gate copy when it fired — don't let "excellent" override underdressing
+  if (!occGate && (stylistAnalysis.overallTone === 'excellent' || stylistAnalysis.overallTone === 'good')) {
     hint = stylistAnalysis.summary;
-  } else if (signals.laneConflict || signals.footwearMismatch || signals.tailoringClash) {
+  } else if (!occGate && (signals.laneConflict || signals.footwearMismatch || signals.tailoringClash)) {
     hint = stylistAnalysis.summary;
+  } else if (occGate) {
+    hint = occGate.hint;
   }
 
   return {
@@ -456,6 +528,7 @@ export function computeLocalOutfitScore(
     stylistAnalysis,
     footwearScore: coherence.footwearScore,
     tailoringClash: signals.tailoringClash,
+    hardCap: occGate ? Math.min(occGate.cap, score) : undefined,
   };
 }
 

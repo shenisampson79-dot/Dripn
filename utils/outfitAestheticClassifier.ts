@@ -115,6 +115,16 @@ function itemWeight(item: ItemLike): number {
   return CATEGORY_WEIGHT[cat] ?? 1.5;
 }
 
+/** Performance / gym tops — never smart-casual anchors. */
+export function isPerformanceAthleticTop(item: ItemLike): boolean {
+  const cat = String(item.category || '').toLowerCase();
+  if (cat === 'shoes' || cat === 'bottoms' || cat === 'activewear_bottoms') return false;
+  if (cat === 'activewear_tops' || cat === 'activewear') return true;
+  const t = itemText(item);
+  return /singlet|muscle.?tank|running.?tank|gym.?tank|performance.?tank|running vest|gym vest|training vest|athletic vest|performance vest|running top|athletic top|gym top|training top|performance top|compression|sports top|sports bra/.test(t)
+    || (/\b(tank|sleeveless)\b/.test(t) && !/\b(dress|maxi|midi|camisole)\b/.test(t));
+}
+
 /** Tag each item with weighted style signals. Dataset first, regex fallback. Shoes dominate. */
 export function classifyItemAesthetics(item: ItemLike): Partial<Record<StyleArchetype, number>> {
   const t = itemText(item);
@@ -134,7 +144,8 @@ export function classifyItemAesthetics(item: ItemLike): Partial<Record<StyleArch
 
   if (
     cat === 'activewear_tops' || cat === 'activewear_bottoms' || cat === 'activewear'
-    || /\b(joggers?|sweatpants?|sweats|track pants?|leggings?|gym|training|running|performance|sports bra|athletic)\b/.test(t)
+    || /\b(joggers?|sweatpants?|sweats|track pants?|leggings?|gym|training|running|performance|sports bra|athletic|singlet|muscle.?tank|running.?tank|gym.?tank|performance.?tank)\b/.test(t)
+    || (/\b(tank|sleeveless)\b/.test(t) && !/\b(dress|maxi|midi)\b/.test(t))
   ) {
     add('athleisure', w * 1.2);
   }
@@ -212,18 +223,29 @@ function detectCoherentAthleisureUniform(
 ): boolean {
   const allText = items.map(itemText).join(' ');
   const hasAthleisureBottom = /\b(joggers?|sweatpants?|sweat pants|leggings?|track ?pants?|tracksuits?|track suit|gym shorts|athletic shorts|sweat bottoms?)\b/.test(allText);
+  const hasAthleticTop = items.some((item) => isPerformanceAthleticTop(item));
   const hasAthleticFootwear = items.some(
     (item) => String(item.category || '').toLowerCase() === 'shoes'
       && /\b(sneakers?|trainers?|running shoes?|running sneakers?|sport shoes?)\b/.test(itemText(item)),
   );
   const hasIncompatibleTop = items.some((item) => {
     const cat = String(item.category || '').toLowerCase();
-    if (!['tops', 'outerwear'].includes(cat)) return false;
+    if (!['tops', 'outerwear', 'activewear_tops'].includes(cat)) return false;
+    if (isPerformanceAthleticTop(item)) return false;
     return /\b(silk|cashmere|dress shirt|blazer|suit jacket|blouse|tie|evening)\b/.test(itemText(item));
   });
   if (hasIncompatibleTop) return false;
 
-  return hasAthleisureBottom && hasAthleticFootwear && (styleScores.athleisure || 0) >= 6;
+  // Classic gym set: athletic bottoms + sneakers
+  if (hasAthleisureBottom && hasAthleticFootwear && (styleScores.athleisure || 0) >= 6) {
+    return true;
+  }
+  // Performance tank/singlet + sneakers (± casual bottoms) is athleisure — never smart casual
+  if (hasAthleticTop && hasAthleticFootwear && (styleScores.athleisure || 0) >= 3) {
+    return true;
+  }
+  if (hasAthleticTop && hasAthleisureBottom) return true;
+  return false;
 }
 
 /** Blazer + hoodie + denim + trainers = accepted streetwear layering. */
@@ -244,6 +266,8 @@ function detectAcceptedStreetwearLayering(items: ItemLike[]): boolean {
 
 /** Blazer/chinos + clean lifestyle trainers is valid smart casual — not an athleisure clash. */
 function detectValidSmartCasualTrainers(items: ItemLike[]): boolean {
+  if (items.some((item) => isPerformanceAthleticTop(item))) return false;
+
   const text = items.map(itemText).join(' ');
   const hasChunkyOrTech = items.some(
     (item) => String(item.category || '').toLowerCase() === 'shoes'
@@ -261,8 +285,10 @@ function detectValidSmartCasualTrainers(items: ItemLike[]): boolean {
     return /samba|gazelle|leather|minimal|plain|clean|white|stan smith|air force|converse|veja|lifestyle/.test(t)
       || /white|cream|ivory/.test(color);
   });
-  const hasTailoringAnchor = /\b(blazer|chinos?|trousers?|oxford shirt|dress shirt|khaki)\b/.test(text);
-  const hasGymwear = /\b(joggers?|sweatpants?|leggings?|gym shorts|running vest|track ?pants?|tracksuits?|track suit|sweat bottoms?)\b/.test(text);
+  // Trousers/chinos/blazer/dress shirt can anchor smart casual — athletic tops already excluded above
+  const hasTailoringAnchor = /\b(blazer|chinos?|trousers?|oxford shirt|dress shirt|khaki|tailored)\b/.test(text);
+  const hasGymwear = /\b(joggers?|sweatpants?|leggings?|gym shorts|running vest|track ?pants?|tracksuits?|track suit|sweat bottoms?|singlet|muscle.?tank|running.?tank|gym.?tank|performance.?tank)\b/.test(text)
+    || items.some((item) => isPerformanceAthleticTop(item));
   return hasLifestyleTrainer && hasTailoringAnchor && !hasGymwear;
 }
 
@@ -362,9 +388,11 @@ export function analyzeOutfitAesthetic(items: ItemLike[]): OutfitAestheticAnalys
       ? 'streetwear'
       : fashionForwardSuitDenim
         ? 'streetwear'
-        : validSmartCasualTrainers
+        : (validSmartCasualTrainers && !items.some((i) => isPerformanceAthleticTop(i)))
           ? 'smart_casual'
-          : primaryStyle;
+          : primaryStyle === 'smart_casual' && items.some((i) => isPerformanceAthleticTop(i))
+            ? 'athleisure'
+            : primaryStyle;
 
   return {
     primaryStyle: resolvedPrimaryStyle,

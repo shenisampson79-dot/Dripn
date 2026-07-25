@@ -188,23 +188,32 @@ function computeOccasionFit(
 ): number {
   if (!occasion) return 0.8;
 
-  const occ = occasion.toLowerCase();
+  const occ = occasion.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
   const text = items.map(itemText).join(' ');
+  const athletic = /\b(tank|singlet|jogger|legging|gym|running|performance|activewear|sports bra|track ?pant)\b/.test(text)
+    || items.some((i) => /activewear/i.test(String(i.category || '')));
 
   switch (occ) {
     case 'office':
     case 'work':
+    case 'job_interview':
+    case 'interview':
+    case 'business':
+      if (athletic || /hoodie|jogger|shorts|slides|flip flop|tank|singlet/.test(text)) return 0.22;
       if (/blazer|trouser|oxford|dress shirt|chino|loafer|derby|heel pump/.test(text) && !/hoodie|jogger|shorts|slides|flip flop/.test(text)) return 0.93;
-      if (/track pant|tank top|gym shorts|slides/.test(text)) return 0.28;
       return ctx.maxTier >= 3 && ctx.tierSpread <= 2 ? 0.78 : 0.45;
 
     case 'gym':
     case 'workout':
-      if (/jogger|legging|tank top|track pant|gym shorts|running|sneaker|trainer/.test(text) && !/blazer|oxford|heel|loafer|tie/.test(text)) return 0.92;
+    case 'gym_active':
+      if (/jogger|legging|tank|track pant|gym shorts|running|sneaker|trainer|singlet/.test(text) && !/blazer|oxford|heel|loafer|tie/.test(text)) return 0.92;
       if (/blazer|dress shoe|heel|suit/.test(text)) return 0.25;
       return 0.55;
 
     case 'date':
+    case 'date_night':
+    case 'first_date':
+      if (athletic && /tank|singlet|gym|performance/.test(text)) return 0.28;
       if (/heel|slip dress|silk|blazer|dress shirt|loafer|chelsea|midi/.test(text) && ctx.tierSpread <= 2) return 0.9;
       if (/gym shorts|slides|hoodie|track pant/.test(text)) return 0.32;
       return 0.68;
@@ -216,13 +225,24 @@ function computeOccasionFit(
 
     case 'event':
     case 'formal':
+    case 'wedding':
+    case 'gala':
+    case 'black_tie':
+      if (athletic || ctx.minTier <= 2) return 0.18;
       if (ctx.maxTier >= 4 && /blazer|suit|dress|heel|oxford|loafer/.test(text)) return 0.94;
-      if (ctx.minTier <= 2) return 0.3;
       return 0.6;
+
+    case 'party':
+    case 'editorial':
+    case 'evening_out':
+      if (athletic || /tank|singlet|gym short|running vest/.test(text)) return 0.26;
+      if (/heel|blazer|dress|silk|statement/.test(text) && ctx.tierSpread <= 2) return 0.88;
+      return 0.62;
 
     case 'weekend':
     case 'casual':
-    case 'casual-hangout':
+    case 'casual_hangout':
+    case 'everyday':
       if (ctx.tierSpread <= 2) return 0.88;
       return 0.62;
 

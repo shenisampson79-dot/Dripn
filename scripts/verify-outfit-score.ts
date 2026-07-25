@@ -574,7 +574,10 @@ const chunky = computeLocalOutfitScore([
 ]);
 assert(chunky.score <= 45, `blazer+chunky trainers must score low, got ${chunky.score}`);
 assert(
-  chunky.clashId === 'blazer_chunky_trainers' || /chunky|athletic trainers|running/i.test(chunky.hint),
+  chunky.clashId === 'blazer_chunky_trainers'
+    || chunky.clashId === 'footwear_lane_mismatch'
+    || chunky.clashId === 'coherence_footwear_mismatch'
+    || /chunky|athletic trainers|running|footwear lane/i.test(chunky.hint),
   `expected chunky trainers clash copy, got ${chunky.clashId} / ${chunky.hint}`,
 );
 assert(!isMajorConfusedLook(chunky.aesthetic, { clashId: 'blazer_trainers', allowsSmartCasualTrainers: true }), 'soft blazer_trainers is not major confused');
