@@ -45,6 +45,12 @@ export function isOutfitRejectedByStylist(text?: string | null): boolean {
 
 const OPEN_QUESTION_OFFER_RE =
   /\s*(?:Want\s+me\s+to\b[^.!?\n]*[.!?]?|Would\s+you\s+like\s+(?:me\s+to\s+)?[^.!?\n]*[.!?]?|Shall\s+I\b[^.!?\n]*[.!?]?)/gi;
+const ROLE_LABEL_LINE_RE =
+  /^[ \t]*(?:Tops?|Bottoms?|Footwear|Shoes?|Outerwear|Layers?|Accessories?|Dress(?:es)?)\s*:\s*.+$/gim;
+const ROLE_LABEL_INLINE_RE =
+  /\b(?:Tops?|Bottoms?|Footwear|Shoes?|Outerwear|Layers?|Accessories?)\s*:\s*/gi;
+const WEAR_THIS_INSTEAD_DUP_RE =
+  /(?:Wear this instead[.!]?\s*){2,}/gi;
 
 export function sanitizeStylistUserText(input?: string | null): string {
   if (typeof input !== 'string' || !input.trim()) return '';
@@ -56,6 +62,9 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(RELATED_STYLE_RULES_LINE_RE, ' ');
   text = text.replace(STYLE_RULE_HASH_TRAIL_RE, ' ');
   text = text.replace(STYLE_RULE_HASH_INLINE_RE, ' ');
+  text = text.replace(ROLE_LABEL_LINE_RE, ' ');
+  text = text.replace(ROLE_LABEL_INLINE_RE, ' ');
+  text = text.replace(WEAR_THIS_INSTEAD_DUP_RE, 'Wear this instead. ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
   text = rewriteStylistCtaJargon(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');

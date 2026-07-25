@@ -950,9 +950,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
-            label={rejected
-              ? (t('stylistFlow.wearThisInstead') || 'Wear this instead')
-              : 'Your outfit'}
+            label={rejected ? '' : 'Your outfit'}
           />
         ) : null}
 
@@ -1094,14 +1092,23 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {decisionType === 'shopping' && uploaded.length > 1 ? null : (() => {
             const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
             const summaryIsNameList = looksLikeItemNameList(summary);
-            const recommendation = sanitizeStylistUserText(res.recommendation || '');
+            let recommendation = sanitizeStylistUserText(res.recommendation || res.decision || '');
             const reasoning = sanitizeStylistUserText(res.reasoning || '');
+            // Heading already says Wear this instead — don't repeat it in the body
+            if (rejected) {
+              recommendation = recommendation
+                .replace(/^Wear this instead\s*[—–-]?\s*/i, '')
+                .trim();
+            }
             const headline = summary && !summaryIsNameList ? summary : null;
-            const analysis = reasoning
-              || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
-                ? recommendation
-                : '');
-            // Rejected path: recommendation is the single source — don't re-list pieces under it
+            const analysis = rejected
+              ? recommendation
+              : (
+                reasoning
+                || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
+                  ? recommendation
+                  : '')
+              );
             const showPieceRows = !rejected && displayPieces.length > 0;
 
             return (
@@ -1128,12 +1135,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : null}
 
                 {analysis ? (
-                  <ThemedText style={[styles.reasoning, { color: theme.tabIconDefault, marginTop: Spacing.md }]}>
+                  <ThemedText
+                    type="body"
+                    style={[
+                      rejected ? styles.responseBody : styles.reasoning,
+                      { color: rejected ? theme.text : theme.tabIconDefault, marginTop: Spacing.md },
+                    ]}
+                  >
                     {renderMarkdownText(analysis)}
                   </ThemedText>
                 ) : null}
 
-                {!headline && !analysis && recommendation ? (
+                {!rejected && !headline && !analysis && recommendation ? (
                   <ThemedText type="body" style={[styles.responseBody, { marginTop: Spacing.md }]}>
                     {renderMarkdownText(recommendation)}
                   </ThemedText>
