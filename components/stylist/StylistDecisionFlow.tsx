@@ -39,6 +39,7 @@ import { RetailOutfitSection } from '@/components/stylist/RetailOutfitSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
+import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplayState';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -646,40 +647,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     const stylistName = getStylistName(res.stylistId || flow.user?.stylistPreferences?.selectedStylistId || 'ruby');
     const stylistIcon = getStylistIcon(res.stylistId);
     const stylistGradient = getStylistGradient(res.stylistId);
-    const isFallback =
-      res.status === 'fallback_outfit'
-      || res.type === 'fallback_outfit'
-      || res.isFallback === true;
     const textReject = isOutfitRejectedByStylist(
       `${res.recommendation || ''} ${res.reasoning || ''} ${res.stylistNote || ''}`,
     );
-    // DO_NOT_BUY / already-owned is a shopping verdict — NOT formal SHOP_REQUIRED.
-    // Mapping it to SHOP_REQUIRED reused the event editorial hero + "You don't own suitable pieces".
-    const serverShopRequired = res.displayState === 'SHOP_REQUIRED'
-      || res.status === 'SHOP_REQUIRED'
-      || res.type === 'shop_required'
-      || Boolean(res.retailOutfit?.products?.length || res.retailOutfit?.outfit);
-    const wardrobeGapShop = !res.alreadyOwnedOverride
-      && res.purchaseDecision?.decision !== 'DO_NOT_BUY'
-      && (
-        res.status === 'wardrobe_gap'
-        || res.status === 'no_outfit_possible'
-        || res.status === 'refused'
-        || res.status === 'clash_blocked'
-        || res.status === 'no_wardrobe'
-        || (res.success === false && textReject)
-        || (textReject && decisionType === 'event-outfit')
-      );
-    const displayState: 'APPROVED' | 'REJECTED_WARDROBE_FIX' | 'SHOP_REQUIRED' =
-      res.displayState === 'APPROVED'
-      || res.displayState === 'REJECTED_WARDROBE_FIX'
-      || res.displayState === 'SHOP_REQUIRED'
-        ? res.displayState
-        : serverShopRequired || wardrobeGapShop
-          ? 'SHOP_REQUIRED'
-          : isFallback
-            ? 'REJECTED_WARDROBE_FIX'
-            : 'APPROVED';
+    // DO_NOT_BUY / already-owned is a shopping verdict — NEVER formal SHOP_REQUIRED UI.
+    const displayState = resolveStylistResultDisplayState(res, decisionType, { textReject });
 
     // State 3: SHOP_REQUIRED — hide user outfit; inspiration + retail role suggestions
     if (displayState === 'SHOP_REQUIRED') {
@@ -716,9 +688,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         || res.retailOutfit?.dressCodeKey
         || null;
       const shopHeadline = dressLabel
-        ? (t('stylistFlow.shopSuggestedForDressCode') || 'Suggested pieces for {code}')
+        ? (t('stylistFlow.shopSuggestedForDressCode') || 'Pieces to match {code}')
           .replace('{code}', String(dressLabel).replace(/_/g, ' '))
-        : (t('stylistFlow.shopPiecesToComplete') || 'Pieces to complete this look');
+        : (t('stylistFlow.shopRecreateLook') || t('stylistFlow.shopPiecesToMatch') || 'Recreate this look');
 
       return (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -743,12 +715,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 headline={shopHeadline}
                 heroCaption={
                   t('stylistFlow.shopHeroInspiration')
-                  || 'Inspiration — not the exact products below'
+                  || 'Matched by style and fit role — not the exact garments shown'
                 }
                 lead={
                   <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
                     <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-                      You don&apos;t own suitable pieces
+                      {t('stylistFlow.shopGapTitle') || 'Recreate this look'}
                     </ThemedText>
                     <ThemedText type="body" style={styles.responseBody}>
                       {gapCopy}
@@ -781,7 +753,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               />
               <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
                 <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-                  You don&apos;t own suitable pieces
+                  {t('stylistFlow.shopGapTitle') || 'Recreate this look'}
                 </ThemedText>
                 <ThemedText type="body" style={styles.responseBody}>
                   {gapCopy}
@@ -789,7 +761,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 {inspirationRows.length > 0 ? (
                   <View style={{ marginTop: Spacing.md }}>
                     <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-                      Look for this instead
+                      {t('stylistFlow.shopRoleSuggestions') || 'Look for these roles instead'}
                     </ThemedText>
                     {inspirationRows.map(([role, label]) => (
                       <ThemedText key={role} type="body" style={{ marginBottom: Spacing.xs }}>
@@ -802,7 +774,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               {shopMissing.length > 0 ? (
                 <FallbackShopSection
                   missing={shopMissing}
-                  headline="Shop the missing pieces"
+                  headline={t('stylistFlow.shopPiecesToMatch') || 'Pieces to match this style'}
                   gender={styleGender}
                   dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
                   nearbyStores={res.nearbyStores || null}

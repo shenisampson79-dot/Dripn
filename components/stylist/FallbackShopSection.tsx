@@ -77,11 +77,11 @@ function preferredMapsUrl(links?: { appleMaps?: string; googleMaps?: string } | 
 }
 
 /**
- * "Get the missing piece" — curated retailer search + nearby maps deep links.
+ * Role suggestions to recreate a look — curated retailer search + nearby maps.
  */
 export function FallbackShopSection({
   missing,
-  headline = 'Shop the missing pieces',
+  headline = 'Pieces to match this style',
   gender = null,
   dressCode = 'formal',
   nearbyStores = null,

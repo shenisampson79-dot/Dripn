@@ -40,7 +40,8 @@ type Props = {
 
 /**
  * SHOP_REQUIRED retail look: stable editorial/collage hero first.
- * Product cards are role suggestions to build the look — not claims of exact SKUs in the hero.
+ * Product cards are role suggestions to recreate the look — matched by style/fit,
+ * not claims of exact SKUs in the hero.
  */
 export function RetailOutfitSection({
   retailOutfit,
@@ -49,7 +50,7 @@ export function RetailOutfitSection({
   gender,
   requestPreview = true,
   fallbackHeroSource,
-  headline = 'Pieces to complete this look',
+  headline = 'Pieces to match this style',
   heroCaption = null,
   lead,
   footerNote,
