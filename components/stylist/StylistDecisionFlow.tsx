@@ -713,10 +713,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 requestPreview
                 fallbackHeroSource={shopHero}
                 headline={shopHeadline}
-                heroCaption={
-                  t('stylistFlow.shopHeroInspiration')
-                  || 'Matched by style and fit role — not the exact garments shown'
-                }
+                heroCaption={null}
                 lead={
                   <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
                     <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
@@ -882,7 +879,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
         {rejected ? (
           <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-            Better option from your wardrobe
+            {t('stylistFlow.wearThisInstead') || 'Wear this instead'}
           </ThemedText>
         ) : null}
 
@@ -953,7 +950,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
-            label={rejected ? 'Suggested look' : 'Your outfit'}
+            label={rejected
+              ? (t('stylistFlow.wearThisInstead') || 'Wear this instead')
+              : 'Your outfit'}
           />
         ) : null}
 
@@ -1102,16 +1101,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
                 ? recommendation
                 : '');
+            // Rejected path: recommendation is the single source — don't re-list pieces under it
+            const showPieceRows = !rejected && displayPieces.length > 0;
 
             return (
               <>
-                {headline ? (
+                {headline && !rejected ? (
                   <ThemedText type="body" style={styles.responseBody}>
                     {headline}
                   </ThemedText>
                 ) : null}
 
-                {displayPieces.length > 0 ? (
+                {showPieceRows ? (
                   <View style={{ marginTop: headline ? Spacing.md : 0 }}>
                     {displayPieces.map((piece, index) => (
                       <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>

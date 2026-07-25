@@ -63,6 +63,15 @@ export function resolveStylistResultDisplayState(
     || res.type === 'shop_required'
     || Boolean(res.retailOutfit?.products?.length || res.retailOutfit?.outfit);
 
+  // Soft/text reject with a wardrobe rebuild already attached → show that look, don't shop
+  if (
+    textReject
+    && (decisionType === 'event-outfit' || decisionType === 'event_outfit' || decisionType === 'what-to-wear')
+    && isFallback
+  ) {
+    return 'REJECTED_WARDROBE_FIX';
+  }
+
   const wardrobeGapShop =
     res.status === 'wardrobe_gap'
     || res.status === 'no_outfit_possible'
@@ -70,9 +79,12 @@ export function resolveStylistResultDisplayState(
     || res.status === 'clash_blocked'
     || res.status === 'no_wardrobe'
     || (res.success === false && textReject)
-    || (textReject && decisionType === 'event-outfit');
+    || (textReject && (decisionType === 'event-outfit' || decisionType === 'event_outfit') && !isFallback);
 
   if (serverShopRequired || wardrobeGapShop) return 'SHOP_REQUIRED';
   if (isFallback) return 'REJECTED_WARDROBE_FIX';
+  if (textReject && (decisionType === 'event-outfit' || decisionType === 'event_outfit')) {
+    return 'REJECTED_WARDROBE_FIX';
+  }
   return 'APPROVED';
 }

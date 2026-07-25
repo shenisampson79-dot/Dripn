@@ -110,17 +110,20 @@ const en = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'locales', 'en.
 const recreate = en['stylistFlow.shopRecreateLook'];
 const match = en['stylistFlow.shopPiecesToMatch'];
 const hero = en['stylistFlow.shopHeroInspiration'];
+const wearInstead = en['stylistFlow.wearThisInstead'];
 assert(typeof recreate === 'string' && /recreate/i.test(recreate), 'shopRecreateLook key');
 assert(typeof match === 'string' && /match this style/i.test(match), 'shopPiecesToMatch key');
 assert(
-  typeof hero === 'string' && /style and fit role/i.test(hero) && !/shop the look/i.test(hero),
-  'honest hero subtext (not Shop the look)',
+  hero === '' || (typeof hero === 'string' && !/style and fit role/i.test(hero)),
+  'no engine jargon in shop hero caption',
 );
+assert(typeof wearInstead === 'string' && /wear this instead/i.test(wearInstead), 'wearThisInstead key');
 assert(!/shop the look/i.test(JSON.stringify([
   en['stylistFlow.shopRecreateLook'],
   en['stylistFlow.shopPiecesToMatch'],
   en['stylistFlow.shopPiecesToComplete'],
   en['stylistFlow.shopSuggestedForDressCode'],
 ])), 'no traditional Shop the look claim in shop keys');
+assert(!/style and fit role/i.test(JSON.stringify(en)), 'no style-and-fit-role jargon in locales');
 
 console.log('All stylist display-state + shop copy checks passed.');

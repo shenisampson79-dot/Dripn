@@ -22,6 +22,30 @@ function humanizeSnakeCase(match: string): string {
   return match.replace(/_/g, ' ');
 }
 
+/** Stylist rejected the user's look (do not re-show that outfit). */
+export function isOutfitRejectedByStylist(text?: string | null): boolean {
+  const blob = String(text || '').toLowerCase();
+  if (!blob.trim()) return false;
+  return (
+    /\bno\s*[—–-]\s*/.test(blob)
+    || /\bnot appropriate\b/.test(blob)
+    || /\binappropriate\b/.test(blob)
+    || /\bwon'?t work\b/.test(blob)
+    || /\bdon'?t wear\b/.test(blob)
+    || /\bdo not wear\b/.test(blob)
+    || /\btoo casual for\b/.test(blob)
+    || /\btoo sporty\b/.test(blob)
+    || /\bconsider swapping\b/.test(blob)
+    || /\bmight feel\b/.test(blob)
+    || /\bwear this instead\b/.test(blob)
+    || /\bnothing suitable\b/.test(blob)
+    || /\bwardrobe (needs|gap)\b/.test(blob)
+  );
+}
+
+const OPEN_QUESTION_OFFER_RE =
+  /\s*(?:Want\s+me\s+to\b[^.!?\n]*[.!?]?|Would\s+you\s+like\s+(?:me\s+to\s+)?[^.!?\n]*[.!?]?|Shall\s+I\b[^.!?\n]*[.!?]?)/gi;
+
 export function sanitizeStylistUserText(input?: string | null): string {
   if (typeof input !== 'string' || !input.trim()) return '';
   let text = input;
@@ -34,6 +58,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(STYLE_RULE_HASH_INLINE_RE, ' ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
   text = rewriteStylistCtaJargon(text);
+  text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
   return text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 
@@ -63,21 +88,4 @@ export function formatOutfitPieceRoleLabel(role?: string | null): string {
   };
   if (map[raw]) return map[raw];
   return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
-
-/** Stylist rejected the user's look (do not re-show that outfit). */
-export function isOutfitRejectedByStylist(text?: string | null): boolean {
-  const blob = String(text || '').toLowerCase();
-  if (!blob.trim()) return false;
-  return (
-    /\bno\s*[—–-]\s*/.test(blob)
-    || /\bnot appropriate\b/.test(blob)
-    || /\binappropriate\b/.test(blob)
-    || /\bwon'?t work\b/.test(blob)
-    || /\bdon'?t wear\b/.test(blob)
-    || /\bdo not wear\b/.test(blob)
-    || /\btoo casual for\b/.test(blob)
-    || /\bnothing suitable\b/.test(blob)
-    || /\bwardrobe (needs|gap)\b/.test(blob)
-  );
 }
