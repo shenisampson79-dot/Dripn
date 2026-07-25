@@ -958,10 +958,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {decisionType === 'shopping' && uploaded.length > 1 ? (
             <ThemedText type="body" style={styles.responseBody}>
               {sanitizeStylistUserText(
-                res.shoppingDecision?.text
+                res.message
+                || res.shoppingDecision?.message
+                || res.shoppingDecision?.text
                 || res.recommendation
                 || res.decision
-                || res.message
                 || '',
               )}
             </ThemedText>
@@ -1092,8 +1093,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {decisionType === 'shopping' && uploaded.length > 1 ? null : (() => {
             const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
             const summaryIsNameList = looksLikeItemNameList(summary);
-            let recommendation = sanitizeStylistUserText(res.recommendation || res.decision || '');
-            const reasoning = sanitizeStylistUserText(res.reasoning || '');
+            // Single message field preferred — never prefer legacy reasoning over bound message
+            let recommendation = sanitizeStylistUserText(
+              res.message || res.recommendation || res.decision || '',
+            );
+            const reasoning = (res.message || res.outfitId)
+              ? ''
+              : sanitizeStylistUserText(res.reasoning || '');
             // Heading already says Wear this instead — don't repeat it in the body
             if (rejected) {
               recommendation = recommendation

@@ -923,18 +923,21 @@ export function useStylistDecision({
         requestId: `request-${Date.now()}`,
         recommendation: sanitizeStylistUserText(
           (mappedType === 'shopping'
-            ? (apiResult.shoppingDecision?.text
+            ? (apiResult.message
+              || apiResult.shoppingDecision?.message
+              || apiResult.shoppingDecision?.text
               || apiResult.purchaseDecision?.reason
               || apiResult.recommendation
               || apiResult.decision)
             : null)
+          || apiResult.message
           || enforced.payload.advice
           || apiResult.decision
           || apiResult.recommendation
           || apiResult.response
           || '',
         ),
-        reasoning: mappedType === 'shopping' && imageUris.length > 1
+        reasoning: (apiResult.message || apiResult.outfitId || (mappedType === 'shopping' && imageUris.length > 1))
           ? undefined
           : sanitizeStylistUserText(apiResult.reasoning || ''),
         confidenceNote: sanitizeStylistUserText(
