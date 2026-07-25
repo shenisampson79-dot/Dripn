@@ -52,7 +52,6 @@ import {
 import {
   filterCatalogueForMixOccasion,
   isStrictMixOccasion,
-  mixCandidateBanReason,
 } from '@/utils/outfitMixConstraints';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -170,10 +169,13 @@ function CategoryReel({
   }, [allowEmpty, data, selectedId]);
 
   useEffect(() => {
-    if (!listRef.current) return;
+    if (!listRef.current || data.length === 0) return;
     const idx = allowEmpty && !selectedId
       ? 0
-      : data.findIndex((item) => item.id === selectedId);
+      : selectedId
+        ? data.findIndex((item) => item.id === selectedId)
+        : -1;
+    // Never leave a centered garment when selection is empty/missing — avoids 0 pcs with visible pieces
     if (idx < 0) return;
     try {
       listRef.current.scrollToIndex({ index: idx, animated: false });
@@ -375,39 +377,30 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const itemsByCategory = useMemo(() => {
     const map: Partial<Record<ClothingCategory, WardrobeItem[]>> = {};
-    // Formal / Wedding / Work: prune athletic tops, cargo, trainers from swipe pools
+    // Formal / Wedding / Work: prune athletic tops, cargo, trainers from swipe pools only.
+    // Never strip the active selection — chip changes re-score; Reset clears.
     const catalogue = isStrictMixOccasion(eventType)
       ? filterCatalogueForMixOccasion(items, eventType)
       : items;
     for (const { key } of REEL_ORDER) {
+      let list: WardrobeItem[];
       if (key === 'tops') {
-        map[key] = catalogue.filter(i => i.category === 'tops' || i.category === 'activewear_tops');
+        list = catalogue.filter(i => i.category === 'tops' || i.category === 'activewear_tops');
       } else if (key === 'bottoms') {
-        map[key] = catalogue.filter(i => i.category === 'bottoms' || i.category === 'activewear_bottoms');
+        list = catalogue.filter(i => i.category === 'bottoms' || i.category === 'activewear_bottoms');
       } else {
-        map[key] = catalogue.filter(i => i.category === key);
+        list = catalogue.filter(i => i.category === key);
       }
+      // Keep currently selected piece visible/scorable even if banned from the pick pool
+      const selectedId = selection[key];
+      if (selectedId && !list.some((i) => i.id === selectedId)) {
+        const selectedItem = items.find((i) => i.id === selectedId);
+        if (selectedItem) list = [selectedItem, ...list];
+      }
+      map[key] = list;
     }
     return map;
-  }, [items, eventType]);
-
-  // When occasion chip changes, drop banned selections (do not silently replace — clear slot)
-  useEffect(() => {
-    if (!isStrictMixOccasion(eventType)) return;
-    setSelection((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const [cat, id] of Object.entries(prev)) {
-        if (!id) continue;
-        const item = items.find((i) => i.id === id);
-        if (item && mixCandidateBanReason(item, eventType)) {
-          next[cat as ClothingCategory] = cat === 'outerwear' ? null : null;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [eventType, items]);
+  }, [items, eventType, selection]);
 
   const activeReels = useMemo(
     () => REEL_ORDER.filter(r => (itemsByCategory[r.key]?.length ?? 0) > 0),

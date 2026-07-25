@@ -71,4 +71,12 @@ assert(!pruned.kept.some((i) => i.id === 'sneakers'), 'work prunes trainers');
 assert(!pruned.kept.some((i) => i.id === 'cargo'), 'work prunes cargo');
 assert(pruned.kept.some((i) => i.id === 'oxford'), 'work keeps oxford');
 
+// Chip switch must re-score the same look — pool prune must not imply selection wipe.
+// Active pieces stay selected; Work/Party caps apply (see loops above).
+const workRescore = computeLocalOutfitScore(look, null, null, null, { occasion: 'work', source: 'outfit_mix' });
+assert(workRescore.score <= 30 && workRescore.score > 0, `work re-score preserved look, got ${workRescore.score}`);
+const partyRescore = computeLocalOutfitScore(look, null, null, null, { occasion: 'party', source: 'outfit_mix' });
+assert(partyRescore.score <= 35 && partyRescore.score > 0, `party re-score preserved look, got ${partyRescore.score}`);
+assert(look.length === 3, 'preserved selection counts as 3 pcs');
+
 console.log('verify-outfit-mix-integrity: taxonomy + caps + prune passed');
