@@ -40,6 +40,17 @@ export interface DecisionResponse {
   recommendation: string;
   reasoning: string;
   confidenceNote?: string;
+  /** Trust framing for deterministic vs AI-enhanced decisions — no numeric scores. */
+  decisionConfidence?: {
+    band?: 'photo_ai' | 'wardrobe_rules' | 'brief_guided' | string;
+    label?: string;
+    note?: string;
+    source?: 'ai' | 'rules' | string;
+  };
+  deterministic?: boolean;
+  aiEnhanced?: boolean;
+  partial?: boolean;
+  verdict?: 'works' | 'doesnt_work' | string;
   stylistId: StylistId;
   timestamp: string;
   outfitImageUrl?: string;

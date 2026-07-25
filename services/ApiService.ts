@@ -2401,6 +2401,24 @@ class ApiService {
       recommendedIndex?: number | null;
       selectedOptionIndex?: number | null;
       unifiedScore?: number | null;
+      confidenceNote?: string;
+      decisionConfidence?: {
+        band?: string;
+        label?: string;
+        note?: string;
+        source?: string;
+      };
+      deterministic?: boolean;
+      aiEnhanced?: boolean;
+      partial?: boolean;
+      verdict?: string;
+      evaluateResult?: {
+        suitable?: boolean;
+        issues?: string[];
+        suggestions?: string[];
+        shopping?: null;
+      };
+      buyPlan?: Array<{ role?: string; subtype?: string; note?: string }>;
       stylistConfidence?: {
         score?: number;
         confidence?: number;

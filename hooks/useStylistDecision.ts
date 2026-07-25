@@ -923,6 +923,30 @@ export function useStylistDecision({
           || '',
         ),
         reasoning: sanitizeStylistUserText(apiResult.reasoning || ''),
+        confidenceNote: sanitizeStylistUserText(
+          apiResult.confidenceNote
+          || apiResult.decisionConfidence?.note
+          || '',
+        ) || undefined,
+        decisionConfidence: apiResult.decisionConfidence
+          ? {
+            band: apiResult.decisionConfidence.band,
+            label: sanitizeStylistUserText(apiResult.decisionConfidence.label || '') || undefined,
+            note: sanitizeStylistUserText(
+              apiResult.decisionConfidence.note || apiResult.confidenceNote || '',
+            ) || undefined,
+            source: apiResult.decisionConfidence.source,
+          }
+          : undefined,
+        deterministic: Boolean(apiResult.deterministic),
+        aiEnhanced: Boolean(apiResult.aiEnhanced),
+        partial: Boolean(apiResult.partial),
+        verdict: apiResult.verdict
+          || (apiResult.evaluateResult?.suitable === true
+            ? 'works'
+            : apiResult.evaluateResult?.suitable === false
+              ? 'doesnt_work'
+              : undefined),
         styleRating: shouldDisplayStyleRating(apiResult.styleRating ?? null)
           ? (apiResult.styleRating ?? null)
           : null,

@@ -865,6 +865,19 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
             {stylistName}
           </ThemedText>
+          {(res.decisionConfidence?.label || res.confidenceNote) ? (
+            <View style={styles.confidenceRow}>
+              <ThemedText type="caption" style={[styles.confidenceLabel, { color: LuxuryColors.gold }]}>
+                {res.decisionConfidence?.label
+                  || (res.aiEnhanced ? 'Full look check' : 'Quick brief check')}
+              </ThemedText>
+              {res.confidenceNote || res.decisionConfidence?.note ? (
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
+                  {res.confidenceNote || res.decisionConfidence?.note}
+                </ThemedText>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
         {rejected ? (
@@ -1523,6 +1536,17 @@ const styles = StyleSheet.create({
   stylistHeader: {
     alignItems: 'center',
     gap: Spacing.xs,
+  },
+  confidenceRow: {
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    gap: 2,
+    maxWidth: '92%',
+  },
+  confidenceLabel: {
+    textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   stylistAvatar: {
     width: 56,
