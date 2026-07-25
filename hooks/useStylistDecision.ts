@@ -520,7 +520,13 @@ export function useStylistDecision({
       ...(user?.profileData || {}),
       gender: mappedGender,
       name: user?.name,
-      country: user?.country,
+      country: user?.country || user?.profileData?.country || user?.profileData?.countryCode || null,
+      countryCode:
+        user?.profileData?.countryCode
+        || user?.countryCode
+        || user?.country
+        || user?.profileData?.country
+        || null,
       skinUndertone: user?.skinUndertone,
       bodyType: user?.bodyShape,
       bodyMeasurements: user?.bodyMeasurements,
