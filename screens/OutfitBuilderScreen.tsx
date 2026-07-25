@@ -50,8 +50,7 @@ import {
   OUTFIT_REEL_CENTER_RATIO,
 } from '@/utils/outfitReelImage';
 import {
-  filterCatalogueForMixOccasion,
-  isStrictMixOccasion,
+  buildMixReelPools,
 } from '@/utils/outfitMixConstraints';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -160,11 +159,15 @@ function CategoryReel({
     ];
   }, [allowEmpty, items]);
   const listRef = useRef<FlatList>(null);
+  // Ignore scroll→select while we re-sync after pool/selection changes (occasion chips).
+  const suppressScrollSelectRef = useRef(false);
+  const suppressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initialIndex = useMemo(() => {
     if (allowEmpty && !selectedId) return 0;
-    if (!selectedId) return allowEmpty ? 0 : 0;
+    if (!selectedId) return 0;
     const idx = data.findIndex((i) => i.id === selectedId);
+    // Prefer selected piece; never invent a center garment when selection is orphaned
     return idx >= 0 ? idx : 0;
   }, [allowEmpty, data, selectedId]);
 
@@ -177,14 +180,24 @@ function CategoryReel({
         : -1;
     // Never leave a centered garment when selection is empty/missing — avoids 0 pcs with visible pieces
     if (idx < 0) return;
+    suppressScrollSelectRef.current = true;
+    if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
     try {
       listRef.current.scrollToIndex({ index: idx, animated: false });
     } catch {
       // FlatList may not be measured yet on first paint.
     }
+    // Allow user swipes after layout settles; pool rebuilds must not rewrite selection
+    suppressTimerRef.current = setTimeout(() => {
+      suppressScrollSelectRef.current = false;
+    }, 280);
+    return () => {
+      if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
+    };
   }, [allowEmpty, data, selectedId]);
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (suppressScrollSelectRef.current) return;
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
@@ -193,6 +206,7 @@ function CategoryReel({
     const nextId = isOuterwearNoneItem(item) ? null : item.id;
     const currentId = selectedId ?? null;
     if (nextId === currentId) return;
+    // Selection is user intent only — never rewrite from a transient centered index
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSelect(nextId);
   }, [data, onSelect, selectedId, snapInterval]);
@@ -332,7 +346,10 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [isSaving, setIsSaving] = useState(false);
   const [outfitName, setOutfitName] = useState('');
   const [outfitDescription, setOutfitDescription] = useState('');
+  /** Live evaluation occasion — may change freely; never mutates selection. */
   const [eventType, setEventType] = useState<PlannedEventType>('casual');
+  /** Save-modal occasion only — must not rewrite live chips / selection. */
+  const [saveEventType, setSaveEventType] = useState<PlannedEventType>('casual');
   const [pinToCalendar, setPinToCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -375,32 +392,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     return { centerWidth, sideGap, snapInterval, sideInset };
   }, []);
 
-  const itemsByCategory = useMemo(() => {
-    const map: Partial<Record<ClothingCategory, WardrobeItem[]>> = {};
-    // Formal / Wedding / Work: prune athletic tops, cargo, trainers from swipe pools only.
-    // Never strip the active selection — chip changes re-score; Reset clears.
-    const catalogue = isStrictMixOccasion(eventType)
-      ? filterCatalogueForMixOccasion(items, eventType)
-      : items;
-    for (const { key } of REEL_ORDER) {
-      let list: WardrobeItem[];
-      if (key === 'tops') {
-        list = catalogue.filter(i => i.category === 'tops' || i.category === 'activewear_tops');
-      } else if (key === 'bottoms') {
-        list = catalogue.filter(i => i.category === 'bottoms' || i.category === 'activewear_bottoms');
-      } else {
-        list = catalogue.filter(i => i.category === key);
-      }
-      // Keep currently selected piece visible/scorable even if banned from the pick pool
-      const selectedId = selection[key];
-      if (selectedId && !list.some((i) => i.id === selectedId)) {
-        const selectedItem = items.find((i) => i.id === selectedId);
-        if (selectedItem) list = [selectedItem, ...list];
-      }
-      map[key] = list;
-    }
-    return map;
-  }, [items, eventType, selection]);
+  // Reels = suggestions UI only. Occasion prunes pick pools; selection stays locked.
+  const itemsByCategory = useMemo(
+    () => buildMixReelPools(items, eventType, selection) as Partial<Record<ClothingCategory, WardrobeItem[]>>,
+    [items, eventType, selection],
+  );
 
   const activeReels = useMemo(
     () => REEL_ORDER.filter(r => (itemsByCategory[r.key]?.length ?? 0) > 0),
@@ -431,6 +427,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
     setSelection((prev) => ({ ...prev, [cat]: id }));
   }, []);
+
+  /** Occasion = evaluation only. Must never null/filter/rebuild selection from reels. */
+  const onOccasionChange = useCallback((next: PlannedEventType) => {
+    if (next === eventType) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEventType(next);
+  }, [eventType]);
 
   const selectedWardrobeItems = useMemo(
     () => selectedItemIds
@@ -591,7 +594,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }
     setOutfitName('');
     setOutfitDescription('');
-    setEventType('casual');
+    // Seed modal from live occasion — do NOT mutate eventType / selection
+    setSaveEventType(eventType);
     setPinToCalendar(false);
     setCalendarDate(new Date());
     setShowSaveModal(true);
@@ -607,7 +611,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       const description = outfitDescription.trim();
       const result = await saveGeneratedOutfitToProfile({
         name,
-        occasion: eventType,
+        occasion: saveEventType,
         wardrobeItemIds: selectedItemIds,
         description: description || undefined,
         calendarDate: pinToCalendar
@@ -670,10 +674,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           return (
             <Pressable
               key={et.value}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setEventType(et.value);
-              }}
+              onPress={() => onOccasionChange(et.value)}
               style={[
                 styles.liveOccasionChip,
                 {
@@ -696,10 +697,10 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         })}
       </ScrollView>
 
-      {/* Live style score */}
+      {/* Live style score — always from selection; never spinner while pieces exist */}
       <View style={[styles.scoreBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
         <View style={[styles.scoreRing, { borderColor: scoreColor }]}>
-          {isAiScoring ? (
+          {selectedItemIds.length === 0 && isAiScoring ? (
             <ActivityIndicator size="small" color={scoreColor} />
           ) : (
             <ThemedText type="h3" style={{ color: scoreColor, fontWeight: '800' }}>
@@ -867,20 +868,20 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               {EVENT_TYPES.map(et => (
                 <Pressable
                   key={et.value}
-                  onPress={() => setEventType(et.value)}
+                  onPress={() => setSaveEventType(et.value)}
                   style={[
                     styles.eventTypeChip,
                     {
                       backgroundColor:
-                        eventType === et.value ? theme.link : theme.backgroundSecondary,
+                        saveEventType === et.value ? theme.link : theme.backgroundSecondary,
                     },
                   ]}
                 >
                   <ThemedText
                     type="caption"
                     style={{
-                      color: eventType === et.value ? '#fff' : theme.text,
-                      fontWeight: eventType === et.value ? '700' : '400',
+                      color: saveEventType === et.value ? '#fff' : theme.text,
+                      fontWeight: saveEventType === et.value ? '700' : '400',
                     }}
                   >
                     {et.label}

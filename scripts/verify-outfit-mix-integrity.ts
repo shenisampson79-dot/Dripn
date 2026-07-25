@@ -1,16 +1,23 @@
 /**
- * Production integrity: athletic→athleisure, occasion caps, pool prune.
+ * Production integrity: athletic→athleisure, occasion caps, pool prune,
+ * and Outfit Mix selection/evaluation separation (chip switches).
  * Run: npx tsx scripts/verify-outfit-mix-integrity.ts
  */
 import {
   analyzeOutfitAesthetic,
   computeLocalOutfitScore,
+  mergeOutfitScores,
   occasionFormalityHardCap,
   getStyleLane,
 } from '../utils/outfitCompatibilityScore';
 import { isAthleticTopOverride, isStructuredTailoredBottom, isCasualTrouserBottom } from '../utils/garmentCategory';
 import { overridePrimaryStyle, blockSmartCasualUpgrade } from '../utils/taxonomyOverrides';
-import { pruneMixCandidates, isStrictMixOccasion } from '../utils/outfitMixConstraints';
+import {
+  pruneMixCandidates,
+  isStrictMixOccasion,
+  buildMixReelPools,
+  preserveSelectionAcrossOccasion,
+} from '../utils/outfitMixConstraints';
 import type { WardrobeItem } from '../contexts/WardrobeContext';
 
 function item(partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'category' | 'name'>): WardrobeItem {
@@ -30,6 +37,10 @@ function item(partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'catego
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
+}
+
+function selectionIds(sel: Partial<Record<string, string | null>>): string[] {
+  return Object.values(sel).filter((id): id is string => !!id).sort();
 }
 
 const tank = item({ id: 'tank', category: 'activewear_tops', name: 'ASICS Running Tank', color: 'black' });
@@ -71,12 +82,59 @@ assert(!pruned.kept.some((i) => i.id === 'sneakers'), 'work prunes trainers');
 assert(!pruned.kept.some((i) => i.id === 'cargo'), 'work prunes cargo');
 assert(pruned.kept.some((i) => i.id === 'oxford'), 'work keeps oxford');
 
-// Chip switch must re-score the same look — pool prune must not imply selection wipe.
-// Active pieces stay selected; Work/Party caps apply (see loops above).
-const workRescore = computeLocalOutfitScore(look, null, null, null, { occasion: 'work', source: 'outfit_mix' });
-assert(workRescore.score <= 30 && workRescore.score > 0, `work re-score preserved look, got ${workRescore.score}`);
-const partyRescore = computeLocalOutfitScore(look, null, null, null, { occasion: 'party', source: 'outfit_mix' });
-assert(partyRescore.score <= 35 && partyRescore.score > 0, `party re-score preserved look, got ${partyRescore.score}`);
-assert(look.length === 3, 'preserved selection counts as 3 pcs');
+// ─── Selection / evaluation / reels separation ───────────────────────────────
+const wardrobe = [tank, trousers, sneakers, cargo, oxford, loafers];
+let selection: Partial<Record<string, string | null>> = {
+  outerwear: null,
+  tops: 'tank',
+  bottoms: 'trousers',
+  shoes: 'sneakers',
+};
+const casualIds = selectionIds(selection);
+const casualScore = computeLocalOutfitScore(look, null, null, null, { occasion: 'casual', source: 'outfit_mix' });
 
-console.log('verify-outfit-mix-integrity: taxonomy + caps + prune passed');
+// Chip → Work: selection immutable; reels prune; score lower; pcs unchanged
+selection = preserveSelectionAcrossOccasion(selection);
+assert(selectionIds(selection).join('|') === casualIds.join('|'), 'work chip must not mutate selection IDs');
+const workPools = buildMixReelPools(wardrobe, 'work', selection);
+const workPoolSansSelection = pruneMixCandidates(wardrobe, 'work').kept;
+assert(!workPoolSansSelection.some((i) => i.id === 'tank'), 'work pool alone drops tank');
+assert(workPools.tops.some((i) => i.id === 'tank'), 'selection lock re-injects tank into tops reel');
+assert(workPools.shoes.some((i) => i.id === 'sneakers'), 'selected sneakers stay visible');
+assert(!workPools.bottoms.some((i) => i.id === 'cargo'), 'work prunes unselected cargo from bottoms');
+
+const workScore = computeLocalOutfitScore(look, null, null, null, { occasion: 'work', source: 'outfit_mix' });
+assert(workScore.score > 0, `work score must be non-zero with pieces, got ${workScore.score}`);
+assert(workScore.score < casualScore.score, `work score ${workScore.score} must be < casual ${casualScore.score}`);
+assert(selectionIds(selection).length === 3, 'pcs unchanged on work chip');
+
+// Chip → Casual: identical outfit + score restored
+selection = preserveSelectionAcrossOccasion(selection);
+assert(selectionIds(selection).join('|') === casualIds.join('|'), 'return to casual keeps IDs');
+const casualRestored = computeLocalOutfitScore(look, null, null, null, { occasion: 'casual', source: 'outfit_mix' });
+assert(casualRestored.score === casualScore.score, `casual score restored ${casualRestored.score} vs ${casualScore.score}`);
+assert(selectionIds(selection).length === 3, 'pcs unchanged on return to casual');
+
+// Rapid chip switching — no wipe / no 0 pcs with items selected
+const rapidOccasions = ['work', 'formal', 'party', 'wedding', 'casual', 'work', 'casual'] as const;
+for (const occ of rapidOccasions) {
+  selection = preserveSelectionAcrossOccasion(selection);
+  const ids = selectionIds(selection);
+  assert(ids.join('|') === casualIds.join('|'), `rapid ${occ}: IDs wiped`);
+  assert(ids.length === 3, `rapid ${occ}: 0 pcs with items selected`);
+  const pools = buildMixReelPools(wardrobe, occ, selection);
+  assert(pools.tops.some((i) => i.id === 'tank'), `rapid ${occ}: selected top missing from reel`);
+  const scored = computeLocalOutfitScore(look, null, null, null, { occasion: occ, source: 'outfit_mix' });
+  assert(scored.score > 0, `rapid ${occ}: collapsed to 0% with pieces`);
+}
+
+// Empty selection is the only 0% / 0 pcs case
+const emptyScore = computeLocalOutfitScore([], null, null, null, { occasion: 'work', source: 'outfit_mix' });
+assert(emptyScore.score === 0, 'empty look may be 0%');
+assert(selectionIds({}).length === 0, 'empty selection is 0 pcs');
+
+// AI merge must not floor-wipe a scored look to 0
+const mergedZeroAi = mergeOutfitScores(workScore, { score: 0, hardCapApplied: 'occasion' });
+assert(mergedZeroAi.score >= 5, `merge floor with pieces, got ${mergedZeroAi.score}`);
+
+console.log('verify-outfit-mix-integrity: taxonomy + caps + prune + selection lock passed');

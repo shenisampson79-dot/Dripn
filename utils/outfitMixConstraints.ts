@@ -126,3 +126,60 @@ export function filterCatalogueForMixOccasion<T extends ItemLike>(
 ): T[] {
   return pruneMixCandidates(catalogue, occasion, options).kept;
 }
+
+/** Default Outfit Mix reel category order (body top → feet). */
+export const MIX_REEL_KEYS = [
+  'outerwear',
+  'tops',
+  'dresses',
+  'formal',
+  'bottoms',
+  'shoes',
+] as const;
+
+export type MixReelKey = (typeof MIX_REEL_KEYS)[number];
+
+/**
+ * Build swipe pools for Outfit Mix.
+ * Selection is LOCKED: occasion may prune candidates, but never strips the
+ * currently selected piece from a reel (banned items stay visible/scorable).
+ */
+export function buildMixReelPools<T extends ItemLike & { category?: string | null; id?: string | null }>(
+  catalogue: T[],
+  occasion: string | null | undefined,
+  selection: Partial<Record<string, string | null>>,
+  reelKeys: readonly string[] = MIX_REEL_KEYS,
+): Record<string, T[]> {
+  const items = Array.isArray(catalogue) ? catalogue : [];
+  const pool = isStrictMixOccasion(occasion)
+    ? filterCatalogueForMixOccasion(items, occasion)
+    : items;
+  const map: Record<string, T[]> = {};
+  for (const key of reelKeys) {
+    let list: T[];
+    if (key === 'tops') {
+      list = pool.filter((i) => i.category === 'tops' || i.category === 'activewear_tops');
+    } else if (key === 'bottoms') {
+      list = pool.filter((i) => i.category === 'bottoms' || i.category === 'activewear_bottoms');
+    } else {
+      list = pool.filter((i) => i.category === key);
+    }
+    const selectedId = selection[key];
+    if (selectedId && !list.some((i) => i.id === selectedId)) {
+      const selectedItem = items.find((i) => i.id === selectedId);
+      if (selectedItem) list = [selectedItem, ...list];
+    }
+    map[key] = list;
+  }
+  return map;
+}
+
+/**
+ * Occasion chip contract: selection IDs are immutable across chip changes.
+ * Evaluation/reels may change; selectedOutfit must not.
+ */
+export function preserveSelectionAcrossOccasion<T extends Partial<Record<string, string | null>>>(
+  selection: T,
+): T {
+  return { ...selection };
+}

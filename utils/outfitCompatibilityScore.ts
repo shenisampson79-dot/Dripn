@@ -257,6 +257,14 @@ export function computeLocalOutfitScore(
       severity = primaryClash.severity;
     }
 
+    // Occasion evaluation still applies — never wipe selection; only tighten the score
+    const occGate = occasionFormalityHardCap(options.occasion, selected, aesthetic);
+    if (occGate) {
+      score = Math.min(score, occGate.cap);
+      hint = occGate.hint;
+    }
+    score = Math.max(5, score);
+
     const stylistAnalysis = buildStylistAnalysis(selected, {
       score,
       signals,
@@ -271,7 +279,7 @@ export function computeLocalOutfitScore(
       clashId,
       severity,
       aesthetic,
-      hardCap: Math.min(coherence.hardCap, score),
+      hardCap: Math.min(coherence.hardCap, score, occGate?.cap ?? score),
       signals,
       coherence,
       stylistAnalysis,
@@ -283,21 +291,28 @@ export function computeLocalOutfitScore(
   if (primaryClash && isHardClash) {
     const extra = collectSecondaryClashPenalty(selected, primaryClash, regional);
     const cap = primaryClash.severity === 'fatal' ? 35 : 40;
-    const score = Math.min(clashToScore(primaryClash.penalty, extra), cap);
+    let score = Math.min(clashToScore(primaryClash.penalty, extra), cap);
+    let hint = primaryClash.hint;
+    const occGate = occasionFormalityHardCap(options.occasion, selected, aesthetic);
+    if (occGate) {
+      score = Math.min(score, occGate.cap);
+      hint = occGate.hint;
+    }
+    score = Math.max(5, score);
     const stylistAnalysis = buildStylistAnalysis(selected, {
       score,
       signals,
       aesthetic,
-      hint: primaryClash.hint,
+      hint,
       clashId: primaryClash.id,
     });
     return {
       score,
-      hint: primaryClash.hint,
+      hint,
       clashId: primaryClash.id,
       severity: primaryClash.severity,
       aesthetic,
-      hardCap: cap,
+      hardCap: Math.min(cap, occGate?.cap ?? cap),
       signals,
       coherence,
       stylistAnalysis,
@@ -308,21 +323,28 @@ export function computeLocalOutfitScore(
 
   const aestheticRejection = evaluateAestheticRejection(selected);
   if (aestheticRejection) {
-    const score = aestheticRejection.scoreCap;
+    let score = aestheticRejection.scoreCap;
+    let hint = aestheticRejection.hint;
+    const occGate = occasionFormalityHardCap(options.occasion, selected, aestheticRejection.analysis);
+    if (occGate) {
+      score = Math.min(score, occGate.cap);
+      hint = occGate.hint;
+    }
+    score = Math.max(5, score);
     const stylistAnalysis = buildStylistAnalysis(selected, {
       score,
       signals,
       aesthetic: aestheticRejection.analysis,
-      hint: aestheticRejection.hint,
+      hint,
       clashId: aestheticRejection.clashId,
     });
     return {
       score,
-      hint: aestheticRejection.hint,
+      hint,
       clashId: aestheticRejection.clashId,
       severity: aestheticRejection.severity,
       aesthetic: aestheticRejection.analysis,
-      hardCap: aestheticRejection.scoreCap,
+      hardCap: Math.min(aestheticRejection.scoreCap, occGate?.cap ?? aestheticRejection.scoreCap),
       signals,
       coherence,
       stylistAnalysis,
@@ -625,6 +647,11 @@ export function mergeOutfitScores(
     if (!/refine footwear|confused/i.test(localClean)) {
       hint = localClean;
     }
+  }
+
+  // Pieces selected ⇒ never collapse to 0% from AI / occasion merge (empty look stays 0).
+  if (local.score > 0) {
+    finalScore = Math.max(5, finalScore);
   }
 
   return {
