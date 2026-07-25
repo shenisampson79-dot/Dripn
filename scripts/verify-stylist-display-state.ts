@@ -62,6 +62,18 @@ console.log('=== Stylist display-state + shop copy (StyleWise) ===\n');
 
 {
   const state = resolveStylistResultDisplayState(
+    {
+      displayState: 'SHOP_REQUIRED',
+      retailOutfit: { products: [{ id: '1' }] },
+      status: 'SHOP_REQUIRED',
+    },
+    'sanity-check',
+  );
+  assert(state === 'APPROVED', 'sanity-check never opens SHOP_REQUIRED UI');
+}
+
+{
+  const state = resolveStylistResultDisplayState(
     { status: 'ok', recommendation: 'Looks good' },
     'sanity-check',
   );

@@ -39,6 +39,11 @@ export function resolveStylistResultDisplayState(
     return 'APPROVED';
   }
 
+  // Quick sanity check is EVALUATE_OUTFIT — never SHOP_REQUIRED product UI
+  if (decisionType === 'sanity-check' || decisionType === 'sanity_check') {
+    return 'APPROVED';
+  }
+
   const textReject = Boolean(opts.textReject);
   const isFallback =
     res.status === 'fallback_outfit'

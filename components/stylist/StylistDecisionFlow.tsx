@@ -653,8 +653,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
     // DO_NOT_BUY / already-owned is a shopping verdict — NEVER formal SHOP_REQUIRED UI.
     const displayState = resolveStylistResultDisplayState(res, decisionType, { textReject });
 
-    // State 3: SHOP_REQUIRED — hide user outfit; inspiration + retail role suggestions
-    if (displayState === 'SHOP_REQUIRED') {
+    // State 3: SHOP_REQUIRED — event gaps only. Sanity check is EVALUATE_OUTFIT — never shop UI.
+    if (displayState === 'SHOP_REQUIRED' && decisionType !== 'sanity-check') {
       const gapCopy = sanitizeStylistUserText(
         res.recommendation || res.stylistNote || res.reasoning
         || "You don't currently own suitable pieces for this occasion.",
