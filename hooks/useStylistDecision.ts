@@ -75,15 +75,24 @@ function isWardrobeGapError(error: {
   message?: string;
   error?: string;
   errorCode?: string;
+  status?: string | number;
+  displayState?: string;
+  type?: string;
 }): boolean {
   const code = error?.error || error?.errorCode || '';
   const raw = error?.message || '';
+  const status = String(error?.status || '');
   return (
     code === 'wardrobe_gap'
     || code === 'no_wardrobe'
     || code === 'no_outfit_possible'
     || code === 'refused'
     || code === 'clash_blocked'
+    || code === 'missing_event_type'
+    || status === 'SHOP_REQUIRED'
+    || status === 'wardrobe_gap'
+    || error?.displayState === 'SHOP_REQUIRED'
+    || error?.type === 'shop_required'
     || /wardrobe (gap|doesn\'t|does not)|add .*polished|owned wardrobe/i.test(raw)
   );
 }
@@ -135,6 +144,9 @@ function formatSubmitError(
   }
   if (raw.includes('Add photos or describe')) {
     return raw;
+  }
+  if (code === 'missing_event_type' || /tell me the event type/i.test(raw)) {
+    return raw || 'Tell me the event type (for example wedding, dinner, or interview) so I can style you for it.';
   }
   if (isWardrobeGapError(error)) {
     return raw || 'Your wardrobe needs a few more occasion-ready pieces for this request.';
@@ -621,6 +633,24 @@ export function useStylistDecision({
 
     // First-class refuse / wardrobe gap — show in-flow sheet, not a fake score card
     if (isWardrobeGapError(error)) {
+      const errAny = error as {
+        displayState?: string;
+        status?: string | number;
+        type?: string;
+        retailOutfit?: DecisionResponse['retailOutfit'];
+        recommendedOutfit?: DecisionResponse['recommendedOutfit'];
+        retailers?: DecisionResponse['retailers'];
+        nearbyStores?: DecisionResponse['nearbyStores'];
+        nearbyStoresSource?: string | null;
+        missing?: DecisionResponse['missing'];
+        recommendation?: string;
+        decision?: string;
+        reasoning?: string;
+      };
+      const isShopRequired = errAny.displayState === 'SHOP_REQUIRED'
+        || String(errAny.status || '') === 'SHOP_REQUIRED'
+        || errAny.type === 'shop_required'
+        || Boolean(errAny.retailOutfit?.products?.length || errAny.retailOutfit?.outfit);
       const copy = formatSubmitError(error, {
         photoLimit: getUploadLimit(),
         wardrobeLimit: getWardrobeSelectLimit(),
@@ -640,10 +670,22 @@ export function useStylistDecision({
       const gapResult: DecisionResponse = {
         id: `gap-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation: copy,
-        reasoning: '',
-        success: false,
-        status: (error.error || error.errorCode || 'wardrobe_gap') as DecisionResponse['status'],
+        recommendation: sanitizeStylistUserText(
+          errAny.recommendation || errAny.decision || copy,
+        ),
+        reasoning: sanitizeStylistUserText(errAny.reasoning || ''),
+        success: isShopRequired ? true : false,
+        status: (isShopRequired
+          ? 'SHOP_REQUIRED'
+          : (error.error || error.errorCode || 'wardrobe_gap')) as DecisionResponse['status'],
+        displayState: isShopRequired ? 'SHOP_REQUIRED' : undefined,
+        type: isShopRequired ? 'shop_required' : undefined,
+        retailOutfit: errAny.retailOutfit || null,
+        recommendedOutfit: errAny.recommendedOutfit || null,
+        retailers: errAny.retailers,
+        nearbyStores: errAny.nearbyStores || null,
+        nearbyStoresSource: errAny.nearbyStoresSource || null,
+        missing: errAny.missing,
         suggestions,
         missingPieces: suggestions,
         styleRating: null,
@@ -798,8 +840,12 @@ export function useStylistDecision({
         decisionSessionId: sessionRef.current?.id,
         selectedContexts: activeContexts,
         eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
-        selectedWardrobeIds: selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
-        wardrobeSelectionMode: wardrobeSelectionMode || undefined,
+        // Surprise Me ignores draft wardrobe picks — sending evaluate_outfit diverted
+        // the server into the LLM catch → "Unable to submit / please resend".
+        selectedWardrobeIds: surpriseMe
+          ? []
+          : selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
+        wardrobeSelectionMode: surpriseMe ? undefined : (wardrobeSelectionMode || undefined),
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
           id: item.id,
           name: item.name,

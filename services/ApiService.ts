@@ -243,6 +243,26 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      // SHOP_REQUIRED soft outcomes may still arrive as 4xx on older servers —
+      // treat full shop bodies as successful decision payloads for the UI.
+      if (
+        error
+        && typeof error === 'object'
+        && (
+          error.displayState === 'SHOP_REQUIRED'
+          || error.status === 'SHOP_REQUIRED'
+          || error.type === 'shop_required'
+          || (error.retailOutfit && (error.retailOutfit.products || error.retailOutfit.outfit))
+        )
+      ) {
+        return {
+          ...error,
+          success: true,
+          status: 'SHOP_REQUIRED',
+          displayState: 'SHOP_REQUIRED',
+          type: error.type || 'shop_required',
+        } as T;
+      }
       const rawCode = String(error.error || error.errorCode || '').trim();
       const humanMessage = typeof error.message === 'string' ? error.message.trim() : '';
       const looksLikeCode = (value: string) => /^[A-Z][A-Z0-9_]{2,}$/.test(value);
@@ -355,6 +375,17 @@ class ApiService {
         allowForce?: boolean;
         candidatePhash?: string | null;
         duplicate?: boolean;
+        displayState?: string;
+        type?: string;
+        retailOutfit?: unknown;
+        recommendedOutfit?: unknown;
+        retailers?: unknown;
+        nearbyStores?: unknown;
+        nearbyStoresSource?: string | null;
+        missing?: unknown;
+        recommendation?: string;
+        decision?: string;
+        reasoning?: string;
       };
       apiError.status = response.status;
       apiError.statusCode = response.status;
@@ -382,6 +413,17 @@ class ApiService {
       if (typeof error.stylistResponse === 'string') {
         apiError.stylistResponse = error.stylistResponse;
       }
+      if (typeof error.displayState === 'string') apiError.displayState = error.displayState;
+      if (typeof error.type === 'string') apiError.type = error.type;
+      if (error.retailOutfit) apiError.retailOutfit = error.retailOutfit;
+      if (error.recommendedOutfit) apiError.recommendedOutfit = error.recommendedOutfit;
+      if (error.retailers) apiError.retailers = error.retailers;
+      if (error.nearbyStores) apiError.nearbyStores = error.nearbyStores;
+      if (typeof error.nearbyStoresSource === 'string') apiError.nearbyStoresSource = error.nearbyStoresSource;
+      if (Array.isArray(error.missing)) apiError.missing = error.missing;
+      if (typeof error.recommendation === 'string') apiError.recommendation = error.recommendation;
+      if (typeof error.decision === 'string') apiError.decision = error.decision;
+      if (typeof error.reasoning === 'string') apiError.reasoning = error.reasoning;
       if (response.status === 409 || rawCode === 'DUPLICATE_WARDROBE_ITEM') {
         apiError.duplicate = true;
         apiError.allowForce = error.allowForce !== false;
