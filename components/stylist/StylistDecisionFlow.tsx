@@ -893,7 +893,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-          {Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
+          {/* Purchase ownership UI is shopping-only — QSC must evaluate the look, not "don't buy". */}
+          {decisionType === 'shopping' && Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
             <View style={{ marginBottom: Spacing.md }}>
               <ThemedText type="small" style={{ color: theme.link, marginBottom: Spacing.xs }}>
                 {res.alreadyOwned[0]?.confidenceLabel

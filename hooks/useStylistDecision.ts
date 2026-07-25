@@ -975,12 +975,18 @@ export function useStylistDecision({
             ? undefined
             : enforced.payload.recommendedIndex,
         success: apiResult.success !== false,
-        alreadyOwned: apiResult.alreadyOwned || apiResult.alreadyOwnedMatches,
-        alreadyOwnedMatches: apiResult.alreadyOwnedMatches || apiResult.alreadyOwned,
-        ownershipDecision: apiResult.ownershipDecision,
-        purchaseDecision: apiResult.purchaseDecision,
-        wardrobeCoverage: apiResult.wardrobeCoverage,
-        alreadyOwnedOverride: Boolean(apiResult.alreadyOwnedOverride),
+        alreadyOwned: mappedType === 'shopping'
+          ? (apiResult.alreadyOwned || apiResult.alreadyOwnedMatches)
+          : undefined,
+        alreadyOwnedMatches: mappedType === 'shopping'
+          ? (apiResult.alreadyOwnedMatches || apiResult.alreadyOwned)
+          : undefined,
+        ownershipDecision: mappedType === 'shopping' ? apiResult.ownershipDecision : undefined,
+        purchaseDecision: mappedType === 'shopping' ? apiResult.purchaseDecision : undefined,
+        wardrobeCoverage: mappedType === 'shopping' ? apiResult.wardrobeCoverage : undefined,
+        alreadyOwnedOverride: mappedType === 'shopping'
+          ? Boolean(apiResult.alreadyOwnedOverride)
+          : false,
       };
 
       await persistResult(result, imageUris);

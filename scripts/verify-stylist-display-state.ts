@@ -69,6 +69,20 @@ console.log('=== Stylist display-state + shop copy (StyleWise) ===\n');
 }
 
 {
+  // Even if a stale DO_NOT_BUY leaks onto a sanity payload, UI must not treat it as shop gap.
+  // (Server should strip ownership for sanity; client also hides the buy banner.)
+  const state = resolveStylistResultDisplayState(
+    {
+      purchaseDecision: { decision: 'DO_NOT_BUY' },
+      alreadyOwnedOverride: true,
+      recommendation: 'You already own this',
+    },
+    'sanity-check',
+  );
+  assert(state === 'APPROVED', 'leaked DO_NOT_BUY on sanity still APPROVED display');
+}
+
+{
   const state = resolveStylistResultDisplayState(
     {
       status: 'wardrobe_gap',
