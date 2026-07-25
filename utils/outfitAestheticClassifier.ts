@@ -1,5 +1,10 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { classifyItemFromDataset } from '@/utils/outfitStyleTagMatcher';
+import { isAthleticTopOverride } from '@/utils/garmentCategory';
+import {
+  overridePrimaryStyle,
+  blockSmartCasualUpgrade,
+} from '@/utils/taxonomyOverrides';
 
 /** Non-overlapping style worlds — outfits should commit to one primary lane. */
 export type StyleArchetype =
@@ -115,14 +120,9 @@ function itemWeight(item: ItemLike): number {
   return CATEGORY_WEIGHT[cat] ?? 1.5;
 }
 
-/** Performance / gym tops — never smart-casual anchors. */
+/** Performance / gym tops — never smart-casual anchors. Delegates to garmentCategory. */
 export function isPerformanceAthleticTop(item: ItemLike): boolean {
-  const cat = String(item.category || '').toLowerCase();
-  if (cat === 'shoes' || cat === 'bottoms' || cat === 'activewear_bottoms') return false;
-  if (cat === 'activewear_tops' || cat === 'activewear') return true;
-  const t = itemText(item);
-  return /singlet|muscle.?tank|running.?tank|gym.?tank|performance.?tank|running vest|gym vest|training vest|athletic vest|performance vest|running top|athletic top|gym top|training top|performance top|compression|sports top|sports bra/.test(t)
-    || (/\b(tank|sleeveless)\b/.test(t) && !/\b(dress|maxi|midi|camisole)\b/.test(t));
+  return isAthleticTopOverride(item);
 }
 
 /** Tag each item with weighted style signals. Dataset first, regex fallback. Shoes dominate. */
@@ -266,7 +266,7 @@ function detectAcceptedStreetwearLayering(items: ItemLike[]): boolean {
 
 /** Blazer/chinos + clean lifestyle trainers is valid smart casual — not an athleisure clash. */
 function detectValidSmartCasualTrainers(items: ItemLike[]): boolean {
-  if (items.some((item) => isPerformanceAthleticTop(item))) return false;
+  if (blockSmartCasualUpgrade(items)) return false;
 
   const text = items.map(itemText).join(' ');
   const hasChunkyOrTech = items.some(
@@ -285,10 +285,9 @@ function detectValidSmartCasualTrainers(items: ItemLike[]): boolean {
     return /samba|gazelle|leather|minimal|plain|clean|white|stan smith|air force|converse|veja|lifestyle/.test(t)
       || /white|cream|ivory/.test(color);
   });
-  // Trousers/chinos/blazer/dress shirt can anchor smart casual — athletic tops already excluded above
   const hasTailoringAnchor = /\b(blazer|chinos?|trousers?|oxford shirt|dress shirt|khaki|tailored)\b/.test(text);
   const hasGymwear = /\b(joggers?|sweatpants?|leggings?|gym shorts|running vest|track ?pants?|tracksuits?|track suit|sweat bottoms?|singlet|muscle.?tank|running.?tank|gym.?tank|performance.?tank)\b/.test(text)
-    || items.some((item) => isPerformanceAthleticTop(item));
+    || blockSmartCasualUpgrade(items);
   return hasLifestyleTrainer && hasTailoringAnchor && !hasGymwear;
 }
 
@@ -380,7 +379,7 @@ export function analyzeOutfitAesthetic(items: ItemLike[]): OutfitAestheticAnalys
     && !dominantCluster(presentStyles);
 
   const footwearBreaksIntent = detectFootwearBreaksIntent(items, primaryStyle, styleScores);
-  const resolvedPrimaryStyle = coherentAthleisureUniform
+  let resolvedPrimaryStyle: StyleArchetype | null = coherentAthleisureUniform
     ? 'athleisure'
     : coherentStreetwearUniform
       ? 'streetwear'
@@ -388,11 +387,11 @@ export function analyzeOutfitAesthetic(items: ItemLike[]): OutfitAestheticAnalys
       ? 'streetwear'
       : fashionForwardSuitDenim
         ? 'streetwear'
-        : (validSmartCasualTrainers && !items.some((i) => isPerformanceAthleticTop(i)))
+        : (validSmartCasualTrainers && !blockSmartCasualUpgrade(items))
           ? 'smart_casual'
-          : primaryStyle === 'smart_casual' && items.some((i) => isPerformanceAthleticTop(i))
-            ? 'athleisure'
-            : primaryStyle;
+          : primaryStyle;
+
+  resolvedPrimaryStyle = overridePrimaryStyle(resolvedPrimaryStyle, items) as StyleArchetype | null;
 
   return {
     primaryStyle: resolvedPrimaryStyle,

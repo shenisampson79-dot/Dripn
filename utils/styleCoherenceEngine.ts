@@ -14,6 +14,8 @@ import {
   isFashionTrainer,
 } from '@/utils/outfitRegionalContext';
 import { classifyGarment, coherenceLaneFromDb } from '@/utils/garmentTaxonomy';
+import { overrideStyleLane } from '@/utils/taxonomyOverrides';
+import { isAthleticTopOverride, isAthleticBottomOverride } from '@/utils/garmentCategory';
 
 export type StyleLane = 'tailored' | 'casual' | 'athleisure' | 'street';
 
@@ -76,50 +78,52 @@ export function getStyleLane(item: ItemLike, signals?: ItemSignals): StyleLane {
   const t = itemText(item);
   const cat = String(item.category || '').toLowerCase();
 
+  let lane: StyleLane | null = null;
   if (sig.garmentLane && (sig.garmentConfidence || 0) >= 0.7) {
     const mapped = coherenceLaneFromDb(sig.garmentLane);
-    if (mapped) return mapped as StyleLane;
+    if (mapped) lane = mapped as StyleLane;
   }
-  const garment = classifyGarment(item);
-  if (!garment.coarseOnly && garment.lane && garment.confidence >= 0.7) {
-    const mapped = coherenceLaneFromDb(garment.lane);
-    if (mapped) return mapped as StyleLane;
+  if (!lane) {
+    const garment = classifyGarment(item);
+    if (!garment.coarseOnly && garment.lane && garment.confidence >= 0.7) {
+      const mapped = coherenceLaneFromDb(garment.lane);
+      if (mapped) lane = mapped as StyleLane;
+    }
   }
 
-  // Footwear lanes first — shoes often define the street/athleisure pull
-  if (cat === 'shoes') {
-    if (sig.isFormalShoes || sig.isHeels || sig.isDressyBoots) return 'tailored';
-    if (isRunnerFootwear(item) || (sig.isChunkyOrTechTrainer && /running|gym|training|hoka|pegasus|ultraboost/.test(t))) {
-      return 'athleisure';
-    }
-    if (sig.isChunkyOrTechTrainer || /chunky|dad shoe|bulky|platform sneaker/.test(t)) {
-      return 'street';
-    }
-    if (sig.isCasualTrainer || sig.isFashionTrainer || sig.isAthleticShoes) return 'casual';
-    if (sig.isUggs) return 'casual';
-    return 'casual';
+  if (!lane && cat === 'shoes') {
+    if (sig.isFormalShoes || sig.isHeels || sig.isDressyBoots) lane = 'tailored';
+    else if (isRunnerFootwear(item) || (sig.isChunkyOrTechTrainer && /running|gym|training|hoka|pegasus|ultraboost/.test(t))) {
+      lane = 'athleisure';
+    } else if (sig.isChunkyOrTechTrainer || /chunky|dad shoe|bulky|platform sneaker/.test(t)) {
+      lane = 'street';
+    } else if (sig.isCasualTrainer || sig.isFashionTrainer || sig.isAthleticShoes) lane = 'casual';
+    else if (sig.isUggs) lane = 'casual';
+    else lane = 'casual';
   }
 
-  if (sig.isBlazer || sig.isSuitPiece || sig.isTie || sig.isFormalAccessory || sig.isEveningWear || sig.isGown) {
-    return 'tailored';
+  if (!lane) {
+    if (sig.isBlazer || sig.isSuitPiece || sig.isTie || sig.isFormalAccessory || sig.isEveningWear || sig.isGown) {
+      lane = 'tailored';
+    } else if (sig.isDressShirt || sig.isStructuredShirt) lane = 'tailored';
+    else if (sig.isAthleticTop || sig.isAthleticBottom || sig.isJoggers || sig.isLoungeBottom
+      || isAthleticTopOverride(item) || isAthleticBottomOverride(item)) {
+      lane = 'athleisure';
+    } else if (cat === 'activewear_tops' || cat === 'activewear_bottoms' || cat === 'activewear') {
+      lane = 'athleisure';
+    } else if (sig.isHoodie || /cargo|oversized|graphic tee|hype|skate|y2k|baggy|street/.test(t)) {
+      lane = 'street';
+    } else if (cat === 'formal') lane = 'tailored';
+    else if (/chino|trouser|slack|khaki|loafer|oxford|dress pant/.test(t) && !sig.isJoggers) {
+      // Suit-level language only → tailored; plain trousers stay casual
+      if (/suit|tailored trouser|dress trouser|dress pant/.test(t)) lane = 'tailored';
+      else lane = 'casual';
+    } else {
+      lane = 'casual';
+    }
   }
-  if (sig.isDressShirt || sig.isStructuredShirt) return 'tailored';
-  if (sig.isAthleticTop || sig.isAthleticBottom || sig.isJoggers || sig.isLoungeBottom) {
-    return 'athleisure';
-  }
-  if (cat === 'activewear_tops' || cat === 'activewear_bottoms' || cat === 'activewear') {
-    return 'athleisure';
-  }
-  if (sig.isHoodie || /cargo|oversized|graphic tee|hype|skate|y2k|baggy|street/.test(t)) {
-    return 'street';
-  }
-  if (cat === 'formal') return 'tailored';
-  if (/chino|trouser|slack|khaki|loafer|oxford|dress pant/.test(t) && !sig.isJoggers) {
-    // Chinos alone are casual bridge — not full tailored unless paired language is suit-level
-    if (/suit|tailored trouser|dress trouser|dress pant/.test(t)) return 'tailored';
-    return 'casual';
-  }
-  return 'casual';
+
+  return overrideStyleLane(lane, item) as StyleLane;
 }
 
 export function classifyFootwear(item: ItemLike | null | undefined): FootwearClass {

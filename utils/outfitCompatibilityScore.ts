@@ -19,6 +19,12 @@ import {
   classifyItem,
 } from '@/utils/outfitClashRules';
 import {
+  outfitHasAthleticTop,
+  outfitHasAthleticPieces,
+  isAthleticTopOverride,
+} from '@/utils/garmentCategory';
+import { overridePrimaryStyle } from '@/utils/taxonomyOverrides';
+import {
   buildDeterministicItemNotes,
   isMajorConfusedLook,
   sanitizeHintForScore,
@@ -89,7 +95,7 @@ const CASUAL_CATEGORIES = new Set([
 
 /**
  * Hard caps when athleisure / athletic pieces face dressy occasions.
- * Soft intent bias alone (±5) was letting Party/Work/Formal sit at ~90%+.
+ * MUST run LAST after all boosts.
  */
 export function occasionFormalityHardCap(
   occasion: string | null | undefined,
@@ -98,38 +104,37 @@ export function occasionFormalityHardCap(
 ): { cap: number; hint: string } | null {
   if (!occasion || !items?.length) return null;
   const occ = String(occasion).toLowerCase().trim().replace(/\s+/g, '_').replace(/-/g, '_');
-  const signals = items.map((i) => classifyItem(i));
-  const hasAthleticTop = items.some((i) => isAthleticTop(i) || isPerformanceAthleticTop(i));
-  const hasAthleticBottom = signals.some((s) => s.isAthleticBottom || s.isJoggers || s.isLoungeBottom);
-  const athleisurePrimary = aesthetic?.primaryStyle === 'athleisure'
+  const primary = overridePrimaryStyle(aesthetic?.primaryStyle, items);
+  const hasAthleticTop = outfitHasAthleticTop(items)
+    || items.some((i) => isAthleticTop(i) || isPerformanceAthleticTop(i) || isAthleticTopOverride(i));
+  const athleticLook = primary === 'athleisure'
     || aesthetic?.coherentAthleisureUniform
-    || (hasAthleticTop && (hasAthleticBottom || signals.some((s) => s.isAthleticShoes || s.isCasualTrainer)));
-  const minTier = Math.min(...signals.map((s) => s.formalityTier));
-  const isLowFormality = athleisurePrimary || hasAthleticTop || minTier <= 1;
+    || hasAthleticTop
+    || outfitHasAthleticPieces(items);
 
-  if (!isLowFormality) return null;
+  if (!athleticLook && !hasAthleticTop) return null;
 
   if (['wedding', 'formal', 'black_tie', 'gala', 'blacktie'].includes(occ)) {
     return {
-      cap: 22,
+      cap: 20,
       hint: 'Athleisure and performance pieces are too casual for this occasion — dress up the stack',
     };
   }
   if (['work', 'office', 'job_interview', 'interview', 'business', 'power'].includes(occ)) {
     return {
-      cap: 28,
+      cap: 30,
       hint: 'Too casual for work — swap the athletic pieces for tailored or smart-casual ones',
     };
   }
-  if (['party', 'editorial', 'evening_out', 'evening'].includes(occ)) {
+  if (['party', 'editorial', 'evening_out', 'evening'].includes(occ) && hasAthleticTop) {
     return {
-      cap: 38,
+      cap: 35,
       hint: 'Athletic tank / gym lane reads underdressed for party — elevate the top or footwear',
     };
   }
   if (['date_night', 'date', 'first_date', 'dinner'].includes(occ) && hasAthleticTop) {
     return {
-      cap: 42,
+      cap: 40,
       hint: 'Performance tops undercut date-night polish — swap to a smarter top',
     };
   }

@@ -88,13 +88,19 @@ const party = computeLocalOutfitScore(athleisureLook, null, null, null, {
   occasion: 'party',
   source: 'outfit_mix',
 });
-assert(party.score <= 38, `Party athletic tank ≤38, got ${party.score}`);
+assert(party.score <= 35, `Party athletic tank ≤35, got ${party.score}`);
 
 const formal = computeLocalOutfitScore(athleisureLook, null, null, null, {
   occasion: 'formal',
   source: 'outfit_mix',
 });
-assert(formal.score <= 22, `Formal athletic tank ≤22, got ${formal.score}`);
+assert(formal.score <= 20, `Formal athletic tank ≤20, got ${formal.score}`);
+
+const work = computeLocalOutfitScore(athleisureLook, null, null, null, {
+  occasion: 'work',
+  source: 'outfit_mix',
+});
+assert(work.score <= 30, `Work athletic tank ≤30, got ${work.score}`);
 
 const clashLook = [tank, shorts, ankleBoots];
 const clashScore = computeLocalOutfitScore(clashLook, null, null, null, {
