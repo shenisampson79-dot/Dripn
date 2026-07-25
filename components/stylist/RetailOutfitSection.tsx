@@ -1,15 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ProductCard, type RetailProduct } from '@/components/stylist/ProductCard';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { apiService } from '@/services/ApiService';
 import { formatOutfitPieceRoleLabel } from '@/utils/sanitizeStylistUserText';
 import { filterShopItemsForUi } from '@/utils/shopDressCodeFilters';
 import { resolveShopThumb } from '@/utils/shopThumbAssets';
+
+/** Cap AI look-preview wait — never sit on a generating spinner for a minute. */
+const PREVIEW_TIMEOUT_MS = 10_000;
 
 type RetailOutfitPayload = {
   outfit?: Record<string, RetailProduct>;
@@ -24,7 +26,7 @@ type Props = {
   recommendedOutfit?: Record<string, string> | null;
   dressCode?: string | null;
   gender?: string | null;
-  /** When true, request AI full-look preview (cost-metered server-side). */
+  /** When true, try AI full-look preview once in the background. */
   requestPreview?: boolean;
   fallbackHeroSource?: number;
   headline?: string;
@@ -35,8 +37,8 @@ type Props = {
 };
 
 /**
- * SHOP_REQUIRED retail look: optional AI hero + ranked product cards.
- * Never reserves a blank 280px slot — hide hero until a real image loads.
+ * SHOP_REQUIRED retail look: stable editorial/collage hero first.
+ * Optionally upgrades to AI preview once — never remount-thrash or regenerate loops.
  */
 export function RetailOutfitSection({
   retailOutfit,
@@ -49,29 +51,64 @@ export function RetailOutfitSection({
   lead,
   footerNote,
 }: Props) {
-  const theme = useTheme();
-  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
-  const [confirmedPreviewUrl, setConfirmedPreviewUrl] = useState<string | null>(
-    retailOutfit?.previewImageUrl || null,
-  );
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmedPreviewUrl, setConfirmedPreviewUrl] = useState<string | null>(null);
   const [fallbackFailed, setFallbackFailed] = useState(false);
   const [liveProducts, setLiveProducts] = useState<RetailProduct[]>(
     retailOutfit?.products || Object.values(retailOutfit?.outfit || {}),
   );
 
-  useEffect(() => {
-    setLiveProducts(retailOutfit?.products || Object.values(retailOutfit?.outfit || {}));
-    if (retailOutfit?.previewImageUrl) {
-      setPendingPreviewUrl(retailOutfit.previewImageUrl);
-      setConfirmedPreviewUrl(null);
-    }
-  }, [retailOutfit]);
+  /** One-shot guards — refs so effect deps don't re-fire generation. */
+  const previewAttemptedRef = useRef(false);
+  const previewFetchIdRef = useRef(0);
+  const lastOutfitKeyRef = useRef<string>('');
+  const preloadUrlRef = useRef<string | null>(null);
+  const [preloadUrl, setPreloadUrl] = useState<string | null>(null);
+
+  const outfitKey = useMemo(() => {
+    const products = retailOutfit?.products || Object.values(retailOutfit?.outfit || {});
+    const ids = products.map((p) => p?.id || p?.title || '').join('|');
+    return [
+      retailOutfit?.dressCodeKey || dressCode || '',
+      gender || '',
+      ids,
+      retailOutfit?.previewImageUrl || '',
+    ].join('::');
+  }, [retailOutfit, dressCode, gender]);
 
   useEffect(() => {
-    let cancelled = false;
+    setLiveProducts(retailOutfit?.products || Object.values(retailOutfit?.outfit || {}));
+  }, [retailOutfit]);
+
+  // Reset one-shot only when the shop look identity actually changes
+  useEffect(() => {
+    if (outfitKey === lastOutfitKeyRef.current) return;
+    lastOutfitKeyRef.current = outfitKey;
+    previewAttemptedRef.current = false;
+    previewFetchIdRef.current += 1;
+    preloadUrlRef.current = null;
+    setPreloadUrl(null);
+    setConfirmedPreviewUrl(null);
+    setFallbackFailed(false);
+
+    const seeded = retailOutfit?.previewImageUrl;
+    if (seeded && /^https?:\/\//i.test(seeded)) {
+      previewAttemptedRef.current = true;
+      preloadUrlRef.current = seeded;
+      setPreloadUrl(seeded);
+    }
+  }, [outfitKey, retailOutfit?.previewImageUrl]);
+
+  // Optional AI preview: once, background, hard timeout. Never blocks stable hero.
+  useEffect(() => {
+    if (!requestPreview) return undefined;
+    if (previewAttemptedRef.current) return undefined;
+    if (confirmedPreviewUrl) return undefined;
+
     const products = retailOutfit?.products || Object.values(retailOutfit?.outfit || {});
-    if (products.length > 0 && !requestPreview) return undefined;
+    previewAttemptedRef.current = true;
+    const fetchId = ++previewFetchIdRef.current;
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     (async () => {
       try {
@@ -82,13 +119,13 @@ export function RetailOutfitSection({
             gender: gender || undefined,
             generatePreview: false,
           });
-          if (cancelled || !res?.success) return;
-          const next = res.products || Object.values(res.outfit || {});
-          setLiveProducts(next);
+          if (cancelled || fetchId !== previewFetchIdRef.current) return;
+          if (res?.success) {
+            const next = res.products || Object.values(res.outfit || {});
+            setLiveProducts(next);
+          }
         }
 
-        if (!requestPreview || confirmedPreviewUrl || pendingPreviewUrl) return;
-        setPreviewLoading(true);
         const rec = recommendedOutfit || retailOutfit?.outfit
           ? {
             top: recommendedOutfit?.top
@@ -103,31 +140,47 @@ export function RetailOutfitSection({
                 : undefined),
           }
           : undefined;
-        const preview = await apiService.getOutfitPreview({
+
+        const previewPromise = apiService.getOutfitPreview({
           ...rec,
           dressCode: dressCode || retailOutfit?.dressCodeKey || undefined,
           gender: gender || undefined,
         });
-        if (!cancelled && preview?.imageUrl) setPendingPreviewUrl(preview.imageUrl);
+
+        const timed = await Promise.race([
+          previewPromise.then((r) => ({ kind: 'ok' as const, r })),
+          new Promise<{ kind: 'timeout' }>((resolve) => {
+            timeoutId = setTimeout(() => resolve({ kind: 'timeout' }), PREVIEW_TIMEOUT_MS);
+          }),
+        ]);
+
+        if (cancelled || fetchId !== previewFetchIdRef.current) return;
+        if (timed.kind === 'timeout') return;
+
+        const imageUrl = timed.r?.imageUrl;
+        if (
+          imageUrl
+          && /^https?:\/\//i.test(imageUrl)
+          && imageUrl !== confirmedPreviewUrl
+          && imageUrl !== preloadUrlRef.current
+        ) {
+          preloadUrlRef.current = imageUrl;
+          setPreloadUrl(imageUrl);
+        }
       } catch {
-        // keep editorial / collage fallback
+        // Keep editorial / collage silently
       } finally {
-        if (!cancelled) setPreviewLoading(false);
+        if (timeoutId) clearTimeout(timeoutId);
       }
     })();
 
     return () => {
       cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [
-    confirmedPreviewUrl,
-    dressCode,
-    gender,
-    pendingPreviewUrl,
-    recommendedOutfit,
-    requestPreview,
-    retailOutfit,
-  ]);
+    // Intentionally omit confirmedPreviewUrl / preloadUrl — one-shot via ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- outfitKey gates identity
+  }, [outfitKey, requestPreview, dressCode, gender, recommendedOutfit, retailOutfit]);
 
   const roleOrder = ['top', 'bottom', 'shoes', 'outerwear', 'accessory'];
   const cards: Array<{ role: string; product: RetailProduct }> = [];
@@ -145,82 +198,87 @@ export function RetailOutfitSection({
     filterShopItemsForUi([product], { gender, dressCode: dressCode || retailOutfit?.dressCodeKey }).length > 0,
   );
 
-  const collageUris = useMemo(
-    () => safeCards
-      .map(({ product }) => {
-        const local = resolveShopThumb(product);
-        if (typeof local === 'number') return null;
-        return product.image || null;
-      })
-      .filter(Boolean)
-      .slice(0, 4) as string[],
-    [safeCards],
-  );
+  const collageSources = useMemo(() => {
+    const out: Array<{ key: string; source: number | { uri: string } }> = [];
+    for (const { role, product } of safeCards) {
+      if (out.length >= 4) break;
+      const local = resolveShopThumb(product);
+      if (typeof local === 'number') {
+        out.push({ key: `local-${product.id || role}`, source: local });
+      } else if (local && typeof local === 'object' && 'uri' in local && local.uri) {
+        out.push({ key: `uri-${product.id || role}`, source: local });
+      } else if (product.image && /^https?:\/\//i.test(product.image)) {
+        out.push({ key: `img-${product.id || role}`, source: { uri: product.image } });
+      }
+    }
+    return out;
+  }, [safeCards]);
 
   const showPreview = Boolean(confirmedPreviewUrl);
   const showFallback = !showPreview && Boolean(fallbackHeroSource) && !fallbackFailed;
-  const showCollage = !showPreview && !showFallback && collageUris.length >= 2;
-  const showHero = showPreview || showFallback || showCollage || (previewLoading && showFallback);
+  const showCollage = !showPreview && !showFallback && collageSources.length >= 2;
+  const showHero = showPreview || showFallback || showCollage;
 
-  if (!safeCards.length && !showHero && !previewLoading) return null;
+  if (!safeCards.length && !showHero) return null;
 
   return (
     <View style={styles.wrap}>
-      {showHero || (previewLoading && fallbackHeroSource && !fallbackFailed) ? (
+      {showHero ? (
         <View style={styles.heroWrap}>
           {showPreview ? (
             <Image
+              key="hero-ai"
               source={{ uri: confirmedPreviewUrl as string }}
               style={styles.hero}
               resizeMode="cover"
               onError={() => {
+                // Fall back silently — do NOT clear in a way that re-triggers generation
                 setConfirmedPreviewUrl(null);
-                setPendingPreviewUrl(null);
+                preloadUrlRef.current = null;
+                setPreloadUrl(null);
               }}
             />
           ) : showFallback ? (
             <Image
+              key="hero-editorial"
               source={fallbackHeroSource}
               style={styles.hero}
               resizeMode="cover"
               onError={() => setFallbackFailed(true)}
             />
-          ) : showCollage ? (
-            <View style={[styles.hero, styles.collage]}>
-              {collageUris.map((uri) => (
-                <Image key={uri} source={{ uri }} style={styles.collageCell} resizeMode="cover" />
+          ) : (
+            <View key="hero-collage" style={[styles.hero, styles.collage]}>
+              {collageSources.map((cell) => (
+                <Image
+                  key={cell.key}
+                  source={cell.source}
+                  style={styles.collageCell}
+                  resizeMode="cover"
+                />
               ))}
             </View>
-          ) : null}
+          )}
 
-          {/* Confirm remote preview off-screen before swapping — avoids blank white hero */}
-          {pendingPreviewUrl && !confirmedPreviewUrl ? (
+          {/* Off-screen preload — swap only after confirmed decode */}
+          {preloadUrl && preloadUrl !== confirmedPreviewUrl ? (
             <Image
-              source={{ uri: pendingPreviewUrl }}
+              key={`preload-${preloadUrl}`}
+              source={{ uri: preloadUrl }}
               style={styles.preload}
               onLoad={() => {
-                setConfirmedPreviewUrl(pendingPreviewUrl);
-                setPendingPreviewUrl(null);
+                if (preloadUrlRef.current !== preloadUrl) return;
+                if (preloadUrl === confirmedPreviewUrl) return;
+                setConfirmedPreviewUrl(preloadUrl);
+                setPreloadUrl(null);
               }}
-              onError={() => setPendingPreviewUrl(null)}
+              onError={() => {
+                if (preloadUrlRef.current === preloadUrl) {
+                  preloadUrlRef.current = null;
+                }
+                setPreloadUrl(null);
+              }}
             />
           ) : null}
-
-          {previewLoading && (showFallback || showCollage || showPreview) ? (
-            <View style={styles.heroOverlay}>
-              <ActivityIndicator color="#fff" />
-              <ThemedText type="small" style={{ color: '#fff', marginTop: Spacing.xs }}>
-                Generating look…
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
-      ) : previewLoading ? (
-        <View style={[styles.loadingRow, { backgroundColor: theme.backgroundSecondary }]}>
-          <ActivityIndicator color={theme.tabIconDefault} />
-          <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
-            Building look preview…
-          </ThemedText>
         </View>
       ) : null}
 
@@ -274,18 +332,5 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0,
     position: 'absolute',
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: 12,
-    marginBottom: Spacing.md,
   },
 });

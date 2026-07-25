@@ -748,7 +748,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               {Array.isArray(res.nearbyStores) && res.nearbyStores.length > 0 ? (
                 <FallbackShopSection
                   missing={[]}
-                  headline="Shop formalwear"
+                  headline="Curated stores"
                   gender={styleGender}
                   dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
                   nearbyStores={res.nearbyStores}

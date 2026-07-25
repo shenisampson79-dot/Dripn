@@ -5,8 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { ensureShopImage } from '@/utils/ensureShopImage';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
-import { resolveShopThumb } from '@/utils/shopThumbAssets';
 
 export type RetailProduct = {
   id?: string;
@@ -61,7 +61,7 @@ export function ProductCard({ product, roleLabel }: Props) {
   const title = sanitizeStylistUserText(product.title || product.brand || 'Piece');
   const price = resolvePriceDisplay(product);
   const buyUrl = product.url || product.searchUrl;
-  const thumb = resolveShopThumb(product);
+  const thumb = ensureShopImage(product);
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
@@ -71,7 +71,7 @@ export function ProductCard({ product, roleLabel }: Props) {
       accessibilityRole="link"
       accessibilityLabel={`Buy ${title}`}
     >
-      {thumb && !imageFailed ? (
+      {!imageFailed ? (
         <Image
           source={thumb}
           style={styles.image}
@@ -92,17 +92,26 @@ export function ProductCard({ product, roleLabel }: Props) {
         <ThemedText type="body" numberOfLines={2} style={styles.title}>
           {title}
         </ThemedText>
-        {product.brand ? (
+        {product.isSearchLink !== true && product.brand ? (
           <ThemedText type="small" style={{ color: theme.tabIconDefault }} numberOfLines={1}>
             {sanitizeStylistUserText(product.brand)}
             {product.retailer ? ` · ${product.retailer}` : ''}
           </ThemedText>
+        ) : product.retailer ? (
+          <ThemedText type="small" style={{ color: theme.tabIconDefault }} numberOfLines={1}>
+            {sanitizeStylistUserText(product.retailer)}
+          </ThemedText>
         ) : null}
         <View style={styles.row}>
           {price ? (
-            <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-              {price}
-            </ThemedText>
+            <View>
+              <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+                {price}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: 2 }}>
+                Prices may vary at retailer
+              </ThemedText>
+            </View>
           ) : (
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
               See price in store
