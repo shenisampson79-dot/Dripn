@@ -303,8 +303,11 @@ export function useStylistDecision({
     setSelectedWardrobeIds(normalized.input.selectedWardrobeIds || []);
     setContextNotes(normalized.input.text || '');
     setSelectedContexts(normalized.input.selectedContexts || []);
+    // Event details only belong to event-outfit — keep other flows clean
     setEventDetails(
-      normalized.input.eventDetails || { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
+      flowKey === 'event-outfit'
+        ? (normalized.input.eventDetails || { eventType: '', dressCode: '', venue: '', timeOfDay: '' })
+        : { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
     );
     setResponse(normalized.result || null);
     setIsSurpriseMe(Boolean(normalized.isSurpriseMe));
@@ -331,13 +334,49 @@ export function useStylistDecision({
       if (cancelled) return;
 
       if (session) {
-        applySessionToState(session);
+        // Shopping / sanity: stale completed snapshots must not block a fresh start
+        // with an outdated banner (and must not reuse event SHOP_REQUIRED visuals).
+        let nextSession = session;
+        if (
+          (flowKey === 'shopping' || flowKey === 'sanity-check')
+          && session.status === 'stale'
+          && session.result
+        ) {
+          nextSession = decisionSessionManager.markDraftForEdit(session, hash);
+          await decisionSessionManager.persist(nextSession);
+        }
+        // Isolate flows: never carry event details into shopping / sanity sessions
+        if (flowKey !== 'event-outfit') {
+          nextSession = {
+            ...nextSession,
+            input: {
+              ...nextSession.input,
+              eventDetails: { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
+            },
+          };
+        }
+        // Contaminated shopping result: formal SHOP_REQUIRED with no shopping photos
+        // was often an event-outfit payload leaked into the wrong flow UI.
+        if (
+          flowKey === 'shopping'
+          && nextSession.result
+          && (
+            nextSession.result.displayState === 'SHOP_REQUIRED'
+            || nextSession.result.status === 'SHOP_REQUIRED'
+          )
+          && !(nextSession.input.images?.length)
+          && !(nextSession.input.text?.trim())
+        ) {
+          nextSession = decisionSessionManager.markDraftForEdit(nextSession, hash);
+          await decisionSessionManager.persist(nextSession);
+        }
+        applySessionToState(nextSession);
         setBrokenImageCount(brokenImageIndexes.length);
         console.log('[StylistDecision] Session restored', {
-          id: session.id,
-          status: session.status,
+          id: nextSession.id,
+          status: nextSession.status,
           step: loadedStep,
-          hasResult: Boolean(session.result),
+          hasResult: Boolean(nextSession.result),
           brokenImages: brokenImageIndexes.length,
         });
       } else {
@@ -382,7 +421,9 @@ export function useStylistDecision({
             imageDataUris,
             selectedContexts,
             selectedWardrobeIds,
-            eventDetails,
+            eventDetails: flowKey === 'event-outfit'
+              ? eventDetails
+              : { eventType: '', dressCode: '', venue: '', timeOfDay: '' },
             draftSubstep,
           },
         })
@@ -411,6 +452,7 @@ export function useStylistDecision({
     selectedWardrobeIds,
     eventDetails,
     isSurpriseMe,
+    flowKey,
   ]);
 
   const openSubscriptionFromPaywall = () => {

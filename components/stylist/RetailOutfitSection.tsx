@@ -30,6 +30,8 @@ type Props = {
   requestPreview?: boolean;
   fallbackHeroSource?: number;
   headline?: string;
+  /** Label under editorial hero — clarifies photo ≠ product SKUs. */
+  heroCaption?: string | null;
   /** Optional copy block rendered between hero and product cards */
   lead?: ReactNode;
   /** Optional disclosure under product cards (e.g. no commission). */
@@ -38,7 +40,7 @@ type Props = {
 
 /**
  * SHOP_REQUIRED retail look: stable editorial/collage hero first.
- * Optionally upgrades to AI preview once — never remount-thrash or regenerate loops.
+ * Product cards are role suggestions to build the look — not claims of exact SKUs in the hero.
  */
 export function RetailOutfitSection({
   retailOutfit,
@@ -47,7 +49,8 @@ export function RetailOutfitSection({
   gender,
   requestPreview = true,
   fallbackHeroSource,
-  headline = 'Shop this look',
+  headline = 'Pieces to complete this look',
+  heroCaption = null,
   lead,
   footerNote,
 }: Props) {
@@ -282,6 +285,12 @@ export function RetailOutfitSection({
         </View>
       ) : null}
 
+      {heroCaption && showHero ? (
+        <ThemedText type="small" style={styles.heroCaption}>
+          {heroCaption}
+        </ThemedText>
+      ) : null}
+
       {lead}
 
       <ThemedText type="h3" style={styles.headline}>
@@ -310,10 +319,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   heroWrap: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xs,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+  },
+  heroCaption: {
+    marginBottom: Spacing.md,
+    opacity: 0.75,
   },
   hero: {
     width: '100%',

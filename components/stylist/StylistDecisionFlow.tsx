@@ -652,30 +652,36 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       || res.isFallback === true;
     const textReject = isOutfitRejectedByStylist(
       `${res.recommendation || ''} ${res.reasoning || ''} ${res.stylistNote || ''}`,
-    )
-      || res.purchaseDecision?.decision === 'DO_NOT_BUY';
+    );
+    // DO_NOT_BUY / already-owned is a shopping verdict — NOT formal SHOP_REQUIRED.
+    // Mapping it to SHOP_REQUIRED reused the event editorial hero + "You don't own suitable pieces".
+    const serverShopRequired = res.displayState === 'SHOP_REQUIRED'
+      || res.status === 'SHOP_REQUIRED'
+      || res.type === 'shop_required'
+      || Boolean(res.retailOutfit?.products?.length || res.retailOutfit?.outfit);
+    const wardrobeGapShop = !res.alreadyOwnedOverride
+      && res.purchaseDecision?.decision !== 'DO_NOT_BUY'
+      && (
+        res.status === 'wardrobe_gap'
+        || res.status === 'no_outfit_possible'
+        || res.status === 'refused'
+        || res.status === 'clash_blocked'
+        || res.status === 'no_wardrobe'
+        || (res.success === false && textReject)
+        || (textReject && decisionType === 'event-outfit')
+      );
     const displayState: 'APPROVED' | 'REJECTED_WARDROBE_FIX' | 'SHOP_REQUIRED' =
       res.displayState === 'APPROVED'
       || res.displayState === 'REJECTED_WARDROBE_FIX'
       || res.displayState === 'SHOP_REQUIRED'
         ? res.displayState
-        : (res.status === 'SHOP_REQUIRED' || res.type === 'shop_required')
+        : serverShopRequired || wardrobeGapShop
           ? 'SHOP_REQUIRED'
           : isFallback
             ? 'REJECTED_WARDROBE_FIX'
-            : (
-              res.status === 'wardrobe_gap'
-              || res.status === 'no_outfit_possible'
-              || res.status === 'refused'
-              || res.status === 'clash_blocked'
-              || res.status === 'no_wardrobe'
-              || res.success === false
-              || textReject
-            )
-              ? 'SHOP_REQUIRED'
-              : 'APPROVED';
+            : 'APPROVED';
 
-    // State 3: SHOP_REQUIRED — hide user outfit; inspiration + retail
+    // State 3: SHOP_REQUIRED — hide user outfit; inspiration + retail role suggestions
     if (displayState === 'SHOP_REQUIRED') {
       const gapCopy = sanitizeStylistUserText(
         res.recommendation || res.stylistNote || res.reasoning
@@ -706,6 +712,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         : flow.user?.gender === 'woman'
           ? 'female'
           : (res.gender || flow.user?.gender || null);
+      const dressLabel = res.retailOutfit?.dressCodeLabel
+        || res.retailOutfit?.dressCodeKey
+        || null;
+      const shopHeadline = dressLabel
+        ? (t('stylistFlow.shopSuggestedForDressCode') || 'Suggested pieces for {code}')
+          .replace('{code}', String(dressLabel).replace(/_/g, ' '))
+        : (t('stylistFlow.shopPiecesToComplete') || 'Pieces to complete this look');
 
       return (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -727,7 +740,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 gender={styleGender}
                 requestPreview
                 fallbackHeroSource={shopHero}
-                headline="Shop this look"
+                headline={shopHeadline}
+                heroCaption={
+                  t('stylistFlow.shopHeroInspiration')
+                  || 'Inspiration — not the exact products below'
+                }
                 lead={
                   <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
                     <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>

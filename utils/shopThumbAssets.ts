@@ -24,6 +24,9 @@ const REJECTED_REMOTE = [
   'photo-1473966968600-fa801b869a1a',
   'photo-1596755094514-f87e34085b2c',
   'photo-1579664531470-ac357f8f8e2b',
+  // Shoe-led crop previously used as trousers
+  '2989593',
+  'pexels-photo-2989593',
 ];
 
 export function resolveShopThumb(product: {
