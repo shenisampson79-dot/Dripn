@@ -680,7 +680,10 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       const gapCopy = sanitizeStylistUserText(
         res.recommendation || res.stylistNote || res.reasoning
         || "You don't currently own suitable pieces for this occasion.",
-      );
+      )
+        .replace(/\s*[—–-]\s*or save this look once you have( the pieces| them)?\.?/gi, '')
+        .replace(/\s*or save this look once you have( the pieces| them)\.?/gi, '')
+        .trim();
       const recommended = res.recommendedOutfit || null;
       const shopMissing = Array.isArray(res.missing) && res.missing.length
         ? res.missing
@@ -692,6 +695,17 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       const inspirationRows = recommended
         ? Object.entries(recommended).filter(([, v]) => !!v)
         : [];
+      const isWoman = flow.user?.gender === 'woman'
+        || res.gender === 'female'
+        || res.gender === 'woman';
+      const shopHero = isWoman
+        ? require('../../assets/images/editorial-fullbody/female_work_formal_fullbody.png')
+        : require('../../assets/images/editorial-fullbody/male_date_evening_fullbody.png');
+      const styleGender = flow.user?.gender === 'man'
+        ? 'male'
+        : flow.user?.gender === 'woman'
+          ? 'female'
+          : (res.gender || flow.user?.gender || null);
 
       return (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -710,15 +724,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 retailOutfit={res.retailOutfit}
                 recommendedOutfit={recommended}
                 dressCode={res.retailOutfit?.dressCodeKey || undefined}
-                gender={
-                  flow.user?.gender === 'man'
-                    ? 'male'
-                    : flow.user?.gender === 'woman'
-                      ? 'female'
-                      : (res.gender || flow.user?.gender || null)
-                }
+                gender={styleGender}
                 requestPreview
-                fallbackHeroSource={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+                fallbackHeroSource={shopHero}
                 headline="Shop this look"
                 lead={
                   <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
@@ -730,18 +738,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                     </ThemedText>
                   </View>
                 }
+                footerNote={(
+                  <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: Spacing.xs, marginBottom: Spacing.sm }}>
+                    {t('shoppable.noCommissionDisclosure')
+                      || 'Dripn does not earn commission on purchases via Buy links.'}
+                  </ThemedText>
+                )}
               />
               {Array.isArray(res.nearbyStores) && res.nearbyStores.length > 0 ? (
                 <FallbackShopSection
                   missing={[]}
                   headline="Shop formalwear"
-                  gender={
-                    flow.user?.gender === 'man'
-                      ? 'male'
-                      : flow.user?.gender === 'woman'
-                        ? 'female'
-                        : (res.gender || flow.user?.gender || null)
-                  }
+                  gender={styleGender}
                   dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
                   nearbyStores={res.nearbyStores}
                 />
@@ -750,7 +758,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           ) : (
             <>
               <Image
-                source={require('../../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png')}
+                source={shopHero}
                 style={styles.responseHero}
                 resizeMode="cover"
               />
@@ -778,13 +786,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 <FallbackShopSection
                   missing={shopMissing}
                   headline="Shop the missing pieces"
-                  gender={
-                    flow.user?.gender === 'man'
-                      ? 'male'
-                      : flow.user?.gender === 'woman'
-                        ? 'female'
-                        : (res.gender || flow.user?.gender || null)
-                  }
+                  gender={styleGender}
                   dressCode={res.retailOutfit?.dressCodeKey || 'formal'}
                   nearbyStores={res.nearbyStores || null}
                 />

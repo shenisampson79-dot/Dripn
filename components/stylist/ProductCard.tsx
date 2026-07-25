@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
@@ -6,15 +6,20 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { resolveShopThumb } from '@/utils/shopThumbAssets';
 
 export type RetailProduct = {
   id?: string;
   title?: string;
   brand?: string;
-  price?: number;
-  currency?: string;
-  priceFormatted?: string;
+  price?: number | null;
+  currency?: string | null;
+  priceFormatted?: string | null;
+  priceLabel?: string | null;
+  isSearchLink?: boolean;
   image?: string;
+  imageKey?: string | null;
+  garmentType?: string | null;
   url?: string | null;
   searchUrl?: string | null;
   retailerId?: string;
@@ -37,14 +42,27 @@ async function openUrl(url?: string | null) {
   }
 }
 
+/**
+ * Search/category Buy links are not SKUs — never show a fabricated shelf price.
+ */
+function resolvePriceDisplay(product: RetailProduct): string | null {
+  if (product.isSearchLink) return null;
+  if (product.priceLabel) return product.priceLabel;
+  if (product.priceFormatted) return product.priceFormatted;
+  if (typeof product.price === 'number' && Number.isFinite(product.price)) {
+    const sym = product.currency === 'EUR' ? '€' : product.currency === 'USD' ? '$' : '£';
+    return `${sym}${product.price}`;
+  }
+  return null;
+}
+
 export function ProductCard({ product, roleLabel }: Props) {
   const theme = useTheme();
   const title = sanitizeStylistUserText(product.title || product.brand || 'Piece');
-  const price = product.priceFormatted
-    || (typeof product.price === 'number'
-      ? `${product.currency === 'EUR' ? '€' : product.currency === 'USD' ? '$' : '£'}${product.price}`
-      : null);
+  const price = resolvePriceDisplay(product);
   const buyUrl = product.url || product.searchUrl;
+  const thumb = resolveShopThumb(product);
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <Pressable
@@ -53,8 +71,13 @@ export function ProductCard({ product, roleLabel }: Props) {
       accessibilityRole="link"
       accessibilityLabel={`Buy ${title}`}
     >
-      {product.image ? (
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+      {thumb && !imageFailed ? (
+        <Image
+          source={thumb}
+          style={styles.image}
+          resizeMode="cover"
+          onError={() => setImageFailed(true)}
+        />
       ) : (
         <View style={[styles.image, styles.imageFallback, { backgroundColor: theme.border }]}>
           <Feather name="shopping-bag" size={22} color={LuxuryColors.gold} />
@@ -80,7 +103,11 @@ export function ProductCard({ product, roleLabel }: Props) {
             <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
               {price}
             </ThemedText>
-          ) : null}
+          ) : (
+            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              See price in store
+            </ThemedText>
+          )}
           <View style={styles.buyChip}>
             <Feather name="external-link" size={12} color={LuxuryColors.gold} />
             <ThemedText type="small" style={{ color: LuxuryColors.gold }}>

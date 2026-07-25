@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 
@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { apiService } from '@/services/ApiService';
 import { formatOutfitPieceRoleLabel } from '@/utils/sanitizeStylistUserText';
 import { filterShopItemsForUi } from '@/utils/shopDressCodeFilters';
+import { resolveShopThumb } from '@/utils/shopThumbAssets';
 
 type RetailOutfitPayload = {
   outfit?: Record<string, RetailProduct>;
@@ -29,10 +30,13 @@ type Props = {
   headline?: string;
   /** Optional copy block rendered between hero and product cards */
   lead?: ReactNode;
+  /** Optional disclosure under product cards (e.g. no commission). */
+  footerNote?: ReactNode;
 };
 
 /**
  * SHOP_REQUIRED retail look: optional AI hero + ranked product cards.
+ * Never reserves a blank 280px slot — hide hero until a real image loads.
  */
 export function RetailOutfitSection({
   retailOutfit,
@@ -43,17 +47,25 @@ export function RetailOutfitSection({
   fallbackHeroSource,
   headline = 'Shop this look',
   lead,
+  footerNote,
 }: Props) {
   const theme = useTheme();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(retailOutfit?.previewImageUrl || null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [confirmedPreviewUrl, setConfirmedPreviewUrl] = useState<string | null>(
+    retailOutfit?.previewImageUrl || null,
+  );
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
   const [liveProducts, setLiveProducts] = useState<RetailProduct[]>(
     retailOutfit?.products || Object.values(retailOutfit?.outfit || {}),
   );
 
   useEffect(() => {
     setLiveProducts(retailOutfit?.products || Object.values(retailOutfit?.outfit || {}));
-    if (retailOutfit?.previewImageUrl) setPreviewUrl(retailOutfit.previewImageUrl);
+    if (retailOutfit?.previewImageUrl) {
+      setPendingPreviewUrl(retailOutfit.previewImageUrl);
+      setConfirmedPreviewUrl(null);
+    }
   }, [retailOutfit]);
 
   useEffect(() => {
@@ -75,7 +87,7 @@ export function RetailOutfitSection({
           setLiveProducts(next);
         }
 
-        if (!requestPreview || previewUrl) return;
+        if (!requestPreview || confirmedPreviewUrl || pendingPreviewUrl) return;
         setPreviewLoading(true);
         const rec = recommendedOutfit || retailOutfit?.outfit
           ? {
@@ -96,9 +108,9 @@ export function RetailOutfitSection({
           dressCode: dressCode || retailOutfit?.dressCodeKey || undefined,
           gender: gender || undefined,
         });
-        if (!cancelled && preview?.imageUrl) setPreviewUrl(preview.imageUrl);
+        if (!cancelled && preview?.imageUrl) setPendingPreviewUrl(preview.imageUrl);
       } catch {
-        // keep editorial fallback
+        // keep editorial / collage fallback
       } finally {
         if (!cancelled) setPreviewLoading(false);
       }
@@ -107,7 +119,15 @@ export function RetailOutfitSection({
     return () => {
       cancelled = true;
     };
-  }, [dressCode, gender, previewUrl, recommendedOutfit, requestPreview, retailOutfit]);
+  }, [
+    confirmedPreviewUrl,
+    dressCode,
+    gender,
+    pendingPreviewUrl,
+    recommendedOutfit,
+    requestPreview,
+    retailOutfit,
+  ]);
 
   const roleOrder = ['top', 'bottom', 'shoes', 'outerwear', 'accessory'];
   const cards: Array<{ role: string; product: RetailProduct }> = [];
@@ -125,27 +145,84 @@ export function RetailOutfitSection({
     filterShopItemsForUi([product], { gender, dressCode: dressCode || retailOutfit?.dressCodeKey }).length > 0,
   );
 
-  if (!safeCards.length && !previewUrl && !previewLoading) return null;
+  const collageUris = useMemo(
+    () => safeCards
+      .map(({ product }) => {
+        const local = resolveShopThumb(product);
+        if (typeof local === 'number') return null;
+        return product.image || null;
+      })
+      .filter(Boolean)
+      .slice(0, 4) as string[],
+    [safeCards],
+  );
+
+  const showPreview = Boolean(confirmedPreviewUrl);
+  const showFallback = !showPreview && Boolean(fallbackHeroSource) && !fallbackFailed;
+  const showCollage = !showPreview && !showFallback && collageUris.length >= 2;
+  const showHero = showPreview || showFallback || showCollage || (previewLoading && showFallback);
+
+  if (!safeCards.length && !showHero && !previewLoading) return null;
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.heroWrap}>
-        {previewUrl ? (
-          <Image source={{ uri: previewUrl }} style={styles.hero} resizeMode="cover" />
-        ) : fallbackHeroSource ? (
-          <Image source={fallbackHeroSource} style={styles.hero} resizeMode="cover" />
-        ) : (
-          <View style={[styles.hero, { backgroundColor: theme.backgroundSecondary }]} />
-        )}
-        {previewLoading ? (
-          <View style={styles.heroOverlay}>
-            <ActivityIndicator color="#fff" />
-            <ThemedText type="small" style={{ color: '#fff', marginTop: Spacing.xs }}>
-              Generating look…
-            </ThemedText>
-          </View>
-        ) : null}
-      </View>
+      {showHero || (previewLoading && fallbackHeroSource && !fallbackFailed) ? (
+        <View style={styles.heroWrap}>
+          {showPreview ? (
+            <Image
+              source={{ uri: confirmedPreviewUrl as string }}
+              style={styles.hero}
+              resizeMode="cover"
+              onError={() => {
+                setConfirmedPreviewUrl(null);
+                setPendingPreviewUrl(null);
+              }}
+            />
+          ) : showFallback ? (
+            <Image
+              source={fallbackHeroSource}
+              style={styles.hero}
+              resizeMode="cover"
+              onError={() => setFallbackFailed(true)}
+            />
+          ) : showCollage ? (
+            <View style={[styles.hero, styles.collage]}>
+              {collageUris.map((uri) => (
+                <Image key={uri} source={{ uri }} style={styles.collageCell} resizeMode="cover" />
+              ))}
+            </View>
+          ) : null}
+
+          {/* Confirm remote preview off-screen before swapping — avoids blank white hero */}
+          {pendingPreviewUrl && !confirmedPreviewUrl ? (
+            <Image
+              source={{ uri: pendingPreviewUrl }}
+              style={styles.preload}
+              onLoad={() => {
+                setConfirmedPreviewUrl(pendingPreviewUrl);
+                setPendingPreviewUrl(null);
+              }}
+              onError={() => setPendingPreviewUrl(null)}
+            />
+          ) : null}
+
+          {previewLoading && (showFallback || showCollage || showPreview) ? (
+            <View style={styles.heroOverlay}>
+              <ActivityIndicator color="#fff" />
+              <ThemedText type="small" style={{ color: '#fff', marginTop: Spacing.xs }}>
+                Generating look…
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      ) : previewLoading ? (
+        <View style={[styles.loadingRow, { backgroundColor: theme.backgroundSecondary }]}>
+          <ActivityIndicator color={theme.tabIconDefault} />
+          <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
+            Building look preview…
+          </ThemedText>
+        </View>
+      ) : null}
 
       {lead}
 
@@ -160,6 +237,8 @@ export function RetailOutfitSection({
           roleLabel={formatOutfitPieceRoleLabel(role)}
         />
       ))}
+
+      {footerNote}
     </View>
   );
 }
@@ -182,10 +261,31 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 280,
   },
+  collage: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  collageCell: {
+    width: '50%',
+    height: 140,
+  },
+  preload: {
+    width: 1,
+    height: 1,
+    opacity: 0,
+    position: 'absolute',
+  },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: 12,
+    marginBottom: Spacing.md,
   },
 });

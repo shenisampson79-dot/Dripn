@@ -1001,6 +1001,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     sizes: 'Sizes:',
     shopNow: 'Shop Now',
     affiliateDisclosure: 'Dripn may earn a commission when you shop through this link.',
+    noCommissionDisclosure: 'Dripn does not earn commission on purchases via Buy links.',
     cannotOpenLink: 'Cannot open link',
     errorOpeningProduct: 'Error opening product',
   },
@@ -1329,6 +1330,10 @@ const DEFAULT_TRANSLATIONS: Translations = {
       g4: {
         answer: 'Yes! When you first open the app, you will see helpful tips. You can also retake the Style Quiz anytime from Settings to update your preferences.',
         question: 'Is there a tutorial available?',
+      },
+      g5: {
+        answer: 'No. Dripn does not earn commission on purchases you make through Buy links. Prices and availability are set by the retailer.',
+        question: 'Does Dripn earn commission from Buy links?',
       },
       p1: {
         answer: 'We collect information you provide (profile, wardrobe photos, preferences) and usage data to improve your experience. We never sell your personal data. See our Privacy Policy for full details.',

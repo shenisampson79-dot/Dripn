@@ -173,10 +173,12 @@ export function FallbackShopSection({
       })}
 
       {stores.length > 0 ? (
-        <View style={{ marginTop: Spacing.sm }}>
-          <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-            Shop formalwear
-          </ThemedText>
+        <View style={{ marginTop: items.length ? Spacing.sm : 0 }}>
+          {items.length > 0 ? (
+            <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+              Nearby & curated
+            </ThemedText>
+          ) : null}
           <View style={styles.linkRow}>
             {stores.slice(0, 4).map((s) => (
               <Pressable

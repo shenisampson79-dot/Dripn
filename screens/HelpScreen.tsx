@@ -52,6 +52,7 @@ function getFaqData(t: (key: string) => string): FAQCategory[] {
         { id: 'g2', question: t('help.faq.g2.question'), answer: t('help.faq.g2.answer') },
         { id: 'g3', question: t('help.faq.g3.question'), answer: t('help.faq.g3.answer') },
         { id: 'g4', question: t('help.faq.g4.question'), answer: t('help.faq.g4.answer') },
+        { id: 'g5', question: t('help.faq.g5.question'), answer: t('help.faq.g5.answer') },
       ],
     },
     {
