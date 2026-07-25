@@ -255,6 +255,8 @@ export interface DecisionResponse {
     winner?: number;
     rejects?: Array<{ optionIndex: number; reason?: string; label?: string }>;
     oneLiner?: string;
+    headline?: string;
+    text?: string;
   };
   oneLiner?: string;
   wardrobeCoverage?: Record<string, unknown> | null;

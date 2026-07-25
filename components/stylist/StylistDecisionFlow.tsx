@@ -958,134 +958,19 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-          {(() => {
-            const isShoppingCompare = decisionType === 'shopping' && uploaded.length > 1;
-            const isCompareSkipOwned =
-              res.purchaseDecision?.decision === 'COMPARE_SKIP_OWNED'
-              || res.ownershipDecision?.decision === 'COMPARE_SKIP_OWNED'
-              || (isShoppingCompare && Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0
-                && res.purchaseDecision?.decision !== 'DO_NOT_BUY');
-            const shoppingCopy = sanitizeStylistUserText(
-              res.recommendation || res.decision || res.message || '',
-            );
-            const oneLiner = sanitizeStylistUserText(res.oneLiner || '');
-            // Prefer single winner-first block; never stack the same prose three times.
-            const primaryCopy = shoppingCopy
-              || (oneLiner
-                ? `Go for Option ${(res.recommendedIndex ?? 0) + 1} — ${oneLiner}`
-                : '');
+          {decisionType === 'shopping' && uploaded.length > 1 ? (
+            <ThemedText type="body" style={styles.responseBody}>
+              {sanitizeStylistUserText(
+                res.shoppingDecision?.text
+                || res.recommendation
+                || res.decision
+                || res.message
+                || '',
+              )}
+            </ThemedText>
+          ) : null}
 
-            if (isShoppingCompare && primaryCopy) {
-              return (
-                <>
-                  <ThemedText type="body" style={styles.responseBody}>
-                    {primaryCopy}
-                  </ThemedText>
-
-                  {isCompareSkipOwned && Array.isArray(res.alreadyOwned) && res.alreadyOwned.length > 0 ? (
-                    <View style={{ marginTop: Spacing.md }}>
-                      <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                        {t('wardrobe.skipOwnedOptions') || 'Some options match your wardrobe'}
-                      </ThemedText>
-                      {res.alreadyOwned.map((entry) => {
-                        const shopUri = uploaded[entry.optionIndex] || null;
-                        const match = entry.comparison?.wardrobeItem || entry.matches?.[0];
-                        const wardrobeUri = match?.imageUrl || null;
-                        if (!shopUri && !wardrobeUri) return null;
-                        return (
-                          <View
-                            key={`owned-compare-${entry.optionIndex}`}
-                            style={{
-                              flexDirection: 'row',
-                              gap: Spacing.sm,
-                              marginBottom: Spacing.sm,
-                              alignItems: 'stretch',
-                            }}
-                          >
-                            {shopUri ? (
-                              <View style={{ flex: 1 }}>
-                                <Image
-                                  source={{ uri: shopUri }}
-                                  style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
-                                  resizeMode="cover"
-                                />
-                                <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
-                                  {Number.isInteger(entry.optionIndex)
-                                    ? `Option ${entry.optionIndex + 1}`
-                                    : 'Considering'}
-                                </ThemedText>
-                              </View>
-                            ) : null}
-                            {wardrobeUri ? (
-                              <View style={{ flex: 1 }}>
-                                <Image
-                                  source={{ uri: String(wardrobeUri) }}
-                                  style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
-                                  resizeMode="cover"
-                                />
-                                <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
-                                  {match?.name || 'In your wardrobe'}
-                                  {entry.confidencePercent != null ? ` · ${entry.confidencePercent}%` : ''}
-                                </ThemedText>
-                              </View>
-                            ) : null}
-                          </View>
-                        );
-                      })}
-                      <View style={{ gap: Spacing.sm }}>
-                        <Pressable
-                          onPress={() => {
-                            const ownedIds = res.alreadyOwned!
-                              .flatMap((entry) => (entry.matches || []).map((m) => m.id))
-                              .filter((id): id is string | number => id != null)
-                              .map(String);
-                            const firstId = ownedIds[0];
-                            if (firstId) {
-                              try {
-                                navigation.navigate?.('WardrobeItemDetail', { itemId: firstId });
-                                return;
-                              } catch { /* fall through */ }
-                            }
-                            try {
-                              navigation.navigate?.('OutfitCalendar', {
-                                seedWardrobeItemIds: ownedIds,
-                                fromAlreadyOwned: true,
-                              });
-                            } catch {
-                              navigation.navigate?.('Wardrobe');
-                            }
-                          }}
-                          style={[styles.secondaryButton, { borderColor: LuxuryColors.gold }]}
-                        >
-                          <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                            {t('wardrobe.useWhatIHave') || 'Use what I have'}
-                          </ThemedText>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => {
-                            void flow.continueInChat({
-                              seedMessage:
-                                t('wardrobe.showAlternativesSeed')
-                                || 'I already own something similar to what I was considering. Show me different styles / alternatives instead of buying a near-duplicate.',
-                            });
-                          }}
-                          style={styles.secondaryButton}
-                        >
-                          <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                            {t('wardrobe.showAlternatives') || 'Show alternatives'}
-                          </ThemedText>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : null}
-                </>
-              );
-            }
-
-            return null;
-          })()}
-
-          {/* Single-option shopping ownership (full DO_NOT_BUY) */}
+          {/* Single-option shopping ownership (full DO_NOT_BUY) — never used for multi-compare */}
           {decisionType === 'shopping'
             && uploaded.length <= 1
             && Array.isArray(res.alreadyOwned)

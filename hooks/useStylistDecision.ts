@@ -922,13 +922,21 @@ export function useStylistDecision({
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
         recommendation: sanitizeStylistUserText(
-          enforced.payload.advice
+          (mappedType === 'shopping'
+            ? (apiResult.shoppingDecision?.text
+              || apiResult.purchaseDecision?.reason
+              || apiResult.recommendation
+              || apiResult.decision)
+            : null)
+          || enforced.payload.advice
           || apiResult.decision
           || apiResult.recommendation
           || apiResult.response
           || '',
         ),
-        reasoning: sanitizeStylistUserText(apiResult.reasoning || ''),
+        reasoning: mappedType === 'shopping' && imageUris.length > 1
+          ? undefined
+          : sanitizeStylistUserText(apiResult.reasoning || ''),
         confidenceNote: sanitizeStylistUserText(
           apiResult.confidenceNote
           || apiResult.decisionConfidence?.note
@@ -1033,6 +1041,28 @@ export function useStylistDecision({
           ? Boolean(apiResult.alreadyOwnedOverride)
           : false,
       };
+
+      // Multi shopping: one output source only — winner line + compact skips
+      if (
+        mappedType === 'shopping'
+        && Array.isArray(imageUris)
+        && imageUris.length > 1
+      ) {
+        const single = sanitizeStylistUserText(
+          result.shoppingDecision?.text
+          || result.recommendation
+          || result.decision
+          || '',
+        );
+        if (single) {
+          result.decision = single;
+          result.recommendation = single;
+          result.message = single;
+          result.reasoning = undefined;
+          result.stylistNote = undefined;
+          result.outfitSummary = undefined;
+        }
+      }
 
       await persistResult(result, imageUris);
       const hash = await resolveContextHash();
