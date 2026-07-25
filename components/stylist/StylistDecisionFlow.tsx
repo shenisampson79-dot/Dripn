@@ -818,11 +818,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           <View style={styles.responseActions}>
             {renderPrimaryButton('Save this look', () => flow.completeAndClose())}
-            <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
-              <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                {t('stylistFlow.editAndRerun')}
-              </ThemedText>
-            </Pressable>
           </View>
         </Animated.View>
       );
@@ -1100,9 +1095,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                         void flow.continueInChat();
                       })
                     : null}
-                  <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
+                  <Pressable onPress={() => flow.completeAndClose()} style={styles.secondaryButton}>
                     <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                      {t('stylistFlow.editAndRerun')}
+                      {t('stylistFlow.done')}
                     </ThemedText>
                   </Pressable>
                 </>
@@ -1125,16 +1120,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : (
                   renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())
                 )}
-                <Pressable onPress={flow.editAndRerun} style={styles.secondaryButton}>
-                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                    {t('stylistFlow.editAndRerun')}
-                  </ThemedText>
-                </Pressable>
-                <Pressable onPress={flow.resetFlow} style={styles.secondaryButton}>
-                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                    {t('stylistFlow.startOver')}
-                  </ThemedText>
-                </Pressable>
               </>
             );
           })()}

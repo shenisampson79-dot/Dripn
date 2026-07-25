@@ -1040,7 +1040,7 @@ export function useStylistDecision({
     }
   };
 
-  /** Done: navigate only — never mutate/clear the completed session. */
+  /** Done: clear completed session (fresh decision next open), then leave. */
   const completeAndClose = () => {
     // Taste learning: accepting an approved look reinforces preferences
     try {
@@ -1072,6 +1072,8 @@ export function useStylistDecision({
     } catch {
       // non-blocking
     }
+    // Done is permission to reset — clear result so reopening this decision type starts fresh
+    resetFlow();
     navigation.goBack();
   };
 
