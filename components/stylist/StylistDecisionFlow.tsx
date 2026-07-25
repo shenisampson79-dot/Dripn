@@ -818,6 +818,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           <View style={styles.responseActions}>
             {renderPrimaryButton('Save this look', () => flow.completeAndClose())}
+            <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
+              <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                {t('stylistFlow.editAndRerun')}
+              </ThemedText>
+            </Pressable>
+            <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+              <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                {t('stylistFlow.startOver')}
+              </ThemedText>
+            </Pressable>
           </View>
         </Animated.View>
       );
@@ -1100,6 +1110,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                       {t('stylistFlow.done')}
                     </ThemedText>
                   </Pressable>
+                  <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                      {t('stylistFlow.editAndRerun')}
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                      {t('stylistFlow.startOver')}
+                    </ThemedText>
+                  </Pressable>
                 </>
               );
             }
@@ -1120,6 +1140,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : (
                   renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())
                 )}
+                <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                    {t('stylistFlow.editAndRerun')}
+                  </ThemedText>
+                </Pressable>
+                <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                    {t('stylistFlow.startOver')}
+                  </ThemedText>
+                </Pressable>
               </>
             );
           })()}

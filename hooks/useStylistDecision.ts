@@ -1040,7 +1040,7 @@ export function useStylistDecision({
     }
   };
 
-  /** Done: clear completed session (fresh decision next open), then leave. */
+  /** Done: complete and leave — keep completed session (Start over clears). */
   const completeAndClose = () => {
     // Taste learning: accepting an approved look reinforces preferences
     try {
@@ -1072,8 +1072,6 @@ export function useStylistDecision({
     } catch {
       // non-blocking
     }
-    // Done is permission to reset — clear result so reopening this decision type starts fresh
-    resetFlow();
     navigation.goBack();
   };
 
@@ -1109,29 +1107,36 @@ export function useStylistDecision({
 
   /** Unlock completed/stale snapshot for a new run with same photos/notes. */
   const editAndRerun = async () => {
-    if (!user?.id) return;
     const hash = await resolveContextHash();
-    const base =
-      sessionRef.current
-      || decisionSessionManager.createSession(user.id, flowKey, hash);
-    const draft = decisionSessionManager.markDraftForEdit(
-      {
-        ...base,
-        input: {
-          text: contextNotes,
-          images,
-          imageDataUris,
-          selectedContexts,
-          selectedWardrobeIds,
-          eventDetails,
-          draftSubstep: flowKey === 'event-outfit' ? 'event' : 'input',
+    if (user?.id) {
+      const base =
+        sessionRef.current
+        || decisionSessionManager.createSession(user.id, flowKey, hash);
+      const draft = decisionSessionManager.markDraftForEdit(
+        {
+          ...base,
+          input: {
+            text: contextNotes,
+            images,
+            imageDataUris,
+            selectedContexts,
+            selectedWardrobeIds,
+            eventDetails,
+            draftSubstep: flowKey === 'event-outfit' ? 'event' : 'input',
+          },
         },
-      },
-      hash,
-    );
-    applySessionToState(draft);
+        hash,
+      );
+      applySessionToState(draft);
+      setBrokenImageCount(0);
+      await decisionSessionManager.persist(draft);
+      return;
+    }
+    // Offline / no user: reopen edit without clearing inputs
+    setResponse(null);
+    setSessionStatus('draft');
     setBrokenImageCount(0);
-    await decisionSessionManager.persist(draft);
+    setDraftStep(flowKey === 'event-outfit' ? 'event' : 'input');
   };
 
   /** Re-run decision engine for a stale completed session. */
