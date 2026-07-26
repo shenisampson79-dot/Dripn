@@ -103,6 +103,21 @@ assert(workPools.tops.some((i) => i.id === 'tank'), 'selection lock re-injects t
 assert(workPools.shoes.some((i) => i.id === 'sneakers'), 'selected sneakers stay visible');
 assert(!workPools.bottoms.some((i) => i.id === 'cargo'), 'work prunes unselected cargo from bottoms');
 
+// Formal trousers belong in the bottoms reel (not only bottoms category)
+const formalTrousers = item({
+  id: 'formal-trouser',
+  category: 'formal',
+  name: 'Charcoal Dress Trousers',
+  color: 'charcoal',
+});
+const formalPools = buildMixReelPools([trousers, formalTrousers, oxford], 'work', {
+  bottoms: 'trousers',
+  shoes: 'oxford',
+});
+assert(formalPools.bottoms.some((i) => i.id === 'formal-trouser'), 'formal trousers in bottoms reel');
+assert(formalPools.bottoms.some((i) => i.id === 'trousers'), 'regular trousers still in bottoms reel');
+assert(formalPools.shoes.some((i) => i.id === 'oxford'), 'oxford in shoes reel');
+
 const workScore = computeLocalOutfitScore(look, null, null, null, { occasion: 'work', source: 'outfit_mix' });
 assert(workScore.score > 0, `work score must be non-zero with pieces, got ${workScore.score}`);
 assert(workScore.score < casualScore.score, `work score ${workScore.score} must be < casual ${casualScore.score}`);
