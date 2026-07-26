@@ -2314,6 +2314,8 @@ class ApiService {
       occasions?: string[] | string;
       subcategory?: string;
     }>;
+    /** Abort when user changes category / photo mid-flight */
+    signal?: AbortSignal;
   }) {
     const images = (data.images || []).filter(
       (img) => typeof img === 'string' && img.length > 100,
@@ -2349,6 +2351,7 @@ class ApiService {
       }
     }
 
+    const { signal, ...bodyFields } = data;
     return this.request<{
       success: boolean;
       decision: string;
@@ -2362,76 +2365,47 @@ class ApiService {
         name: string;
         wardrobeItemId?: number;
         stylingNote?: string;
-        imageUrl?: string | null;
-        category?: string | null;
-        color?: string | null;
-        brand?: string | null;
-        type?: 'owned' | 'recommended' | string;
-        reason?: string;
-        formality?: string;
-      }> | null;
-      outfitSummary?: string | null;
-      why?: string[] | null;
-      scores?: Record<string, unknown> | null;
-      surpriseMe?: boolean;
-      stylistId?: string;
-      decisionType?: string;
-      error?: string;
-      status?: 'ok' | 'wardrobe_gap' | 'no_outfit_possible' | 'refused' | 'fallback_outfit' | 'system_error' | string;
-      type?: 'fallback_outfit' | string;
-      isFallback?: boolean;
-      stylistNote?: string;
-      stylistResponse?: string;
+        imageUrl?: string;
+        type?: string;
+      }>;
       message?: string;
-      suggestions?: string[];
-      missingPieces?: string[];
-      market?: string;
-      retailRegion?: string;
-      retailCountry?: string;
-      retailCountrySource?: string;
-      missing?: Array<{
-        role?: string;
-        label?: string;
-        name?: string;
-        reason?: string;
-        products?: Array<{ retailerId?: string; retailer?: string; url?: string; searchUrl?: string }>;
-        retail?: Record<string, unknown>;
-      }>;
+      outfitId?: string;
+      boundOutfitId?: string;
+      changeNote?: string | null;
+      displayMeta?: { changeNote?: string | null };
+      outfitSummary?: string;
       outfitImageUrl?: string;
-      recommendedIndex?: number | null;
-      selectedOptionIndex?: number | null;
-      optionLabels?: Array<{
-        optionIndex: number;
-        label?: string;
-        reason?: string;
-      }>;
-      shoppingDecision?: {
-        winner?: number;
-        rejects?: Array<{ optionIndex: number; reason?: string; label?: string }>;
-        oneLiner?: string;
-      };
+      recommendedIndex?: number;
+      alreadyOwned?: unknown;
+      alreadyOwnedMatches?: unknown;
+      ownershipDecision?: unknown;
+      purchaseDecision?: unknown;
+      optionLabels?: unknown;
+      shoppingDecision?: unknown;
       oneLiner?: string;
-      alreadyOwned?: Array<Record<string, unknown>>;
-      purchaseDecision?: Record<string, unknown>;
-      ownershipDecision?: Record<string, unknown>;
-      unifiedScore?: number | null;
+      wardrobeCoverage?: unknown;
+      alreadyOwnedOverride?: boolean;
+      status?: string;
+      type?: string;
+      isFallback?: boolean;
+      displayState?: string;
+      recommendedOutfit?: unknown;
+      retailers?: unknown;
+      nearbyStores?: unknown;
+      nearbyStoresSource?: string | null;
+      retailOutfit?: unknown;
+      stylistNote?: string;
+      missing?: unknown;
+      suggestions?: unknown;
+      missingPieces?: unknown;
+      unifiedScore?: unknown;
       confidenceNote?: string;
-      decisionConfidence?: {
-        band?: string;
-        label?: string;
-        note?: string;
-        source?: string;
-      };
+      decisionConfidence?: unknown;
       deterministic?: boolean;
       aiEnhanced?: boolean;
       partial?: boolean;
       verdict?: string;
-      evaluateResult?: {
-        suitable?: boolean;
-        issues?: string[];
-        suggestions?: string[];
-        shopping?: null;
-      };
+      evaluateResult?: { suitable?: boolean };
       buyPlan?: Array<{ role?: string; subtype?: string; note?: string }>;
       stylistConfidence?: {
         score?: number;
@@ -2442,8 +2416,9 @@ class ApiService {
     }>('/api/decision/check/resilient', {
       method: 'POST',
       timeout: 90000,
+      signal,
       body: JSON.stringify({
-        ...data,
+        ...bodyFields,
         images,
         storeCountry: storeCountry || undefined,
         appStoreCountry: storeCountry || undefined,

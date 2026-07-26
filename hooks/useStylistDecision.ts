@@ -186,6 +186,19 @@ export function useStylistDecision({
   });
   const [accessStatus, setAccessStatus] = useState<DecisionAccessStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  /** Monotonic submit generation — only the latest in-flight request may commit UI. */
+  const submitGenerationRef = useRef(0);
+  const submitAbortRef = useRef<AbortController | null>(null);
+
+  // Abort in-flight stylist call when category changes or screen unmounts
+  useEffect(() => {
+    submitAbortRef.current?.abort();
+    submitGenerationRef.current += 1;
+  }, [decisionType]);
+
+  useEffect(() => () => {
+    submitAbortRef.current?.abort();
+  }, []);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
@@ -789,6 +802,13 @@ export function useStylistDecision({
       return;
     }
 
+    // Abort any prior in-flight request (category change / new photo / rapid re-submit)
+    submitAbortRef.current?.abort();
+    const abortController = new AbortController();
+    submitAbortRef.current = abortController;
+    const generation = ++submitGenerationRef.current;
+    const isStale = () => generation !== submitGenerationRef.current;
+
     setIsLoading(true);
     setIsSurpriseMe(surpriseMe);
 
@@ -799,6 +819,7 @@ export function useStylistDecision({
       if (!surpriseMe && imageUris.length > 0) {
         base64Images = await resolveSubmitImages(imageUris);
       }
+      if (isStale() || abortController.signal.aborted) return;
 
       if (!surpriseMe && imageUris.length > 0 && base64Images.length === 0) {
         throw new Error('Photos were selected but could not be attached. Please re-add them and try again.');
@@ -843,6 +864,7 @@ export function useStylistDecision({
           // Local allocator is best-effort
         }
       }
+      if (isStale() || abortController.signal.aborted) return;
 
       // Manual multi-category picks → show the full proposed look, not a single "winner" piece.
       const selectionPieces =
@@ -875,6 +897,7 @@ export function useStylistDecision({
         wardrobeSelected: selectedWardrobeIds.length,
         wardrobeSelectionMode,
         wardrobeAvailable: wardrobeItems.length,
+        submitGeneration: generation,
       });
 
       const apiResult = await apiService.submitDecisionCheck({
@@ -903,7 +926,14 @@ export function useStylistDecision({
           occasions: item.occasions,
           subcategory: item.subcategory,
         })),
+        signal: abortController.signal,
       });
+
+      // Stale / aborted — newer category or photo already owns the UI
+      if (isStale() || abortController.signal.aborted) {
+        console.log('[StylistDecision] Discarding stale response', { generation, current: submitGenerationRef.current });
+        return;
+      }
 
       // Evaluate-outfit: pieces of one look — never require a multi-compare winner.
       const contractOptionCount =
@@ -920,7 +950,7 @@ export function useStylistDecision({
 
       const result: DecisionResponse = {
         id: `response-${Date.now()}`,
-        requestId: `request-${Date.now()}`,
+        requestId: `request-${Date.now()}-g${generation}`,
         recommendation: sanitizeStylistUserText(
           (mappedType === 'shopping'
             ? (apiResult.message
@@ -1080,7 +1110,14 @@ export function useStylistDecision({
         }
       }
 
+      if (isStale() || abortController.signal.aborted) {
+        console.log('[StylistDecision] Discarding stale response before commit', { generation });
+        return;
+      }
+
       await persistResult(result, imageUris);
+      if (isStale() || abortController.signal.aborted) return;
+
       const hash = await resolveContextHash();
       const base =
         sessionRef.current
@@ -1101,12 +1138,22 @@ export function useStylistDecision({
           await saveLastDecisionContinuity(user.id, continuity);
         }
       }
+      if (isStale() || abortController.signal.aborted) return;
       setResponse(result);
       setStep('response');
     } catch (error) {
+      if (isStale() || abortController.signal.aborted || (error as Error)?.name === 'AbortError') {
+        console.log('[StylistDecision] Ignoring aborted/stale submit error', {
+          generation,
+          name: (error as Error)?.name,
+        });
+        return;
+      }
       await handleSubmitError(error as never);
     } finally {
-      setIsLoading(false);
+      if (generation === submitGenerationRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -1130,6 +1177,12 @@ export function useStylistDecision({
     });
 
     if (result.canceled) return;
+
+    // New photo while a decision is in flight → stale; abort prior request
+    if (isLoading) {
+      submitAbortRef.current?.abort();
+      submitGenerationRef.current += 1;
+    }
 
     try {
       await appendStabilizedImages(result.assets);
@@ -1161,6 +1214,12 @@ export function useStylistDecision({
 
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8, base64: true });
     if (result.canceled) return;
+
+    // New photo while a decision is in flight → stale; abort prior request
+    if (isLoading) {
+      submitAbortRef.current?.abort();
+      submitGenerationRef.current += 1;
+    }
 
     try {
       await appendStabilizedImages(result.assets);
