@@ -69,7 +69,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
-import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, CommonActions, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { HeaderHeightContext } from '@react-navigation/elements';
@@ -1433,6 +1433,9 @@ export default function AIStylistScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   const isNearBottomRef = useRef(true);
+  /** Prefer sticking to latest while screen is focused (WhatsApp-style). */
+  const stickToLatestRef = useRef(true);
+  const messagesLenRef = useRef(0);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
 
@@ -1522,17 +1525,37 @@ export default function AIStylistScreen() {
   const isRecordingActiveRef = useRef(false);
   const isMountedRef = useRef(true);
 
-  const scrollChatToEnd = useCallback((force = false) => {
-    if (!force && !isNearBottomRef.current) return;
-    if (force) isNearBottomRef.current = true;
-    const run = () => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+  const scrollChatToEnd = useCallback((force = false, animated = true) => {
+    if (!force && !isNearBottomRef.current && !stickToLatestRef.current) return;
+    if (force) {
+      isNearBottomRef.current = true;
+      stickToLatestRef.current = true;
+    }
+    const run = (anim: boolean) => {
+      const list = flatListRef.current;
+      if (!list) return;
+      // Prefer index align for tall image bubbles; fall back to scrollToEnd.
+      const lastIndex = messagesLenRef.current - 1;
+      if (lastIndex >= 0) {
+        try {
+          list.scrollToIndex({
+            index: lastIndex,
+            animated: anim,
+            viewPosition: 1,
+          });
+          return;
+        } catch {
+          /* index may not be measured yet */
+        }
+      }
+      list.scrollToEnd({ animated: anim });
     };
-    // Layout + keyboard animation often settle after the first frame — retry so the
-    // latest bubble isn't left tucked under the input/keyboard (WhatsApp-style).
-    requestAnimationFrame(run);
-    setTimeout(run, 80);
-    setTimeout(run, 280);
+    // Instant first pass, then retries as images / keyboard / sticky input settle.
+    requestAnimationFrame(() => run(false));
+    setTimeout(() => run(animated), 60);
+    setTimeout(() => run(false), 180);
+    setTimeout(() => run(false), 420);
+    setTimeout(() => run(false), 900);
   }, []);
 
   const onChatScroll = useCallback((event: {
@@ -1543,9 +1566,26 @@ export default function AIStylistScreen() {
     };
   }) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    isNearBottomRef.current =
-      contentOffset.y + layoutMeasurement.height >= contentSize.height - 120;
+    const nearBottom =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - 140;
+    isNearBottomRef.current = nearBottom;
+    stickToLatestRef.current = nearBottom;
   }, []);
+
+  // Re-entering Stylist Chat always lands on the latest message (like WhatsApp).
+  useFocusEffect(
+    useCallback(() => {
+      stickToLatestRef.current = true;
+      isNearBottomRef.current = true;
+      scrollChatToEnd(true, false);
+      const timers = [120, 350, 700, 1200].map((ms) =>
+        setTimeout(() => scrollChatToEnd(true, false), ms),
+      );
+      return () => {
+        timers.forEach(clearTimeout);
+      };
+    }, [scrollChatToEnd]),
+  );
 
   // Tab bar hides while keyboard is open — reserve keyboard height instead so
   // the last messages stay above the sticky input (same idea as WhatsApp).
@@ -2555,14 +2595,26 @@ export default function AIStylistScreen() {
     }
   }, [route.params?.initialPrompt, route.params?.decisionContinuity]);
 
+  // Keep length ref in sync for scrollToIndex (avoids stale closure in scroll helper).
+  useEffect(() => {
+    messagesLenRef.current = messages.length;
+    if (messages.length > 0 && stickToLatestRef.current) {
+      scrollChatToEnd(true, false);
+    }
+  }, [messages.length, scrollChatToEnd]);
+
   // When the keyboard rises, re-stick to the latest message so it isn't covered.
   useEffect(() => {
     if (!isKeyboardVisible || chatMode !== 'text') return;
-    scrollChatToEnd(true);
+    stickToLatestRef.current = true;
+    scrollChatToEnd(true, false);
   }, [isKeyboardVisible, keyboardHeightPx, chatMode, scrollChatToEnd]);
 
   useEffect(() => {
-    if (isTyping) scrollChatToEnd(true);
+    if (isTyping) {
+      stickToLatestRef.current = true;
+      scrollChatToEnd(true, false);
+    }
   }, [isTyping, scrollChatToEnd]);
 
   useEffect(() => {
@@ -3929,6 +3981,11 @@ export default function AIStylistScreen() {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
+            onFocus={() => {
+              stickToLatestRef.current = true;
+              isNearBottomRef.current = true;
+              scrollChatToEnd(true, false);
+            }}
             placeholder={
               limitReached
                 ? (t('aiStylist.dailyLimitPlaceholder') || 'Daily limit reached - upgrade for more')
@@ -4042,10 +4099,30 @@ export default function AIStylistScreen() {
           keyboardDismissMode="interactive"
           onScroll={onChatScroll}
           scrollEventThrottle={16}
+          onScrollToIndexFailed={(info) => {
+            // Tall image bubbles often aren't measured yet — jump to end, then retry.
+            flatListRef.current?.scrollToEnd({ animated: false });
+            setTimeout(() => {
+              try {
+                flatListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: false,
+                  viewPosition: 1,
+                });
+              } catch {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }, 120);
+          }}
           onContentSizeChange={() => {
             // Keep WhatsApp-style stickiness while reading the live reply; don't yank
             // someone who scrolled up into history.
-            if (isNearBottomRef.current || isTyping) scrollChatToEnd(true);
+            if (isNearBottomRef.current || stickToLatestRef.current || isTyping) {
+              scrollChatToEnd(true, false);
+            }
+          }}
+          onLayout={() => {
+            if (stickToLatestRef.current) scrollChatToEnd(true, false);
           }}
           style={styles.flatList}
         />
