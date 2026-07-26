@@ -28,10 +28,14 @@ type StylistHubScreenProps = {
 
 const GRID_GAP = Spacing.md;
 const GRID_ROWS = 4;
-/** Same gap under Today's outfit / Style Tools header as attachment 1 */
+/** Gap under Today's outfit / Style Tools header before the first tile row */
 const GRID_TOP_GAP = Spacing.md;
-/** Little breathing room above the tab bar */
-const BOTTOM_BREATHING = Spacing.md;
+/**
+ * Space below the last tile row, above the tab bar.
+ * Slightly larger than GRID_TOP_GAP so it reads like the visual gap under
+ * the Today's outfit chip (chip sits in the header row above the grid gap).
+ */
+const BOTTOM_BREATHING = Spacing.xl;
 
 type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool' | 'jewel';
 
