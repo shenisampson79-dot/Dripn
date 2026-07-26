@@ -37,7 +37,33 @@ const GRID_TOP_GAP = Spacing.md;
  */
 const BOTTOM_BREATHING = Spacing.xl;
 
-type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool' | 'jewel';
+type GradientKey =
+  | 'primary'
+  | 'secondary'
+  | 'accent'
+  | 'warm'
+  | 'cool'
+  | 'jewel'
+  | 'sunset'
+  | 'ocean';
+
+/**
+ * One unique colour per Style Tools tile (stable association).
+ * Launch and full grids never show colliding ids together.
+ */
+const TILE_GRADIENT_BY_ID: Record<string, GradientKey> = {
+  'scan-wardrobe': 'secondary',
+  'live-stylist': 'cool',
+  'choosing-what-to-buy': 'warm',
+  'quick-sanity-check': 'accent',
+  'ai-stylist': 'primary',
+  'outfit-for-event': 'jewel',
+  'fashion-blog': 'sunset',
+  'style-rules': 'ocean',
+  'outfit-calendar': 'ocean',
+  'weather-outfit': 'warm',
+  'colour-insights': 'accent',
+};
 
 interface StylistFeature {
   id: string;
@@ -45,7 +71,6 @@ interface StylistFeature {
   description: string;
   icon: keyof typeof Feather.glyphMap;
   screen?: keyof UserStylistStackParamList;
-  gradientKey: GradientKey;
   category: "stylist" | "wardrobe" | "tools";
   premium?: boolean;
 }
@@ -57,7 +82,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.personalStylistDesc') || "Chat, photos & wardrobe advice",
     icon: "message-circle",
     screen: "AIStylist",
-    gradientKey: "primary",
     category: "stylist",
   },
   {
@@ -66,7 +90,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: "Scan a few pieces → up to 3 looks",
     icon: "camera",
     screen: "ScanWardrobe",
-    gradientKey: "jewel",
     category: "wardrobe",
   },
   {
@@ -75,7 +98,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: "Camera tips on your outfit",
     icon: "aperture",
     screen: "LiveStylist",
-    gradientKey: "accent",
     category: "stylist",
   },
   {
@@ -84,7 +106,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.outfitCalendarDesc') || "Plan your looks ahead",
     icon: "calendar",
     screen: "OutfitCalendar",
-    gradientKey: "cool",
     category: "wardrobe",
   },
   {
@@ -93,7 +114,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.weatherOutfitsDesc') || "Dress for the forecast",
     icon: "cloud",
     screen: "WeatherOutfit",
-    gradientKey: "secondary",
     category: "wardrobe",
   },
   {
@@ -102,7 +122,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.blogDesc') || "Fashion tips & guides",
     icon: "book-open",
     screen: "FashionBlog",
-    gradientKey: "warm",
     category: "tools",
   },
   {
@@ -111,7 +130,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.styleRulesDesc') || "Your personal guidelines",
     icon: "list",
     screen: "StyleRules",
-    gradientKey: "primary",
     category: "tools",
   },
   {
@@ -120,7 +138,6 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
     description: t('stylistHub.colourInsightsDesc') || "Discover your palette",
     icon: "droplet",
     screen: "ColourInsights",
-    gradientKey: "accent",
     category: "tools",
   },
 ];
@@ -132,7 +149,6 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
     description: t('stylistHub.choosingWhatToBuyDesc') || "Help me decide between options",
     icon: "shopping-bag",
     screen: "ChoosingWhatToBuy",
-    gradientKey: "warm",
     category: "stylist",
   },
   {
@@ -141,7 +157,6 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
     description: t('stylistHub.outfitForEventDesc') || "Something specific coming up",
     icon: "calendar",
     screen: "EventOutfit",
-    gradientKey: "jewel",
     category: "stylist",
   },
   {
@@ -150,7 +165,6 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
     description: t('stylistHub.quickSanityCheckDesc') || "Just need a second pair of eyes",
     icon: "check-circle",
     screen: "SanityCheck",
-    gradientKey: "accent",
     category: "stylist",
   },
 ];
@@ -169,6 +183,18 @@ const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
     ]
   : ["scan-wardrobe", "ai-stylist", "live-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
 
+/** Unique gradient slot order matching FIXED_TILES_ORDER (launch). */
+const UNIQUE_GRADIENT_ORDER: GradientKey[] = [
+  'secondary',
+  'cool',
+  'warm',
+  'accent',
+  'primary',
+  'jewel',
+  'sunset',
+  'ocean',
+];
+
 const getGradientColors = (key: GradientKey, palette: any): readonly [string, string] => {
   const gradientMap: Record<GradientKey, readonly [string, string]> = {
     primary: palette.gradientPrimary,
@@ -177,9 +203,17 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
     warm: palette.gradientWarm,
     cool: palette.gradientCool,
     jewel: palette.gradientJewel ?? palette.gradientAccent,
+    sunset: palette.gradientSunset ?? palette.gradientWarm,
+    ocean: palette.gradientOcean ?? palette.gradientCool,
   };
   return gradientMap[key];
 };
+
+function resolveTileGradient(featureId: string, index: number): GradientKey {
+  return TILE_GRADIENT_BY_ID[featureId]
+    || UNIQUE_GRADIENT_ORDER[index % UNIQUE_GRADIENT_ORDER.length]
+    || 'primary';
+}
 
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { limits } = useSubscription();
@@ -246,7 +280,9 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     }
   };
 
-  const renderFeatureTile = (feature: StylistFeature) => (
+  const renderFeatureTile = (feature: StylistFeature, index: number) => {
+    const gradientKey = resolveTileGradient(feature.id, index);
+    return (
     <View key={feature.id} style={styles.tileWrapper}>
       <Pressable
         onPress={() => handleFeaturePress(feature)}
@@ -256,7 +292,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         ]}
       >
         <LinearGradient
-          colors={getGradientColors(feature.gradientKey, palette)}
+          colors={getGradientColors(gradientKey, palette)}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.tileGradient}
@@ -285,12 +321,17 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         </LinearGradient>
       </Pressable>
     </View>
-  );
+    );
+  };
 
   const featureRows = React.useMemo(() => {
-    const rows: StylistFeature[][] = [];
+    const rows: { feature: StylistFeature; index: number }[][] = [];
     for (let i = 0; i < features.length; i += 2) {
-      rows.push(features.slice(i, i + 2));
+      const pair = features.slice(i, i + 2).map((feature, offset) => ({
+        feature,
+        index: i + offset,
+      }));
+      rows.push(pair);
     }
     // Pad to 4 rows so flex fill stays even if a tile is missing
     while (rows.length < GRID_ROWS) rows.push([]);
@@ -333,7 +374,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           <View style={[styles.featuresGrid, { marginTop: GRID_TOP_GAP }]}>
             {featureRows.map((row, rowIndex) => (
               <View key={`row-${rowIndex}`} style={styles.featureRow}>
-                {row.map((feature) => renderFeatureTile(feature))}
+                {row.map(({ feature, index }) => renderFeatureTile(feature, index))}
                 {row.length === 1 ? <View style={styles.tileWrapper} /> : null}
               </View>
             ))}

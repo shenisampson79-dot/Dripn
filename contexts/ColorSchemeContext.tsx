@@ -18,14 +18,16 @@ const MinimalistPalette = {
   magenta: '#9C8674',
   sapphire: '#7A6A5A',
   gradientPrimary: ['#C9A87C', '#A88B5C'] as readonly [string, string],
-  gradientSecondary: ['#D4C4B0', '#C4B4A0'] as readonly [string, string],
-  gradientAccent: ['#B8A898', '#A89888'] as readonly [string, string],
-  gradientWarm: ['#C4A484', '#B49474'] as readonly [string, string],
-  gradientCool: ['#A69279', '#968269'] as readonly [string, string],
+  gradientSecondary: ['#D4C4B0', '#B8A890'] as readonly [string, string],
+  gradientAccent: ['#A89888', '#8B7D6B'] as readonly [string, string],
+  gradientWarm: ['#C4A484', '#A69279'] as readonly [string, string],
+  gradientCool: ['#968269', '#7A6A5A'] as readonly [string, string],
   gradientJewel: ['#B8A898', '#9C8B7A'] as readonly [string, string],
+  gradientSunset: ['#D4C4B0', '#C9A87C'] as readonly [string, string],
+  gradientOcean: ['#8B7D6B', '#6B5B4F'] as readonly [string, string],
 };
 
-// Colorful palette - vibrant, bold gradient colors (purple/pink/cyan/green cards)
+// Colorful palette - vibrant, bold gradient colors (each hub tile gets a unique pair)
 const ColorfulPalette = {
   gold: '#FFD700',
   deepGold: '#FFA500',
@@ -42,9 +44,11 @@ const ColorfulPalette = {
   gradientPrimary: ['#667eea', '#764ba2'] as readonly [string, string],
   gradientSecondary: ['#11998e', '#38ef7d'] as readonly [string, string],
   gradientAccent: ['#f093fb', '#f5576c'] as readonly [string, string],
-  gradientWarm: ['#ff6b6b', '#ee5a5a'] as readonly [string, string],
+  gradientWarm: ['#ff6b6b', '#ee5a24'] as readonly [string, string],
   gradientCool: ['#4facfe', '#00f2fe'] as readonly [string, string],
-  gradientJewel: ['#9B7EBD', '#6B4E8D'] as readonly [string, string],
+  gradientJewel: ['#c471f5', '#fa71cd'] as readonly [string, string],
+  gradientSunset: ['#f6d365', '#fda085'] as readonly [string, string],
+  gradientOcean: ['#2193b0', '#6dd5ed'] as readonly [string, string],
 };
 
 export type SchemePalette = typeof ColorfulPalette;
