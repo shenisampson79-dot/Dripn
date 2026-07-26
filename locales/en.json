@@ -24,6 +24,7 @@
   "aiStylist.outfitFromWardrobe": "Outfit from your wardrobe",
   "aiStylist.visualizingOutfit": "Visualizing your outfit...",
   "aiStylist.wardrobeMatchCaption": "Styled from your wardrobe · {score}% match",
+  "aiStylist.wardrobePartialMatchCaption": "Partly from your wardrobe · {score}% — you may need a piece",
   "aiStylist.photoPermissionRuby": "Please allow access to your photos to send images to Ruby",
   "aiStylist.promptCasualDay": "Casual Day",
   "aiStylist.promptCasualWeekend": "Casual Weekend",

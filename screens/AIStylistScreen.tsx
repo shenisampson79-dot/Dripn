@@ -2917,10 +2917,20 @@ export default function AIStylistScreen() {
       if (!legacyVisual) return null;
       return renderWardrobeVisual({ ...message, wardrobeVisual: legacyVisual }, label);
     }
-    const displayLabel = visual.source === 'wardrobe' && typeof visual.matchScore === 'number'
-      ? (t('aiStylist.wardrobeMatchCaption') || 'Styled from your wardrobe · {score}% match')
-          .replace('{score}', String(Math.round(visual.matchScore)))
-      : label;
+
+    // Full wardrobe looks need no "100% match" badge — that is assumed.
+    // Only surface a match line when coverage is partial (user may need to buy).
+    const score = typeof visual.matchScore === 'number' ? Math.round(visual.matchScore) : null;
+    const isFullWardrobeLook = visual.source === 'wardrobe' && (score == null || score >= 95);
+    let displayLabel: string | null = null;
+    if (visual.source === 'wardrobe' && score != null && score < 95) {
+      displayLabel = (
+        t('aiStylist.wardrobePartialMatchCaption')
+        || 'Partly from your wardrobe · {score}% — you may need a piece'
+      ).replace('{score}', String(score));
+    } else if (!isFullWardrobeLook && label) {
+      displayLabel = label;
+    }
 
     if (visual.layout === 'highlight' && visual.pieces?.length === 1) {
       const piece = visual.pieces[0];
@@ -2963,7 +2973,9 @@ export default function AIStylistScreen() {
         <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
           <View style={styles.wardrobeVisualBlock}>
             <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-            <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+            {displayLabel ? (
+              <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+            ) : null}
             <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
               <WardrobeItemImage
                 item={displayItem}
@@ -2986,7 +2998,9 @@ export default function AIStylistScreen() {
       <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
         <View style={styles.wardrobeVisualBlock}>
           <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+          {displayLabel ? (
+            <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
+          ) : null}
           <SafeOutfitPieces
             pieces={safePieces}
             wardrobeItems={wardrobeItems}
