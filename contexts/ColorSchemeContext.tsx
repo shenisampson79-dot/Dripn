@@ -46,7 +46,7 @@ const ColorfulPalette = {
   gradientAccent: ['#f093fb', '#f5576c'] as readonly [string, string],
   gradientWarm: ['#ff6b6b', '#ee5a24'] as readonly [string, string],
   gradientCool: ['#4facfe', '#00f2fe'] as readonly [string, string],
-  gradientJewel: ['#c471f5', '#fa71cd'] as readonly [string, string],
+  gradientJewel: ['#b2f2bb', '#69db7c'] as readonly [string, string],
   gradientSunset: ['#f6d365', '#fda085'] as readonly [string, string],
   gradientOcean: ['#2193b0', '#6dd5ed'] as readonly [string, string],
 };
