@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import { StyleSheet, View, Pressable, useWindowDimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 
-import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -25,7 +26,12 @@ type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
 };
 
-const GRID_GAP = Spacing.md;
+const GRID_GAP = Spacing.sm;
+const GRID_ROWS = 4;
+/** Approx height of hub title + Style Tools heading block */
+const HUB_CHROME_HEIGHT = 108;
+/** Breathing room above the tab bar */
+const BOTTOM_BREATHING = Spacing.md;
 
 type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool' | 'jewel';
 
@@ -175,6 +181,29 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const { limits } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
   const { t } = useTranslations();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const tabBarHeightContext = React.useContext(BottomTabBarHeightContext);
+  const tabBarHeight =
+    typeof tabBarHeightContext === "number" && tabBarHeightContext > 0
+      ? tabBarHeightContext
+      : 56 + insets.bottom;
+
+  // Size tiles so all 8 fit above the tab bar with a little breathing room.
+  const tileHeight = React.useMemo(() => {
+    const verticalPad = Spacing.lg * 2;
+    const available =
+      windowHeight
+      - insets.top
+      - tabBarHeight
+      - HUB_CHROME_HEIGHT
+      - verticalPad
+      - BOTTOM_BREATHING;
+    const gaps = GRID_GAP * (GRID_ROWS - 1);
+    const raw = Math.floor((available - gaps) / GRID_ROWS);
+    // Keep usable but compact on both small and large phones.
+    return Math.max(88, Math.min(118, raw));
+  }, [windowHeight, insets.top, tabBarHeight]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -231,7 +260,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   };
 
   const renderFeatureTile = (feature: StylistFeature) => (
-    <View key={feature.id} style={styles.tileWrapper}>
+    <View key={feature.id} style={[styles.tileWrapper, { height: tileHeight }]}>
       <Pressable
         onPress={() => handleFeaturePress(feature)}
         style={({ pressed }) => [
@@ -246,16 +275,16 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           style={styles.tileGradient}
         >
           <View style={styles.iconContainer}>
-            <Feather name={feature.icon} size={36} color="#FFFFFF" />
+            <Feather name={feature.icon} size={22} color="#FFFFFF" />
           </View>
           <View style={styles.tileContent}>
-            <ThemedText type="body" style={styles.tileTitle}>
+            <ThemedText type="body" style={styles.tileTitle} numberOfLines={2}>
               {feature.title}
               {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
                 ? ` · ${t('subscription.plan.personalStylist.name') || 'Personal Stylist'}`
                 : ''}
             </ThemedText>
-            <ThemedText type="caption" style={styles.tileDescription}>
+            <ThemedText type="caption" style={styles.tileDescription} numberOfLines={2}>
               {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
                 ? (t('stylistHub.outfitCalendarLockedDesc') || 'Plan outfits ahead — Personal Stylist')
                 : feature.description}
@@ -263,7 +292,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           </View>
           {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar ? (
             <View style={styles.premiumBadge}>
-              <Feather name="lock" size={14} color="#FFFFFF" />
+              <Feather name="lock" size={12} color="#FFFFFF" />
             </View>
           ) : null}
         </LinearGradient>
@@ -282,7 +311,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
+      <View style={[styles.screenBody, { paddingTop: insets.top + Spacing.sm, paddingBottom: tabBarHeight + BOTTOM_BREATHING }]}>
         <View style={styles.headerContent}>
           <View style={{ width: 40 }} />
           <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('stylistHub.screenTitle') || 'Stylist'}</ThemedText>
@@ -292,11 +321,11 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         <View style={styles.contentSection}>
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
-              <View>
+              <View style={{ flex: 1, paddingRight: Spacing.sm }}>
                 <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
                   {t('stylistHub.styleToolsTitle') || 'Style Tools'}
                 </ThemedText>
-                <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]}>
+                <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]} numberOfLines={1}>
                   {t('stylistHub.styleToolsSubtitle') || 'Your personal fashion assistant'}
                 </ThemedText>
               </View>
@@ -307,7 +336,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             {features.map((feature) => renderFeatureTile(feature))}
           </View>
         </View>
-      </ScreenScrollView>
+      </View>
 
       {/* Overlay — does not affect Style Tools layout */}
       <TodaysOutfitCard
@@ -318,26 +347,23 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: Spacing.xl,
-    gap: Spacing.lg,
-  },
-  headerGradient: {
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
+  screenBody: {
+    flex: 1,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   contentSection: {
-    padding: Spacing.xl,
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+    flex: 1,
   },
   headerSection: {
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   headerRow: {
     flexDirection: "row",
@@ -345,11 +371,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   title: {
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
+    fontSize: 22,
   },
   subtitle: {
     fontSize: Typography.small.fontSize,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   featuresGrid: {
     flexDirection: "row",
@@ -358,43 +385,42 @@ const styles = StyleSheet.create({
   },
   tileWrapper: {
     width: "48%",
-    aspectRatio: 1,
   },
   featureTile: {
     flex: 1,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     overflow: "hidden",
   },
   tileGradient: {
     flex: 1,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     justifyContent: "space-between",
   },
   iconContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "flex-start",
-    paddingTop: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
   tileContent: {
-    gap: 2,
+    gap: 1,
   },
   tileTitle: {
     color: "#FFFFFF",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: 13,
+    lineHeight: 16,
   },
   tileDescription: {
     color: "rgba(255,255,255,0.75)",
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 14,
   },
   premiumBadge: {
     position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "rgba(0,0,0,0.25)",
     alignItems: "center",
     justifyContent: "center",
