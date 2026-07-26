@@ -42,6 +42,28 @@ const notifySrc = readFileSync(
 );
 assert.ok(notifySrc.includes('SchedulableTriggerInputTypes.DATE'), 'must schedule DATE trigger');
 assert.ok(notifySrc.includes('Europe/London') || notifySrc.includes('TODAYS_OUTFIT_TIMEZONE'));
+assert.ok(
+  notifySrc.includes('installTodaysOutfitNotificationOpenHandler'),
+  'must install app-root open handler for cold-start taps',
+);
+assert.ok(notifySrc.includes('peekTodaysOutfitOpenPending'), 'must peek open-pending for race-safe loads');
+
+const cardSrc = readFileSync(
+  resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
+  'utf8',
+);
+assert.ok(cardSrc.includes('forceOpen'), 'card load must support forceOpen from notification');
+assert.ok(cardSrc.includes('openFromNotificationRef'), 'card must keep notification open across load races');
+assert.ok(
+  cardSrc.includes("load({ forceOpen: true })") || cardSrc.includes('forceOpen: true'),
+  'notification path must force-open the modal',
+);
+
+const appSrc = readFileSync(resolve(__dirname, '../App.tsx'), 'utf8');
+assert.ok(
+  appSrc.includes('installTodaysOutfitNotificationOpenHandler'),
+  'App must bootstrap notification → open Todays Outfit',
+);
 
 const memorySrc = readFileSync(resolve(__dirname, '../utils/styleMemory7d.ts'), 'utf8');
 assert.ok(memorySrc.includes('analyzeRotationVsYesterday'));

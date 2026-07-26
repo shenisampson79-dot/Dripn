@@ -12,6 +12,7 @@ import {
   type TodaysOutfitPopupPrefs,
 } from '@/utils/todaysOutfitPrefs';
 import {
+  dateKeyInTimeZone,
   nextDateAtHourInTimeZone,
   TODAYS_OUTFIT_TIMEZONE,
 } from '@/utils/todaysOutfitTime';
@@ -26,6 +27,14 @@ export async function markTodaysOutfitOpenPending(): Promise<void> {
     await AsyncStorage.setItem(TODAYS_OUTFIT_OPEN_PENDING_KEY, '1');
   } catch {
     // non-fatal
+  }
+}
+
+export async function peekTodaysOutfitOpenPending(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY)) === '1';
+  } catch {
+    return false;
   }
 }
 
@@ -44,6 +53,79 @@ export function isTodaysOutfitNotification(
   data: Record<string, unknown> | undefined | null,
 ): boolean {
   return Boolean(data && data.type === TODAYS_OUTFIT_NOTIF_TYPE);
+}
+
+function notificationDayKey(when: unknown): string | null {
+  if (when == null) return null;
+  if (typeof when === 'number') {
+    // Expo may report seconds or ms
+    return dateKeyFromMs(when < 1e12 ? when * 1000 : when);
+  }
+  if (when instanceof Date) return dateKeyFromMs(when.getTime());
+  if (typeof when === 'string') {
+    const t = Date.parse(when);
+    return Number.isFinite(t) ? dateKeyFromMs(t) : null;
+  }
+  return null;
+}
+
+function dateKeyFromMs(ms: number): string {
+  return dateKeyInTimeZone(new Date(ms), TODAYS_OUTFIT_TIMEZONE);
+}
+
+/**
+ * App-root bootstrap: mark open-pending + route to Stylist hub when the
+ * Today's Outfit notification is tapped (including cold start).
+ * TodaysOutfitCard consumes the pending flag and opens the modal.
+ */
+export function installTodaysOutfitNotificationOpenHandler(opts?: {
+  navigateToStylistHub?: () => void;
+}): () => void {
+  if (Platform.OS === 'web') return () => {};
+
+  const armOpen = async (data: Record<string, unknown> | undefined | null, when?: unknown) => {
+    if (!isTodaysOutfitNotification(data)) return;
+    const day = notificationDayKey(when);
+    const today = dateKeyInTimeZone(new Date(), TODAYS_OUTFIT_TIMEZONE);
+    if (day && day !== today) return;
+
+    await markTodaysOutfitOpenPending();
+    try {
+      opts?.navigateToStylistHub?.();
+    } catch {
+      // ignore
+    }
+  };
+
+  const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined;
+    void armOpen(data, notification.date);
+  });
+
+  const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+    void armOpen(data, response.notification.date);
+  });
+
+  void (async () => {
+    try {
+      const last = await Notifications.getLastNotificationResponseAsync();
+      if (!last) return;
+      const data = last.notification.request.content.data as Record<string, unknown> | undefined;
+      await armOpen(data, last.notification.date);
+      // Prevent re-arming on every subsequent cold start with the same response.
+      if (typeof (Notifications as any).clearLastNotificationResponseAsync === 'function') {
+        await (Notifications as any).clearLastNotificationResponseAsync();
+      }
+    } catch {
+      // ignore
+    }
+  })();
+
+  return () => {
+    receivedSub.remove();
+    responseSub.remove();
+  };
 }
 
 async function cancelStoredSchedule(): Promise<void> {

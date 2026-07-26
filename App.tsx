@@ -70,6 +70,7 @@ import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRed
 import * as Linking from "expo-linking";
 import { stashPendingReferralCode } from "@/contexts/ReferralContext";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import { installTodaysOutfitNotificationOpenHandler } from "@/services/todaysOutfitLocalNotify";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -80,6 +81,22 @@ export type PortalMode = 'stylist' | 'admin' | null;
 
 function NavigationContainerWithRef() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
+
+  useEffect(() => {
+    const uninstall = installTodaysOutfitNotificationOpenHandler({
+      navigateToStylistHub: () => {
+        const nav = navigationRef.current || getNavigationRef();
+        if (!nav?.isReady()) return;
+        try {
+          // Root is MainTabNavigator — StylistTab → UserStylist stack → StylistHub
+          nav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
+        } catch {
+          // ignore
+        }
+      },
+    });
+    return uninstall;
+  }, []);
 
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const path = window.location.pathname.replace(/\/$/, '');

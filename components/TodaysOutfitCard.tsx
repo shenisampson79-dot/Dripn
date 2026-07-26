@@ -43,6 +43,7 @@ import {
   consumeTodaysOutfitOpenPending,
   isTodaysOutfitNotification,
   markTodaysOutfitOpenPending,
+  peekTodaysOutfitOpenPending,
   syncTodaysOutfitLocalNotification,
 } from '@/services/todaysOutfitLocalNotify';
 import { getNavigationRef } from '@/components/ErrorFallback';
@@ -264,6 +265,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const actionOutfitIdRef = useRef<string | null>(null);
   /** Last local calendar day we loaded / showed — detects midnight rollover. */
   const activeDateKeyRef = useRef<string>(todayKey());
+  /** Notification tap / delivery must keep the modal open even if auto-window load races. */
+  const openFromNotificationRef = useRef(false);
 
   const generating = cardState === 'loading';
   const actionsEnabled =
@@ -297,8 +300,25 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   }, [wardrobeItems]);
 
   const load = useCallback(
-    async (forceRefresh = false) => {
-      const isManual = forceRefresh;
+    async (
+      forceRefreshOrOpts:
+        | boolean
+        | { forceRefresh?: boolean; forceOpen?: boolean } = false,
+    ) => {
+      const forceRefresh =
+        typeof forceRefreshOrOpts === 'boolean'
+          ? forceRefreshOrOpts
+          : Boolean(forceRefreshOrOpts.forceRefresh);
+      const requestedForceOpen =
+        typeof forceRefreshOrOpts === 'boolean'
+          ? false
+          : Boolean(forceRefreshOrOpts.forceOpen);
+      const forceOpen =
+        requestedForceOpen
+        || openFromNotificationRef.current
+        || (await peekTodaysOutfitOpenPending());
+      const isManual = forceRefresh || forceOpen;
+
       setCardState('loading');
       if (forceRefresh) {
         setGapVisible(false);
@@ -331,6 +351,30 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         return;
       }
 
+      const applyVisibility = async (wasDismissed: boolean) => {
+        // Re-check at apply time — a notification may have armed while this load was in flight.
+        const stillForce =
+          forceOpen
+          || openFromNotificationRef.current
+          || (await peekTodaysOutfitOpenPending());
+        if (stillForce || isManual) {
+          setDismissed(false);
+          setVisible(true);
+          openFromNotificationRef.current = false;
+          await consumeTodaysOutfitOpenPending();
+          return;
+        }
+        try {
+          const prefs = await getTodaysOutfitPopupPrefs();
+          const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
+          setDismissed(wasDismissed);
+          setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
+        } catch {
+          setDismissed(false);
+          setVisible(true);
+        }
+      };
+
       await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
       const profile = await onboardingProfileService.getProfile();
 
@@ -341,10 +385,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
           try {
             const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
             const wasDismissed = dismissedToday === '1';
-            const prefs = await getTodaysOutfitPopupPrefs();
-            const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
-            setDismissed(wasDismissed);
-            setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
+            await applyVisibility(wasDismissed);
           } catch {
             setDismissed(false);
             setVisible(true);
@@ -382,14 +423,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       try {
         const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
         const wasDismissed = dismissedToday === '1';
-        const prefs = await getTodaysOutfitPopupPrefs();
-        const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
-        setDismissed(wasDismissed);
-        if (isManual) {
-          setVisible(true);
-        } else {
-          setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
-        }
+        await applyVisibility(wasDismissed);
       } catch {
         setDismissed(false);
         setVisible(true);
@@ -416,6 +450,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     if (!user) return;
 
     const openFromNotification = async () => {
+      openFromNotificationRef.current = true;
       await markTodaysOutfitOpenPending();
       try {
         const rootNav = getNavigationRef();
@@ -433,7 +468,8 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       }
       setDismissed(false);
       setVisible(true);
-      void load(false);
+      // forceOpen keeps visibility even if a parallel mount load(false) finishes later.
+      void load({ forceOpen: true });
     };
 
     const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
