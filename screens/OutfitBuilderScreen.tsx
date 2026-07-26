@@ -290,6 +290,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     tabBarHeight,
     TAB_BAR_HEIGHT + insets.bottom,
   ) + Spacing.lg;
+  const saveFooterBlock = Spacing.sm + Spacing.buttonHeight + Spacing.md;
   const { items, reloadWardrobe } = useWardrobe();
   const { user, actualCountry } = useAuth();
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
@@ -415,14 +416,14 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const occasionBlock = 44;
     const scoreBlock = 58;
     const bottomChrome = showSaveButton
-      ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
+      ? bottomNavClearance + saveFooterBlock
       : bottomNavClearance;
     const rowGap = 8;
     const available = SH - insets.top - headerBlock - occasionBlock - scoreBlock - bottomChrome;
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
     return Math.max(78, Math.min(134, perRow));
-  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton]);
+  }, [activeReels.length, insets.top, bottomNavClearance, saveFooterBlock, showSaveButton]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
     setSelection((prev) => ({ ...prev, [cat]: id }));
@@ -757,7 +758,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         </View>
       ) : (
         <>
-          <View style={styles.reelsArea}>
+          <View
+            style={[
+              styles.reelsArea,
+              showSaveButton ? { paddingBottom: saveFooterBlock + Spacing.sm } : null,
+            ]}
+          >
             {activeReels.map(({ key }) => (
               <CategoryReel
                 key={key}
@@ -777,7 +783,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </View>
 
           {showSaveButton ? (
-            <View style={[styles.saveFooter, { paddingBottom: bottomNavClearance + Spacing.md }]}>
+            <View
+              style={[
+                styles.saveFooter,
+                { bottom: bottomNavClearance },
+              ]}
+              pointerEvents="box-none"
+            >
               <Pressable onPress={handleSave} style={styles.saveButton}>
                 <LinearGradient
                   colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
@@ -1044,12 +1056,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     paddingTop: 4,
     gap: 8,
+    overflow: 'hidden',
   },
   saveFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     paddingTop: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     alignItems: 'center',
-    flexShrink: 0,
+    zIndex: 5,
   },
   backBtn: {
     padding: Spacing.sm,

@@ -11,6 +11,7 @@ import {
   resolveGarmentFamily,
   GARMENT_FAMILY,
 } from '@/utils/garmentCategory';
+import { resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 
 export const STRICT_MIX_OCCASIONS = [
   'formal',
@@ -139,6 +140,51 @@ export const MIX_REEL_KEYS = [
 
 export type MixReelKey = (typeof MIX_REEL_KEYS)[number];
 
+function itemBlob(item: ItemLike): string {
+  return `${item?.name || ''} ${item?.subcategory || ''} ${item?.category || ''}`.toLowerCase();
+}
+
+/** Bottoms reel: wardrobe bottoms + formal trousers/skirts (not jackets/shirts). */
+export function isMixBottomsCandidate(item: ItemLike): boolean {
+  const cat = String(item?.category || '').toLowerCase();
+  if (cat === 'bottoms' || cat === 'activewear_bottoms') return true;
+  if (cat !== 'formal') return false;
+  const t = itemBlob(item);
+  if (/\b(blazer|jacket|coat|shirt|tuxedo|waistcoat|suit jacket|tie|bow)\b/.test(t)) return false;
+  return /\b(trousers?|pants?|slacks?|chinos?|skirt|shorts?|jeans?)\b/.test(t);
+}
+
+/** Shoes reel: shoes category + formal footwear mis-filed under formal. */
+export function isMixShoesCandidate(item: ItemLike): boolean {
+  const cat = String(item?.category || '').toLowerCase();
+  if (cat === 'shoes') return true;
+  if (cat !== 'formal') return false;
+  return /\b(shoes?|oxford|loafer|derby|brogue|boot|heel|pump|trainer|sneaker|sandal)\b/.test(itemBlob(item));
+}
+
+/** Skip blank cards when nothing can be resolved for display. */
+export function hasMixDisplayImage(item: ItemLike & {
+  id?: string | null;
+  imageUri?: string | null;
+  enhancedImageUri?: string | null;
+  originalImageUri?: string | null;
+  imageUrl?: string | null;
+}): boolean {
+  if (!item) return false;
+  const raw = [
+    (item as any).enhancedImageUri,
+    (item as any).imageUri,
+    (item as any).originalImageUri,
+    (item as any).imageUrl,
+  ].some((u) => typeof u === 'string' && u.trim().length > 0);
+  if (raw) return true;
+  try {
+    return Boolean(resolveWardrobeImageUri(item as any)?.trim());
+  } catch {
+    return Boolean(item.id);
+  }
+}
+
 /**
  * Build swipe pools for Outfit Mix.
  * Selection is LOCKED: occasion may prune candidates, but never strips the
@@ -151,8 +197,10 @@ export function buildMixReelPools<T extends ItemLike & { category?: string | nul
   reelKeys: readonly string[] = MIX_REEL_KEYS,
 ): Record<string, T[]> {
   const items = Array.isArray(catalogue) ? catalogue : [];
+  // Work/formal: keep lifestyle trainers in the shoes reel so users can still
+  // browse what they own; scoring already warns when they're wrong for the occasion.
   const pool = isStrictMixOccasion(occasion)
-    ? filterCatalogueForMixOccasion(items, occasion)
+    ? filterCatalogueForMixOccasion(items, occasion, { allowLifestyleTrainers: true })
     : items;
   const map: Record<string, T[]> = {};
   for (const key of reelKeys) {
@@ -160,10 +208,13 @@ export function buildMixReelPools<T extends ItemLike & { category?: string | nul
     if (key === 'tops') {
       list = pool.filter((i) => i.category === 'tops' || i.category === 'activewear_tops');
     } else if (key === 'bottoms') {
-      list = pool.filter((i) => i.category === 'bottoms' || i.category === 'activewear_bottoms');
+      list = pool.filter((i) => isMixBottomsCandidate(i));
+    } else if (key === 'shoes') {
+      list = pool.filter((i) => isMixShoesCandidate(i));
     } else {
       list = pool.filter((i) => i.category === key);
     }
+    list = list.filter((i) => hasMixDisplayImage(i));
     const selectedId = selection[key];
     if (selectedId && !list.some((i) => i.id === selectedId)) {
       const selectedItem = items.find((i) => i.id === selectedId);
