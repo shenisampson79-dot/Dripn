@@ -52,6 +52,9 @@ import {
 import {
   buildMixReelPools,
 } from '@/utils/outfitMixConstraints';
+import {
+  outfitMixReelBottomPad,
+} from '@/utils/uiRealityLayer/outfitMixUiReality';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { useTranslations } from "@/contexts/TranslationContext";
 
@@ -216,6 +219,9 @@ function CategoryReel({
   const renderItem = useCallback(({ item }: { item: ReelListItem; index: number }) => {
     const isNone = isOuterwearNoneItem(item);
     const isSelected = isNone ? !selectedId : item.id === selectedId;
+    const wardrobeItem = item as WardrobeItem & { softBanned?: boolean; _mixImageFallback?: boolean };
+    const softBanned = !isNone && Boolean(wardrobeItem.softBanned);
+    const useFallbackTile = !isNone && Boolean(wardrobeItem._mixImageFallback);
 
     return (
       <View style={[styles.reelItemContainer, { width: centerWidth, height: rowHeight }]}>
@@ -223,7 +229,7 @@ function CategoryReel({
           style={[
             styles.reelCard,
             { height: rowHeight, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' },
-            !isSelected && { opacity: 0.42 },
+            !isSelected && { opacity: softBanned ? 0.32 : 0.42 },
           ]}
         >
           {isNone ? (
@@ -233,25 +239,43 @@ function CategoryReel({
                 None
               </ThemedText>
             </View>
+          ) : useFallbackTile ? (
+            <View style={[styles.reelNoneBox, { borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]}>
+              <Feather name="image" size={18} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.32)'} />
+              <ThemedText
+                type="caption"
+                numberOfLines={2}
+                style={{
+                  color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)',
+                  fontWeight: '600',
+                  marginTop: 4,
+                  fontSize: 10,
+                  textAlign: 'center',
+                  paddingHorizontal: 4,
+                }}
+              >
+                {wardrobeItem.name || category}
+              </ThemedText>
+            </View>
           ) : (
             <View style={[
               styles.reelImageWrap,
-              { backgroundColor: wardrobeImageBackground(isDark, item as WardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF') },
+              { backgroundColor: wardrobeImageBackground(isDark, wardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF') },
             ]}>
               <WardrobeItemImage
-                item={item as WardrobeItem}
+                item={wardrobeItem}
                 style={styles.reelImage}
-                processed={!!((item as WardrobeItem).imageProcessed || (item as WardrobeItem).aiAnalyzed)}
+                processed={!!(wardrobeItem.imageProcessed || wardrobeItem.aiAnalyzed)}
                 contentFit="contain"
                 displayScale={imageScale}
-                tileBackgroundColor={wardrobeImageBackground(isDark, item as WardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF')}
+                tileBackgroundColor={wardrobeImageBackground(isDark, wardrobeItem) || (isDark ? '#2C2C2E' : '#EBEBEF')}
               />
             </View>
           )}
         </View>
       </View>
     );
-  }, [selectedId, isDark, rowHeight, centerWidth, imageScale]);
+  }, [selectedId, isDark, rowHeight, centerWidth, imageScale, category]);
 
   return (
     <View style={[styles.reelRow, { height: rowHeight }]}>
@@ -290,7 +314,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     tabBarHeight,
     TAB_BAR_HEIGHT + insets.bottom,
   ) + Spacing.lg;
-  const saveFooterBlock = Spacing.sm + Spacing.buttonHeight + Spacing.md;
+  const saveFooterBlock = outfitMixReelBottomPad(true);
   const { items, reloadWardrobe } = useWardrobe();
   const { user, actualCountry } = useAuth();
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);

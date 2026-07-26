@@ -101,7 +101,12 @@ const workPoolSansSelection = pruneMixCandidates(wardrobe, 'work').kept;
 assert(!workPoolSansSelection.some((i) => i.id === 'tank'), 'work pool alone drops tank');
 assert(workPools.tops.some((i) => i.id === 'tank'), 'selection lock re-injects tank into tops reel');
 assert(workPools.shoes.some((i) => i.id === 'sneakers'), 'selected sneakers stay visible');
-assert(!workPools.bottoms.some((i) => i.id === 'cargo'), 'work prunes unselected cargo from bottoms');
+// Soft-ban: cargo demoted for scoring but still browsable (UI Reality)
+assert(workPools.bottoms.some((i) => i.id === 'cargo'), 'work keeps unselected cargo visible (soft-ban)');
+assert(
+  (workPools.bottoms.find((i) => i.id === 'cargo') as { softBanned?: boolean })?.softBanned === true,
+  'cargo marked softBanned on work',
+);
 
 // Formal trousers belong in the bottoms reel (not only bottoms category)
 const formalTrousers = item({

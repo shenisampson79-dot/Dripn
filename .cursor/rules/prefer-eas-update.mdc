@@ -1,16 +1,23 @@
 ---
-description: After StyleWise JS changes, always publish EAS OTA to production and preview
+description: After StyleWise JS changes, publish EAS OTA to production and preview
 alwaysApply: true
 ---
 
 # Ship EAS Update to production + preview
 
-When StyleWise JS/TS (or other OTA-eligible) changes are **committed and pushed**, always publish OTAs without waiting to be asked:
+The installed **preview** build reads the `preview` channel; App Store / Play builds read `production`. Ship both so TestFlight/internal preview and store users both get the update:
 
 ```bash
 eas update --channel production --environment production --message "<short why>"
 eas update --channel preview --environment preview --message "<short why>"
 ```
+
+Force-close / reopen picks up the OTA for that build’s channel.
+
+## Server / web
+
+- **Dripn-Server**: push `main` → Render auto-deploy
+- **Vercel** when a web project is involved
 
 ## When to skip OTA
 
@@ -25,5 +32,5 @@ eas update --channel preview --environment preview --message "<short why>"
 ## Reply format after shipping
 
 1. Confirm **production** and **preview** update group URLs (or IDs)
-2. Note if Render auto-deploy applies for server changes
+2. Note Render (and Vercel if relevant) for backend/web
 3. Remind: force-close / reopen the app to pick up the update

@@ -1,6 +1,9 @@
 /**
- * Outfit Mix occasion constraints — prune invalid candidates BEFORE pick.
- * Mirrors Dripn-Server/services/outfitMixConstraints.js
+ * Outfit Mix occasion constraints — prune for scoring preference, not erasure.
+ * Visibility is governed by UI Reality Layer: owned items must remain browsable.
+ *
+ * Mirrors Dripn-Server/services/outfitMixConstraints.js for ban reasons,
+ * but Mix reels use soft demotion + ensureMinimumCoverage (not silent drop).
  */
 
 import {
@@ -11,7 +14,11 @@ import {
   resolveGarmentFamily,
   GARMENT_FAMILY,
 } from '@/utils/garmentCategory';
-import { resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import {
+  OUTFIT_MIX_COVERAGE,
+  ensureMinimumCoverage,
+  partitionMixVisibility,
+} from '@/utils/uiRealityLayer/outfitMixUiReality';
 
 export const STRICT_MIX_OCCASIONS = [
   'formal',
@@ -37,6 +44,10 @@ type ItemLike = {
   name?: string | null;
   category?: string | null;
   subcategory?: string | null;
+  imageUri?: string | null;
+  enhancedImageUri?: string | null;
+  originalImageUri?: string | null;
+  imageUrl?: string | null;
 };
 
 function normalizeOccasion(raw?: string | null): string | null {
@@ -162,33 +173,52 @@ export function isMixShoesCandidate(item: ItemLike): boolean {
   return /\b(shoes?|oxford|loafer|derby|brogue|boot|heel|pump|trainer|sneaker|sandal)\b/.test(itemBlob(item));
 }
 
-/** Skip blank cards when nothing can be resolved for display. */
-export function hasMixDisplayImage(item: ItemLike & {
-  id?: string | null;
-  imageUri?: string | null;
-  enhancedImageUri?: string | null;
-  originalImageUri?: string | null;
-  imageUrl?: string | null;
-}): boolean {
+export function hasMixDisplayImage(item: ItemLike): boolean {
   if (!item) return false;
-  const raw = [
-    (item as any).enhancedImageUri,
-    (item as any).imageUri,
-    (item as any).originalImageUri,
-    (item as any).imageUrl,
+  return [
+    item.enhancedImageUri,
+    item.imageUri,
+    item.originalImageUri,
+    item.imageUrl,
   ].some((u) => typeof u === 'string' && u.trim().length > 0);
-  if (raw) return true;
-  try {
-    return Boolean(resolveWardrobeImageUri(item as any)?.trim());
-  } catch {
-    return Boolean(item.id);
+}
+
+/**
+ * Mark items missing display images for UI fallback (icon tile).
+ * Never drop inventory — blank cards become labeled placeholders.
+ */
+export function withMixImageFallback<T extends ItemLike>(item: T, _reelKey: string): T & {
+  _mixImageFallback?: boolean;
+  softBanned?: boolean;
+} {
+  if (hasMixDisplayImage(item)) return item;
+  return { ...item, _mixImageFallback: true };
+}
+
+function candidatesForReel<T extends ItemLike>(items: T[], key: string): T[] {
+  if (key === 'tops') {
+    return items.filter((i) => i.category === 'tops' || i.category === 'activewear_tops');
   }
+  if (key === 'bottoms') return items.filter((i) => isMixBottomsCandidate(i));
+  if (key === 'shoes') return items.filter((i) => isMixShoesCandidate(i));
+  return items.filter((i) => i.category === key);
+}
+
+function minCoverageForReel(key: string): number {
+  if (key === 'bottoms') return OUTFIT_MIX_COVERAGE.bottoms;
+  if (key === 'shoes') return OUTFIT_MIX_COVERAGE.shoes;
+  if (key === 'tops') return OUTFIT_MIX_COVERAGE.tops;
+  return 1;
 }
 
 /**
  * Build swipe pools for Outfit Mix.
- * Selection is LOCKED: occasion may prune candidates, but never strips the
- * currently selected piece from a reel (banned items stay visible/scorable).
+ *
+ * Visibility ≠ scoring preference:
+ * - Preferred = passes occasion prune (sorted first)
+ * - Soft-visible = owned but demoted (cargo/trainers on work) — still shown
+ * - ensureMinimumCoverage backfills so filters cannot collapse a row to 1 item
+ * - Missing images get category fallbacks (never silent inventory loss)
  */
 export function buildMixReelPools<T extends ItemLike & { category?: string | null; id?: string | null }>(
   catalogue: T[],
@@ -197,28 +227,39 @@ export function buildMixReelPools<T extends ItemLike & { category?: string | nul
   reelKeys: readonly string[] = MIX_REEL_KEYS,
 ): Record<string, T[]> {
   const items = Array.isArray(catalogue) ? catalogue : [];
-  // Work/formal: keep lifestyle trainers in the shoes reel so users can still
-  // browse what they own; scoring already warns when they're wrong for the occasion.
-  const pool = isStrictMixOccasion(occasion)
-    ? filterCatalogueForMixOccasion(items, occasion, { allowLifestyleTrainers: true })
-    : items;
   const map: Record<string, T[]> = {};
+
   for (const key of reelKeys) {
-    let list: T[];
-    if (key === 'tops') {
-      list = pool.filter((i) => i.category === 'tops' || i.category === 'activewear_tops');
-    } else if (key === 'bottoms') {
-      list = pool.filter((i) => isMixBottomsCandidate(i));
-    } else if (key === 'shoes') {
-      list = pool.filter((i) => isMixShoesCandidate(i));
-    } else {
-      list = pool.filter((i) => i.category === key);
-    }
-    list = list.filter((i) => hasMixDisplayImage(i));
+    const allCandidates = candidatesForReel(items, key);
+    // Preferred order for occasion — never the sole visibility source
+    const pruned = pruneMixCandidates(allCandidates, occasion, {
+      allowLifestyleTrainers: true,
+    });
+    const { preferred, softVisible } = partitionMixVisibility(allCandidates, pruned.kept);
+    // Visibility guarantee: every owned candidate stays browsable (preferred first).
+    // ensureMinimumCoverage is a floor if partition ever under-fills vs inventory.
+    const minCount = Math.min(minCoverageForReel(key), allCandidates.length);
+    let list = ensureMinimumCoverage(
+      [...preferred, ...softVisible],
+      softVisible,
+      allCandidates,
+      minCount,
+    );
+
+    // Mark soft-banned for UI opacity / scoring hints (optional consumers)
+    const preferredIds = new Set(preferred.map((i) => String(i.id)));
+    list = list.map((item) => {
+      const withImg = withMixImageFallback(item, key);
+      if (preferredIds.has(String(item.id))) return withImg as T;
+      return { ...withImg, softBanned: true } as T;
+    });
+
     const selectedId = selection[key];
     if (selectedId && !list.some((i) => i.id === selectedId)) {
       const selectedItem = items.find((i) => i.id === selectedId);
-      if (selectedItem) list = [selectedItem, ...list];
+      if (selectedItem) {
+        list = [withMixImageFallback(selectedItem, key) as T, ...list];
+      }
     }
     map[key] = list;
   }
@@ -226,8 +267,22 @@ export function buildMixReelPools<T extends ItemLike & { category?: string | nul
 }
 
 /**
+ * Filter transparency: fraction of reel inventory dropped by hard prune alone.
+ * UI Reality fails if drop ratio is extreme while inventory remains.
+ */
+export function mixFilterDropRatio(
+  catalogue: ItemLike[],
+  reelKey: string,
+  occasion?: string | null,
+): number {
+  const all = candidatesForReel(catalogue, reelKey);
+  if (!all.length) return 0;
+  const kept = pruneMixCandidates(all, occasion, { allowLifestyleTrainers: true }).kept.length;
+  return 1 - kept / all.length;
+}
+
+/**
  * Occasion chip contract: selection IDs are immutable across chip changes.
- * Evaluation/reels may change; selectedOutfit must not.
  */
 export function preserveSelectionAcrossOccasion<T extends Partial<Record<string, string | null>>>(
   selection: T,
