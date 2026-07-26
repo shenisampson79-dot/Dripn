@@ -620,6 +620,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         .catch(() => {});
     }
 
+    setShowSaveModal(false);
     setVisible(false);
     setDismissed(true);
     try {
@@ -630,31 +631,47 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   };
 
   const handleWearThis = async () => {
-    if (!actionsEnabled || !outfit?.id) return;
-    const outfitId = outfit.id;
-    void traceTodaysOutfit('button_click', { action: 'wear', outfitId });
+    if (!actionsEnabled || !outfit?.id || wearBusy) return;
+    const outfitSnap = outfit;
+    const piecesSnap = pieces;
+    void traceTodaysOutfit('button_click', { action: 'wear', outfitId: outfitSnap.id });
     setWearBusy(true);
+
+    // Close the sheet BEFORE wardrobe/plan updates — those re-renders were flashing
+    // through the open modal (glitch → home) before dismiss finished.
+    setShowSaveModal(false);
+    setVisible(false);
+    setDismissed(true);
     try {
-      if (pieces.length > 0) {
+      await AsyncStorage.setItem(DISMISS_KEY_PREFIX + todayKey(), '1');
+    } catch {
+      // ignore
+    }
+
+    try {
+      if (piecesSnap.length > 0) {
         const todayKeyStr = todayKey();
-        const eventType = mapOccasionToPlannedEvent(outfit?.dressFor, outfit?.occasionType);
+        const eventType = mapOccasionToPlannedEvent(
+          outfitSnap?.dressFor,
+          outfitSnap?.occasionType,
+        );
         const existing = plannedOutfits.find((plan) => plan.date.slice(0, 10) === todayKeyStr);
         let planId = existing?.id;
 
         if (existing) {
           await updatePlannedOutfit(existing.id, {
-            itemIds: pieces.map((item) => String(item.id)),
+            itemIds: piecesSnap.map((item) => String(item.id)),
             eventName: "Today's outfit",
             eventType,
-            notes: outfit?.stylistMessage || outfit?.vibeLabel,
+            notes: outfitSnap?.stylistMessage || outfitSnap?.vibeLabel,
           });
         } else {
           const created = await planOutfit({
             date: todayPlannedDateIso(),
-            itemIds: pieces.map((item) => String(item.id)),
+            itemIds: piecesSnap.map((item) => String(item.id)),
             eventName: "Today's outfit",
             eventType,
-            notes: outfit?.stylistMessage || outfit?.vibeLabel,
+            notes: outfitSnap?.stylistMessage || outfitSnap?.vibeLabel,
           });
           planId = created.id;
         }
@@ -665,21 +682,21 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
         apiService
           .recordOutfitEngagement({
-            items: pieces.map((item) => ({
+            items: piecesSnap.map((item) => ({
               id: String(item.id),
               name: item.name,
               category: item.category,
               color: item.color,
             })),
             signal: 'wore',
-            occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+            occasion: outfitSnap?.dressFor || outfitSnap?.occasionType || 'todays_look',
             contextSnapshot: {
               source: 'todays_outfit_card',
-              dayLabel: outfit?.dayLabel,
-              occasionLabel: outfit?.occasionLabel,
-              weatherTemp: outfit?.weatherTemp,
-              weatherCondition: outfit?.weatherCondition,
-              vibeLabel: outfit?.vibeLabel,
+              dayLabel: outfitSnap?.dayLabel,
+              occasionLabel: outfitSnap?.occasionLabel,
+              weatherTemp: outfitSnap?.weatherTemp,
+              weatherCondition: outfitSnap?.weatherCondition,
+              vibeLabel: outfitSnap?.vibeLabel,
             },
           })
           .catch(() => {});
@@ -688,7 +705,6 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       console.warn('[TodaysOutfitCard] Wear this failed:', error);
     } finally {
       setWearBusy(false);
-      await handleClose(null);
     }
   };
   const handleDismiss = () => {
@@ -749,9 +765,14 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   );
 
   const itemIds = useMemo(() => wardrobeIdsFromPieces(pieces), [pieces]);
+  const wearingToday = useMemo(() => {
+    const todayKeyStr = todayKey();
+    const plan = plannedOutfits.find((p) => p.date.slice(0, 10) === todayKeyStr);
+    return Boolean(plan?.wasWorn);
+  }, [plannedOutfits]);
   // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
   const showReopenChip =
-    Boolean(user) && !visible && !gapVisible && cardState !== 'loading';
+    Boolean(user) && !visible && !gapVisible && !showSaveModal && cardState !== 'loading';
 
   if (!user) return null;
 
@@ -788,14 +809,24 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       ) : null}
 
       <Modal
-        visible={visible && (generating || Boolean(outfit)) && !showSaveModal}
+        visible={visible && (generating || Boolean(outfit))}
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={handleDismiss}
+        onRequestClose={() => {
+          if (showSaveModal) return;
+          handleDismiss();
+        }}
       >
         <GestureHandlerRootView style={styles.overlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} accessibilityLabel="Dismiss" />
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              if (showSaveModal) return;
+              handleDismiss();
+            }}
+            accessibilityLabel="Dismiss"
+          />
           <View
             style={[
               styles.sheet,
@@ -950,16 +981,26 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                   <Pressable
                     style={[
                       styles.primaryBtn,
-                      { backgroundColor: theme.link, opacity: actionsEnabled ? 1 : 0.6 },
+                      {
+                        backgroundColor: wearingToday ? (isDark ? '#3D3426' : '#E8DFD0') : theme.link,
+                        opacity: actionsEnabled ? 1 : 0.6,
+                      },
                     ]}
                     onPress={() => void handleWearThis()}
-                    disabled={!actionsEnabled}
+                    disabled={!actionsEnabled || wearBusy}
                   >
                     <ThemedText
                       type="body"
-                      style={{ color: theme.buttonText, fontWeight: '600' }}
+                      style={{
+                        color: wearingToday ? theme.text : theme.buttonText,
+                        fontWeight: '600',
+                      }}
                     >
-                      {t('home.wearThis') || 'Wear this'}
+                      {wearBusy
+                        ? (t('common.loading') || 'Saving…')
+                        : wearingToday
+                          ? (t('home.wearingToday') || 'Wearing today')
+                          : (t('home.wearThis') || 'Wear this')}
                     </ThemedText>
                   </Pressable>
                   <Pressable
@@ -981,9 +1022,11 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                           action: 'save',
                           outfitId: outfit?.id,
                         });
+                        // Keep outfit sheet mounted underneath — hiding it caused a
+                        // Stylist-home flash before SaveOutfitPromptModal appeared.
                         setShowSaveModal(true);
                       }}
-                      disabled={!actionsEnabled}
+                      disabled={!actionsEnabled || wearBusy}
                     >
                       <Feather name="bookmark" size={16} color={theme.link} />
                       <ThemedText type="small" style={{ color: theme.text, fontWeight: '600' }}>
@@ -1007,7 +1050,6 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
         onClose={() => {
           setShowSaveModal(false);
-          if (outfit) setVisible(true);
         }}
         onSaved={() => {
           apiService
@@ -1019,7 +1061,6 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
             })
             .catch(() => {});
           setShowSaveModal(false);
-          if (outfit) setVisible(true);
         }}
       />
 
