@@ -47,6 +47,10 @@ assert.ok(
   'must install app-root open handler for cold-start taps',
 );
 assert.ok(notifySrc.includes('peekTodaysOutfitOpenPending'), 'must peek open-pending for race-safe loads');
+assert.ok(
+  notifySrc.includes('todaysOutfitOpenIntent') || notifySrc.includes('isOpenPendingExpired'),
+  'must TTL-expire stale open intent',
+);
 
 const cardSrc = readFileSync(
   resolve(__dirname, '../components/TodaysOutfitCard.tsx'),

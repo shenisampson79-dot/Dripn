@@ -267,6 +267,10 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const activeDateKeyRef = useRef<string>(todayKey());
   /** Notification tap / delivery must keep the modal open even if auto-window load races. */
   const openFromNotificationRef = useRef(false);
+  const visibleRef = useRef(false);
+  const outfitReadyRef = useRef(false);
+  visibleRef.current = visible;
+  outfitReadyRef.current = Boolean(outfit && cardState === 'ready');
 
   const generating = cardState === 'loading';
   const actionsEnabled =
@@ -450,8 +454,15 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     if (!user) return;
 
     const openFromNotification = async () => {
+      // Duplicate tap / already-open: intent satisfied — don't churn load().
+      if (visibleRef.current && outfitReadyRef.current) {
+        await consumeTodaysOutfitOpenPending();
+        openFromNotificationRef.current = false;
+        return;
+      }
+
       openFromNotificationRef.current = true;
-      await markTodaysOutfitOpenPending();
+      await markTodaysOutfitOpenPending('tap');
       try {
         const rootNav = getNavigationRef();
         if (rootNav?.isReady()) {

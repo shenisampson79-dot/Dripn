@@ -2,6 +2,9 @@
  * Local daily reminder for Today's Outfit at the user's "Appear at" hour.
  * Fires even when the app is closed (the previous 8am miss).
  * Times are Europe/London so UK 8am stays correct if the phone travels.
+ *
+ * Open-intent (tap / delivery / cold start) is persisted with TTL so async
+ * load() cannot close the modal — and stale intents cannot reopen hours later.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
@@ -16,15 +19,39 @@ import {
   nextDateAtHourInTimeZone,
   TODAYS_OUTFIT_TIMEZONE,
 } from '@/utils/todaysOutfitTime';
+import {
+  TODAYS_OUTFIT_NOTIF_TYPE,
+  isOpenPendingExpired,
+  parseOpenPending,
+  resolveOpenPendingConflict,
+  serializeOpenPending,
+  type OpenPendingIntent,
+} from '@/utils/todaysOutfitOpenIntent';
 
-export const TODAYS_OUTFIT_NOTIF_TYPE = 'todays_outfit';
+export { TODAYS_OUTFIT_NOTIF_TYPE };
+export {
+  OPEN_PENDING_TTL_MS,
+  shouldForceOpenFromIntent,
+  reconcileModalVisibilityAfterLoad,
+} from '@/utils/todaysOutfitOpenIntent';
+
 const SCHEDULED_ID_KEY = '@dripn_todays_outfit_local_notif_id';
 /** Set when notification fires or is tapped — TodaysOutfitCard opens the modal. */
 export const TODAYS_OUTFIT_OPEN_PENDING_KEY = '@dripn_todays_outfit_open_pending';
 
-export async function markTodaysOutfitOpenPending(): Promise<void> {
+export async function markTodaysOutfitOpenPending(
+  source: OpenPendingIntent['source'] = 'manual',
+): Promise<void> {
   try {
-    await AsyncStorage.setItem(TODAYS_OUTFIT_OPEN_PENDING_KEY, '1');
+    const incoming: OpenPendingIntent = {
+      type: TODAYS_OUTFIT_NOTIF_TYPE,
+      armedAt: Date.now(),
+      source,
+    };
+    const raw = await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY);
+    const existing = parseOpenPending(raw);
+    const next = resolveOpenPendingConflict(existing, incoming);
+    await AsyncStorage.setItem(TODAYS_OUTFIT_OPEN_PENDING_KEY, serializeOpenPending(next));
   } catch {
     // non-fatal
   }
@@ -32,7 +59,12 @@ export async function markTodaysOutfitOpenPending(): Promise<void> {
 
 export async function peekTodaysOutfitOpenPending(): Promise<boolean> {
   try {
-    return (await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY)) === '1';
+    const intent = parseOpenPending(await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY));
+    if (!intent || isOpenPendingExpired(intent)) {
+      if (intent) await AsyncStorage.removeItem(TODAYS_OUTFIT_OPEN_PENDING_KEY);
+      return false;
+    }
+    return intent.type === TODAYS_OUTFIT_NOTIF_TYPE;
   } catch {
     return false;
   }
@@ -40,10 +72,11 @@ export async function peekTodaysOutfitOpenPending(): Promise<boolean> {
 
 export async function consumeTodaysOutfitOpenPending(): Promise<boolean> {
   try {
-    const v = await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY);
-    if (v !== '1') return false;
+    const raw = await AsyncStorage.getItem(TODAYS_OUTFIT_OPEN_PENDING_KEY);
+    const intent = parseOpenPending(raw);
     await AsyncStorage.removeItem(TODAYS_OUTFIT_OPEN_PENDING_KEY);
-    return true;
+    if (!intent || isOpenPendingExpired(intent)) return false;
+    return intent.type === TODAYS_OUTFIT_NOTIF_TYPE;
   } catch {
     return false;
   }
@@ -58,7 +91,6 @@ export function isTodaysOutfitNotification(
 function notificationDayKey(when: unknown): string | null {
   if (when == null) return null;
   if (typeof when === 'number') {
-    // Expo may report seconds or ms
     return dateKeyFromMs(when < 1e12 ? when * 1000 : when);
   }
   if (when instanceof Date) return dateKeyFromMs(when.getTime());
@@ -76,20 +108,24 @@ function dateKeyFromMs(ms: number): string {
 /**
  * App-root bootstrap: mark open-pending + route to Stylist hub when the
  * Today's Outfit notification is tapped (including cold start).
- * TodaysOutfitCard consumes the pending flag and opens the modal.
+ * Survives process death via AsyncStorage; TTL drops stale intents.
  */
 export function installTodaysOutfitNotificationOpenHandler(opts?: {
   navigateToStylistHub?: () => void;
 }): () => void {
   if (Platform.OS === 'web') return () => {};
 
-  const armOpen = async (data: Record<string, unknown> | undefined | null, when?: unknown) => {
+  const armOpen = async (
+    data: Record<string, unknown> | undefined | null,
+    when?: unknown,
+    source: OpenPendingIntent['source'] = 'tap',
+  ) => {
     if (!isTodaysOutfitNotification(data)) return;
     const day = notificationDayKey(when);
     const today = dateKeyInTimeZone(new Date(), TODAYS_OUTFIT_TIMEZONE);
     if (day && day !== today) return;
 
-    await markTodaysOutfitOpenPending();
+    await markTodaysOutfitOpenPending(source);
     try {
       opts?.navigateToStylistHub?.();
     } catch {
@@ -99,12 +135,12 @@ export function installTodaysOutfitNotificationOpenHandler(opts?: {
 
   const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
     const data = notification.request.content.data as Record<string, unknown> | undefined;
-    void armOpen(data, notification.date);
+    void armOpen(data, notification.date, 'delivery');
   });
 
   const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as Record<string, unknown> | undefined;
-    void armOpen(data, response.notification.date);
+    void armOpen(data, response.notification.date, 'tap');
   });
 
   void (async () => {
@@ -112,8 +148,7 @@ export function installTodaysOutfitNotificationOpenHandler(opts?: {
       const last = await Notifications.getLastNotificationResponseAsync();
       if (!last) return;
       const data = last.notification.request.content.data as Record<string, unknown> | undefined;
-      await armOpen(data, last.notification.date);
-      // Prevent re-arming on every subsequent cold start with the same response.
+      await armOpen(data, last.notification.date, 'cold_start');
       if (typeof (Notifications as any).clearLastNotificationResponseAsync === 'function') {
         await (Notifications as any).clearLastNotificationResponseAsync();
       }
