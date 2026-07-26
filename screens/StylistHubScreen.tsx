@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, Pressable, useWindowDimensions } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,11 +26,11 @@ type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
 };
 
-const GRID_GAP = Spacing.sm;
+const GRID_GAP = Spacing.md;
 const GRID_ROWS = 4;
-/** Approx height of hub title + Style Tools heading block */
-const HUB_CHROME_HEIGHT = 108;
-/** Breathing room above the tab bar */
+/** Same gap under Today's outfit / Style Tools header as attachment 1 */
+const GRID_TOP_GAP = Spacing.md;
+/** Little breathing room above the tab bar */
 const BOTTOM_BREATHING = Spacing.md;
 
 type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool' | 'jewel';
@@ -182,28 +182,11 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const { palette, colorScheme } = useColorScheme();
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const tabBarHeightContext = React.useContext(BottomTabBarHeightContext);
   const tabBarHeight =
     typeof tabBarHeightContext === "number" && tabBarHeightContext > 0
       ? tabBarHeightContext
       : 56 + insets.bottom;
-
-  // Size tiles so all 8 fit above the tab bar with a little breathing room.
-  const tileHeight = React.useMemo(() => {
-    const verticalPad = Spacing.lg * 2;
-    const available =
-      windowHeight
-      - insets.top
-      - tabBarHeight
-      - HUB_CHROME_HEIGHT
-      - verticalPad
-      - BOTTOM_BREATHING;
-    const gaps = GRID_GAP * (GRID_ROWS - 1);
-    const raw = Math.floor((available - gaps) / GRID_ROWS);
-    // Keep usable but compact on both small and large phones.
-    return Math.max(88, Math.min(118, raw));
-  }, [windowHeight, insets.top, tabBarHeight]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -260,7 +243,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   };
 
   const renderFeatureTile = (feature: StylistFeature) => (
-    <View key={feature.id} style={[styles.tileWrapper, { height: tileHeight }]}>
+    <View key={feature.id} style={styles.tileWrapper}>
       <Pressable
         onPress={() => handleFeaturePress(feature)}
         style={({ pressed }) => [
@@ -275,7 +258,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           style={styles.tileGradient}
         >
           <View style={styles.iconContainer}>
-            <Feather name={feature.icon} size={22} color="#FFFFFF" />
+            <Feather name={feature.icon} size={30} color="#FFFFFF" />
           </View>
           <View style={styles.tileContent}>
             <ThemedText type="body" style={styles.tileTitle} numberOfLines={2}>
@@ -292,13 +275,23 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           </View>
           {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar ? (
             <View style={styles.premiumBadge}>
-              <Feather name="lock" size={12} color="#FFFFFF" />
+              <Feather name="lock" size={14} color="#FFFFFF" />
             </View>
           ) : null}
         </LinearGradient>
       </Pressable>
     </View>
   );
+
+  const featureRows = React.useMemo(() => {
+    const rows: StylistFeature[][] = [];
+    for (let i = 0; i < features.length; i += 2) {
+      rows.push(features.slice(i, i + 2));
+    }
+    // Pad to 4 rows so flex fill stays even if a tile is missing
+    while (rows.length < GRID_ROWS) rows.push([]);
+    return rows.slice(0, GRID_ROWS);
+  }, [features]);
 
   const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist'
     ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
@@ -332,8 +325,14 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             </View>
           </View>
 
-          <View style={styles.featuresGrid}>
-            {features.map((feature) => renderFeatureTile(feature))}
+          {/* Same top gap as under Today's outfit in attachment 1; tiles flex-fill the rest */}
+          <View style={[styles.featuresGrid, { marginTop: GRID_TOP_GAP }]}>
+            {featureRows.map((row, rowIndex) => (
+              <View key={`row-${rowIndex}`} style={styles.featureRow}>
+                {row.map((feature) => renderFeatureTile(feature))}
+                {row.length === 1 ? <View style={styles.tileWrapper} /> : null}
+              </View>
+            ))}
           </View>
         </View>
       </View>
@@ -354,16 +353,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.sm,
   },
   contentSection: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
     flex: 1,
   },
   headerSection: {
-    marginBottom: Spacing.xs,
+    marginBottom: 0,
   },
   headerRow: {
     flexDirection: "row",
@@ -371,56 +369,61 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   title: {
-    marginBottom: 2,
-    fontSize: 22,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: Typography.small.fontSize,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   featuresGrid: {
+    flex: 1,
+    gap: GRID_GAP,
+  },
+  featureRow: {
+    flex: 1,
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: GRID_GAP,
   },
   tileWrapper: {
-    width: "48%",
+    flex: 1,
   },
   featureTile: {
     flex: 1,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
   tileGradient: {
     flex: 1,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    padding: Spacing.md,
     justifyContent: "space-between",
   },
   iconContainer: {
-    marginBottom: Spacing.xs,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "flex-start",
+    paddingTop: Spacing.sm,
   },
   tileContent: {
-    gap: 1,
+    gap: 2,
   },
   tileTitle: {
     color: "#FFFFFF",
     fontWeight: "700",
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 15,
+    lineHeight: 18,
   },
   tileDescription: {
     color: "rgba(255,255,255,0.75)",
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
   },
   premiumBadge: {
     position: "absolute",
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: "rgba(0,0,0,0.25)",
     alignItems: "center",
     justifyContent: "center",
