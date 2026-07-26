@@ -175,24 +175,27 @@ function pieceToWardrobeItem(piece: OutfitPieceVisual, wardrobeItem?: WardrobeIt
     };
   }
 
-  if (!piece.imageUrl || piece.wardrobeItemId == null) return null;
-  const imageUrl = normalizeRemoteApiUrl(piece.imageUrl) || piece.imageUrl;
-  return {
-    id: String(piece.wardrobeItemId),
-    userId: '',
-    imageUri: imageUrl,
-    enhancedImageUri: imageUrl,
-    imageProcessed: true,
-    category: 'tops',
-    color: 'multicolor',
-    name: piece.name || 'Item',
-    seasons: ['all-season'],
-    occasions: ['everyday'],
-    timesWorn: 0,
-    isFavorite: false,
-    createdAt: '',
-    updatedAt: '',
-  };
+  // Keep named pieces visible even without an image URL (placeholder tile).
+  if (piece.name) {
+    return {
+      id: String(piece.wardrobeItemId || piece.name),
+      userId: '',
+      imageUri: fallbackUri || '',
+      enhancedImageUri: fallbackUri || undefined,
+      imageProcessed: Boolean(fallbackUri),
+      category: 'tops',
+      color: 'multicolor',
+      name: piece.name,
+      seasons: ['all-season'],
+      occasions: ['everyday'],
+      timesWorn: 0,
+      isFavorite: false,
+      createdAt: '',
+      updatedAt: '',
+    };
+  }
+
+  return null;
 }
 
 function buildLayers(

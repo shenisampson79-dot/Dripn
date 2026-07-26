@@ -98,6 +98,12 @@ import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import {
+  CHAT_SCROLL_END_OFFSET,
+  computeNearBottom,
+  nextProgrammaticScrollLock,
+  shouldIgnoreScrollNearBottomUpdate,
+} from '@/utils/stylistChatScroll';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
   loadLastDecisionContinuity,
@@ -1435,6 +1441,8 @@ export default function AIStylistScreen() {
   const isNearBottomRef = useRef(true);
   /** Prefer sticking to latest while screen is focused (WhatsApp-style). */
   const stickToLatestRef = useRef(true);
+  /** Ignore near-bottom false negatives while programmatic scroll / layout settles. */
+  const programmaticScrollLockUntilRef = useRef(0);
   const messagesLenRef = useRef(0);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
@@ -1530,32 +1538,31 @@ export default function AIStylistScreen() {
     if (force) {
       isNearBottomRef.current = true;
       stickToLatestRef.current = true;
+      programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
     }
     const run = (anim: boolean) => {
       const list = flatListRef.current;
       if (!list) return;
-      // Prefer index align for tall image bubbles; fall back to scrollToEnd.
-      const lastIndex = messagesLenRef.current - 1;
-      if (lastIndex >= 0) {
-        try {
-          list.scrollToIndex({
-            index: lastIndex,
-            animated: anim,
-            viewPosition: 1,
-          });
-          return;
-        } catch {
-          /* index may not be measured yet */
-        }
+      // Offset jump is reliable with variable-height image bubbles (scrollToIndex often fails).
+      try {
+        list.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: anim });
+        return;
+      } catch {
+        /* fall through */
       }
-      list.scrollToEnd({ animated: anim });
+      try {
+        list.scrollToEnd({ animated: anim });
+      } catch {
+        /* list not ready */
+      }
     };
-    // Instant first pass, then retries as images / keyboard / sticky input settle.
+    // Instant first pass, then retries as history / images / keyboard settle.
     requestAnimationFrame(() => run(false));
     setTimeout(() => run(animated), 60);
     setTimeout(() => run(false), 180);
     setTimeout(() => run(false), 420);
     setTimeout(() => run(false), 900);
+    setTimeout(() => run(false), 1600);
   }, []);
 
   const onChatScroll = useCallback((event: {
@@ -1565,9 +1572,17 @@ export default function AIStylistScreen() {
       layoutMeasurement: { height: number };
     };
   }) => {
+    if (shouldIgnoreScrollNearBottomUpdate(Date.now(), programmaticScrollLockUntilRef.current)) {
+      isNearBottomRef.current = true;
+      stickToLatestRef.current = true;
+      return;
+    }
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    const nearBottom =
-      contentOffset.y + layoutMeasurement.height >= contentSize.height - 140;
+    const nearBottom = computeNearBottom({
+      contentOffsetY: contentOffset.y,
+      layoutHeight: layoutMeasurement.height,
+      contentHeight: contentSize.height,
+    });
     isNearBottomRef.current = nearBottom;
     stickToLatestRef.current = nearBottom;
   }, []);
@@ -1577,8 +1592,9 @@ export default function AIStylistScreen() {
     useCallback(() => {
       stickToLatestRef.current = true;
       isNearBottomRef.current = true;
+      programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
       scrollChatToEnd(true, false);
-      const timers = [120, 350, 700, 1200].map((ms) =>
+      const timers = [80, 200, 450, 800, 1400, 2200].map((ms) =>
         setTimeout(() => scrollChatToEnd(true, false), ms),
       );
       return () => {
@@ -2211,6 +2227,9 @@ export default function AIStylistScreen() {
 
           if (recentMessages.length > 0) {
             // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
+            stickToLatestRef.current = true;
+            isNearBottomRef.current = true;
+            programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
             if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
               setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
               setShowQuickPrompts(true);
@@ -2218,6 +2237,9 @@ export default function AIStylistScreen() {
               setMessages(recentMessages);
               setShowQuickPrompts(false);
             }
+            setTimeout(() => scrollChatToEnd(true, false), 50);
+            setTimeout(() => scrollChatToEnd(true, false), 400);
+            setTimeout(() => scrollChatToEnd(true, false), 1000);
             return;
           }
         }
@@ -4099,20 +4121,8 @@ export default function AIStylistScreen() {
           keyboardDismissMode="interactive"
           onScroll={onChatScroll}
           scrollEventThrottle={16}
-          onScrollToIndexFailed={(info) => {
-            // Tall image bubbles often aren't measured yet — jump to end, then retry.
-            flatListRef.current?.scrollToEnd({ animated: false });
-            setTimeout(() => {
-              try {
-                flatListRef.current?.scrollToIndex({
-                  index: info.index,
-                  animated: false,
-                  viewPosition: 1,
-                });
-              } catch {
-                flatListRef.current?.scrollToEnd({ animated: false });
-              }
-            }, 120);
+          onScrollToIndexFailed={() => {
+            flatListRef.current?.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: false });
           }}
           onContentSizeChange={() => {
             // Keep WhatsApp-style stickiness while reading the live reply; don't yank
@@ -4124,6 +4134,7 @@ export default function AIStylistScreen() {
           onLayout={() => {
             if (stickToLatestRef.current) scrollChatToEnd(true, false);
           }}
+          removeClippedSubviews={false}
           style={styles.flatList}
         />
         <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={styles.inputSticky}>

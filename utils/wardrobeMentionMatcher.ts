@@ -346,8 +346,15 @@ export function capWardrobeVisualForAccess(
   if (!visual) return null;
   if (hasPaidMultiOutfitAccess(subscriptionTier)) return normalizeWardrobeVisual(visual) || visual;
 
+  const FREE_CHAT_MAX_LOOKS = 3;
   if (visual.layout === 'multi' && visual.outfits && visual.outfits.length > 1) {
-    return normalizeWardrobeVisual({ ...visual, outfits: visual.outfits.slice(0, 1) });
+    if (visual.outfits.length > FREE_CHAT_MAX_LOOKS) {
+      return normalizeWardrobeVisual({
+        ...visual,
+        outfits: visual.outfits.slice(0, FREE_CHAT_MAX_LOOKS),
+      });
+    }
+    return normalizeWardrobeVisual(visual) || visual;
   }
 
   return normalizeWardrobeVisual(visual);
