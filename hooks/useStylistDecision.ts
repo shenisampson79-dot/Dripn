@@ -911,6 +911,11 @@ export function useStylistDecision({
         decisionSessionId: sessionRef.current?.id,
         selectedContexts: activeContexts,
         eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
+        location: decisionType === 'event-outfit'
+          ? (eventDetails.venue?.trim()
+            || (contextNotes.match(/\b(?:in|at|near)\s+([A-Za-z][A-Za-z\s-]{2,40})\b/i)?.[1]?.trim())
+            || undefined)
+          : undefined,
         // Surprise Me ignores draft wardrobe picks — sending evaluate_outfit diverted
         // the server into the LLM catch → "Unable to submit / please resend".
         selectedWardrobeIds: surpriseMe

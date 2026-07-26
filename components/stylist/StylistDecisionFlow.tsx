@@ -50,6 +50,7 @@ const EVENT_TYPES = [
   { id: 'business', labelKey: 'stylistFlow.event.business' },
   { id: 'interview', labelKey: 'stylistFlow.event.interview' },
   { id: 'dinner', labelKey: 'stylistFlow.event.dinner' },
+  { id: 'hiking', labelKey: 'stylistFlow.event.hiking' },
   { id: 'other', labelKey: 'stylistFlow.event.other' },
 ];
 
@@ -1112,6 +1113,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 .replace(/^Wear this instead\s*[—–-]?\s*/i, '')
                 .trim();
             }
+            // Always present professional sentence case after lead strip / sanitise
+            recommendation = recommendation.replace(
+              /(^|[.!?]\s+|—\s*|–\s*)([a-z])/g,
+              (_, lead, ch) => `${lead}${ch.toUpperCase()}`,
+            );
             const headline = summary && !summaryIsNameList ? summary : null;
             const analysis = rejected
               ? recommendation

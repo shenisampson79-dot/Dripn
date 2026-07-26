@@ -72,7 +72,16 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
   text = rewriteStylistCtaJargon(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
-  return text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  // Post-transform editorial integrity (after any lead strip upstream)
+  text = text
+    .replace(/^(?:Wear this instead\s*[—–-]?\s*)+/i, '')
+    .trim();
+  text = text.replace(/(^|[.!?]\s+|—\s*|–\s*)([a-z])/g, (_, lead, ch) => `${lead}${String(ch).toUpperCase()}`);
+  if (text && !/^[A-ZÀ-ÖØ-Þ]/.test(text)) {
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  return text;
 }
 
 /** Singular role labels for outfit piece lists (Top, not Tops). */

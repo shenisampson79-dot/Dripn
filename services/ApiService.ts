@@ -2298,6 +2298,8 @@ class ApiService {
     decisionSessionId?: string;
     selectedContexts?: string[];
     eventDetails?: Record<string, string>;
+    /** Venue / trip place for weather (e.g. Wales). */
+    location?: string;
     selectedWardrobeIds?: Array<string | number>;
     /** Manual wardrobe picks: mixed categories = evaluate look; same category = pick one. */
     wardrobeSelectionMode?: 'evaluate_outfit' | 'pick_one';
