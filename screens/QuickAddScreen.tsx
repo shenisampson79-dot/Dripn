@@ -8,17 +8,13 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Feather } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -27,15 +23,17 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import { QuickAddTagItem, type QuickAddTagDraft } from '@/components/wardrobe/QuickAddTagItem';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import {
+  CATEGORY_LABELS,
+  COLOR_LABELS,
   ClothingCategory,
   ClothingColor,
   ClothingOccasion,
   ClothingSeason,
   useWardrobe,
 } from '@/contexts/WardrobeContext';
-import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import {
@@ -62,7 +60,6 @@ import {
 import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
 
 const FRAME_SIZE = 280;
-const RESULT_IMAGE = 240;
 const SUCCESS_GREEN = '#4CAF50';
 const SAMPLE_MS = 1100;
 const SAMPLE_WIDTH = 640;
@@ -74,26 +71,15 @@ type Props = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'QuickAdd'>;
 };
 
-type Draft = {
-  imageUri: string;
+type Draft = QuickAddTagDraft & {
   imageBase64?: string;
-  name: string;
-  category: ClothingCategory;
-  color: ClothingColor;
-  brand?: string;
   material?: string;
   seasons: ClothingSeason[];
   occasions: ClothingOccasion[];
-  chips: string[];
-  suggestions: string[];
-  confidence: ConfidenceBand;
   detectionConfidence?: number;
 };
 
-const COLOR_OPTIONS = [
-  'black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink',
-  'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor',
-];
+const COLOR_KEYS = Object.keys(COLOR_LABELS) as ClothingColor[];
 
 function asCategory(raw?: string | null): ClothingCategory {
   const n = normalizeWardrobeCategory(String(raw || 'tops'));
@@ -102,29 +88,17 @@ function asCategory(raw?: string | null): ClothingCategory {
 
 function asColor(raw?: string | null): ClothingColor {
   const c = String(raw || 'multicolor').toLowerCase().trim();
-  return (COLOR_OPTIONS.includes(c) ? c : 'multicolor') as ClothingColor;
+  return (COLOR_KEYS.includes(c as ClothingColor) ? c : 'multicolor') as ClothingColor;
 }
 
 function bandFromScores(detConf?: number, analysisConf?: number): ConfidenceBand {
   const score = Math.max(detConf ?? 0, analysisConf ?? 0);
-  if (score >= 0.85) return 'high';
-  if (score >= 0.55) return 'medium';
+  if (score >= 0.9) return 'high';
+  if (score >= 0.6) return 'medium';
   return 'low';
 }
 
-function titleForConfidence(band: ConfidenceBand): string {
-  if (band === 'low') return 'Not sure about this one';
-  return 'Looks good';
-}
-
-function subtextForConfidence(band: ConfidenceBand): string {
-  if (band === 'low') return 'You can fix it in a second';
-  if (band === 'medium') return 'You can edit anything';
-  return '';
-}
-
 export default function QuickAddScreen({ navigation }: Props) {
-  const { theme } = useTheme();
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { addItem, items: wardrobeItems } = useWardrobe();
@@ -146,7 +120,6 @@ export default function QuickAddScreen({ navigation }: Props) {
   const [flash, setFlash] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
-  const [editChip, setEditChip] = useState<{ index: number; value: string } | null>(null);
 
   stepRef.current = step;
 
@@ -176,31 +149,21 @@ export default function QuickAddScreen({ navigation }: Props) {
         || main?.category
         || 'tops',
     );
-    const color = asColor(main?.color);
+    // Never empty — always guess a colour + category so Save stays one tap.
+    const color = asColor(main?.color || 'multicolor');
     const brand = main?.brand ? String(main.brand) : undefined;
     const material = main?.material ? String(main.material) : undefined;
+    const seasons = resolveSeasonChips(main?.seasons || []) as ClothingSeason[];
+    const occasions = resolveOccasionChips(main?.occasions || []) as ClothingOccasion[];
+    const style = occasions[0] || 'everyday';
+    const colorLabel = COLOR_LABELS[color] || color;
+    const catLabel = CATEGORY_LABELS[category] || category;
     const name = sanitizeWardrobeItemName(
       analysis?.suggestedName
         || analysis?.analysis?.suggestedName
         || main?.description
-        || `${color} ${category}`.replace(/_/g, ' '),
-    ) || 'Wardrobe item';
-    const seasons = resolveSeasonChips(main?.seasons || []) as ClothingSeason[];
-    const occasions = resolveOccasionChips(main?.occasions || []) as ClothingOccasion[];
-    const tagChips = [
-      color !== 'multicolor' ? color : null,
-      category.replace(/_/g, ' '),
-      material || null,
-      brand || null,
-      occasions[0] || null,
-    ].filter(Boolean).map((s) => String(s)) as string[];
-
-    const suggestions = [
-      brand ? null : 'Uniqlo',
-      material ? null : 'Cotton',
-      seasons[0] ? null : 'Summer',
-      'Short sleeve',
-    ].filter(Boolean).map(String).slice(0, 3);
+        || `${brand ? `${brand} ` : ''}${colorLabel} ${catLabel}`,
+    ) || `${colorLabel} ${catLabel}`;
 
     const analysisConf = Number(
       analysis?.confidence
@@ -217,51 +180,12 @@ export default function QuickAddScreen({ navigation }: Props) {
       color,
       brand,
       material,
+      style,
       seasons,
-      occasions,
-      chips: Array.from(new Set(tagChips)).slice(0, 5),
-      suggestions,
+      occasions: occasions.length ? occasions : (['everyday'] as ClothingOccasion[]),
       confidence: bandFromScores(detectionConfidence, analysisConf),
       detectionConfidence,
     };
-  };
-
-  const applyChipEdit = (index: number, nextValue: string) => {
-    if (!draft) return;
-    const value = nextValue.trim();
-    if (!value) {
-      setDraft({
-        ...draft,
-        chips: draft.chips.filter((_, i) => i !== index),
-      });
-      setEditChip(null);
-      return;
-    }
-    const chips = [...draft.chips];
-    chips[index] = value;
-    const lower = value.toLowerCase();
-    let patch: Partial<Draft> = { chips };
-    if (COLOR_OPTIONS.includes(lower)) {
-      patch.color = lower as ClothingColor;
-    } else if (normalizeWardrobeCategory(lower)) {
-      patch.category = asCategory(lower);
-    } else if (index === 0 && draft.chips[0]?.toLowerCase() === draft.color) {
-      patch.color = asColor(lower);
-    }
-    setDraft({ ...draft, ...patch, name: sanitizeWardrobeItemName(draft.name) || draft.name });
-    setEditChip(null);
-  };
-
-  const addSuggestion = (label: string) => {
-    if (!draft) return;
-    if (draft.chips.some((c) => c.toLowerCase() === label.toLowerCase())) return;
-    setDraft({
-      ...draft,
-      chips: [...draft.chips, label].slice(0, 6),
-      suggestions: draft.suggestions.filter((s) => s !== label),
-      brand: !draft.brand && /uniqlo|nike|zara|h&m/i.test(label) ? label : draft.brand,
-      material: !draft.material && /cotton|wool|silk|linen|denim/i.test(label) ? label : draft.material,
-    });
   };
 
   const processCapturedUri = useCallback(async (
@@ -468,14 +392,23 @@ export default function QuickAddScreen({ navigation }: Props) {
       color: draft.color,
       brand: draft.brand,
       material: draft.material,
+      size: draft.size,
+      notes: draft.notes,
       seasons: draft.seasons.length ? draft.seasons : (['all-season'] as ClothingSeason[]),
-      occasions: draft.occasions.length ? draft.occasions : (['everyday'] as ClothingOccasion[]),
+      occasions: draft.style
+        ? ([draft.style, ...draft.occasions.filter((o) => o !== draft.style)].slice(0, 3) as ClothingOccasion[])
+        : (draft.occasions.length ? draft.occasions : (['everyday'] as ClothingOccasion[])),
       imageUri: draft.imageUri,
       originalImageUri: draft.imageUri,
       imageBase64: draft.imageBase64,
       imageProcessed: draft.imageUri.startsWith('http'),
       aiAnalyzed: true,
-      aiTags: draft.chips,
+      aiTags: [
+        CATEGORY_LABELS[draft.category],
+        COLOR_LABELS[draft.color],
+        draft.style,
+        draft.brand,
+      ].filter(Boolean) as string[],
       isFavorite: false,
       allowDuplicate: true,
     } as any);
@@ -530,160 +463,36 @@ export default function QuickAddScreen({ navigation }: Props) {
   }
 
   if (step === 'result' && draft) {
-    const sub = subtextForConfidence(draft.confidence);
     return (
-      <View style={[styles.root, { backgroundColor: theme.backgroundDefault, paddingTop: insets.top }]}>
-        <View style={styles.resultHeader}>
-          <Pressable
-            onPress={() => {
-              setDraft(null);
-              setHint('Center the item');
-              setFrameUi('idle');
-              controllerRef.current.reset();
-              setStep('camera');
-            }}
-            hitSlop={10}
-            style={styles.iconBtn}
-          >
-            <Feather name="arrow-left" size={22} color={theme.text} />
-          </Pressable>
-          <ThemedText type="h3">New Item</ThemedText>
-          <Pressable
-            onPress={() => {
-              Alert.alert('Item', undefined, [
-                {
-                  text: 'Retake',
-                  onPress: () => {
-                    setDraft(null);
-                    setHint('Center the item');
-                    setStep('camera');
-                    controllerRef.current.reset();
-                  },
-                },
-                { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
-                { text: 'Cancel', style: 'cancel' },
-              ]);
-            }}
-            hitSlop={10}
-            style={styles.iconBtn}
-          >
-            <Feather name="more-horizontal" size={22} color={theme.text} />
-          </Pressable>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.resultScroll} keyboardShouldPersistTaps="handled">
-          <Image
-            source={{ uri: draft.imageUri }}
-            style={[styles.resultImage, { backgroundColor: '#F5F5F5' }]}
-            contentFit="contain"
-          />
-          <ThemedText type="h2" style={styles.resultTitle}>
-            {titleForConfidence(draft.confidence)}
-          </ThemedText>
-          {sub ? (
-            <ThemedText type="caption" style={{ color: '#888', textAlign: 'center', marginTop: 4 }}>
-              {sub}
-            </ThemedText>
-          ) : null}
-          <ThemedText type="body" style={styles.resultName}>
-            {draft.name}
-          </ThemedText>
-
-          <View style={styles.chipRow}>
-            {draft.chips.map((chip, index) => (
-              <Pressable
-                key={`${chip}-${index}`}
-                onPress={() => setEditChip({ index, value: chip })}
-                onLongPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setDraft({ ...draft, chips: draft.chips.filter((_, i) => i !== index) });
-                }}
-                style={styles.chipSolid}
-              >
-                <ThemedText type="caption" style={styles.chipSolidText}>{chip}</ThemedText>
-              </Pressable>
-            ))}
-            <Pressable
-              onPress={() => setEditChip({ index: draft.chips.length, value: '' })}
-              style={[styles.chipSolid, styles.chipAdd]}
-            >
-              <ThemedText type="caption" style={styles.chipSolidText}>+ Add tag</ThemedText>
-            </Pressable>
-          </View>
-
-          {draft.suggestions.length > 0 ? (
-            <View style={styles.suggestBlock}>
-              <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
-                Suggestions
-              </ThemedText>
-              <View style={styles.chipRow}>
-                {draft.suggestions.map((s) => (
-                  <Pressable key={s} onPress={() => addSuggestion(s)} style={styles.chipSuggest}>
-                    <ThemedText type="caption" style={{ color: '#666' }}>{s}</ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        <View style={[styles.resultActions, { paddingBottom: insets.bottom + Spacing.md }]}>
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            style={[styles.saveBtn, { opacity: saving ? 0.6 : 1 }]}
-          >
-            <ThemedText type="body" style={styles.saveBtnText}>
-              {saving ? 'Saving…' : 'Save'}
-            </ThemedText>
-          </Pressable>
-          <Pressable onPress={handleImprove} disabled={saving} hitSlop={8}>
-            <ThemedText type="caption" style={styles.improveLink}>
-              Improve recognition (10s)
-            </ThemedText>
-          </Pressable>
-        </View>
-
-        <Modal visible={!!editChip} transparent animationType="fade" onRequestClose={() => setEditChip(null)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setEditChip(null)}>
-            <Pressable style={[styles.editSheet, { backgroundColor: theme.backgroundDefault }]} onPress={() => {}}>
-              <View style={styles.editSheetHeader}>
-                <TextInput
-                  autoFocus
-                  value={editChip?.value ?? ''}
-                  onChangeText={(v) => setEditChip((prev) => (prev ? { ...prev, value: v } : prev))}
-                  onSubmitEditing={() => {
-                    if (editChip) applyChipEdit(editChip.index, editChip.value);
-                  }}
-                  placeholder="Tag"
-                  placeholderTextColor="#999"
-                  style={[styles.editInput, { color: theme.text, borderColor: theme.border }]}
-                />
-                <Pressable onPress={() => setEditChip(null)} hitSlop={8}>
-                  <Feather name="x" size={20} color={theme.textSecondary} />
-                </Pressable>
-              </View>
-              <View style={styles.chipRow}>
-                {COLOR_OPTIONS.slice(0, 8).map((c) => (
-                  <Pressable
-                    key={c}
-                    onPress={() => editChip && applyChipEdit(editChip.index, c)}
-                    style={styles.chipSuggest}
-                  >
-                    <ThemedText type="caption">{c}</ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-              <Pressable
-                onPress={() => editChip && applyChipEdit(editChip.index, editChip.value)}
-                style={[styles.saveBtn, { marginTop: Spacing.md }]}
-              >
-                <ThemedText type="body" style={styles.saveBtnText}>Done</ThemedText>
-              </Pressable>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      </View>
+      <QuickAddTagItem
+        draft={draft}
+        saving={saving}
+        onChange={(next) => setDraft({ ...draft, ...next })}
+        onClose={() => {
+          setDraft(null);
+          setHint('Center the item');
+          setFrameUi('idle');
+          controllerRef.current.reset();
+          setStep('camera');
+        }}
+        onMenu={() => {
+          Alert.alert('Item', undefined, [
+            {
+              text: 'Retake',
+              onPress: () => {
+                setDraft(null);
+                setHint('Center the item');
+                setStep('camera');
+                controllerRef.current.reset();
+              },
+            },
+            { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+            { text: 'Cancel', style: 'cancel' },
+          ]);
+        }}
+        onSave={handleSave}
+        onImprove={handleImprove}
+      />
     );
   }
 
@@ -864,97 +673,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     color: '#FFF',
   },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    height: 56,
-  },
-  resultScroll: {
-    paddingBottom: Spacing.xl,
-    alignItems: 'center',
-  },
-  resultImage: {
-    width: RESULT_IMAGE,
-    height: RESULT_IMAGE,
-    borderRadius: 16,
-    marginTop: Spacing.md,
-  },
-  resultTitle: {
-    marginTop: Spacing.md,
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  resultName: {
-    textAlign: 'center',
-    fontWeight: '600',
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
-  },
-  chipSolid: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: '#EEEEEE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipAdd: {
-    backgroundColor: '#E8E8E8',
-  },
-  chipSolidText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#222',
-  },
-  chipSuggest: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  suggestBlock: {
-    marginTop: Spacing.lg,
-    width: '100%',
-    paddingHorizontal: Spacing.md,
-    alignItems: 'center',
-  },
-  resultActions: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  saveBtn: {
-    height: 52,
-    width: '100%',
-    borderRadius: 12,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  improveLink: {
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
-  },
   primaryBtn: {
     backgroundColor: LuxuryColors.gold,
     borderRadius: BorderRadius.md,
@@ -965,30 +683,5 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: LuxuryColors.midnight,
     fontWeight: '700',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  editSheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  editSheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  editInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontSize: 16,
   },
 });
