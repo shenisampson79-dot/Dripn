@@ -36,6 +36,8 @@ type Props = {
    * Required when opening from an already-visible Modal (e.g. Today's Outfit).
    */
   embedded?: boolean;
+  /** `replace` fills the parent sheet (preferred). `overlay` dims content above. */
+  embeddedLayout?: 'overlay' | 'replace';
 };
 
 export function SaveOutfitPromptModal({
@@ -49,6 +51,7 @@ export function SaveOutfitPromptModal({
   onSaved,
   onCustomSave,
   embedded = false,
+  embeddedLayout = 'overlay',
 }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
@@ -186,6 +189,9 @@ export function SaveOutfitPromptModal({
 
   if (embedded) {
     if (!visible) return null;
+    if (embeddedLayout === 'replace') {
+      return <View style={styles.embeddedReplace}>{body}</View>;
+    }
     return (
       <View style={styles.embeddedOverlay} pointerEvents="box-none">
         <View style={styles.embeddedSheet}>{body}</View>
@@ -222,6 +228,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     overflow: 'hidden',
+  },
+  embeddedReplace: {
+    flex: 1,
+    minHeight: 360,
   },
   header: {
     flexDirection: 'row',
