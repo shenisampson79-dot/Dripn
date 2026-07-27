@@ -310,12 +310,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     }
   }, [presentationGender, selectedCategory]);
 
-  const handleAddItem = () => {
+  /** Primary CTA — camera-first Quick Add (snap → tag → save). */
+  const handleQuickAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("AddWardrobeItem");
+    navigation.navigate("QuickAdd");
   };
 
-  const handleQuickAdd = () => {
+  /** Multi-photo bulk upload (kept separate from Quick Add). */
+  const handleBulkAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("BulkWardrobeUpload");
   };
@@ -674,7 +676,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
       <Pressable
-        onPress={handleQuickAdd}
+        onPress={handleBulkAdd}
         style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
       >
         <Feather name="layers" size={15} color="#FFFFFF" />
@@ -683,16 +685,16 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
       <Pressable
-        onPress={handleAddItem}
+        onPress={handleQuickAdd}
         style={({ pressed }) => [styles.quickActionChip, styles.quickActionChipPrimary, pressed && { opacity: 0.9 }]}
       >
-        <Feather name="plus" size={15} color={LUXURY_COLORS.midnight} />
+        <Feather name="camera" size={15} color={LUXURY_COLORS.midnight} />
         <ThemedText type="caption" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
-          {t('wardrobe.addItem') || 'Add Item'}
+          {t('wardrobe.quickAdd') || 'Quick Add'}
         </ThemedText>
       </Pressable>
     </View>
-  ), [handleQuickAdd, handleScanWardrobe, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
+  ), [handleBulkAdd, handleQuickAdd, handleScanWardrobe, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = itemHasProcessedCutout(item);
@@ -804,10 +806,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           end={{ x: 1, y: 0 }}
           style={styles.emptyButtonGradient}
         >
-          <Pressable onPress={handleAddItem} style={styles.emptyButtonInner}>
-            <Feather name="plus" size={18} color={LUXURY_COLORS.midnight} />
+          <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
+            <Feather name="camera" size={18} color={LUXURY_COLORS.midnight} />
             <ThemedText type="body" style={styles.emptyButtonText}>
-              Add {categoryLabel}
+              Quick Add {categoryLabel}
             </ThemedText>
           </Pressable>
         </LinearGradient>
@@ -852,18 +854,18 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         onPress={handleQuickAdd}
         style={[styles.emptyButtonSecondary, { borderColor: LUXURY_COLORS.gold }]}
       >
-        <Feather name="layers" size={18} color={LUXURY_COLORS.gold} />
+        <Feather name="camera" size={18} color={LUXURY_COLORS.gold} />
         <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
-          {t('wardrobe.quickAddMultiple') || 'Bulk Add Items'}
+          {t('wardrobe.quickAdd') || 'Quick Add'}
         </ThemedText>
       </Pressable>
       <Pressable
-        onPress={handleAddItem}
+        onPress={handleBulkAdd}
         style={[styles.emptyButtonSecondary, { borderColor: theme.border, marginTop: Spacing.sm }]}
       >
-        <Feather name="plus" size={18} color={theme.textSecondary} />
+        <Feather name="layers" size={18} color={theme.textSecondary} />
         <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: theme.textSecondary }}>
-          {t('wardrobe.addSingleItem') || 'Add Single Item'}
+          {t('wardrobe.bulkAdd') || 'Bulk Add'}
         </ThemedText>
       </Pressable>
     </View>

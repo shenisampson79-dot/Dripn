@@ -2532,6 +2532,8 @@
   "wardrobe.bgFixCompleteMessage": "Fixed {processed} item(s){failedPart}.",
   "wardrobe.bgRemovedSuccess": "Background removed successfully.",
   "wardrobe.bulkAdd": "Bulk Add",
+  "wardrobe.quickAdd": "Quick Add",
+  "wardrobe.quickAddSubtext": "Snap it now. Improve later.",
   "wardrobe.calendar14Day": "14-Day Calendar",
   "wardrobe.calendar30Day": "30-Day Calendar",
   "wardrobe.cameraAccessWasDeniedPleaseEnableItInSet": "Camera access was denied. Please enable it in Settings to take photos.",

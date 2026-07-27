@@ -2,6 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
+import QuickAddScreen from "@/screens/QuickAddScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import DigitizeWardrobeScreen from "@/screens/DigitizeWardrobeScreen";
@@ -25,6 +26,9 @@ import { DFYTier } from "@/services/DFYService";
 
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
+  /** Fast single-item capture: snap → tag → save. */
+  QuickAdd: undefined;
+  /** Full manual add / edit form (also used by Quick Add → Edit / Improve). */
   AddWardrobeItem: undefined;
   /** Outfit-engine scan (still used by Live Stylist → Still scan). */
   ScanWardrobe: undefined;
@@ -60,6 +64,15 @@ export default function WardrobeStackNavigator() {
         options={{
           title: t('navTitles.myWardrobe') || t('wardrobe.myWardrobe') || "My Wardrobe",
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="QuickAdd"
+        component={QuickAddScreen}
+        options={{
+          title: t('wardrobe.quickAdd') || "Quick Add",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
       <Stack.Screen
@@ -102,7 +115,7 @@ export default function WardrobeStackNavigator() {
         name="BulkWardrobeUpload"
         component={BulkWardrobeUploadScreen}
         options={{
-          title: t('navTitles.quickAddItems') || t('wardrobe.bulkUpload') || "Quick Add Items",
+          title: t('navTitles.bulkAddItems') || t('wardrobe.bulkUpload') || "Bulk Add",
           headerShown: false,
           presentation: "modal",
         }}

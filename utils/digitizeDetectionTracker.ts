@@ -64,6 +64,10 @@ export class DigitizeDetectionTracker {
     this.tracks = [];
   }
 
+  get promoteFrameTarget(): number {
+    return this.promoteHits;
+  }
+
   /**
    * Update with frame detections. Returns newly promoted tracks (emit once).
    */

@@ -56,6 +56,8 @@ import {
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
+import Svg, { Rect, Text as SvgText } from 'react-native-svg';
+import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
 import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,9 +66,77 @@ import { onboardingProfileService } from '@/services/OnboardingProfileService';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const LIVE_SAMPLE_MS = 1100;
 const LIVE_FRAME_WIDTH = 640;
+const STABLE_COLOR = '#2F9E6E';
+const UNSTABLE_COLOR = '#C45C4A';
 
 type DigitizeStep = 'capture' | 'scanning' | 'review' | 'saving';
 type CaptureMode = 'photo' | 'live';
+
+type LiveOverlayBox = TrackedDetection & { ready: boolean };
+
+function LiveStabilizeOverlay({
+  width,
+  height,
+  tracks,
+  promoteHits,
+}: {
+  width: number;
+  height: number;
+  tracks: LiveOverlayBox[];
+  promoteHits: number;
+}) {
+  if (width <= 0 || height <= 0) return null;
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]} pointerEvents="none">
+      <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
+        {tracks.map((track) => {
+          const [nx, ny, nw, nh] = track.bbox;
+          const x = nx * width;
+          const y = ny * height;
+          const w = nw * width;
+          const h = nh * height;
+          const ready = track.ready;
+          const stroke = ready ? STABLE_COLOR : UNSTABLE_COLOR;
+          const label = ready
+            ? 'Ready'
+            : `Hold ${Math.min(track.hits, promoteHits)}/${promoteHits}`;
+          return (
+            <React.Fragment key={track.trackId}>
+              <Rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                rx={6}
+                ry={6}
+                stroke={stroke}
+                strokeWidth={ready ? 3 : 2}
+                fill={ready ? 'rgba(47,158,110,0.14)' : 'rgba(196,92,74,0.12)'}
+              />
+              <Rect
+                x={x}
+                y={Math.max(0, y - 18)}
+                width={Math.min(w, 88)}
+                height={16}
+                rx={3}
+                fill={stroke}
+              />
+              <SvgText
+                x={x + 5}
+                y={Math.max(12, y - 5)}
+                fill="#FFFFFF"
+                fontSize="10"
+                fontWeight="700"
+              >
+                {label}
+              </SvgText>
+            </React.Fragment>
+          );
+        })}
+      </Svg>
+    </View>
+  );
+}
 
 type Props = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'DigitizeWardrobe'>;
@@ -150,6 +220,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [liveNote, setLiveNote] = useState('Point at a rail or drawer, then Start');
   const [liveAddedCount, setLiveAddedCount] = useState(0);
   const [autoSaveLive, setAutoSaveLive] = useState(true);
+  const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
+  const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -577,6 +649,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
       const onDevice = await detectGarmentsOnDevice(manipulated.uri);
       if (!onDevice?.length) {
+        setLiveTracks([]);
         // Fallback: one-shot cloud scan of the frame (costly — only when YOLO unavailable).
         if (!yoloStatus.available) {
           setLiveNote('On-device YOLO unavailable — use Photo mode for best results');
@@ -595,11 +668,24 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           bbox: d.bbox,
         })),
       );
-      setLiveNote(
-        promoted.length
-          ? `Captured ${promoted.length} stable piece${promoted.length === 1 ? '' : 's'}`
-          : `${onDevice.length} detected · stabilizing…`,
-      );
+      const promoteHits = trackerRef.current.promoteFrameTarget;
+      const snapshot = trackerRef.current.snapshot().map((track) => ({
+        ...track,
+        ready: track.promoted || track.hits >= promoteHits,
+      }));
+      setLiveTracks(snapshot);
+
+      const stabilizing = snapshot.filter((t) => !t.ready).length;
+      const readyCount = snapshot.filter((t) => t.ready).length;
+      if (promoted.length) {
+        setLiveNote(`Captured ${promoted.length} · green box = ready`);
+      } else if (readyCount > 0 && stabilizing === 0) {
+        setLiveNote('Green: ready — hold still while we save');
+      } else if (stabilizing > 0) {
+        setLiveNote(`Red: hold still · ${stabilizing} stabilizing${readyCount ? ` · ${readyCount} ready` : ''}`);
+      } else {
+        setLiveNote(`${onDevice.length} detected · stabilizing…`);
+      }
       for (const track of promoted) {
         await ingestLivePromotion(manipulated.uri, track);
       }
@@ -633,12 +719,14 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     trackerRef.current.reset();
     sessionSeenRef.current.clear();
     setLiveAddedCount(0);
+    setLiveTracks([]);
     setIsLive(true);
-    setLiveNote('Scanning… hold on pieces for a moment');
+    setLiveNote('Scanning… red = hold still · green = ready');
   };
 
   const stopLive = () => {
     setIsLive(false);
+    setLiveTracks([]);
     setLiveNote(liveAddedCount > 0 ? `Stopped · +${liveAddedCount} saved` : 'Stopped');
   };
 
@@ -686,7 +774,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
         {mode === 'photo'
           ? 'Photo a rail or drawer. We’ll detect pieces, skip duplicates, then add them to your wardrobe.'
-          : 'Live camera: hold on each piece until it stabilizes. Unique items save as you go.'}
+          : 'Live camera: red outline = hold still, green = ready to capture. Unique items save as you go.'}
       </ThemedText>
       {renderModeToggle()}
 
@@ -717,7 +805,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         </>
       ) : (
         <View style={styles.liveWrap}>
-          <View style={[styles.liveCameraBox, { borderColor: theme.border }]}>
+          <View
+            style={[styles.liveCameraBox, { borderColor: theme.border }]}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              setCameraLayout({ width, height });
+            }}
+          >
             {permission?.granted ? (
               <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mode="picture" />
             ) : (
@@ -727,6 +821,30 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 </ThemedText>
               </View>
             )}
+            {isLive ? (
+              <LiveStabilizeOverlay
+                width={cameraLayout.width}
+                height={cameraLayout.height}
+                tracks={liveTracks}
+                promoteHits={trackerRef.current.promoteFrameTarget}
+              />
+            ) : null}
+            {isLive ? (
+              <View style={styles.liveLegend}>
+                <View style={styles.liveLegendRow}>
+                  <View style={[styles.liveLegendSwatch, { backgroundColor: UNSTABLE_COLOR }]} />
+                  <ThemedText type="caption" style={styles.liveLegendText}>
+                    Hold still
+                  </ThemedText>
+                </View>
+                <View style={styles.liveLegendRow}>
+                  <View style={[styles.liveLegendSwatch, { backgroundColor: STABLE_COLOR }]} />
+                  <ThemedText type="caption" style={styles.liveLegendText}>
+                    Ready
+                  </ThemedText>
+                </View>
+              </View>
+            ) : null}
           </View>
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
             {liveNote}
@@ -1043,6 +1161,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     backgroundColor: '#111',
+  },
+  liveLegend: {
+    position: 'absolute',
+    left: Spacing.sm,
+    bottom: Spacing.sm,
+    flexDirection: 'row',
+    gap: Spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    zIndex: 3,
+  },
+  liveLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveLegendSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  liveLegendText: {
+    color: '#FFF',
+    fontWeight: '600',
   },
   captureActions: { gap: Spacing.sm },
   itemCard: {
