@@ -121,6 +121,33 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 
   const confirmedItems = useMemo(() => scanItems.filter(Boolean), [scanItems]);
 
+  /** Owned wardrobe only — used when "Include saved wardrobe pieces" is on. */
+  const ownedWardrobeCount = useMemo(
+    () => savedWardrobe.filter((it) => it.origin !== 'inspiration' && it.origin !== 'wishlist').length,
+    [savedWardrobe],
+  );
+
+  /**
+   * Hybrid merge: 1+ scanned pieces + enough wardrobe to reach 3 total.
+   * Scan-only: need 3 confirmed pieces in this photo.
+   */
+  const canGenerateLooks = useMemo(() => {
+    if (confirmedItems.length < 1) return false;
+    if (hybridMerge) {
+      return confirmedItems.length + ownedWardrobeCount >= 3;
+    }
+    return confirmedItems.length >= 3;
+  }, [confirmedItems.length, hybridMerge, ownedWardrobeCount]);
+
+  const generateBlockedHint = useMemo(() => {
+    if (canGenerateLooks) return null;
+    if (confirmedItems.length < 1) return 'Add at least one piece from your photo.';
+    if (hybridMerge) {
+      return `Need a few more pieces — scan another item, or add clothes to your wardrobe (${ownedWardrobeCount} saved).`;
+    }
+    return 'Scan at least 3 pieces in the photo, or turn on Include saved wardrobe pieces.';
+  }, [canGenerateLooks, confirmedItems.length, hybridMerge, ownedWardrobeCount]);
+
   const openSettings = async () => {
     try {
       await Linking.openSettings();
@@ -227,10 +254,13 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   };
 
   const handleGenerateOutfit = async () => {
-    if (confirmedItems.length < 3) {
+    if (!canGenerateLooks) {
       Alert.alert(
-        t('wardrobe.moreItemsNeeded') || 'More Items Needed',
-        'Confirm at least 3 items before generating outfits.',
+        t('wardrobe.moreItemsNeeded') || 'More pieces needed',
+        generateBlockedHint
+          || (hybridMerge
+            ? 'Turn on Include saved wardrobe pieces and make sure your wardrobe has a few items, or scan 3 pieces.'
+            : 'Confirm at least 3 items before generating outfits.'),
       );
       return;
     }
@@ -405,7 +435,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
-        Point your camera at a few pieces — we’ll find what’s usable and build up to 3 looks in seconds.
+        Point your camera at a few pieces — with wardrobe fill on, even 1–2 items can unlock up to 3 looks.
       </ThemedText>
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
@@ -511,7 +541,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         You have {confirmedItems.length} usable item{confirmedItems.length === 1 ? '' : 's'}
       </ThemedText>
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-        Quick check optional — then get up to 3 looks. Scene: {sceneType.replace(/_/g, ' ')}
+        {hybridMerge
+          ? 'Scan a couple of pieces — we’ll fill bottoms/shoes from your wardrobe and build up to 3 looks.'
+          : 'Quick check optional — scan at least 3 pieces for looks (or enable wardrobe fill below).'}
+        {' '}Scene: {sceneType.replace(/_/g, ' ')}
       </ThemedText>
       <FlatList
         data={confirmedItems}
@@ -521,7 +554,14 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
       />
       <View style={styles.mergeRow}>
-        <ThemedText type="body">Include saved wardrobe pieces</ThemedText>
+        <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+          <ThemedText type="body">Include saved wardrobe pieces</ThemedText>
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: 2 }}>
+            {hybridMerge
+              ? `On · ${ownedWardrobeCount} saved piece${ownedWardrobeCount === 1 ? '' : 's'} can complete the look`
+              : 'Off · need 3+ pieces in this photo'}
+          </ThemedText>
+        </View>
         <Switch
           value={hybridMerge}
           onValueChange={setHybridMerge}
@@ -535,10 +575,15 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         onSelect={setSelectedOccasion}
       />
       <View style={styles.footerActions}>
+        {generateBlockedHint ? (
+          <ThemedText type="caption" style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: Spacing.sm }}>
+            {generateBlockedHint}
+          </ThemedText>
+        ) : null}
         <Pressable
           onPress={handleGenerateOutfit}
-          disabled={isGenerating || confirmedItems.length < 3}
-          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || confirmedItems.length < 3 ? 0.5 : 1 }]}
+          disabled={isGenerating || !canGenerateLooks}
+          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || !canGenerateLooks ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
             {isGenerating ? 'Building looks…' : 'Show me 3 outfits'}
