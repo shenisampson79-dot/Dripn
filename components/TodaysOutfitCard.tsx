@@ -272,6 +272,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   /** Separate from outfit dismiss — empty-wardrobe guidance must reopen from the chip. */
   const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  /** True while handing off to Save modal so the chip does not flash. */
+  const [saveHandoff, setSaveHandoff] = useState(false);
+  /** After Save closes, restore the outfit sheet (iOS can't stack two Modals reliably). */
+  const restoreOutfitAfterSaveRef = useRef(false);
   const [wearBusy, setWearBusy] = useState(false);
   const [dailyState, setDailyState] = useState<TodaysOutfitDailyState | null>(null);
   const autoPopupCheckedRef = useRef(false);
@@ -895,7 +899,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const wearingToday = dailyState?.worn === true;
   const savedToday = dailyState?.saved === true;
   // Chip visibility is ONLY "is sheet/gap open" — never gated on loading.
-  const showReopenChip = Boolean(user) && !visible && !gapVisible && !showSaveModal;
+  const showReopenChip =
+    Boolean(user) && !visible && !gapVisible && !showSaveModal && !saveHandoff;
 
   if (!user) return null;
 
@@ -1162,20 +1167,25 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                 </View>
 
                 {itemIds.length > 0 && actionsEnabled ? (
-                  <View style={[styles.saveWrap, { zIndex: 10, elevation: 10 }]} pointerEvents="auto">
+                  <View style={styles.saveWrap}>
                     <Pressable
-                      style={[styles.saveBtn, { borderColor: theme.border, zIndex: 10, elevation: 10 }]}
+                      style={[styles.saveBtn, { borderColor: theme.border }]}
                       onPress={() => {
                         void traceTodaysOutfit('button_click', {
                           action: 'save',
                           outfitId: outfit?.id,
                         });
-                        // Full pageSheet Modal (sibling) — embedded replace collapsed the card to a bar.
-                        setShowSaveModal(true);
+                        // iOS: a second Modal under/behind Today's Outfit looks like a dead button.
+                        // Close the outfit sheet first, then present Save; restore on close.
+                        restoreOutfitAfterSaveRef.current = true;
+                        setSaveHandoff(true);
+                        setVisible(false);
+                        setTimeout(() => setShowSaveModal(true), 50);
                       }}
                       disabled={!actionsEnabled || wearBusy}
-                      pointerEvents="auto"
                       hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('savedOutfits.saveOutfit') || 'Save outfit'}
                     >
                       <Feather name="bookmark" size={16} color={theme.link} />
                       <ThemedText type="small" style={{ color: theme.text, fontWeight: '600' }}>
@@ -1199,7 +1209,14 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
         defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
         occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
-        onClose={() => setShowSaveModal(false)}
+        onClose={() => {
+          setShowSaveModal(false);
+          setSaveHandoff(false);
+          if (restoreOutfitAfterSaveRef.current) {
+            restoreOutfitAfterSaveRef.current = false;
+            setTimeout(() => setVisible(true), 50);
+          }
+        }}
         onSaved={() => {
           if (outfit?.id) {
             void setSavedDaily(outfit.id).then(setDailyState);
@@ -1213,6 +1230,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
             })
             .catch(() => {});
           setShowSaveModal(false);
+          setSaveHandoff(false);
+          if (restoreOutfitAfterSaveRef.current) {
+            restoreOutfitAfterSaveRef.current = false;
+            setTimeout(() => setVisible(true), 50);
+          }
         }}
       />
 

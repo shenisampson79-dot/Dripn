@@ -122,6 +122,8 @@ const cardSrc = readFileSync(
 assert.ok(cardSrc.includes('todaysOutfitDailyStore'));
 assert.ok(cardSrc.includes('TODAYS_OUTFIT_SUBTITLE_CONTRACT'));
 assert.ok(cardSrc.includes('setShowSaveModal(true)'));
+assert.ok(cardSrc.includes('restoreOutfitAfterSaveRef') || cardSrc.includes('saveHandoff'));
+assert.ok(cardSrc.includes('setVisible(false)'));
 assert.ok(!cardSrc.includes("setSheetMode('save')"));
 assert.ok(cardSrc.includes('waitForWardrobeItems'));
 assert.ok(cardSrc.includes('forceRefresh: false') || cardSrc.includes('forceRefresh: false,'));
