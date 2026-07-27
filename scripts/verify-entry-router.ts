@@ -1,5 +1,5 @@
 /**
- * Unified Entry Router — priority, queue, boot gate, reset plan.
+ * Unified Entry Router — priority, queue, boot gate, passive Today's Outfit.
  *
  * Run: npx tsx scripts/verify-entry-router.ts
  */
@@ -9,7 +9,6 @@ import { resolve } from 'node:path';
 
 import {
   assertNotificationBeatsDefaultRedirect,
-  buildTodaysOutfitResetState,
   canResolveIntents,
   enqueueIntentPure,
   flushIntentsPure,
@@ -67,26 +66,19 @@ assert.equal(
   true,
 );
 
-// Reset plan includes openToday + sibling tabs
-const reset = buildTodaysOutfitResetState() as any;
-assert.equal(reset.routes[0].name, 'StylistTab');
-assert.equal(reset.routes[0].state.routes[0].name, 'StylistHub');
-assert.equal(reset.routes[0].state.routes[0].params.openToday, true);
-assert.ok(reset.routes.some((r: any) => r.name === 'WardrobeTab'));
-
-// Source wiring — no direct navigate from notification install / App nudge
+// Source wiring — Today's Outfit is emit + ensure, not stack reset
 const notifySrc = readFileSync(
   resolve(__dirname, '../services/todaysOutfitLocalNotify.ts'),
   'utf8',
 );
 assert.ok(notifySrc.includes('onOpenIntent'));
 assert.ok(!notifySrc.includes('navigateToStylistHub'));
-assert.ok(!/opts\?\.navigateToStylistHub/.test(notifySrc));
 
 const appSrc = readFileSync(resolve(__dirname, '../App.tsx'), 'utf8');
+assert.ok(appSrc.includes('emitTodaysOutfitIntent'));
+assert.ok(appSrc.includes('ensureStylistHubVisible'));
 assert.ok(appSrc.includes('markAppStable'));
 assert.ok(appSrc.includes('flushIntents'));
-assert.ok(appSrc.includes('enqueueIntent'));
 assert.ok(!appSrc.includes('navigateToStylistHub'));
 assert.ok(!appSrc.includes('todaysOutfitNudgedRef'));
 
@@ -94,29 +86,31 @@ const cardSrc = readFileSync(
   resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
   'utf8',
 );
-assert.ok(cardSrc.includes('openToday'));
+assert.ok(cardSrc.includes('subscribeTodaysOutfitIntent'));
+assert.ok(cardSrc.includes('loadOutfit'));
 assert.ok(
   !cardSrc.includes("rootNav.navigate('StylistTab'"),
-  'card must not navigate — IRG owns navigation',
+  'card must not navigate — route ensure is passive',
 );
-
-const hubSrc = readFileSync(
-  resolve(__dirname, '../screens/StylistHubScreen.tsx'),
-  'utf8',
-);
-assert.ok(hubSrc.includes('openToday'));
-assert.ok(hubSrc.includes('route.params'));
 
 const routerSrc = readFileSync(
   resolve(__dirname, '../utils/appEntryRouter/index.ts'),
   'utf8',
 );
-assert.ok(routerSrc.includes('CommonActions.reset'));
-assert.ok(routerSrc.includes('buildTodaysOutfitResetState'));
+assert.ok(routerSrc.includes('emitTodaysOutfitIntent'));
+assert.ok(routerSrc.includes('ensureStylistHubVisible'));
+assert.ok(!routerSrc.includes('buildTodaysOutfitResetState'));
+
+const busSrc = readFileSync(
+  resolve(__dirname, '../utils/todaysOutfitIntentBus.ts'),
+  'utf8',
+);
+assert.ok(busSrc.includes('emitTodaysOutfitIntent'));
+assert.ok(busSrc.includes('subscribeTodaysOutfitIntent'));
 
 console.log('All entry-router checks passed.\n');
 console.log('  ✓ priority: today beats stylist/chat');
 console.log('  ✓ notification + deep-link normalize');
 console.log('  ✓ boot gate blocks early resolve');
-console.log('  ✓ reset plan opens StylistHub with openToday');
-console.log('  ✓ handlers enqueue only (no multi-writer navigate)\n');
+console.log('  ✓ OPEN_TODAYS_OUTFIT → emit + ensure (no reset)');
+console.log('  ✓ card owns loadOutfit via intent bus\n');

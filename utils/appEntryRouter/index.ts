@@ -10,17 +10,21 @@ import {
   type AppBootState,
   type AppIntent,
   buildStylistHubResetState,
-  buildTodaysOutfitResetState,
   canResolveIntents,
   enqueueIntentPure,
   flushIntentsPure,
   parseDeepLinkUrl,
   parseNotificationData,
 } from './types';
+import { emitTodaysOutfitIntent } from '@/utils/todaysOutfitIntentBus';
+import { ensureStylistHubVisible } from '@/utils/todaysOutfitEnsureRoute';
 
 export * from './types';
 
-type NavLike = Pick<NavigationContainerRef<any>, 'isReady' | 'dispatch'>;
+type NavLike = Pick<NavigationContainerRef<any>, 'isReady' | 'dispatch'> & {
+  navigate?: (...args: any[]) => void;
+  getCurrentRoute?: () => { name?: string } | undefined;
+};
 
 let bootState: AppBootState = 'BOOTING';
 let queue: AppIntent[] = [];
@@ -102,9 +106,9 @@ function executeIntent(intent: AppIntent, navigation: NavLike): boolean {
   if (intent.type === 'NONE') return false;
   try {
     if (intent.type === 'OPEN_TODAYS_OUTFIT') {
-      navigation.dispatch(
-        CommonActions.reset(buildTodaysOutfitResetState() as any),
-      );
+      // Passive: ensure screen visible + emit intent. Component owns loadOutfit.
+      emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
+      ensureStylistHubVisible(navigation as NavigationContainerRef<any>);
       return true;
     }
     if (intent.type === 'OPEN_STYLIST') {

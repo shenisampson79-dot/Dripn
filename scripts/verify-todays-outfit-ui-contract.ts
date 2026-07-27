@@ -1,5 +1,5 @@
 /**
- * Today's Outfit UI + state contracts (HQG).
+ * Today's Outfit UI + state contracts.
  *
  * Run: npx tsx scripts/verify-todays-outfit-ui-contract.ts
  */
@@ -114,30 +114,31 @@ assert.equal(reopenFail.pass, false);
 assert.equal(TODAYS_OUTFIT_LAYOUT_CONTRACT.noStackedModals, true);
 assert.equal(TODAYS_OUTFIT_LAYOUT_CONTRACT.wearDoesNotCloseCard, true);
 
-// --- Source wiring ---
+// --- Source wiring: sacred core loop ---
 const cardSrc = readFileSync(
   resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
   'utf8',
 );
 assert.ok(cardSrc.includes('todaysOutfitDailyStore'));
 assert.ok(cardSrc.includes('TODAYS_OUTFIT_SUBTITLE_CONTRACT'));
+assert.ok(cardSrc.includes('loadOutfit'));
+assert.ok(cardSrc.includes('subscribeTodaysOutfitIntent'));
 assert.ok(cardSrc.includes('setShowSaveModal(true)'));
 assert.ok(cardSrc.includes('restoreOutfitAfterSaveRef') || cardSrc.includes('saveHandoff'));
-assert.ok(cardSrc.includes('setVisible(false)'));
 assert.ok(!cardSrc.includes("setSheetMode('save')"));
-assert.ok(cardSrc.includes('waitForWardrobeItems'));
-assert.ok(cardSrc.includes('forceRefresh: false') || cardSrc.includes('forceRefresh: false,'));
+assert.ok(!cardSrc.includes('waitForWardrobeItems'), 'no wardrobe hydrate gate');
+assert.ok(!cardSrc.includes('useTodaysOutfitHqgGuard'), 'no HQG on card');
+assert.ok(!cardSrc.includes('getWardrobeReadinessMessage'));
 
 const storeSrc = readFileSync(
   resolve(__dirname, '../utils/todaysOutfitDailyStore.ts'),
   'utf8',
 );
 assert.ok(storeSrc.includes('mergeDailyState'));
-assert.ok(storeSrc.includes('runTodaysOutfitHqg'));
 
 console.log('All Today\'s Outfit UI contract checks passed.\n');
 console.log('  ✓ worn/saved survive hydrate merge');
-console.log('  ✓ wear HQG requires card open + Wearing today');
+console.log('  ✓ wear requires card open + Wearing today');
 console.log('  ✓ forbidden subtitle blocked');
 console.log('  ✓ reopen preserves worn label');
-console.log('  ✓ card source: SSOT + inline save + no close-on-wear\n');
+console.log('  ✓ card: loadOutfit + intent bus + save handoff; no wardrobe gate\n');

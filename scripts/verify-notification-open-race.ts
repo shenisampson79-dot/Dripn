@@ -127,9 +127,18 @@ const cardSrc = readFileSync(
   resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
   'utf8',
 );
-assert.ok(cardSrc.includes('modalAlreadyVisible') || cardSrc.includes('already open') || cardSrc.includes('Duplicate tap') || cardSrc.includes('visible && outfit'));
-assert.ok(cardSrc.includes('peekTodaysOutfitOpenPending'));
-assert.ok(cardSrc.includes('forceOpen'));
+assert.ok(cardSrc.includes('subscribeTodaysOutfitIntent'));
+assert.ok(cardSrc.includes('loadOutfit'));
+assert.ok(cardSrc.includes('openTodaysOutfit'));
+assert.ok(!cardSrc.includes('forceOpen'));
+assert.ok(!cardSrc.includes('peekTodaysOutfitOpenPending'));
+
+const busSrc = readFileSync(
+  resolve(__dirname, '../utils/todaysOutfitIntentBus.ts'),
+  'utf8',
+);
+assert.ok(busSrc.includes('emitTodaysOutfitIntent'));
+assert.ok(busSrc.includes('INTENT_TTL') || busSrc.includes('60_000'));
 
 console.log('All notification open-race checks passed.\n');
 console.log('  ✓ tap → slow load outside window → opens');
@@ -138,4 +147,4 @@ console.log('  ✓ cold start → opens');
 console.log('  ✓ stale intent expires');
 console.log('  ✓ duplicate arm deduped');
 console.log('  ✓ todays_outfit beats other notif types');
-console.log('  ✓ already-open skips re-drive\n');
+console.log('  ✓ card opens via intent bus → loadOutfit\n');

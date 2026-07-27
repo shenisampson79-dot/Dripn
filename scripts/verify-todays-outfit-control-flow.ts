@@ -60,8 +60,9 @@ async function main() {
   );
   assert.ok(cardSrc.includes('withTimeout'));
   assert.ok(cardSrc.includes('cancelOpenSession'));
-  assert.ok(cardSrc.includes('waitForWardrobeItems'));
+  assert.ok(cardSrc.includes('loadOutfit'));
   assert.ok(cardSrc.includes('setShowSaveModal(true)'));
+  assert.ok(!cardSrc.includes('waitForWardrobeItems'));
   assert.ok(!cardSrc.includes('useTodaysOutfitHqgGuard'));
   assert.ok(!cardSrc.includes("setSheetMode('save')"));
   assert.ok(/visible=\{visible\}/.test(cardSrc), 'sheet visibility must be only `visible`');

@@ -56,18 +56,17 @@ const cardSrc = readFileSync(
   resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
   'utf8',
 );
-assert.ok(cardSrc.includes('forceOpen'), 'card load must support forceOpen from notification');
-assert.ok(cardSrc.includes('openFromNotificationRef'), 'card must keep notification open across load races');
-assert.ok(
-  cardSrc.includes("load({ forceOpen: true })") || cardSrc.includes('forceOpen: true'),
-  'notification path must force-open the modal',
-);
+assert.ok(cardSrc.includes('subscribeTodaysOutfitIntent'), 'card must open from intent bus');
+assert.ok(cardSrc.includes('loadOutfit'), 'card must own loadOutfit');
+assert.ok(cardSrc.includes('openTodaysOutfit'), 'chip + intent share one open path');
 
 const appSrc = readFileSync(resolve(__dirname, '../App.tsx'), 'utf8');
 assert.ok(
   appSrc.includes('installTodaysOutfitNotificationOpenHandler'),
   'App must bootstrap notification → open Todays Outfit',
 );
+assert.ok(appSrc.includes('emitTodaysOutfitIntent'));
+assert.ok(appSrc.includes('ensureStylistHubVisible'));
 
 const memorySrc = readFileSync(resolve(__dirname, '../utils/styleMemory7d.ts'), 'utf8');
 assert.ok(memorySrc.includes('analyzeRotationVsYesterday'));

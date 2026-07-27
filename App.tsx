@@ -82,6 +82,8 @@ import {
   markAppStable,
   tryResolveImmediately,
 } from "@/utils/appEntryRouter";
+import { emitTodaysOutfitIntent } from "@/utils/todaysOutfitIntentBus";
+import { ensureStylistHubVisible } from "@/utils/todaysOutfitEnsureRoute";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -96,8 +98,11 @@ function NavigationContainerWithRef() {
   useEffect(() => {
     markAppHydrating();
     const uninstall = installTodaysOutfitNotificationOpenHandler({
-      // Enqueue only — never navigate from the notification listener.
+      // Emit + ensure screen only — never navigate/reset or call loadOutfit.
       onOpenIntent: () => {
+        emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
+        ensureStylistHubVisible(navigationRef.current);
+        // Keep IRG queue for cold-start flush (same emit is idempotent).
         enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
         const nav = navigationRef.current || getNavigationRef();
         tryResolveImmediately(nav);
@@ -228,6 +233,7 @@ function AppContent() {
     void (async () => {
       try {
         if (await peekTodaysOutfitOpenPending()) {
+          emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
           enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
         }
         markAppStable();

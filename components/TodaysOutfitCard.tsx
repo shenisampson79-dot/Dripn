@@ -39,16 +39,7 @@ import {
 } from '@/utils/todaysOutfitPrefs';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
-import {
-  consumeTodaysOutfitOpenPending,
-  isTodaysOutfitNotification,
-  markTodaysOutfitOpenPending,
-  peekTodaysOutfitOpenPending,
-  syncTodaysOutfitLocalNotification,
-} from '@/services/todaysOutfitLocalNotify';
-import { enqueueIntent, tryResolveImmediately } from '@/utils/appEntryRouter';
-import { getNavigationRef } from '@/components/ErrorFallback';
-import * as Notifications from 'expo-notifications';
+import { syncTodaysOutfitLocalNotification } from '@/services/todaysOutfitLocalNotify';
 import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
 import { dateKeyInTimeZone, TODAYS_OUTFIT_TIMEZONE } from '@/utils/todaysOutfitTime';
 import {
@@ -63,7 +54,10 @@ import {
   cancelOpenSession,
   withTimeout,
 } from '@/utils/todaysOutfitControlFlow';
-
+import {
+  consumeTodaysOutfitIntent,
+  subscribeTodaysOutfitIntent,
+} from '@/utils/todaysOutfitIntentBus';
 import {
   wardrobeReadyForTodaysOutfitAutoPopup,
 } from '@/utils/wardrobeOutfitReadiness';
@@ -73,7 +67,7 @@ type TodaysOutfitCardState = 'idle' | 'loading' | 'ready' | 'error';
 type Props = {
   onOpenStylist?: (prompt: string) => void;
   onRefresh?: () => void;
-  /** Route-param contract from Intent Resolution Gate — intent > heuristics. */
+  /** Legacy route param — treated exactly like a chip tap / intent. */
   openToday?: boolean;
 };
 
@@ -258,7 +252,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     planOutfit,
     markPlannedOutfitWorn,
     updatePlannedOutfit,
-    isLoading: wardrobeLoading,
   } = useWardrobe();
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
@@ -268,7 +261,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const [cardState, setCardState] = useState<TodaysOutfitCardState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   /** Separate from outfit dismiss — empty-wardrobe guidance must reopen from the chip. */
   const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -283,36 +275,13 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const actionOutfitIdRef = useRef<string | null>(null);
   /** Last local calendar day we loaded / showed — detects midnight rollover. */
   const activeDateKeyRef = useRef<string>(todayKey());
-  /** Notification tap / delivery must keep the modal open even if auto-window load races. */
-  const openFromNotificationRef = useRef(false);
-  /** Chip/manual open — concurrent auto load() must not hide the sheet or clear loading. */
-  const manualOpenRef = useRef(false);
   const loadGenRef = useRef(0);
   const visibleRef = useRef(false);
-  const outfitReadyRef = useRef(false);
   const wardrobeItemsRef = useRef(wardrobeItems);
-  const wardrobeLoadingRef = useRef(wardrobeLoading);
+  const userRef = useRef(user);
   wardrobeItemsRef.current = wardrobeItems;
-  wardrobeLoadingRef.current = wardrobeLoading;
+  userRef.current = user;
   visibleRef.current = visible;
-  outfitReadyRef.current = Boolean(outfit && cardState === 'ready');
-
-  /** Wait for wardrobe hydrate so generate sees real items (not an empty []). */
-  const waitForWardrobeItems = useCallback(async (maxMs = 10_000) => {
-    const started = Date.now();
-    while (Date.now() - started < maxMs) {
-      const loading = wardrobeLoadingRef.current;
-      const items = wardrobeItemsRef.current;
-      if (!loading && items.length > 0) return items;
-      if (!loading && items.length === 0) {
-        // Hydration finished empty — one short grace for late setItems.
-        await new Promise((r) => setTimeout(r, 250));
-        return wardrobeItemsRef.current;
-      }
-      await new Promise((r) => setTimeout(r, 150));
-    }
-    return wardrobeItemsRef.current;
-  }, []);
 
   const generating = cardState === 'loading';
   const actionsEnabled =
@@ -328,7 +297,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     setErrorMessage(null);
     setCardState('ready');
     void traceTodaysOutfit('render', { id: nextOutfit.id, pieceCount: nextPieces.length });
-    // Hydrate daily SSOT — merge preserves worn/saved across outfit id refresh.
+    // Persistence AFTER UI success — mirror only, never blocks generation.
     void hydrateDailyState(nextOutfit.id).then(async (merged) => {
       try {
         const legacy = await AsyncStorage.getItem(LEGACY_WORN_KEY_PREFIX + todayKey());
@@ -343,7 +312,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       }
       setDailyState(merged);
     });
-    // Rotation vs yesterday stays telemetry-only — never drive subtitle.
     void analyzeRotationVsYesterday(nextPieces, wardrobeItems).then((r) => {
       void traceTodaysOutfit('generate', {
         diversityTag: 'vs_yesterday',
@@ -359,99 +327,45 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     });
   }, [wardrobeItems]);
 
-  const load = useCallback(
-    async (
-      forceRefreshOrOpts:
-        | boolean
-        | { forceRefresh?: boolean; forceOpen?: boolean } = false,
-    ) => {
-      const forceRefresh =
-        typeof forceRefreshOrOpts === 'boolean'
-          ? forceRefreshOrOpts
-          : Boolean(forceRefreshOrOpts.forceRefresh);
-      const requestedForceOpen =
-        typeof forceRefreshOrOpts === 'boolean'
-          ? false
-          : Boolean(forceRefreshOrOpts.forceOpen);
-      const forceOpen =
-        requestedForceOpen
-        || openFromNotificationRef.current
-        || manualOpenRef.current
-        || (await peekTodaysOutfitOpenPending());
-      const isManual = forceRefresh || forceOpen;
+  /**
+   * Sacred core: tap → loadOutfit → render → act.
+   * Nothing outside may prevent this from running.
+   * No wardrobe hydrate wait. No HQG. No readiness gate.
+   */
+  const loadOutfit = useCallback(
+    async (opts: { open?: boolean; forceRefresh?: boolean } = {}) => {
+      const open = opts.open === true;
+      const forceRefresh = opts.forceRefresh === true;
       const gen = ++loadGenRef.current;
+      const stillCurrent = () => gen === loadGenRef.current;
+      const currentUser = userRef.current;
+
+      if (open) {
+        setVisible(true);
+        setGapVisible(false);
+        setShowSaveModal(false);
+      }
 
       setCardState('loading');
-      if (forceRefresh || forceOpen) {
-        setGapVisible(false);
-      }
       setErrorMessage(null);
 
-      const stillCurrent = () => gen === loadGenRef.current;
-
       try {
-        // Never false-fail readiness while wardrobe is still hydrating (empty []).
-        const items = await waitForWardrobeItems();
-        if (!stillCurrent()) return;
-
-        const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
-        const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(items);
-
-        if (!isManual) {
-          if (!paid || !readyForAuto) {
-            if (!stillCurrent()) return;
-            setOutfit(null);
-            setPieces([]);
-            actionOutfitIdRef.current = null;
-            // Never steal a manual/open sheet.
-            if (!manualOpenRef.current && !visibleRef.current) {
-              setVisible(false);
-            }
-            setGapVisible(false);
-            setCardState('idle');
-            return;
-          }
-        }
-
-        if (isManual && !paid) {
+        if (!hasPaidTodaysOutfitAccess(currentUser?.subscriptionTier)) {
           if (!stillCurrent()) return;
           setOutfit(null);
           setPieces([]);
           actionOutfitIdRef.current = null;
           setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
-          setVisible(false);
-          manualOpenRef.current = false;
-          setGapVisible(true);
           setCardState('error');
+          if (open) {
+            setVisible(false);
+            setGapVisible(true);
+          }
           return;
         }
 
-        const applyVisibility = async (wasDismissed: boolean) => {
-          if (!stillCurrent()) return;
-          const stillForce =
-            forceOpen
-            || openFromNotificationRef.current
-            || manualOpenRef.current
-            || (await peekTodaysOutfitOpenPending());
-          if (stillForce || isManual || manualOpenRef.current) {
-            setDismissed(false);
-            setVisible(true);
-            openFromNotificationRef.current = false;
-            await consumeTodaysOutfitOpenPending();
-            return;
-          }
-          try {
-            const prefs = await getTodaysOutfitPopupPrefs();
-            const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
-            setDismissed(wasDismissed);
-            setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
-          } catch {
-            setDismissed(false);
-            setVisible(true);
-          }
-        };
-
-        await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
+        const items = wardrobeItemsRef.current;
+        await onboardingProfileService.syncQuizGenderFromUserGender(currentUser?.gender);
         const profile = await onboardingProfileService.getProfile();
         if (!stillCurrent()) return;
 
@@ -459,19 +373,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           const cached = await resolveCachedTodaysOutfit({
             wardrobeItems: items,
             profile,
-            user,
+            user: currentUser,
           });
           if (!stillCurrent()) return;
           if (cached) {
             applyReadyOutfit(cached.outfit, cached.items);
-            try {
-              const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
-              const wasDismissed = dismissedToday === '1';
-              await applyVisibility(wasDismissed);
-            } catch {
-              setDismissed(false);
-              setVisible(true);
-            }
+            if (open) setVisible(true);
             onRefresh?.();
             return;
           }
@@ -481,7 +388,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           generateTodaysWardrobeOutfit({
             wardrobeItems: items,
             profile,
-            user,
+            user: currentUser,
             forceRefresh,
           }),
           TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
@@ -491,47 +398,40 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         if (!result.ok) {
           setErrorMessage(result.message || "Couldn't pick an outfit. Tap retry.");
           setCardState('error');
-          // Manual / open session: keep sheet open with retry — never silent-close.
-          if (isManual || manualOpenRef.current || visibleRef.current) {
-            setVisible(true);
-            setGapVisible(false);
-          } else {
-            setVisible(false);
-            setGapVisible(false);
-          }
+          if (open || visibleRef.current) setVisible(true);
           return;
         }
 
-        setGapVisible(false);
         applyReadyOutfit(result.outfit, result.items);
-
-        try {
-          const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
-          const wasDismissed = dismissedToday === '1';
-          await applyVisibility(wasDismissed);
-        } catch {
-          setDismissed(false);
-          setVisible(true);
-        }
-
+        if (open) setVisible(true);
         onRefresh?.();
       } catch (error) {
-        console.warn('[TodaysOutfitCard] load failed:', error);
+        console.warn('[TodaysOutfitCard] loadOutfit failed:', error);
         if (!stillCurrent()) return;
         setErrorMessage("Couldn't pick an outfit. Tap retry.");
         setCardState('error');
-        if (manualOpenRef.current || visibleRef.current) {
-          setVisible(true);
-          setGapVisible(false);
-        } else {
-          setVisible(false);
-          setGapVisible(false);
-        }
+        if (open || visibleRef.current) setVisible(true);
       }
     },
-    [wardrobeItems, user, onRefresh, applyReadyOutfit, waitForWardrobeItems],
+    [applyReadyOutfit, onRefresh],
   );
 
+  /** Chip / intent / openToday — same path. If already ready, just show. */
+  const openTodaysOutfit = useCallback(() => {
+    void traceTodaysOutfit('trigger', { source: 'chip_tap' });
+    consumeTodaysOutfitIntent();
+    if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
+      setVisible(true);
+      setGapVisible(false);
+      void hydrateDailyState(outfit.id).then(setDailyState).catch(() => {});
+      return;
+    }
+    void loadOutfit({ open: true });
+  }, [outfit, cardState, loadOutfit]);
+  const openTodaysOutfitRef = useRef(openTodaysOutfit);
+  openTodaysOutfitRef.current = openTodaysOutfit;
+
+  // Background hydrate on mount — never blocks chip tap.
   useEffect(() => {
     if (!user) {
       setCardState('idle');
@@ -539,98 +439,38 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     }
     activeDateKeyRef.current = todayKey();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
-    void load(false);
+    void loadOutfit({ open: false });
     void syncTodaysOutfitLocalNotification();
-  }, [user?.id, wardrobeItems.length]);
+  }, [user?.id]);
 
-  /** Intent Resolution Gate — force open until READY or explicit ERROR. */
-  useEffect(() => {
-    if (!openToday || !user) return;
-    openFromNotificationRef.current = true;
-    void (async () => {
-      try {
-        await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
-      } catch {
-        // ignore
-      }
-      setDismissed(false);
-      openTodaysOutfit();
-    })();
-  }, [openToday, user?.id]);
-
-  /** Local notification at Appear-at hour + open modal when tapped / delivered. */
+  // Intent bus: notifications / deep links are remote chip taps.
   useEffect(() => {
     if (!user) return;
+    return subscribeTodaysOutfitIntent((intent) => {
+      if (intent !== 'OPEN_TODAYS_OUTFIT') return;
+      void (async () => {
+        try {
+          await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
+        } catch {
+          // ignore
+        }
+        openTodaysOutfitRef.current();
+      })();
+    });
+  }, [user?.id]);
 
-    const openFromNotification = async () => {
-      // Duplicate tap / already-open: intent satisfied — don't churn load().
-      if (visibleRef.current && outfitReadyRef.current) {
-        await consumeTodaysOutfitOpenPending();
-        openFromNotificationRef.current = false;
-        return;
-      }
-
-      openFromNotificationRef.current = true;
-      await markTodaysOutfitOpenPending('tap');
-      // Do not navigate here — enqueue for IRG. If already mounted on hub, open card.
-      enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
-      tryResolveImmediately(getNavigationRef());
-      // Clear dismiss so the day's look can show again after a notification tap.
+  // Legacy route param — same as intent.
+  useEffect(() => {
+    if (!openToday || !user) return;
+    void (async () => {
       try {
         await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
       } catch {
         // ignore
       }
-      setDismissed(false);
-      setVisible(true);
-      // forceOpen keeps visibility even if a parallel mount load(false) finishes later.
-      void load({ forceOpen: true });
-    };
-
-    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
-      const data = notification.request.content.data as Record<string, unknown> | undefined;
-      if (isTodaysOutfitNotification(data)) {
-        void openFromNotification();
-      }
-    });
-    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
-      if (isTodaysOutfitNotification(data)) {
-        void openFromNotification();
-      }
-    });
-
-    void (async () => {
-      if (await consumeTodaysOutfitOpenPending()) {
-        await openFromNotification();
-        return;
-      }
-      try {
-        const last = await Notifications.getLastNotificationResponseAsync();
-        const data = last?.notification.request.content.data as Record<string, unknown> | undefined;
-        if (isTodaysOutfitNotification(data)) {
-          // Only honor if the response is from today (avoid reopening on every launch).
-          const when = last?.notification.date;
-          const notifDay =
-            typeof when === 'number'
-              ? todayKey(new Date(when * (when < 1e12 ? 1000 : 1)))
-              : when
-                ? todayKey(new Date(when))
-                : null;
-          if (notifDay === todayKey()) {
-            await openFromNotification();
-          }
-        }
-      } catch {
-        // ignore
-      }
+      openTodaysOutfitRef.current();
     })();
-
-    return () => {
-      receivedSub.remove();
-      responseSub.remove();
-    };
-  }, [user?.id, load]);
+  }, [openToday, user?.id]);
 
   useEffect(() => {
     if (!user || wardrobeItems.length < 4) return;
@@ -651,7 +491,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       if (dismissedToday === '1') return;
       const prefs = await getTodaysOutfitPopupPrefs();
       if (prefs.enabled && isWithinTodaysOutfitPopupWindow(prefs)) {
-        setDismissed(false);
         setVisible(true);
         void traceTodaysOutfit('trigger', {
           source: 'auto_popup',
@@ -673,12 +512,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     }
     activeDateKeyRef.current = today;
     autoPopupCheckedRef.current = false;
-    setDismissed(false);
     setVisible(false);
     setDailyState(null);
     void traceTodaysOutfit('trigger', { source: 'day_rollover', dateKey: today });
-    await load(false);
-  }, [load, maybeAutoOpenPopup]);
+    await loadOutfit({ open: false });
+  }, [loadOutfit, maybeAutoOpenPopup]);
 
   useEffect(() => {
     if (!outfit || autoPopupCheckedRef.current) return;
@@ -727,9 +565,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
     setShowSaveModal(false);
     setVisible(false);
-    setDismissed(true);
     setGapVisible(false);
-    manualOpenRef.current = false;
     const cancelled = cancelOpenSession({
       requestId: loadGenRef.current,
       hasReadyOutfit: Boolean(outfit && actionOutfitIdRef.current),
@@ -753,10 +589,16 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     const outfitSnap = outfit;
     const piecesSnap = pieces;
     void traceTodaysOutfit('button_click', { action: 'wear', outfitId: outfitSnap.id });
+
+    // Instant UI — persist is secondary / non-blocking for the label.
+    setDailyState((prev) =>
+      prev
+        ? { ...prev, worn: true, outfitId: outfitSnap.id }
+        : { date: todayKey(), outfitId: outfitSnap.id, worn: true, saved: false },
+    );
     setWearBusy(true);
 
     try {
-      // SSOT first — UI derives from this. NEVER close the card on wear.
       const next = await setWornDaily(outfitSnap.id);
       setDailyState(next);
 
@@ -826,61 +668,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   };
   const handleDismissGap = () => {
     setGapVisible(false);
-    manualOpenRef.current = false;
     loadGenRef.current += 1;
     setCardState(outfit && actionOutfitIdRef.current ? 'ready' : 'idle');
-  };
-
-  const openTodaysOutfit = () => {
-    void traceTodaysOutfit('trigger', { source: 'chip_tap' });
-    manualOpenRef.current = true;
-    setShowSaveModal(false);
-    setGapVisible(false);
-    setErrorMessage(null);
-    setDismissed(false);
-
-    if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
-      setVisible(true);
-      void hydrateDailyState(outfit.id).then(setDailyState).catch(() => {});
-      return;
-    }
-
-    if (!hasPaidTodaysOutfitAccess(user?.subscriptionTier)) {
-      setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
-      setVisible(false);
-      manualOpenRef.current = false;
-      setGapVisible(true);
-      setCardState('error');
-      return;
-    }
-
-    setVisible(true);
-    setCardState('loading');
-
-    void (async () => {
-      try {
-        const items = await waitForWardrobeItems();
-        const profile = await onboardingProfileService.getProfile();
-        const cached = await resolveCachedTodaysOutfit({
-          wardrobeItems: items,
-          profile,
-          user,
-        });
-        if (cached) {
-          applyReadyOutfit(cached.outfit, cached.items);
-          setVisible(true);
-          return;
-        }
-        // Prefer cache-friendly generate — do NOT clear cache on every chip tap.
-        await load({ forceRefresh: false, forceOpen: true });
-      } catch (error) {
-        console.warn('[TodaysOutfitCard] open failed:', error);
-        setErrorMessage("Couldn't pick an outfit. Tap retry.");
-        setCardState('error');
-        setVisible(true);
-        setGapVisible(false);
-      }
-    })();
   };
 
   const visualPieces = useMemo(
@@ -1042,10 +831,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                     </ThemedText>
                     <Pressable
                       onPress={() => {
-                        setErrorMessage(null);
-                        setCardState('loading');
-                        manualOpenRef.current = true;
-                        void load({ forceRefresh: true, forceOpen: true });
+                        void loadOutfit({ open: true, forceRefresh: true });
                       }}
                       style={[
                         styles.primaryBtn,
