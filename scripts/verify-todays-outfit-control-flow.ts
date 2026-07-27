@@ -58,20 +58,30 @@ async function main() {
     resolve(__dirname, '../components/TodaysOutfitCard.tsx'),
     'utf8',
   );
-  assert.ok(cardSrc.includes('useTodaysOutfitHqgGuard'));
   assert.ok(cardSrc.includes('withTimeout'));
   assert.ok(cardSrc.includes('cancelOpenSession'));
-  assert.ok(/visible=\{visible\}/.test(cardSrc), 'sheet visibility must be only `visible`');
   assert.ok(cardSrc.includes('waitForWardrobeItems'));
   assert.ok(cardSrc.includes('setShowSaveModal(true)'));
+  assert.ok(!cardSrc.includes('useTodaysOutfitHqgGuard'));
   assert.ok(!cardSrc.includes("setSheetMode('save')"));
+  assert.ok(/visible=\{visible\}/.test(cardSrc), 'sheet visibility must be only `visible`');
   assert.ok(cardSrc.includes("Couldn't pick an outfit. Tap retry."));
+
+  const genSrc = readFileSync(
+    resolve(__dirname, '../services/TodaysOutfitGenerator.ts'),
+    'utf8',
+  );
+  assert.ok(
+    genSrc.includes('no wardrobe-readiness gate') || genSrc.includes('Intentionally no wardrobe-readiness'),
+    'generator must not block on readiness gate',
+  );
+  assert.ok(!/getWardrobeReadinessMessage\(wardrobeItems\);\s*\n\s*if \(readiness\)/.test(genSrc));
 
   console.log('All control-flow checks passed.\n');
   console.log('  ✓ withTimeout rejects hung promises');
   console.log('  ✓ cancel invalidates request id');
-  console.log('  ✓ HQG kills closed+loading and open timeouts');
-  console.log('  ✓ chip + modal wired to visible only\n');
+  console.log('  ✓ HQG pure rules still pass');
+  console.log('  ✓ card: no HQG hook, save modal, no readiness gate in generator\n');
 }
 
 main().catch((err) => {

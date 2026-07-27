@@ -1165,10 +1165,9 @@ export async function generateTodaysWardrobeOutfit(params: {
     await traceTodaysOutfit('cache_miss', {});
   }
 
-  const readiness = getWardrobeReadinessMessage(wardrobeItems);
-  if (readiness) {
-    return { ok: false, reason: 'not_ready', message: readiness };
-  }
+  // Intentionally no wardrobe-readiness gate here: blocking on "3 tops / 3 bottoms / 3 shoes"
+  // caused false failures while items were still hydrating (tap failed, retry worked).
+  // Generate attempts immediately; empty/incomplete wardrobes fail in the allocator path.
 
   const popupPrefs = await getTodaysOutfitPopupPrefs();
   const userContext: OutfitUserContext = {

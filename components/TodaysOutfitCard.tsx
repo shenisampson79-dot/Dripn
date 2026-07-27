@@ -63,11 +63,8 @@ import {
   cancelOpenSession,
   withTimeout,
 } from '@/utils/todaysOutfitControlFlow';
-import { useTodaysOutfitHqgGuard } from '@/hooks/useTodaysOutfitHqgGuard';
 
 import {
-  countWardrobeOutfitBasics,
-  describeOutfitPlanningGap,
   wardrobeReadyForTodaysOutfitAutoPopup,
 } from '@/utils/wardrobeOutfitReadiness';
 
@@ -296,31 +293,22 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   visibleRef.current = visible;
   outfitReadyRef.current = Boolean(outfit && cardState === 'ready');
 
-  const bumpRequestId = useCallback(() => {
-    loadGenRef.current += 1;
-  }, []);
-
-  /** Wait for wardrobe hydrate so we don't false-fail "add 3 tops…" on empty items. */
+  /** Wait for wardrobe hydrate so generate sees real items (not an empty []). */
   const waitForWardrobeItems = useCallback(async (maxMs = 10_000) => {
     const started = Date.now();
-    while (
-      wardrobeLoadingRef.current
-      && wardrobeItemsRef.current.length === 0
-      && Date.now() - started < maxMs
-    ) {
+    while (Date.now() - started < maxMs) {
+      const loading = wardrobeLoadingRef.current;
+      const items = wardrobeItemsRef.current;
+      if (!loading && items.length > 0) return items;
+      if (!loading && items.length === 0) {
+        // Hydration finished empty — one short grace for late setItems.
+        await new Promise((r) => setTimeout(r, 250));
+        return wardrobeItemsRef.current;
+      }
       await new Promise((r) => setTimeout(r, 150));
     }
     return wardrobeItemsRef.current;
   }, []);
-
-  useTodaysOutfitHqgGuard({
-    cardState,
-    isOpen: visible,
-    setCardState,
-    setErrorMessage,
-    bumpRequestId,
-    timeoutMs: TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
-  });
 
   const generating = cardState === 'loading';
   const actionsEnabled =
@@ -497,11 +485,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         if (!stillCurrent()) return;
 
         if (!result.ok) {
-          const message =
-            result.reason === 'not_ready'
-              ? describeOutfitPlanningGap(countWardrobeOutfitBasics(items), t)
-              : result.message;
-          setErrorMessage(message || "Couldn't pick an outfit. Tap retry.");
+          setErrorMessage(result.message || "Couldn't pick an outfit. Tap retry.");
           setCardState('error');
           // Manual / open session: keep sheet open with retry — never silent-close.
           if (isManual || manualOpenRef.current || visibleRef.current) {
@@ -541,7 +525,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         }
       }
     },
-    [wardrobeItems, user, onRefresh, t, applyReadyOutfit, waitForWardrobeItems],
+    [wardrobeItems, user, onRefresh, applyReadyOutfit, waitForWardrobeItems],
   );
 
   useEffect(() => {
