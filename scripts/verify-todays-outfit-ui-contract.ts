@@ -135,10 +135,9 @@ assert.ok(
 );
 assert.ok(cardSrc.includes('manualOpenRef'));
 assert.ok(cardSrc.includes('loadGenRef'));
+assert.ok(cardSrc.includes('useTodaysOutfitHqgGuard'));
 assert.ok(
-  /const showReopenChip =\s*Boolean\(user\) && !visible && !gapVisible && sheetMode === 'view';/.test(
-    cardSrc,
-  ),
+  /const showReopenChip = Boolean\(user\) && !visible && !gapVisible;/.test(cardSrc),
   'chip must stay available when sheet is closed (not gated on loading)',
 );
 

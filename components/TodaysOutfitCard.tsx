@@ -59,6 +59,12 @@ import {
   type TodaysOutfitDailyState,
   type TodaysOutfitSheetMode,
 } from '@/utils/todaysOutfitDailyStore';
+import {
+  TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
+  cancelOpenSession,
+  withTimeout,
+} from '@/utils/todaysOutfitControlFlow';
+import { useTodaysOutfitHqgGuard } from '@/hooks/useTodaysOutfitHqgGuard';
 
 import {
   countWardrobeOutfitBasics,
@@ -286,6 +292,19 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   visibleRef.current = visible;
   outfitReadyRef.current = Boolean(outfit && cardState === 'ready');
 
+  const bumpRequestId = useCallback(() => {
+    loadGenRef.current += 1;
+  }, []);
+
+  useTodaysOutfitHqgGuard({
+    cardState,
+    isOpen: visible,
+    setCardState,
+    setErrorMessage,
+    bumpRequestId,
+    timeoutMs: TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
+  });
+
   const generating = cardState === 'loading';
   const actionsEnabled =
     cardState === 'ready'
@@ -441,41 +460,32 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           }
         }
 
-        const GENERATE_TIMEOUT_MS = 40_000;
-        const result = await Promise.race([
+        const result = await withTimeout(
           generateTodaysWardrobeOutfit({
             wardrobeItems,
             profile,
             user,
             forceRefresh,
           }),
-          new Promise<{ ok: false; reason: 'generate_failed'; message: string }>((resolve) => {
-            setTimeout(
-              () =>
-                resolve({
-                  ok: false,
-                  reason: 'generate_failed',
-                  message: "Taking too long to pick today's outfit. Tap Today's outfit to try again.",
-                }),
-              GENERATE_TIMEOUT_MS,
-            );
-          }),
-        ]);
+          TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
+        );
         if (!stillCurrent()) return;
 
         if (!result.ok) {
-          setOutfit(null);
-          setPieces([]);
-          actionOutfitIdRef.current = null;
           const message =
             result.reason === 'not_ready'
               ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
               : result.message;
-          setErrorMessage(message || "Couldn't build today's outfit. Try again.");
-          setVisible(false);
-          manualOpenRef.current = false;
-          setGapVisible(isManual);
+          setErrorMessage(message || "Couldn't pick an outfit. Tap retry.");
           setCardState('error');
+          // Manual / open session: keep sheet open with retry — never silent-close.
+          if (isManual || manualOpenRef.current || visibleRef.current) {
+            setVisible(true);
+            setGapVisible(false);
+          } else {
+            setVisible(false);
+            setGapVisible(false);
+          }
           return;
         }
 
@@ -495,11 +505,15 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       } catch (error) {
         console.warn('[TodaysOutfitCard] load failed:', error);
         if (!stillCurrent()) return;
-        setErrorMessage("Couldn't build today's outfit. Try again.");
-        setVisible(false);
-        manualOpenRef.current = false;
-        setGapVisible(true);
+        setErrorMessage("Couldn't pick an outfit. Tap retry.");
         setCardState('error');
+        if (manualOpenRef.current || visibleRef.current) {
+          setVisible(true);
+          setGapVisible(false);
+        } else {
+          setVisible(false);
+          setGapVisible(false);
+        }
       }
     },
     [wardrobeItems, user, onRefresh, t, applyReadyOutfit],
@@ -516,7 +530,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     void syncTodaysOutfitLocalNotification();
   }, [user?.id, wardrobeItems.length]);
 
-  /** Intent Resolution Gate route param — open card regardless of time/dismiss heuristics. */
+  /** Intent Resolution Gate — force open until READY or explicit ERROR. */
   useEffect(() => {
     if (!openToday || !user) return;
     openFromNotificationRef.current = true;
@@ -527,8 +541,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         // ignore
       }
       setDismissed(false);
-      setVisible(true);
-      void load({ forceOpen: true });
+      openTodaysOutfit();
     })();
   }, [openToday, user?.id]);
 
@@ -703,12 +716,15 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     setSheetMode('view');
     setVisible(false);
     setDismissed(true);
+    setGapVisible(false);
     manualOpenRef.current = false;
-    // Cancel in-flight pick so a stuck "loading" cannot hide the chip forever.
-    loadGenRef.current += 1;
-    if (cardState === 'loading') {
-      setCardState(outfit && actionOutfitIdRef.current ? 'ready' : 'idle');
-    }
+    const cancelled = cancelOpenSession({
+      requestId: loadGenRef.current,
+      hasReadyOutfit: Boolean(outfit && actionOutfitIdRef.current),
+    });
+    loadGenRef.current = cancelled.nextRequestId;
+    setCardState(cancelled.nextCardState);
+    setErrorMessage(null);
     try {
       await AsyncStorage.setItem(DISMISS_KEY_PREFIX + todayKey(), '1');
     } catch {
@@ -852,11 +868,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         await load({ forceRefresh: true, forceOpen: true });
       } catch (error) {
         console.warn('[TodaysOutfitCard] open failed:', error);
-        setErrorMessage("Couldn't build today's outfit. Try again.");
-        setVisible(false);
-        manualOpenRef.current = false;
-        setGapVisible(true);
+        setErrorMessage("Couldn't pick an outfit. Tap retry.");
         setCardState('error');
+        setVisible(true);
+        setGapVisible(false);
       }
     })();
   };
@@ -876,10 +891,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   // Daily store is authority — plannedOutfits is never used to clear worn.
   const wearingToday = dailyState?.worn === true;
   const savedToday = dailyState?.saved === true;
-  // Chip must remain discoverable even if a pick is in flight or stuck.
-  // Only hide while the sheet/gap is actually on screen.
-  const showReopenChip =
-    Boolean(user) && !visible && !gapVisible && sheetMode === 'view';
+  // Chip visibility is ONLY "is sheet/gap open" — never gated on loading.
+  const showReopenChip = Boolean(user) && !visible && !gapVisible;
 
   if (!user) return null;
 
@@ -916,7 +929,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       ) : null}
 
       <Modal
-        visible={visible && (generating || Boolean(outfit))}
+        visible={visible}
         transparent
         animationType="fade"
         statusBarTranslucent
@@ -1037,7 +1050,37 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                   </View>
                 ) : null}
 
-                {generating || !outfit ? (
+                {cardState === 'error' ? (
+                  <View style={styles.loadingBox}>
+                    <Feather name="alert-circle" size={28} color="#C9A87C" />
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: theme.tabIconDefault,
+                        marginTop: Spacing.sm,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {errorMessage || "Couldn't pick an outfit. Tap retry."}
+                    </ThemedText>
+                    <Pressable
+                      onPress={() => {
+                        setErrorMessage(null);
+                        setCardState('loading');
+                        manualOpenRef.current = true;
+                        void load({ forceRefresh: true, forceOpen: true });
+                      }}
+                      style={[
+                        styles.primaryBtn,
+                        { backgroundColor: theme.link, marginTop: Spacing.lg, alignSelf: 'stretch' },
+                      ]}
+                    >
+                      <ThemedText type="body" style={{ color: theme.buttonText, fontWeight: '600' }}>
+                        {t('common.retry') || 'Retry'}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                ) : generating || !outfit ? (
                   <View style={styles.loadingBox}>
                     <ActivityIndicator color={theme.link} />
                     <ThemedText
