@@ -46,6 +46,7 @@ import {
   peekTodaysOutfitOpenPending,
   syncTodaysOutfitLocalNotification,
 } from '@/services/todaysOutfitLocalNotify';
+import { enqueueIntent, tryResolveImmediately } from '@/utils/appEntryRouter';
 import { getNavigationRef } from '@/components/ErrorFallback';
 import * as Notifications from 'expo-notifications';
 import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
@@ -62,6 +63,8 @@ type TodaysOutfitCardState = 'idle' | 'loading' | 'ready' | 'error';
 type Props = {
   onOpenStylist?: (prompt: string) => void;
   onRefresh?: () => void;
+  /** Route-param contract from Intent Resolution Gate — intent > heuristics. */
+  openToday?: boolean;
 };
 
 const DISMISS_KEY_PREFIX = '@dripn_todays_outfit_dismissed_';
@@ -234,7 +237,7 @@ function ZoomableOutfitVisual({
   );
 }
 
-export function TodaysOutfitCard({ onRefresh }: Props) {
+export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
@@ -449,6 +452,22 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
     void syncTodaysOutfitLocalNotification();
   }, [user?.id, wardrobeItems.length]);
 
+  /** Intent Resolution Gate route param — open card regardless of time/dismiss heuristics. */
+  useEffect(() => {
+    if (!openToday || !user) return;
+    openFromNotificationRef.current = true;
+    void (async () => {
+      try {
+        await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
+      } catch {
+        // ignore
+      }
+      setDismissed(false);
+      setVisible(true);
+      void load({ forceOpen: true });
+    })();
+  }, [openToday, user?.id]);
+
   /** Local notification at Appear-at hour + open modal when tapped / delivered. */
   useEffect(() => {
     if (!user) return;
@@ -463,14 +482,9 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
       openFromNotificationRef.current = true;
       await markTodaysOutfitOpenPending('tap');
-      try {
-        const rootNav = getNavigationRef();
-        if (rootNav?.isReady()) {
-          rootNav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
-        }
-      } catch {
-        // ignore
-      }
+      // Do not navigate here — enqueue for IRG. If already mounted on hub, open card.
+      enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
+      tryResolveImmediately(getNavigationRef());
       // Clear dismiss so the day's look can show again after a notification tap.
       try {
         await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());

@@ -106,12 +106,16 @@ function dateKeyFromMs(ms: number): string {
 }
 
 /**
- * App-root bootstrap: mark open-pending + route to Stylist hub when the
+ * App-root bootstrap: mark open-pending + enqueue intent when the
  * Today's Outfit notification is tapped (including cold start).
  * Survives process death via AsyncStorage; TTL drops stale intents.
+ *
+ * Hard rule: do NOT navigate here — only arm intent. Unified Entry Router
+ * resolves navigation once the app is STABLE.
  */
 export function installTodaysOutfitNotificationOpenHandler(opts?: {
-  navigateToStylistHub?: () => void;
+  /** Called after open-pending is armed — enqueue intent only (no navigate). */
+  onOpenIntent?: () => void;
 }): () => void {
   if (Platform.OS === 'web') return () => {};
 
@@ -127,7 +131,7 @@ export function installTodaysOutfitNotificationOpenHandler(opts?: {
 
     await markTodaysOutfitOpenPending(source);
     try {
-      opts?.navigateToStylistHub?.();
+      opts?.onOpenIntent?.();
     } catch {
       // ignore
     }

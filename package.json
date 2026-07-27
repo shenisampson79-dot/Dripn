@@ -23,6 +23,7 @@
     "verify:todays-outfit": "npx tsx scripts/verify-todays-outfit-hardening.ts",
     "verify:todays-outfit-rotation": "npx tsx scripts/verify-todays-outfit-date-rotation.ts",
     "verify:notification-open-race": "npx tsx scripts/verify-notification-open-race.ts",
+    "verify:entry-router": "npx tsx scripts/verify-entry-router.ts",
     "verify:allocator": "npx tsx scripts/verify-allocator-hard-validity.ts",
     "verify:weather-outerwear": "npx tsx scripts/verify-weather-outerwear.ts",
     "verify:favorites-weather": "npx tsx scripts/verify-favorites-weather.ts",

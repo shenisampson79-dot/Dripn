@@ -10,8 +10,11 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
+import type { NavigatorScreenParams } from "@react-navigation/native";
 import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
-import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
+import UserStylistStackNavigator, {
+  type UserStylistStackParamList,
+} from "@/navigation/UserStylistStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import SettingsStackNavigator from "@/navigation/SettingsStackNavigator";
 
@@ -22,7 +25,7 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 export type MainTabParamList = {
-  StylistTab: undefined;
+  StylistTab: NavigatorScreenParams<UserStylistStackParamList> | undefined;
   WardrobeTab: undefined;
   ProfileTab: undefined;
   SettingsTab: undefined;

@@ -33,7 +33,7 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 export type UserStylistStackParamList = {
-  StylistHub: undefined;
+  StylistHub: { openToday?: boolean; openOutfitId?: string } | undefined;
   AIStylist: {
     initialPrompt?: string;
     decisionContinuity?: DecisionContinuityPayload;

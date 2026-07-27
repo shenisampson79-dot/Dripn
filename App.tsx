@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, Modal, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { NavigationContainer, NavigationContainerRef, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, NavigationContainerRef } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -74,6 +74,14 @@ import {
   installTodaysOutfitNotificationOpenHandler,
   peekTodaysOutfitOpenPending,
 } from "@/services/todaysOutfitLocalNotify";
+import {
+  enqueueFromDeepLink,
+  enqueueIntent,
+  flushIntents,
+  markAppHydrating,
+  markAppStable,
+  tryResolveImmediately,
+} from "@/utils/appEntryRouter";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -86,16 +94,13 @@ function NavigationContainerWithRef() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
   useEffect(() => {
+    markAppHydrating();
     const uninstall = installTodaysOutfitNotificationOpenHandler({
-      navigateToStylistHub: () => {
+      // Enqueue only — never navigate from the notification listener.
+      onOpenIntent: () => {
+        enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
         const nav = navigationRef.current || getNavigationRef();
-        if (!nav?.isReady()) return;
-        try {
-          // Root is MainTabNavigator — StylistTab → UserStylist stack → StylistHub
-          nav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
-        } catch {
-          // ignore
-        }
+        tryResolveImmediately(nav);
       },
     });
     return uninstall;
@@ -153,8 +158,7 @@ function AppContent() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
-  const navigation = useNavigation<any>();
-  const todaysOutfitNudgedRef = useRef(false);
+  const entryResolvedRef = useRef(false);
 
   // Load the per-user tour flag once we know who is signed in
   useEffect(() => {
@@ -204,31 +208,40 @@ function AppContent() {
     setShowTour(true);
   }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading, isAuthenticating]);
 
-  // Notification taps should deterministically open Today’s Outfit even if
-  // the app boots into a default Stylist landing route first.
+  // Reset IRG gate when signed-out so next session can resolve again.
+  useEffect(() => {
+    if (!user?.id) {
+      entryResolvedRef.current = false;
+    }
+  }, [user?.id]);
+
+  // Intent Resolution Gate: single authoritative navigation after boot is STABLE.
+  // Notification / deep-link handlers only enqueue; this is the only flush point for cold start.
   useEffect(() => {
     if (!user?.id) return;
     if (!isAuthenticated) return;
     if (isLoading || isAuthenticating) return;
     if (!user?.hasCompletedOnboarding) return;
-    if (todaysOutfitNudgedRef.current) return;
+    if (entryResolvedRef.current) return;
 
-    todaysOutfitNudgedRef.current = true;
+    entryResolvedRef.current = true;
     void (async () => {
       try {
-        if (!(await peekTodaysOutfitOpenPending())) return;
-
-        const attempt = () => {
-          const nav = getNavigationRef();
-          if (!nav?.isReady?.()) return;
-          nav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
-        };
-
-        // Run once now and once after any immediate redirect settles.
-        attempt();
-        setTimeout(attempt, 500);
+        if (await peekTodaysOutfitOpenPending()) {
+          enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
+        }
+        markAppStable();
+        const nav = getNavigationRef();
+        if (nav?.isReady?.()) {
+          flushIntents(nav);
+        } else {
+          setTimeout(() => {
+            const n = getNavigationRef();
+            if (n?.isReady?.()) flushIntents(n);
+          }, 300);
+        }
       } catch {
-        // non-fatal
+        markAppStable();
       }
     })();
   }, [user?.id, isAuthenticated, isLoading, isAuthenticating, user?.hasCompletedOnboarding]);
@@ -381,6 +394,9 @@ export default function App() {
       } catch {
         /* ignore */
       }
+      // Deep links feed the same Intent Resolution Gate as push notifications.
+      enqueueFromDeepLink(url);
+      tryResolveImmediately(getNavigationRef());
     };
 
     Linking.getInitialURL().then(captureInvite);

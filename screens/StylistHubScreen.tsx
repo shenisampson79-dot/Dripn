@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RouteProp } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -24,6 +25,7 @@ import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNav
 
 type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
+  route: RouteProp<UserStylistStackParamList, "StylistHub">;
 };
 
 const GRID_GAP = Spacing.md;
@@ -215,7 +217,7 @@ function resolveTileGradient(featureId: string, index: number): GradientKey {
     || 'primary';
 }
 
-export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
+export default function StylistHubScreen({ navigation, route }: StylistHubScreenProps) {
   const { limits } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
   const { t } = useTranslations();
@@ -238,6 +240,15 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
       cancelled = true;
     };
   }, [navigation]);
+
+  // Consume one-shot openToday so remounts / tab revisits don't reopen forever.
+  React.useEffect(() => {
+    if (!route.params?.openToday) return;
+    const t = setTimeout(() => {
+      navigation.setParams({ openToday: undefined });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [route.params?.openToday, navigation]);
 
   const features = React.useMemo(() => {
     const base = getFeatures(t);
@@ -384,6 +395,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 
       {/* Overlay — does not affect Style Tools layout */}
       <TodaysOutfitCard
+        openToday={Boolean(route.params?.openToday)}
         onOpenStylist={(prompt) => navigation.navigate("AIStylist", { initialPrompt: prompt })}
       />
     </View>
