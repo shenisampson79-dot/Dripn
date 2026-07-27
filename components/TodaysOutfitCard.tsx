@@ -278,6 +278,9 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const activeDateKeyRef = useRef<string>(todayKey());
   /** Notification tap / delivery must keep the modal open even if auto-window load races. */
   const openFromNotificationRef = useRef(false);
+  /** Chip/manual open — concurrent auto load() must not hide the sheet or clear loading. */
+  const manualOpenRef = useRef(false);
+  const loadGenRef = useRef(0);
   const visibleRef = useRef(false);
   const outfitReadyRef = useRef(false);
   visibleRef.current = visible;
@@ -345,120 +348,159 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       const forceOpen =
         requestedForceOpen
         || openFromNotificationRef.current
+        || manualOpenRef.current
         || (await peekTodaysOutfitOpenPending());
       const isManual = forceRefresh || forceOpen;
+      const gen = ++loadGenRef.current;
 
       setCardState('loading');
-      if (forceRefresh) {
+      if (forceRefresh || forceOpen) {
         setGapVisible(false);
       }
       setErrorMessage(null);
 
-      const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
-      const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
+      const stillCurrent = () => gen === loadGenRef.current;
 
-      if (!isManual) {
-        if (!paid || !readyForAuto) {
+      try {
+        const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
+        const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
+
+        if (!isManual) {
+          if (!paid || !readyForAuto) {
+            if (!stillCurrent()) return;
+            setOutfit(null);
+            setPieces([]);
+            actionOutfitIdRef.current = null;
+            // Never steal a manual/open sheet.
+            if (!manualOpenRef.current && !visibleRef.current) {
+              setVisible(false);
+            }
+            setGapVisible(false);
+            setCardState('idle');
+            return;
+          }
+        }
+
+        if (isManual && !paid) {
+          if (!stillCurrent()) return;
           setOutfit(null);
           setPieces([]);
           actionOutfitIdRef.current = null;
+          setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
           setVisible(false);
-          setGapVisible(false);
-          setCardState('idle');
+          manualOpenRef.current = false;
+          setGapVisible(true);
+          setCardState('error');
           return;
         }
-      }
 
-      if (isManual && !paid) {
-        setOutfit(null);
-        setPieces([]);
-        actionOutfitIdRef.current = null;
-        setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
-        setVisible(false);
-        setGapVisible(true);
-        setCardState('error');
-        return;
-      }
-
-      const applyVisibility = async (wasDismissed: boolean) => {
-        // Re-check at apply time — a notification may have armed while this load was in flight.
-        const stillForce =
-          forceOpen
-          || openFromNotificationRef.current
-          || (await peekTodaysOutfitOpenPending());
-        if (stillForce || isManual) {
-          setDismissed(false);
-          setVisible(true);
-          openFromNotificationRef.current = false;
-          await consumeTodaysOutfitOpenPending();
-          return;
-        }
-        try {
-          const prefs = await getTodaysOutfitPopupPrefs();
-          const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
-          setDismissed(wasDismissed);
-          setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
-        } catch {
-          setDismissed(false);
-          setVisible(true);
-        }
-      };
-
-      await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
-      const profile = await onboardingProfileService.getProfile();
-
-      if (!forceRefresh) {
-        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
-        if (cached) {
-          applyReadyOutfit(cached.outfit, cached.items);
+        const applyVisibility = async (wasDismissed: boolean) => {
+          if (!stillCurrent()) return;
+          const stillForce =
+            forceOpen
+            || openFromNotificationRef.current
+            || manualOpenRef.current
+            || (await peekTodaysOutfitOpenPending());
+          if (stillForce || isManual || manualOpenRef.current) {
+            setDismissed(false);
+            setVisible(true);
+            openFromNotificationRef.current = false;
+            await consumeTodaysOutfitOpenPending();
+            return;
+          }
           try {
-            const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
-            const wasDismissed = dismissedToday === '1';
-            await applyVisibility(wasDismissed);
+            const prefs = await getTodaysOutfitPopupPrefs();
+            const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
+            setDismissed(wasDismissed);
+            setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
           } catch {
             setDismissed(false);
             setVisible(true);
           }
-          onRefresh?.();
+        };
+
+        await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
+        const profile = await onboardingProfileService.getProfile();
+        if (!stillCurrent()) return;
+
+        if (!forceRefresh) {
+          const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+          if (!stillCurrent()) return;
+          if (cached) {
+            applyReadyOutfit(cached.outfit, cached.items);
+            try {
+              const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
+              const wasDismissed = dismissedToday === '1';
+              await applyVisibility(wasDismissed);
+            } catch {
+              setDismissed(false);
+              setVisible(true);
+            }
+            onRefresh?.();
+            return;
+          }
+        }
+
+        const GENERATE_TIMEOUT_MS = 40_000;
+        const result = await Promise.race([
+          generateTodaysWardrobeOutfit({
+            wardrobeItems,
+            profile,
+            user,
+            forceRefresh,
+          }),
+          new Promise<{ ok: false; reason: 'generate_failed'; message: string }>((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  ok: false,
+                  reason: 'generate_failed',
+                  message: "Taking too long to pick today's outfit. Tap Today's outfit to try again.",
+                }),
+              GENERATE_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        if (!stillCurrent()) return;
+
+        if (!result.ok) {
+          setOutfit(null);
+          setPieces([]);
+          actionOutfitIdRef.current = null;
+          const message =
+            result.reason === 'not_ready'
+              ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
+              : result.message;
+          setErrorMessage(message || "Couldn't build today's outfit. Try again.");
+          setVisible(false);
+          manualOpenRef.current = false;
+          setGapVisible(isManual);
+          setCardState('error');
           return;
         }
-      }
 
-      const result = await generateTodaysWardrobeOutfit({
-        wardrobeItems,
-        profile,
-        user,
-        forceRefresh,
-      });
+        setGapVisible(false);
+        applyReadyOutfit(result.outfit, result.items);
 
-      if (!result.ok) {
-        setOutfit(null);
-        setPieces([]);
-        actionOutfitIdRef.current = null;
-        const message =
-          result.reason === 'not_ready'
-            ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
-            : result.message;
-        setErrorMessage(message);
+        try {
+          const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
+          const wasDismissed = dismissedToday === '1';
+          await applyVisibility(wasDismissed);
+        } catch {
+          setDismissed(false);
+          setVisible(true);
+        }
+
+        onRefresh?.();
+      } catch (error) {
+        console.warn('[TodaysOutfitCard] load failed:', error);
+        if (!stillCurrent()) return;
+        setErrorMessage("Couldn't build today's outfit. Try again.");
         setVisible(false);
-        setGapVisible(isManual);
+        manualOpenRef.current = false;
+        setGapVisible(true);
         setCardState('error');
-        return;
       }
-
-      setGapVisible(false);
-      applyReadyOutfit(result.outfit, result.items);
-
-      try {
-        const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
-        const wasDismissed = dismissedToday === '1';
-        await applyVisibility(wasDismissed);
-      } catch {
-        setDismissed(false);
-        setVisible(true);
-      }
-
-      onRefresh?.();
     },
     [wardrobeItems, user, onRefresh, t, applyReadyOutfit],
   );
@@ -661,6 +703,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     setSheetMode('view');
     setVisible(false);
     setDismissed(true);
+    manualOpenRef.current = false;
+    // Cancel in-flight pick so a stuck "loading" cannot hide the chip forever.
+    loadGenRef.current += 1;
+    if (cardState === 'loading') {
+      setCardState(outfit && actionOutfitIdRef.current ? 'ready' : 'idle');
+    }
     try {
       await AsyncStorage.setItem(DISMISS_KEY_PREFIX + todayKey(), '1');
     } catch {
@@ -750,46 +798,66 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   };
   const handleDismissGap = () => {
     setGapVisible(false);
+    manualOpenRef.current = false;
+    loadGenRef.current += 1;
+    setCardState(outfit && actionOutfitIdRef.current ? 'ready' : 'idle');
   };
 
   const openTodaysOutfit = () => {
     void traceTodaysOutfit('trigger', { source: 'chip_tap' });
+    manualOpenRef.current = true;
+    setSheetMode('view');
+    setGapVisible(false);
+    setErrorMessage(null);
+    setDismissed(false);
+
     if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
-      // Still re-validate cache diversity — stuck same look must regenerate.
+      setVisible(true);
+      void hydrateDailyState(outfit.id).then(setDailyState).catch(() => {});
+      // Re-validate cache in background — do not block showing the ready look.
       void (async () => {
-        const profile = await onboardingProfileService.getProfile();
-        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
-        if (cached && cached.outfit.id === outfit.id) {
-          setSheetMode('view');
-          setDismissed(false);
-          setVisible(true);
-          void hydrateDailyState(outfit.id).then(setDailyState);
-          return;
+        try {
+          const profile = await onboardingProfileService.getProfile();
+          const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+          if (cached && cached.outfit.id === outfit.id) return;
+          void load({ forceRefresh: true, forceOpen: true });
+        } catch {
+          // keep showing current ready outfit
         }
-        void load(true);
       })();
       return;
     }
+
     if (!hasPaidTodaysOutfitAccess(user?.subscriptionTier)) {
       setErrorMessage(PAID_PLAN_REQUIRED_MESSAGE);
+      setVisible(false);
+      manualOpenRef.current = false;
       setGapVisible(true);
       setCardState('error');
       return;
     }
-    setErrorMessage(null);
-    setGapVisible(false);
-    setDismissed(false);
+
     setVisible(true);
     setCardState('loading');
 
     void (async () => {
-      const profile = await onboardingProfileService.getProfile();
-      const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
-      if (cached) {
-        applyReadyOutfit(cached.outfit, cached.items);
-        return;
+      try {
+        const profile = await onboardingProfileService.getProfile();
+        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+        if (cached) {
+          applyReadyOutfit(cached.outfit, cached.items);
+          setVisible(true);
+          return;
+        }
+        await load({ forceRefresh: true, forceOpen: true });
+      } catch (error) {
+        console.warn('[TodaysOutfitCard] open failed:', error);
+        setErrorMessage("Couldn't build today's outfit. Try again.");
+        setVisible(false);
+        manualOpenRef.current = false;
+        setGapVisible(true);
+        setCardState('error');
       }
-      void load(true);
     })();
   };
 
@@ -808,9 +876,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   // Daily store is authority — plannedOutfits is never used to clear worn.
   const wearingToday = dailyState?.worn === true;
   const savedToday = dailyState?.saved === true;
-  // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
+  // Chip must remain discoverable even if a pick is in flight or stuck.
+  // Only hide while the sheet/gap is actually on screen.
   const showReopenChip =
-    Boolean(user) && !visible && !gapVisible && sheetMode === 'view' && cardState !== 'loading';
+    Boolean(user) && !visible && !gapVisible && sheetMode === 'view';
 
   if (!user) return null;
 

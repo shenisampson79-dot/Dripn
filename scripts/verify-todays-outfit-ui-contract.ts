@@ -133,7 +133,14 @@ assert.ok(
   !cardSrc.includes('setShowSaveModal(true)'),
   'must not use stacked save modal flag',
 );
-assert.ok(cardSrc.includes('embeddedLayout="replace"') || cardSrc.includes("embeddedLayout='replace'"));
+assert.ok(cardSrc.includes('manualOpenRef'));
+assert.ok(cardSrc.includes('loadGenRef'));
+assert.ok(
+  /const showReopenChip =\s*Boolean\(user\) && !visible && !gapVisible && sheetMode === 'view';/.test(
+    cardSrc,
+  ),
+  'chip must stay available when sheet is closed (not gated on loading)',
+);
 
 const storeSrc = readFileSync(
   resolve(__dirname, '../utils/todaysOutfitDailyStore.ts'),
