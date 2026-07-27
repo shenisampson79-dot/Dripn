@@ -99,11 +99,16 @@ import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 import {
+  beginProgrammaticScroll,
   CHAT_SCROLL_END_OFFSET,
+  createChatMachine,
   computeNearBottom,
-  nextProgrammaticScrollLock,
-  shouldIgnoreScrollNearBottomUpdate,
-} from '@/utils/stylistChatScroll';
+  endProgrammaticScroll,
+  mustScrollToBottom,
+  onChatFocus as onChatFocusMachine,
+  onUserScrollEvent,
+  transitionPhase,
+} from '@/utils/chatStateMachine';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
   loadLastDecisionContinuity,
@@ -1441,8 +1446,8 @@ export default function AIStylistScreen() {
   const isNearBottomRef = useRef(true);
   /** Prefer sticking to latest while screen is focused (WhatsApp-style). */
   const stickToLatestRef = useRef(true);
-  /** Ignore near-bottom false negatives while programmatic scroll / layout settles. */
-  const programmaticScrollLockUntilRef = useRef(0);
+  /** Deterministic chat state machine (scroll + phase invariants). */
+  const chatMachineRef = useRef(createChatMachine({ phase: 'READY' }));
   const messagesLenRef = useRef(0);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
@@ -1535,10 +1540,11 @@ export default function AIStylistScreen() {
 
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
     if (!force && !isNearBottomRef.current && !stickToLatestRef.current) return;
+    chatMachineRef.current = beginProgrammaticScroll(chatMachineRef.current);
+    chatMachineRef.current = transitionPhase(chatMachineRef.current, 'RENDERING');
     if (force) {
       isNearBottomRef.current = true;
       stickToLatestRef.current = true;
-      programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
     }
     const run = (anim: boolean) => {
       const list = flatListRef.current;
@@ -1563,6 +1569,10 @@ export default function AIStylistScreen() {
     setTimeout(() => run(false), 420);
     setTimeout(() => run(false), 900);
     setTimeout(() => run(false), 1600);
+    setTimeout(() => {
+      chatMachineRef.current = endProgrammaticScroll(chatMachineRef.current);
+      chatMachineRef.current = transitionPhase(chatMachineRef.current, 'SETTLED');
+    }, 1700);
   }, []);
 
   const onChatScroll = useCallback((event: {
@@ -1572,27 +1582,25 @@ export default function AIStylistScreen() {
       layoutMeasurement: { height: number };
     };
   }) => {
-    if (shouldIgnoreScrollNearBottomUpdate(Date.now(), programmaticScrollLockUntilRef.current)) {
-      isNearBottomRef.current = true;
-      stickToLatestRef.current = true;
-      return;
-    }
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const nearBottom = computeNearBottom({
       contentOffsetY: contentOffset.y,
       layoutHeight: layoutMeasurement.height,
       contentHeight: contentSize.height,
     });
-    isNearBottomRef.current = nearBottom;
-    stickToLatestRef.current = nearBottom;
+    chatMachineRef.current = onUserScrollEvent(chatMachineRef.current, nearBottom);
+    const locked = chatMachineRef.current.scroll === 'LOCKED_TO_BOTTOM';
+    isNearBottomRef.current = locked;
+    stickToLatestRef.current = locked;
   }, []);
 
   // Re-entering Stylist Chat always lands on the latest message (like WhatsApp).
   useFocusEffect(
     useCallback(() => {
+      chatMachineRef.current = transitionPhase(chatMachineRef.current, 'READY');
+      chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
       stickToLatestRef.current = true;
       isNearBottomRef.current = true;
-      programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
       scrollChatToEnd(true, false);
       const timers = [80, 200, 450, 800, 1400, 2200].map((ms) =>
         setTimeout(() => scrollChatToEnd(true, false), ms),
@@ -2229,7 +2237,8 @@ export default function AIStylistScreen() {
             // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
             stickToLatestRef.current = true;
             isNearBottomRef.current = true;
-            programmaticScrollLockUntilRef.current = nextProgrammaticScrollLock(Date.now());
+            chatMachineRef.current = transitionPhase(chatMachineRef.current, 'LOADING_HISTORY');
+            chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
             if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
               setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
               setShowQuickPrompts(true);
@@ -4127,12 +4136,12 @@ export default function AIStylistScreen() {
           onContentSizeChange={() => {
             // Keep WhatsApp-style stickiness while reading the live reply; don't yank
             // someone who scrolled up into history.
-            if (isNearBottomRef.current || stickToLatestRef.current || isTyping) {
+            if (mustScrollToBottom(chatMachineRef.current) || isNearBottomRef.current || stickToLatestRef.current || isTyping) {
               scrollChatToEnd(true, false);
             }
           }}
           onLayout={() => {
-            if (stickToLatestRef.current) scrollChatToEnd(true, false);
+            if (mustScrollToBottom(chatMachineRef.current) || stickToLatestRef.current) scrollChatToEnd(true, false);
           }}
           removeClippedSubviews={false}
           style={styles.flatList}
