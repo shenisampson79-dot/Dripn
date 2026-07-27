@@ -1687,7 +1687,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       }
       normalizedUpdates.itemIds = completedIds;
     }
-    const updatedPlanned = plannedOutfits.map(plan =>
+    const updatedPlanned = plannedOutfitsRef.current.map(plan =>
       plan.id === id ? { ...plan, ...normalizedUpdates } : plan
     );
     await savePlannedOutfits(updatedPlanned);
@@ -1696,7 +1696,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.log('[WardrobeContext] Backend PUT outfit-calendar failed (local already updated):', err);
     }
-  }, [plannedOutfits]);
+  }, []);
 
   const removeItemFromPlannedOutfit = useCallback(async (outfitId: string, wardrobeItemId: string) => {
     const removeKey = String(wardrobeItemId);
@@ -1714,7 +1714,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [plannedOutfits]);
 
   const markPlannedOutfitWorn = useCallback(async (id: string) => {
-    const plan = plannedOutfits.find(p => p.id === id);
+    // Always read from ref — callers often create/update a plan then mark worn
+    // in the same tick; stale React state would miss the new plan and overwrite it.
+    const current = plannedOutfitsRef.current;
+    const plan = current.find(p => p.id === id);
     if (plan) {
       if (plan.outfitId) {
         await markOutfitWorn(plan.outfitId);
@@ -1724,11 +1727,11 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-    const updatedPlanned = plannedOutfits.map(p =>
+    const updatedPlanned = current.map(p =>
       p.id === id ? { ...p, wasWorn: true } : p
     );
     await savePlannedOutfits(updatedPlanned);
-  }, [plannedOutfits, markOutfitWorn, markItemWorn]);
+  }, [markOutfitWorn, markItemWorn]);
 
   const getItemsByCategory = useCallback((category: ClothingCategory): WardrobeItem[] => {
     return items.filter(item => item.category === category);

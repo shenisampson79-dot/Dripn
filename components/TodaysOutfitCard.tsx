@@ -68,6 +68,7 @@ type Props = {
 };
 
 const DISMISS_KEY_PREFIX = '@dripn_todays_outfit_dismissed_';
+const WORN_KEY_PREFIX = '@dripn_todays_outfit_worn_';
 const PAID_PLAN_REQUIRED_MESSAGE =
   'A paid stylist plan is required for this feature.';
 
@@ -99,9 +100,8 @@ function todayKey(now: Date = new Date()) {
 }
 
 function todayPlannedDateIso() {
-  const now = new Date();
-  now.setHours(12, 0, 0, 0);
-  return now.toISOString();
+  // Persist with the same UK calendar day key used for dismiss / wear checks.
+  return `${todayKey()}T12:00:00.000Z`;
 }
 
 function formatTodayBadgeDate(locale?: string) {
@@ -261,8 +261,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [wearBusy, setWearBusy] = useState(false);
-  const [differsFromYesterday, setDiffersFromYesterday] = useState<boolean | null>(null);
-  const [rotationLabel, setRotationLabel] = useState<string | null>(null);
+  const [wornToday, setWornToday] = useState(false);
   const autoPopupCheckedRef = useRef(false);
   /** Buttons only act on this stable outfit id once cardState is ready. */
   const actionOutfitIdRef = useRef<string | null>(null);
@@ -289,9 +288,9 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     setErrorMessage(null);
     setCardState('ready');
     void traceTodaysOutfit('render', { id: nextOutfit.id, pieceCount: nextPieces.length });
+    // Rotation vs yesterday stays telemetry-only — never show "Different from yesterday"
+    // (users already expect daily change).
     void analyzeRotationVsYesterday(nextPieces, wardrobeItems).then((r) => {
-      setDiffersFromYesterday(r.hasPrior ? r.differsFromYesterday : null);
-      setRotationLabel(r.hasPrior ? r.label : null);
       void traceTodaysOutfit('generate', {
         diversityTag: 'vs_yesterday',
         differs: r.differsFromYesterday,
@@ -447,6 +446,14 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       return;
     }
     activeDateKeyRef.current = todayKey();
+    void (async () => {
+      try {
+        const worn = await AsyncStorage.getItem(WORN_KEY_PREFIX + todayKey());
+        setWornToday(worn === '1');
+      } catch {
+        setWornToday(false);
+      }
+    })();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
     void load(false);
     void syncTodaysOutfitLocalNotification();
@@ -585,6 +592,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     autoPopupCheckedRef.current = false;
     setDismissed(false);
     setVisible(false);
+    try {
+      const worn = await AsyncStorage.getItem(WORN_KEY_PREFIX + today);
+      setWornToday(worn === '1');
+    } catch {
+      setWornToday(false);
+    }
     void traceTodaysOutfit('trigger', { source: 'day_rollover', dateKey: today });
     await load(false);
   }, [load, maybeAutoOpenPopup]);
@@ -646,10 +659,20 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
   const handleWearThis = async () => {
     if (!actionsEnabled || !outfit?.id || wearBusy) return;
+    if (wornToday || wearingToday) {
+      // Already confirmed — keep sheet open with "Wearing today" state.
+      return;
+    }
     const outfitSnap = outfit;
     const piecesSnap = pieces;
     void traceTodaysOutfit('button_click', { action: 'wear', outfitId: outfitSnap.id });
     setWearBusy(true);
+    setWornToday(true);
+    try {
+      await AsyncStorage.setItem(WORN_KEY_PREFIX + todayKey(), '1');
+    } catch {
+      // ignore
+    }
 
     // Close the sheet BEFORE wardrobe/plan updates — those re-renders were flashing
     // through the open modal (glitch → home) before dismiss finished.
@@ -669,7 +692,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           outfitSnap?.dressFor,
           outfitSnap?.occasionType,
         );
-        const existing = plannedOutfits.find((plan) => plan.date.slice(0, 10) === todayKeyStr);
+        const existing = plannedOutfits.find((plan) => {
+          const d = (plan.date || '').slice(0, 10);
+          return d === todayKeyStr;
+        });
         let planId = existing?.id;
 
         if (existing) {
@@ -780,10 +806,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
   const itemIds = useMemo(() => wardrobeIdsFromPieces(pieces), [pieces]);
   const wearingToday = useMemo(() => {
+    if (wornToday) return true;
     const todayKeyStr = todayKey();
-    const plan = plannedOutfits.find((p) => p.date.slice(0, 10) === todayKeyStr);
+    const plan = plannedOutfits.find((p) => (p.date || '').slice(0, 10) === todayKeyStr);
     return Boolean(plan?.wasWorn);
-  }, [plannedOutfits]);
+  }, [plannedOutfits, wornToday]);
   // Keep the chip available for discovery; never auto-open a nag sheet on first launch.
   const showReopenChip =
     Boolean(user) && !visible && !gapVisible && !showSaveModal && cardState !== 'loading';
@@ -892,12 +919,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                   {t('home.todaysOutfit') || "Today's outfit"}
                 </ThemedText>
                 <ThemedText type="small" style={[styles.sub, { color: theme.tabIconDefault }]}>
-                  {rotationLabel
-                    || (differsFromYesterday === true
-                      ? 'Different from yesterday'
-                      : differsFromYesterday === false
-                        ? 'Limited wardrobe options today'
-                        : 'Curated from your wardrobe')}
+                  {t('home.curatedFromWardrobe') || 'Curated from your wardrobe'}
                 </ThemedText>
 
                 {weatherLine ? (
@@ -1036,8 +1058,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                           action: 'save',
                           outfitId: outfit?.id,
                         });
-                        // Keep outfit sheet mounted underneath — hiding it caused a
-                        // Stylist-home flash before SaveOutfitPromptModal appeared.
+                        // Embed save sheet inside this Modal — a second RN Modal
+                        // behind/under Today's Outfit made Save look dead.
                         setShowSaveModal(true);
                       }}
                       disabled={!actionsEnabled || wearBusy}
@@ -1052,31 +1074,32 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
               </View>
             </LinearGradient>
           </View>
+
+          <SaveOutfitPromptModal
+            embedded
+            visible={showSaveModal}
+            intent="save"
+            wardrobeItemIds={itemIds}
+            defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
+            defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
+            occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
+            onClose={() => {
+              setShowSaveModal(false);
+            }}
+            onSaved={() => {
+              apiService
+                .recordOutfitEngagement({
+                  items: itemIds,
+                  signal: 'saved',
+                  occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+                  contextSnapshot: { source: 'todays_outfit_card' },
+                })
+                .catch(() => {});
+              setShowSaveModal(false);
+            }}
+          />
         </GestureHandlerRootView>
       </Modal>
-
-      <SaveOutfitPromptModal
-        visible={showSaveModal}
-        intent="save"
-        wardrobeItemIds={itemIds}
-        defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
-        defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
-        occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
-        onClose={() => {
-          setShowSaveModal(false);
-        }}
-        onSaved={() => {
-          apiService
-            .recordOutfitEngagement({
-              items: itemIds,
-              signal: 'saved',
-              occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
-              contextSnapshot: { source: 'todays_outfit_card' },
-            })
-            .catch(() => {});
-          setShowSaveModal(false);
-        }}
-      />
 
       <Modal
         visible={Boolean(errorMessage) && !outfit && gapVisible && cardState === 'error'}

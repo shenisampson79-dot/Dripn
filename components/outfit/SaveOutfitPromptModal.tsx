@@ -31,6 +31,11 @@ type Props = {
   onClose: () => void;
   onSaved?: () => void;
   onCustomSave?: (data: { name: string; description?: string }) => Promise<void>;
+  /**
+   * When true, render as an absolute overlay (no nested Modal).
+   * Required when opening from an already-visible Modal (e.g. Today's Outfit).
+   */
+  embedded?: boolean;
 };
 
 export function SaveOutfitPromptModal({
@@ -43,6 +48,7 @@ export function SaveOutfitPromptModal({
   onClose,
   onSaved,
   onCustomSave,
+  embedded = false,
 }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
@@ -107,14 +113,8 @@ export function SaveOutfitPromptModal({
     }
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+  const body = (
+      <ThemedView style={[styles.container, { paddingTop: embedded ? Spacing.md : insets.top }]}>
         <View style={styles.header}>
           <Pressable onPress={onClose} disabled={isSaving}>
             <ThemedText type="body" style={{ color: theme.link }}>{t('common.cancel')}</ThemedText>
@@ -182,6 +182,25 @@ export function SaveOutfitPromptModal({
           />
         </ScrollView>
       </ThemedView>
+  );
+
+  if (embedded) {
+    if (!visible) return null;
+    return (
+      <View style={styles.embeddedOverlay} pointerEvents="box-none">
+        <View style={styles.embeddedSheet}>{body}</View>
+      </View>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {body}
     </Modal>
   );
 }
@@ -189,6 +208,20 @@ export function SaveOutfitPromptModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  embeddedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
+    elevation: 50,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  embeddedSheet: {
+    flex: 1,
+    marginTop: 48,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
