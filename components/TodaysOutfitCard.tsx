@@ -57,7 +57,6 @@ import {
   setSavedDaily,
   setWornDaily,
   type TodaysOutfitDailyState,
-  type TodaysOutfitSheetMode,
 } from '@/utils/todaysOutfitDailyStore';
 import {
   TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
@@ -262,6 +261,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     planOutfit,
     markPlannedOutfitWorn,
     updatePlannedOutfit,
+    isLoading: wardrobeLoading,
   } = useWardrobe();
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
@@ -274,7 +274,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const [dismissed, setDismissed] = useState(false);
   /** Separate from outfit dismiss — empty-wardrobe guidance must reopen from the chip. */
   const [gapVisible, setGapVisible] = useState(false);
-  const [sheetMode, setSheetMode] = useState<TodaysOutfitSheetMode>('view');
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [wearBusy, setWearBusy] = useState(false);
   const [dailyState, setDailyState] = useState<TodaysOutfitDailyState | null>(null);
   const autoPopupCheckedRef = useRef(false);
@@ -289,11 +289,28 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const loadGenRef = useRef(0);
   const visibleRef = useRef(false);
   const outfitReadyRef = useRef(false);
+  const wardrobeItemsRef = useRef(wardrobeItems);
+  const wardrobeLoadingRef = useRef(wardrobeLoading);
+  wardrobeItemsRef.current = wardrobeItems;
+  wardrobeLoadingRef.current = wardrobeLoading;
   visibleRef.current = visible;
   outfitReadyRef.current = Boolean(outfit && cardState === 'ready');
 
   const bumpRequestId = useCallback(() => {
     loadGenRef.current += 1;
+  }, []);
+
+  /** Wait for wardrobe hydrate so we don't false-fail "add 3 tops…" on empty items. */
+  const waitForWardrobeItems = useCallback(async (maxMs = 10_000) => {
+    const started = Date.now();
+    while (
+      wardrobeLoadingRef.current
+      && wardrobeItemsRef.current.length === 0
+      && Date.now() - started < maxMs
+    ) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    return wardrobeItemsRef.current;
   }, []);
 
   useTodaysOutfitHqgGuard({
@@ -381,8 +398,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       const stillCurrent = () => gen === loadGenRef.current;
 
       try {
+        // Never false-fail readiness while wardrobe is still hydrating (empty []).
+        const items = await waitForWardrobeItems();
+        if (!stillCurrent()) return;
+
         const paid = hasPaidTodaysOutfitAccess(user?.subscriptionTier);
-        const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
+        const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(items);
 
         if (!isManual) {
           if (!paid || !readyForAuto) {
@@ -443,7 +464,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         if (!stillCurrent()) return;
 
         if (!forceRefresh) {
-          const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+          const cached = await resolveCachedTodaysOutfit({
+            wardrobeItems: items,
+            profile,
+            user,
+          });
           if (!stillCurrent()) return;
           if (cached) {
             applyReadyOutfit(cached.outfit, cached.items);
@@ -462,7 +487,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
         const result = await withTimeout(
           generateTodaysWardrobeOutfit({
-            wardrobeItems,
+            wardrobeItems: items,
             profile,
             user,
             forceRefresh,
@@ -474,7 +499,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         if (!result.ok) {
           const message =
             result.reason === 'not_ready'
-              ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
+              ? describeOutfitPlanningGap(countWardrobeOutfitBasics(items), t)
               : result.message;
           setErrorMessage(message || "Couldn't pick an outfit. Tap retry.");
           setCardState('error');
@@ -516,7 +541,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         }
       }
     },
-    [wardrobeItems, user, onRefresh, t, applyReadyOutfit],
+    [wardrobeItems, user, onRefresh, t, applyReadyOutfit, waitForWardrobeItems],
   );
 
   useEffect(() => {
@@ -662,7 +687,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     autoPopupCheckedRef.current = false;
     setDismissed(false);
     setVisible(false);
-    setSheetMode('view');
     setDailyState(null);
     void traceTodaysOutfit('trigger', { source: 'day_rollover', dateKey: today });
     await load(false);
@@ -713,7 +737,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         .catch(() => {});
     }
 
-    setSheetMode('view');
+    setShowSaveModal(false);
     setVisible(false);
     setDismissed(true);
     setGapVisible(false);
@@ -822,7 +846,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const openTodaysOutfit = () => {
     void traceTodaysOutfit('trigger', { source: 'chip_tap' });
     manualOpenRef.current = true;
-    setSheetMode('view');
+    setShowSaveModal(false);
     setGapVisible(false);
     setErrorMessage(null);
     setDismissed(false);
@@ -830,17 +854,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
       setVisible(true);
       void hydrateDailyState(outfit.id).then(setDailyState).catch(() => {});
-      // Re-validate cache in background — do not block showing the ready look.
-      void (async () => {
-        try {
-          const profile = await onboardingProfileService.getProfile();
-          const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
-          if (cached && cached.outfit.id === outfit.id) return;
-          void load({ forceRefresh: true, forceOpen: true });
-        } catch {
-          // keep showing current ready outfit
-        }
-      })();
       return;
     }
 
@@ -858,14 +871,20 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
     void (async () => {
       try {
+        const items = await waitForWardrobeItems();
         const profile = await onboardingProfileService.getProfile();
-        const cached = await resolveCachedTodaysOutfit({ wardrobeItems, profile, user });
+        const cached = await resolveCachedTodaysOutfit({
+          wardrobeItems: items,
+          profile,
+          user,
+        });
         if (cached) {
           applyReadyOutfit(cached.outfit, cached.items);
           setVisible(true);
           return;
         }
-        await load({ forceRefresh: true, forceOpen: true });
+        // Prefer cache-friendly generate — do NOT clear cache on every chip tap.
+        await load({ forceRefresh: false, forceOpen: true });
       } catch (error) {
         console.warn('[TodaysOutfitCard] open failed:', error);
         setErrorMessage("Couldn't pick an outfit. Tap retry.");
@@ -892,7 +911,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const wearingToday = dailyState?.worn === true;
   const savedToday = dailyState?.saved === true;
   // Chip visibility is ONLY "is sheet/gap open" — never gated on loading.
-  const showReopenChip = Boolean(user) && !visible && !gapVisible;
+  const showReopenChip = Boolean(user) && !visible && !gapVisible && !showSaveModal;
 
   if (!user) return null;
 
@@ -934,10 +953,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         animationType="fade"
         statusBarTranslucent
         onRequestClose={() => {
-          if (sheetMode === 'save') {
-            setSheetMode('view');
-            return;
-          }
+          if (showSaveModal) return;
           handleDismiss();
         }}
       >
@@ -945,7 +961,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={() => {
-              if (sheetMode === 'save') return;
+              if (showSaveModal) return;
               handleDismiss();
             }}
             accessibilityLabel="Dismiss"
@@ -966,34 +982,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
               colors={isDark ? ['#2A2420', '#1A1614'] : ['#F5E6D3', '#FFF9F0']}
               style={styles.gradient}
             >
-              {sheetMode === 'save' ? (
-                <SaveOutfitPromptModal
-                  embedded
-                  embeddedLayout="replace"
-                  visible
-                  intent="save"
-                  wardrobeItemIds={itemIds}
-                  defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
-                  defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
-                  occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
-                  onClose={() => setSheetMode('view')}
-                  onSaved={() => {
-                    if (outfit?.id) {
-                      void setSavedDaily(outfit.id).then(setDailyState);
-                    }
-                    apiService
-                      .recordOutfitEngagement({
-                        items: itemIds,
-                        signal: 'saved',
-                        occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
-                        contextSnapshot: { source: 'todays_outfit_card' },
-                      })
-                      .catch(() => {});
-                    setSheetMode('view');
-                  }}
-                />
-              ) : (
-                <>
               <View style={styles.sheetHeader}>
                 <View style={styles.badge}>
                   <Feather name="sun" size={14} color="#C9A87C" />
@@ -1198,8 +1186,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                           action: 'save',
                           outfitId: outfit?.id,
                         });
-                        // Inline sheet mode — NEVER open a second Modal.
-                        setSheetMode('save');
+                        // Full pageSheet Modal (sibling) — embedded replace collapsed the card to a bar.
+                        setShowSaveModal(true);
                       }}
                       disabled={!actionsEnabled || wearBusy}
                       pointerEvents="auto"
@@ -1215,12 +1203,34 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                   </View>
                 ) : null}
               </View>
-                </>
-              )}
             </LinearGradient>
           </View>
         </GestureHandlerRootView>
       </Modal>
+
+      <SaveOutfitPromptModal
+        visible={showSaveModal}
+        intent="save"
+        wardrobeItemIds={itemIds}
+        defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
+        defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
+        occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
+        onClose={() => setShowSaveModal(false)}
+        onSaved={() => {
+          if (outfit?.id) {
+            void setSavedDaily(outfit.id).then(setDailyState);
+          }
+          apiService
+            .recordOutfitEngagement({
+              items: itemIds,
+              signal: 'saved',
+              occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+              contextSnapshot: { source: 'todays_outfit_card' },
+            })
+            .catch(() => {});
+          setShowSaveModal(false);
+        }}
+      />
 
       <Modal
         visible={Boolean(errorMessage) && !outfit && gapVisible && cardState === 'error'}

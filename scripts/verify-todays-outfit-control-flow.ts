@@ -62,10 +62,9 @@ async function main() {
   assert.ok(cardSrc.includes('withTimeout'));
   assert.ok(cardSrc.includes('cancelOpenSession'));
   assert.ok(/visible=\{visible\}/.test(cardSrc), 'sheet visibility must be only `visible`');
-  assert.ok(
-    /const showReopenChip = Boolean\(user\) && !visible && !gapVisible;/.test(cardSrc),
-    'chip must not gate on loading/sheetMode',
-  );
+  assert.ok(cardSrc.includes('waitForWardrobeItems'));
+  assert.ok(cardSrc.includes('setShowSaveModal(true)'));
+  assert.ok(!cardSrc.includes("setSheetMode('save')"));
   assert.ok(cardSrc.includes("Couldn't pick an outfit. Tap retry."));
 
   console.log('All control-flow checks passed.\n');

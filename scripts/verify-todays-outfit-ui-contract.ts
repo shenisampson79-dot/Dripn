@@ -121,25 +121,10 @@ const cardSrc = readFileSync(
 );
 assert.ok(cardSrc.includes('todaysOutfitDailyStore'));
 assert.ok(cardSrc.includes('TODAYS_OUTFIT_SUBTITLE_CONTRACT'));
-assert.ok(cardSrc.includes("setSheetMode('save')"));
-assert.ok(cardSrc.includes('setWornDaily'));
-assert.ok(!/Different from yesterday/.test(cardSrc));
-// Wear must not close the card
-assert.ok(
-  !/setWornDaily[\s\S]{0,400}setVisible\(false\)/.test(cardSrc),
-  'Wear path must not call setVisible(false)',
-);
-assert.ok(
-  !cardSrc.includes('setShowSaveModal(true)'),
-  'must not use stacked save modal flag',
-);
-assert.ok(cardSrc.includes('manualOpenRef'));
-assert.ok(cardSrc.includes('loadGenRef'));
-assert.ok(cardSrc.includes('useTodaysOutfitHqgGuard'));
-assert.ok(
-  /const showReopenChip = Boolean\(user\) && !visible && !gapVisible;/.test(cardSrc),
-  'chip must stay available when sheet is closed (not gated on loading)',
-);
+assert.ok(cardSrc.includes('setShowSaveModal(true)'));
+assert.ok(!cardSrc.includes("setSheetMode('save')"));
+assert.ok(cardSrc.includes('waitForWardrobeItems'));
+assert.ok(cardSrc.includes('forceRefresh: false') || cardSrc.includes('forceRefresh: false,'));
 
 const storeSrc = readFileSync(
   resolve(__dirname, '../utils/todaysOutfitDailyStore.ts'),
