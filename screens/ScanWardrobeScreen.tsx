@@ -357,17 +357,43 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         });
         return;
       }
-      const local = findLocalWardrobeDuplicates(confirmedItems.map(sessionItemToWardrobeItem), savedWardrobe);
-      if (local.isDuplicate && local.matches.length > 0) {
+      const localMatches = confirmedItems.flatMap((item) =>
+        findLocalWardrobeDuplicates(sessionItemToWardrobeItem(item), savedWardrobe).map((m) => ({
+          ...m,
+          matchedCandidateIndex: confirmedItems.indexOf(item),
+        })),
+      );
+      if (localMatches.length > 0) {
         setDupeSheet({
           visible: true,
-          decision: normalizeDuplicateDecision(local),
+          decision: normalizeDuplicateDecision({
+            type: 'duplicate',
+            isDuplicate: true,
+            matches: localMatches,
+            message: 'Some scanned items look like pieces already in your wardrobe.',
+          }),
           pendingItems: confirmedItems,
         });
         return;
       }
       await persistItems(confirmedItems);
     } catch {
+      // Offline: still block obvious local attribute duplicates.
+      const localMatches = confirmedItems.flatMap((item) =>
+        findLocalWardrobeDuplicates(sessionItemToWardrobeItem(item), savedWardrobe),
+      );
+      if (localMatches.length > 0) {
+        setDupeSheet({
+          visible: true,
+          decision: normalizeDuplicateDecision({
+            type: 'duplicate',
+            isDuplicate: true,
+            matches: localMatches,
+          }),
+          pendingItems: confirmedItems,
+        });
+        return;
+      }
       await persistItems(confirmedItems);
     }
   };

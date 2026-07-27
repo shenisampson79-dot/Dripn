@@ -1,10 +1,10 @@
 /**
  * Digitize Wardrobe — Wardrobe Creation layer only.
- * Capture → detect → review → save items.
- * Does NOT generate outfits (that stays on Stylist "Get outfits now").
+ * Photo (v1) + Live camera track (v2b) + auto-save unique items (v3).
+ * Does NOT generate outfits.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,8 @@ import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,23 +42,31 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
+import {
+  detectGarmentsOnDevice,
+  getOnDeviceYoloStatus,
+} from '@/services/onDeviceGarmentDetector';
 import type { ScanSessionItem } from '@/types/scanWardrobe';
 import {
   correctWardrobeImageOrientation,
   promptWardrobeOrientationReview,
 } from '@/utils/wardrobeImageOrientation';
 import {
-  findLocalWardrobeDuplicates,
   normalizeDuplicateDecision,
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
+import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
+import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
 import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const LIVE_SAMPLE_MS = 1100;
+const LIVE_FRAME_WIDTH = 640;
 
 type DigitizeStep = 'capture' | 'scanning' | 'review' | 'saving';
+type CaptureMode = 'photo' | 'live';
 
 type Props = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'DigitizeWardrobe'>;
@@ -84,30 +94,84 @@ function sessionItemToWardrobeItem(item: ScanSessionItem): WardrobeItem {
   };
 }
 
+function toCandidate(item: ScanSessionItem) {
+  return {
+    id: item.tempId,
+    name: item.name,
+    category: item.category,
+    subcategory: item.subcategory,
+    color: item.color,
+    brand: item.brand,
+    imageUri: item.sceneCrop ? `data:image/jpeg;base64,${item.sceneCrop}` : undefined,
+  };
+}
+
+async function cropNormalizedBBox(
+  imageUri: string,
+  bbox: [number, number, number, number],
+): Promise<{ uri: string; base64?: string } | null> {
+  try {
+    const meta = await ImageManipulator.manipulateAsync(imageUri, [], { format: ImageManipulator.SaveFormat.JPEG });
+    const w = meta.width || LIVE_FRAME_WIDTH;
+    const h = meta.height || LIVE_FRAME_WIDTH;
+    const originX = Math.max(0, Math.floor(bbox[0] * w));
+    const originY = Math.max(0, Math.floor(bbox[1] * h));
+    const width = Math.max(8, Math.min(w - originX, Math.floor(bbox[2] * w)));
+    const height = Math.max(8, Math.min(h - originY, Math.floor(bbox[3] * h)));
+    const cropped = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ crop: { originX, originY, width, height } }, { resize: { width: 512 } }],
+      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    return { uri: cropped.uri, base64: cropped.base64 || undefined };
+  } catch {
+    return null;
+  }
+}
+
 export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { items: savedWardrobe, addItemsBatch } = useWardrobe();
+  const { items: savedWardrobe, addItemsBatch, addItem } = useWardrobe();
+  const [permission, requestPermission] = useCameraPermissions();
+  const yoloStatus = getOnDeviceYoloStatus();
 
+  const [mode, setMode] = useState<CaptureMode>('photo');
   const [step, setStep] = useState<DigitizeStep>('capture');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [sceneType, setSceneType] = useState<string>('other');
   const [scanItems, setScanItems] = useState<ScanSessionItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [dupeNote, setDupeNote] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLive, setIsLive] = useState(false);
+  const [liveNote, setLiveNote] = useState('Point at a rail or drawer, then Start');
+  const [liveAddedCount, setLiveAddedCount] = useState(0);
+  const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
     pendingItems: ScanSessionItem[];
   }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false }, pendingItems: [] });
 
+  const cameraRef = useRef<CameraView>(null);
+  const inFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+  const trackerRef = useRef(new DigitizeDetectionTracker());
+  const sessionSeenRef = useRef<Set<string>>(new Set());
+  const savedWardrobeRef = useRef(savedWardrobe);
+  savedWardrobeRef.current = savedWardrobe;
+
   const [onboardingProfile, setOnboardingProfile] = useState<Awaited<
     ReturnType<typeof onboardingProfileService.getProfile>
   > | null>(null);
-  React.useEffect(() => {
+  useEffect(() => {
     onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const presentationGender = resolveUserPresentationGender(user, onboardingProfile);
@@ -122,19 +186,51 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     [items, selectedIds],
   );
 
+  const applyDedupToItems = useCallback(
+    (incoming: ScanSessionItem[], opts?: { selectAllUnique?: boolean }) => {
+      const partitioned = partitionDigitizeCandidates(
+        incoming.map(toCandidate),
+        savedWardrobeRef.current.map((it) => ({
+          id: String(it.id),
+          name: it.name,
+          category: it.category,
+          subcategory: it.subcategory,
+          color: it.color,
+          brand: it.brand,
+          imageUri: it.enhancedImageUri || it.imageUri,
+          origin: it.origin,
+        })),
+      );
+      const uniqueIds = new Set(partitioned.unique.map((u) => u.id));
+      const uniqueItems = incoming.filter((item) => uniqueIds.has(item.tempId));
+      const droppedCount = partitioned.dropped.length;
+      setScanItems(uniqueItems);
+      if (opts?.selectAllUnique !== false) {
+        setSelectedIds(new Set(uniqueItems.map((i) => i.tempId)));
+      }
+      if (droppedCount > 0) {
+        setDupeNote(
+          `Skipped ${droppedCount} duplicate${droppedCount === 1 ? '' : 's'} (already in wardrobe or repeated in this scan).`,
+        );
+      } else {
+        setDupeNote(null);
+      }
+      return { uniqueItems, droppedCount };
+    },
+    [],
+  );
+
   const openSettings = async () => {
     try {
       await Linking.openSettings();
     } catch {
-      Alert.alert(
-        t('wardrobe.error') || 'Error',
-        t('wardrobe.couldNotOpenSettingsPleaseEnablePermissi') || 'Could not open settings.',
-      );
+      Alert.alert(t('wardrobe.error') || 'Error', 'Could not open settings.');
     }
   };
 
   const runScan = async (uri: string) => {
     setStep('scanning');
+    setDupeNote(null);
     try {
       const base64 = await convertImageToBase64(uri);
       const result = await apiService.scanWardrobe(base64, { includeCrops: true });
@@ -142,14 +238,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         Alert.alert(
           t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe',
           result.message
-            || 'We couldn’t detect items clearly. Try better lighting, a closer shot of the rail or drawer, and keep pieces separated.',
+            || 'We couldn’t detect items clearly. Try better lighting and keep pieces separated.',
         );
         setStep('capture');
         return;
       }
       setSceneType(result.sceneType || 'other');
-      setScanItems(result.items);
-      setSelectedIds(new Set(result.items.map((item) => item.tempId)));
+      applyDedupToItems(result.items);
       setStep('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -178,17 +273,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   };
 
   const handlePickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      if (!permission.canAskAgain && Platform.OS !== 'web') {
-        Alert.alert(
-          t('wardrobe.permissionRequired') || 'Permission Required',
-          t('wardrobe.photoLibraryAccessWasDeniedPleaseEnableI') || 'Enable photo library in Settings.',
-          [
-            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-            { text: t('common.openSettings') || 'Settings', onPress: openSettings },
-          ],
-        );
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert('Permission Required', 'Enable photo library in Settings.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: openSettings },
+        ]);
       }
       return;
     }
@@ -198,23 +289,17 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       quality: 0.85,
       exif: true,
     });
-    if (!result.canceled && result.assets[0]) {
-      await beginImageImport(result.assets[0]);
-    }
+    if (!result.canceled && result.assets[0]) await beginImageImport(result.assets[0]);
   };
 
   const handleTakePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      if (!permission.canAskAgain && Platform.OS !== 'web') {
-        Alert.alert(
-          t('wardrobe.permissionRequired') || 'Permission Required',
-          t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || 'Enable camera in Settings.',
-          [
-            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-            { text: t('common.openSettings') || 'Settings', onPress: openSettings },
-          ],
-        );
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert('Permission Required', 'Enable camera in Settings.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: openSettings },
+        ]);
       }
       return;
     }
@@ -223,9 +308,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       quality: 0.85,
       exif: true,
     });
-    if (!result.canceled && result.assets[0]) {
-      await beginImageImport(result.assets[0]);
-    }
+    if (!result.canceled && result.assets[0]) await beginImageImport(result.assets[0]);
   };
 
   const updateItem = (tempId: string, patch: Partial<ScanSessionItem>) => {
@@ -253,7 +336,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
   const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
     if (itemsToSave.length === 0) {
-      navigation.goBack();
+      Alert.alert(
+        t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe',
+        'Nothing new to save — duplicates were skipped.',
+      );
+      setStep('review');
       return;
     }
     setIsSaving(true);
@@ -290,14 +377,44 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
   const handleSaveSelected = async () => {
     if (selectedItems.length === 0) {
+      Alert.alert(t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe', 'Select at least one item to save.');
+      return;
+    }
+
+    // Always re-partition immediately before save (wardrobe may have changed / batch dups).
+    const partitioned = partitionDigitizeCandidates(
+      selectedItems.map(toCandidate),
+      savedWardrobe.map((it) => ({
+        id: String(it.id),
+        name: it.name,
+        category: it.category,
+        subcategory: it.subcategory,
+        color: it.color,
+        brand: it.brand,
+        imageUri: it.enhancedImageUri || it.imageUri,
+        origin: it.origin,
+      })),
+    );
+    const uniqueSelected = selectedItems.filter((item) =>
+      partitioned.unique.some((u) => u.id === item.tempId),
+    );
+
+    if (partitioned.dropped.length > 0 && uniqueSelected.length === 0) {
       Alert.alert(
-        t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe',
-        'Select at least one item to save.',
+        'Duplicates only',
+        'Every selected item already looks like something in your wardrobe (or duplicates another selected item). Nothing was saved.',
       );
       return;
     }
+
+    if (partitioned.dropped.length > 0) {
+      setDupeNote(
+        `Saving ${uniqueSelected.length} new item${uniqueSelected.length === 1 ? '' : 's'}; skipped ${partitioned.dropped.length} duplicate${partitioned.dropped.length === 1 ? '' : 's'}.`,
+      );
+    }
+
     try {
-      const dupePayload = selectedItems.map((item) => ({
+      const dupePayload = uniqueSelected.map((item) => ({
         name: item.name,
         category: item.category,
         subcategory: item.subcategory || undefined,
@@ -306,65 +423,359 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         imageBase64: item.sceneCrop || undefined,
       }));
       const serverDupe = await apiService.checkWardrobeDuplicates(dupePayload);
-      const firstHit = serverDupe.results?.find(
-        (r) => r.isDuplicate || r.type === 'duplicate' || r.type === 'already_owned',
-      );
-      if (firstHit?.decision) {
+      const blockedIndexes = new Set<number>();
+      (serverDupe.results || []).forEach((r, idx) => {
+        const decision = normalizeDuplicateDecision({
+          ...r,
+          type: r.type || r.decision?.type,
+          decision: r.decision,
+          similarMatches: r.similarMatches,
+        });
+        if (decision.type === 'duplicate' || decision.type === 'already_owned') {
+          blockedIndexes.add(typeof r.index === 'number' ? r.index : idx);
+        }
+      });
+      const afterServer = uniqueSelected.filter((_, i) => !blockedIndexes.has(i));
+      const blocked = uniqueSelected.filter((_, i) => blockedIndexes.has(i));
+
+      if (blocked.length > 0 && afterServer.length === 0) {
         setDupeSheet({
           visible: true,
-          decision: normalizeDuplicateDecision(firstHit.decision),
-          pendingItems: selectedItems,
+          decision: normalizeDuplicateDecision({
+            type: 'duplicate',
+            isDuplicate: true,
+            message: 'These items already look like pieces in your wardrobe.',
+            matches: blocked.map((b) => ({
+              id: b.tempId,
+              name: b.name,
+              category: b.category,
+              color: b.color,
+              imageUri: b.sceneCrop ? `data:image/jpeg;base64,${b.sceneCrop}` : undefined,
+            })),
+          }),
+          pendingItems: blocked,
         });
         return;
       }
-      const local = findLocalWardrobeDuplicates(
-        selectedItems.map(sessionItemToWardrobeItem),
-        savedWardrobe,
-      );
-      if (local.isDuplicate && local.matches.length > 0) {
-        setDupeSheet({
-          visible: true,
-          decision: normalizeDuplicateDecision(local),
-          pendingItems: selectedItems,
-        });
-        return;
+
+      if (blocked.length > 0) {
+        setDupeNote(
+          `Skipped ${blocked.length} server-matched duplicate${blocked.length === 1 ? '' : 's'}; saving ${afterServer.length}.`,
+        );
       }
-      await persistItems(selectedItems);
-    } catch {
-      await persistItems(selectedItems);
+      await persistItems(afterServer);
+    } catch (error) {
+      // Offline / API failure: still respect local partition — never force-add on error.
+      console.warn('[DigitizeWardrobe] server dupe check failed, using local gate:', error);
+      await persistItems(uniqueSelected);
     }
   };
+
+  const ingestLivePromotion = useCallback(
+    async (
+      frameUri: string,
+      track: {
+        trackId: string;
+        category: string;
+        name?: string;
+        color?: string;
+        confidence: number;
+        bbox: [number, number, number, number];
+      },
+    ) => {
+      if (sessionSeenRef.current.has(track.trackId)) return;
+      const crop = await cropNormalizedBBox(frameUri, track.bbox);
+      if (!crop?.base64) return;
+
+      const tempId = track.trackId;
+      const item: ScanSessionItem = {
+        tempId,
+        name: track.name || `${track.color || 'Item'} ${track.category}`.trim(),
+        category: track.category,
+        color: track.color || 'multicolor',
+        confidence: track.confidence,
+        bbox: track.bbox,
+        sceneCrop: crop.base64,
+        needsConfirm: track.confidence < 0.6,
+        confirmPrompt: track.confidence < 0.6 ? 'Low confidence — confirm category' : null,
+      };
+
+      const partitioned = partitionDigitizeCandidates(
+        [toCandidate(item)],
+        [
+          ...savedWardrobeRef.current.map((it) => ({
+            id: String(it.id),
+            name: it.name,
+            category: it.category,
+            subcategory: it.subcategory,
+            color: it.color,
+            brand: it.brand,
+            imageUri: it.enhancedImageUri || it.imageUri,
+            origin: it.origin,
+          })),
+          ...scanItems.map(toCandidate),
+        ],
+      );
+
+      if (partitioned.unique.length === 0) {
+        sessionSeenRef.current.add(track.trackId);
+        setLiveNote('Duplicate skipped');
+        return;
+      }
+
+      sessionSeenRef.current.add(track.trackId);
+      setScanItems((prev) => {
+        if (prev.some((p) => p.tempId === tempId)) return prev;
+        return [...prev, item];
+      });
+      setSelectedIds((prev) => new Set(prev).add(tempId));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      if (autoSaveLive) {
+        try {
+          await addItem({
+            name: item.name,
+            category: item.category as ClothingCategory,
+            color: item.color as WardrobeItem['color'],
+            imageUri: `data:image/jpeg;base64,${item.sceneCrop}`,
+            imageBase64: item.sceneCrop || undefined,
+            seasons: ['all-season'],
+            occasions: ['everyday'],
+            isFavorite: false,
+          });
+          setLiveAddedCount((n) => n + 1);
+          setLiveNote(`+1 saved · ${item.name}`);
+        } catch (err) {
+          console.warn('[DigitizeWardrobe] live auto-save failed:', err);
+          setLiveNote('Detected — confirm in review to save');
+          setStep('review');
+        }
+      } else {
+        setLiveNote(`Detected ${item.name} — in review list`);
+        setStep('review');
+      }
+    },
+    [addItem, autoSaveLive, scanItems],
+  );
+
+  const processLiveFrame = useCallback(async () => {
+    if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
+    inFlightRef.current = true;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.45,
+        shutterSound: false,
+        skipProcessing: Platform.OS === 'android',
+      });
+      if (!photo?.uri) return;
+
+      const manipulated = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: LIVE_FRAME_WIDTH } }],
+        { compress: 0.55, format: ImageManipulator.SaveFormat.JPEG },
+      );
+
+      const onDevice = await detectGarmentsOnDevice(manipulated.uri);
+      if (!onDevice?.length) {
+        // Fallback: one-shot cloud scan of the frame (costly — only when YOLO unavailable).
+        if (!yoloStatus.available) {
+          setLiveNote('On-device YOLO unavailable — use Photo mode for best results');
+          return;
+        }
+        setLiveNote('No garments yet — hold steadier');
+        return;
+      }
+
+      const promoted = trackerRef.current.update(
+        onDevice.map((d) => ({
+          category: d.category,
+          name: d.name,
+          color: d.color,
+          confidence: d.confidence,
+          bbox: d.bbox,
+        })),
+      );
+      setLiveNote(
+        promoted.length
+          ? `Captured ${promoted.length} stable piece${promoted.length === 1 ? '' : 's'}`
+          : `${onDevice.length} detected · stabilizing…`,
+      );
+      for (const track of promoted) {
+        await ingestLivePromotion(manipulated.uri, track);
+      }
+    } catch (error) {
+      console.warn('[DigitizeWardrobe] live frame failed:', error);
+      setLiveNote('Frame failed — retrying');
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [ingestLivePromotion, yoloStatus.available]);
+
+  useEffect(() => {
+    if (!isLive) return undefined;
+    const id = setInterval(() => {
+      void processLiveFrame();
+    }, LIVE_SAMPLE_MS);
+    return () => clearInterval(id);
+  }, [isLive, processLiveFrame]);
+
+  const startLive = async () => {
+    if (!permission?.granted) {
+      const next = await requestPermission();
+      if (!next.granted) {
+        Alert.alert('Camera permission', 'Live scan needs camera access.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: openSettings },
+        ]);
+        return;
+      }
+    }
+    trackerRef.current.reset();
+    sessionSeenRef.current.clear();
+    setLiveAddedCount(0);
+    setIsLive(true);
+    setLiveNote('Scanning… hold on pieces for a moment');
+  };
+
+  const stopLive = () => {
+    setIsLive(false);
+    setLiveNote(liveAddedCount > 0 ? `Stopped · +${liveAddedCount} saved` : 'Stopped');
+  };
+
+  const renderModeToggle = () => (
+    <View style={styles.modeRow}>
+      <Pressable
+        onPress={() => {
+          stopLive();
+          setMode('photo');
+          setStep('capture');
+        }}
+        style={[
+          styles.modeChip,
+          mode === 'photo' && styles.modeChipActive,
+          { borderColor: mode === 'photo' ? LuxuryColors.gold : theme.border },
+        ]}
+      >
+        <ThemedText type="caption" style={{ color: mode === 'photo' ? LuxuryColors.gold : theme.textSecondary }}>
+          Photo
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          setMode('live');
+          setStep('capture');
+        }}
+        style={[
+          styles.modeChip,
+          mode === 'live' && styles.modeChipActive,
+          { borderColor: mode === 'live' ? LuxuryColors.gold : theme.border },
+        ]}
+      >
+        <ThemedText type="caption" style={{ color: mode === 'live' ? LuxuryColors.gold : theme.textSecondary }}>
+          Live
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
 
   const renderCapture = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
         {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
       </ThemedText>
-      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
-        Photo a rail or drawer. We’ll detect pieces, let you confirm, then add them to your wardrobe.
+      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+        {mode === 'photo'
+          ? 'Photo a rail or drawer. We’ll detect pieces, skip duplicates, then add them to your wardrobe.'
+          : 'Live camera: hold on each piece until it stabilizes. Unique items save as you go.'}
       </ThemedText>
-      {imageUri ? (
-        <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
+      {renderModeToggle()}
+
+      {mode === 'photo' ? (
+        <>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
+          ) : (
+            <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
+              <Feather name="camera" size={48} color={LuxuryColors.gold} />
+              <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center' }}>
+                Hangings · drawers · flat lays{'\n'}Good light · keep pieces visible
+              </ThemedText>
+            </View>
+          )}
+          <View style={styles.captureActions}>
+            <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+              <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+                Take photo
+              </ThemedText>
+            </Pressable>
+            <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
+              <ThemedText type="body" style={{ color: theme.text }}>
+                {t('wardrobe.chooseFromGallery') || 'Choose from Gallery'}
+              </ThemedText>
+            </Pressable>
+          </View>
+        </>
       ) : (
-        <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
-          <Feather name="camera" size={48} color={LuxuryColors.gold} />
-          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center' }}>
-            Hangings · drawers · flat lays{'\n'}Good light · pan slowly · keep pieces visible
+        <View style={styles.liveWrap}>
+          <View style={[styles.liveCameraBox, { borderColor: theme.border }]}>
+            {permission?.granted ? (
+              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mode="picture" />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.centered]}>
+                <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                  Camera permission needed
+                </ThemedText>
+              </View>
+            )}
+          </View>
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
+            {liveNote}
+            {liveAddedCount > 0 ? ` · +${liveAddedCount} this session` : ''}
           </ThemedText>
+          {!yoloStatus.available ? (
+            <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.sm }}>
+              On-device YOLO not linked in this binary — Live detect is limited; Photo mode is more reliable.
+            </ThemedText>
+          ) : null}
+          <Pressable
+            onPress={() => setAutoSaveLive((v) => !v)}
+            style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
+          >
+            <ThemedText type="body" style={{ color: theme.text }}>
+              Auto-save unique items: {autoSaveLive ? 'On' : 'Off'}
+            </ThemedText>
+          </Pressable>
+          <View style={styles.captureActions}>
+            {!isLive ? (
+              <Pressable onPress={startLive} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+                <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+                  Start live
+                </ThemedText>
+              </Pressable>
+            ) : (
+              <Pressable onPress={stopLive} style={[styles.primaryBtn, { backgroundColor: '#B33' }]}>
+                <ThemedText type="body" style={{ color: '#FFF', fontWeight: '600' }}>
+                  Stop
+                </ThemedText>
+              </Pressable>
+            )}
+            {scanItems.length > 0 ? (
+              <Pressable
+                onPress={() => {
+                  stopLive();
+                  applyDedupToItems(scanItems);
+                  setStep('review');
+                }}
+                style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+              >
+                <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+                  Review {scanItems.length} detected
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       )}
-      <View style={styles.captureActions}>
-        <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
-          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            Take photo
-          </ThemedText>
-        </Pressable>
-        <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
-          <ThemedText type="body" style={{ color: theme.text }}>
-            {t('wardrobe.chooseFromGallery') || 'Choose from Gallery'}
-          </ThemedText>
-        </Pressable>
-      </View>
     </View>
   );
 
@@ -419,11 +830,6 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               {CATEGORY_LABELS[item.category as ClothingCategory] || item.category}
               {item.confidence < 0.6 ? ` · review (${Math.round(item.confidence * 100)}%)` : ''}
             </ThemedText>
-            {item.needsConfirm && item.confirmPrompt ? (
-              <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 4 }}>
-                {item.confirmPrompt}
-              </ThemedText>
-            ) : null}
           </View>
           <Pressable onPress={() => removeItem(item.tempId)} hitSlop={8}>
             <Feather name="x" size={20} color={theme.textSecondary} />
@@ -456,11 +862,16 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const renderReview = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        {items.length} item{items.length === 1 ? '' : 's'} detected
+        {items.length} item{items.length === 1 ? '' : 's'} ready
       </ThemedText>
-      <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-        Confirm what to keep. Scene: {String(sceneType).replace(/_/g, ' ')}. Bulk confirm first — edit only if needed.
+      <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+        Confirm what to keep. Scene: {String(sceneType).replace(/_/g, ' ')}.
       </ThemedText>
+      {dupeNote ? (
+        <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.md }}>
+          {dupeNote}
+        </ThemedText>
+      ) : null}
       <View style={styles.bulkRow}>
         <Pressable
           onPress={() => setSelectedIds(new Set(items.map((i) => i.tempId)))}
@@ -468,10 +879,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         >
           <ThemedText type="caption">Select all</ThemedText>
         </Pressable>
-        <Pressable
-          onPress={() => setSelectedIds(new Set())}
-          style={[styles.bulkChip, { borderColor: theme.border }]}
-        >
+        <Pressable onPress={() => setSelectedIds(new Set())} style={[styles.bulkChip, { borderColor: theme.border }]}>
           <ThemedText type="caption">Clear</ThemedText>
         </Pressable>
         <Pressable
@@ -479,6 +887,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             setImageUri(null);
             setScanItems([]);
             setSelectedIds(new Set());
+            setDupeNote(null);
             setStep('capture');
           }}
           style={[styles.bulkChip, { borderColor: theme.border }]}
@@ -506,9 +915,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           ]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {isSaving
-              ? 'Saving…'
-              : `Add ${selectedItems.length} to wardrobe`}
+            {isSaving ? 'Saving…' : `Add ${selectedItems.length} to wardrobe`}
           </ThemedText>
         </Pressable>
       </View>
@@ -531,7 +938,14 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         locations={[0, 0.35, 1]}
         style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
       >
-        <Pressable onPress={() => navigation.goBack()} style={styles.closeBtn} hitSlop={8}>
+        <Pressable
+          onPress={() => {
+            stopLive();
+            navigation.goBack();
+          }}
+          style={styles.closeBtn}
+          hitSlop={8}
+        >
           <Feather name="x" size={24} color="#FFF" />
         </Pressable>
         <ThemedText type="h3" style={{ color: '#FFF' }}>
@@ -560,10 +974,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           setDupeSheet((s) => ({ ...s, visible: false }));
           await persistItems(dupeSheet.pendingItems, true);
         }}
-        onContinue={async () => {
-          setDupeSheet((s) => ({ ...s, visible: false }));
-          await persistItems(dupeSheet.pendingItems, true);
-        }}
+        onContinue={() => setDupeSheet((s) => ({ ...s, visible: false }))}
       />
     </View>
   );
@@ -586,16 +997,26 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
   },
-  stepBody: {
-    flex: 1,
-  },
+  stepBody: { flex: 1 },
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 280,
   },
-  title: {
-    marginBottom: Spacing.sm,
+  title: { marginBottom: Spacing.sm },
+  modeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  modeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  modeChipActive: {
+    backgroundColor: 'rgba(201, 168, 124, 0.15)',
   },
   previewImage: {
     width: SCREEN_WIDTH - Spacing.lg * 2,
@@ -614,9 +1035,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
   },
-  captureActions: {
-    gap: Spacing.sm,
+  liveWrap: { marginBottom: Spacing.md },
+  liveCameraBox: {
+    width: SCREEN_WIDTH - Spacing.lg * 2,
+    height: (SCREEN_WIDTH - Spacing.lg * 2) * 1.15,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    backgroundColor: '#111',
   },
+  captureActions: { gap: Spacing.sm },
   itemCard: {
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
@@ -626,9 +1054,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
-  checkWrap: {
-    paddingTop: 18,
-  },
+  checkWrap: { paddingTop: 18 },
   checkbox: {
     width: 22,
     height: 22,
@@ -638,9 +1064,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxActive: {
-    backgroundColor: LuxuryColors.gold,
-  },
+  checkboxActive: { backgroundColor: LuxuryColors.gold },
   itemThumb: {
     width: 56,
     height: 56,
