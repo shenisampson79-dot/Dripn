@@ -322,7 +322,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const handleScanWardrobe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("ScanWardrobe");
+    navigation.navigate("DigitizeWardrobe");
   };
 
   const handleAICreateOutfit = async () => {
@@ -670,7 +670,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="maximize" size={15} color="#FFFFFF" />
         <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          Scan
+          {t('wardrobe.scanMyWardrobeShort') || 'Scan'}
         </ThemedText>
       </Pressable>
       <Pressable
@@ -829,10 +829,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </LinearGradient>
       </LinearGradient>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
+        {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        {t('wardrobe.getOutfitsNowDesc') || 'Point your camera at a few pieces — skip the full digitization and get looks in seconds.'}
+        {t('wardrobe.scanMyWardrobeDesc')
+          || 'Photo a rail or drawer — we’ll detect pieces and add them to your wardrobe.'}
       </ThemedText>
       <LinearGradient
         colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -843,7 +844,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         <Pressable onPress={handleScanWardrobe} style={styles.emptyButtonInner}>
           <Feather name="maximize" size={18} color={LUXURY_COLORS.midnight} />
           <ThemedText type="body" style={styles.emptyButtonText}>
-            {t('wardrobe.scanForOutfits') || 'Scan for outfits'}
+            {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
           </ThemedText>
         </Pressable>
       </LinearGradient>

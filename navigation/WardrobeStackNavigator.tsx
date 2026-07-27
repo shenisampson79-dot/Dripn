@@ -4,6 +4,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
+import DigitizeWardrobeScreen from "@/screens/DigitizeWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
@@ -25,7 +26,10 @@ import { DFYTier } from "@/services/DFYService";
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
+  /** Outfit-engine scan (still used by Live Stylist → Still scan). */
   ScanWardrobe: undefined;
+  /** Wardrobe Creation layer — digitise rail/drawer photos into items. */
+  DigitizeWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
@@ -63,6 +67,15 @@ export default function WardrobeStackNavigator() {
         component={AddWardrobeItemScreen}
         options={{
           title: t('navTitles.addItem') || t('wardrobe.addItem') || "Add Item",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DigitizeWardrobe"
+        component={DigitizeWardrobeScreen}
+        options={{
+          title: t('wardrobe.scanMyWardrobe') || "Scan my wardrobe",
           headerShown: false,
           presentation: "modal",
         }}
