@@ -70,7 +70,10 @@ import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRed
 import * as Linking from "expo-linking";
 import { stashPendingReferralCode } from "@/contexts/ReferralContext";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
-import { installTodaysOutfitNotificationOpenHandler } from "@/services/todaysOutfitLocalNotify";
+import {
+  installTodaysOutfitNotificationOpenHandler,
+  peekTodaysOutfitOpenPending,
+} from "@/services/todaysOutfitLocalNotify";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -151,6 +154,7 @@ function AppContent() {
   const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
   const navigation = useNavigation<any>();
+  const todaysOutfitNudgedRef = useRef(false);
 
   // Load the per-user tour flag once we know who is signed in
   useEffect(() => {
@@ -199,6 +203,35 @@ function AppContent() {
     if (!user?.hasCompletedOnboarding) return;
     setShowTour(true);
   }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading, isAuthenticating]);
+
+  // Notification taps should deterministically open Today’s Outfit even if
+  // the app boots into a default Stylist landing route first.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!isAuthenticated) return;
+    if (isLoading || isAuthenticating) return;
+    if (!user?.hasCompletedOnboarding) return;
+    if (todaysOutfitNudgedRef.current) return;
+
+    todaysOutfitNudgedRef.current = true;
+    void (async () => {
+      try {
+        if (!(await peekTodaysOutfitOpenPending())) return;
+
+        const attempt = () => {
+          const nav = getNavigationRef();
+          if (!nav?.isReady?.()) return;
+          nav.navigate('StylistTab' as never, { screen: 'StylistHub' } as never);
+        };
+
+        // Run once now and once after any immediate redirect settles.
+        attempt();
+        setTimeout(attempt, 500);
+      } catch {
+        // non-fatal
+      }
+    })();
+  }, [user?.id, isAuthenticated, isLoading, isAuthenticating, user?.hasCompletedOnboarding]);
 
   // Hide native splash once auth bootstrap completes (single handoff, no dual-splash flash).
   useEffect(() => {
