@@ -11,6 +11,7 @@ import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { CATEGORY_LABELS, type WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
+import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import { wardrobeProcessedTileBackground, wardrobeTileBackground } from '@/utils/wardrobeImage';
 import { useTranslations } from "@/contexts/TranslationContext";
 
@@ -43,6 +44,11 @@ export function GeneratedOutfitModal({
   const orderedItems = useMemo(
     () => sortOutfitItemsByVisualOrder(outfit?.items || []),
     [outfit?.items],
+  );
+
+  const whyCopy = useMemo(
+    () => humanizeStylistMessage(outfit?.stylistMessage),
+    [outfit?.stylistMessage],
   );
 
   const wardrobeItemIds = useMemo(
@@ -86,13 +92,13 @@ export function GeneratedOutfitModal({
             keyboardShouldPersistTaps="handled"
             bounces
           >
-            {outfit?.stylistMessage ? (
+            {whyCopy ? (
               <View style={[styles.stylistMessage, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
                 <ThemedText type="caption" style={{ color: theme.tabIconDefault, fontWeight: '700', marginBottom: 4 }}>
                   {t('wardrobe.whyThisWorks') || 'Why this works'}
                 </ThemedText>
                 <ThemedText style={{ fontSize: 14, lineHeight: 20, color: theme.text }}>
-                  {outfit.stylistMessage}
+                  {whyCopy}
                 </ThemedText>
               </View>
             ) : null}
@@ -131,7 +137,7 @@ export function GeneratedOutfitModal({
               <OutfitSaveActions
                 wardrobeItemIds={wardrobeItemIds}
                 defaultTitle={defaultTitle}
-                defaultDescription={outfit?.stylistMessage}
+                defaultDescription={whyCopy}
                 occasion={occasion}
                 onSaved={() => setSavedThisSession(true)}
               />

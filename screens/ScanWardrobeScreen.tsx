@@ -38,6 +38,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
+import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import type { ScanSessionItem, ScanWardrobeStep, ScanOutfitOption } from '@/types/scanWardrobe';
 import {
   correctWardrobeImageOrientation,
@@ -274,7 +275,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
         setGeneratedOutfit({
           items: hydrated,
-          stylistMessage: first.stylistMessage || result.stylistMessage || undefined,
+          stylistMessage: humanizeStylistMessage(first.stylistMessage || result.stylistMessage) || undefined,
         });
         setShowOutfitModal(true);
       }
@@ -298,7 +299,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
     setGeneratedOutfit({
       items: hydrated,
-      stylistMessage: option.stylistMessage || undefined,
+      stylistMessage: humanizeStylistMessage(option.stylistMessage) || undefined,
     });
     setShowOutfitModal(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -581,9 +582,9 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               {option.vibeLabel || selectedOccasion.replace(/_/g, ' ')} · {pieceCount} piece{pieceCount === 1 ? '' : 's'}
             </ThemedText>
-            {option.stylistMessage ? (
+            {humanizeStylistMessage(option.stylistMessage) ? (
               <ThemedText type="caption" style={{ color: theme.text, marginTop: 6 }} numberOfLines={2}>
-                {option.stylistMessage}
+                {humanizeStylistMessage(option.stylistMessage)}
               </ThemedText>
             ) : null}
           </Pressable>
