@@ -16,6 +16,27 @@ export type LiveTrackedItem = ScanSessionItem & {
   } | null;
 };
 
+export type LiveCoachingSwap = {
+  slot: 'top' | 'bottom' | 'shoes' | 'outerwear' | string;
+  suggestion: string;
+  reason: string;
+  confidence: number;
+  itemId?: string | number;
+};
+
+export type LiveCoaching = {
+  headline: string;
+  summary: string;
+  bullets: string[];
+  swaps?: LiveCoachingSwap[];
+};
+
+export type LiveFeedbackUi = {
+  stable?: boolean;
+  holdMs?: number;
+  suppressIfIncomplete?: boolean;
+};
+
 export type LiveFeedback = {
   score: number;
   colourHarmony?: string | null;
@@ -26,6 +47,12 @@ export type LiveFeedback = {
   lightingQuality?: string;
   itemCount?: number;
   avgConfidence?: number;
+  completeness?: 'partial' | 'almost' | 'complete' | string;
+  seasonalConsistency?: number;
+  seasonalMode?: string;
+  tryOnLikely?: boolean;
+  coaching?: LiveCoaching;
+  ui?: LiveFeedbackUi;
 };
 
 export type LiveShopHint = {

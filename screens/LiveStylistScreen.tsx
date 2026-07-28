@@ -82,6 +82,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const previousFeedbackRef = useRef<LiveFeedback | null>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  const lastCoachShownAtRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -98,10 +99,25 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       previousItemsRef.current = res.items;
       setItems(res.items);
     }
-    if (res.feedbackChanged || !previousFeedbackRef.current) {
-      previousFeedbackRef.current = res.feedback;
-      setFeedback(res.feedback);
+
+    const next = res.feedback;
+    if (!next) return;
+
+    const holdMs = next.ui?.holdMs ?? 1000;
+    const withinHold = Date.now() - lastCoachShownAtRef.current < holdMs;
+    const serverStable = Boolean(next.ui?.stable);
+    const hadFeedback = Boolean(previousFeedbackRef.current);
+    const scoreJump = Math.abs((previousFeedbackRef.current?.score || 0) - (next.score || 0)) >= 8;
+
+    if (res.feedbackChanged || !hadFeedback) {
+      previousFeedbackRef.current = next;
+      const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold;
+      if (shouldPaint) {
+        setFeedback(next);
+        lastCoachShownAtRef.current = Date.now();
+      }
     }
+
     if (res.shopHints?.length) setShopHints(res.shopHints as FallbackMissingItem[]);
     if (res.source === 'cloud_vision') setSourceLabel('Cloud vision');
     else if (String(res.source || '').includes('on_device')) setSourceLabel('On-device');

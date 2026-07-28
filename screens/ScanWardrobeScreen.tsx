@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,26 +33,32 @@ import {
   useWardrobe,
   type WardrobeItem,
 } from '@/contexts/WardrobeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
+import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
-import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
+import { fetchWeatherSnapshot } from '@/services/TodaysOutfitGenerator';
 import type { ScanSessionItem, ScanWardrobeStep, ScanOutfitOption } from '@/types/scanWardrobe';
+import { hydrateGeneratedOutfitItems } from '@/utils/generatedOutfit';
 import {
-  correctWardrobeImageOrientation,
-  promptWardrobeOrientationReview,
-} from '@/utils/wardrobeImageOrientation';
+  clearGetOutfitsSession,
+  loadGetOutfitsSession,
+  saveGetOutfitsSession,
+} from '@/utils/getOutfitsSessionStore';
+import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import {
   findLocalWardrobeDuplicates,
   normalizeDuplicateDecision,
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
-import { hydrateGeneratedOutfitItems } from '@/utils/generatedOutfit';
+import {
+  correctWardrobeImageOrientation,
+  promptWardrobeOrientationReview,
+} from '@/utils/wardrobeImageOrientation';
 import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
-import { useAuth } from '@/contexts/AuthContext';
-import { onboardingProfileService } from '@/services/OnboardingProfileService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -109,9 +115,69 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false }, pendingItems: [] });
 
   const [onboardingProfile, setOnboardingProfile] = useState<Awaited<ReturnType<typeof onboardingProfileService.getProfile>> | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const skipAutoOpenRef = useRef(false);
+
   React.useEffect(() => {
     onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await loadGetOutfitsSession();
+      if (cancelled) return;
+      if (saved) {
+        skipAutoOpenRef.current = true;
+        setImageUri(saved.imageUri);
+        setSessionId(saved.sessionId);
+        setSceneType(saved.sceneType || 'other');
+        setScanItems(saved.scanItems || []);
+        setHybridMerge(saved.hybridMerge !== false);
+        setSelectedOccasion(saved.selectedOccasion || 'casual_day');
+        setOutfitOptions(saved.outfitOptions || []);
+        setWowMessage(saved.wowMessage);
+        // Prefer looks if we have options; otherwise confirm if we have items.
+        if (saved.outfitOptions?.length && (saved.step === 'looks' || saved.step === 'outfit')) {
+          setStep('looks');
+        } else if (saved.scanItems?.length) {
+          setStep(saved.step === 'capture' ? 'confirm' : saved.step);
+        } else {
+          setStep('capture');
+        }
+      }
+      setSessionReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    void saveGetOutfitsSession({
+      step,
+      imageUri,
+      sessionId,
+      sceneType,
+      scanItems,
+      hybridMerge,
+      selectedOccasion,
+      outfitOptions,
+      wowMessage,
+    });
+  }, [
+    sessionReady,
+    step,
+    imageUri,
+    sessionId,
+    sceneType,
+    scanItems,
+    hybridMerge,
+    selectedOccasion,
+    outfitOptions,
+    wowMessage,
+  ]);
 
   const presentationGender = resolveUserPresentationGender(user, onboardingProfile);
   const categoryOptions = useMemo(
@@ -267,11 +333,20 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     setIsGenerating(true);
     setStep('outfit');
     try {
+      const weatherSnap = await fetchWeatherSnapshot();
       const result = await apiService.generateOutfitFromScan({
         sessionWardrobe: confirmedItems,
         hybridMerge,
         occasionType: selectedOccasion,
         optionCount: 3,
+        weather: weatherSnap
+          ? {
+              temperature: weatherSnap.temperature,
+              condition: weatherSnap.condition,
+              unit: 'C',
+              location: weatherSnap.location,
+            }
+          : undefined,
       });
       if (!result.success) {
         throw new Error(result.message || 'Could not generate outfits');
@@ -292,15 +367,31 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           }]) as ScanOutfitOption[];
 
       setOutfitOptions(options);
-      setWowMessage(
-        result.wowMessage
-        || `You have ${result.usableItemCount || confirmedItems.length} usable items. Here are ${options.length} looks.`,
-      );
+      const weatherNote = weatherSnap
+        ? ` · ${weatherSnap.temperature}°C ${weatherSnap.condition || ''} in ${weatherSnap.location || 'your area'}`.trim()
+        : '';
+      const nextWow =
+        (result.wowMessage
+          || `You have ${result.usableItemCount || confirmedItems.length} usable items. Here are ${options.length} looks.`)
+          + weatherNote;
+      setWowMessage(nextWow);
       setStep('looks');
+      // Persist immediately so backing out before the debounce effect still keeps looks.
+      void saveGetOutfitsSession({
+        step: 'looks',
+        imageUri,
+        sessionId,
+        sceneType,
+        scanItems,
+        hybridMerge,
+        selectedOccasion,
+        outfitOptions: options,
+        wowMessage: nextWow,
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Auto-open first look for instant wow
+      // Auto-open first look for instant wow (skip when restoring a saved session)
       const first = options[0];
-      if (first) {
+      if (first && !skipAutoOpenRef.current) {
         const apiItems = first.hydratedItems || first.outfit?.items || [];
         const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
         setGeneratedOutfit({
@@ -309,6 +400,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         });
         setShowOutfitModal(true);
       }
+      skipAutoOpenRef.current = false;
     } catch (error) {
       Alert.alert(
         t('wardrobe.error') || 'Error',
@@ -335,6 +427,25 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const resetToCapture = useCallback(async () => {
+    await clearGetOutfitsSession();
+    setStep('capture');
+    setImageUri(null);
+    setSessionId(null);
+    setSceneType('other');
+    setScanItems([]);
+    setOutfitOptions([]);
+    setWowMessage(null);
+    setGeneratedOutfit(null);
+    setShowOutfitModal(false);
+    skipAutoOpenRef.current = false;
+  }, []);
+
+  const finishSession = useCallback(async () => {
+    await clearGetOutfitsSession();
+    navigation.goBack();
+  }, [navigation]);
+
   const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
     setIsSaving(true);
     try {
@@ -351,6 +462,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await clearGetOutfitsSession();
       Alert.alert(
         t('wardrobe.saved') || 'Saved',
         `Added ${itemsToSave.length} item${itemsToSave.length === 1 ? '' : 's'} to your wardrobe.`,
@@ -659,6 +771,31 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
             Edit items
           </ThemedText>
         </Pressable>
+        <Pressable
+          onPress={finishSession}
+          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+        >
+          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+            Done
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            Alert.alert(
+              'Start again?',
+              'This clears your current looks and scanned pieces.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Start again', style: 'destructive', onPress: () => void resetToCapture() },
+              ],
+            );
+          }}
+          style={[styles.secondaryBtn, { borderColor: theme.border }]}
+        >
+          <ThemedText type="body" style={{ color: theme.textSecondary }}>
+            Start again
+          </ThemedText>
+        </Pressable>
       </View>
     </View>
   );
@@ -679,7 +816,14 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         locations={[0, 0.35, 1]}
         style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
       >
-        <Pressable onPress={() => navigation.goBack()} style={styles.closeBtn} hitSlop={8}>
+        <Pressable
+          onPress={() => {
+            // Leaving without Done keeps the session so looks return when you reopen.
+            navigation.goBack();
+          }}
+          style={styles.closeBtn}
+          hitSlop={8}
+        >
           <Feather name="x" size={24} color="#FFF" />
         </Pressable>
         <ThemedText type="h3" style={{ color: '#FFF' }}>

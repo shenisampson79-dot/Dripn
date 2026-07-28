@@ -39,7 +39,7 @@ import {
   saveGeneratedOutfitToProfile,
 } from '@/utils/saveGeneratedOutfit';
 import { computeLocalOutfitScore, mergeOutfitScores, buildStylistAnalysis } from '@/utils/outfitCompatibilityScore';
-import { loadStoredTodaysWardrobeOutfit } from '@/services/TodaysOutfitGenerator';
+import { loadStoredTodaysWardrobeOutfit, fetchWeatherSnapshot } from '@/services/TodaysOutfitGenerator';
 import type { WeatherLike } from '@/utils/weatherOuterwear';
 import type { StylistAnalysis } from '@/utils/stylistVoiceEngine';
 import type { DetectedSignals } from '@/utils/styleCoherenceEngine';
@@ -397,10 +397,18 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     (async () => {
       try {
         const stored = await loadStoredTodaysWardrobeOutfit();
-        if (cancelled || stored?.weatherTemp == null) return;
+        if (!cancelled && stored?.weatherTemp != null) {
+          setMixWeather({
+            temperature: stored.weatherTemp,
+            condition: stored.weatherCondition || undefined,
+          });
+          return;
+        }
+        const snap = await fetchWeatherSnapshot();
+        if (cancelled || !snap) return;
         setMixWeather({
-          temperature: stored.weatherTemp,
-          condition: stored.weatherCondition || undefined,
+          temperature: snap.temperature,
+          condition: snap.condition || undefined,
         });
       } catch {
         // no weather snapshot — skip hard gate

@@ -1196,8 +1196,13 @@ class ApiService {
     hybridMerge?: boolean;
     occasionType?: string;
     stylistId?: string;
-    weather?: { temperature: number; condition?: string; unit?: string };
-    /** Camera-first wow: request up to 3 looks (server clamps 1–3). */
+    weather?: {
+      temperature: number;
+      condition?: string;
+      unit?: string;
+      location?: string;
+    };
+  /** Camera-first wow: request up to 3 looks (server clamps 1–3). */
     optionCount?: number;
   }) {
     return this.request<{
@@ -1315,6 +1320,27 @@ class ApiService {
         lightingQuality?: string;
         itemCount?: number;
         avgConfidence?: number;
+        completeness?: string;
+        seasonalConsistency?: number;
+        seasonalMode?: string;
+        tryOnLikely?: boolean;
+        coaching?: {
+          headline: string;
+          summary: string;
+          bullets: string[];
+          swaps?: Array<{
+            slot: string;
+            suggestion: string;
+            reason: string;
+            confidence: number;
+            itemId?: string | number;
+          }>;
+        };
+        ui?: {
+          stable?: boolean;
+          holdMs?: number;
+          suppressIfIncomplete?: boolean;
+        };
       };
       feedbackChanged: boolean;
       shopHints?: Array<Record<string, unknown>>;

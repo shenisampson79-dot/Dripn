@@ -37,6 +37,9 @@ export function LiveArOverlay({
     [items],
   );
 
+  const coaching = feedback?.coaching;
+  const swap = coaching?.swaps?.[0];
+
   if (width <= 0 || height <= 0) return null;
 
   return (
@@ -77,7 +80,6 @@ export function LiveArOverlay({
         })}
       </Svg>
 
-      {/* Tap targets aligned to boxes */}
       {boxes.map((item) => {
         const [nx, ny, nw, nh] = item.bbox!;
         return (
@@ -99,16 +101,41 @@ export function LiveArOverlay({
 
       {feedback ? (
         <View style={styles.hud} pointerEvents="box-none">
-          <View style={[styles.scoreBadge, { borderColor: scoreColor(feedback.score) }]}>
-            <ThemedText type="h3" style={{ color: '#FFF', fontWeight: '700' }}>
-              {feedback.score}
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              score
-            </ThemedText>
+          <View style={styles.topRow}>
+            <View style={[styles.scoreBadge, { borderColor: scoreColor(feedback.score) }]}>
+              <ThemedText type="h3" style={{ color: '#FFF', fontWeight: '700' }}>
+                {feedback.score}
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                score
+              </ThemedText>
+            </View>
+            {coaching?.headline ? (
+              <View style={styles.headlinePill}>
+                <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
+                  {coaching.headline}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
 
-          {(feedback.hints?.[0] || feedback.suggestions?.[0]) ? (
+          {coaching?.summary ? (
+            <View style={styles.card}>
+              <ThemedText type="caption" style={styles.summaryText} numberOfLines={2}>
+                {coaching.summary}
+              </ThemedText>
+              {coaching.bullets?.[0] ? (
+                <ThemedText type="caption" style={styles.bulletText} numberOfLines={2}>
+                  · {coaching.bullets[0]}
+                </ThemedText>
+              ) : null}
+              {swap ? (
+                <ThemedText type="caption" style={styles.swapText} numberOfLines={2}>
+                  Try {swap.suggestion} — {swap.reason}
+                </ThemedText>
+              ) : null}
+            </View>
+          ) : (feedback.hints?.[0] || feedback.suggestions?.[0]) ? (
             <View style={styles.chipRow}>
               {feedback.hints?.[0] ? (
                 <View style={styles.chip}>
@@ -143,6 +170,11 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     gap: Spacing.sm,
   },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   scoreBadge: {
     alignSelf: 'flex-start',
     minWidth: 64,
@@ -152,6 +184,35 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     backgroundColor: 'rgba(15,15,20,0.55)',
     alignItems: 'center',
+  },
+  headlinePill: {
+    flexShrink: 1,
+    backgroundColor: 'rgba(15,15,20,0.55)',
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  headlineText: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  card: {
+    maxWidth: '96%',
+    backgroundColor: 'rgba(15,15,20,0.62)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  summaryText: {
+    color: 'rgba(255,255,255,0.92)',
+  },
+  bulletText: {
+    color: 'rgba(255,255,255,0.78)',
+  },
+  swapText: {
+    color: LuxuryColors.gold,
+    marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',
