@@ -555,14 +555,14 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
           <Feather name="camera" size={48} color={LuxuryColors.gold} />
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
-            Flat-lay works best · ~2–5s scan
+            Lay out a few pieces · snap a photo · get styled looks in seconds
           </ThemedText>
         </View>
       )}
       <View style={styles.captureActions}>
         <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {t('wardrobe.scanForOutfits') || 'Scan for outfits'}
+            {t('wardrobe.takePhotoForOutfits') || 'Get outfits from a photo'}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -586,7 +586,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     <View style={[styles.stepBody, styles.centered]}>
       <ActivityIndicator size="large" color={LuxuryColors.gold} />
       <ThemedText type="body" style={{ marginTop: Spacing.lg, color: theme.textSecondary }}>
-        Scanning your wardrobe…
+        Styling your pieces…
       </ThemedText>
     </View>
   );

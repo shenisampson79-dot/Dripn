@@ -89,7 +89,7 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   {
     id: "scan-wardrobe",
     title: t('wardrobe.getOutfitsNow') || "Get outfits now",
-    description: "Scan a few pieces → up to 3 looks",
+    description: "Snap a few pieces → get up to 3 complete looks",
     icon: "camera",
     screen: "ScanWardrobe",
     category: "wardrobe",

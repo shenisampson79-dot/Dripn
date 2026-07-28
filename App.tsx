@@ -100,8 +100,9 @@ function NavigationContainerWithRef() {
     const uninstall = installTodaysOutfitNotificationOpenHandler({
       // Emit + ensure screen only — never navigate/reset or call loadOutfit.
       onOpenIntent: () => {
-        emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
+        // Clean stack first (dismiss GON/modals), then emit so the card opens on Hub+tabs.
         ensureStylistHubVisible(navigationRef.current);
+        emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
         // Keep IRG queue for cold-start flush (same emit is idempotent).
         enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
         const nav = navigationRef.current || getNavigationRef();

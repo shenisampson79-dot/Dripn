@@ -100,6 +100,11 @@ const routerSrc = readFileSync(
 assert.ok(routerSrc.includes('emitTodaysOutfitIntent'));
 assert.ok(routerSrc.includes('ensureStylistHubVisible'));
 assert.ok(!routerSrc.includes('buildTodaysOutfitResetState'));
+{
+  const ensureIdx = routerSrc.indexOf("ensureStylistHubVisible(navigation as NavigationContainerRef<any>)");
+  const emitIdx = routerSrc.indexOf("emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT')");
+  assert.ok(ensureIdx >= 0 && emitIdx >= 0 && ensureIdx < emitIdx, 'ensure before emit on OPEN_TODAYS_OUTFIT');
+}
 
 const busSrc = readFileSync(
   resolve(__dirname, '../utils/todaysOutfitIntentBus.ts'),
@@ -112,5 +117,5 @@ console.log('All entry-router checks passed.\n');
 console.log('  ✓ priority: today beats stylist/chat');
 console.log('  ✓ notification + deep-link normalize');
 console.log('  ✓ boot gate blocks early resolve');
-console.log('  ✓ OPEN_TODAYS_OUTFIT → emit + ensure (no reset)');
+console.log('  ✓ OPEN_TODAYS_OUTFIT → ensure then emit (no reset)');
 console.log('  ✓ card owns loadOutfit via intent bus\n');

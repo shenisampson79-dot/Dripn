@@ -67,6 +67,18 @@ assert.ok(
 );
 assert.ok(appSrc.includes('emitTodaysOutfitIntent'));
 assert.ok(appSrc.includes('ensureStylistHubVisible'));
+{
+  const ensureIdx = appSrc.indexOf('ensureStylistHubVisible(navigationRef.current)');
+  const emitIdx = appSrc.indexOf("emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT')");
+  assert.ok(ensureIdx >= 0 && emitIdx >= 0 && ensureIdx < emitIdx, 'App: ensure before emit');
+}
+
+const ensureSrc = readFileSync(
+  resolve(__dirname, '../utils/todaysOutfitEnsureRoute.ts'),
+  'utf8',
+);
+assert.ok(ensureSrc.includes('popToTop'), 'must pop stylist modals instead of stacking Hub');
+assert.ok(!ensureSrc.includes('CommonActions.reset'), 'must not full-reset (preserves card cache)');
 
 const memorySrc = readFileSync(resolve(__dirname, '../utils/styleMemory7d.ts'), 'utf8');
 assert.ok(memorySrc.includes('analyzeRotationVsYesterday'));

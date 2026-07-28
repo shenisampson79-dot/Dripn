@@ -3391,6 +3391,12 @@ export default function AIStylistScreen() {
         style={[
           styles.messageContainer,
           isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
+          !isUser
+            && index > 0
+            && !messageShowsOutfitSaveActions(item)
+            && !visualShowsOutfitSaveActions(resolveAssistantWardrobeVisual(item, index))
+            ? styles.assistantMessageWithFeedback
+            : null,
         ]}
       >
         {!isUser ? (
@@ -4409,6 +4415,10 @@ const styles = StyleSheet.create({
   assistantMessageContainer: {
     justifyContent: 'flex-start',
   },
+  /** Room for absolute thumbs so the next bubble cannot cover them. */
+  assistantMessageWithFeedback: {
+    marginBottom: 48,
+  },
   avatarContainer: {
     width: CHAT_AVATAR_SIZE,
     height: CHAT_AVATAR_SIZE,
@@ -4425,12 +4435,13 @@ const styles = StyleSheet.create({
   },
   feedbackContainer: {
     position: 'absolute',
-    bottom: -24,
+    bottom: -36,
     left: 44,
   },
   feedbackButtons: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
+    marginTop: 2,
   },
   feedbackButton: {
     width: 28,

@@ -5,7 +5,6 @@ import {
   Pressable,
   Modal,
   useWindowDimensions,
-  ActivityIndicator,
   AppState,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -14,10 +13,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/ThemedText';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { SaveOutfitPromptModal } from '@/components/outfit/SaveOutfitPromptModal';
+import { WardrobeImageShimmer } from '@/components/WardrobeImageShimmer';
 import { wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -76,6 +77,8 @@ const DISMISS_KEY_PREFIX = '@dripn_todays_outfit_dismissed_';
 const LEGACY_WORN_KEY_PREFIX = '@dripn_todays_outfit_worn_';
 const PAID_PLAN_REQUIRED_MESSAGE =
   'A paid stylist plan is required for this feature.';
+/** Prefer no spinner: hold sheet closed briefly while generate finishes. */
+const OPEN_SHEET_SOFT_HOLD_MS = 550;
 
 function hasPaidTodaysOutfitAccess(subscriptionTier?: string | null): boolean {
   const tier = normalizeSubscriptionTier(subscriptionTier);
@@ -290,6 +293,18 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     && outfit?.id === actionOutfitIdRef.current
     && !wearBusy;
 
+  const contentOpacity = useSharedValue(1);
+  const contentFadeStyle = useAnimatedStyle(() => ({ opacity: contentOpacity.value }));
+
+  const revealOutfitSheet = useCallback((opts?: { haptic?: boolean }) => {
+    setVisible(true);
+    contentOpacity.value = 0;
+    contentOpacity.value = withTiming(1, { duration: 260 });
+    if (opts?.haptic !== false) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [contentOpacity]);
+
   const applyReadyOutfit = useCallback((nextOutfit: WardrobeTodaysOutfit, nextPieces: WardrobeItem[]) => {
     actionOutfitIdRef.current = nextOutfit.id;
     setOutfit(nextOutfit);
@@ -339,9 +354,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       const gen = ++loadGenRef.current;
       const stillCurrent = () => gen === loadGenRef.current;
       const currentUser = userRef.current;
+      let softHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
       if (open) {
-        setVisible(true);
+        // Don't open the sheet yet — wait for cache / fast generate so notification
+        // taps skip the loading flash whenever possible.
         setGapVisible(false);
         setShowSaveModal(false);
       }
@@ -378,10 +395,18 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           if (!stillCurrent()) return;
           if (cached) {
             applyReadyOutfit(cached.outfit, cached.items);
-            if (open) setVisible(true);
+            if (open) revealOutfitSheet();
             onRefresh?.();
             return;
           }
+        }
+
+        // Cache miss — soft-hold the sheet closed while generate races; only show
+        // skeleton if it takes longer than OPEN_SHEET_SOFT_HOLD_MS.
+        if (open && !visibleRef.current) {
+          softHoldTimer = setTimeout(() => {
+            if (stillCurrent()) setVisible(true);
+          }, OPEN_SHEET_SOFT_HOLD_MS);
         }
 
         const result = await withTimeout(
@@ -393,6 +418,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           }),
           TODAYS_OUTFIT_GENERATE_TIMEOUT_MS,
         );
+        if (softHoldTimer) {
+          clearTimeout(softHoldTimer);
+          softHoldTimer = null;
+        }
         if (!stillCurrent()) return;
 
         if (!result.ok) {
@@ -403,17 +432,24 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
         }
 
         applyReadyOutfit(result.outfit, result.items);
-        if (open) setVisible(true);
+        if (open) revealOutfitSheet();
+        else if (visibleRef.current) {
+          contentOpacity.value = 0;
+          contentOpacity.value = withTiming(1, { duration: 260 });
+        }
         onRefresh?.();
       } catch (error) {
         console.warn('[TodaysOutfitCard] loadOutfit failed:', error);
+        if (softHoldTimer) clearTimeout(softHoldTimer);
         if (!stillCurrent()) return;
         setErrorMessage("Couldn't pick an outfit. Tap retry.");
         setCardState('error');
         if (open || visibleRef.current) setVisible(true);
+      } finally {
+        if (softHoldTimer) clearTimeout(softHoldTimer);
       }
     },
-    [applyReadyOutfit, onRefresh],
+    [applyReadyOutfit, contentOpacity, onRefresh, revealOutfitSheet],
   );
 
   /** Chip / intent / openToday — same path. If already ready, just show. */
@@ -421,13 +457,13 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     void traceTodaysOutfit('trigger', { source: 'chip_tap' });
     consumeTodaysOutfitIntent();
     if (outfit && cardState === 'ready' && outfit.id === actionOutfitIdRef.current) {
-      setVisible(true);
       setGapVisible(false);
+      revealOutfitSheet();
       void hydrateDailyState(outfit.id).then(setDailyState).catch(() => {});
       return;
     }
     void loadOutfit({ open: true });
-  }, [outfit, cardState, loadOutfit]);
+  }, [outfit, cardState, loadOutfit, revealOutfitSheet]);
   const openTodaysOutfitRef = useRef(openTodaysOutfit);
   openTodaysOutfitRef.current = openTodaysOutfit;
 
@@ -491,7 +527,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       if (dismissedToday === '1') return;
       const prefs = await getTodaysOutfitPopupPrefs();
       if (prefs.enabled && isWithinTodaysOutfitPopupWindow(prefs)) {
-        setVisible(true);
+        revealOutfitSheet({ haptic: false });
         void traceTodaysOutfit('trigger', {
           source: 'auto_popup',
           dateKey: todayKey(),
@@ -501,7 +537,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     } catch {
       // ignore
     }
-  }, [user, outfit, visible, gapVisible, generating, wardrobeItems]);
+  }, [user, outfit, visible, gapVisible, generating, wardrobeItems, revealOutfitSheet]);
 
   /** New local calendar day → drop stale cache UI and regenerate once. */
   const ensureFreshForToday = useCallback(async () => {
@@ -844,21 +880,41 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                     </Pressable>
                   </View>
                 ) : generating || !outfit ? (
-                  <View style={styles.loadingBox}>
-                    <ActivityIndicator color={theme.link} />
+                  <View style={styles.skeletonBlock}>
+                    <WardrobeImageShimmer
+                      isDark={isDark}
+                      backgroundColor={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}
+                      style={[styles.skeletonHero, { width: canvasWidth, height: canvasWidth * 1.05 }]}
+                    />
                     <ThemedText
                       type="small"
-                      style={{ color: theme.tabIconDefault, marginTop: Spacing.sm }}
+                      style={{
+                        color: theme.tabIconDefault,
+                        marginTop: Spacing.md,
+                        textAlign: 'center',
+                      }}
                     >
-                      Picking from your wardrobe…
+                      We're finishing your outfit — just a moment
                     </ThemedText>
+                    <View style={styles.skeletonChipRow}>
+                      {[0, 1, 2].map((i) => (
+                        <WardrobeImageShimmer
+                          key={i}
+                          isDark={isDark}
+                          backgroundColor={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}
+                          style={styles.skeletonChip}
+                        />
+                      ))}
+                    </View>
                   </View>
                 ) : (
-                  <ZoomableOutfitVisual
-                    pieces={visualPieces}
-                    wardrobeItems={pieces}
-                    canvasWidth={canvasWidth}
-                  />
+                  <Animated.View style={contentFadeStyle}>
+                    <ZoomableOutfitVisual
+                      pieces={visualPieces}
+                      wardrobeItems={pieces}
+                      canvasWidth={canvasWidth}
+                    />
+                  </Animated.View>
                 )}
 
                 {pieces.length > 0 ? (
@@ -922,7 +978,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                       styles.primaryBtn,
                       {
                         backgroundColor: wearingToday ? (isDark ? '#3D3426' : '#E8DFD0') : theme.link,
-                        opacity: actionsEnabled ? 1 : 0.6,
+                        opacity: actionsEnabled ? 1 : 0.45,
                       },
                     ]}
                     onPress={() => void handleWearThis()}
@@ -1175,6 +1231,23 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   loadingBox: { alignItems: 'center', paddingVertical: Spacing.xl },
+  skeletonBlock: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  skeletonHero: {
+    borderRadius: BorderRadius.lg,
+  },
+  skeletonChipRow: {
+    width: '100%',
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+  skeletonChip: {
+    height: 36,
+    borderRadius: BorderRadius.md,
+    width: '100%',
+  },
   vibe: { fontWeight: '600', marginTop: Spacing.sm, marginBottom: Spacing.xs },
   reason: { lineHeight: 20, marginBottom: Spacing.sm },
   itemList: {

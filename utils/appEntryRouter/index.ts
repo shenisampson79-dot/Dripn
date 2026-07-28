@@ -106,9 +106,9 @@ function executeIntent(intent: AppIntent, navigation: NavLike): boolean {
   if (intent.type === 'NONE') return false;
   try {
     if (intent.type === 'OPEN_TODAYS_OUTFIT') {
-      // Passive: ensure screen visible + emit intent. Component owns loadOutfit.
-      emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
+      // Clean Hub first, then emit. Component owns loadOutfit.
       ensureStylistHubVisible(navigation as NavigationContainerRef<any>);
+      emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
       return true;
     }
     if (intent.type === 'OPEN_STYLIST') {
