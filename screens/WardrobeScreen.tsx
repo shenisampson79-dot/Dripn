@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
 import { WardrobeItemImage } from "@/components/WardrobeItemImage";
@@ -38,8 +39,10 @@ import {
   WardrobeItem,
   ClothingCategory,
   ClothingSeason,
+  ClothingOccasion,
   CATEGORY_LABELS,
   SEASON_LABELS,
+  OCCASION_LABELS,
 } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
@@ -69,11 +72,14 @@ function getSeasonDetailIcon(seasons: ClothingSeason[]): keyof typeof Feather.gl
 }
 
 function formatSeasonDetailLabel(seasons: ClothingSeason[]): string {
-  if (!seasons.length) return 'Not set';
+  if (!seasons.length) return 'Season not set';
   return seasons
     .map((s) => SEASON_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' '))
     .join(', ');
 }
+
+const ALL_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
+const ALL_OCCASIONS = Object.keys(OCCASION_LABELS) as ClothingOccasion[];
 
 const GRID_GAP = Spacing.md;
 const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
@@ -140,6 +146,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editBrand, setEditBrand] = useState('');
+  const [editSeasons, setEditSeasons] = useState<ClothingSeason[]>([]);
+  const [editOccasions, setEditOccasions] = useState<ClothingOccasion[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [showAIOutfitModal, setShowAIOutfitModal] = useState(false);
   const [showGeneratedOutfitModal, setShowGeneratedOutfitModal] = useState(false);
@@ -384,6 +396,69 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedItem(item);
     setShowItemModal(true);
+  };
+
+  const openEditDetails = () => {
+    if (!selectedItem) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEditName(selectedItem.name || '');
+    setEditBrand(selectedItem.brand || '');
+    setEditSeasons([...(selectedItem.seasons || [])]);
+    setEditOccasions([...(selectedItem.occasions || [])]);
+    setShowEditModal(true);
+  };
+
+  const toggleEditSeason = (season: ClothingSeason) => {
+    setEditSeasons((prev) => {
+      if (season === 'all-season') {
+        return prev.includes('all-season') ? [] : ['all-season'];
+      }
+      const withoutAll = prev.filter((s) => s !== 'all-season');
+      return withoutAll.includes(season)
+        ? withoutAll.filter((s) => s !== season)
+        : [...withoutAll, season];
+    });
+  };
+
+  const toggleEditOccasion = (occasion: ClothingOccasion) => {
+    setEditOccasions((prev) =>
+      prev.includes(occasion)
+        ? prev.filter((o) => o !== occasion)
+        : [...prev, occasion],
+    );
+  };
+
+  const handleSaveEditDetails = async () => {
+    if (!selectedItem) return;
+    const name = editName.trim() || selectedItem.name;
+    const seasons = editSeasons.length > 0 ? editSeasons : (['all-season'] as ClothingSeason[]);
+    const occasions = editOccasions.length > 0 ? editOccasions : (['everyday'] as ClothingOccasion[]);
+    const brand = editBrand.trim();
+    setIsSavingEdit(true);
+    try {
+      await updateItem(selectedItem.id, {
+        name,
+        seasons,
+        occasions,
+        brand: brand || undefined,
+      });
+      setSelectedItem({
+        ...selectedItem,
+        name,
+        seasons,
+        occasions,
+        brand: brand || undefined,
+      });
+      setShowEditModal(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        error instanceof Error ? error.message : 'Could not save changes.',
+      );
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const handleDeleteItem = async (item: WardrobeItem) => {
@@ -1057,25 +1132,45 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   ) : null}
 
                   <View style={styles.detailRow}>
-                    <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
-                      <Feather
-                        name={getSeasonDetailIcon(selectedItem.seasons)}
-                        size={16}
-                        color={LUXURY_COLORS.coral}
-                      />
-                    </View>
-                    <ThemedText type="body">
-                      {formatSeasonDetailLabel(selectedItem.seasons)}
-                    </ThemedText>
+                    <Pressable
+                      onPress={openEditDetails}
+                      style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.sm }}
+                    >
+                      <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
+                        <Feather
+                          name={getSeasonDetailIcon(selectedItem.seasons)}
+                          size={16}
+                          color={LUXURY_COLORS.coral}
+                        />
+                      </View>
+                      <ThemedText
+                        type="body"
+                        style={{
+                          flex: 1,
+                          color: selectedItem.seasons?.length ? theme.text : theme.textSecondary,
+                        }}
+                      >
+                        {formatSeasonDetailLabel(selectedItem.seasons)}
+                      </ThemedText>
+                      <Feather name="chevron-right" size={18} color={theme.textSecondary} />
+                    </Pressable>
                   </View>
 
                   <View style={styles.detailRow}>
-                    <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.violet + '20' }]}>
-                      <Feather name="calendar" size={16} color={LUXURY_COLORS.violet} />
-                    </View>
-                    <ThemedText type="body">
-                      {selectedItem.occasions.map(o => o.charAt(0).toUpperCase() + o.slice(1).replace("-", " ")).join(", ")}
-                    </ThemedText>
+                    <Pressable
+                      onPress={openEditDetails}
+                      style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.sm }}
+                    >
+                      <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.violet + '20' }]}>
+                        <Feather name="calendar" size={16} color={LUXURY_COLORS.violet} />
+                      </View>
+                      <ThemedText type="body" style={{ flex: 1 }}>
+                        {selectedItem.occasions?.length
+                          ? selectedItem.occasions.map(o => o.charAt(0).toUpperCase() + o.slice(1).replace("-", " ")).join(", ")
+                          : 'Occasion not set'}
+                      </ThemedText>
+                      <Feather name="chevron-right" size={18} color={theme.textSecondary} />
+                    </Pressable>
                   </View>
 
                   {selectedItem.notes ? (
@@ -1087,6 +1182,16 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 </View>
 
                 <View style={[styles.modalActions, { paddingBottom: insets.bottom + Spacing.xl }]}>
+                  <Pressable
+                    onPress={openEditDetails}
+                    style={[styles.secondaryActionButton, { borderColor: LUXURY_COLORS.gold }]}
+                  >
+                    <Feather name="edit-2" size={18} color={LUXURY_COLORS.gold} />
+                    <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
+                      {t('common.edit') || 'Edit details'}
+                    </ThemedText>
+                  </Pressable>
+
                   <LinearGradient
                     colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
                     start={{ x: 0, y: 0 }}
@@ -1156,6 +1261,155 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </>
             )}
           />
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderEditDetailsModal = () => {
+    if (!selectedItem) return null;
+    return (
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+            <Pressable
+              onPress={() => setShowEditModal(false)}
+              style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+            <ThemedText type="h3">{t('common.edit') || 'Edit details'}</ThemedText>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ padding: Spacing.lg, paddingBottom: insets.bottom + Spacing.xl }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6 }}>
+              Name
+            </ThemedText>
+            <TextInput
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Item name"
+              placeholderTextColor={theme.textSecondary}
+              style={[
+                styles.editFieldInput,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
+                },
+              ]}
+            />
+
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6, marginTop: Spacing.md }}>
+              Brand
+            </ThemedText>
+            <TextInput
+              value={editBrand}
+              onChangeText={setEditBrand}
+              placeholder="Optional"
+              placeholderTextColor={theme.textSecondary}
+              style={[
+                styles.editFieldInput,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
+                },
+              ]}
+            />
+
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+              Season
+            </ThemedText>
+            <View style={styles.editChipRow}>
+              {ALL_SEASONS.map((season) => {
+                const active = editSeasons.includes(season);
+                return (
+                  <Pressable
+                    key={season}
+                    onPress={() => toggleEditSeason(season)}
+                    style={[
+                      styles.editChip,
+                      {
+                        borderColor: active ? LUXURY_COLORS.gold : theme.border,
+                        backgroundColor: active ? LUXURY_COLORS.gold + '22' : 'transparent',
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      type="caption"
+                      style={{ color: active ? LUXURY_COLORS.gold : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                    >
+                      {SEASON_LABELS[season]}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+              Occasion
+            </ThemedText>
+            <View style={styles.editChipRow}>
+              {ALL_OCCASIONS.map((occasion) => {
+                const active = editOccasions.includes(occasion);
+                return (
+                  <Pressable
+                    key={occasion}
+                    onPress={() => toggleEditOccasion(occasion)}
+                    style={[
+                      styles.editChip,
+                      {
+                        borderColor: active ? LUXURY_COLORS.violet : theme.border,
+                        backgroundColor: active ? LUXURY_COLORS.violet + '18' : 'transparent',
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      type="caption"
+                      style={{ color: active ? LUXURY_COLORS.violet : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                    >
+                      {OCCASION_LABELS[occasion]}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              onPress={handleSaveEditDetails}
+              disabled={isSavingEdit}
+              style={[
+                styles.secondaryActionButton,
+                {
+                  borderColor: LUXURY_COLORS.gold,
+                  backgroundColor: LUXURY_COLORS.gold,
+                  marginTop: Spacing.xl,
+                  opacity: isSavingEdit ? 0.6 : 1,
+                },
+              ]}
+            >
+              {isSavingEdit ? (
+                <ActivityIndicator color={LuxuryColors.midnight} />
+              ) : (
+                <>
+                  <Feather name="check" size={18} color={LuxuryColors.midnight} />
+                  <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700' }}>
+                    {t('common.save') || 'Save'}
+                  </ThemedText>
+                </>
+              )}
+            </Pressable>
+          </ScrollView>
         </View>
       </Modal>
     );
@@ -1504,6 +1758,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       ) : null}
 
       {renderItemModal()}
+      {renderEditDetailsModal()}
 
       <Modal
         visible={showAIOutfitModal}
@@ -2153,6 +2408,27 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editFieldInput: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: Spacing.sm,
+  },
+  editChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  editChip: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    minHeight: 40,
     justifyContent: 'center',
   },
   notesSection: {
