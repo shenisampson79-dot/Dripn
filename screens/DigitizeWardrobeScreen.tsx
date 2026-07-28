@@ -11,6 +11,7 @@ import {
   Dimensions,
   FlatList,
   Linking,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -56,13 +57,27 @@ import {
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
-import { liveCaptureConfirmation, liveDuplicateConfirmation, liveNextItemPrompt, wardrobeSaveConfirmation } from '@/utils/wardrobeSaveCopy';
+import {
+  liveCaptureConfirmation,
+  liveDuplicateConfirmation,
+  liveNextItemPrompt,
+  wardrobeSaveConfirmation,
+} from '@/utils/wardrobeSaveCopy';
+import {
+  SCAN_CHALLENGE_SECONDS,
+  SCAN_CHALLENGE_TARGET,
+  challengeMicroFeedback,
+  challengeMilestoneCopy,
+  challengeTimerColor,
+  estimateStylableOutfits,
+} from '@/utils/scanChallenge';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
 import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
+import { CommonActions } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const LIVE_SAMPLE_MS = 800;
@@ -261,12 +276,18 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
-  const [captureFlash, setCaptureFlash] = useState(false);
   const [captureToast, setCaptureToast] = useState<{
     uri: string;
     label: string;
     mode: 'captured' | 'duplicate';
   } | null>(null);
+  const [capturePulse, setCapturePulse] = useState(false);
+  const [challengeActive, setChallengeActive] = useState(false);
+  const [challengeCount, setChallengeCount] = useState(0);
+  const [challengeSecondsLeft, setChallengeSecondsLeft] = useState(SCAN_CHALLENGE_SECONDS);
+  const [challengeInvite, setChallengeInvite] = useState(false);
+  const [challengeMilestone, setChallengeMilestone] = useState<string | null>(null);
+  const [challengeResult, setChallengeResult] = useState<'won' | 'timeout' | 'stopped' | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -280,8 +301,14 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const sessionSeenRef = useRef<Set<string>>(new Set());
   const lockHapticRef = useRef<Set<string>>(new Set());
   const multiHapticAtRef = useRef(0);
+  const challengeActiveRef = useRef(false);
+  const challengeEndAtRef = useRef<number | null>(null);
+  const challengeFinishedRef = useRef(false);
+  const challengeMilestonesRef = useRef<Set<number>>(new Set());
+  const lastTimerHapticSecRef = useRef<number | null>(null);
   const savedWardrobeRef = useRef(savedWardrobe);
   savedWardrobeRef.current = savedWardrobe;
+  challengeActiveRef.current = challengeActive;
 
   const [onboardingProfile, setOnboardingProfile] = useState<Awaited<
     ReturnType<typeof onboardingProfileService.getProfile>
@@ -636,7 +663,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   ) => {
     const mode = opts?.mode || 'captured';
     const label = opts?.label || (mode === 'duplicate' ? 'Already added' : 'Captured');
-    setCaptureFlash(true);
+    // No full-screen white flash — unsafe for photosensitive users.
+    // Confirmation = haptic + thumbnail toast + brief camera-frame pulse.
+    setCapturePulse(true);
     if (mode === 'duplicate') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } else {
@@ -645,8 +674,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     if (thumbUri) {
       setCaptureToast({ uri: thumbUri, label, mode });
     }
-    await new Promise((r) => setTimeout(r, 80));
-    setCaptureFlash(false);
+    await new Promise((r) => setTimeout(r, 180));
+    setCapturePulse(false);
     if (mode === 'captured') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
@@ -738,10 +767,16 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           mode: 'duplicate',
           label: match ? `Already added · ${match}` : 'Already added',
         });
-        setLiveNote(liveDuplicateConfirmation(match));
-        setTimeout(() => {
-          if (mountedRef.current) setLiveNote(liveNextItemPrompt());
-        }, 1200);
+        setLiveNote(
+          challengeActiveRef.current
+            ? 'Already got this one'
+            : liveDuplicateConfirmation(match),
+        );
+        if (!challengeActiveRef.current) {
+          setTimeout(() => {
+            if (mountedRef.current) setLiveNote(liveNextItemPrompt());
+          }, 1200);
+        }
         return;
       }
 
@@ -753,7 +788,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       setSelectedIds((prev) => new Set(prev).add(tempId));
       await fireCaptureFeedback(crop.uri, { mode: 'captured', label: displayName });
 
-      if (autoSaveLive) {
+      const saveLive = autoSaveLive || challengeActiveRef.current;
+      if (saveLive) {
         try {
           await addItem({
             name: item.name,
@@ -765,11 +801,42 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             occasions: ['everyday'],
             isFavorite: false,
           });
-          setLiveAddedCount((n) => n + 1);
-          setLiveNote(liveCaptureConfirmation(item.name));
-          setTimeout(() => {
-            if (mountedRef.current) setLiveNote(liveNextItemPrompt());
-          }, 1100);
+          setLiveAddedCount((n) => {
+            const nextSession = n + 1;
+            if (!challengeActiveRef.current && nextSession === 1) {
+              setChallengeInvite(true);
+            }
+            return nextSession;
+          });
+
+          if (challengeActiveRef.current && !challengeFinishedRef.current) {
+            setChallengeCount((prev) => {
+              const next = prev + 1;
+              const milestone = challengeMilestoneCopy(next);
+              if (milestone && !challengeMilestonesRef.current.has(next)) {
+                challengeMilestonesRef.current.add(next);
+                setChallengeMilestone(milestone);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                setTimeout(() => {
+                  if (mountedRef.current) setChallengeMilestone(null);
+                }, 900);
+              } else {
+                setLiveNote(challengeMicroFeedback(next));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              }
+              if (next >= SCAN_CHALLENGE_TARGET) {
+                setTimeout(() => finishChallengeRef.current?.('won'), 40);
+              }
+              return next;
+            });
+          } else {
+            setLiveNote(liveCaptureConfirmation(item.name));
+            setTimeout(() => {
+              if (mountedRef.current && !challengeActiveRef.current) {
+                setLiveNote(liveNextItemPrompt());
+              }
+            }, 1100);
+          }
         } catch (err) {
           console.warn('[DigitizeWardrobe] live auto-save failed:', err);
           setLiveNote(`${item.name} ready — confirm in Review`);
@@ -805,7 +872,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           setLiveNote('On-device YOLO unavailable — use Photo mode for best results');
           return;
         }
-        setLiveNote('Point at one item');
+        setLiveNote(
+          challengeActiveRef.current
+            ? 'One item at a time'
+            : 'Point at one item',
+        );
         return;
       }
 
@@ -869,17 +940,23 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         : promotedRaw.filter((p) => !primaryId || p.trackId === primaryId);
 
       if (multiBlocked) {
-        setLiveNote(`${snapshotBase.length} items detected — move closer to one`);
+        setLiveNote(
+          challengeActiveRef.current
+            ? 'One item at a time'
+            : `${snapshotBase.length} items detected — move closer to one`,
+        );
       } else if (toPromote.length) {
-        setLiveNote('Capturing…');
+        setLiveNote(challengeActiveRef.current ? 'Capturing…' : 'Capturing…');
       } else if (snapshot.some((t) => t.phase === 'locked' && t.isPrimary)) {
         setLiveNote('Hold steady…');
-      } else if (snapshot.some((t) => t.phase === 'confirmed')) {
+      } else if (snapshot.some((t) => t.phase === 'confirmed') && !challengeActiveRef.current) {
         setLiveNote(liveNextItemPrompt());
-      } else if (snapshotBase.length >= 2 && primary) {
+      } else if (snapshotBase.length >= 2 && primary && !challengeActiveRef.current) {
         setLiveNote('Capturing nearest item — hold steady');
-      } else if (onDevice.length > 0) {
+      } else if (onDevice.length > 0 && !challengeActiveRef.current) {
         setLiveNote('Point at one item');
+      } else if (onDevice.length > 0 && challengeActiveRef.current) {
+        setLiveNote('Scan as fast as you can');
       }
 
       for (const track of toPromote) {
@@ -887,7 +964,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }
     } catch (error) {
       console.warn('[DigitizeWardrobe] live frame failed:', error);
-      setLiveNote('Not clear — try one item at a time');
+      setLiveNote(
+        challengeActiveRef.current
+          ? 'One item at a time'
+          : 'Not clear — try one item at a time',
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     } finally {
       inFlightRef.current = false;
@@ -902,7 +983,44 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     return () => clearInterval(id);
   }, [isLive, processLiveFrame]);
 
-  const startLive = async () => {
+  const finishChallenge = useCallback((result: 'won' | 'timeout' | 'stopped') => {
+    if (challengeFinishedRef.current) return;
+    challengeFinishedRef.current = true;
+    challengeActiveRef.current = false;
+    challengeEndAtRef.current = null;
+    setChallengeActive(false);
+    setIsLive(false);
+    setLiveTracks([]);
+    setCapturePulse(false);
+    setChallengeMilestone(null);
+    setChallengeResult(result);
+    setChallengeInvite(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  }, []);
+
+  const finishChallengeRef = useRef(finishChallenge);
+  finishChallengeRef.current = finishChallenge;
+
+  useEffect(() => {
+    if (!challengeActive) return undefined;
+    lastTimerHapticSecRef.current = null;
+    const id = setInterval(() => {
+      const endAt = challengeEndAtRef.current;
+      if (!endAt || challengeFinishedRef.current) return;
+      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      setChallengeSecondsLeft(left);
+      if (left > 0 && left <= 3 && lastTimerHapticSecRef.current !== left) {
+        lastTimerHapticSecRef.current = left;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
+      if (left <= 0) {
+        finishChallengeRef.current?.('timeout');
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [challengeActive]);
+
+  const beginLiveSession = useCallback(async (asChallenge: boolean) => {
     if (!permission?.granted) {
       const next = await requestPermission();
       if (!next.granted) {
@@ -913,6 +1031,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         return;
       }
     }
+    setMode('live');
+    setStep('capture');
     trackerRef.current.reset();
     sessionSeenRef.current.clear();
     lockHapticRef.current.clear();
@@ -920,19 +1040,74 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     setLiveAddedCount(0);
     setLiveTracks([]);
     setCaptureToast(null);
+    setCapturePulse(false);
+    setChallengeResult(null);
+    setChallengeInvite(false);
+    setChallengeMilestone(null);
+
+    if (asChallenge) {
+      challengeFinishedRef.current = false;
+      challengeMilestonesRef.current = new Set();
+      challengeActiveRef.current = true;
+      challengeEndAtRef.current = Date.now() + SCAN_CHALLENGE_SECONDS * 1000;
+      setChallengeCount(0);
+      setChallengeSecondsLeft(SCAN_CHALLENGE_SECONDS);
+      setChallengeActive(true);
+      setAutoSaveLive(true);
+      setLiveNote('Scan as fast as you can');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else {
+      challengeActiveRef.current = false;
+      challengeEndAtRef.current = null;
+      setChallengeActive(false);
+      setChallengeCount(0);
+      setLiveNote('Point at one item');
+    }
     setIsLive(true);
-    setLiveNote('Point at one item');
+  }, [permission?.granted, requestPermission, openSettings]);
+
+  const startLive = async () => {
+    await beginLiveSession(false);
+  };
+
+  const startChallenge = async () => {
+    await beginLiveSession(true);
   };
 
   const stopLive = () => {
+    if (challengeActiveRef.current && !challengeFinishedRef.current) {
+      finishChallenge('stopped');
+      setLiveNote(
+        challengeCount > 0
+          ? `${challengeCount} item${challengeCount === 1 ? '' : 's'} added — good start`
+          : 'Stopped',
+      );
+      return;
+    }
     setIsLive(false);
     setLiveTracks([]);
-    setCaptureFlash(false);
+    setCapturePulse(false);
     setCaptureToast(null);
+    challengeActiveRef.current = false;
+    setChallengeActive(false);
     setLiveNote(
       liveAddedCount > 0
         ? `Stopped · ${liveAddedCount} piece${liveAddedCount === 1 ? '' : 's'} saved this session`
         : 'Stopped',
+    );
+  };
+
+  const dismissChallengeResult = () => {
+    setChallengeResult(null);
+  };
+
+  const goSeeOutfits = () => {
+    setChallengeResult(null);
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: 'StylistTab',
+        params: { screen: 'StylistHub' },
+      }),
     );
   };
 
@@ -1010,7 +1185,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       ) : (
         <View style={styles.liveWrap}>
           <View
-            style={[styles.liveCameraBox, { borderColor: theme.border }]}
+            style={[
+              styles.liveCameraBox,
+              { borderColor: capturePulse ? LIVE_CAPTURE_COLOR : theme.border },
+              capturePulse && styles.liveCameraBoxPulse,
+            ]}
             onLayout={(e) => {
               const { width, height } = e.nativeEvent.layout;
               setCameraLayout({ width, height });
@@ -1032,6 +1211,43 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 tracks={liveTracks}
               />
             ) : null}
+            {challengeActive ? (
+              <View style={styles.challengeHud} pointerEvents="none">
+                <View style={styles.challengeHudTop}>
+                  <ThemedText type="caption" style={styles.challengeHudCount}>
+                    {challengeCount} / {SCAN_CHALLENGE_TARGET} items
+                  </ThemedText>
+                  <ThemedText
+                    type="caption"
+                    style={[
+                      styles.challengeHudTimer,
+                      { color: challengeTimerColor(challengeSecondsLeft) },
+                    ]}
+                  >
+                    {challengeSecondsLeft}s
+                  </ThemedText>
+                </View>
+                <View style={styles.challengeProgressTrack}>
+                  <View
+                    style={[
+                      styles.challengeProgressFill,
+                      {
+                        width: `${Math.min(100, (challengeCount / SCAN_CHALLENGE_TARGET) * 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                {challengeMilestone ? (
+                  <ThemedText type="body" style={styles.challengeMilestone}>
+                    {challengeMilestone}
+                  </ThemedText>
+                ) : (
+                  <ThemedText type="caption" style={styles.challengeHint}>
+                    Scan as fast as you can
+                  </ThemedText>
+                )}
+              </View>
+            ) : null}
             {isLive ? (
               <View style={styles.liveLegend}>
                 <View style={styles.liveLegendRow}>
@@ -1047,9 +1263,6 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                   </ThemedText>
                 </View>
               </View>
-            ) : null}
-            {captureFlash ? (
-              <View style={styles.captureFlash} pointerEvents="none" />
             ) : null}
             {captureToast ? (
               <View
@@ -1075,36 +1288,65 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           </View>
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
             {liveNote}
-            {liveAddedCount > 0 ? ` · ${liveAddedCount} saved` : ''}
+            {!challengeActive && liveAddedCount > 0 ? ` · ${liveAddedCount} saved` : ''}
           </ThemedText>
+          {challengeInvite && !challengeActive ? (
+            <View style={[styles.challengeInvite, { borderColor: LuxuryColors.gold }]}>
+              <ThemedText type="body" style={{ fontWeight: '600', marginBottom: 4 }}>
+                Nice — want to scan the rest quickly?
+              </ThemedText>
+              <Pressable onPress={startChallenge} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+                <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700' }}>
+                  ⚡ Scan {SCAN_CHALLENGE_TARGET} items fast
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={() => setChallengeInvite(false)} style={{ marginTop: Spacing.sm, alignItems: 'center' }}>
+                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                  Not now
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
           {!yoloStatus.available ? (
             <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.sm }}>
               On-device YOLO not linked in this binary — Live detect is limited; Photo mode is more reliable.
             </ThemedText>
           ) : null}
-          <Pressable
-            onPress={() => setAutoSaveLive((v) => !v)}
-            style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
-          >
-            <ThemedText type="body" style={{ color: theme.text }}>
-              Auto-save unique items: {autoSaveLive ? 'On' : 'Off'}
-            </ThemedText>
-          </Pressable>
+          {!challengeActive ? (
+            <Pressable
+              onPress={() => setAutoSaveLive((v) => !v)}
+              style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
+            >
+              <ThemedText type="body" style={{ color: theme.text }}>
+                Auto-save unique items: {autoSaveLive ? 'On' : 'Off'}
+              </ThemedText>
+            </Pressable>
+          ) : null}
           <View style={styles.captureActions}>
             {!isLive ? (
-              <Pressable onPress={startLive} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
-                <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-                  Start live
-                </ThemedText>
-              </Pressable>
+              <>
+                <Pressable onPress={startLive} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+                  <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+                    Start live
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={startChallenge}
+                  style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+                >
+                  <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '700' }}>
+                    ⚡ Scan {SCAN_CHALLENGE_TARGET} in {SCAN_CHALLENGE_SECONDS}s
+                  </ThemedText>
+                </Pressable>
+              </>
             ) : (
               <Pressable onPress={stopLive} style={[styles.primaryBtn, { backgroundColor: '#B33' }]}>
                 <ThemedText type="body" style={{ color: '#FFF', fontWeight: '600' }}>
-                  Stop
+                  {challengeActive ? 'End challenge' : 'Stop'}
                 </ThemedText>
               </Pressable>
             )}
-            {scanItems.length > 0 ? (
+            {scanItems.length > 0 && !challengeActive ? (
               <Pressable
                 onPress={() => {
                   stopLive();
@@ -1406,6 +1648,58 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         }}
         onContinue={() => setDupeSheet((s) => ({ ...s, visible: false }))}
       />
+
+      <Modal visible={challengeResult != null} transparent animationType="fade" onRequestClose={dismissChallengeResult}>
+        <View style={styles.challengeModalBackdrop}>
+          <View style={[styles.challengeModalCard, { backgroundColor: isDark ? theme.surface : '#FFF' }]}>
+            {challengeResult === 'won' ? (
+              <>
+                <ThemedText type="h2" style={{ textAlign: 'center', marginBottom: Spacing.sm }}>
+                  Nice — {SCAN_CHALLENGE_TARGET} items added
+                </ThemedText>
+                <ThemedText type="body" style={{ textAlign: 'center', color: theme.textSecondary, marginBottom: Spacing.lg }}>
+                  Your wardrobe just got smarter
+                </ThemedText>
+              </>
+            ) : (
+              <>
+                <ThemedText type="h2" style={{ textAlign: 'center', marginBottom: Spacing.sm }}>
+                  {challengeCount} item{challengeCount === 1 ? '' : 's'} added — good start
+                </ThemedText>
+                <ThemedText type="body" style={{ textAlign: 'center', color: theme.textSecondary, marginBottom: Spacing.lg }}>
+                  Keep going whenever you’re ready
+                </ThemedText>
+              </>
+            )}
+            <ThemedText type="body" style={{ textAlign: 'center', marginBottom: Spacing.md, fontWeight: '600' }}>
+              We can now style about {estimateStylableOutfits(savedWardrobe.length)} outfits with your wardrobe
+            </ThemedText>
+            <Pressable onPress={goSeeOutfits} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, marginBottom: Spacing.sm }]}>
+              <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700', textAlign: 'center' }}>
+                See your outfits
+              </ThemedText>
+            </Pressable>
+            {challengeResult !== 'won' ? (
+              <Pressable
+                onPress={() => {
+                  dismissChallengeResult();
+                  void startChallenge();
+                }}
+                style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold, marginBottom: Spacing.sm }]}
+              >
+                <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600', textAlign: 'center' }}>
+                  Continue scanning
+                </ThemedText>
+              </Pressable>
+            ) : null}
+            <Pressable onPress={dismissChallengeResult} style={{ alignItems: 'center', paddingVertical: Spacing.sm }}>
+              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                Done
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1474,6 +1768,70 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#111',
   },
+  liveCameraBoxPulse: {
+    borderWidth: 3,
+  },
+  challengeHud: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    zIndex: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+  },
+  challengeHudTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  challengeHudCount: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  challengeHudTimer: {
+    fontWeight: '800',
+  },
+  challengeProgressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  challengeProgressFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: LIVE_CAPTURE_COLOR,
+  },
+  challengeHint: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '600',
+  },
+  challengeMilestone: {
+    color: LIVE_DETECT_COLOR,
+    fontWeight: '800',
+  },
+  challengeInvite: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: 'rgba(201, 168, 124, 0.12)',
+  },
+  challengeModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  challengeModalCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+  },
   liveLegend: {
     position: 'absolute',
     left: Spacing.sm,
@@ -1499,12 +1857,6 @@ const styles = StyleSheet.create({
   liveLegendText: {
     color: '#FFF',
     fontWeight: '600',
-  },
-  captureFlash: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#FFF',
-    opacity: 0.4,
-    zIndex: 4,
   },
   captureToast: {
     position: 'absolute',
