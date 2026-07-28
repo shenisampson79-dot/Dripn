@@ -146,7 +146,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [isEditingItem, setIsEditingItem] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBrand, setEditBrand] = useState('');
   const [editSeasons, setEditSeasons] = useState<ClothingSeason[]>([]);
@@ -395,6 +395,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const handleItemPress = (item: WardrobeItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedItem(item);
+    setIsEditingItem(false);
     setShowItemModal(true);
   };
 
@@ -405,7 +406,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     setEditBrand(selectedItem.brand || '');
     setEditSeasons([...(selectedItem.seasons || [])]);
     setEditOccasions([...(selectedItem.occasions || [])]);
-    setShowEditModal(true);
+    setIsEditingItem(true);
   };
 
   const toggleEditSeason = (season: ClothingSeason) => {
@@ -449,7 +450,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         occasions,
         brand: brand || undefined,
       });
-      setShowEditModal(false);
+      setIsEditingItem(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       Alert.alert(
@@ -473,6 +474,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           onPress: async () => {
             try {
               await deleteItem(item.id);
+              setIsEditingItem(false);
               setShowItemModal(false);
               setSelectedItem(null);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -962,7 +964,13 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         visible={showItemModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowItemModal(false)}
+        onRequestClose={() => {
+          if (isEditingItem) {
+            setIsEditingItem(false);
+            return;
+          }
+          setShowItemModal(false);
+        }}
       >
         <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
           <LinearGradient
@@ -974,24 +982,38 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           >
             <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
               <Pressable
-                onPress={() => setShowItemModal(false)}
+                onPress={() => {
+                  if (isEditingItem) {
+                    setIsEditingItem(false);
+                    return;
+                  }
+                  setShowItemModal(false);
+                }}
                 style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
               >
-                <Feather name="x" size={24} color={theme.text} />
+                <Feather name={isEditingItem ? 'arrow-left' : 'x'} size={24} color={theme.text} />
               </Pressable>
-              <ThemedText type="h3">{t('wardrobe.itemDetails')}</ThemedText>
-              <Pressable
-                onPress={() => handleToggleFavorite(selectedItem)}
-                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-              >
-                <Feather
-                  name="heart"
-                  size={24}
-                  color={selectedItem.isFavorite ? LUXURY_COLORS.coral : theme.tabIconDefault}
-                />
-              </Pressable>
+              <ThemedText type="h3">
+                {isEditingItem
+                  ? (t('common.edit') || 'Edit details')
+                  : t('wardrobe.itemDetails')}
+              </ThemedText>
+              {isEditingItem ? (
+                <View style={{ width: 40 }} />
+              ) : (
+                <Pressable
+                  onPress={() => handleToggleFavorite(selectedItem)}
+                  style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                >
+                  <Feather
+                    name="heart"
+                    size={24}
+                    color={selectedItem.isFavorite ? LUXURY_COLORS.coral : theme.tabIconDefault}
+                  />
+                </Pressable>
+              )}
             </View>
-            {selectedItem.isFavorite ? (
+            {!isEditingItem && selectedItem.isFavorite ? (
               <ThemedText type="caption" style={{ textAlign: 'center', opacity: 0.55, marginBottom: Spacing.sm, paddingHorizontal: Spacing.lg }}>
                 {t('wardrobe.favoritesHint') || 'Favorites get preferred by your stylist'}
               </ThemedText>
@@ -1000,10 +1022,134 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
           <FlatList
             data={[selectedItem]}
+            extraData={isEditingItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.modalContent}
             showsVerticalScrollIndicator={false}
-            renderItem={() => (
+            keyboardShouldPersistTaps="handled"
+            renderItem={() =>
+              isEditingItem ? (
+                <View style={{ paddingBottom: insets.bottom + Spacing.xl }}>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6 }}>
+                    Name
+                  </ThemedText>
+                  <TextInput
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Item name"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      styles.editFieldInput,
+                      {
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
+                      },
+                    ]}
+                  />
+
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6, marginTop: Spacing.md }}>
+                    Brand
+                  </ThemedText>
+                  <TextInput
+                    value={editBrand}
+                    onChangeText={setEditBrand}
+                    placeholder="Optional"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      styles.editFieldInput,
+                      {
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
+                      },
+                    ]}
+                  />
+
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+                    Season
+                  </ThemedText>
+                  <View style={styles.editChipRow}>
+                    {ALL_SEASONS.map((season) => {
+                      const active = editSeasons.includes(season);
+                      return (
+                        <Pressable
+                          key={season}
+                          onPress={() => toggleEditSeason(season)}
+                          style={[
+                            styles.editChip,
+                            {
+                              borderColor: active ? LUXURY_COLORS.gold : theme.border,
+                              backgroundColor: active ? LUXURY_COLORS.gold + '22' : 'transparent',
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            type="caption"
+                            style={{ color: active ? LUXURY_COLORS.gold : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                          >
+                            {SEASON_LABELS[season]}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+                    Occasion
+                  </ThemedText>
+                  <View style={styles.editChipRow}>
+                    {ALL_OCCASIONS.map((occasion) => {
+                      const active = editOccasions.includes(occasion);
+                      return (
+                        <Pressable
+                          key={occasion}
+                          onPress={() => toggleEditOccasion(occasion)}
+                          style={[
+                            styles.editChip,
+                            {
+                              borderColor: active ? LUXURY_COLORS.violet : theme.border,
+                              backgroundColor: active ? LUXURY_COLORS.violet + '18' : 'transparent',
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            type="caption"
+                            style={{ color: active ? LUXURY_COLORS.violet : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                          >
+                            {OCCASION_LABELS[occasion]}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <Pressable
+                    onPress={handleSaveEditDetails}
+                    disabled={isSavingEdit}
+                    style={[
+                      styles.secondaryActionButton,
+                      {
+                        borderColor: LUXURY_COLORS.gold,
+                        backgroundColor: LUXURY_COLORS.gold,
+                        marginTop: Spacing.xl,
+                        opacity: isSavingEdit ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    {isSavingEdit ? (
+                      <ActivityIndicator color={LuxuryColors.midnight} />
+                    ) : (
+                      <>
+                        <Feather name="check" size={18} color={LuxuryColors.midnight} />
+                        <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700' }}>
+                          {t('common.save') || 'Save'}
+                        </ThemedText>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              ) : (
               <>
                 <View style={[
                   styles.modalImageWrapper,
@@ -1028,9 +1174,27 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 </View>
 
                 <View style={styles.modalInfo}>
-                  <ThemedText type="h2" style={styles.modalItemName}>
-                    {selectedItem.name}
-                  </ThemedText>
+                  <View style={styles.modalTitleRow}>
+                    <ThemedText type="h2" style={[styles.modalItemName, { flex: 1, marginBottom: 0 }]}>
+                      {selectedItem.name}
+                    </ThemedText>
+                    <Pressable
+                      onPress={openEditDetails}
+                      hitSlop={8}
+                      style={[
+                        styles.editDetailsChip,
+                        {
+                          borderColor: LUXURY_COLORS.gold,
+                          backgroundColor: isDark ? LUXURY_COLORS.gold + '18' : LUXURY_COLORS.gold + '14',
+                        },
+                      ]}
+                    >
+                      <Feather name="edit-2" size={12} color={LUXURY_COLORS.gold} />
+                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, fontWeight: '700' }}>
+                        {t('common.edit') || 'Edit'}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
 
                   <View style={styles.modalTags}>
                     <LinearGradient
@@ -1182,16 +1346,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 </View>
 
                 <View style={[styles.modalActions, { paddingBottom: insets.bottom + Spacing.xl }]}>
-                  <Pressable
-                    onPress={openEditDetails}
-                    style={[styles.secondaryActionButton, { borderColor: LUXURY_COLORS.gold }]}
-                  >
-                    <Feather name="edit-2" size={18} color={LUXURY_COLORS.gold} />
-                    <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
-                      {t('common.edit') || 'Edit details'}
-                    </ThemedText>
-                  </Pressable>
-
                   <LinearGradient
                     colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
                     start={{ x: 0, y: 0 }}
@@ -1259,157 +1413,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   </Pressable>
                 </View>
               </>
-            )}
+              )
+            }
           />
-        </View>
-      </Modal>
-    );
-  };
-
-  const renderEditDetailsModal = () => {
-    if (!selectedItem) return null;
-    return (
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
-            <Pressable
-              onPress={() => setShowEditModal(false)}
-              style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-            <ThemedText type="h3">{t('common.edit') || 'Edit details'}</ThemedText>
-            <View style={{ width: 40 }} />
-          </View>
-
-          <ScrollView
-            contentContainerStyle={{ padding: Spacing.lg, paddingBottom: insets.bottom + Spacing.xl }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6 }}>
-              Name
-            </ThemedText>
-            <TextInput
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Item name"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.editFieldInput,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
-                },
-              ]}
-            />
-
-            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 6, marginTop: Spacing.md }}>
-              Brand
-            </ThemedText>
-            <TextInput
-              value={editBrand}
-              onChangeText={setEditBrand}
-              placeholder="Optional"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.editFieldInput,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFF',
-                },
-              ]}
-            />
-
-            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
-              Season
-            </ThemedText>
-            <View style={styles.editChipRow}>
-              {ALL_SEASONS.map((season) => {
-                const active = editSeasons.includes(season);
-                return (
-                  <Pressable
-                    key={season}
-                    onPress={() => toggleEditSeason(season)}
-                    style={[
-                      styles.editChip,
-                      {
-                        borderColor: active ? LUXURY_COLORS.gold : theme.border,
-                        backgroundColor: active ? LUXURY_COLORS.gold + '22' : 'transparent',
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      type="caption"
-                      style={{ color: active ? LUXURY_COLORS.gold : theme.textSecondary, fontWeight: active ? '700' : '500' }}
-                    >
-                      {SEASON_LABELS[season]}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
-              Occasion
-            </ThemedText>
-            <View style={styles.editChipRow}>
-              {ALL_OCCASIONS.map((occasion) => {
-                const active = editOccasions.includes(occasion);
-                return (
-                  <Pressable
-                    key={occasion}
-                    onPress={() => toggleEditOccasion(occasion)}
-                    style={[
-                      styles.editChip,
-                      {
-                        borderColor: active ? LUXURY_COLORS.violet : theme.border,
-                        backgroundColor: active ? LUXURY_COLORS.violet + '18' : 'transparent',
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      type="caption"
-                      style={{ color: active ? LUXURY_COLORS.violet : theme.textSecondary, fontWeight: active ? '700' : '500' }}
-                    >
-                      {OCCASION_LABELS[occasion]}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              onPress={handleSaveEditDetails}
-              disabled={isSavingEdit}
-              style={[
-                styles.secondaryActionButton,
-                {
-                  borderColor: LUXURY_COLORS.gold,
-                  backgroundColor: LUXURY_COLORS.gold,
-                  marginTop: Spacing.xl,
-                  opacity: isSavingEdit ? 0.6 : 1,
-                },
-              ]}
-            >
-              {isSavingEdit ? (
-                <ActivityIndicator color={LuxuryColors.midnight} />
-              ) : (
-                <>
-                  <Feather name="check" size={18} color={LuxuryColors.midnight} />
-                  <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700' }}>
-                    {t('common.save') || 'Save'}
-                  </ThemedText>
-                </>
-              )}
-            </Pressable>
-          </ScrollView>
         </View>
       </Modal>
     );
@@ -1758,7 +1764,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       ) : null}
 
       {renderItemModal()}
-      {renderEditDetailsModal()}
 
       <Modal
         visible={showAIOutfitModal}
@@ -2329,6 +2334,22 @@ const styles = StyleSheet.create({
   },
   modalItemName: {
     marginBottom: Spacing.md,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  editDetailsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    marginTop: 4,
   },
   modalTags: {
     flexDirection: "row",
