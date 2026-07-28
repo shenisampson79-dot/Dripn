@@ -58,12 +58,20 @@ import {
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
 import {
+  buildSaveOutcome,
   liveCaptureConfirmation,
   liveDuplicateConfirmation,
   liveNextItemPrompt,
   titleCaseItemName,
-  wardrobeSaveConfirmation,
+  type SaveOutcome,
+  type SaveOutcomeSkipped,
 } from '@/utils/wardrobeSaveCopy';
+import {
+  clearSessionScanCorrections,
+  loadScanCorrectionMemory,
+  preferCorrectedCategory,
+  recordCategoryCorrection,
+} from '@/utils/scanCorrectionMemory';
 import {
   SCAN_CHALLENGE_SECONDS,
   SCAN_CHALLENGE_TARGET,
@@ -292,7 +300,12 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [challengeResult, setChallengeResult] = useState<'won' | 'timeout' | 'stopped' | null>(null);
   const [lastScanCategory, setLastScanCategory] = useState<string | null>(null);
   const [sessionSavedItems, setSessionSavedItems] = useState<ScanSessionItem[]>([]);
-  const [saveSuccess, setSaveSuccess] = useState<{ title: string; body: string } | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<SaveOutcome | null>(null);
+  const [correctSheet, setCorrectSheet] = useState<{
+    tempId: string;
+    fromCategory: string;
+  } | null>(null);
+  const [correctFlashId, setCorrectFlashId] = useState<string | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -321,8 +334,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   > | null>(null);
   useEffect(() => {
     onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+    void loadScanCorrectionMemory();
     return () => {
       mountedRef.current = false;
+      clearSessionScanCorrections();
     };
   }, []);
 
@@ -537,12 +552,20 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     });
   };
 
-  const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
+  const persistItems = async (
+    itemsToSave: ScanSessionItem[],
+    allowDuplicates = false,
+    skippedMeta: SaveOutcomeSkipped[] = [],
+    detectedTotal?: number,
+  ) => {
     if (itemsToSave.length === 0) {
-      Alert.alert(
-        t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe',
-        'Nothing new to save — duplicates were skipped.',
-      );
+      setSaveSuccess(buildSaveOutcome({
+        addedNames: [],
+        skipped: skippedMeta.length > 0
+          ? skippedMeta
+          : [{ name: 'Selected items', reason: 'Similar pieces are already in your wardrobe.' }],
+        detected: detectedTotal ?? skippedMeta.length,
+      }));
       setStep('review');
       return;
     }
@@ -562,11 +585,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const confirm = wardrobeSaveConfirmation(
-        itemsToSave.length,
-        itemsToSave.length === 1 ? itemsToSave[0]?.name : undefined,
-      );
-      setSaveSuccess(confirm);
+      setSaveSuccess(buildSaveOutcome({
+        addedNames: itemsToSave.map((item) => item.name),
+        skipped: skippedMeta,
+        detected: detectedTotal ?? (itemsToSave.length + skippedMeta.length),
+      }));
     } catch (error) {
       Alert.alert(
         t('wardrobe.error') || 'Error',
@@ -601,18 +624,25 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     const uniqueSelected = selectedItems.filter((item) =>
       partitioned.unique.some((u) => u.id === item.tempId),
     );
+    const localSkipped: SaveOutcomeSkipped[] = partitioned.dropped.map((drop) => ({
+      name: drop.item.name || 'Item',
+      reason: drop.reason === 'batch_duplicate'
+        ? `Similar to another item in this scan (“${drop.matchName}”)`
+        : `We already have something similar (“${drop.matchName}”)`,
+    }));
 
     if (partitioned.dropped.length > 0 && uniqueSelected.length === 0) {
-      Alert.alert(
-        'Duplicates only',
-        'Every selected item already looks like something in your wardrobe (or duplicates another selected item). Nothing was saved.',
-      );
+      setSaveSuccess(buildSaveOutcome({
+        addedNames: [],
+        skipped: localSkipped,
+        detected: selectedItems.length,
+      }));
       return;
     }
 
     if (partitioned.dropped.length > 0) {
       setDupeNote(
-        `Saving ${uniqueSelected.length} new item${uniqueSelected.length === 1 ? '' : 's'}; skipped ${partitioned.dropped.length} duplicate${partitioned.dropped.length === 1 ? '' : 's'}.`,
+        `${uniqueSelected.length} added · ${partitioned.dropped.length} skipped — we already have something similar`,
       );
     }
 
@@ -673,6 +703,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       });
       const afterServer = uniqueSelected.filter((_, i) => !blockedIndexes.has(i));
       const blocked = uniqueSelected.filter((_, i) => blockedIndexes.has(i));
+      const serverSkipped: SaveOutcomeSkipped[] = blocked.map((b) => ({
+        name: b.name,
+        reason: `We already have something similar to ${titleCaseItemName(b.name) || b.name}`,
+      }));
+      const allSkipped = [...localSkipped, ...serverSkipped];
 
       if (blocked.length > 0 && afterServer.length === 0) {
         setDupeSheet({
@@ -696,14 +731,14 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
       if (blocked.length > 0) {
         setDupeNote(
-          `Skipped ${blocked.length} server-matched duplicate${blocked.length === 1 ? '' : 's'}; saving ${afterServer.length}.`,
+          `${afterServer.length} added · ${blocked.length} skipped — similar to your wardrobe`,
         );
       }
-      await persistItems(afterServer);
+      await persistItems(afterServer, false, allSkipped, selectedItems.length);
     } catch (error) {
       // Offline / API failure: still respect local partition — never force-add on error.
       console.warn('[DigitizeWardrobe] server dupe check failed, using local gate:', error);
-      await persistItems(uniqueSelected);
+      await persistItems(uniqueSelected, false, localSkipped, selectedItems.length);
     }
   };
 
@@ -779,18 +814,20 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       if (!crop?.base64) return;
 
       const tempId = track.trackId;
-      const displayName = liveItemLabel(track);
+      const correctedCategory = preferCorrectedCategory(track.category);
+      const displayName = liveItemLabel({ ...track, category: correctedCategory });
+      const uncertain = track.confidence < 0.62 || correctedCategory === 'bags';
       const item: ScanSessionItem = {
         tempId,
         name: displayName,
-        category: track.category,
+        category: correctedCategory,
         color: track.color || 'multicolor',
         confidence: track.confidence,
         bbox: track.bbox,
         sceneCrop: crop.base64,
-        needsConfirm: track.confidence < 0.6 || track.category === 'bags',
-        confirmPrompt: track.confidence < 0.6 || track.category === 'bags'
-          ? 'Not clear — check the category'
+        needsConfirm: uncertain,
+        confirmPrompt: uncertain
+          ? `We think this is a ${CATEGORY_LABELS[correctedCategory as ClothingCategory] || correctedCategory} — tap to fix`
           : null,
       };
 
@@ -1221,7 +1258,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         ]}
       >
         <ThemedText type="caption" style={{ color: mode === 'live' ? LuxuryColors.gold : theme.textSecondary }}>
-          Live
+          Live (fast)
         </ThemedText>
       </Pressable>
     </View>
@@ -1233,7 +1270,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         Scan your wardrobe items
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-        Lay items flat or keep them clearly separated
+        {mode === 'live'
+          ? 'Live scan (fast) — best for quick adds. Keep items clear and steady.'
+          : 'Lay items flat or keep them clearly separated'}
       </ThemedText>
       {renderModeToggle()}
       {!challengeActive ? renderScanSuggestionChip() : null}
@@ -1477,8 +1516,21 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     </View>
   );
 
+  const applyCategoryCorrection = (tempId: string, fromCategory: string, toCategory: ClothingCategory) => {
+    recordCategoryCorrection(fromCategory, toCategory);
+    updateItem(tempId, { category: toCategory, needsConfirm: false, confirmPrompt: null });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setCorrectFlashId(tempId);
+    setCorrectSheet(null);
+    setTimeout(() => {
+      if (mountedRef.current) setCorrectFlashId(null);
+    }, 400);
+  };
+
   const renderReviewItem = ({ item }: { item: ScanSessionItem }) => {
     const selected = selectedIds.has(item.tempId);
+    const uncertain = Boolean(item.needsConfirm) || item.confidence < 0.62;
+    const categoryLabel = CATEGORY_LABELS[item.category as ClothingCategory] || item.category;
     return (
       <View
         style={[
@@ -1488,6 +1540,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             borderColor: selected ? LuxuryColors.gold : theme.border,
             borderWidth: selected ? 2 : 1,
           },
+          correctFlashId === item.tempId && styles.itemCardFlash,
         ]}
       >
         <View style={styles.itemRow}>
@@ -1515,10 +1568,27 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               placeholder="Item name"
               placeholderTextColor={theme.textTertiary}
             />
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              {CATEGORY_LABELS[item.category as ClothingCategory] || item.category}
-              {item.confidence < 0.6 ? ` · review (${Math.round(item.confidence * 100)}%)` : ''}
-            </ThemedText>
+            <Pressable
+              onPress={() => setCorrectSheet({ tempId: item.tempId, fromCategory: item.category })}
+              hitSlop={8}
+              style={styles.correctChipHit}
+            >
+              <ThemedText
+                type="caption"
+                style={{
+                  color: uncertain ? LuxuryColors.gold : theme.textSecondary,
+                  fontWeight: uncertain ? '700' : '500',
+                }}
+              >
+                {uncertain ? `${categoryLabel} (check)` : categoryLabel}
+                {' · tap to fix'}
+              </ThemedText>
+            </Pressable>
+            {item.confirmPrompt ? (
+              <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 4 }}>
+                {item.confirmPrompt}
+              </ThemedText>
+            ) : null}
           </View>
           <Pressable onPress={() => removeItem(item.tempId)} hitSlop={8}>
             <Feather name="x" size={20} color={theme.textSecondary} />
@@ -1528,7 +1598,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           {categoryOptions.slice(0, 8).map((cat) => (
             <Pressable
               key={cat}
-              onPress={() => updateItem(item.tempId, { category: cat })}
+              onPress={() => applyCategoryCorrection(item.tempId, item.category, cat)}
               style={[
                 styles.categoryChip,
                 item.category === cat && styles.categoryChipActive,
@@ -1870,9 +1940,40 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             <ThemedText type="h2" style={{ textAlign: 'center', marginBottom: Spacing.sm }}>
               {saveSuccess?.title}
             </ThemedText>
-            <ThemedText type="body" style={{ textAlign: 'center', color: theme.textSecondary, marginBottom: Spacing.lg }}>
+            <ThemedText type="body" style={{ textAlign: 'center', color: theme.textSecondary, marginBottom: Spacing.sm }}>
               {saveSuccess?.body}
             </ThemedText>
+            {saveSuccess?.detail ? (
+              <ThemedText type="caption" style={{ textAlign: 'center', color: LuxuryColors.gold, marginBottom: Spacing.md }}>
+                {saveSuccess.detail}
+              </ThemedText>
+            ) : (
+              <View style={{ height: Spacing.md }} />
+            )}
+            {(saveSuccess?.added.length || 0) > 0 ? (
+              <View style={{ marginBottom: Spacing.sm }}>
+                <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 4 }}>
+                  Added
+                </ThemedText>
+                {saveSuccess?.added.map((name) => (
+                  <ThemedText key={`add_${name}`} type="caption" style={{ color: theme.textSecondary }}>
+                    · {name}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
+            {(saveSuccess?.skipped.length || 0) > 0 ? (
+              <View style={{ marginBottom: Spacing.md }}>
+                <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 4 }}>
+                  Skipped
+                </ThemedText>
+                {saveSuccess?.skipped.map((row) => (
+                  <ThemedText key={`skip_${row.name}_${row.reason}`} type="caption" style={{ color: theme.textSecondary, marginBottom: 2 }}>
+                    · {row.name} — {row.reason}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
             <Pressable
               onPress={() => {
                 setSaveSuccess(null);
@@ -1884,6 +1985,54 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 {t('common.done') || 'Done'}
               </ThemedText>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={correctSheet != null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCorrectSheet(null)}
+      >
+        <View style={styles.correctSheetBackdrop}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCorrectSheet(null)} />
+          <View style={[styles.correctSheetCard, { backgroundColor: isDark ? theme.surface : '#FFF' }]}>
+            <ThemedText type="body" style={{ fontWeight: '700', marginBottom: Spacing.sm, textAlign: 'center' }}>
+              What is this?
+            </ThemedText>
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md, textAlign: 'center' }}>
+              Tap once to fix — we’ll remember
+            </ThemedText>
+            <View style={styles.correctSheetGrid}>
+              {categoryOptions.map((cat) => {
+                const active = correctSheet?.fromCategory === cat;
+                return (
+                  <Pressable
+                    key={cat}
+                    onPress={() => {
+                      if (!correctSheet) return;
+                      applyCategoryCorrection(correctSheet.tempId, correctSheet.fromCategory, cat);
+                    }}
+                    style={[
+                      styles.correctSheetOption,
+                      {
+                        borderColor: active ? LuxuryColors.gold : theme.border,
+                        backgroundColor: active ? 'rgba(201,168,124,0.15)' : 'transparent',
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      type="body"
+                      style={{ color: active ? LuxuryColors.gold : theme.text, fontWeight: active ? '700' : '500' }}
+                    >
+                      {CATEGORY_LABELS[cat]}
+                      {active ? ' ✓' : ''}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
       </Modal>
@@ -2090,6 +2239,35 @@ const styles = StyleSheet.create({
   itemCard: {
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
+  },
+  itemCardFlash: {
+    borderColor: LuxuryColors.gold,
+    borderWidth: 2,
+  },
+  correctChipHit: {
+    marginTop: 4,
+    paddingVertical: 4,
+  },
+  correctSheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  correctSheetCard: {
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  correctSheetGrid: {
+    gap: Spacing.sm,
+  },
+  correctSheetOption: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    justifyContent: 'center',
   },
   skippedBlock: {
     marginTop: Spacing.lg,
