@@ -71,8 +71,14 @@ const GENERIC_ITEM_NAMES = new Set([
   'bags',
   'top',
   'tops',
+  'shirt',
+  'shirts',
+  'tee',
+  'tees',
+  't-shirt',
   'clothing',
   'item',
+  'piece',
   'shoes',
   'bottoms',
   'accessory',
@@ -280,6 +286,7 @@ export function normalizeDuplicateDecision(input: {
 
 /**
  * Offline pairwise within-batch duplicates (attribute-only).
+ * Only the later item is flagged — the first occurrence is kept.
  */
 export function findLocalWithinBatchDuplicates(
   candidates: Array<WardrobeDupeCandidate & { id: string }>,
@@ -289,30 +296,19 @@ export function findLocalWithinBatchDuplicates(
     for (let j = i + 1; j < candidates.length; j++) {
       const score = attributeSimilarity(candidates[i], candidates[j]);
       if (score < ATTR_SOFT_THRESHOLD) continue;
-      const left: WardrobeDupeMatch = {
-        id: candidates[j].id,
-        name: candidates[j].name || 'Item',
-        category: candidates[j].category,
-        color: candidates[j].color,
-        brand: candidates[j].brand,
-        imageUri: candidates[j].imageUri,
-        confidence: score >= 0.9 ? 'high' : 'medium',
-        reason: 'batch_attribute_match',
-        attrScore: score,
-        matchScope: 'batch',
-      };
-      const right: WardrobeDupeMatch = {
-        ...left,
+      out[j].matches.push({
         id: candidates[i].id,
         name: candidates[i].name || 'Item',
         category: candidates[i].category,
         color: candidates[i].color,
         brand: candidates[i].brand,
         imageUri: candidates[i].imageUri,
-      };
-      out[i].matches.push(left);
-      out[i].matchedIds.push(candidates[j].id);
-      out[j].matches.push(right);
+        confidence: score >= 0.9 ? 'high' : 'medium',
+        reason: 'batch_attribute_match',
+        attrScore: score,
+        matchScope: 'batch',
+        matchedCandidateIndex: i,
+      });
       out[j].matchedIds.push(candidates[i].id);
     }
   }

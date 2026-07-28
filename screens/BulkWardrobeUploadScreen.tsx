@@ -697,6 +697,9 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         });
       }
       const check = await apiService.checkWardrobeDuplicates(payloads);
+      // Legacy servers sometimes flag both copies of a within-upload pair with no index.
+      // Collect those and keep only the first of each name+category group.
+      const legacyBatchOnlyIndexes: number[] = [];
       (check.results || []).forEach((r) => {
         const src = selectedItems[r.index];
         if (!src) return;
@@ -707,15 +710,48 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           similarMatches: r.similarMatches,
         });
         if (decision.type === 'duplicate' || decision.type === 'already_owned') {
+          const matches = (decision.matches || r.matches || []) as Array<{
+            matchScope?: string;
+            matchedCandidateIndex?: number;
+          }>;
+          const batchOnly = matches.length > 0
+            && matches.every((m) => m.matchScope === 'batch');
+          if (batchOnly) {
+            // Keep the first copy in the upload; only skip later duplicates of it.
+            const hasEarlierTwin = matches.some(
+              (m) => typeof m.matchedCandidateIndex === 'number' && m.matchedCandidateIndex < r.index,
+            );
+            const hasAnyIndex = matches.some(
+              (m) => typeof m.matchedCandidateIndex === 'number',
+            );
+            if (hasAnyIndex) {
+              if (!hasEarlierTwin) return;
+            } else {
+              legacyBatchOnlyIndexes.push(r.index);
+              return;
+            }
+          }
           duplicateIds.add(src.id);
           duplicateLabelMap[src.id] = formatDuplicateNames(decision.matches)
-            || (r.matches?.[0]?.matchScope === 'batch' ? `${src.suggestedName} (in this batch)` : src.suggestedName);
+            || (matches[0]?.matchScope === 'batch' ? `${src.suggestedName} (extra in this upload)` : src.suggestedName);
         } else if (decision.type === 'similar_item') {
           similarIds.add(src.id);
           similarLabelMap[src.id] = decision.message
             || formatDuplicateNames(decision.matches)
             || src.suggestedName;
         }
+      });
+      const seenLegacyKeys = new Set<string>();
+      [...legacyBatchOnlyIndexes].sort((a, b) => a - b).forEach((idx) => {
+        const src = selectedItems[idx];
+        if (!src) return;
+        const key = `${String(src.suggestedName || '').trim().toLowerCase()}|${String(src.category || '').toLowerCase()}`;
+        if (!seenLegacyKeys.has(key)) {
+          seenLegacyKeys.add(key);
+          return;
+        }
+        duplicateIds.add(src.id);
+        duplicateLabelMap[src.id] = `${src.suggestedName} (extra in this upload)`;
       });
     } catch {
       const localBatch = findLocalWithinBatchDuplicates(
@@ -792,22 +828,27 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       const duplicateNames = duplicates
         .map((d) => duplicateLabelMap[d.id] || d.suggestedName)
         .join(', ');
+      const uniqueCount = selectedItems.length - duplicates.length;
       Alert.alert(
-        t('wardrobe.alreadyHaveThis') || t('wardrobe.duplicateItemsFound'),
-        (t('wardrobe.duplicateItemsMessage') || 'The following item(s) are already in your wardrobe: {names}. Would you like to add them anyway?')
-          .replace('{names}', duplicateNames),
+        t('wardrobe.alreadyHaveThis') || t('wardrobe.duplicateItemsFound') || 'Duplicates found',
+        (
+          t('wardrobe.duplicateItemsSkipKeepsOne')
+          || 'These look like copies (already in your wardrobe or repeated in this upload): {names}.\n\nSkip duplicates keeps {unique} new item(s). Add anyway saves every copy.'
+        )
+          .replace('{names}', duplicateNames)
+          .replace('{unique}', String(Math.max(0, uniqueCount))),
         [
           {
-            text: t('common.skipDuplicates'),
+            text: t('common.skipDuplicates') || 'Skip duplicates',
             style: 'cancel',
-            onPress: () => saveItems(
-              selectedItems.filter((item) => !duplicateIds.has(item.id)),
-              { allowDuplicates: false },
-            ),
+            onPress: () => {
+              const toSave = selectedItems.filter((item) => !duplicateIds.has(item.id));
+              void saveItems(toSave, { allowDuplicates: false });
+            },
           },
           {
-            text: t('common.addAnyway') || t('common.addAll'),
-            onPress: () => saveItems(selectedItems, { allowDuplicates: true }),
+            text: t('common.addAnyway') || t('common.addAll') || 'Add anyway',
+            onPress: () => void saveItems(selectedItems, { allowDuplicates: true }),
           },
         ],
       );

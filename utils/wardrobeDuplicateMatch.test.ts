@@ -102,7 +102,9 @@ console.log('=== Client wardrobe duplicate match ===\n');
     { id: 'b', name: 'Tan Trench Coat', category: 'outerwear', color: 'tan', brand: 'Burberry' },
     { id: 'c', name: 'White Tee', category: 'tops', color: 'white' },
   ]);
-  assert.ok(batch[0].matches.length >= 1, 'within-batch detects pair');
+  assert.strictEqual(batch[0].matches.length, 0, 'keeps first occurrence');
+  assert.ok(batch[1].matches.length >= 1, 'flags later duplicate only');
+  assert.strictEqual(batch[2].matches.length, 0, 'unique item not flagged');
   console.log('✓ normalize + within-batch');
 }
 

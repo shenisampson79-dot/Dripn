@@ -68,6 +68,11 @@ export class DigitizeDetectionTracker {
     return this.promoteHits;
   }
 
+  /** Hits needed before “Hold steady…” (locked) — one frame before promote. */
+  get lockFrameTarget(): number {
+    return Math.max(1, this.promoteHits - 1);
+  }
+
   /**
    * Update with frame detections. Returns newly promoted tracks (emit once).
    */

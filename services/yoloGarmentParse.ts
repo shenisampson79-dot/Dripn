@@ -155,8 +155,13 @@ export function mapYoloClassToWardrobeCategory(
   }
 
   if (classId === 2) {
-    // Compact-ish detection → keep as bag. Large / elongated flat blobs → clothing (tops).
-    const looksLikeBag = area < 0.22 && aspect >= 0.7 && aspect <= 1.45 && w < 0.55;
+    // Flat-laid shirts/tops are often classed as Bags. Prefer clothing when shape is garment-like.
+    // Tall / elongated (aspect > 1.3) almost never has bag handles in this model.
+    if (aspect > 1.3 || area >= 0.22 || w >= 0.55) {
+      return clothingGeometryToCategory(cy, aspect, h);
+    }
+    // Compact square-ish mid-size blob → keep as bag.
+    const looksLikeBag = aspect >= 0.7 && aspect <= 1.3;
     if (!looksLikeBag) {
       return clothingGeometryToCategory(cy, aspect, h);
     }

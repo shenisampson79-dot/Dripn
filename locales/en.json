@@ -2782,6 +2782,7 @@
   "wardrobe.deselectAll": "Deselect All",
   "wardrobe.duplicateItemsFound": "Duplicate Items Found",
   "wardrobe.duplicateItemsMessage": "The following item(s) are already in your wardrobe: {names}. Would you like to add them anyway?",
+  "wardrobe.duplicateItemsSkipKeepsOne": "These look like copies (already in your wardrobe or repeated in this upload): {names}.\n\nSkip duplicates keeps {unique} new item(s). Add anyway saves every copy.",
   "wardrobe.alreadyHaveThis": "Looks like you already have this",
   "wardrobe.alreadyHaveThisMessage": "This looks very similar to {names} in your wardrobe.",
   "wardrobe.viewExisting": "View existing",

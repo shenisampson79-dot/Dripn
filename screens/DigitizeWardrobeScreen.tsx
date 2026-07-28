@@ -56,7 +56,7 @@ import {
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
-import { liveCaptureConfirmation, wardrobeSaveConfirmation } from '@/utils/wardrobeSaveCopy';
+import { liveCaptureConfirmation, liveDuplicateConfirmation, liveNextItemPrompt, wardrobeSaveConfirmation } from '@/utils/wardrobeSaveCopy';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
@@ -65,28 +65,48 @@ import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const LIVE_SAMPLE_MS = 900;
+const LIVE_SAMPLE_MS = 800;
 const LIVE_FRAME_WIDTH = 640;
-const STABLE_COLOR = '#2F9E6E';
-const UNSTABLE_COLOR = '#C45C4A';
-/** ~2–3s hold at LIVE_SAMPLE_MS before capture */
+/** Spec colours: detecting/locked yellow → capturing green */
+const LIVE_DETECT_COLOR = '#FFD60A';
+const LIVE_CAPTURE_COLOR = '#00E676';
+/** ~2–2.5s hold at LIVE_SAMPLE_MS before capture */
 const LIVE_PROMOTE_HITS = 3;
+/** Primary must be this much larger than next item to auto-capture amid multi-detect */
+const LIVE_PRIMARY_AREA_RATIO = 1.55;
 
 type DigitizeStep = 'capture' | 'scanning' | 'review' | 'saving';
 type CaptureMode = 'photo' | 'live';
+type LiveTrackPhase = 'detecting' | 'locked' | 'capturing' | 'confirmed';
 
-type LiveOverlayBox = TrackedDetection & { ready: boolean };
+type LiveOverlayBox = TrackedDetection & {
+  phase: LiveTrackPhase;
+  isPrimary: boolean;
+};
+
+function trackArea(bbox: [number, number, number, number]): number {
+  return Math.max(0, bbox[2]) * Math.max(0, bbox[3]);
+}
+
+function pickPrimaryTrack<T extends { bbox: [number, number, number, number]; confidence: number }>(
+  tracks: T[],
+): T | null {
+  if (!tracks.length) return null;
+  return [...tracks].sort((a, b) => {
+    const areaDiff = trackArea(b.bbox) - trackArea(a.bbox);
+    if (Math.abs(areaDiff) > 0.01) return areaDiff;
+    return b.confidence - a.confidence;
+  })[0];
+}
 
 function LiveStabilizeOverlay({
   width,
   height,
   tracks,
-  promoteHits,
 }: {
   width: number;
   height: number;
   tracks: LiveOverlayBox[];
-  promoteHits: number;
 }) {
   if (width <= 0 || height <= 0) return null;
   return (
@@ -98,11 +118,19 @@ function LiveStabilizeOverlay({
           const y = ny * height;
           const w = nw * width;
           const h = nh * height;
-          const ready = track.ready;
-          const stroke = ready ? STABLE_COLOR : UNSTABLE_COLOR;
-          const label = ready
-            ? (track.promoted ? 'Got it' : 'Ready')
-            : `Hold ${Math.min(track.hits, promoteHits)}/${promoteHits}`;
+          const capturing = track.phase === 'capturing' || track.phase === 'confirmed';
+          const locked = track.phase === 'locked';
+          const stroke = capturing
+            ? LIVE_CAPTURE_COLOR
+            : locked || track.phase === 'detecting'
+              ? LIVE_DETECT_COLOR
+              : LIVE_DETECT_COLOR;
+          const label = capturing
+            ? (track.phase === 'confirmed' ? 'Captured' : 'Capturing…')
+            : locked
+              ? 'Hold steady…'
+              : 'Detecting…';
+          const strokeWidth = capturing ? (track.isPrimary ? 3.5 : 2.5) : track.isPrimary ? 2.5 : 1.75;
           return (
             <React.Fragment key={track.trackId}>
               <Rect
@@ -113,21 +141,21 @@ function LiveStabilizeOverlay({
                 rx={6}
                 ry={6}
                 stroke={stroke}
-                strokeWidth={ready ? 3 : 2}
-                fill={ready ? 'rgba(47,158,110,0.14)' : 'rgba(196,92,74,0.12)'}
+                strokeWidth={strokeWidth}
+                fill={capturing ? 'rgba(0,230,118,0.16)' : 'rgba(255,214,10,0.12)'}
               />
               <Rect
                 x={x}
-                y={Math.max(0, y - 18)}
-                width={Math.min(w, 88)}
-                height={16}
+                y={Math.max(0, y - 20)}
+                width={Math.min(w, capturing ? 92 : 100)}
+                height={18}
                 rx={3}
                 fill={stroke}
               />
               <SvgText
                 x={x + 5}
-                y={Math.max(12, y - 5)}
-                fill="#FFFFFF"
+                y={Math.max(13, y - 6)}
+                fill={capturing ? '#053B1F' : '#1A1400'}
                 fontSize="10"
                 fontWeight="700"
               >
@@ -228,13 +256,17 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [dupeNote, setDupeNote] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [liveNote, setLiveNote] = useState('Point at one piece, then Start — hold still until it snaps');
+  const [liveNote, setLiveNote] = useState('Point at one piece, then Start');
   const [liveAddedCount, setLiveAddedCount] = useState(0);
   const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
   const [captureFlash, setCaptureFlash] = useState(false);
-  const [lastCaptureThumb, setLastCaptureThumb] = useState<string | null>(null);
+  const [captureToast, setCaptureToast] = useState<{
+    uri: string;
+    label: string;
+    mode: 'captured' | 'duplicate';
+  } | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -246,6 +278,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const mountedRef = useRef(true);
   const trackerRef = useRef(new DigitizeDetectionTracker({ promoteHits: LIVE_PROMOTE_HITS }));
   const sessionSeenRef = useRef<Set<string>>(new Set());
+  const lockHapticRef = useRef<Set<string>>(new Set());
+  const multiHapticAtRef = useRef(0);
   const savedWardrobeRef = useRef(savedWardrobe);
   savedWardrobeRef.current = savedWardrobe;
 
@@ -480,7 +514,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const confirm = wardrobeSaveConfirmation(itemsToSave.length);
+      const confirm = wardrobeSaveConfirmation(
+        itemsToSave.length,
+        itemsToSave.length === 1 ? itemsToSave[0]?.name : undefined,
+      );
       Alert.alert(
         confirm.title,
         confirm.body,
@@ -593,16 +630,30 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     }
   };
 
-  const fireCaptureFeedback = useCallback(async (thumbUri?: string | null) => {
+  const fireCaptureFeedback = useCallback(async (
+    thumbUri?: string | null,
+    opts?: { label?: string; mode?: 'captured' | 'duplicate' },
+  ) => {
+    const mode = opts?.mode || 'captured';
+    const label = opts?.label || (mode === 'duplicate' ? 'Already added' : 'Captured');
     setCaptureFlash(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    if (thumbUri) setLastCaptureThumb(thumbUri);
-    await new Promise((r) => setTimeout(r, 140));
+    if (mode === 'duplicate') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+    if (thumbUri) {
+      setCaptureToast({ uri: thumbUri, label, mode });
+    }
+    await new Promise((r) => setTimeout(r, 80));
     setCaptureFlash(false);
+    if (mode === 'captured') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
     if (thumbUri) {
       setTimeout(() => {
-        if (mountedRef.current) setLastCaptureThumb(null);
-      }, 2200);
+        if (mountedRef.current) setCaptureToast(null);
+      }, 1400);
     }
   }, []);
 
@@ -625,9 +676,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 : cat === 'bags' ? 'Bag'
                   : cat === 'accessories' ? 'Accessory'
                     : 'Piece';
-    // Prefer geometry-mapped name over generic YOLO "Bag"/"Clothing"
     const raw = String(track.name || '').trim();
-    const generic = /^(bag|bags|clothing|item|top|tops)$/i.test(raw);
+    const generic = /^(bag|bags|clothing|item|top|tops|shirt|shirts|tee|tees)$/i.test(raw);
     const noun = generic || !raw ? base : raw;
     return colorLabel ? `${colorLabel} ${noun}` : noun;
   };
@@ -660,7 +710,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         sceneCrop: crop.base64,
         needsConfirm: track.confidence < 0.6 || track.category === 'bags',
         confirmPrompt: track.confidence < 0.6 || track.category === 'bags'
-          ? 'Check the category — does this look right?'
+          ? 'Not clear — check the category'
           : null,
       };
 
@@ -684,7 +734,14 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       if (partitioned.unique.length === 0) {
         sessionSeenRef.current.add(track.trackId);
         const match = partitioned.dropped[0]?.matchName;
-        setLiveNote(match ? `Already saved · looks like “${match}”` : 'Already in wardrobe — skipped');
+        await fireCaptureFeedback(crop.uri, {
+          mode: 'duplicate',
+          label: match ? `Already added · ${match}` : 'Already added',
+        });
+        setLiveNote(liveDuplicateConfirmation(match));
+        setTimeout(() => {
+          if (mountedRef.current) setLiveNote(liveNextItemPrompt());
+        }, 1200);
         return;
       }
 
@@ -694,7 +751,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         return [...prev, item];
       });
       setSelectedIds((prev) => new Set(prev).add(tempId));
-      await fireCaptureFeedback(crop.uri);
+      await fireCaptureFeedback(crop.uri, { mode: 'captured', label: displayName });
 
       if (autoSaveLive) {
         try {
@@ -710,6 +767,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           });
           setLiveAddedCount((n) => n + 1);
           setLiveNote(liveCaptureConfirmation(item.name));
+          setTimeout(() => {
+            if (mountedRef.current) setLiveNote(liveNextItemPrompt());
+          }, 1100);
         } catch (err) {
           console.warn('[DigitizeWardrobe] live auto-save failed:', err);
           setLiveNote(`${item.name} ready — confirm in Review`);
@@ -741,16 +801,15 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       const onDevice = await detectGarmentsOnDevice(manipulated.uri);
       if (!onDevice?.length) {
         setLiveTracks([]);
-        // Fallback: one-shot cloud scan of the frame (costly — only when YOLO unavailable).
         if (!yoloStatus.available) {
           setLiveNote('On-device YOLO unavailable — use Photo mode for best results');
           return;
         }
-        setLiveNote('No garments yet — hold steadier');
+        setLiveNote('Point at one item');
         return;
       }
 
-      const promoted = trackerRef.current.update(
+      const promotedRaw = trackerRef.current.update(
         onDevice.map((d) => ({
           category: d.category,
           name: d.name,
@@ -760,29 +819,76 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         })),
       );
       const promoteHits = trackerRef.current.promoteFrameTarget;
-      const snapshot = trackerRef.current.snapshot().map((track) => ({
-        ...track,
-        ready: track.promoted || track.hits >= promoteHits,
-      }));
+      const lockHits = trackerRef.current.lockFrameTarget;
+      const snapshotBase = trackerRef.current.snapshot();
+      const primary = pickPrimaryTrack(snapshotBase);
+      const primaryId = primary?.trackId;
+
+      // Multi-item: never silently choose — require a clearly dominant primary.
+      let multiBlocked = false;
+      if (snapshotBase.length >= 2 && primary) {
+        const sortedAreas = snapshotBase
+          .map((t) => trackArea(t.bbox))
+          .sort((a, b) => b - a);
+        const dominant = sortedAreas[0] >= (sortedAreas[1] || 0) * LIVE_PRIMARY_AREA_RATIO;
+        if (!dominant) {
+          multiBlocked = true;
+          const now = Date.now();
+          if (now - multiHapticAtRef.current > 1800) {
+            multiHapticAtRef.current = now;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          }
+        }
+      }
+
+      const justPromotedIds = new Set(promotedRaw.map((p) => p.trackId));
+      const snapshot: LiveOverlayBox[] = snapshotBase.map((track) => {
+        let phase: LiveTrackPhase = 'detecting';
+        if (justPromotedIds.has(track.trackId)) phase = 'capturing';
+        else if (track.promoted) phase = 'confirmed';
+        else if (track.hits >= promoteHits) phase = 'capturing';
+        else if (track.hits >= lockHits) phase = 'locked';
+        return {
+          ...track,
+          phase,
+          isPrimary: track.trackId === primaryId,
+        };
+      });
       setLiveTracks(snapshot);
 
-      const stabilizing = snapshot.filter((t) => !t.ready).length;
-      const readyCount = snapshot.filter((t) => t.ready).length;
-      if (promoted.length) {
-        setLiveNote('Snapping…');
-      } else if (readyCount > 0 && stabilizing === 0) {
-        setLiveNote('Green = captured — point at the next piece');
-      } else if (stabilizing > 0) {
-        setLiveNote(`Hold still ~2 sec · ${stabilizing} locking in`);
-      } else {
-        setLiveNote(`${onDevice.length} in view · center one piece and hold still`);
+      // Lock haptic once per track
+      for (const track of snapshot) {
+        if (track.phase === 'locked' && !lockHapticRef.current.has(track.trackId)) {
+          lockHapticRef.current.add(track.trackId);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        }
       }
-      for (const track of promoted) {
+
+      let toPromote = multiBlocked
+        ? []
+        : promotedRaw.filter((p) => !primaryId || p.trackId === primaryId);
+
+      if (multiBlocked) {
+        setLiveNote(`${snapshotBase.length} items detected — move closer to one`);
+      } else if (toPromote.length) {
+        setLiveNote('Capturing…');
+      } else if (snapshot.some((t) => t.phase === 'locked' && t.isPrimary)) {
+        setLiveNote('Hold steady…');
+      } else if (snapshot.some((t) => t.phase === 'confirmed')) {
+        setLiveNote(liveNextItemPrompt());
+      } else if (snapshotBase.length >= 2 && primary) {
+        setLiveNote('Capturing nearest item — hold steady');
+      } else if (onDevice.length > 0) {
+        setLiveNote('Point at one item');
+      }
+
+      for (const track of toPromote) {
         await ingestLivePromotion(manipulated.uri, track);
       }
     } catch (error) {
       console.warn('[DigitizeWardrobe] live frame failed:', error);
-      setLiveNote('Frame failed — retrying');
+      setLiveNote('Not clear — try one item at a time');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     } finally {
       inFlightRef.current = false;
     }
@@ -809,17 +915,20 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     }
     trackerRef.current.reset();
     sessionSeenRef.current.clear();
+    lockHapticRef.current.clear();
+    multiHapticAtRef.current = 0;
     setLiveAddedCount(0);
     setLiveTracks([]);
+    setCaptureToast(null);
     setIsLive(true);
-    setLiveNote('Center one piece · hold still ~2 sec until it snaps');
+    setLiveNote('Point at one item');
   };
 
   const stopLive = () => {
     setIsLive(false);
     setLiveTracks([]);
     setCaptureFlash(false);
-    setLastCaptureThumb(null);
+    setCaptureToast(null);
     setLiveNote(
       liveAddedCount > 0
         ? `Stopped · ${liveAddedCount} piece${liveAddedCount === 1 ? '' : 's'} saved this session`
@@ -866,21 +975,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const renderCapture = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
+        Scan your wardrobe items
       </ThemedText>
-      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
-        {mode === 'photo'
-          ? 'Scan individual items or clearly separated pieces.'
-          : 'Center one piece and hold still until it snaps — then move to the next.'}
+      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+        Lay items flat or keep them clearly separated
       </ThemedText>
-      <View style={styles.guidanceBox}>
-        <ThemedText type="caption" style={{ color: theme.text, fontWeight: '700', marginBottom: 6 }}>
-          Best results
-        </ThemedText>
-        <ThemedText type="caption" style={{ color: theme.textSecondary, lineHeight: 18 }}>
-          {'✔ Lay items flat or hang them spaced apart\n✔ Avoid overlapping clothes\n✔ One item per photo works best\n✖ Crowded rails or folded drawers'}
-        </ThemedText>
-      </View>
       {renderModeToggle()}
 
       {mode === 'photo' ? (
@@ -891,7 +990,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
               <Feather name="camera" size={48} color={LuxuryColors.gold} />
               <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center' }}>
-                Flat lay or spaced hangings{'\n'}Good light · no overlaps
+                Flat lay or spaced hangings
               </ThemedText>
             </View>
           )}
@@ -931,21 +1030,20 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 width={cameraLayout.width}
                 height={cameraLayout.height}
                 tracks={liveTracks}
-                promoteHits={trackerRef.current.promoteFrameTarget}
               />
             ) : null}
             {isLive ? (
               <View style={styles.liveLegend}>
                 <View style={styles.liveLegendRow}>
-                  <View style={[styles.liveLegendSwatch, { backgroundColor: UNSTABLE_COLOR }]} />
+                  <View style={[styles.liveLegendSwatch, { backgroundColor: LIVE_DETECT_COLOR }]} />
                   <ThemedText type="caption" style={styles.liveLegendText}>
-                    Hold still
+                    Hold steady
                   </ThemedText>
                 </View>
                 <View style={styles.liveLegendRow}>
-                  <View style={[styles.liveLegendSwatch, { backgroundColor: STABLE_COLOR }]} />
+                  <View style={[styles.liveLegendSwatch, { backgroundColor: LIVE_CAPTURE_COLOR }]} />
                   <ThemedText type="caption" style={styles.liveLegendText}>
-                    Snapped
+                    Capturing
                   </ThemedText>
                 </View>
               </View>
@@ -953,12 +1051,25 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             {captureFlash ? (
               <View style={styles.captureFlash} pointerEvents="none" />
             ) : null}
-            {lastCaptureThumb ? (
-              <View style={styles.captureToast} pointerEvents="none">
-                <Image source={{ uri: lastCaptureThumb }} style={styles.captureToastThumb} contentFit="cover" />
-                <ThemedText type="caption" style={styles.captureToastText}>
-                  Captured
-                </ThemedText>
+            {captureToast ? (
+              <View
+                style={[
+                  styles.captureToast,
+                  captureToast.mode === 'duplicate' && styles.captureToastDuplicate,
+                ]}
+                pointerEvents="none"
+              >
+                <Image source={{ uri: captureToast.uri }} style={styles.captureToastThumb} contentFit="cover" />
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="caption" style={styles.captureToastText}>
+                    {captureToast.mode === 'duplicate' ? 'Already added' : '✓ Captured'}
+                  </ThemedText>
+                  {captureToast.label ? (
+                    <ThemedText type="caption" style={styles.captureToastSub} numberOfLines={1}>
+                      {captureToast.label}
+                    </ThemedText>
+                  ) : null}
+                </View>
               </View>
             ) : null}
           </View>
@@ -1102,7 +1213,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         : 'No new items detected';
 
     const summaryLine = detectedCount > 0
-      ? `Detected: ${detectedCount}  ·  New items: ${items.length}  ·  Duplicates skipped: ${skippedCount}`
+      ? `Detected: ${detectedCount}  ·  Added: ${items.length}  ·  Skipped: ${skippedCount} duplicate${skippedCount === 1 ? '' : 's'}`
       : `Confirm what to keep. Scene: ${String(sceneType).replace(/_/g, ' ')}.`;
 
     const whyLine = items.length === 0 && skippedCount > 0
@@ -1323,12 +1434,6 @@ const styles = StyleSheet.create({
     minHeight: 280,
   },
   title: { marginBottom: Spacing.sm },
-  guidanceBox: {
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(201, 168, 124, 0.12)',
-  },
   modeRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -1398,7 +1503,7 @@ const styles = StyleSheet.create({
   captureFlash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#FFF',
-    opacity: 0.55,
+    opacity: 0.4,
     zIndex: 4,
   },
   captureToast: {
@@ -1409,10 +1514,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.72)',
+    maxWidth: '72%',
+    backgroundColor: 'rgba(0,0,0,0.78)',
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 8,
+  },
+  captureToastDuplicate: {
+    backgroundColor: 'rgba(40,40,40,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   captureToastThumb: {
     width: 44,
@@ -1423,6 +1534,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
     paddingRight: 4,
+  },
+  captureToastSub: {
+    color: 'rgba(255,255,255,0.78)',
+    paddingRight: 4,
+    marginTop: 1,
   },
   captureActions: { gap: Spacing.sm },
   itemCard: {
