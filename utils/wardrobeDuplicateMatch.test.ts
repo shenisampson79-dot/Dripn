@@ -16,6 +16,15 @@ console.log('=== Client wardrobe duplicate match ===\n');
 
 {
   const score = attributeSimilarity(
+    { name: 'Light gray Top', category: 'tops', color: 'light gray' },
+    { name: 'Light gray Top', category: 'tops', color: 'light gray' },
+  );
+  assert.ok(score < 0.82, `generic detector labels must not exact-dupe (got ${score})`);
+  console.log('✓ generic Light gray Top not blocked');
+}
+
+{
+  const score = attributeSimilarity(
     { name: 'Black Leather Jacket', category: 'outerwear', color: 'black' },
     { name: 'Black Leather Jacket', category: 'outerwear', color: 'black' },
   );

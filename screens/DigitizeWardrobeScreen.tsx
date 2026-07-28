@@ -61,6 +61,7 @@ import {
   liveCaptureConfirmation,
   liveDuplicateConfirmation,
   liveNextItemPrompt,
+  titleCaseItemName,
   wardrobeSaveConfirmation,
 } from '@/utils/wardrobeSaveCopy';
 import {
@@ -290,6 +291,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [challengeMilestone, setChallengeMilestone] = useState<string | null>(null);
   const [challengeResult, setChallengeResult] = useState<'won' | 'timeout' | 'stopped' | null>(null);
   const [lastScanCategory, setLastScanCategory] = useState<string | null>(null);
+  const [sessionSavedItems, setSessionSavedItems] = useState<ScanSessionItem[]>([]);
+  const [saveSuccess, setSaveSuccess] = useState<{ title: string; body: string } | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -308,6 +311,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const challengeFinishedRef = useRef(false);
   const challengeMilestonesRef = useRef<Set<number>>(new Set());
   const lastTimerHapticSecRef = useRef<number | null>(null);
+  const liveSavedTempIdsRef = useRef<Set<string>>(new Set());
   const savedWardrobeRef = useRef(savedWardrobe);
   savedWardrobeRef.current = savedWardrobe;
   challengeActiveRef.current = challengeActive;
@@ -424,7 +428,12 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         return;
       }
       setSceneType(result.sceneType || 'other');
-      const { uniqueItems, droppedCount, skipped } = applyDedupToItems(result.items);
+      setSessionSavedItems([]);
+      const titledItems = result.items.map((item) => ({
+        ...item,
+        name: titleCaseItemName(item.name) || item.name,
+      }));
+      const { uniqueItems, droppedCount, skipped } = applyDedupToItems(titledItems);
       if (uniqueItems[0]?.category) setLastScanCategory(uniqueItems[0].category);
       setStep('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -557,11 +566,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         itemsToSave.length,
         itemsToSave.length === 1 ? itemsToSave[0]?.name : undefined,
       );
-      Alert.alert(
-        confirm.title,
-        confirm.body,
-        [{ text: t('common.done') || 'Done', onPress: () => navigation.goBack() }],
-      );
+      setSaveSuccess(confirm);
     } catch (error) {
       Alert.alert(
         t('wardrobe.error') || 'Error',
@@ -622,6 +627,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }));
       const serverDupe = await apiService.checkWardrobeDuplicates(dupePayload);
       const blockedIndexes = new Set<number>();
+      const legacyBatchOnlyIndexes: number[] = [];
       (serverDupe.results || []).forEach((r, idx) => {
         const decision = normalizeDuplicateDecision({
           ...r,
@@ -630,8 +636,40 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           similarMatches: r.similarMatches,
         });
         if (decision.type === 'duplicate' || decision.type === 'already_owned') {
-          blockedIndexes.add(typeof r.index === 'number' ? r.index : idx);
+          const index = typeof r.index === 'number' ? r.index : idx;
+          const matches = (decision.matches || r.matches || []) as Array<{
+            matchScope?: string;
+            matchedCandidateIndex?: number;
+          }>;
+          const batchOnly = matches.length > 0
+            && matches.every((m) => m.matchScope === 'batch');
+          if (batchOnly) {
+            const hasEarlierTwin = matches.some(
+              (m) => typeof m.matchedCandidateIndex === 'number' && m.matchedCandidateIndex < index,
+            );
+            const hasAnyIndex = matches.some(
+              (m) => typeof m.matchedCandidateIndex === 'number',
+            );
+            if (hasAnyIndex) {
+              if (!hasEarlierTwin) return; // keep first copy in this upload
+            } else {
+              legacyBatchOnlyIndexes.push(index);
+              return;
+            }
+          }
+          blockedIndexes.add(index);
         }
+      });
+      const seenLegacy = new Set<string>();
+      [...legacyBatchOnlyIndexes].sort((a, b) => a - b).forEach((index) => {
+        const src = uniqueSelected[index];
+        if (!src) return;
+        const key = `${String(src.name || '').trim().toLowerCase()}|${String(src.category || '').toLowerCase()}`;
+        if (!seenLegacy.has(key)) {
+          seenLegacy.add(key);
+          return;
+        }
+        blockedIndexes.add(index);
       });
       const afterServer = uniqueSelected.filter((_, i) => !blockedIndexes.has(i));
       const blocked = uniqueSelected.filter((_, i) => blockedIndexes.has(i));
@@ -704,9 +742,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     color?: string;
   }) => {
     const color = String(track.color || '').toLowerCase();
-    const colorLabel = color && color !== 'multicolor'
-      ? color.charAt(0).toUpperCase() + color.slice(1)
-      : '';
+    const skipColor = !color || color === 'multicolor' || color === 'unknown';
+    const colorLabel = skipColor
+      ? ''
+      : color.split(/\s+/).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
     const cat = String(track.category || 'tops');
     const base =
       cat === 'tops' || cat === 'activewear_tops' ? 'Top'
@@ -718,9 +757,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                   : cat === 'accessories' ? 'Accessory'
                     : 'Piece';
     const raw = String(track.name || '').trim();
-    const generic = /^(bag|bags|clothing|item|top|tops|shirt|shirts|tee|tees)$/i.test(raw);
+    const generic = /^(bag|bags|clothing|item|top|tops|shirt|shirts|tee|tees|bottoms)$/i.test(raw);
     const noun = generic || !raw ? base : raw;
-    return colorLabel ? `${colorLabel} ${noun}` : noun;
+    return titleCaseItemName(colorLabel ? `${colorLabel} ${noun}` : noun);
   };
 
   const ingestLivePromotion = useCallback(
@@ -813,6 +852,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             occasions: ['everyday'],
             isFavorite: false,
           });
+          liveSavedTempIdsRef.current.add(tempId);
           setLiveAddedCount((n) => {
             const nextSession = n + 1;
             if (!challengeActiveRef.current && nextSession === 1) {
@@ -1058,6 +1098,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     setChallengeResult(null);
     setChallengeInvite(false);
     setChallengeMilestone(null);
+    setSessionSavedItems([]);
+    liveSavedTempIdsRef.current.clear();
 
     if (asChallenge) {
       challengeFinishedRef.current = false;
@@ -1339,8 +1381,12 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                   ⚡ Scan {SCAN_CHALLENGE_TARGET} items fast
                 </ThemedText>
               </Pressable>
-              <Pressable onPress={() => setChallengeInvite(false)} style={{ marginTop: Spacing.sm, alignItems: 'center' }}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              <Pressable
+                onPress={() => setChallengeInvite(false)}
+                hitSlop={8}
+                style={[styles.secondaryBtn, { borderColor: theme.border, marginTop: Spacing.sm }]}
+              >
+                <ThemedText type="body" style={{ color: theme.text, fontWeight: '600', textAlign: 'center' }}>
                   Not now
                 </ThemedText>
               </Pressable>
@@ -1389,7 +1435,24 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               <Pressable
                 onPress={() => {
                   stopLive();
-                  applyDedupToItems(scanItems);
+                  const alreadySaved = scanItems.filter((item) =>
+                    liveSavedTempIdsRef.current.has(item.tempId),
+                  );
+                  const pending = scanItems.filter(
+                    (item) => !liveSavedTempIdsRef.current.has(item.tempId),
+                  );
+                  setSessionSavedItems(alreadySaved);
+                  if (pending.length === 0) {
+                    setScanItems([]);
+                    setSkippedItems([]);
+                    setSelectedIds(new Set());
+                    setDetectedCount(alreadySaved.length);
+                    setDupeNote(null);
+                    setStep('review');
+                    return;
+                  }
+                  applyDedupToItems(pending);
+                  setDetectedCount(alreadySaved.length + pending.length);
                   setStep('review');
                 }}
                 style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
@@ -1487,21 +1550,26 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
   const renderReview = () => {
     const skippedCount = skippedItems.length;
+    const sessionSavedCount = sessionSavedItems.length;
     const reviewTitle = items.length > 0
       ? `${items.length} item${items.length === 1 ? '' : 's'} ready`
-      : skippedCount > 0
-        ? 'No new items detected'
-        : 'No new items detected';
+      : sessionSavedCount > 0
+        ? `${sessionSavedCount} item${sessionSavedCount === 1 ? '' : 's'} already saved`
+        : skippedCount > 0
+          ? 'No new items detected'
+          : 'No new items detected';
 
     const summaryLine = detectedCount > 0
-      ? `Detected: ${detectedCount}  ·  Added: ${items.length}  ·  Skipped: ${skippedCount} duplicate${skippedCount === 1 ? '' : 's'}`
+      ? `Detected: ${detectedCount}  ·  Ready: ${items.length}  ·  Saved this session: ${sessionSavedCount}  ·  Skipped: ${skippedCount}`
       : `Confirm what to keep. Scene: ${String(sceneType).replace(/_/g, ' ')}.`;
 
-    const whyLine = items.length === 0 && skippedCount > 0
+    const whyLine = items.length === 0 && skippedCount > 0 && sessionSavedCount === 0
       ? (skippedCount === 1
         ? 'We found 1 item, but it’s already in your wardrobe.'
         : `We found ${detectedCount || skippedCount} pieces, but they’re already in your wardrobe.`)
-      : null;
+      : items.length === 0 && sessionSavedCount > 0
+        ? 'These were saved during Live — nothing else new to add.'
+        : null;
 
     return (
     <View style={styles.stepBody}>
@@ -1538,9 +1606,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             setImageUri(null);
             setScanItems([]);
             setSkippedItems([]);
+            setSessionSavedItems([]);
             setDetectedCount(0);
             setSelectedIds(new Set());
             setDupeNote(null);
+            liveSavedTempIdsRef.current.clear();
             setStep('capture');
           }}
           style={[styles.bulkChip, { borderColor: theme.border }]}
@@ -1548,6 +1618,51 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           <ThemedText type="caption">Rescan</ThemedText>
         </Pressable>
       </View>
+      {sessionSavedCount > 0 ? (
+        <View style={styles.skippedBlock}>
+          <ThemedText type="body" style={{ fontWeight: '700', marginBottom: Spacing.sm }}>
+            Saved this session
+          </ThemedText>
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+            Already added during Live — not duplicates.
+          </ThemedText>
+          {sessionSavedItems.map((item) => (
+            <View
+              key={`saved_${item.tempId}`}
+              style={[
+                styles.itemCard,
+                styles.skippedCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View style={styles.itemRow}>
+                {item.sceneCrop ? (
+                  <Image
+                    source={{ uri: `data:image/jpeg;base64,${item.sceneCrop}` }}
+                    style={styles.itemThumb}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={[styles.itemThumb, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                    <Feather name="check" size={20} color={LuxuryColors.gold} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="body" style={{ fontWeight: '600' }}>
+                    {titleCaseItemName(item.name) || item.name || 'Saved item'}
+                  </ThemedText>
+                  <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 2 }}>
+                    Saved to wardrobe
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <FlatList
         data={items}
         keyExtractor={(item) => item.tempId}
@@ -1555,7 +1670,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         scrollEnabled={false}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
         ListEmptyComponent={
-          skippedCount === 0 ? (
+          skippedCount === 0 && sessionSavedCount === 0 ? (
             <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.md }}>
               No new pieces to add from this photo. Try a flat lay or a clearly separated hanging item.
             </ThemedText>
@@ -1735,6 +1850,38 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             <Pressable onPress={dismissChallengeResult} style={{ alignItems: 'center', paddingVertical: Spacing.sm }}>
               <ThemedText type="caption" style={{ color: theme.textSecondary }}>
                 Done
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={saveSuccess != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setSaveSuccess(null);
+          navigation.goBack();
+        }}
+      >
+        <View style={styles.challengeModalBackdrop}>
+          <View style={[styles.challengeModalCard, { backgroundColor: isDark ? theme.surface : '#FFF' }]}>
+            <ThemedText type="h2" style={{ textAlign: 'center', marginBottom: Spacing.sm }}>
+              {saveSuccess?.title}
+            </ThemedText>
+            <ThemedText type="body" style={{ textAlign: 'center', color: theme.textSecondary, marginBottom: Spacing.lg }}>
+              {saveSuccess?.body}
+            </ThemedText>
+            <Pressable
+              onPress={() => {
+                setSaveSuccess(null);
+                navigation.goBack();
+              }}
+              style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+            >
+              <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700', textAlign: 'center' }}>
+                {t('common.done') || 'Done'}
               </ThemedText>
             </Pressable>
           </View>

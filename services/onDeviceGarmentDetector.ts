@@ -180,14 +180,24 @@ function estimateColorFromRoi(
   const y1 = Math.min(height, Math.ceil((ny + nh) * height));
   if (x1 <= x0 || y1 <= y0) return 'unknown';
 
+  // Sample the centre of the ROI so bedding / floor edges don’t wash the colour to grey.
+  const mx0 = x0 + Math.floor((x1 - x0) * 0.22);
+  const mx1 = x1 - Math.floor((x1 - x0) * 0.22);
+  const my0 = y0 + Math.floor((y1 - y0) * 0.22);
+  const my1 = y1 - Math.floor((y1 - y0) * 0.22);
+  const sx0 = mx1 > mx0 ? mx0 : x0;
+  const sx1 = mx1 > mx0 ? mx1 : x1;
+  const sy0 = my1 > my0 ? my0 : y0;
+  const sy1 = my1 > my0 ? my1 : y1;
+
   let r = 0;
   let g = 0;
   let b = 0;
   let n = 0;
-  const stepX = Math.max(1, Math.floor((x1 - x0) / 24));
-  const stepY = Math.max(1, Math.floor((y1 - y0) / 24));
-  for (let y = y0; y < y1; y += stepY) {
-    for (let x = x0; x < x1; x += stepX) {
+  const stepX = Math.max(1, Math.floor((sx1 - sx0) / 20));
+  const stepY = Math.max(1, Math.floor((sy1 - sy0) / 20));
+  for (let y = sy0; y < sy1; y += stepY) {
+    for (let x = sx0; x < sx1; x += stepX) {
       const i = (y * width + x) * 4;
       r += rgba[i] ?? 0;
       g += rgba[i + 1] ?? 0;
@@ -204,9 +214,16 @@ function estimateColorFromRoi(
   const min = Math.min(r, g, b);
   if (max < 40) return 'black';
   if (min > 210) return 'white';
-  if (max - min < 25) {
+  if (max - min < 35) {
     if (max < 90) return 'charcoal';
-    if (max < 160) return 'gray';
+    if (max < 145) return 'gray';
+    // Warm near-white (cream henleys on sheets) — not "light gray"
+    if (min > 165 && r >= g - 5 && g >= b - 10) {
+      if (r - b > 12) return 'cream';
+      if (r - b > 6) return 'beige';
+      return 'white';
+    }
+    if (min > 170) return 'white';
     return 'light gray';
   }
   if (r > g + 25 && r > b + 25) return r > 160 ? 'red' : 'burgundy';

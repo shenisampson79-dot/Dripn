@@ -158,12 +158,12 @@ export function mapYoloClassToWardrobeCategory(
     // Flat-laid shirts/tops are often classed as Bags. Prefer clothing when shape is garment-like.
     // Tall / elongated (aspect > 1.3) almost never has bag handles in this model.
     if (aspect > 1.3 || area >= 0.22 || w >= 0.55) {
-      return clothingGeometryToCategory(cy, aspect, h);
+      return clothingGeometryToCategory(cy, aspect, h, w);
     }
     // Compact square-ish mid-size blob → keep as bag.
     const looksLikeBag = aspect >= 0.7 && aspect <= 1.3;
     if (!looksLikeBag) {
-      return clothingGeometryToCategory(cy, aspect, h);
+      return clothingGeometryToCategory(cy, aspect, h, w);
     }
     return { category: 'bags', subcategory: 'bag', name: 'Bag' };
   }
@@ -172,24 +172,35 @@ export function mapYoloClassToWardrobeCategory(
     return { category: 'accessories', subcategory: 'accessory', name: 'Accessory' };
   }
 
-  return clothingGeometryToCategory(cy, aspect, h);
+  return clothingGeometryToCategory(cy, aspect, h, w);
 }
 
 function clothingGeometryToCategory(
   cy: number,
   aspect: number,
   h: number,
+  w: number,
 ): { category: string; subcategory: string; name: string } {
-  if (aspect > 1.55 && h > 0.45) {
+  // Tall / portrait blobs are almost always tops or dresses — even lying on the floor.
+  // (Cy-based "lower half = bottoms" falsely tags floor shirts as bottoms.)
+  if (aspect > 1.55 && h > 0.4) {
     return { category: 'dresses', subcategory: 'dress', name: 'Dress / one-piece' };
   }
-  if (cy > 0.58 || (cy > 0.5 && aspect < 1.15)) {
-    return { category: 'bottoms', subcategory: 'bottoms', name: 'Bottoms' };
-  }
-  if (cy < 0.42) {
+  if (aspect >= 1.15) {
     return { category: 'tops', subcategory: 'top', name: 'Top' };
   }
-  if (aspect > 1.25 && h > 0.35) {
+  // Wide, short blobs → bottoms
+  if (aspect < 0.95 && w > 0.22) {
+    return { category: 'bottoms', subcategory: 'bottoms', name: 'Bottoms' };
+  }
+  // Ambiguous mid-aspect: only trust vertical position when clearly low in frame
+  if (cy > 0.68 && aspect < 1.1) {
+    return { category: 'bottoms', subcategory: 'bottoms', name: 'Bottoms' };
+  }
+  if (cy < 0.38) {
+    return { category: 'tops', subcategory: 'top', name: 'Top' };
+  }
+  if (aspect > 1.05 && h > 0.3) {
     return { category: 'outerwear', subcategory: 'outerwear', name: 'Outerwear' };
   }
   return { category: 'tops', subcategory: 'clothing', name: 'Top' };

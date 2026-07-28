@@ -31,31 +31,54 @@ function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)] || pool[0];
 }
 
+/** Title-case garment names for confirmations ("cream henley shirt" → "Cream Henley Shirt"). */
+export function titleCaseItemName(name?: string | null): string {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  return raw
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return word;
+      // Keep short all-caps tokens (e.g. "TEE") readable as Title Case
+      const lower = word.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
 export function wardrobeSaveConfirmation(
   count: number,
   itemName?: string,
 ): { title: string; body: string } {
   const n = Math.max(1, Math.floor(count) || 1);
-  const name = String(itemName || '').trim();
+  const name = titleCaseItemName(itemName);
   if (n === 1 && name) {
-    return Math.random() < 0.55
-      ? { title: name, body: 'Saved.' }
-      : { ...pick(SINGLE), body: `${name} — saved.` };
+    const line = pick(SINGLE);
+    return {
+      title: line.title,
+      body: `${name} — saved.`,
+    };
   }
-  const pool = n === 1 ? SINGLE : MULTI;
-  return { ...pick(pool) };
+  if (n > 1) {
+    const line = pick(MULTI);
+    return {
+      title: line.title,
+      body: `${n} items saved. ${line.body}`,
+    };
+  }
+  return { ...pick(SINGLE) };
 }
 
 /** After a live capture — short, item-aware when possible. */
 export function liveCaptureConfirmation(itemName: string): string {
-  const name = String(itemName || '').trim();
+  const name = titleCaseItemName(itemName);
   if (name && Math.random() < 0.65) return `${name} — saved`;
   if (name) return `Got it — ${name}`;
   return pick(LIVE_SAVED);
 }
 
 export function liveDuplicateConfirmation(matchName?: string): string {
-  const match = String(matchName || '').trim();
+  const match = titleCaseItemName(matchName);
   if (match) return `Already in your wardrobe · looks like “${match}”`;
   return 'Already in your wardrobe';
 }

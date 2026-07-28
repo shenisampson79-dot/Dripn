@@ -92,9 +92,11 @@ function isGenericItemName(name?: string | null): boolean {
   const n = String(name || '').toLowerCase().trim();
   if (!n) return true;
   if (GENERIC_ITEM_NAMES.has(n)) return true;
-  // "White Bag", "Item bags", etc.
   const tokens = n.split(/\s+/).filter(Boolean);
   if (tokens.length <= 2 && tokens.some((t) => GENERIC_ITEM_NAMES.has(t))) return true;
+  // Detector labels like "Light gray Top" / "White Bottoms"
+  const last = tokens[tokens.length - 1];
+  if (tokens.length <= 4 && last && GENERIC_ITEM_NAMES.has(last)) return true;
   return false;
 }
 
