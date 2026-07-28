@@ -1328,13 +1328,6 @@ class ApiService {
           headline: string;
           summary: string;
           bullets: string[];
-          swaps?: Array<{
-            slot: string;
-            suggestion: string;
-            reason: string;
-            confidence: number;
-            itemId?: string | number;
-          }>;
         };
         ui?: {
           stable?: boolean;

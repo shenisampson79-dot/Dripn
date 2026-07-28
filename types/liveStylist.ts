@@ -16,19 +16,10 @@ export type LiveTrackedItem = ScanSessionItem & {
   } | null;
 };
 
-export type LiveCoachingSwap = {
-  slot: 'top' | 'bottom' | 'shoes' | 'outerwear' | string;
-  suggestion: string;
-  reason: string;
-  confidence: number;
-  itemId?: string | number;
-};
-
 export type LiveCoaching = {
   headline: string;
   summary: string;
   bullets: string[];
-  swaps?: LiveCoachingSwap[];
 };
 
 export type LiveFeedbackUi = {
@@ -51,6 +42,8 @@ export type LiveFeedback = {
   seasonalConsistency?: number;
   seasonalMode?: string;
   tryOnLikely?: boolean;
+  layerConflicts?: Array<{ type: string; severity: string; tip?: string }>;
+  personalColourApplied?: boolean;
   coaching?: LiveCoaching;
   ui?: LiveFeedbackUi;
 };

@@ -38,7 +38,6 @@ export function LiveArOverlay({
   );
 
   const coaching = feedback?.coaching;
-  const swap = coaching?.swaps?.[0];
 
   if (width <= 0 || height <= 0) return null;
 
@@ -129,11 +128,6 @@ export function LiveArOverlay({
                   · {coaching.bullets[0]}
                 </ThemedText>
               ) : null}
-              {swap ? (
-                <ThemedText type="caption" style={styles.swapText} numberOfLines={2}>
-                  Try {swap.suggestion} — {swap.reason}
-                </ThemedText>
-              ) : null}
             </View>
           ) : (feedback.hints?.[0] || feedback.suggestions?.[0]) ? (
             <View style={styles.chipRow}>
@@ -209,10 +203,6 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     color: 'rgba(255,255,255,0.78)',
-  },
-  swapText: {
-    color: LuxuryColors.gold,
-    marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',
