@@ -76,8 +76,9 @@ const COLOR_OPTIONS = (Object.keys(COLOR_LABELS) as ClothingColor[]).map((id) =>
   label: COLOR_LABELS[id],
 }));
 
-function titleForConfidence(band: QuickAddTagDraft['confidence']): string {
+function titleForConfidence(band: QuickAddTagDraft['confidence'], name?: string): string {
   if (band === 'low') return 'Not sure about this one';
+  if (name?.trim()) return `Got it — ${name.trim()}`;
   return 'Looks good';
 }
 
@@ -183,7 +184,7 @@ export function QuickAddTagItem({
 
         <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
           <ThemedText type="h2" style={styles.looksTitle}>
-            {titleForConfidence(draft.confidence)}
+            {titleForConfidence(draft.confidence, draft.name)}
           </ThemedText>
           <ThemedText type="caption" style={styles.looksSub}>
             {subtextForConfidence(draft.confidence)}

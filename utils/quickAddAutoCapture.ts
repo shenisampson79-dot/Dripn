@@ -19,14 +19,19 @@ export type QuickAddYoloDetection = {
 export type QuickAddCaptureUi = 'idle' | 'hold' | 'ready' | 'struggling';
 
 export const QUICK_ADD_CAPTURE = {
-  selectConfidence: 0.6,
-  captureConfidence: 0.75,
-  stableFrames: 6,
-  minArea: 0.12,
-  iouThreshold: 0.6,
+  selectConfidence: 0.5,
+  captureConfidence: 0.62,
+  /** Sample interval is ~0.7s — 3 frames ≈ 2s hold, not ~7s. */
+  stableFrames: 3,
+  /** Shoes / accessories often sit under 0.12 of frame. */
+  minArea: 0.04,
+  iouThreshold: 0.55,
   captureCooldownMs: 2000,
-  /** Approx guide frame as fraction of full preview (280pt box on ~390pt phone). */
-  guide: { x: 0.14, y: 0.22, width: 0.72, height: 0.42 } as QuickAddBBox,
+  /**
+   * Matches the on-screen square guide (~280pt) as a fraction of a typical phone preview.
+   * Used for gating and as a crop fallback when YOLO misses.
+   */
+  guide: { x: 0.12, y: 0.22, width: 0.76, height: 0.48 } as QuickAddBBox,
   strugglingMs: 3500,
 } as const;
 
@@ -48,6 +53,14 @@ export function iou(a: QuickAddBBox, b: QuickAddBBox): number {
   return union <= 0 ? 0 : inter / union;
 }
 
+function intersectionArea(a: QuickAddBBox, b: QuickAddBBox): number {
+  const x1 = Math.max(a.x, b.x);
+  const y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.width, b.x + b.width);
+  const y2 = Math.min(a.y + a.height, b.y + b.height);
+  return Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+}
+
 export function selectBestDetection(
   detections: QuickAddYoloDetection[],
   minConfidence = QUICK_ADD_CAPTURE.selectConfidence,
@@ -58,7 +71,10 @@ export function selectBestDetection(
   return ranked[0] || null;
 }
 
-/** Soft containment: centre of bbox must sit inside guide; area mostly overlaps guide. */
+/**
+ * Soft containment: centre inside guide, and most of the item overlaps the guide.
+ * Uses coverage-of-bbox (not IoU) so small shoes in a large guide still count as centered.
+ */
 export function isInsideGuideFrame(
   bbox: QuickAddBBox,
   frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
@@ -71,11 +87,12 @@ export function isInsideGuideFrame(
     && cy >= frame.y
     && cy <= frame.y + frame.height;
   if (!centreIn) return false;
-  const overlap = iou(bbox, frame);
-  return overlap >= 0.2;
+  const area = Math.max(1e-6, bbox.width * bbox.height);
+  const covered = intersectionArea(bbox, frame) / area;
+  return covered >= 0.45;
 }
 
-export function addPadding(bbox: QuickAddBBox, padding = 0.1): QuickAddBBox {
+export function addPadding(bbox: QuickAddBBox, padding = 0.08): QuickAddBBox {
   const x = Math.max(0, bbox.x - padding);
   const y = Math.max(0, bbox.y - padding);
   const right = Math.min(1, bbox.x + bbox.width + padding);
@@ -86,6 +103,11 @@ export function addPadding(bbox: QuickAddBBox, padding = 0.1): QuickAddBBox {
     width: Math.max(0.02, right - x),
     height: Math.max(0.02, bottom - y),
   };
+}
+
+/** Slightly tighter pad for already-small subjects so rembg doesn't leave a huge canvas. */
+export function paddingForBBox(bbox: QuickAddBBox, categoryHint?: string | null): number {
+  return paddingForCategory(categoryHint, bbox);
 }
 
 export type QuickAddTrackState = {
@@ -146,7 +168,7 @@ export function evaluateCapture(
       ui: struggling ? 'struggling' : 'idle',
       hint: struggling
         ? 'Try moving closer or clearer lighting'
-        : 'Center the item',
+        : 'Fit item inside frame',
       isBigEnough: false,
       isCentered: false,
       isStable: false,
@@ -172,11 +194,16 @@ export function evaluateCapture(
     };
   }
 
-  if (det && (isCentered || track.stableFrames > 1)) {
+  let hint = 'Fit item inside frame';
+  if (!isBigEnough) hint = 'Move closer';
+  else if (!isCentered) hint = 'Fit item inside frame';
+  else if (!isStable || !isConfident) hint = 'Hold still…';
+
+  if (det && (isCentered || track.stableFrames > 1 || !isBigEnough)) {
     return {
       shouldCapture: false,
       ui: 'hold',
-      hint: 'Hold still…',
+      hint,
       isBigEnough,
       isCentered,
       isStable,
@@ -187,12 +214,34 @@ export function evaluateCapture(
   return {
     shouldCapture: false,
     ui: 'idle',
-    hint: 'Center the item',
+    hint,
     isBigEnough,
     isCentered,
     isStable,
     isConfident,
   };
+}
+
+/** Category-aware crop padding — tighter = subject fills more of the saved frame. */
+export function paddingForCategory(categoryHint?: string | null, bbox?: QuickAddBBox | null): number {
+  const cat = String(categoryHint || '').toLowerCase();
+  const area = bbox ? bbox.width * bbox.height : 0.15;
+  if (/shoe|boot|sandal|sneaker|heel|loafer|footwear/.test(cat)) {
+    return area < 0.1 ? 0.04 : 0.05; // ~75% fill
+  }
+  if (/accessor|bag|hat|belt|scarf|jewel|watch|sunglass/.test(cat)) {
+    return area < 0.1 ? 0.05 : 0.07; // ~65–75%
+  }
+  if (area < 0.08) return 0.05;
+  if (area < 0.18) return 0.06;
+  return 0.07; // tops / default ~85%
+}
+
+export function countConfidentDetections(
+  detections: QuickAddYoloDetection[],
+  minConfidence = QUICK_ADD_CAPTURE.selectConfidence,
+): number {
+  return detections.filter((d) => d.confidence > minConfidence).length;
 }
 
 export class QuickAddCaptureController {
@@ -203,27 +252,38 @@ export class QuickAddCaptureController {
     this.track = createEmptyTrack();
   }
 
+  /** Call when a photo is actually taken (auto or manual) so cooldown applies. */
+  markCaptured(now = Date.now()) {
+    this.lastCaptureTime = now;
+  }
+
   onFrame(
     detections: QuickAddYoloDetection[],
     now = Date.now(),
-  ): { best: QuickAddYoloDetection | null; eval: CaptureEval; trigger: boolean } {
+  ): { best: QuickAddYoloDetection | null; eval: CaptureEval; armed: boolean; multiCount: number } {
+    const multiCount = countConfidentDetections(detections);
     const best = selectBestDetection(detections);
     if (!best) {
       const evaluation = evaluateCapture(null, this.track);
-      // Don't wipe firstSeenAt while briefly losing detection mid-lock.
       if (now - this.track.lastUpdated > 1200) {
         this.track = createEmptyTrack();
       }
-      return { best: null, eval: evaluation, trigger: false };
+      return { best: null, eval: evaluation, armed: false, multiCount };
     }
 
     this.track = updateTracking(this.track, best, now);
     const evaluation = evaluateCapture(best, this.track);
-    let trigger = false;
-    if (evaluation.shouldCapture && now - this.lastCaptureTime >= QUICK_ADD_CAPTURE.captureCooldownMs) {
-      this.lastCaptureTime = now;
-      trigger = true;
+    let nextEval = evaluation;
+    if (multiCount >= 2 && !evaluation.shouldCapture) {
+      nextEval = {
+        ...evaluation,
+        hint: '2 items detected — capture one at a time',
+        ui: evaluation.ui === 'idle' ? 'hold' : evaluation.ui,
+      };
     }
-    return { best, eval: evaluation, trigger };
+    const armed =
+      nextEval.shouldCapture
+      && now - this.lastCaptureTime >= QUICK_ADD_CAPTURE.captureCooldownMs;
+    return { best, eval: nextEval, armed, multiCount };
   }
 }

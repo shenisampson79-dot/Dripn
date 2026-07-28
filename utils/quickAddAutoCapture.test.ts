@@ -12,6 +12,8 @@ import {
   createEmptyTrack,
   addPadding,
   iou,
+  QUICK_ADD_CAPTURE,
+  paddingForCategory,
 } from './quickAddAutoCapture.ts';
 
 console.log('=== Quick Add auto-capture ===\n');
@@ -30,7 +32,9 @@ console.log('=== Quick Add auto-capture ===\n');
   const centred = { x: 0.25, y: 0.3, width: 0.4, height: 0.35 };
   assert.equal(isInsideGuideFrame(centred), true);
   assert.equal(isInsideGuideFrame({ x: 0, y: 0, width: 0.1, height: 0.1 }), false);
-  console.log('✓ guide frame containment');
+  const shoes = { x: 0.35, y: 0.35, width: 0.22, height: 0.18 };
+  assert.equal(isInsideGuideFrame(shoes), true);
+  console.log('✓ guide frame containment (incl. small shoes)');
 }
 
 {
@@ -39,6 +43,11 @@ console.log('=== Quick Add auto-capture ===\n');
   assert.equal(padded.y, 0);
   assert.ok(padded.width > 0.2);
   console.log('✓ pads bbox');
+}
+
+{
+  assert.ok(paddingForCategory('shoes') < paddingForCategory('tops'));
+  console.log('✓ category-aware padding (shoes tighter than tops)');
 }
 
 {
@@ -54,30 +63,33 @@ console.log('=== Quick Add auto-capture ===\n');
     bbox: { ...centred.bbox, x: centred.bbox.x + 0.01 },
   });
   assert.equal(track.stableFrames, 2);
-  assert.ok(iou(centred.bbox, track.bbox!) > 0.6);
+  assert.ok(iou(centred.bbox, track.bbox!) > 0.55);
   console.log('✓ stable frame IoU tracking');
 }
 
 {
-  const centred = {
-    class: 'shirt',
-    confidence: 0.9,
-    bbox: { x: 0.25, y: 0.3, width: 0.4, height: 0.35 },
+  const shoes = {
+    class: 'shoes',
+    confidence: 0.7,
+    bbox: { x: 0.35, y: 0.35, width: 0.22, height: 0.2 },
   };
   const track = {
     ...createEmptyTrack(),
-    bbox: centred.bbox,
-    stableFrames: 6,
+    bbox: shoes.bbox,
+    stableFrames: QUICK_ADD_CAPTURE.stableFrames,
     firstSeenAt: Date.now(),
   };
-  const ready = evaluateCapture(centred, track);
-  assert.equal(ready.shouldCapture, true);
+  const ready = evaluateCapture(shoes, track);
+  assert.equal(ready.shouldCapture, true, 'shoes should arm when centered');
   assert.equal(ready.ui, 'ready');
 
-  const shaky = evaluateCapture(centred, { ...track, stableFrames: 2 });
-  assert.equal(shaky.shouldCapture, false);
-  assert.equal(shaky.hint, 'Hold still…');
-  console.log('✓ capture gating');
+  const tooFar = evaluateCapture(
+    { ...shoes, bbox: { x: 0.4, y: 0.4, width: 0.12, height: 0.1 } },
+    track,
+  );
+  assert.equal(tooFar.shouldCapture, false);
+  assert.equal(tooFar.hint, 'Move closer');
+  console.log('✓ capture gating (shoes + move closer)');
 }
 
 {
@@ -87,16 +99,28 @@ console.log('=== Quick Add auto-capture ===\n');
     bbox: { x: 0.25, y: 0.3, width: 0.4, height: 0.35 },
   };
   const ctl = new QuickAddCaptureController();
-  let triggers = 0;
+  let armedHits = 0;
   const t0 = 1_000_000;
-  for (let i = 0; i < 8; i++) {
-    const { trigger } = ctl.onFrame([centred], t0 + i * 50);
-    if (trigger) triggers += 1;
+  for (let i = 0; i < 6; i++) {
+    const { armed } = ctl.onFrame([centred], t0 + i * 50);
+    if (armed) armedHits += 1;
   }
-  assert.equal(triggers, 1);
-  assert.equal(ctl.onFrame([centred], t0 + 500).trigger, false);
-  assert.equal(ctl.onFrame([centred], t0 + 2500).trigger, true);
-  console.log('✓ cooldown');
+  assert.ok(armedHits >= 1, 'should arm for countdown');
+  // Cooldown after markCaptured
+  ctl.markCaptured(t0 + 300);
+  assert.equal(ctl.onFrame([centred], t0 + 500).armed, false);
+  assert.equal(ctl.onFrame([centred], t0 + 2500).armed, true);
+  console.log('✓ armed + cooldown (countdown owns the snap)');
+}
+
+{
+  const ctl = new QuickAddCaptureController();
+  const a = { class: 'shoes', confidence: 0.8, bbox: { x: 0.2, y: 0.3, width: 0.25, height: 0.2 } };
+  const b = { class: 'bag', confidence: 0.7, bbox: { x: 0.55, y: 0.3, width: 0.2, height: 0.2 } };
+  const { multiCount, eval: evaluation } = ctl.onFrame([a, b], Date.now());
+  assert.equal(multiCount, 2);
+  assert.match(evaluation.hint, /2 items/i);
+  console.log('✓ multi-item hint');
 }
 
 console.log('\nAll Quick Add auto-capture checks passed.');

@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Linking,
   Platform,
   Pressable,
@@ -61,8 +62,9 @@ import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
 
 const FRAME_SIZE = 280;
 const SUCCESS_GREEN = '#4CAF50';
-const SAMPLE_MS = 1100;
+const SAMPLE_MS = 700;
 const SAMPLE_WIDTH = 640;
+const COUNTDOWN_TICK_MS = 550;
 
 type Step = 'camera' | 'processing' | 'result';
 type ConfidenceBand = 'high' | 'medium' | 'low';
@@ -109,15 +111,19 @@ export default function QuickAddScreen({ navigation }: Props) {
   const controllerRef = useRef(new QuickAddCaptureController());
   const inFlightRef = useRef(false);
   const capturingRef = useRef(false);
+  const lastBestRef = useRef<QuickAddYoloDetection | null>(null);
   const lastUiHintAt = useRef(0);
   const stepRef = useRef<Step>('camera');
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownArmedRef = useRef(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const [step, setStep] = useState<Step>('camera');
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [torch, setTorch] = useState(false);
-  const [hint, setHint] = useState('Center the item');
+  const [hint, setHint] = useState('Fit item inside frame');
   const [frameUi, setFrameUi] = useState<QuickAddCaptureUi>('idle');
-  const [flash, setFlash] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -198,7 +204,6 @@ export default function QuickAddScreen({ navigation }: Props) {
     setStep('processing');
     setHint('Identifying your item…');
     setFrameUi('idle');
-    setFlash(false);
     try {
       const result = await processQuickAddCapture(uri, detection);
       if (!result.analysis && !result.imageUri) {
@@ -223,7 +228,7 @@ export default function QuickAddScreen({ navigation }: Props) {
             text: 'Try again',
             onPress: () => {
               setStep('camera');
-              setHint('Center the item');
+              setHint('Fit item inside frame');
               controllerRef.current.reset();
             },
           },
@@ -231,37 +236,91 @@ export default function QuickAddScreen({ navigation }: Props) {
         ],
       );
       setStep('camera');
-      setHint('Center the item');
+      setHint('Fit item inside frame');
     } finally {
       capturingRef.current = false;
     }
   }, [navigation, t]);
 
-  const fireCaptureFlash = async () => {
-    setFlash(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await new Promise((r) => setTimeout(r, 150));
-    setFlash(false);
-  };
+  const clearCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    countdownArmedRef.current = false;
+    setCountdown(null);
+  }, []);
 
-  const handleCapture = async (detection?: QuickAddYoloDetection | null) => {
+  const handleCapture = useCallback(async (detection?: QuickAddYoloDetection | null) => {
     if (!cameraRef.current || stepRef.current !== 'camera' || capturingRef.current) return;
+    clearCountdown();
+    controllerRef.current.markCaptured();
     try {
-      await fireCaptureFlash();
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setHint('Captured');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
-        shutterSound: false,
+        shutterSound: true,
         skipProcessing: Platform.OS === 'android',
       });
       if (!photo?.uri) return;
-      await processCapturedUri(photo.uri, detection);
+      await processCapturedUri(photo.uri, detection ?? lastBestRef.current);
     } catch (error) {
       console.warn('[QuickAdd] capture failed:', error);
-      setHint('Center the item');
+      setHint('Fit item inside frame');
       Alert.alert('Camera', 'Could not take photo. Try again.');
     }
-  };
+  }, [clearCountdown, processCapturedUri]);
+
+  const handleCaptureRef = useRef(handleCapture);
+  handleCaptureRef.current = handleCapture;
+
+  const startCountdown = useCallback((best: QuickAddYoloDetection) => {
+    if (countdownArmedRef.current || capturingRef.current) return;
+    countdownArmedRef.current = true;
+    lastBestRef.current = best;
+    setCountdown(3);
+    setHint('Hold still… 3');
+    setFrameUi('ready');
+    void Haptics.selectionAsync();
+    let n = 3;
+    countdownTimerRef.current = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
+        }
+        countdownArmedRef.current = false;
+        setCountdown(null);
+        void handleCaptureRef.current(best);
+        return;
+      }
+      setCountdown(n);
+      setHint(`Hold still… ${n}`);
+      void Haptics.selectionAsync();
+    }, COUNTDOWN_TICK_MS);
+  }, []);
+
+  useEffect(() => {
+    if (frameUi !== 'ready' && countdown == null) {
+      pulseAnim.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 380, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      pulseAnim.setValue(1);
+    };
+  }, [frameUi, countdown, pulseAnim]);
+
+  useEffect(() => () => clearCountdown(), [clearCountdown]);
 
   const sampleForAutoCapture = useCallback(async () => {
     if (
@@ -296,25 +355,28 @@ export default function QuickAddScreen({ navigation }: Props) {
         bbox: bboxFromTuple(d.bbox),
       }));
 
-      const { best, eval: evaluation, trigger } = controllerRef.current.onFrame(detections);
+      const { best, eval: evaluation, armed } = controllerRef.current.onFrame(detections);
+      if (best) lastBestRef.current = best;
       const now = Date.now();
-      if (now - lastUiHintAt.current > 100) {
+      if (now - lastUiHintAt.current > 80) {
         lastUiHintAt.current = now;
-        setHint(evaluation.hint);
         setFrameUi(evaluation.ui);
+        if (!countdownArmedRef.current) {
+          setHint(evaluation.hint);
+        }
       }
 
-      if (trigger && best) {
-        // Prefer crop of the already-captured sample (faster) over a second shutter.
-        await fireCaptureFlash();
-        await processCapturedUri(small.uri, best);
+      if (armed && best) {
+        startCountdown(best);
+      } else if (!evaluation.shouldCapture) {
+        clearCountdown();
       }
     } catch (err) {
       console.warn('[QuickAdd] auto sample failed:', err);
     } finally {
       inFlightRef.current = false;
     }
-  }, [processCapturedUri, yoloStatus.available]);
+  }, [clearCountdown, startCountdown, yoloStatus.available]);
 
   useEffect(() => {
     if (step !== 'camera' || !permission?.granted || !yoloStatus.available) return undefined;
@@ -465,9 +527,11 @@ export default function QuickAddScreen({ navigation }: Props) {
         onChange={(next) => setDraft({ ...draft, ...next })}
         onClose={() => {
           setDraft(null);
-          setHint('Center the item');
+          setHint('Fit item inside frame');
           setFrameUi('idle');
           controllerRef.current.reset();
+          lastBestRef.current = null;
+          clearCountdown();
           setStep('camera');
         }}
         onMenu={() => {
@@ -476,9 +540,11 @@ export default function QuickAddScreen({ navigation }: Props) {
               text: 'Retake',
               onPress: () => {
                 setDraft(null);
-                setHint('Center the item');
+                setHint('Fit item inside frame');
                 setStep('camera');
                 controllerRef.current.reset();
+                lastBestRef.current = null;
+                clearCountdown();
               },
             },
             { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
@@ -514,8 +580,6 @@ export default function QuickAddScreen({ navigation }: Props) {
         </View>
       )}
 
-      {flash ? <View style={styles.flashOverlay} pointerEvents="none" /> : null}
-
       <LinearGradient
         colors={['rgba(0,0,0,0.55)', 'transparent']}
         style={[styles.topFade, { paddingTop: insets.top + 8 }]}
@@ -527,7 +591,9 @@ export default function QuickAddScreen({ navigation }: Props) {
           <View style={{ alignItems: 'center' }}>
             <ThemedText type="body" style={styles.title}>Quick Add</ThemedText>
             <ThemedText type="caption" style={styles.subtitle}>
-              {yoloStatus.available ? 'Auto-capture on · snap anytime' : 'Snap it now. Improve later.'}
+              {yoloStatus.available
+                ? 'Fit item inside frame · auto-snap when green'
+                : 'Fit item inside frame · snap anytime'}
             </ThemedText>
           </View>
           <Pressable onPress={() => setTorch((v) => !v)} hitSlop={10} style={styles.iconBtn}>
@@ -540,14 +606,24 @@ export default function QuickAddScreen({ navigation }: Props) {
         style={[
           styles.overlayCenter,
           {
-            // Optical middle of the viewfinder (between top chrome and shutter row)
             top: insets.top + 64,
             bottom: Math.max(insets.bottom, 16) + 120,
           },
         ]}
         pointerEvents="none"
       >
-        <View style={[styles.frame, frameUi === 'ready' && styles.frameReady, frameUi === 'hold' && styles.frameHold]} />
+        <Animated.View
+          style={[
+            styles.frame,
+            frameUi === 'ready' && styles.frameReady,
+            frameUi === 'hold' && styles.frameHold,
+            { transform: [{ scale: pulseAnim }] },
+          ]}
+        >
+          {countdown != null ? (
+            <ThemedText type="h2" style={styles.countdownText}>{countdown}</ThemedText>
+          ) : null}
+        </Animated.View>
         <ThemedText type="body" style={styles.hint}>{hint}</ThemedText>
       </View>
 
@@ -556,7 +632,7 @@ export default function QuickAddScreen({ navigation }: Props) {
           <Feather name="image" size={22} color="#FFF" />
         </Pressable>
         <Pressable
-          onPress={() => void handleCapture()}
+          onPress={() => void handleCapture(lastBestRef.current)}
           style={[styles.captureOuter, frameReady && styles.captureReady]}
           accessibilityRole="button"
           accessibilityLabel="Capture"
@@ -578,12 +654,6 @@ export default function QuickAddScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
   centered: { alignItems: 'center', justifyContent: 'center' },
-  flashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#FFF',
-    opacity: 0.85,
-    zIndex: 20,
-  },
   topFade: {
     position: 'absolute',
     top: 0,
@@ -621,6 +691,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
     backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   frameHold: {
     borderColor: 'rgba(255,193,7,0.9)',
@@ -629,6 +701,14 @@ const styles = StyleSheet.create({
   frameReady: {
     borderColor: SUCCESS_GREEN,
     borderWidth: 3,
+  },
+  countdownText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 64,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   hint: {
     marginTop: Spacing.md,

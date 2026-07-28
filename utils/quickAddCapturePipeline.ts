@@ -1,15 +1,21 @@
 /**
- * Quick Add capture pipeline: padded YOLO crop → compress → analyze tags.
+ * Quick Add capture pipeline: padded YOLO/guide crop → compress → analyze tags.
  */
 
 import { Image } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 import { apiService } from '@/services/ApiService';
+import { detectGarmentsOnDevice } from '@/services/onDeviceGarmentDetector';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
 import {
+  QUICK_ADD_CAPTURE,
   addPadding,
+  bboxFromTuple,
   bboxToTuple,
+  paddingForBBox,
+  paddingForCategory,
+  selectBestDetection,
   type QuickAddBBox,
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
@@ -39,7 +45,8 @@ export async function cropNormalizedRegion(
   opts?: { padding?: number; maxWidth?: number; compress?: number },
 ): Promise<{ uri: string; base64?: string } | null> {
   try {
-    const padded = addPadding(bbox, opts?.padding ?? 0.1);
+    const pad = opts?.padding ?? paddingForBBox(bbox);
+    const padded = addPadding(bbox, pad);
     let width = 0;
     let height = 0;
     try {
@@ -63,10 +70,10 @@ export async function cropNormalizedRegion(
       imageUri,
       [
         { crop: { originX, originY, width: cropW, height: cropH } },
-        { resize: { width: opts?.maxWidth ?? 1024 } },
+        { resize: { width: opts?.maxWidth ?? 1280 } },
       ],
       {
-        compress: opts?.compress ?? 0.7,
+        compress: opts?.compress ?? 0.82,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       },
@@ -77,8 +84,28 @@ export async function cropNormalizedRegion(
   }
 }
 
+async function resolveDetection(
+  photoUri: string,
+  detection?: QuickAddYoloDetection | null,
+): Promise<QuickAddYoloDetection | null> {
+  if (detection?.bbox) return detection;
+  try {
+    const onDevice = await detectGarmentsOnDevice(photoUri);
+    if (!onDevice?.length) return null;
+    const mapped: QuickAddYoloDetection[] = onDevice.map((d) => ({
+      class: d.category || d.name || 'clothing',
+      confidence: d.confidence,
+      bbox: bboxFromTuple(d.bbox),
+    }));
+    return selectBestDetection(mapped);
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Crop (optional) → rembg + garment analyze in parallel.
+ * Crop (YOLO → guide fallback) → rembg + garment analyze in parallel.
+ * Always prefers a subject-tight crop so rembg doesn't leave a tiny item on a huge canvas.
  */
 export async function processQuickAddCapture(
   photoUri: string,
@@ -88,20 +115,24 @@ export async function processQuickAddCapture(
   let cropped = false;
   let base64: string | undefined;
 
-  if (detection?.bbox) {
-    const crop = await cropNormalizedRegion(photoUri, detection.bbox);
-    if (crop?.uri) {
-      workUri = crop.uri;
-      base64 = crop.base64;
-      cropped = true;
-    }
+  const resolved = await resolveDetection(photoUri, detection);
+  const cropBox: QuickAddBBox = resolved?.bbox || QUICK_ADD_CAPTURE.guide;
+  const crop = await cropNormalizedRegion(photoUri, cropBox, {
+    padding: resolved
+      ? paddingForBBox(resolved.bbox, resolved.class)
+      : paddingForCategory(undefined, QUICK_ADD_CAPTURE.guide),
+  });
+  if (crop?.uri) {
+    workUri = crop.uri;
+    base64 = crop.base64;
+    cropped = true;
   }
 
   if (!base64) {
     const resized = await ImageManipulator.manipulateAsync(
       workUri,
-      [{ resize: { width: 1024 } }],
-      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      [{ resize: { width: 1280 } }],
+      { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
     workUri = resized.uri;
     base64 = resized.base64 || (await convertImageToBase64(resized.uri));
@@ -137,11 +168,11 @@ export async function processQuickAddCapture(
     }
   }
 
-  if (detection?.class && analysis) {
+  if (resolved?.class && analysis) {
     analysis = {
       ...analysis,
-      categoryHint: detection.class,
-      detectionConfidence: detection.confidence,
+      categoryHint: resolved.class,
+      detectionConfidence: resolved.confidence,
     };
   }
 
@@ -149,8 +180,8 @@ export async function processQuickAddCapture(
     imageUri: finalUri,
     imageBase64: base64,
     cropped,
-    categoryHint: detection?.class,
-    detectionConfidence: detection?.confidence,
+    categoryHint: resolved?.class,
+    detectionConfidence: resolved?.confidence,
     analysis,
   };
 }
