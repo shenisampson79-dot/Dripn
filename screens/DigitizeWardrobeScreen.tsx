@@ -71,6 +71,7 @@ import {
   challengeTimerColor,
   estimateStylableOutfits,
 } from '@/utils/scanChallenge';
+import { getScanNextSuggestion } from '@/utils/scanNextSuggestion';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
@@ -288,6 +289,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [challengeInvite, setChallengeInvite] = useState(false);
   const [challengeMilestone, setChallengeMilestone] = useState<string | null>(null);
   const [challengeResult, setChallengeResult] = useState<'won' | 'timeout' | 'stopped' | null>(null);
+  const [lastScanCategory, setLastScanCategory] = useState<string | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -330,6 +332,15 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.tempId)),
     [items, selectedIds],
+  );
+
+  const nextScanSuggestion = useMemo(
+    () => getScanNextSuggestion({
+      wardrobe: savedWardrobe.map((it) => ({ category: it.category, color: it.color })),
+      sessionItems: scanItems.map((it) => ({ category: it.category, color: it.color })),
+      lastCategory: lastScanCategory,
+    }),
+    [savedWardrobe, scanItems, lastScanCategory],
   );
 
   const applyDedupToItems = useCallback(
@@ -414,6 +425,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }
       setSceneType(result.sceneType || 'other');
       const { uniqueItems, droppedCount, skipped } = applyDedupToItems(result.items);
+      if (uniqueItems[0]?.category) setLastScanCategory(uniqueItems[0].category);
       setStep('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (droppedCount > 0) {
@@ -808,6 +820,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             }
             return nextSession;
           });
+          setLastScanCategory(item.category);
 
           if (challengeActiveRef.current && !challengeFinishedRef.current) {
             setChallengeCount((prev) => {
@@ -842,6 +855,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           setLiveNote(`${item.name} ready — confirm in Review`);
         }
       } else {
+        setLastScanCategory(item.category);
         setLiveNote(`${item.name} queued — open Review when ready`);
       }
     },
@@ -1111,6 +1125,30 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     );
   };
 
+  const renderScanSuggestionChip = () => {
+    if (!nextScanSuggestion || challengeActive) return null;
+    return (
+      <View
+        style={[
+          styles.suggestionChip,
+          {
+            borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(201,168,124,0.14)',
+          },
+        ]}
+      >
+        <ThemedText type="caption" style={{ color: theme.text, fontWeight: '700' }}>
+          {nextScanSuggestion.chip}
+        </ThemedText>
+        {nextScanSuggestion.detail ? (
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: 2 }}>
+            {nextScanSuggestion.detail}
+          </ThemedText>
+        ) : null}
+      </View>
+    );
+  };
+
   const renderModeToggle = () => (
     <View style={styles.modeRow}>
       <Pressable
@@ -1156,6 +1194,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         Lay items flat or keep them clearly separated
       </ThemedText>
       {renderModeToggle()}
+      {!challengeActive ? renderScanSuggestionChip() : null}
 
       {mode === 'photo' ? (
         <>
@@ -1473,6 +1512,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         {summaryLine}
         {detectedCount > 0 ? `  ·  Scene: ${String(sceneType).replace(/_/g, ' ')}` : ''}
       </ThemedText>
+      {renderScanSuggestionChip()}
       {whyLine ? (
         <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.sm }}>
           {whyLine}
@@ -1821,6 +1861,13 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.md,
     backgroundColor: 'rgba(201, 168, 124, 0.12)',
+  },
+  suggestionChip: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    marginBottom: Spacing.sm,
   },
   challengeModalBackdrop: {
     flex: 1,
