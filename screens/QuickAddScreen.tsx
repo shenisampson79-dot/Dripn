@@ -343,16 +343,8 @@ export default function QuickAddScreen({ navigation }: Props) {
     }
   };
 
-  const showImproveStub = () => {
-    Alert.alert(
-      'Perfect',
-      'We’ll recognise this instantly next time — guided front & label capture is coming next. Your item is saved.',
-      [{ text: 'OK', onPress: () => navigation.goBack() }],
-    );
-  };
-
-  const persistDraft = async (): Promise<boolean> => {
-    if (!draft) return false;
+  const persistDraft = async (): Promise<{ ok: boolean; item?: { id: string; name?: string } }> => {
+    if (!draft) return { ok: false };
     const localDupes = findLocalWardrobeDuplicates(
       {
         name: draft.name,
@@ -383,10 +375,10 @@ export default function QuickAddScreen({ navigation }: Props) {
           ],
         );
       });
-      if (!proceed) return false;
+      if (!proceed) return { ok: false };
     }
 
-    await addItem({
+    const saved = await addItem({
       name: draft.name,
       category: draft.category,
       color: draft.color,
@@ -412,14 +404,14 @@ export default function QuickAddScreen({ navigation }: Props) {
       isFavorite: false,
       allowDuplicate: true,
     } as any);
-    return true;
+    return { ok: true, item: { id: String(saved.id), name: saved.name } };
   };
 
   const handleSave = async () => {
     if (!draft || saving) return;
     setSaving(true);
     try {
-      const ok = await persistDraft();
+      const { ok } = await persistDraft();
       if (!ok) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
@@ -437,10 +429,13 @@ export default function QuickAddScreen({ navigation }: Props) {
     if (!draft || saving) return;
     setSaving(true);
     try {
-      const ok = await persistDraft();
-      if (!ok) return;
+      const { ok, item } = await persistDraft();
+      if (!ok || !item?.id) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showImproveStub();
+      navigation.replace('ImproveRecognition', {
+        itemId: item.id,
+        itemName: item.name || draft.name,
+      });
     } catch (error) {
       Alert.alert(
         t('wardrobe.error') || 'Error',
@@ -541,7 +536,17 @@ export default function QuickAddScreen({ navigation }: Props) {
         </View>
       </LinearGradient>
 
-      <View style={styles.overlayCenter} pointerEvents="none">
+      <View
+        style={[
+          styles.overlayCenter,
+          {
+            // Optical middle of the viewfinder (between top chrome and shutter row)
+            top: insets.top + 64,
+            bottom: Math.max(insets.bottom, 16) + 120,
+          },
+        ]}
+        pointerEvents="none"
+      >
         <View style={[styles.frame, frameUi === 'ready' && styles.frameReady, frameUi === 'hold' && styles.frameHold]} />
         <ThemedText type="body" style={styles.hint}>{hint}</ThemedText>
       </View>
@@ -602,10 +607,11 @@ const styles = StyleSheet.create({
   title: { color: '#FFF', fontWeight: '700', fontSize: 17 },
   subtitle: { color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   overlayCenter: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -40,
     zIndex: 3,
   },
   frame: {

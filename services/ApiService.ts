@@ -3665,6 +3665,30 @@ class ApiService {
     });
   }
 
+  /** Guided Improve: front + optional label → fingerprint refresh + recognitionTier. */
+  async improveWardrobeRecognition(id: string, payload: {
+    frontImageBase64: string;
+    labelImageBase64?: string;
+    brand?: string;
+    size?: string;
+    material?: string;
+    name?: string;
+    color?: string;
+    category?: string;
+  }): Promise<{
+    success: boolean;
+    item?: any;
+    recognitionTier?: string;
+    frontImageUrl?: string | null;
+    labelImageUrl?: string | null;
+  }> {
+    return this.request(`/api/wardrobe/${id}/improve-recognition`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      timeout: 90000,
+    });
+  }
+
   async bulkDeleteWardrobeItems(ids: string[]): Promise<{ success: boolean; deleted: number; ids: number[] }> {
     return this.request<{ success: boolean; deleted: number; ids: number[] }>('/api/wardrobe/bulk-delete', {
       method: 'POST',

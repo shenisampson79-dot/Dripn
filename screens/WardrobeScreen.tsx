@@ -835,7 +835,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
         {t('wardrobe.scanMyWardrobeDesc')
-          || 'Photo a rail or drawer — we’ll detect pieces and add them to your wardrobe.'}
+          || 'Scan individual items or clearly separated pieces — flat lays and spaced hangings work best.'}
       </ThemedText>
       <LinearGradient
         colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}

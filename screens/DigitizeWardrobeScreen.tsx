@@ -199,6 +199,12 @@ async function cropNormalizedBBox(
   }
 }
 
+type SkippedScanItem = {
+  item: ScanSessionItem;
+  reason: 'batch_duplicate' | 'wardrobe_duplicate';
+  matchName: string;
+};
+
 export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
@@ -213,11 +219,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [sceneType, setSceneType] = useState<string>('other');
   const [scanItems, setScanItems] = useState<ScanSessionItem[]>([]);
+  const [skippedItems, setSkippedItems] = useState<SkippedScanItem[]>([]);
+  const [detectedCount, setDetectedCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [dupeNote, setDupeNote] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [liveNote, setLiveNote] = useState('Point at a rail or drawer, then Start');
+  const [liveNote, setLiveNote] = useState('Point at one clear hanging or flat-laid piece, then Start');
   const [liveAddedCount, setLiveAddedCount] = useState(0);
   const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
@@ -275,19 +283,40 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       );
       const uniqueIds = new Set(partitioned.unique.map((u) => u.id));
       const uniqueItems = incoming.filter((item) => uniqueIds.has(item.tempId));
-      const droppedCount = partitioned.dropped.length;
+      const byId = new Map(incoming.map((item) => [item.tempId, item]));
+      const skipped: SkippedScanItem[] = partitioned.dropped
+        .map((drop) => {
+          const item = byId.get(drop.item.id);
+          if (!item) return null;
+          return {
+            item,
+            reason: drop.reason,
+            matchName: drop.matchName,
+          };
+        })
+        .filter((row): row is SkippedScanItem => Boolean(row));
+      const droppedCount = skipped.length;
+      setDetectedCount(incoming.length);
       setScanItems(uniqueItems);
+      setSkippedItems(skipped);
       if (opts?.selectAllUnique !== false) {
         setSelectedIds(new Set(uniqueItems.map((i) => i.tempId)));
       }
       if (droppedCount > 0) {
+        const names = skipped
+          .slice(0, 3)
+          .map((s) => s.item.name || 'item')
+          .join(', ');
+        const more = droppedCount > 3 ? ` +${droppedCount - 3} more` : '';
         setDupeNote(
-          `Skipped ${droppedCount} duplicate${droppedCount === 1 ? '' : 's'} (already in wardrobe or repeated in this scan).`,
+          droppedCount === 1
+            ? `1 duplicate skipped${names ? `: ${names}` : ''}`
+            : `${droppedCount} duplicates skipped (${names}${more})`,
         );
       } else {
         setDupeNote(null);
       }
-      return { uniqueItems, droppedCount };
+      return { uniqueItems, droppedCount, skipped };
     },
     [],
   );
@@ -303,6 +332,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const runScan = async (uri: string) => {
     setStep('scanning');
     setDupeNote(null);
+    setSkippedItems([]);
+    setDetectedCount(0);
     try {
       const base64 = await convertImageToBase64(uri);
       const result = await apiService.scanWardrobe(base64, { includeCrops: true });
@@ -310,15 +341,30 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         Alert.alert(
           t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe',
           result.message
-            || 'We couldn’t detect items clearly. Try better lighting and keep pieces separated.',
+            || 'We couldn’t detect items clearly. Try a flat lay or hanging piece with good light — avoid crowded rails or folded drawers.',
         );
         setStep('capture');
         return;
       }
       setSceneType(result.sceneType || 'other');
-      applyDedupToItems(result.items);
+      const { uniqueItems, droppedCount, skipped } = applyDedupToItems(result.items);
       setStep('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (droppedCount > 0) {
+        const first = skipped[0];
+        const found = result.items.length;
+        const title = droppedCount === 1 ? '1 duplicate skipped' : `${droppedCount} duplicates skipped`;
+        let body: string;
+        if (uniqueItems.length === 0) {
+          body = found === 1 && first
+            ? `No new items detected.\n\nWe found 1 item, but it’s already in your wardrobe (“${first.item.name}” → “${first.matchName}”).`
+            : `No new items detected.\n\nWe found ${found} piece${found === 1 ? '' : 's'}, but ${droppedCount === 1 ? 'it already looks like something' : 'they already look like items'} in your wardrobe${first ? ` (e.g. “${first.item.name}” → “${first.matchName}”)` : ''}.`;
+        } else {
+          body = `Detected: ${found}\nNew items: ${uniqueItems.length}\nDuplicates skipped: ${droppedCount}`;
+          if (first) body += `\n\n• ${first.item.name} → already in wardrobe (“${first.matchName}”)`;
+        }
+        Alert.alert(title, body);
+      }
     } catch (error) {
       console.warn('[DigitizeWardrobe] scan failed:', error);
       Alert.alert(
@@ -771,11 +817,19 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       <ThemedText type="h2" style={styles.title}>
         {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
       </ThemedText>
-      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
         {mode === 'photo'
-          ? 'Photo a rail or drawer. We’ll detect pieces, skip duplicates, then add them to your wardrobe.'
-          : 'Live camera: red outline = hold still, green = ready to capture. Unique items save as you go.'}
+          ? 'Scan individual items or clearly separated pieces. We’ll detect what we can, skip duplicates, then let you confirm.'
+          : 'Live camera: red = hold still, green = ready. One clear hanging or flat-laid piece — not a crowded rail.'}
       </ThemedText>
+      <View style={styles.guidanceBox}>
+        <ThemedText type="caption" style={{ color: theme.text, fontWeight: '700', marginBottom: 6 }}>
+          Best results
+        </ThemedText>
+        <ThemedText type="caption" style={{ color: theme.textSecondary, lineHeight: 18 }}>
+          {'✔ Lay items flat or hang them spaced apart\n✔ Avoid overlapping clothes\n✔ One item per photo works best\n✖ Crowded rails or folded drawers'}
+        </ThemedText>
+      </View>
       {renderModeToggle()}
 
       {mode === 'photo' ? (
@@ -786,7 +840,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
               <Feather name="camera" size={48} color={LuxuryColors.gold} />
               <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center' }}>
-                Hangings · drawers · flat lays{'\n'}Good light · keep pieces visible
+                Flat lay or spaced hangings{'\n'}Good light · no overlaps
               </ThemedText>
             </View>
           )}
@@ -932,7 +986,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               contentFit="cover"
             />
           ) : (
-            <View style={[styles.itemThumb, { backgroundColor: theme.surfaceSecondary }]}>
+            <View style={[styles.itemThumb, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
               <Feather name="image" size={20} color={theme.textTertiary} />
             </View>
           )}
@@ -977,15 +1031,39 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     );
   };
 
-  const renderReview = () => (
+  const renderReview = () => {
+    const skippedCount = skippedItems.length;
+    const reviewTitle = items.length > 0
+      ? `${items.length} item${items.length === 1 ? '' : 's'} ready`
+      : skippedCount > 0
+        ? 'No new items detected'
+        : 'No new items detected';
+
+    const summaryLine = detectedCount > 0
+      ? `Detected: ${detectedCount}  ·  New items: ${items.length}  ·  Duplicates skipped: ${skippedCount}`
+      : `Confirm what to keep. Scene: ${String(sceneType).replace(/_/g, ' ')}.`;
+
+    const whyLine = items.length === 0 && skippedCount > 0
+      ? (skippedCount === 1 && skippedItems[0]
+        ? `We found 1 item, but it’s already in your wardrobe (“${skippedItems[0].item.name}” → “${skippedItems[0].matchName}”).`
+        : `We found ${detectedCount || skippedCount} piece${(detectedCount || skippedCount) === 1 ? '' : 's'}, but ${skippedCount} already look like items in your wardrobe.`)
+      : null;
+
+    return (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        {items.length} item{items.length === 1 ? '' : 's'} ready
+        {reviewTitle}
       </ThemedText>
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
-        Confirm what to keep. Scene: {String(sceneType).replace(/_/g, ' ')}.
+        {summaryLine}
+        {detectedCount > 0 ? `  ·  Scene: ${String(sceneType).replace(/_/g, ' ')}` : ''}
       </ThemedText>
-      {dupeNote ? (
+      {whyLine ? (
+        <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.sm }}>
+          {whyLine}
+        </ThemedText>
+      ) : null}
+      {dupeNote && items.length > 0 ? (
         <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.md }}>
           {dupeNote}
         </ThemedText>
@@ -1004,6 +1082,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           onPress={() => {
             setImageUri(null);
             setScanItems([]);
+            setSkippedItems([]);
+            setDetectedCount(0);
             setSelectedIds(new Set());
             setDupeNote(null);
             setStep('capture');
@@ -1019,7 +1099,61 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         renderItem={renderReviewItem}
         scrollEnabled={false}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+        ListEmptyComponent={
+          skippedCount === 0 ? (
+            <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.md }}>
+              No new pieces to add from this photo. Try a flat lay or a clearly separated hanging item.
+            </ThemedText>
+          ) : null
+        }
       />
+      {skippedCount > 0 ? (
+        <View style={styles.skippedBlock}>
+          <ThemedText type="body" style={{ fontWeight: '700', marginBottom: Spacing.sm }}>
+            Skipped as duplicates
+          </ThemedText>
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+            These matched items already in your wardrobe (or repeated in this scan). Rescan won’t help unless the photo is of a different piece.
+          </ThemedText>
+          {skippedItems.map(({ item, matchName, reason }) => (
+            <View
+              key={`skip_${item.tempId}`}
+              style={[
+                styles.itemCard,
+                styles.skippedCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View style={styles.itemRow}>
+                {item.sceneCrop ? (
+                  <Image
+                    source={{ uri: `data:image/jpeg;base64,${item.sceneCrop}` }}
+                    style={styles.itemThumb}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={[styles.itemThumb, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                    <Feather name="copy" size={20} color={theme.textTertiary} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="body" style={{ fontWeight: '600' }}>
+                    {item.name || 'Detected item'}
+                  </ThemedText>
+                  <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 2 }}>
+                    {reason === 'batch_duplicate'
+                      ? `Repeated in this scan → “${matchName}”`
+                      : `→ already in wardrobe (“${matchName}”)`}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <View style={styles.footerActions}>
         <Pressable
           onPress={handleSaveSelected}
@@ -1038,7 +1172,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         </Pressable>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderSaving = () => (
     <View style={[styles.stepBody, styles.centered]}>
@@ -1122,6 +1257,12 @@ const styles = StyleSheet.create({
     minHeight: 280,
   },
   title: { marginBottom: Spacing.sm },
+  guidanceBox: {
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(201, 168, 124, 0.12)',
+  },
   modeRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -1192,6 +1333,15 @@ const styles = StyleSheet.create({
   itemCard: {
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
+  },
+  skippedBlock: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  skippedCard: {
+    opacity: 0.92,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
   },
   itemRow: {
     flexDirection: 'row',

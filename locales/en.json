@@ -2742,6 +2742,8 @@
   "wardrobe.bulkAdd": "Bulk Add",
   "wardrobe.quickAdd": "Quick Add",
   "wardrobe.quickAddSubtext": "Snap it now. Improve later.",
+  "wardrobe.scanMyWardrobe": "Scan my wardrobe",
+  "wardrobe.scanMyWardrobeDesc": "Scan individual items or clearly separated pieces — flat lays and spaced hangings work best.",
   "wardrobe.calendar14Day": "14-Day Calendar",
   "wardrobe.calendar30Day": "30-Day Calendar",
   "wardrobe.cameraAccessWasDeniedPleaseEnableItInSet": "Camera access was denied. Please enable it in Settings to take photos.",

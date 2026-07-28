@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import QuickAddScreen from "@/screens/QuickAddScreen";
+import ImproveRecognitionScreen from "@/screens/ImproveRecognitionScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import DigitizeWardrobeScreen from "@/screens/DigitizeWardrobeScreen";
@@ -28,6 +29,8 @@ export type WardrobeStackParamList = {
   Wardrobe: undefined;
   /** Fast single-item capture: snap → tag → save. */
   QuickAdd: undefined;
+  /** Guided front + care-label capture after Quick Add save. */
+  ImproveRecognition: { itemId: string; itemName?: string };
   /** Full manual add / edit form (also used by Quick Add → Edit / Improve). */
   AddWardrobeItem: undefined;
   /** Outfit-engine scan (still used by Live Stylist → Still scan). */
@@ -71,6 +74,15 @@ export default function WardrobeStackNavigator() {
         component={QuickAddScreen}
         options={{
           title: t('wardrobe.quickAdd') || "Quick Add",
+          headerShown: false,
+          presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="ImproveRecognition"
+        component={ImproveRecognitionScreen}
+        options={{
+          title: "Improve recognition",
           headerShown: false,
           presentation: "fullScreenModal",
         }}
