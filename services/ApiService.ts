@@ -2034,6 +2034,15 @@ class ApiService {
     stylistNote?: string;
     retailCountry?: string;
     retailRegion?: string;
+    responseType?: 'single' | 'multi' | string;
+    lookCount?: number;
+    looks?: Array<{
+      role?: string | null;
+      roleLabel?: string | null;
+      label?: string | null;
+      reason?: string | null;
+      itemIds?: Array<string | number>;
+    }>;
   }> {
     const { stylistId, ...rest } = data;
     
@@ -2211,6 +2220,9 @@ class ApiService {
       stylistNote: result.stylistNote,
       retailCountry: result.retailCountry,
       retailRegion: result.retailRegion,
+      responseType: result.responseType,
+      lookCount: result.lookCount,
+      looks: Array.isArray(result.looks) ? result.looks : undefined,
     };
   }
 

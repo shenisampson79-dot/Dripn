@@ -93,6 +93,8 @@ import {
 } from '@/utils/wardrobeMentionMatcher';
 import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
+import { RankedMultiLookCards } from '@/components/stylist/RankedMultiLookCards';
+import { buildRankedLookCards } from '@/utils/rankedMultiLook';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import weatherService from '@/services/WeatherService';
@@ -203,6 +205,16 @@ interface ChatMessage {
   /** When set by server, client must not rebuild wardrobe strip from chat prose. */
   visualAuthority?: 'server';
   hasOutfitRecommendation?: boolean;
+  /** Ranked multi-look package from server (Best / Easy / More expressive). */
+  responseType?: 'single' | 'multi' | string;
+  lookCount?: number;
+  looks?: Array<{
+    role?: string | null;
+    roleLabel?: string | null;
+    label?: string | null;
+    reason?: string | null;
+    itemIds?: Array<string | number>;
+  }>;
   isFallback?: boolean;
   missing?: FallbackMissingItem[];
   stylistNote?: string;
@@ -292,6 +304,24 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
     }
   }
 
+  if (message.responseType === 'multi' || message.responseType === 'single') {
+    normalized.responseType = message.responseType;
+  }
+  if (typeof message.lookCount === 'number' && Number.isFinite(message.lookCount)) {
+    normalized.lookCount = message.lookCount;
+  }
+  if (Array.isArray(message.looks) && message.looks.length) {
+    normalized.looks = message.looks
+      .filter((look) => look && typeof look === 'object')
+      .map((look) => ({
+        role: typeof look.role === 'string' ? look.role : null,
+        roleLabel: typeof look.roleLabel === 'string' ? look.roleLabel : null,
+        label: typeof look.label === 'string' ? look.label : null,
+        reason: typeof look.reason === 'string' ? look.reason : null,
+        itemIds: Array.isArray(look.itemIds) ? look.itemIds.map(String) : [],
+      }));
+  }
+
   return normalized;
 }
 
@@ -316,6 +346,9 @@ function attachWardrobeVisualToMessage(
     status?: string;
     missing?: FallbackMissingItem[];
     stylistNote?: string;
+    responseType?: 'single' | 'multi' | string;
+    lookCount?: number;
+    looks?: ChatMessage['looks'];
   },
   wardrobeItems: WardrobeItem[],
   subscriptionTier?: string | null,
@@ -348,6 +381,9 @@ function attachWardrobeVisualToMessage(
     isFallback: isFallback || undefined,
     missing: Array.isArray(response.missing) ? response.missing : undefined,
     stylistNote: response.stylistNote,
+    responseType: response.responseType,
+    lookCount: typeof response.lookCount === 'number' ? response.lookCount : undefined,
+    looks: Array.isArray(response.looks) ? response.looks : undefined,
   };
 
   if (response.outfitVisualSuggestion?.source === 'generated') {
@@ -3186,6 +3222,28 @@ export default function AIStylistScreen() {
     };
 
     if (visual?.layout === 'multi' && visual.outfits && visual.outfits.length >= 2) {
+      const rankedCards = buildRankedLookCards({
+        outfits: visual.outfits,
+        looks: message.looks,
+        content: message.content,
+      });
+
+      if (rankedCards.length >= 2) {
+        return (
+          <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+            <RankedMultiLookCards
+              content={message.content}
+              wardrobeVisual={visual}
+              wardrobeItems={wardrobeItems}
+              looks={message.looks}
+              messageId={message.id}
+              canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
+              occasion={occasionSlugFromLabel(message.outfitSuggestion?.occasion) || 'casual'}
+            />
+          </RenderErrorBoundary>
+        );
+      }
+
       const sections = splitIntoOutfitSections(message.content);
       const outfitBySection = new Map(
         visual.outfits.map((outfit) => [outfit.sectionIndex, outfit]),
