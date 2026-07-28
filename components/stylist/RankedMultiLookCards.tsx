@@ -1,25 +1,30 @@
 /**
  * Equal-size ranked multi-look cards for Stylist Chat.
- * Hierarchy via labels + CTA weight — not card size.
+ * StyleSession.targetDate is the single source of truth for Wear/Try/Save.
  */
 
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
+import { SaveOutfitPromptModal, type SaveOutfitIntent } from '@/components/outfit/SaveOutfitPromptModal';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, type WardrobeItem } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
+import { setWornDaily } from '@/utils/todaysOutfitDailyStore';
 import {
-  setWornDaily,
-  todaysOutfitDateKey,
-} from '@/utils/todaysOutfitDailyStore';
+  buildStyleSession,
+  logStyleSessionAction,
+  plannedDateIsoFromKey,
+  wearCtaLabels,
+  wearTargetFromSession,
+  type StyleSession,
+} from '@/utils/chatWearTargetDate';
 import {
   buildRankedLookCards,
   multiLookIntroText,
@@ -30,6 +35,9 @@ import type { WardrobeVisualPayload } from '@/utils/wardrobeMentionMatcher';
 
 type Props = {
   content: string;
+  userMessage?: string;
+  /** Persisted session — if present, date is never re-derived on alt taps */
+  styleSession?: StyleSession | null;
   wardrobeVisual: WardrobeVisualPayload;
   wardrobeItems: WardrobeItem[];
   looks?: RankedLookMeta[] | null;
@@ -38,12 +46,10 @@ type Props = {
   occasion?: string;
 };
 
-function todayPlannedDateIso(): string {
-  return `${todaysOutfitDateKey()}T12:00:00.000Z`;
-}
-
 export function RankedMultiLookCards({
   content,
+  userMessage = '',
+  styleSession: styleSessionProp = null,
   wardrobeVisual,
   wardrobeItems,
   looks,
@@ -55,8 +61,26 @@ export function RankedMultiLookCards({
   const { t } = useTranslations();
   const { planOutfit, updatePlannedOutfit, markPlannedOutfitWorn, plannedOutfits } = useWardrobe();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [wornId, setWornId] = useState<string | null>(null);
+  const [committedId, setCommittedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [savePrompt, setSavePrompt] = useState<{
+    visible: boolean;
+    intent: SaveOutfitIntent;
+    itemIds: string[];
+    title: string;
+  } | null>(null);
+
+  // Freeze session for this card tree — selecting alternatives must NOT reset date
+  const session = useMemo(
+    () => styleSessionProp || buildStyleSession({
+      userMessage,
+      assistantContent: content,
+      intent: 'multi_look',
+      occasion,
+    }),
+    [styleSessionProp, userMessage, content, occasion],
+  );
+  const wearTarget = useMemo(() => wearTargetFromSession(session), [session]);
 
   const cards = useMemo(
     () => buildRankedLookCards({
@@ -71,45 +95,79 @@ export function RankedMultiLookCards({
 
   if (cards.length < 2) return null;
 
-  const handleWear = async (card: RankedLookCard) => {
+  const handlePrimaryAction = async (card: RankedLookCard) => {
     if (busyId) return;
     setBusyId(card.id);
-    setSelectedId(card.id);
+    setSelectedId(card.id); // Try this / Pick this — promote selection, keep session.targetDate
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
     const outfitId = `chat_multi_${messageId}_${card.index}`;
     const pieces = card.itemIds
       .map((id) => wardrobeItems.find((item) => String(item.id) === String(id)))
       .filter((item): item is WardrobeItem => Boolean(item));
+    const labels = wearCtaLabels(wearTarget, {
+      isPrimary: card.isPrimary,
+      isCommitted: true,
+    });
 
     try {
-      await setWornDaily(outfitId);
-      setWornId(card.id);
+      if (labels.resolvedAction === 'save') {
+        logStyleSessionAction({
+          sessionDate: session.targetDate,
+          actionTriggered: 'primary_cta',
+          resolvedAction: 'save',
+          savedTo: 'save_prompt',
+          lookRole: card.role,
+        });
+        setSavePrompt({
+          visible: true,
+          intent: 'save',
+          itemIds: card.itemIds,
+          title: card.roleLabel || card.title,
+        });
+        setCommittedId(card.id);
+        return;
+      }
 
-      if (pieces.length >= 2) {
-        const todayKeyStr = todaysOutfitDateKey();
-        const existing = plannedOutfits.find((plan) => (plan.date || '').slice(0, 10) === todayKeyStr);
+      if (labels.resolvedAction === 'wear_today') {
+        await setWornDaily(outfitId);
+      }
+
+      if (pieces.length >= 2 && session.targetDate) {
+        const targetKey = session.targetDate;
+        const existing = plannedOutfits.find((plan) => (plan.date || '').slice(0, 10) === targetKey);
         let planId = existing?.id;
+        const eventName = `${card.roleLabel || card.title} · ${session.dayLabel || targetKey}`;
+
         if (existing) {
           await updatePlannedOutfit(existing.id, {
             itemIds: pieces.map((p) => String(p.id)),
-            eventName: card.roleLabel || card.title,
+            eventName,
             eventType: 'casual',
             notes: card.reason || undefined,
           });
         } else {
           const created = await planOutfit({
-            date: todayPlannedDateIso(),
+            date: plannedDateIsoFromKey(targetKey),
             itemIds: pieces.map((p) => String(p.id)),
-            eventName: card.roleLabel || card.title,
+            eventName,
             eventType: 'casual',
             notes: card.reason || undefined,
           });
           planId = created.id;
         }
-        if (planId) {
+
+        if (planId && labels.resolvedAction === 'wear_today') {
           await markPlannedOutfitWorn(planId);
         }
+
+        logStyleSessionAction({
+          sessionDate: session.targetDate,
+          actionTriggered: 'primary_cta',
+          resolvedAction: labels.resolvedAction,
+          savedTo: labels.resolvedAction === 'wear_today' ? 'today_outfit+planner' : 'planner',
+          lookRole: card.role,
+        });
 
         apiService
           .recordOutfitEngagement({
@@ -119,26 +177,32 @@ export function RankedMultiLookCards({
               category: item.category,
               color: item.color,
             })),
-            signal: 'wore',
-            occasion: occasion || 'stylist_chat_multi',
+            signal: labels.resolvedAction === 'wear_today' ? 'wore' : 'saved',
+            occasion: session.occasion || occasion || 'stylist_chat_multi',
             contextSnapshot: {
               source: 'stylist_chat_ranked_multi',
               role: card.role,
               messageId,
+              styleSession: {
+                targetDate: session.targetDate,
+                kind: session.kind,
+                timeContext: session.timeContext,
+              },
             },
           })
           .catch(() => {});
       }
 
+      setCommittedId(card.id);
       Alert.alert(
         t('aiStylist.youreSetTitle') || "You're set",
-        t('aiStylist.youreSetMessage') || 'This look is marked for today.',
+        labels.confirmBody,
       );
     } catch (err) {
-      console.warn('[RankedMultiLookCards] Wear failed:', err);
+      console.warn('[RankedMultiLookCards] Action failed:', err);
       Alert.alert(
         t('common.error') || 'Error',
-        t('aiStylist.wearFailed') || 'Could not mark this look. Try Save instead.',
+        t('aiStylist.wearFailed') || 'Could not save this look. Try Save instead.',
       );
     } finally {
       setBusyId(null);
@@ -153,15 +217,24 @@ export function RankedMultiLookCards({
         </ThemedText>
       ) : null}
 
+      {session.targetDate && session.kind !== 'today' ? (
+        <ThemedText style={[styles.dayHint, { color: theme.tabIconDefault }]}>
+          {`For ${session.dayLabel}`}
+        </ThemedText>
+      ) : null}
+
       {cards.map((card) => {
         const isSelected = selectedId === card.id || (!selectedId && card.isPrimary);
-        const isWorn = wornId === card.id;
+        const isCommitted = committedId === card.id;
         const busy = busyId === card.id;
-        const primaryLabel = isWorn
-          ? (t('home.wearingToday') || 'Wearing today')
-          : card.primaryCta === 'wear'
-            ? (t('home.wearThis') || 'Wear this')
-            : (t('aiStylist.tryThis') || 'Try this');
+        const labels = wearCtaLabels(wearTarget, {
+          isPrimary: card.isPrimary,
+          isCommitted,
+        });
+        const primaryLabel = isCommitted ? labels.committed : labels.primary;
+        const badgeText = (card.isPrimary && labels.heroBadgeHint)
+          ? labels.heroBadgeHint
+          : card.roleLabel;
 
         return (
           <View
@@ -194,7 +267,7 @@ export function RankedMultiLookCards({
                     { color: card.isPrimary ? theme.buttonText : theme.text },
                   ]}
                 >
-                  {card.roleLabel}
+                  {badgeText}
                 </ThemedText>
               </View>
               {card.isPrimary ? (
@@ -220,12 +293,12 @@ export function RankedMultiLookCards({
 
             <View style={styles.ctaRow}>
               <Pressable
-                onPress={() => void handleWear(card)}
-                disabled={Boolean(busyId) || isWorn}
+                onPress={() => void handlePrimaryAction(card)}
+                disabled={Boolean(busyId) || isCommitted}
                 style={({ pressed }) => [
                   styles.primaryBtn,
                   {
-                    backgroundColor: isWorn
+                    backgroundColor: isCommitted
                       ? (isDark ? '#3D3426' : '#E8DFD0')
                       : card.isPrimary
                         ? theme.link
@@ -235,11 +308,11 @@ export function RankedMultiLookCards({
                 ]}
               >
                 {busy ? (
-                  <ActivityIndicator color={card.isPrimary && !isWorn ? theme.buttonText : theme.text} />
+                  <ActivityIndicator color={card.isPrimary && !isCommitted ? theme.buttonText : theme.text} />
                 ) : (
                   <ThemedText
                     style={{
-                      color: isWorn || !card.isPrimary ? theme.text : theme.buttonText,
+                      color: isCommitted || !card.isPrimary ? theme.text : theme.buttonText,
                       fontWeight: '700',
                       fontSize: 15,
                     }}
@@ -250,7 +323,7 @@ export function RankedMultiLookCards({
               </Pressable>
             </View>
 
-            {card.itemIds.length >= 2 ? (
+            {card.itemIds.length >= 2 && labels.resolvedAction !== 'save' ? (
               <OutfitSaveActions
                 wardrobeItemIds={card.itemIds}
                 defaultTitle={card.roleLabel || card.title}
@@ -261,6 +334,31 @@ export function RankedMultiLookCards({
           </View>
         );
       })}
+
+      {savePrompt ? (
+        <SaveOutfitPromptModal
+          visible={savePrompt.visible}
+          intent={savePrompt.intent}
+          wardrobeItemIds={savePrompt.itemIds}
+          defaultTitle={savePrompt.title}
+          defaultDescription={content}
+          occasion={occasion}
+          onClose={() => setSavePrompt(null)}
+          onSaved={() => {
+            logStyleSessionAction({
+              sessionDate: session.targetDate,
+              actionTriggered: 'save_confirm',
+              resolvedAction: 'save',
+              savedTo: 'saved_outfits',
+            });
+            setSavePrompt(null);
+            Alert.alert(
+              t('aiStylist.youreSetTitle') || "You're set",
+              wearCtaLabels(wearTarget, { isPrimary: true, isCommitted: true }).confirmBody,
+            );
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -274,6 +372,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     lineHeight: 22,
     marginBottom: Spacing.xs,
+  },
+  dayHint: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: -4,
   },
   card: {
     borderRadius: BorderRadius.lg,

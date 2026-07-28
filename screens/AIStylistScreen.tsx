@@ -95,6 +95,7 @@ import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { RankedMultiLookCards } from '@/components/stylist/RankedMultiLookCards';
 import { buildRankedLookCards } from '@/utils/rankedMultiLook';
+import { buildStyleSession, type StyleSession } from '@/utils/chatWearTargetDate';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import weatherService from '@/services/WeatherService';
@@ -218,6 +219,8 @@ interface ChatMessage {
   isFallback?: boolean;
   missing?: FallbackMissingItem[];
   stylistNote?: string;
+  /** Frozen wear/plan date from generation — actions must reuse this */
+  styleSession?: StyleSession;
 }
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -322,12 +325,30 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
       }));
   }
 
+  if (message.styleSession && typeof message.styleSession === 'object') {
+    const s = message.styleSession as Partial<StyleSession>;
+    if (typeof s.kind === 'string' && typeof s.dayLabel === 'string') {
+      normalized.styleSession = {
+        intent: typeof s.intent === 'string' ? s.intent : 'multi_look',
+        occasion: typeof s.occasion === 'string' ? s.occasion : null,
+        targetDate: typeof s.targetDate === 'string' ? s.targetDate : null,
+        timeContext: s.timeContext === 'morning' || s.timeContext === 'afternoon' || s.timeContext === 'evening'
+          ? s.timeContext
+          : null,
+        dayLabel: s.dayLabel,
+        kind: s.kind as StyleSession['kind'],
+        markAsWornToday: Boolean(s.markAsWornToday),
+        userMessage: typeof s.userMessage === 'string' ? s.userMessage : undefined,
+      };
+    }
+  }
+
   return normalized;
 }
 
 function attachWardrobeVisualToMessage(
   message: ChatMessage,
-  _userMessage: string,
+  userMessage: string,
   response: {
     content: string;
     wardrobeVisual?: WardrobeVisualPayload | null;
@@ -373,9 +394,15 @@ function attachWardrobeVisualToMessage(
     || response.status === 'fallback_outfit'
     || response.type === 'fallback_outfit',
   );
+  const strippedContent = stripStructuredOutfitMarkers(message.content);
+  const styleSession = buildStyleSession({
+    userMessage,
+    assistantContent: strippedContent,
+    intent: response.responseType === 'multi' ? 'multi_look' : 'single_look',
+  });
   const enriched: ChatMessage = {
     ...message,
-    content: stripStructuredOutfitMarkers(message.content),
+    content: strippedContent,
     visualAuthority: 'server',
     hasOutfitRecommendation: response.hasOutfitRecommendation,
     isFallback: isFallback || undefined,
@@ -384,6 +411,7 @@ function attachWardrobeVisualToMessage(
     responseType: response.responseType,
     lookCount: typeof response.lookCount === 'number' ? response.lookCount : undefined,
     looks: Array.isArray(response.looks) ? response.looks : undefined,
+    styleSession,
   };
 
   if (response.outfitVisualSuggestion?.source === 'generated') {
@@ -3233,12 +3261,18 @@ export default function AIStylistScreen() {
           <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
             <RankedMultiLookCards
               content={message.content}
+              userMessage={priorUser?.content || message.styleSession?.userMessage || ''}
+              styleSession={message.styleSession || null}
               wardrobeVisual={visual}
               wardrobeItems={wardrobeItems}
               looks={message.looks}
               messageId={message.id}
               canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
-              occasion={occasionSlugFromLabel(message.outfitSuggestion?.occasion) || 'casual'}
+              occasion={
+                message.styleSession?.occasion
+                || occasionSlugFromLabel(message.outfitSuggestion?.occasion)
+                || 'casual'
+              }
             />
           </RenderErrorBoundary>
         );
