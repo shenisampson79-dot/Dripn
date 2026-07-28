@@ -56,6 +56,7 @@ import {
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
+import { liveCaptureConfirmation, wardrobeSaveConfirmation } from '@/utils/wardrobeSaveCopy';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
@@ -64,10 +65,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const LIVE_SAMPLE_MS = 1100;
+const LIVE_SAMPLE_MS = 900;
 const LIVE_FRAME_WIDTH = 640;
 const STABLE_COLOR = '#2F9E6E';
 const UNSTABLE_COLOR = '#C45C4A';
+/** ~2–3s hold at LIVE_SAMPLE_MS before capture */
+const LIVE_PROMOTE_HITS = 3;
 
 type DigitizeStep = 'capture' | 'scanning' | 'review' | 'saving';
 type CaptureMode = 'photo' | 'live';
@@ -98,7 +101,7 @@ function LiveStabilizeOverlay({
           const ready = track.ready;
           const stroke = ready ? STABLE_COLOR : UNSTABLE_COLOR;
           const label = ready
-            ? 'Ready'
+            ? (track.promoted ? 'Got it' : 'Ready')
             : `Hold ${Math.min(track.hits, promoteHits)}/${promoteHits}`;
           return (
             <React.Fragment key={track.trackId}>
@@ -225,11 +228,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [dupeNote, setDupeNote] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [liveNote, setLiveNote] = useState('Point at one clear hanging or flat-laid piece, then Start');
+  const [liveNote, setLiveNote] = useState('Point at one piece, then Start — hold still until it snaps');
   const [liveAddedCount, setLiveAddedCount] = useState(0);
   const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
+  const [captureFlash, setCaptureFlash] = useState(false);
+  const [lastCaptureThumb, setLastCaptureThumb] = useState<string | null>(null);
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
@@ -239,7 +244,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
-  const trackerRef = useRef(new DigitizeDetectionTracker());
+  const trackerRef = useRef(new DigitizeDetectionTracker({ promoteHits: LIVE_PROMOTE_HITS }));
   const sessionSeenRef = useRef<Set<string>>(new Set());
   const savedWardrobeRef = useRef(savedWardrobe);
   savedWardrobeRef.current = savedWardrobe;
@@ -351,17 +356,15 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       setStep('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (droppedCount > 0) {
-        const first = skipped[0];
         const found = result.items.length;
         const title = droppedCount === 1 ? '1 duplicate skipped' : `${droppedCount} duplicates skipped`;
         let body: string;
         if (uniqueItems.length === 0) {
-          body = found === 1 && first
-            ? `No new items detected.\n\nWe found 1 item, but it’s already in your wardrobe (“${first.item.name}” → “${first.matchName}”).`
-            : `No new items detected.\n\nWe found ${found} piece${found === 1 ? '' : 's'}, but ${droppedCount === 1 ? 'it already looks like something' : 'they already look like items'} in your wardrobe${first ? ` (e.g. “${first.item.name}” → “${first.matchName}”)` : ''}.`;
+          body = found === 1
+            ? 'No new items detected.\n\nWe found 1 item, but it’s already in your wardrobe.'
+            : `No new items detected.\n\nWe found ${found} pieces, but they’re already in your wardrobe.`;
         } else {
           body = `Detected: ${found}\nNew items: ${uniqueItems.length}\nDuplicates skipped: ${droppedCount}`;
-          if (first) body += `\n\n• ${first.item.name} → already in wardrobe (“${first.matchName}”)`;
         }
         Alert.alert(title, body);
       }
@@ -477,9 +480,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const confirm = wardrobeSaveConfirmation(itemsToSave.length);
       Alert.alert(
-        t('wardrobe.saved') || 'Saved',
-        `+${itemsToSave.length} item${itemsToSave.length === 1 ? '' : 's'} added to your wardrobe`,
+        confirm.title,
+        confirm.body,
         [{ text: t('common.done') || 'Done', onPress: () => navigation.goBack() }],
       );
     } catch (error) {
@@ -589,6 +593,45 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     }
   };
 
+  const fireCaptureFeedback = useCallback(async (thumbUri?: string | null) => {
+    setCaptureFlash(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    if (thumbUri) setLastCaptureThumb(thumbUri);
+    await new Promise((r) => setTimeout(r, 140));
+    setCaptureFlash(false);
+    if (thumbUri) {
+      setTimeout(() => {
+        if (mountedRef.current) setLastCaptureThumb(null);
+      }, 2200);
+    }
+  }, []);
+
+  const liveItemLabel = (track: {
+    category: string;
+    name?: string;
+    color?: string;
+  }) => {
+    const color = String(track.color || '').toLowerCase();
+    const colorLabel = color && color !== 'multicolor'
+      ? color.charAt(0).toUpperCase() + color.slice(1)
+      : '';
+    const cat = String(track.category || 'tops');
+    const base =
+      cat === 'tops' || cat === 'activewear_tops' ? 'Top'
+        : cat === 'bottoms' || cat === 'activewear_bottoms' ? 'Bottoms'
+          : cat === 'dresses' ? 'Dress'
+            : cat === 'outerwear' ? 'Outerwear'
+              : cat === 'shoes' ? 'Shoes'
+                : cat === 'bags' ? 'Bag'
+                  : cat === 'accessories' ? 'Accessory'
+                    : 'Piece';
+    // Prefer geometry-mapped name over generic YOLO "Bag"/"Clothing"
+    const raw = String(track.name || '').trim();
+    const generic = /^(bag|bags|clothing|item|top|tops)$/i.test(raw);
+    const noun = generic || !raw ? base : raw;
+    return colorLabel ? `${colorLabel} ${noun}` : noun;
+  };
+
   const ingestLivePromotion = useCallback(
     async (
       frameUri: string,
@@ -606,16 +649,19 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       if (!crop?.base64) return;
 
       const tempId = track.trackId;
+      const displayName = liveItemLabel(track);
       const item: ScanSessionItem = {
         tempId,
-        name: track.name || `${track.color || 'Item'} ${track.category}`.trim(),
+        name: displayName,
         category: track.category,
         color: track.color || 'multicolor',
         confidence: track.confidence,
         bbox: track.bbox,
         sceneCrop: crop.base64,
-        needsConfirm: track.confidence < 0.6,
-        confirmPrompt: track.confidence < 0.6 ? 'Low confidence — confirm category' : null,
+        needsConfirm: track.confidence < 0.6 || track.category === 'bags',
+        confirmPrompt: track.confidence < 0.6 || track.category === 'bags'
+          ? 'Check the category — does this look right?'
+          : null,
       };
 
       const partitioned = partitionDigitizeCandidates(
@@ -637,7 +683,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
       if (partitioned.unique.length === 0) {
         sessionSeenRef.current.add(track.trackId);
-        setLiveNote('Duplicate skipped');
+        const match = partitioned.dropped[0]?.matchName;
+        setLiveNote(match ? `Already saved · looks like “${match}”` : 'Already in wardrobe — skipped');
         return;
       }
 
@@ -647,7 +694,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         return [...prev, item];
       });
       setSelectedIds((prev) => new Set(prev).add(tempId));
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await fireCaptureFeedback(crop.uri);
 
       if (autoSaveLive) {
         try {
@@ -662,18 +709,16 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             isFavorite: false,
           });
           setLiveAddedCount((n) => n + 1);
-          setLiveNote(`+1 saved · ${item.name}`);
+          setLiveNote(liveCaptureConfirmation(item.name));
         } catch (err) {
           console.warn('[DigitizeWardrobe] live auto-save failed:', err);
-          setLiveNote('Detected — confirm in review to save');
-          setStep('review');
+          setLiveNote(`${item.name} ready — confirm in Review`);
         }
       } else {
-        setLiveNote(`Detected ${item.name} — in review list`);
-        setStep('review');
+        setLiveNote(`${item.name} queued — open Review when ready`);
       }
     },
-    [addItem, autoSaveLive, scanItems],
+    [addItem, autoSaveLive, fireCaptureFeedback, scanItems],
   );
 
   const processLiveFrame = useCallback(async () => {
@@ -724,13 +769,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       const stabilizing = snapshot.filter((t) => !t.ready).length;
       const readyCount = snapshot.filter((t) => t.ready).length;
       if (promoted.length) {
-        setLiveNote(`Captured ${promoted.length} · green box = ready`);
+        setLiveNote('Snapping…');
       } else if (readyCount > 0 && stabilizing === 0) {
-        setLiveNote('Green: ready — hold still while we save');
+        setLiveNote('Green = captured — point at the next piece');
       } else if (stabilizing > 0) {
-        setLiveNote(`Red: hold still · ${stabilizing} stabilizing${readyCount ? ` · ${readyCount} ready` : ''}`);
+        setLiveNote(`Hold still ~2 sec · ${stabilizing} locking in`);
       } else {
-        setLiveNote(`${onDevice.length} detected · stabilizing…`);
+        setLiveNote(`${onDevice.length} in view · center one piece and hold still`);
       }
       for (const track of promoted) {
         await ingestLivePromotion(manipulated.uri, track);
@@ -767,13 +812,19 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     setLiveAddedCount(0);
     setLiveTracks([]);
     setIsLive(true);
-    setLiveNote('Scanning… red = hold still · green = ready');
+    setLiveNote('Center one piece · hold still ~2 sec until it snaps');
   };
 
   const stopLive = () => {
     setIsLive(false);
     setLiveTracks([]);
-    setLiveNote(liveAddedCount > 0 ? `Stopped · +${liveAddedCount} saved` : 'Stopped');
+    setCaptureFlash(false);
+    setLastCaptureThumb(null);
+    setLiveNote(
+      liveAddedCount > 0
+        ? `Stopped · ${liveAddedCount} piece${liveAddedCount === 1 ? '' : 's'} saved this session`
+        : 'Stopped',
+    );
   };
 
   const renderModeToggle = () => (
@@ -819,8 +870,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
         {mode === 'photo'
-          ? 'Scan individual items or clearly separated pieces. We’ll detect what we can, skip duplicates, then let you confirm.'
-          : 'Live camera: red = hold still, green = ready. One clear hanging or flat-laid piece — not a crowded rail.'}
+          ? 'Scan individual items or clearly separated pieces.'
+          : 'Center one piece and hold still until it snaps — then move to the next.'}
       </ThemedText>
       <View style={styles.guidanceBox}>
         <ThemedText type="caption" style={{ color: theme.text, fontWeight: '700', marginBottom: 6 }}>
@@ -894,15 +945,26 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 <View style={styles.liveLegendRow}>
                   <View style={[styles.liveLegendSwatch, { backgroundColor: STABLE_COLOR }]} />
                   <ThemedText type="caption" style={styles.liveLegendText}>
-                    Ready
+                    Snapped
                   </ThemedText>
                 </View>
+              </View>
+            ) : null}
+            {captureFlash ? (
+              <View style={styles.captureFlash} pointerEvents="none" />
+            ) : null}
+            {lastCaptureThumb ? (
+              <View style={styles.captureToast} pointerEvents="none">
+                <Image source={{ uri: lastCaptureThumb }} style={styles.captureToastThumb} contentFit="cover" />
+                <ThemedText type="caption" style={styles.captureToastText}>
+                  Captured
+                </ThemedText>
               </View>
             ) : null}
           </View>
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
             {liveNote}
-            {liveAddedCount > 0 ? ` · +${liveAddedCount} this session` : ''}
+            {liveAddedCount > 0 ? ` · ${liveAddedCount} saved` : ''}
           </ThemedText>
           {!yoloStatus.available ? (
             <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginBottom: Spacing.sm }}>
@@ -1044,9 +1106,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       : `Confirm what to keep. Scene: ${String(sceneType).replace(/_/g, ' ')}.`;
 
     const whyLine = items.length === 0 && skippedCount > 0
-      ? (skippedCount === 1 && skippedItems[0]
-        ? `We found 1 item, but it’s already in your wardrobe (“${skippedItems[0].item.name}” → “${skippedItems[0].matchName}”).`
-        : `We found ${detectedCount || skippedCount} piece${(detectedCount || skippedCount) === 1 ? '' : 's'}, but ${skippedCount} already look like items in your wardrobe.`)
+      ? (skippedCount === 1
+        ? 'We found 1 item, but it’s already in your wardrobe.'
+        : `We found ${detectedCount || skippedCount} pieces, but they’re already in your wardrobe.`)
       : null;
 
     return (
@@ -1113,7 +1175,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             Skipped as duplicates
           </ThemedText>
           <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
-            These matched items already in your wardrobe (or repeated in this scan). Rescan won’t help unless the photo is of a different piece.
+            Already in your wardrobe (or repeated in this scan).
           </ThemedText>
           {skippedItems.map(({ item, matchName, reason }) => (
             <View
@@ -1167,7 +1229,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           ]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {isSaving ? 'Saving…' : `Add ${selectedItems.length} to wardrobe`}
+            {isSaving
+              ? 'Saving…'
+              : selectedItems.length === 0
+                ? 'Nothing to add'
+                : `Add ${selectedItems.length} to wardrobe`}
           </ThemedText>
         </Pressable>
       </View>
@@ -1328,6 +1394,35 @@ const styles = StyleSheet.create({
   liveLegendText: {
     color: '#FFF',
     fontWeight: '600',
+  },
+  captureFlash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFF',
+    opacity: 0.55,
+    zIndex: 4,
+  },
+  captureToast: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  captureToastThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+  },
+  captureToastText: {
+    color: '#FFF',
+    fontWeight: '700',
+    paddingRight: 4,
   },
   captureActions: { gap: Spacing.sm },
   itemCard: {

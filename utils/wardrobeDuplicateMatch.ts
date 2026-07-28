@@ -65,6 +65,33 @@ const COLOR_ALIASES: Record<string, string> = {
 
 const ATTR_SOFT_THRESHOLD = 0.82;
 
+/** Generic detector labels — never treat as exact-name duplicates. */
+const GENERIC_ITEM_NAMES = new Set([
+  'bag',
+  'bags',
+  'top',
+  'tops',
+  'clothing',
+  'item',
+  'shoes',
+  'bottoms',
+  'accessory',
+  'accessories',
+  'outerwear',
+  'dress',
+  'dress / one-piece',
+]);
+
+function isGenericItemName(name?: string | null): boolean {
+  const n = String(name || '').toLowerCase().trim();
+  if (!n) return true;
+  if (GENERIC_ITEM_NAMES.has(n)) return true;
+  // "White Bag", "Item bags", etc.
+  const tokens = n.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 2 && tokens.some((t) => GENERIC_ITEM_NAMES.has(t))) return true;
+  return false;
+}
+
 function normalizeColor(color?: string | null): string {
   if (!color) return '';
   const c = color.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -141,7 +168,8 @@ export function attributeSimilarity(
   const exactName =
     String(candidate.name || '').toLowerCase().trim()
       === String(existing.name || '').toLowerCase().trim()
-    && String(candidate.name || '').trim().length > 0;
+    && String(candidate.name || '').trim().length > 0
+    && !isGenericItemName(candidate.name);
 
   if (exactName) return Math.min(1, 0.9 + (sameColor ? 0.05 : 0) + (sameBrand ? 0.05 : 0));
 
@@ -154,6 +182,14 @@ export function attributeSimilarity(
   // Same colour + shared subtype alone should not soft-block distinct items (two black tees)
   if (sameColor && nameSim < 0.45 && !sameBrand) {
     score = Math.min(score, 0.78);
+  }
+
+  // Generic detector labels ("Bag", "Top") must not soft-dupe just by matching each other
+  if (
+    (isGenericItemName(candidate.name) || isGenericItemName(existing.name))
+    && !sameBrand
+  ) {
+    score = Math.min(score, 0.72);
   }
 
   return Math.max(0, Math.min(1, score));

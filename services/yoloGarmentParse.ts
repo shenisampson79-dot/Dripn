@@ -137,25 +137,44 @@ export function parseYoloGarmentOutput(
 /**
  * Map YOLO clothing classes → Scan Wardrobe / live-frame categories.
  * "Clothing" is ambiguous — use bbox geometry as a coarse tops/bottoms/dress prior.
+ *
+ * Flat-laid garments are often misclassified as Bags by the 4-class model.
+ * Remap large clothing-shaped blobs away from bags unless they look compact/bag-like.
  */
 export function mapYoloClassToWardrobeCategory(
   classId: YoloClassId,
   bbox: [number, number, number, number],
 ): { category: string; subcategory: string; name: string } {
+  const [, y, w, h] = bbox;
+  const aspect = h / Math.max(w, 1e-6);
+  const area = w * h;
+  const cy = y + h / 2;
+
   if (classId === 1) {
     return { category: 'shoes', subcategory: 'shoes', name: 'Shoes' };
   }
+
   if (classId === 2) {
+    // Compact-ish detection → keep as bag. Large / elongated flat blobs → clothing (tops).
+    const looksLikeBag = area < 0.22 && aspect >= 0.7 && aspect <= 1.45 && w < 0.55;
+    if (!looksLikeBag) {
+      return clothingGeometryToCategory(cy, aspect, h);
+    }
     return { category: 'bags', subcategory: 'bag', name: 'Bag' };
   }
+
   if (classId === 3) {
     return { category: 'accessories', subcategory: 'accessory', name: 'Accessory' };
   }
 
-  const [, y, w, h] = bbox;
-  const aspect = h / Math.max(w, 1e-6);
-  const cy = y + h / 2;
+  return clothingGeometryToCategory(cy, aspect, h);
+}
 
+function clothingGeometryToCategory(
+  cy: number,
+  aspect: number,
+  h: number,
+): { category: string; subcategory: string; name: string } {
   if (aspect > 1.55 && h > 0.45) {
     return { category: 'dresses', subcategory: 'dress', name: 'Dress / one-piece' };
   }
@@ -165,9 +184,8 @@ export function mapYoloClassToWardrobeCategory(
   if (cy < 0.42) {
     return { category: 'tops', subcategory: 'top', name: 'Top' };
   }
-  // Mid-frame clothing blob — outerwear-ish when tall and covering torso.
   if (aspect > 1.25 && h > 0.35) {
     return { category: 'outerwear', subcategory: 'outerwear', name: 'Outerwear' };
   }
-  return { category: 'tops', subcategory: 'clothing', name: 'Clothing' };
+  return { category: 'tops', subcategory: 'clothing', name: 'Top' };
 }
