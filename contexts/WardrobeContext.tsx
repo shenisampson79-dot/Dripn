@@ -147,6 +147,10 @@ export interface WardrobeItem {
   retailer?: string;
   size?: string;
   material?: string;
+  /** 0–1 trust score after truth reconciliation; used to gate Best looks */
+  wardrobeConfidence?: number;
+  /** Soft flag — show review UX; excluded from Best looks when confidence is low */
+  needsReview?: boolean;
   aiAnalyzed?: boolean;
   aiTags?: string[];
   createdAt: string;
@@ -731,6 +735,15 @@ function mapBackendItemToFrontend(
     retailer: (meta as any).retailer,
     size: (meta as any).size,
     material: (meta as any).material,
+    wardrobeConfidence:
+      typeof (meta as any).wardrobeConfidence === 'number'
+        ? (meta as any).wardrobeConfidence
+        : (typeof row.wardrobeConfidence === 'number' ? row.wardrobeConfidence : undefined),
+    needsReview: Boolean(
+      (meta as any).needsReview
+      ?? row.needsReview
+      ?? false,
+    ),
     aiAnalyzed: (meta as any).aiAnalyzed,
     aiTags: (meta as any).aiTags,
     imageUri: displayUri,

@@ -20,6 +20,7 @@ import {
 } from '@/utils/completeOutfit';
 import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
+import { filterItemsForBestLook } from '@/utils/wardrobeTruthReconciliation';
 import {
   cloneDiversityTracker,
   createDiversityTracker,
@@ -989,8 +990,14 @@ export function allocateSingleDayOutfit(params: {
 }): SingleDayAllocation {
   const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
-  const wardrobe = params.wardrobe.filter((item) => !exclude.has(String(item.id)));
-  const pool = wardrobe.length >= 3 ? wardrobe : params.wardrobe;
+  const wardrobeRaw = params.wardrobe.filter((item) => !exclude.has(String(item.id)));
+  // Prefer high-confidence pieces for Best looks; fall back if too few trusted items
+  const wardrobeTrusted = filterItemsForBestLook(wardrobeRaw);
+  const wardrobe = wardrobeTrusted.length >= 3 ? wardrobeTrusted : wardrobeRaw;
+  const poolBase = wardrobe.length >= 3 ? wardrobe : params.wardrobe;
+  const pool = filterItemsForBestLook(poolBase).length >= 3
+    ? filterItemsForBestLook(poolBase)
+    : poolBase;
   const capacity = computeAllocationCapacity(pool, occasion);
   const laundryProfile = params.laundryProfile ?? DEFAULT_LAUNDRY_PROFILE;
   const referenceDate = params.referenceDate ?? new Date();

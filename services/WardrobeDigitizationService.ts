@@ -6,6 +6,7 @@ import { apiService, ColorConfig } from './ApiService';
 import { DEFAULT_CHAT_MODEL, DEFAULT_VISION_MODEL } from '@/constants/aiModels';
 import { normalizeWardrobeCategory } from '@/utils/wardrobeCategories';
 import { resolveDetectedGarmentName } from '@/utils/wardrobeItemName';
+import { reconcileWardrobeLabel } from '@/utils/wardrobeTruthReconciliation';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -118,6 +119,8 @@ export interface DetectedGarment {
   occasions: ClothingOccasion[];
   confidence: number;
   description: string;
+  needsReview?: boolean;
+  reconciliationFlags?: Array<{ code: string; message: string; suggestion?: string }>;
 }
 
 export interface BulkScanResult {
@@ -158,6 +161,8 @@ export interface PhotoTips {
 const BULK_SCAN_PROMPT = `You are a fashion expert analyzing an image that may contain MULTIPLE clothing items or accessories laid out together for wardrobe digitization.
 
 IMPORTANT: Detect and identify EACH SEPARATE clothing item visible in the image. Users often photograph multiple items at once to speed up digitization.
+For EACH item, name/colour/pattern must describe THAT item only — never copy a neighboring garment (e.g. do not label a white shirt as a green plaid shirt).
+Trousers/pants next to shirts are bottoms, not tops.
 
 For each item detected, provide:
 {
@@ -317,6 +322,8 @@ async function analyzeGarmentLocally(
 
   const prompt = `Analyze this clothing item photo. Identify the garment and provide accurate details.
 
+If multiple garments are visible, analyze ONLY the primary/centered/largest garment. Name, colour, and pattern must match that garment alone — never describe a neighboring item.
+
 Return ONLY a valid JSON object with these exact fields:
 {
   "category": one of [${validCategories.join(', ')}],
@@ -330,6 +337,7 @@ Return ONLY a valid JSON object with these exact fields:
 
 IMPORTANT:
 - For category, carefully distinguish: tops (shirts, t-shirts, blouses), bottoms (pants, jeans, shorts, skirts), dresses, outerwear (jackets, coats), shoes, bags, accessories
+- Trousers/pants next to shirts are bottoms, not tops. Ignore hangers and background garments.
 - For color, look at the PRIMARY color of the garment. If denim fabric, use "denim". If off-white/cream, use "beige" or "cream"
 - Be accurate - users rely on this for their wardrobe`;
 
@@ -631,10 +639,22 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         });
       }
       
-      const item: DetectedGarment = {
+      const reconciled = reconcileWardrobeLabel({
+        name: suggestedName,
         category: mappedCategory,
+        subcategory: subcategoryHint,
         color: mappedColor,
-        suggestedName,
+        pattern: data.pattern,
+        confidence: typeof data.confidence === 'number' ? data.confidence : 0.85,
+      });
+
+      const item: DetectedGarment = {
+        category: normalizeWardrobeCategory(reconciled.category, {
+          name: reconciled.name,
+          subcategory: subcategoryHint,
+        }),
+        color: mappedColor,
+        suggestedName: reconciled.suggestedName,
         brand: data.brand || undefined,
         seasons: (data.seasons || ['all-season']).filter((s: string) => 
           validSeasons.includes(s as ClothingSeason)
@@ -642,8 +662,10 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         occasions: (data.occasions || ['everyday']).filter((o: string) => 
           validOccasions.includes(o as ClothingOccasion)
         ) as ClothingOccasion[],
-        confidence: typeof data.confidence === 'number' ? data.confidence : 0.85,
+        confidence: reconciled.confidence,
         description: data.description || data.material || '',
+        needsReview: reconciled.needsReview,
+        reconciliationFlags: reconciled.flags,
       };
       
       console.log('[BulkScan] Detected item:', item.suggestedName, item.category, item.color);
@@ -724,11 +746,26 @@ function mapBatchRowToDetectedGarment(
   });
 
   const subcategoryHint = row.subcategory || row.garmentType || '';
-  const suggestedName = resolveDetectedGarmentName(row.name || row.suggestedName || row.itemName, {
+  let suggestedName = resolveDetectedGarmentName(row.name || row.suggestedName || row.itemName, {
     color: mappedColor,
     category: mappedCategory,
     subcategory: subcategoryHint,
     brand: row.brand,
+  });
+
+  const reconciled = reconcileWardrobeLabel({
+    name: suggestedName,
+    category: mappedCategory,
+    subcategory: subcategoryHint,
+    color: mappedColor,
+    pattern: row.pattern,
+    patternConfidence: typeof row.patternConfidence === 'number' ? row.patternConfidence : undefined,
+    confidence: typeof row.confidence === 'number' ? row.confidence : (row.wardrobeConfidence ?? 0.85),
+  });
+  suggestedName = reconciled.suggestedName;
+  const finalCategory = normalizeWardrobeCategory(reconciled.category, {
+    name: suggestedName,
+    subcategory: subcategoryHint,
   });
 
   const seasonsRaw = row.seasons || row.season || ['all-season'];
@@ -737,7 +774,7 @@ function mapBatchRowToDetectedGarment(
   const occasionsArr = Array.isArray(occasionsRaw) ? occasionsRaw : [occasionsRaw];
 
   return {
-    category: mappedCategory,
+    category: finalCategory,
     color: mappedColor,
     suggestedName,
     brand: row.brand || undefined,
@@ -751,9 +788,40 @@ function mapBatchRowToDetectedGarment(
         return lower;
       })
       .filter((o) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[],
-    confidence: typeof row.confidence === 'number' ? row.confidence : 0.85,
+    confidence: reconciled.confidence,
     description: row.material || row.subcategory || '',
+    needsReview: reconciled.needsReview || Boolean(row.needsReview),
+    reconciliationFlags: reconciled.flags.length
+      ? reconciled.flags
+      : (row.reconciliationFlags || undefined),
   };
+}
+
+/** When Vision reuses one fancy name on different photos, force colour into the label. */
+export function disambiguateDetectedGarmentNames(garments: DetectedGarment[]): DetectedGarment[] {
+  const counts = new Map<string, number>();
+  for (const g of garments) {
+    const key = String(g.suggestedName || '').trim().toLowerCase();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const seen = new Map<string, number>();
+  return garments.map((g) => {
+    const key = String(g.suggestedName || '').trim().toLowerCase();
+    if (!key || (counts.get(key) || 0) < 2) return g;
+    const n = (seen.get(key) || 0) + 1;
+    seen.set(key, n);
+    if (n === 1) return g;
+    const colorLabel = String(g.color || '').trim();
+    if (!colorLabel || key.includes(colorLabel.toLowerCase())) {
+      return { ...g, suggestedName: `${g.suggestedName} (${n})` };
+    }
+    const titled = colorLabel.charAt(0).toUpperCase() + colorLabel.slice(1);
+    return {
+      ...g,
+      suggestedName: `${titled} ${g.suggestedName}`.replace(/\s+/g, ' ').trim(),
+    };
+  });
 }
 
 export async function scanBulkImagesBatch(imageUris: string[]): Promise<{
@@ -795,26 +863,35 @@ export async function scanBulkImagesBatch(imageUris: string[]): Promise<{
     `[BulkScan] Batch complete — ${response.analyzed ?? response.results.filter((r: any) => r.success).length}/${imageUris.length} succeeded`,
   );
 
-  return {
-    rows: imageUris.map((imageUri, index) => {
-      const row = response.results.find((r: any) => r.index === index) ?? response.results[index];
-      if (!row?.success) {
-        const errMsg = row?.error || response?.message || 'Analysis failed';
-        let errorCode: string | undefined;
-        if (/quota|billing|insufficient/i.test(errMsg)) errorCode = 'QUOTA_EXCEEDED';
-        if (/401|403|unauthorized/i.test(errMsg)) errorCode = 'AUTH_REQUIRED';
-        return { imageUri, garment: null, error: errMsg, errorCode };
-      }
+  const rows = imageUris.map((imageUri, index) => {
+    const row = response.results.find((r: any) => r.index === index) ?? response.results[index];
+    if (!row?.success) {
+      const errMsg = row?.error || response?.message || 'Analysis failed';
+      let errorCode: string | undefined;
+      if (/quota|billing|insufficient/i.test(errMsg)) errorCode = 'QUOTA_EXCEEDED';
+      if (/401|403|unauthorized/i.test(errMsg)) errorCode = 'AUTH_REQUIRED';
+      return { imageUri, garment: null as DetectedGarment | null, error: errMsg, errorCode };
+    }
 
-      const garment = mapBatchRowToDetectedGarment(row, validColors, validSeasons, validOccasions);
-      if (!garment) {
-        return { imageUri, garment: null, error: 'Could not parse analysis result' };
-      }
+    const garment = mapBatchRowToDetectedGarment(row, validColors, validSeasons, validOccasions);
+    if (!garment) {
+      return { imageUri, garment: null as DetectedGarment | null, error: 'Could not parse analysis result' };
+    }
 
-      console.log('[BulkScan] Batch detected:', garment.suggestedName, garment.category, garment.color);
-      return { imageUri, garment };
-    }),
-  };
+    console.log('[BulkScan] Batch detected:', garment.suggestedName, garment.category, garment.color);
+    return { imageUri, garment };
+  });
+
+  const garments = rows.map((r) => r.garment).filter((g): g is DetectedGarment => Boolean(g));
+  const renamed = disambiguateDetectedGarmentNames(garments);
+  let renameIdx = 0;
+  const finalRows = rows.map((row) => {
+    if (!row.garment) return row;
+    const garment = renamed[renameIdx++];
+    return { ...row, garment };
+  });
+
+  return { rows: finalRows };
 }
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {

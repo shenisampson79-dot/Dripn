@@ -116,8 +116,42 @@ const ACTIVEWEAR_TOP_KEYWORDS = [
   'pullover',
 ];
 
-const BOTTOM_KEYWORDS = ['pant', 'jean', 'short', 'trouser', 'skirt', 'jogger', 'chino', 'legging'];
-const TOP_KEYWORDS = ['shirt', 'tee', 'top', 'jersey', 'hoodie', 'polo', 'sweater', 'blouse', 'jacket'];
+const BOTTOM_KEYWORDS = [
+  'trousers',
+  'trouser',
+  'pants',
+  'pant',
+  'jeans',
+  'jean',
+  'shorts',
+  'skirt',
+  'joggers',
+  'jogger',
+  'chinos',
+  'chino',
+  'leggings',
+  'legging',
+];
+const TOP_KEYWORDS = ['shirt', 'tee', 'top', 'jersey', 'hoodie', 'polo', 'sweater', 'blouse', 'henley'];
+
+function textWithoutSleeveModifiers(text: string): string {
+  return text.toLowerCase().replace(/\b(short|long)[- ]?sleeves?\b/g, ' ');
+}
+
+function inferCategoryFromText(text: string): ClothingCategory | null {
+  const lower = textWithoutSleeveModifiers(text);
+  if (/\b(dress|gown|romper|jumpsuit)\b/.test(lower)) return 'dresses';
+  if (/\b(shoe|sneaker|boot|trainer|loafer|heel|sandal)\b/.test(lower)) return 'shoes';
+  if (/\b(bag|backpack|tote|purse|handbag|satchel|clutch)\b/.test(lower)) return 'bags';
+  if (/\b(jacket|coat|blazer|parka|trench)\b/.test(lower)) return 'outerwear';
+  if (ACTIVEWEAR_BOTTOM_KEYWORDS.some((kw) => lower.includes(kw)) && /\b(jogger|legging|sweatpant|track)\b/.test(lower)) {
+    return 'activewear_bottoms';
+  }
+  if (ACTIVEWEAR_TOP_KEYWORDS.some((kw) => new RegExp(`\\b${kw}`).test(lower))) return 'activewear_tops';
+  if (BOTTOM_KEYWORDS.some((kw) => new RegExp(`\\b${kw}\\b`).test(lower))) return 'bottoms';
+  if (TOP_KEYWORDS.some((kw) => new RegExp(`\\b${kw}`).test(lower))) return 'tops';
+  return null;
+}
 
 export function normalizePresentationGender(input?: string | null): PresentationGender {
   const value = (input || '').toLowerCase().trim();
@@ -160,40 +194,39 @@ function splitActivewearCategory(text: string): ClothingCategory {
   return 'activewear_tops';
 }
 
-function inferCategoryFromText(text: string): ClothingCategory | null {
-  const lower = text.toLowerCase();
-  if (lower.includes('dress') || lower.includes('gown') || lower.includes('romper')) return 'dresses';
-  if (lower.includes('shoe') || lower.includes('sneaker') || lower.includes('boot') || lower.includes('trainer')) {
-    return 'shoes';
-  }
-  if (lower.includes('bag') || lower.includes('backpack') || lower.includes('tote') || lower.includes('purse')) {
-    return 'bags';
-  }
-  if (lower.includes('jacket') || lower.includes('coat') || lower.includes('blazer') || lower.includes('parka')) {
-    return 'outerwear';
-  }
-  if (ACTIVEWEAR_BOTTOM_KEYWORDS.some((kw) => lower.includes(kw))) return 'activewear_bottoms';
-  if (ACTIVEWEAR_TOP_KEYWORDS.some((kw) => lower.includes(kw))) return 'activewear_tops';
-  if (BOTTOM_KEYWORDS.some((kw) => lower.includes(kw))) return 'bottoms';
-  if (TOP_KEYWORDS.some((kw) => lower.includes(kw))) return 'tops';
-  return null;
-}
-
 export function normalizeWardrobeCategory(
   raw?: string | null,
   hints?: { name?: string; subcategory?: string },
 ): ClothingCategory {
   const cleaned = (raw || '').toLowerCase().trim().replace(/\s+/g, '_');
-  if (CATEGORY_ALIASES[cleaned]) return CATEGORY_ALIASES[cleaned];
-  if (VALID_CATEGORIES.includes(cleaned as ClothingCategory)) return cleaned as ClothingCategory;
+  const fromHints = inferCategoryFromText(`${hints?.name || ''} ${hints?.subcategory || ''}`);
+
+  const applyHintOverride = (category: ClothingCategory): ClothingCategory => {
+    if (
+      fromHints &&
+      category === 'tops' &&
+      (fromHints === 'bottoms' ||
+        fromHints === 'shoes' ||
+        fromHints === 'bags' ||
+        fromHints === 'dresses' ||
+        fromHints === 'outerwear' ||
+        fromHints === 'activewear_bottoms')
+    ) {
+      return fromHints;
+    }
+    return category;
+  };
 
   if (cleaned === 'activewear') {
-    return splitActivewearCategory(`${hints?.name || ''} ${hints?.subcategory || ''}`);
+    return applyHintOverride(splitActivewearCategory(`${hints?.name || ''} ${hints?.subcategory || ''}`));
   }
-
-  const inferred = inferCategoryFromText(`${hints?.name || ''} ${hints?.subcategory || ''} ${cleaned}`);
-  if (inferred) return inferred;
-
+  if (CATEGORY_ALIASES[cleaned]) {
+    return applyHintOverride(CATEGORY_ALIASES[cleaned]);
+  }
+  if (VALID_CATEGORIES.includes(cleaned as ClothingCategory)) {
+    return applyHintOverride(cleaned as ClothingCategory);
+  }
+  if (fromHints) return fromHints;
   return 'tops';
 }
 

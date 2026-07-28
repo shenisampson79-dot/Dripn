@@ -886,6 +886,8 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         sourceUrl: item.sourceUrl,
         purchasePrice: item.price,
         isFavorite: false,
+        wardrobeConfidence: item.confidence,
+        needsReview: Boolean(item.needsReview),
       }));
 
       const savedItems = await addItemsBatch(batchItems, {
@@ -953,6 +955,9 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       </View>
 
       <View style={[styles.tipsSection, { backgroundColor: theme.backgroundSecondary }]}>
+        <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm, lineHeight: 18 }}>
+          Best results: one garment per photo, flat-lay or clearly separated on a hanger. Avoid 2–3 items in one frame — use Scan My Wardrobe for that.
+        </ThemedText>
         <UploadGuideComparisonTable
           compact
           title={t('wardrobe.photoTipsForBestResults') || "Photo tips for best results"}
@@ -1070,6 +1075,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             </ThemedText>
             <Feather name="edit-2" size={14} color={theme.link} style={styles.pendingItemEditIcon} />
           </View>
+          {item.needsReview || item.confidence < 0.7 ? (
+            <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, marginTop: 2 }}>
+              {item.reconciliationFlags?.[0]?.suggestion || 'Something looks off — tap to check'}
+            </ThemedText>
+          ) : null}
           {item.brand ? (
             <ThemedText type="caption" style={{ opacity: 0.7 }}>
               {item.brand}
@@ -1112,6 +1122,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
   const renderPendingItems = () => {
     const selectedCount = pendingItems.filter(i => i.selected).length;
+    const needsCheckCount = pendingItems.filter((i) => i.needsReview || i.confidence < 0.7).length;
     
     return (
       <View style={styles.pendingContainer}>
@@ -1123,6 +1134,16 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             {selectedCount} selected
           </ThemedText>
         </View>
+        {needsCheckCount > 0 ? (
+          <View style={[styles.reviewBanner, { backgroundColor: LUXURY_COLORS.gold + '22', borderColor: LUXURY_COLORS.gold + '55' }]}>
+            <Feather name="alert-circle" size={16} color={LUXURY_COLORS.gold} />
+            <ThemedText type="caption" style={{ flex: 1, color: theme.text, lineHeight: 18 }}>
+              {needsCheckCount === 1
+                ? '1 item may need a quick check before saving'
+                : `${needsCheckCount} items may need a quick check before saving`}
+            </ThemedText>
+          </View>
+        ) : null}
 
         <FlatList
           data={pendingItems}
@@ -1539,6 +1560,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.md,
+  },
+  reviewBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
   pendingList: {
     paddingHorizontal: Spacing.xl,

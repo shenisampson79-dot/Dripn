@@ -18,6 +18,7 @@ import { WardrobeItemImage } from "@/components/WardrobeItemImage";
 import { onboardingProfileService, type OnboardingProfile } from '@/services/OnboardingProfileService';
 import {
   countItemsForWardrobeCategory,
+  getManualAddCategoryTabs,
   getWardrobeCategoryTabs,
   itemMatchesWardrobeCategory,
   resolveUserPresentationGender,
@@ -38,9 +39,11 @@ import {
   useWardrobe,
   WardrobeItem,
   ClothingCategory,
+  ClothingColor,
   ClothingSeason,
   ClothingOccasion,
   CATEGORY_LABELS,
+  COLOR_LABELS,
   SEASON_LABELS,
   OCCASION_LABELS,
 } from "@/contexts/WardrobeContext";
@@ -80,6 +83,7 @@ function formatSeasonDetailLabel(seasons: ClothingSeason[]): string {
 
 const ALL_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
 const ALL_OCCASIONS = Object.keys(OCCASION_LABELS) as ClothingOccasion[];
+const ALL_COLORS = Object.keys(COLOR_LABELS) as ClothingColor[];
 
 const GRID_GAP = Spacing.md;
 const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
@@ -149,6 +153,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [isEditingItem, setIsEditingItem] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBrand, setEditBrand] = useState('');
+  const [editCategory, setEditCategory] = useState<ClothingCategory>('tops');
+  const [editColor, setEditColor] = useState<ClothingColor>('black');
   const [editSeasons, setEditSeasons] = useState<ClothingSeason[]>([]);
   const [editOccasions, setEditOccasions] = useState<ClothingOccasion[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -404,6 +410,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditName(selectedItem.name || '');
     setEditBrand(selectedItem.brand || '');
+    setEditCategory(selectedItem.category || 'tops');
+    setEditColor((selectedItem.color as ClothingColor) || 'black');
     setEditSeasons([...(selectedItem.seasons || [])]);
     setEditOccasions([...(selectedItem.occasions || [])]);
     setIsEditingItem(true);
@@ -439,16 +447,24 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     try {
       await updateItem(selectedItem.id, {
         name,
+        category: editCategory,
+        color: editColor,
         seasons,
         occasions,
         brand: brand || undefined,
+        needsReview: false,
+        wardrobeConfidence: Math.max(selectedItem.wardrobeConfidence || 0.75, 0.85),
       });
       setSelectedItem({
         ...selectedItem,
         name,
+        category: editCategory,
+        color: editColor,
         seasons,
         occasions,
         brand: brand || undefined,
+        needsReview: false,
+        wardrobeConfidence: Math.max(selectedItem.wardrobeConfidence || 0.75, 0.85),
       });
       setIsEditingItem(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -1067,6 +1083,64 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   />
 
                   <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+                    Category
+                  </ThemedText>
+                  <View style={styles.editChipRow}>
+                    {getManualAddCategoryTabs(presentationGender).map((tab) => {
+                      const active = editCategory === tab.key;
+                      return (
+                        <Pressable
+                          key={tab.key}
+                          onPress={() => setEditCategory(tab.key)}
+                          style={[
+                            styles.editChip,
+                            {
+                              borderColor: active ? LUXURY_COLORS.coral : theme.border,
+                              backgroundColor: active ? LUXURY_COLORS.coral + '22' : 'transparent',
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            type="caption"
+                            style={{ color: active ? LUXURY_COLORS.coral : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                          >
+                            {CATEGORY_LABELS[tab.key] || tab.key}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
+                    Color
+                  </ThemedText>
+                  <View style={styles.editChipRow}>
+                    {ALL_COLORS.map((color) => {
+                      const active = editColor === color;
+                      return (
+                        <Pressable
+                          key={color}
+                          onPress={() => setEditColor(color)}
+                          style={[
+                            styles.editChip,
+                            {
+                              borderColor: active ? LUXURY_COLORS.teal : theme.border,
+                              backgroundColor: active ? LUXURY_COLORS.teal + '18' : 'transparent',
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            type="caption"
+                            style={{ color: active ? LUXURY_COLORS.teal : theme.textSecondary, fontWeight: active ? '700' : '500' }}
+                          >
+                            {COLOR_LABELS[color]}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: 8, marginTop: Spacing.lg }}>
                     Season
                   </ThemedText>
                   <View style={styles.editChipRow}>
@@ -1195,6 +1269,20 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                       </ThemedText>
                     </Pressable>
                   </View>
+                  {selectedItem.needsReview ? (
+                    <Pressable
+                      onPress={openEditDetails}
+                      style={[
+                        styles.reviewHintBanner,
+                        { backgroundColor: LUXURY_COLORS.gold + '18', borderColor: LUXURY_COLORS.gold + '44' },
+                      ]}
+                    >
+                      <Feather name="alert-circle" size={14} color={LUXURY_COLORS.gold} />
+                      <ThemedText type="caption" style={{ flex: 1, color: theme.text, lineHeight: 18 }}>
+                        Something looks off with this item — tap Edit to confirm category and name
+                      </ThemedText>
+                    </Pressable>
+                  ) : null}
 
                   <View style={styles.modalTags}>
                     <LinearGradient
@@ -2350,6 +2438,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     marginTop: 4,
+  },
+  reviewHintBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
   },
   modalTags: {
     flexDirection: "row",

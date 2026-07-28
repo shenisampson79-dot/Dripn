@@ -21,6 +21,9 @@ export type ScanSessionItem = {
   };
   needsConfirm: boolean;
   confirmPrompt?: string | null;
+  needsReview?: boolean;
+  wardrobeConfidence?: number;
+  reconciliationFlags?: Array<{ code: string; message: string; suggestion?: string }>;
   seasons?: string[];
   occasions?: string[];
 };

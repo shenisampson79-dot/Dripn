@@ -582,6 +582,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         seasons: ['all-season'] as const,
         occasions: ['everyday'] as const,
         isFavorite: false,
+        wardrobeConfidence: item.wardrobeConfidence ?? item.confidence,
+        needsReview: Boolean(item.needsReview || item.needsConfirm),
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
