@@ -167,6 +167,15 @@ export function getOnDeviceYoloStatus(): {
   };
 }
 
+function looksLikeFootwearBbox(bbox: [number, number, number, number]): boolean {
+  const [, ny, nw, nh] = bbox;
+  const aspect = nh / Math.max(nw, 1e-6);
+  const area = nw * nh;
+  const cy = ny + nh / 2;
+  const bottomHeavy = cy >= 0.38;
+  return area >= 0.01 && area <= 0.38 && aspect >= 0.6 && aspect <= 4.2 && bottomHeavy;
+}
+
 function estimateColorFromRoi(
   rgba: Uint8Array,
   width: number,
@@ -180,11 +189,17 @@ function estimateColorFromRoi(
   const y1 = Math.min(height, Math.ceil((ny + nh) * height));
   if (x1 <= x0 || y1 <= y0) return 'unknown';
 
-  // Sample the centre of the ROI so bedding / floor edges don’t wash the colour to grey.
+  const footwear = looksLikeFootwearBbox(bbox);
+  // Sample inside the ROI so floor edges don’t wash the colour to grey.
   const mx0 = x0 + Math.floor((x1 - x0) * 0.22);
   const mx1 = x1 - Math.floor((x1 - x0) * 0.22);
-  const my0 = y0 + Math.floor((y1 - y0) * 0.22);
-  const my1 = y1 - Math.floor((y1 - y0) * 0.22);
+  // Footwear: avoid the bottom edge where floor often dominates.
+  const my0 = footwear
+    ? y0 + Math.floor((y1 - y0) * 0.25)
+    : y0 + Math.floor((y1 - y0) * 0.22);
+  const my1 = footwear
+    ? y0 + Math.floor((y1 - y0) * 0.82)
+    : y1 - Math.floor((y1 - y0) * 0.22);
   const sx0 = mx1 > mx0 ? mx0 : x0;
   const sx1 = mx1 > mx0 ? mx1 : x1;
   const sy0 = my1 > my0 ? my0 : y0;
@@ -194,8 +209,8 @@ function estimateColorFromRoi(
   let g = 0;
   let b = 0;
   let n = 0;
-  const stepX = Math.max(1, Math.floor((sx1 - sx0) / 20));
-  const stepY = Math.max(1, Math.floor((sy1 - sy0) / 20));
+  const stepX = Math.max(1, Math.floor((sx1 - sx0) / 18));
+  const stepY = Math.max(1, Math.floor((sy1 - sy0) / 18));
   for (let y = sy0; y < sy1; y += stepY) {
     for (let x = sx0; x < sx1; x += stepX) {
       const i = (y * width + x) * 4;
@@ -293,13 +308,17 @@ function boxesToDetections(
   height: number,
 ): OnDeviceDetection[] {
   return boxes.map((box, i) => {
-    const mapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
+    const footwearLike = looksLikeFootwearBbox(box.bbox);
+    let mapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
+    if (footwearLike) {
+      mapped = { category: 'shoes', subcategory: 'shoes', name: 'Shoes' };
+    }
     return {
       name: mapped.name,
       category: mapped.category,
       subcategory: mapped.subcategory,
       color: estimateColorFromRoi(rgba, width, height, box.bbox),
-      confidence: box.confidence,
+      confidence: footwearLike ? Math.min(0.95, box.confidence * 1.2 + 0.05) : box.confidence,
       bbox: box.bbox,
       trackId: `yolo_${mapped.category}_${i}`,
     };

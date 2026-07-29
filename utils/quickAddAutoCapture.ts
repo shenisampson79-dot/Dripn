@@ -26,9 +26,9 @@ export type QuickAddCaptureUi = 'idle' | 'hold' | 'ready' | 'struggling';
 
 export const QUICK_ADD_CAPTURE = {
   /** Floor to enter amber HOLD (must stay ≤ YOLO parse ~0.16). */
-  weakConfidence: 0.15,
+  weakConfidence: 0.14,
   /** Alias used by selectors — same as weak so UI never stays white on a hit. */
-  selectConfidence: 0.15,
+  selectConfidence: 0.14,
   /** Default snap confidence for clothing; see captureConfidenceFor(). */
   captureConfidence: 0.38,
   /**
@@ -39,11 +39,11 @@ export const QUICK_ADD_CAPTURE = {
   /** ~2 samples @ 850ms ≈ 1.7s stable before green. */
   stableFrames: 2,
   /** Shoes / accessories often sit under 0.12 of frame. */
-  minArea: 0.018,
+  minArea: 0.015,
   /** Ready: ≥70% of the object must sit inside the guide (≈20% overflow OK). */
-  readyCoverage: 0.7,
+  readyCoverage: 0.62,
   /** Hold: show amber once this much of the object overlaps the guide. */
-  holdCoverage: 0.4,
+  holdCoverage: 0.33,
   iouThreshold: 0.42,
   captureCooldownMs: 1800,
   /**
@@ -63,7 +63,7 @@ export function isFootwearClass(classOrCategory?: string | null): boolean {
 /** Confidence required to auto-snap — shoes/boots are harder for YOLO. */
 export function captureConfidenceFor(classOrCategory?: string | null): number {
   const c = String(classOrCategory || '').toLowerCase();
-  if (isFootwearClass(c)) return 0.24;
+  if (isFootwearClass(c)) return 0.22;
   if (/accessor|bag|hat|belt|scarf/.test(c)) return 0.3;
   return QUICK_ADD_CAPTURE.captureConfidence;
 }
@@ -76,8 +76,8 @@ export function looksLikeFootwear(bbox: QuickAddBBox): boolean {
   const aspect = bbox.height / Math.max(bbox.width, 1e-6);
   const area = bbox.width * bbox.height;
   const cy = bbox.y + bbox.height / 2;
-  const bottomHeavy = cy >= 0.4;
-  return area >= 0.015 && area <= 0.3 && aspect >= 0.85 && aspect <= 2.9 && bottomHeavy;
+  const bottomHeavy = cy >= 0.35;
+  return area >= 0.01 && area <= 0.33 && aspect >= 0.7 && aspect <= 3.8 && bottomHeavy;
 }
 
 export function boostDetection(det: QuickAddYoloDetection): QuickAddYoloDetection {
@@ -119,9 +119,9 @@ export function guideFromLayout(layout: {
   const usableH = Math.max(frameSize, sh - overlayTop - overlayBottom);
   const left = (sw - frameSize) / 2;
   const topInUsable = (usableH - frameSize) / 2;
-  // ~20% overflow tolerance beyond the visible square.
-  const padX = (frameSize * 0.2) / sw;
-  const padY = (frameSize * 0.24) / sh;
+  // Expand beyond the visible square so bbox drift doesn't block GREEN.
+  const padX = (frameSize * 0.3) / sw;
+  const padY = (frameSize * 0.34) / sh;
   const x = Math.max(0, left / sw - padX);
   const y = Math.max(0, (overlayTop + topInUsable) / sh - padY);
   return {
@@ -173,11 +173,13 @@ export function centreInGuide(
 ): boolean {
   const cx = bbox.x + bbox.width / 2;
   const cy = bbox.y + bbox.height / 2;
+  const slackX = Math.max(0.02, frame.width * 0.08);
+  const slackY = Math.max(0.02, frame.height * 0.08);
   return (
-    cx >= frame.x
-    && cx <= frame.x + frame.width
-    && cy >= frame.y
-    && cy <= frame.y + frame.height
+    cx >= frame.x - slackX
+    && cx <= frame.x + frame.width + slackX
+    && cy >= frame.y - slackY
+    && cy <= frame.y + frame.height + slackY
   );
 }
 

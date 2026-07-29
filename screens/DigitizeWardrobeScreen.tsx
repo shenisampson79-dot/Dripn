@@ -1542,7 +1542,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           >
             {liveNote}
           </ThemedText>
-          {challengeInvite && !challengeActive ? (
+          {challengeInvite && !challengeActive && !isLive ? (
             <View style={[styles.challengeInvite, { borderColor: LuxuryColors.gold }]}>
               <ThemedText type="body" style={{ fontWeight: '600', marginBottom: 4 }}>
                 Nice — want to scan the rest quickly?
@@ -1586,7 +1586,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           },
         ]}
       >
-        {!challengeActive ? (
+        {!challengeActive && !isLive ? (
           <Pressable
             onPress={() => setAutoSaveLive((v) => !v)}
             style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
@@ -1620,7 +1620,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               </ThemedText>
             </Pressable>
           )}
-          {scanItems.length > 0 && !challengeActive ? (
+          {scanItems.length > 0 && !challengeActive && !isLive ? (
             <Pressable
               onPress={() => {
                 stopLive();
