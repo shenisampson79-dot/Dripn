@@ -858,6 +858,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           });
         }
       }
+      console.log('[Scale] wardrobe_commit', { count: safe.length, showLoader });
       setItems(safe);
       return safe;
     };

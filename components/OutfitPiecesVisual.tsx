@@ -312,6 +312,7 @@ export function OutfitPiecesVisual({
                   contentFit="contain"
                   preferCover={false}
                   tileBackgroundColor={wardrobeTileBackground(isDark)}
+                  imageVariant="medium"
                 />
               </View>
             );
@@ -381,6 +382,7 @@ export function OutfitPiecesVisual({
         preferCover={false}
         showLoading
         tileBackgroundColor={layerBg}
+        imageVariant="medium"
       />
     </RenderErrorBoundary>
   );

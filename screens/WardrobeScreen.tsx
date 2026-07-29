@@ -62,6 +62,8 @@ import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 import { preloadWardrobeImages } from '@/utils/preloadWardrobe';
+import { logScale } from '@/utils/scaleDiagnostics';
+import { getPerformanceBudgetStats } from '@/utils/performanceBudget';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -224,6 +226,17 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
     [listItems, selectedCategory, presentationGender],
   );
 
+  /** View-driven grid: never mount thousands of cells — grow as the user scrolls. */
+  const WARDROBE_PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(WARDROBE_PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(WARDROBE_PAGE_SIZE);
+  }, [selectedCategory, filteredItems.length]);
+  const pagedItems = useMemo(
+    () => filteredItems.slice(0, visibleCount),
+    [filteredItems, visibleCount],
+  );
+
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -293,6 +306,10 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
     useCallback(() => {
       // Warm only a few visible tiles AFTER the user opens Wardrobe — never on stylist launch.
       if (listItems.length > 0) {
+        logScale('wardrobe_focus', {
+          wardrobeSize: listItems.length,
+          budget: getPerformanceBudgetStats(),
+        });
         void preloadWardrobeImages(listItems.slice(0, 6), {
           highPriorityCount: 3,
           maxTotal: 6,
@@ -1846,7 +1863,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
       </View>
 
       <FlatList
-        data={filteredItems}
+        data={pagedItems}
         renderItem={renderWardrobeItem}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
@@ -1863,6 +1880,16 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         ]}
         showsVerticalScrollIndicator={false}
         alwaysBounceVertical
+        initialNumToRender={12}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={Platform.OS === 'android'}
+        onEndReachedThreshold={0.55}
+        onEndReached={() => {
+          if (visibleCount >= filteredItems.length) return;
+          setVisibleCount((count) => Math.min(count + WARDROBE_PAGE_SIZE, filteredItems.length));
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

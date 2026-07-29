@@ -23,6 +23,7 @@ import {
   getCachedWardrobeImageUri,
   invalidateWardrobeImageCache,
   loadWardrobeImageForItem,
+  type WardrobeImageVariant,
 } from '@/utils/wardrobeImageLoader';
 
 const MAX_RENDER_RETRIES = 2;
@@ -42,6 +43,8 @@ type Props = {
   displayScale?: number;
   /** Override tile background (e.g. transparent when parent already provides one). */
   tileBackgroundColor?: string;
+  /** Grid uses thumb; outfit/detail can request medium/full. */
+  imageVariant?: WardrobeImageVariant;
 };
 
 export function WardrobeItemImage({
@@ -54,6 +57,7 @@ export function WardrobeItemImage({
   showLoading = true,
   tileBackgroundColor,
   displayScale = 1,
+  imageVariant = 'thumb',
 }: Props) {
   const { isDark } = useTheme();
   const { resolvedUri, isCutout, item: safeItem } = useResolvedGarmentImage(item);
@@ -62,7 +66,7 @@ export function WardrobeItemImage({
     tileBackgroundColor ??
     (isProcessed ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark));
 
-  const cached = getCachedWardrobeImageUri(safeItem.id);
+  const cached = getCachedWardrobeImageUri(safeItem.id, imageVariant);
   const [uri, setUri] = useState<string | null>(cached);
   const [loading, setLoading] = useState(!cached);
   const [failed, setFailed] = useState(false);
@@ -81,7 +85,7 @@ export function WardrobeItemImage({
     const preferred = resolvedUri || null;
 
     // Never reuse a stale cached URI when the item's source photo changed (retake / rotate / rembg).
-    const warm = getCachedWardrobeImageUri(safeItem.id);
+    const warm = getCachedWardrobeImageUri(safeItem.id, imageVariant);
     if (warm && preferred && warm !== preferred) {
       const preferredIsConcreteSource =
         preferred.startsWith('file') ||
@@ -95,7 +99,7 @@ export function WardrobeItemImage({
       }
     }
 
-    const warmAfter = getCachedWardrobeImageUri(safeItem.id);
+    const warmAfter = getCachedWardrobeImageUri(safeItem.id, imageVariant);
     if (warmAfter && (!preferred || warmAfter === preferred || String(safeItem.id) === 'preview')) {
       // For preview id, always prefer the live prop URI over any accidental cache hit.
       if (String(safeItem.id) === 'preview' && preferred) {
@@ -121,7 +125,7 @@ export function WardrobeItemImage({
     setUri(null);
     setFailed(false);
 
-    loadWardrobeImageForItem(safeItem).then((result) => {
+    loadWardrobeImageForItem(safeItem, { variant: imageVariant }).then((result) => {
       if (cancelled) return;
       const safeResult = result && !result.startsWith('data:') ? result : null;
       setUri(safeResult);
@@ -141,6 +145,7 @@ export function WardrobeItemImage({
     resolvedUri,
     isCutout,
     retryCount,
+    imageVariant,
   ]);
 
   const handleError = useCallback(() => {

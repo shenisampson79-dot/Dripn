@@ -44,6 +44,8 @@ import {
   TODAY_DIVERSITY_HISTORY,
 } from '@/utils/outfitDiversityHard';
 import { isTopItem, isBottomItem, isShoesItem } from '@/utils/completeOutfit';
+import { selectOutfitCandidatePool } from '@/utils/outfitCandidatePool';
+import { logScale } from '@/utils/scaleDiagnostics';
 
 export type WeatherSnapshot = {
   temperature: number;
@@ -1200,6 +1202,14 @@ export async function generateTodaysWardrobeOutfit(params: {
     }
   }
 
+  // View-driven generation: score/filter to ~10 per role so large wardrobes don't explode RAM/CPU.
+  const generationPool = selectOutfitCandidatePool(wardrobeItems, 10);
+  logScale('outfit_pool', {
+    wardrobeSize: wardrobeItems.length,
+    poolSize: generationPool.length,
+    forceRefresh: Boolean(forceRefresh),
+  });
+
   logDiversity('generate_start', {
     dateKey: today,
     historyCount: priorOutfits.length,
@@ -1207,6 +1217,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     forceRefresh: Boolean(forceRefresh),
     seededFrom: seeded.seededFrom,
     cacheHit: false,
+    poolSize: generationPool.length,
   });
 
   const started = Date.now();
@@ -1217,7 +1228,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     ]);
 
     const fromServer = await tryGenerateTodaysOutfitFromServer({
-      wardrobeItems,
+      wardrobeItems: generationPool,
       occasionType,
       dressFor,
       dayLabel,
@@ -1232,7 +1243,8 @@ export async function generateTodaysWardrobeOutfit(params: {
     });
 
     if (fromServer) {
-      const stillSimilar = priorOutfits.some((h) => isTooSimilar(fromServer.items, h));
+      const hydratedServerItems = hydrateItems(fromServer.outfit.itemIds, wardrobeItems);
+      const stillSimilar = priorOutfits.some((h) => isTooSimilar(hydratedServerItems.length ? hydratedServerItems : fromServer.items, h));
       const outfit = withStableId({
         ...fromServer.outfit,
         dateKey: today,
@@ -1281,7 +1293,11 @@ export async function generateTodaysWardrobeOutfit(params: {
       if (outfit.weatherTemp == null) {
         void enrichOutfitWeatherInBackground(outfit);
       }
-      return { ok: true, outfit, items: fromServer.items };
+      return {
+        ok: true,
+        outfit,
+        items: hydratedServerItems.length ? hydratedServerItems : fromServer.items,
+      };
     }
 
     if (!TODAYS_OUTFIT_OFFLINE_FALLBACK) {
@@ -1289,7 +1305,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     }
 
     const generated = generateLocalTiered({
-      wardrobeItems,
+      wardrobeItems: generationPool,
       occasionType,
       deadlineMs: TODAYS_OUTFIT_GENERATION_BUDGET_MS,
       laundryProfile: laundryProfileFromUser(user),
@@ -1302,16 +1318,26 @@ export async function generateTodaysWardrobeOutfit(params: {
       throw new Error('Could not build today’s outfit from your wardrobe.');
     }
 
-    const stillSimilar = priorOutfits.some((h) => isTooSimilar(generated.items, h));
+    const hydratedLocal = hydrateItems(
+      generated.items.map((i) => String(i.id)),
+      wardrobeItems,
+    );
+    const resultItems = hydratedLocal.length ? hydratedLocal : generated.items;
+    const stillSimilar = priorOutfits.some((h) => isTooSimilar(resultItems, h));
     const outfit = withStableId({
-      ...buildOutfitFromLocal(generated, occasionType, dressFor, dayLabel),
+      ...buildOutfitFromLocal(
+        { ...generated, items: resultItems },
+        occasionType,
+        dressFor,
+        dayLabel,
+      ),
       diversity: {
         historyCount: priorOutfits.length,
         rejectedSimilar: stillSimilar ? 1 : 0,
         wardrobeLocked: stillSimilar,
         forceRefresh: Boolean(forceRefresh),
         cacheHit: false,
-        pickedItemIds: generated.items.map((i) => String(i.id)),
+        pickedItemIds: resultItems.map((i) => String(i.id)),
       },
       why: [
         'Offline fallback — local allocator (server authority unavailable).',
@@ -1349,7 +1375,7 @@ export async function generateTodaysWardrobeOutfit(params: {
 
     void enrichOutfitWeatherInBackground(outfit);
 
-    return { ok: true, outfit, items: generated.items };
+    return { ok: true, outfit, items: resultItems };
   } catch (error) {
     const message =
       error instanceof Error

@@ -16,11 +16,20 @@ import {
   localWardrobeFileExists,
   resolveLocalWardrobePhoto,
 } from '@/utils/wardrobeLocalPhotos';
+import { runWithPerformanceBudget } from '@/utils/performanceBudget';
+import { logScale } from '@/utils/scaleDiagnostics';
 
 const Base64Encoding = 'base64' as const;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-/** Display tiles never need full camera resolution — caps decode RAM. */
-const MAX_CACHE_WIDTH = 1000;
+
+/** View-driven image sizes — grid never needs full camera resolution. */
+export type WardrobeImageVariant = 'thumb' | 'medium' | 'full';
+
+const VARIANT_WIDTH: Record<WardrobeImageVariant, number> = {
+  thumb: 400,
+  medium: 800,
+  full: 1200,
+};
 
 export type WardrobeImageFields = Pick<
   WardrobeItem,
@@ -34,6 +43,10 @@ let cacheDirReady = false;
 
 function itemKey(id: string | number): string {
   return String(id).replace(/[^\w-]/g, '');
+}
+
+function cacheKey(id: string | number, variant: WardrobeImageVariant): string {
+  return `${itemKey(id)}:${variant}`;
 }
 
 function wardrobeCacheDir(): string | null {
@@ -61,10 +74,11 @@ async function ensureCacheDir(): Promise<string | null> {
   return dir;
 }
 
-function cachePathFor(id: string | number): string | null {
+function cachePathFor(id: string | number, variant: WardrobeImageVariant = 'medium'): string | null {
   const dir = wardrobeCacheDir();
   if (!dir) return null;
-  return `${dir}${itemKey(id)}.jpg`;
+  const suffix = variant === 'medium' ? '' : `_${variant}`;
+  return `${dir}${itemKey(id)}${suffix}.jpg`;
 }
 
 function logSource(
@@ -105,12 +119,15 @@ async function isFreshDiskCache(path: string): Promise<string | null> {
   }
 }
 
-async function downscaleCachedFile(path: string): Promise<string> {
+async function downscaleCachedFile(
+  path: string,
+  variant: WardrobeImageVariant = 'medium',
+): Promise<string> {
   try {
     const resized = await ImageManipulator.manipulateAsync(
       path,
-      [{ resize: { width: MAX_CACHE_WIDTH } }],
-      { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
+      [{ resize: { width: VARIANT_WIDTH[variant] } }],
+      { compress: variant === 'thumb' ? 0.7 : 0.72, format: ImageManipulator.SaveFormat.JPEG },
     );
     if (!resized?.uri || resized.uri === path) return path;
     try {
@@ -126,7 +143,11 @@ async function downscaleCachedFile(path: string): Promise<string> {
   }
 }
 
-async function writeBufferToCache(dest: string, buffer: ArrayBuffer): Promise<string | null> {
+async function writeBufferToCache(
+  dest: string,
+  buffer: ArrayBuffer,
+  variant: WardrobeImageVariant = 'medium',
+): Promise<string | null> {
   if (buffer.byteLength > 8 * 1024 * 1024) {
     if (__DEV__) console.warn('[WardrobeImage] skip oversized image buffer', buffer.byteLength);
     return null;
@@ -139,7 +160,7 @@ async function writeBufferToCache(dest: string, buffer: ArrayBuffer): Promise<st
     await FileSystem.writeAsStringAsync(dest, base64, { encoding: Base64Encoding });
     const info = await FileSystem.getInfoAsync(dest);
     if (info.exists && (info.size ?? 0) > 256) {
-      return downscaleCachedFile(info.uri || dest);
+      return downscaleCachedFile(info.uri || dest, variant);
     }
   } catch (error) {
     if (__DEV__) console.warn('[WardrobeImage] cache write failed:', error);
@@ -166,7 +187,10 @@ function remoteCdnCandidates(item: WardrobeImageFields): string[] {
   return urls;
 }
 
-async function fetchAuthProxyToCache(id: string | number): Promise<string | null> {
+async function fetchAuthProxyToCache(
+  id: string | number,
+  variant: WardrobeImageVariant,
+): Promise<string | null> {
   await apiService.init();
   const token = await apiService.getToken();
   if (!token) {
@@ -174,7 +198,7 @@ async function fetchAuthProxyToCache(id: string | number): Promise<string | null
     return null;
   }
 
-  const dest = cachePathFor(id);
+  const dest = cachePathFor(id, variant);
   if (!dest) return null;
 
   const url = buildWardrobeImageProxyUrl(id);
@@ -192,7 +216,7 @@ async function fetchAuthProxyToCache(id: string | number): Promise<string | null
     const buffer = await response.arrayBuffer();
     if (!buffer.byteLength) return null;
 
-    const written = await writeBufferToCache(dest, buffer);
+    const written = await writeBufferToCache(dest, buffer, variant);
     if (written) logSource(id, 'proxy');
     return written;
   } catch (error) {
@@ -202,15 +226,19 @@ async function fetchAuthProxyToCache(id: string | number): Promise<string | null
   }
 }
 
-async function fetchRemoteToCache(url: string, id: string | number): Promise<string | null> {
-  const dest = cachePathFor(id);
+async function fetchRemoteToCache(
+  url: string,
+  id: string | number,
+  variant: WardrobeImageVariant,
+): Promise<string | null> {
+  const dest = cachePathFor(id, variant);
   if (!dest) return null;
 
   try {
     // Prefer download-to-disk (no giant ArrayBuffer + base64 in JS heap).
     const downloaded = await FileSystem.downloadAsync(url, dest);
     if (downloaded.status === 200) {
-      const scaled = await downscaleCachedFile(downloaded.uri || dest);
+      const scaled = await downscaleCachedFile(downloaded.uri || dest, variant);
       logSource(id, 'cdn');
       return scaled;
     }
@@ -225,7 +253,7 @@ async function fetchRemoteToCache(url: string, id: string | number): Promise<str
     const buffer = await response.arrayBuffer();
     if (!buffer.byteLength) return null;
 
-    const written = await writeBufferToCache(dest, buffer);
+    const written = await writeBufferToCache(dest, buffer, variant);
     if (written) logSource(id, 'cdn');
     return written;
   } catch {
@@ -233,14 +261,22 @@ async function fetchRemoteToCache(url: string, id: string | number): Promise<str
   }
 }
 
-function remember(id: string, uri: string): string | null {
+function remember(key: string, uri: string): string | null {
   if (!uri || uri.startsWith('data:')) return null;
-  memoryCache.set(id, uri);
+  memoryCache.set(key, uri);
   return uri;
 }
 
-export function getCachedWardrobeImageUri(id: string | number): string | null {
-  return memoryCache.get(itemKey(id)) ?? null;
+export function getCachedWardrobeImageUri(
+  id: string | number,
+  variant: WardrobeImageVariant = 'thumb',
+): string | null {
+  return (
+    memoryCache.get(cacheKey(id, variant))
+    ?? memoryCache.get(cacheKey(id, 'medium'))
+    ?? memoryCache.get(itemKey(id))
+    ?? null
+  );
 }
 
 export function invalidateWardrobeImageCache(id?: string | number): void {
@@ -249,27 +285,44 @@ export function invalidateWardrobeImageCache(id?: string | number): void {
     inflight.clear();
     return;
   }
-  const key = itemKey(id);
-  memoryCache.delete(key);
-  inflight.delete(key);
+  for (const variant of ['thumb', 'medium', 'full'] as WardrobeImageVariant[]) {
+    memoryCache.delete(cacheKey(id, variant));
+    inflight.delete(cacheKey(id, variant));
+  }
+  memoryCache.delete(itemKey(id));
+  inflight.delete(itemKey(id));
 }
 
 /** Drop memory + on-disk cache for an item so a new photo/cutout is shown. */
 export async function purgeWardrobeImageCache(id: string | number): Promise<void> {
   invalidateWardrobeImageCache(id);
-  const diskPath = cachePathFor(id);
-  if (!diskPath) return;
-  try {
-    await FileSystem.deleteAsync(diskPath, { idempotent: true });
-  } catch {
-    // Non-fatal
+  for (const variant of ['thumb', 'medium', 'full'] as WardrobeImageVariant[]) {
+    const diskPath = cachePathFor(id, variant);
+    if (!diskPath) continue;
+    try {
+      await FileSystem.deleteAsync(diskPath, { idempotent: true });
+    } catch {
+      // Non-fatal
+    }
   }
 }
 
-export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promise<string | null> {
+export async function loadWardrobeImageForItem(
+  item: WardrobeImageFields,
+  options?: { variant?: WardrobeImageVariant },
+): Promise<string | null> {
   if (!item?.id) return null;
+  const variant = options?.variant ?? 'thumb';
 
+  return runWithPerformanceBudget(() => loadWardrobeImageForItemInner(item, variant));
+}
+
+async function loadWardrobeImageForItemInner(
+  item: WardrobeImageFields,
+  variant: WardrobeImageVariant,
+): Promise<string | null> {
   const id = itemKey(item.id);
+  const key = cacheKey(item.id, variant);
 
   // Shared "preview" id must never hit permanent/disk cache — it reused one photo across retakes.
   if (id === 'preview') {
@@ -301,25 +354,25 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     isLikelyLocalGarmentUri(preferredProp)
   ) {
     if (await localWardrobeFileExists(preferredProp)) {
-      memoryCache.delete(id);
-      inflight.delete(id);
+      memoryCache.delete(key);
+      inflight.delete(key);
       logSource(item.id, 'local', 'prefer-prop-uri');
-      return remember(id, preferredProp);
+      return remember(key, preferredProp);
     }
   }
 
   // New remote / proxy cutout should invalidate an older cached carpet file.
   if (preferredProp && (isRemoteImageUri(preferredProp) || isProxyWardrobeImageUri(preferredProp) || cutoutExpected)) {
-    const existing = memoryCache.get(id);
+    const existing = memoryCache.get(key);
     if (
       existing &&
       existing !== preferredProp &&
       !existing.startsWith('data:') &&
       (isLikelyLocalGarmentUri(existing) || cutoutExpected)
     ) {
-      memoryCache.delete(id);
+      memoryCache.delete(key);
     }
-    const diskPath = cachePathFor(item.id);
+    const diskPath = cachePathFor(item.id, variant);
     if (diskPath) {
       const cached = await isFreshDiskCache(diskPath);
       if (cached && (cutoutExpected || cached !== preferredProp)) {
@@ -332,26 +385,26 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     }
   }
 
-  const existing = memoryCache.get(id);
+  const existing = memoryCache.get(key);
   if (existing?.startsWith('data:')) {
-    memoryCache.delete(id);
+    memoryCache.delete(key);
   } else if (existing && !(cutoutExpected && isLikelyLocalGarmentUri(existing))) {
     logSource(item.id, 'memory');
     return existing;
   }
 
-  const pending = inflight.get(id);
+  const pending = inflight.get(key);
   if (pending) return pending;
 
   const task = (async (): Promise<string | null> => {
     await ensureCacheDir();
 
-    const diskPath = cachePathFor(item.id);
+    const diskPath = cachePathFor(item.id, variant);
     // After rembg, never serve a stale local disk jpg ahead of proxy/CDN cutout.
     if (diskPath && !cutoutExpected) {
       const cached = await isFreshDiskCache(diskPath);
       if (cached) {
-        return remember(id, cached);
+        return remember(key, cached);
       }
     }
 
@@ -359,34 +412,57 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     if (!cutoutExpected) {
       const local = await resolveLocalWardrobePhoto(item.id, item);
       if (local) {
+        // Downscale local originals into the variant cache when possible.
+        if (diskPath && isLikelyLocalGarmentUri(local)) {
+          try {
+            const scaled = await ImageManipulator.manipulateAsync(
+              local,
+              [{ resize: { width: VARIANT_WIDTH[variant] } }],
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+            );
+            if (scaled?.uri) {
+              try {
+                await FileSystem.copyAsync({ from: scaled.uri, to: diskPath });
+                logSource(item.id, 'local', `scaled-${variant}`);
+                return remember(key, diskPath);
+              } catch {
+                logSource(item.id, 'local');
+                return remember(key, scaled.uri);
+              }
+            }
+          } catch {
+            // fall through to raw local
+          }
+        }
         logSource(item.id, 'local');
-        return remember(id, local);
+        return remember(key, local);
       }
     }
 
-    const fromProxy = await fetchAuthProxyToCache(item.id);
-    if (fromProxy) return remember(id, fromProxy);
+    const fromProxy = await fetchAuthProxyToCache(item.id, variant);
+    if (fromProxy) return remember(key, fromProxy);
 
     for (const url of remoteCdnCandidates(item)) {
-      const fromCdn = await fetchRemoteToCache(url, item.id);
-      if (fromCdn) return remember(id, fromCdn);
+      const fromCdn = await fetchRemoteToCache(url, item.id, variant);
+      if (fromCdn) return remember(key, fromCdn);
     }
 
     // Never serve data: URIs from wardrobe items — they jetsam iOS under load.
     for (const url of remoteCdnCandidates(item)) {
       logSource(item.id, 'cdn', 'direct-url');
-      return remember(id, url);
+      return remember(key, url);
     }
 
     logSource(item.id, 'none');
+    logScale('image_miss', { id: item.id, variant });
     return null;
   })();
 
-  inflight.set(id, task);
+  inflight.set(key, task);
   try {
     return await task;
   } finally {
-    inflight.delete(id);
+    inflight.delete(key);
   }
 }
 

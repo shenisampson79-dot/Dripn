@@ -60,10 +60,18 @@ export async function preloadWardrobeImages(
   const highPriority = limited.slice(0, highPriorityCount);
   const rest = limited.slice(highPriorityCount);
 
-  await mapWithConcurrency(highPriority, MAX_CONCURRENCY, loadWardrobeImageForItem);
+  await mapWithConcurrency(
+    highPriority,
+    MAX_CONCURRENCY,
+    (item) => loadWardrobeImageForItem(item, { variant: 'thumb' }),
+  );
 
   if (!rest.length) return;
 
   await deferUntilIdle(deferRestMs);
-  await mapWithConcurrency(rest, MAX_CONCURRENCY, loadWardrobeImageForItem);
+  await mapWithConcurrency(
+    rest,
+    MAX_CONCURRENCY,
+    (item) => loadWardrobeImageForItem(item, { variant: 'thumb' }),
+  );
 }
