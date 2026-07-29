@@ -29,19 +29,13 @@ import { useWardrobe, type PlannedEventType } from '@/contexts/WardrobeContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import {
   generateTodaysWardrobeOutfit,
-  prewarmTodaysWardrobeOutfit,
   resolveCachedTodaysOutfit,
   type WardrobeTodaysOutfit,
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
-import {
-  getTodaysOutfitPopupPrefs,
-  isWithinTodaysOutfitPopupWindow,
-} from '@/utils/todaysOutfitPrefs';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
-import { syncTodaysOutfitLocalNotification } from '@/services/todaysOutfitLocalNotify';
 import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
 import { dateKeyInTimeZone, TODAYS_OUTFIT_TIMEZONE } from '@/utils/todaysOutfitTime';
 import {
@@ -60,9 +54,6 @@ import {
   consumeTodaysOutfitIntent,
   subscribeTodaysOutfitIntent,
 } from '@/utils/todaysOutfitIntentBus';
-import {
-  wardrobeReadyForTodaysOutfitAutoPopup,
-} from '@/utils/wardrobeOutfitReadiness';
 
 type TodaysOutfitCardState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -468,8 +459,9 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const openTodaysOutfitRef = useRef(openTodaysOutfit);
   openTodaysOutfitRef.current = openTodaysOutfit;
 
-  // Background hydrate on mount — chip first, heavy work later (jetsam safety).
-  // T+0s UI only · T+5s outfit cache · T+12s notifications · T+20s prewarm
+  // Chip-first only: do NOT background-generate Today's outfit after login.
+  // Jetsam still fired ~20–30s after auto-open was disabled — outfit generate + wardrobe
+  // hydrate were the remaining cold-start spikes. Load only when the user taps the chip.
   useEffect(() => {
     if (!user) {
       setCardState('idle');
@@ -477,17 +469,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     }
     activeDateKeyRef.current = todayKey();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
-
-    const outfitTimer = setTimeout(() => {
-      void loadOutfit({ open: false });
-    }, 5000);
-    const notifyTimer = setTimeout(() => {
-      void syncTodaysOutfitLocalNotification();
-    }, 12000);
-    return () => {
-      clearTimeout(outfitTimer);
-      clearTimeout(notifyTimer);
-    };
+    setCardState('idle');
   }, [user?.id]);
 
   // Intent bus: notifications / deep links are remote chip taps.
@@ -495,32 +477,18 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     if (!user) return;
     return subscribeTodaysOutfitIntent((intent) => {
       if (intent !== 'OPEN_TODAYS_OUTFIT') return;
-      void (async () => {
-        try {
-          await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
-        } catch {
-          // ignore
-        }
-        openTodaysOutfitRef.current();
-      })();
+      // Memory-safe: ignore auto intents on cold start; user can tap the chip.
+      console.log('[TodaysOutfit] ignoring auto OPEN_TODAYS_OUTFIT intent (jetsam guard)');
     });
   }, [user?.id]);
 
-  // Legacy route param — same as intent.
+  // Legacy route param — open only if user already past cold start via explicit navigation.
   useEffect(() => {
     if (!openToday || !user) return;
-    void (async () => {
-      try {
-        await AsyncStorage.removeItem(DISMISS_KEY_PREFIX + todayKey());
-      } catch {
-        // ignore
-      }
-      openTodaysOutfitRef.current();
-    })();
+    console.log('[TodaysOutfit] openToday param ignored on mount (jetsam guard)');
   }, [openToday, user?.id]);
 
   // Prewarm disabled — JetsamEvent showed Dripn at ~3GB (per-process-limit).
-  // Generation stays on-demand via chip tap / delayed mount load only.
   useEffect(() => {
     return;
   }, [user?.id, wardrobeItems.length]);
@@ -531,35 +499,29 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     return;
   }, []);
 
-  /** New local calendar day → drop stale cache UI and regenerate once. */
+  /** New local calendar day → drop stale cache UI; regenerate only on next chip tap. */
   const ensureFreshForToday = useCallback(async () => {
     const today = todayKey();
-    if (activeDateKeyRef.current === today) {
-      void maybeAutoOpenPopup();
-      return;
-    }
+    if (activeDateKeyRef.current === today) return;
     activeDateKeyRef.current = today;
     autoPopupCheckedRef.current = false;
     setVisible(false);
     setDailyState(null);
+    setOutfit(null);
+    setPieces([]);
+    setCardState('idle');
     void traceTodaysOutfit('trigger', { source: 'day_rollover', dateKey: today });
-    await loadOutfit({ open: false });
-  }, [loadOutfit, maybeAutoOpenPopup]);
+  }, []);
 
   useEffect(() => {
-    if (!outfit || autoPopupCheckedRef.current) return;
-    autoPopupCheckedRef.current = true;
-    // Auto-open is a memory spike (outfit visuals decode). Wait until launch is calm.
-    const timer = setTimeout(() => {
-      void maybeAutoOpenPopup();
-    }, 12000);
-    return () => clearTimeout(timer);
-  }, [outfit, maybeAutoOpenPopup]);
+    // No auto-popup timer. Chip tap only.
+  }, [outfit]);
 
   useEffect(() => {
+    // Lightweight day-key check only — no outfit generation on interval/AppState.
     const intervalId = setInterval(() => {
       void ensureFreshForToday();
-    }, 30_000);
+    }, 60_000);
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void ensureFreshForToday();
     });

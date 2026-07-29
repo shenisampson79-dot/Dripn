@@ -75,6 +75,12 @@ export function markAppHydrating(): void {
  */
 export function markAppStable(): void {
   bootState = 'STABLE';
+  try {
+    const { noteAppBecameStable } = require('@/utils/coldStartGuard') as typeof import('@/utils/coldStartGuard');
+    noteAppBecameStable();
+  } catch {
+    // ignore circular/init edge
+  }
 }
 
 export function lockNavigation(): void {

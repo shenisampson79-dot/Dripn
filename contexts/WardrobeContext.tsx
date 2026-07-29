@@ -21,9 +21,7 @@ import {
 } from '@/utils/safeWardrobeItem';
 import { invalidateWardrobeImageCache } from '@/utils/wardrobeImageLoader';
 import {
-  hydrateWardrobeItemsWithLocalPhotos,
   localWardrobeFileExists,
-  migrateWardrobeItemsToPermanentPhotos,
   resolveLocalWardrobePhoto,
 } from '@/utils/wardrobeLocalPhotos';
 import { persistWardrobePhotoToAppStorage, downloadWardrobePhotoToPermanentStorage } from '@/utils/persistWardrobePhoto';
@@ -403,6 +401,12 @@ async function syncBackgroundRemovalForItems(
   onProgress?: (progress: { processed: number; total: number; failed: number }) => void,
   onlyItemIds?: string[],
 ): Promise<{ fixed: number; failed: number; skipped: number; noLocal: number }> {
+  const { isWardrobeHeavyWorkAllowed } = await import('@/utils/coldStartGuard');
+  // User-triggered fixBackgrounds / post-upload paths pass onlyItemIds — allow those.
+  if (!onlyItemIds?.length && !isWardrobeHeavyWorkAllowed()) {
+    console.log('[WardrobeContext] skip background-removal sweep (cold-start guard)');
+    return { fixed: 0, failed: 0, skipped: items.length, noLocal: 0 };
+  }
   let fixed = 0;
   let failed = 0;
   let skipped = 0;
@@ -595,6 +599,12 @@ async function backfillMissingServerImages(
   items: WardrobeItem[],
   imageCache: ImageCache,
 ): Promise<number> {
+  // Jetsam kill switch: never base64-loop the wardrobe unless Wardrobe UI is open.
+  const { isWardrobeHeavyWorkAllowed } = await import('@/utils/coldStartGuard');
+  if (!isWardrobeHeavyWorkAllowed()) {
+    console.log('[WardrobeContext] skip image backfill (cold-start guard)');
+    return 0;
+  }
   let uploaded = 0;
   for (const item of items) {
     const itemKey = String(item.id);
@@ -981,30 +991,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             })
             .filter((item): item is WardrobeItem => item != null);
           let hydratedItems: WardrobeItem[];
-          // Silent background sync must not migrate/hydrate every photo on cold start —
-          // that stampede was a leading jetsam cause after Today's outfit appeared.
-          if (!showLoader) {
-            hydratedItems = backendItems;
-            setTimeout(() => {
-              void (async () => {
-                try {
-                  const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
-                  const later = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
-                  commitItems(later);
-                } catch (err) {
-                  if (__DEV__) console.warn('[WardrobeContext] deferred hydrate failed', err);
-                }
-              })();
-            }, 15000);
-          } else {
-            try {
-              const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
-              hydratedItems = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
-            } catch (hydrateErr) {
-              console.warn('[WardrobeContext] photo hydrate failed, using server items', hydrateErr);
-              hydratedItems = backendItems;
-            }
-          }
+          // Jetsam fix: never migrate/hydrate the full wardrobe on launch or silent sync.
+          // Photo work runs when the user opens Wardrobe (preload there), not on Stylist cold start.
+          hydratedItems = backendItems;
           const committed = commitItems(hydratedItems);
 
           const localCount = committed.filter(
@@ -1015,13 +1004,16 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           }
           setWardrobePhotosUnavailable(localCount === 0 && committed.length > 0);
 
-          for (let i = 0; i < result.items.length; i++) {
-            const row = result.items[i];
-            const item = committed[i];
-            if (!item) continue;
-            const rawCategory = String(row.category || row.metadata?.category || '').toLowerCase();
-            if (!rawCategory || rawCategory === 'unknown' || rawCategory !== item.category) {
-              apiService.updateWardrobeItem(String(item.id), { category: item.category }).catch(() => {});
+          // Avoid stampeding category PATCH for every row on every login.
+          if (showLoader) {
+            for (let i = 0; i < result.items.length; i++) {
+              const row = result.items[i];
+              const item = committed[i];
+              if (!item) continue;
+              const rawCategory = String(row.category || row.metadata?.category || '').toLowerCase();
+              if (!rawCategory || rawCategory === 'unknown' || rawCategory !== item.category) {
+                apiService.updateWardrobeItem(String(item.id), { category: item.category }).catch(() => {});
+              }
             }
           }
           // Sync remote image URLs into the device cache so tiles survive offline reloads.
@@ -1060,12 +1052,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           // Cache locally for offline fallback
           await saveFullLocalCache(committed);
           await loadLocalSecondary();
-          // Repair bulk-uploaded items missing CDN images (background removal queue)
-          backfillMissingServerImages(committed, cacheUpdates).then((count) => {
-            if (count > 0) {
-              setTimeout(() => loadWardrobe({ showLoader: false }), 20000);
-            }
-          }).catch(() => {});
+          // Jetsam fix: do NOT base64-backfill every local photo on cold start.
+          // That stampede + reload@20s was hitting per-process-limit (~3GB).
           return;
         }
       } catch (backendErr) {
@@ -1081,10 +1069,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       if (itemsData) {
         try {
           const all: WardrobeItem[] = JSON.parse(itemsData);
-          const localItems = await hydrateWardrobeItemsWithLocalPhotos(
-            all.filter((i) => i.userId === user?.id),
-          );
-          commitItems(localItems);
+          // Offline: use cached metadata only — no full photo hydrate on launch.
+          commitItems(all.filter((i) => i.userId === user?.id));
         } catch (parseErr) {
           console.warn('[WardrobeContext] local wardrobe parse failed', parseErr);
           commitItems([]);

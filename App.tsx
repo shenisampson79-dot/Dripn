@@ -76,13 +76,11 @@ import {
 } from "@/services/todaysOutfitLocalNotify";
 import {
   enqueueFromDeepLink,
-  enqueueIntent,
   flushIntents,
   markAppHydrating,
   markAppStable,
   tryResolveImmediately,
 } from "@/utils/appEntryRouter";
-import { emitTodaysOutfitIntent } from "@/utils/todaysOutfitIntentBus";
 import { ensureStylistHubVisible } from "@/utils/todaysOutfitEnsureRoute";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
@@ -98,15 +96,11 @@ function NavigationContainerWithRef() {
   useEffect(() => {
     markAppHydrating();
     const uninstall = installTodaysOutfitNotificationOpenHandler({
-      // Emit + ensure screen only — never navigate/reset or call loadOutfit.
+      // Jetsam guard: do not auto-open Today's outfit from notifications on cold start.
+      // User opens via chip tap once the hub is stable.
       onOpenIntent: () => {
-        // Clean stack first (dismiss GON/modals), then emit so the card opens on Hub+tabs.
         ensureStylistHubVisible(navigationRef.current);
-        emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
-        // Keep IRG queue for cold-start flush (same emit is idempotent).
-        enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
-        const nav = navigationRef.current || getNavigationRef();
-        tryResolveImmediately(nav);
+        console.log('[App] TodaysOutfit notification open deferred (jetsam guard)');
       },
     });
     return uninstall;
@@ -233,9 +227,9 @@ function AppContent() {
     entryResolvedRef.current = true;
     void (async () => {
       try {
+        // Jetsam guard: do not flush OPEN_TODAYS_OUTFIT on cold start.
         if (await peekTodaysOutfitOpenPending()) {
-          emitTodaysOutfitIntent('OPEN_TODAYS_OUTFIT');
-          enqueueIntent({ type: 'OPEN_TODAYS_OUTFIT' });
+          console.log('[App] pending TodaysOutfit open ignored on cold start (jetsam guard)');
         }
         markAppStable();
         const nav = getNavigationRef();

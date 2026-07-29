@@ -64,6 +64,7 @@ import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 import { preloadWardrobeImages } from '@/utils/preloadWardrobe';
 import { logScale } from '@/utils/scaleDiagnostics';
 import { getPerformanceBudgetStats } from '@/utils/performanceBudget';
+import { noteWardrobeSurfaceOpened } from '@/utils/coldStartGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -304,6 +305,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
 
   useFocusEffect(
     useCallback(() => {
+      noteWardrobeSurfaceOpened();
       // Warm only a few visible tiles AFTER the user opens Wardrobe — never on stylist launch.
       if (listItems.length > 0) {
         logScale('wardrobe_focus', {
