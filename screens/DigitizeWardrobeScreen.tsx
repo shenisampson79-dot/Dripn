@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { DuplicateComparisonSheet } from '@/components/wardrobe/DuplicateComparisonSheet';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import {
   CATEGORY_LABELS,
@@ -289,6 +290,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const yoloStatus = getOnDeviceYoloStatus();
 
   const [mode, setMode] = useState<CaptureMode>('photo');
+  const liveModeEnabled = FEATURE_FLAGS.showDigitizeLiveMode;
   const [step, setStep] = useState<DigitizeStep>('capture');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [sceneType, setSceneType] = useState<string>('other');
@@ -1204,6 +1206,15 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   }, [challengeActive]);
 
   const beginLiveSession = useCallback(async (asChallenge: boolean) => {
+    if (!FEATURE_FLAGS.showDigitizeLiveMode) {
+      Alert.alert(
+        'Photo mode',
+        'Live scan is temporarily unavailable. Use Photo for the most accurate results.',
+      );
+      setMode('photo');
+      setStep('capture');
+      return;
+    }
     if (!permission?.granted) {
       const next = await requestPermission();
       if (!next.granted) {
@@ -1348,7 +1359,19 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     );
   };
 
-  const renderModeToggle = () => (
+  // Photo-only launch: keep Live code but never leave photo mode while flag is off.
+  useEffect(() => {
+    if (!liveModeEnabled && mode !== 'photo') {
+      setIsLive(false);
+      setLiveTracks([]);
+      setMode('photo');
+      setStep('capture');
+    }
+  }, [liveModeEnabled, mode]);
+
+  const renderModeToggle = () => {
+    if (!liveModeEnabled) return null;
+    return (
     <View style={styles.modeRow}>
       <Pressable
         onPress={() => {
@@ -1382,7 +1405,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         </ThemedText>
       </Pressable>
     </View>
-  );
+    );
+  };
 
   const renderCapture = () => (
     <View style={[styles.stepBody, mode === 'live' && styles.stepBodyLive]}>
