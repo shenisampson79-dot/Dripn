@@ -172,8 +172,9 @@ function looksLikeFootwearBbox(bbox: [number, number, number, number]): boolean 
   const aspect = nh / Math.max(nw, 1e-6);
   const area = nw * nh;
   const cy = ny + nh / 2;
-  const bottomHeavy = cy >= 0.38;
-  return area >= 0.01 && area <= 0.38 && aspect >= 0.6 && aspect <= 4.2 && bottomHeavy;
+  const bottomHeavy = cy >= 0.34;
+  const bottomTouch = ny + nh >= 0.72;
+  return area >= 0.008 && area <= 0.45 && aspect >= 0.7 && aspect <= 4.6 && (bottomTouch || bottomHeavy);
 }
 
 function estimateColorFromRoi(
