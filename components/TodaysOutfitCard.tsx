@@ -519,40 +519,17 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     })();
   }, [openToday, user?.id]);
 
-  // Prewarm is optional and expensive — never during the first 20s after launch.
+  // Prewarm disabled — JetsamEvent showed Dripn at ~3GB (per-process-limit).
+  // Generation stays on-demand via chip tap / delayed mount load only.
   useEffect(() => {
-    if (!user || wardrobeItems.length < 4) return;
-    const timer = setTimeout(() => {
-      void onboardingProfileService.getProfile().then((profile) => {
-        void prewarmTodaysWardrobeOutfit({ wardrobeItems, profile, user });
-      });
-    }, 20000);
-    return () => clearTimeout(timer);
+    return;
   }, [user?.id, wardrobeItems.length]);
 
   const maybeAutoOpenPopup = useCallback(async () => {
-    if (!user || !outfit || visible || gapVisible || generating) return;
-
-    const paid = hasPaidTodaysOutfitAccess(user.subscriptionTier);
-    const readyForAuto = wardrobeReadyForTodaysOutfitAutoPopup(wardrobeItems);
-    if (!paid || !readyForAuto) return;
-
-    try {
-      const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
-      if (dismissedToday === '1') return;
-      const prefs = await getTodaysOutfitPopupPrefs();
-      if (prefs.enabled && isWithinTodaysOutfitPopupWindow(prefs)) {
-        revealOutfitSheet({ haptic: false });
-        void traceTodaysOutfit('trigger', {
-          source: 'auto_popup',
-          dateKey: todayKey(),
-          appearAtHour: prefs.appearAtHour,
-        });
-      }
-    } catch {
-      // ignore
-    }
-  }, [user, outfit, visible, gapVisible, generating, wardrobeItems, revealOutfitSheet]);
+    // JetsamEvent 2026-07-29: Dripn hit per-process-limit (~3GB) right after
+    // Today's outfit auto-opened. Never auto-open the heavy sheet — chip tap only.
+    return;
+  }, []);
 
   /** New local calendar day → drop stale cache UI and regenerate once. */
   const ensureFreshForToday = useCallback(async () => {
@@ -790,6 +767,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           handleDismiss();
         }}
       >
+        {/* Unmount sheet body when closed — keeps decoded outfit images out of RAM (Jetsam). */}
+        {visible ? (
         <GestureHandlerRootView style={styles.overlay}>
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -929,11 +908,25 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                 ) : (
                   <Animated.View style={contentFadeStyle}>
                     <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
-                      <ZoomableOutfitVisual
-                        pieces={visualPieces}
-                        wardrobeItems={pieces}
-                        canvasWidth={canvasWidth}
-                      />
+                      {/* No pinch-zoom on open — Jetsam showed ~3GB when the sheet auto-mounted
+                          ZoomableOutfitVisual + decoded piece images together. */}
+                      <View style={styles.visualBlock}>
+                        <View
+                          style={[
+                            styles.visualFrame,
+                            { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF' },
+                          ]}
+                        >
+                          <SafeOutfitPieces
+                            pieces={visualPieces}
+                            wardrobeItems={pieces}
+                            label=""
+                            tight
+                            canvasWidth={canvasWidth}
+                            visualScale={1.12}
+                          />
+                        </View>
+                      </View>
                     </RenderErrorBoundary>
                   </Animated.View>
                 )}
@@ -1063,6 +1056,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
             </LinearGradient>
           </View>
         </GestureHandlerRootView>
+        ) : null}
       </Modal>
 
       <SaveOutfitPromptModal
