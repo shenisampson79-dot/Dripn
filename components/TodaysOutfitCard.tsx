@@ -468,8 +468,8 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const openTodaysOutfitRef = useRef(openTodaysOutfit);
   openTodaysOutfitRef.current = openTodaysOutfit;
 
-  // Background hydrate on mount — never blocks chip tap.
-  // Defer notification permission/scheduling so it cannot race first paint / OOM.
+  // Background hydrate on mount — chip first, heavy work later (jetsam safety).
+  // T+0s UI only · T+5s outfit cache · T+12s notifications · T+20s prewarm
   useEffect(() => {
     if (!user) {
       setCardState('idle');
@@ -477,11 +477,17 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     }
     activeDateKeyRef.current = todayKey();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
-    void loadOutfit({ open: false });
+
+    const outfitTimer = setTimeout(() => {
+      void loadOutfit({ open: false });
+    }, 5000);
     const notifyTimer = setTimeout(() => {
       void syncTodaysOutfitLocalNotification();
-    }, 8000);
-    return () => clearTimeout(notifyTimer);
+    }, 12000);
+    return () => {
+      clearTimeout(outfitTimer);
+      clearTimeout(notifyTimer);
+    };
   }, [user?.id]);
 
   // Intent bus: notifications / deep links are remote chip taps.
@@ -513,13 +519,14 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     })();
   }, [openToday, user?.id]);
 
+  // Prewarm is optional and expensive — never during the first 20s after launch.
   useEffect(() => {
     if (!user || wardrobeItems.length < 4) return;
     const timer = setTimeout(() => {
       void onboardingProfileService.getProfile().then((profile) => {
         void prewarmTodaysWardrobeOutfit({ wardrobeItems, profile, user });
       });
-    }, 6000);
+    }, 20000);
     return () => clearTimeout(timer);
   }, [user?.id, wardrobeItems.length]);
 
@@ -565,10 +572,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   useEffect(() => {
     if (!outfit || autoPopupCheckedRef.current) return;
     autoPopupCheckedRef.current = true;
-    // Delay auto-open so wardrobe image preload + first paint can settle (avoids iOS jetsam).
+    // Auto-open is a memory spike (outfit visuals decode). Wait until launch is calm.
     const timer = setTimeout(() => {
       void maybeAutoOpenPopup();
-    }, 3500);
+    }, 12000);
     return () => clearTimeout(timer);
   }, [outfit, maybeAutoOpenPopup]);
 

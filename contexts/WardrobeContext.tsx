@@ -15,7 +15,10 @@ import {
   type PresentationGender,
 } from '@/utils/wardrobeCategories';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
-import { preloadWardrobeImages } from '@/utils/preloadWardrobe';
+import {
+  readCachedWardrobeItemsForUser,
+  sanitizeWardrobeItemList,
+} from '@/utils/safeWardrobeItem';
 import { invalidateWardrobeImageCache } from '@/utils/wardrobeImageLoader';
 import {
   hydrateWardrobeItemsWithLocalPhotos,
@@ -36,10 +39,6 @@ import {
   applyWearIncrement,
   laundryProfileFromUser,
 } from '@/utils/wearRules';
-import {
-  readCachedWardrobeItemsForUser,
-  sanitizeWardrobeItemList,
-} from '@/utils/safeWardrobeItem';
 
 function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'imageProcessed'>): boolean {
   const urls = [item.enhancedImageUri, item.imageUri].filter(Boolean) as string[];
@@ -981,12 +980,29 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             })
             .filter((item): item is WardrobeItem => item != null);
           let hydratedItems: WardrobeItem[];
-          try {
-            const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
-            hydratedItems = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
-          } catch (hydrateErr) {
-            console.warn('[WardrobeContext] photo hydrate failed, using server items', hydrateErr);
+          // Silent background sync must not migrate/hydrate every photo on cold start —
+          // that stampede was a leading jetsam cause after Today's outfit appeared.
+          if (!showLoader) {
             hydratedItems = backendItems;
+            setTimeout(() => {
+              void (async () => {
+                try {
+                  const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
+                  const later = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
+                  commitItems(later);
+                } catch (err) {
+                  if (__DEV__) console.warn('[WardrobeContext] deferred hydrate failed', err);
+                }
+              })();
+            }, 15000);
+          } else {
+            try {
+              const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
+              hydratedItems = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
+            } catch (hydrateErr) {
+              console.warn('[WardrobeContext] photo hydrate failed, using server items', hydrateErr);
+              hydratedItems = backendItems;
+            }
           }
           const committed = commitItems(hydratedItems);
 
@@ -997,7 +1013,6 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             console.log(`[Wardrobe] local photos available: ${localCount}/${committed.length}`);
           }
           setWardrobePhotosUnavailable(localCount === 0 && committed.length > 0);
-          preloadWardrobeImages(committed, { highPriorityCount: 4, maxTotal: 10 }).catch(() => {});
 
           for (let i = 0; i < result.items.length; i++) {
             const row = result.items[i];
@@ -1069,7 +1084,6 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             all.filter((i) => i.userId === user?.id),
           );
           commitItems(localItems);
-          preloadWardrobeImages(localItems, { highPriorityCount: 4, maxTotal: 10 }).catch(() => {});
         } catch (parseErr) {
           console.warn('[WardrobeContext] local wardrobe parse failed', parseErr);
           commitItems([]);
@@ -1118,7 +1132,6 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (cached.length > 0) {
         setItems(cached);
-        preloadWardrobeImages(cached, { highPriorityCount: 4, maxTotal: 8, deferRestMs: 4000 }).catch(() => {});
       }
       await loadWardrobe({ showLoader: cached.length === 0 });
     })();

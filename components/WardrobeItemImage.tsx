@@ -123,9 +123,10 @@ export function WardrobeItemImage({
 
     loadWardrobeImageForItem(safeItem).then((result) => {
       if (cancelled) return;
-      setUri(result);
+      const safeResult = result && !result.startsWith('data:') ? result : null;
+      setUri(safeResult);
       setLoading(false);
-      if (!result) setFailed(true);
+      if (!safeResult) setFailed(true);
     });
 
     return () => {
@@ -195,7 +196,7 @@ export function WardrobeItemImage({
         transition={transition}
         onError={handleError}
         recyclingKey={`${safeItem.id}:${uri}:${retryCount}`}
-        cachePolicy={uri.startsWith('http') ? 'memory-disk' : undefined}
+        cachePolicy="disk"
       />
     </View>
   );

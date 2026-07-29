@@ -3,10 +3,9 @@ import { InteractionManager } from 'react-native';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { loadWardrobeImageForItem } from '@/utils/wardrobeImageLoader';
 
-const DEFAULT_HIGH_PRIORITY = 4;
-/** Hard cap: never stampede every wardrobe photo on cold start (iOS jetsam). */
-const DEFAULT_MAX_TOTAL = 10;
-const MAX_CONCURRENCY = 2;
+const DEFAULT_HIGH_PRIORITY = 3;
+const DEFAULT_MAX_TOTAL = 6;
+const MAX_CONCURRENCY = 1;
 
 type WardrobeImageItem = Pick<
   WardrobeItem,
@@ -43,8 +42,8 @@ function deferUntilIdle(ms: number): Promise<void> {
 }
 
 /**
- * Warm a small number of wardrobe images with low concurrency.
- * Full-wardrobe parallel preload caused iOS memory kills shortly after launch.
+ * Warm a tiny set of wardrobe images — never call this on cold start.
+ * Prefer Wardrobe tab focus / explicit user navigation.
  */
 export async function preloadWardrobeImages(
   items: WardrobeImageItem[],
@@ -54,7 +53,7 @@ export async function preloadWardrobeImages(
 
   const highPriorityCount = options?.highPriorityCount ?? DEFAULT_HIGH_PRIORITY;
   const maxTotal = options?.maxTotal ?? DEFAULT_MAX_TOTAL;
-  const deferRestMs = options?.deferRestMs ?? 2500;
+  const deferRestMs = options?.deferRestMs ?? 4000;
   const limited = items.slice(0, Math.max(0, maxTotal));
   if (!limited.length) return;
 
@@ -65,7 +64,6 @@ export async function preloadWardrobeImages(
 
   if (!rest.length) return;
 
-  // Let Today's outfit / hub paint settle before more disk/network image work.
   await deferUntilIdle(deferRestMs);
   await mapWithConcurrency(rest, MAX_CONCURRENCY, loadWardrobeImageForItem);
 }

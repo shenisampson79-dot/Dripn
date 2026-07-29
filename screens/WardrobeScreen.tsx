@@ -61,6 +61,7 @@ import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
+import { preloadWardrobeImages } from '@/utils/preloadWardrobe';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -290,6 +291,15 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
 
   useFocusEffect(
     useCallback(() => {
+      // Warm only a few visible tiles AFTER the user opens Wardrobe — never on stylist launch.
+      if (listItems.length > 0) {
+        void preloadWardrobeImages(listItems.slice(0, 6), {
+          highPriorityCount: 3,
+          maxTotal: 6,
+          deferRestMs: 1500,
+        });
+      }
+
       onboardingProfileService.getProfile().then(async (profile) => {
         if (!profile.quizGender && user?.gender === 'man') {
           const updated = await onboardingProfileService.saveProfile({ quizGender: 'male' });
@@ -338,7 +348,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         .catch(() => {});
 
       return () => stopBgPolling();
-    }, [user?.id, user?.gender, startBgPolling, stopBgPolling, reloadWardrobe])
+    }, [user?.id, user?.gender, startBgPolling, stopBgPolling, reloadWardrobe, listItems.length])
   );
 
   useEffect(() => {

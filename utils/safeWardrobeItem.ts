@@ -16,6 +16,19 @@ import { coerceWardrobeDisplayImages } from '@/utils/wardrobeImage';
 
 const WARDROBE_STORAGE_KEY = '@dripn_wardrobe';
 
+/** Drop in-memory base64 — even one full-res data URI can jetsam iOS. */
+function safeImageUri(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  const uri = value.trim();
+  if (uri.startsWith('data:')) return '';
+  return uri;
+}
+
+function safeOptionalImageUri(value: unknown): string | undefined {
+  const uri = safeImageUri(value);
+  return uri || undefined;
+}
+
 const VALID_COLORS = new Set<string>([
   'black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange',
   'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor',
@@ -91,9 +104,9 @@ export function coerceWardrobeItemForList(
         ? Number(row.wearCountSinceWash)
         : undefined,
       isDirty: Boolean(row.isDirty),
-      imageUri: typeof row.imageUri === 'string' ? row.imageUri : '',
-      enhancedImageUri: typeof row.enhancedImageUri === 'string' ? row.enhancedImageUri : undefined,
-      originalImageUri: typeof row.originalImageUri === 'string' ? row.originalImageUri : undefined,
+      imageUri: safeImageUri(row.imageUri),
+      enhancedImageUri: safeOptionalImageUri(row.enhancedImageUri),
+      originalImageUri: safeOptionalImageUri(row.originalImageUri),
       imageProcessed: Boolean(row.imageProcessed),
       aiAnalyzed: row.aiAnalyzed as boolean | undefined,
       aiTags: Array.isArray(row.aiTags) ? row.aiTags.filter((t) => typeof t === 'string') : undefined,

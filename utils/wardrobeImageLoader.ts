@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
@@ -18,6 +19,8 @@ import {
 
 const Base64Encoding = 'base64' as const;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+/** Display tiles never need full camera resolution — caps decode RAM. */
+const MAX_CACHE_WIDTH = 1000;
 
 export type WardrobeImageFields = Pick<
   WardrobeItem,
@@ -102,7 +105,33 @@ async function isFreshDiskCache(path: string): Promise<string | null> {
   }
 }
 
+async function downscaleCachedFile(path: string): Promise<string> {
+  try {
+    const resized = await ImageManipulator.manipulateAsync(
+      path,
+      [{ resize: { width: MAX_CACHE_WIDTH } }],
+      { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    if (!resized?.uri || resized.uri === path) return path;
+    try {
+      await FileSystem.deleteAsync(path, { idempotent: true });
+      await FileSystem.copyAsync({ from: resized.uri, to: path });
+      await FileSystem.deleteAsync(resized.uri, { idempotent: true });
+      return path;
+    } catch {
+      return resized.uri;
+    }
+  } catch {
+    return path;
+  }
+}
+
 async function writeBufferToCache(dest: string, buffer: ArrayBuffer): Promise<string | null> {
+  if (buffer.byteLength > 8 * 1024 * 1024) {
+    if (__DEV__) console.warn('[WardrobeImage] skip oversized image buffer', buffer.byteLength);
+    return null;
+  }
+
   const base64 = arrayBufferToBase64(buffer);
   if (!base64) return null;
 
@@ -110,13 +139,13 @@ async function writeBufferToCache(dest: string, buffer: ArrayBuffer): Promise<st
     await FileSystem.writeAsStringAsync(dest, base64, { encoding: Base64Encoding });
     const info = await FileSystem.getInfoAsync(dest);
     if (info.exists && (info.size ?? 0) > 256) {
-      return info.uri || dest;
+      return downscaleCachedFile(info.uri || dest);
     }
   } catch (error) {
     if (__DEV__) console.warn('[WardrobeImage] cache write failed:', error);
   }
 
-  // Never keep full JPEG base64 in JS heap — large wardrobes jetson/OOM on iOS.
+  // Never return data: URIs — they retain multi-MB strings in JS heap.
   return null;
 }
 
@@ -125,6 +154,7 @@ function remoteCdnCandidates(item: WardrobeImageFields): string[] {
   const add = (uri?: string | null) => {
     if (typeof uri !== 'string' || !uri.trim()) return;
     const normalized = uri.trim();
+    if (normalized.startsWith('data:')) return;
     if (!isRemoteImageUri(normalized)) return;
     if (isProxyWardrobeImageUri(normalized)) return;
     if (!urls.includes(normalized)) urls.push(normalized);
@@ -134,13 +164,6 @@ function remoteCdnCandidates(item: WardrobeImageFields): string[] {
   add(item.imageUri);
   add(item.originalImageUri);
   return urls;
-}
-
-function dataUriCandidate(item: WardrobeImageFields): string | null {
-  for (const uri of [item.enhancedImageUri, item.imageUri, item.originalImageUri]) {
-    if (typeof uri === 'string' && uri.startsWith('data:')) return uri;
-  }
-  return null;
 }
 
 async function fetchAuthProxyToCache(id: string | number): Promise<string | null> {
@@ -184,6 +207,18 @@ async function fetchRemoteToCache(url: string, id: string | number): Promise<str
   if (!dest) return null;
 
   try {
+    // Prefer download-to-disk (no giant ArrayBuffer + base64 in JS heap).
+    const downloaded = await FileSystem.downloadAsync(url, dest);
+    if (downloaded.status === 200) {
+      const scaled = await downscaleCachedFile(downloaded.uri || dest);
+      logSource(id, 'cdn');
+      return scaled;
+    }
+  } catch {
+    // Fall through to fetch path.
+  }
+
+  try {
     const response = await fetch(url);
     if (!response.ok) return null;
 
@@ -198,7 +233,8 @@ async function fetchRemoteToCache(url: string, id: string | number): Promise<str
   }
 }
 
-function remember(id: string, uri: string): string {
+function remember(id: string, uri: string): string | null {
+  if (!uri || uri.startsWith('data:')) return null;
   memoryCache.set(id, uri);
   return uri;
 }
@@ -237,30 +273,32 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
 
   // Shared "preview" id must never hit permanent/disk cache — it reused one photo across retakes.
   if (id === 'preview') {
-    const previewUri =
+    const raw =
       (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
       (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
       (typeof item.originalImageUri === 'string' && item.originalImageUri.trim()) ||
       null;
+    const previewUri = raw && !raw.startsWith('data:') ? raw : null;
     logSource(item.id, previewUri ? 'local' : 'none', 'preview-bypass-cache');
     return previewUri;
   }
 
   const preferredResolved = resolveWardrobeImageUri(item);
   const cutoutExpected = itemHasProcessedCutout(item) || hasVerifiedCutoutUri(item);
-  const preferredProp =
+  const preferredRaw =
     preferredResolved ||
     (typeof item.enhancedImageUri === 'string' && item.enhancedImageUri.trim()) ||
     (typeof item.imageUri === 'string' && item.imageUri.trim()) ||
     null;
+  const preferredProp =
+    preferredRaw && !preferredRaw.startsWith('data:') ? preferredRaw : null;
 
   // Fresh local picker/camera URIs win ONLY when no cutout is expected.
   // Otherwise carpet originals poison the render cache forever.
   if (
     !cutoutExpected &&
     preferredProp &&
-    isLikelyLocalGarmentUri(preferredProp) &&
-    !preferredProp.startsWith('data:')
+    isLikelyLocalGarmentUri(preferredProp)
   ) {
     if (await localWardrobeFileExists(preferredProp)) {
       memoryCache.delete(id);
@@ -295,7 +333,9 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
   }
 
   const existing = memoryCache.get(id);
-  if (existing && !(cutoutExpected && isLikelyLocalGarmentUri(existing))) {
+  if (existing?.startsWith('data:')) {
+    memoryCache.delete(id);
+  } else if (existing && !(cutoutExpected && isLikelyLocalGarmentUri(existing))) {
     logSource(item.id, 'memory');
     return existing;
   }
@@ -332,16 +372,7 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
       if (fromCdn) return remember(id, fromCdn);
     }
 
-    const dataUri = dataUriCandidate(item);
-    if (dataUri) {
-      // Only accept tiny data URIs — large base64 blobs jetsam iOS.
-      if (dataUri.length < 200_000) {
-        logSource(item.id, 'data');
-        return remember(id, dataUri);
-      }
-      logSource(item.id, 'none', 'data-uri-too-large');
-    }
-
+    // Never serve data: URIs from wardrobe items — they jetsam iOS under load.
     for (const url of remoteCdnCandidates(item)) {
       logSource(item.id, 'cdn', 'direct-url');
       return remember(id, url);
@@ -365,7 +396,7 @@ export async function resolveWardrobeImageSource(
 ): Promise<{ uri: string } | null> {
   if (!uri) return null;
 
-  if (uri.startsWith('data:')) return { uri };
+  if (uri.startsWith('data:')) return null;
 
   if (!isRemoteImageUri(uri)) {
     return (await localWardrobeFileExists(uri)) ? { uri } : null;
