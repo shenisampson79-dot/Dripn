@@ -790,7 +790,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   ), [handleBulkAdd, handleQuickAdd, handleScanWardrobe, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
-    const hasProcessedImage = itemHasProcessedCutout(item);
+    // Resilience: wardrobe tiles can hit malformed item data after upgrades or partial sync.
+    // A single bad tile must never crash the whole screen.
+    let hasProcessedImage = false;
+    try {
+      hasProcessedImage = itemHasProcessedCutout(item);
+    } catch (err) {
+      console.warn('[WardrobeScreen] tile image check failed:', err);
+      hasProcessedImage = false;
+    }
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
     const tileBackground = hasProcessedImage
       ? wardrobeProcessedTileBackground()
@@ -824,15 +832,24 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         ]}
       >
         <View style={[styles.itemImageWrapper, { backgroundColor: tileBackground }]}>
-          <WardrobeItemImage
-            item={item}
-            style={styles.itemImage}
-            processed={hasProcessedImage}
-            preferCover={!hasProcessedImage}
-            showLoading
-            transition={280}
-            tileBackgroundColor={tileBackground}
-          />
+          {(() => {
+            try {
+              return (
+                <WardrobeItemImage
+                  item={item}
+                  style={styles.itemImage}
+                  processed={hasProcessedImage}
+                  preferCover={!hasProcessedImage}
+                  showLoading
+                  transition={280}
+                  tileBackgroundColor={tileBackground}
+                />
+              );
+            } catch (err) {
+              console.warn('[WardrobeScreen] WardrobeItemImage render failed:', err);
+              return <View style={[styles.itemImage, { backgroundColor: 'rgba(0,0,0,0.08)' }]} />;
+            }
+          })()}
           {selectionMode ? (
             <View style={[styles.selectionBadge, isSelected ? styles.selectionBadgeActive : null]}>
               {isSelected ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
