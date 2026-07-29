@@ -33,17 +33,32 @@ export function useResolvedGarmentImage(
 ): Result {
   return useMemo(() => {
     const repairedFlag = isFalselyMarkedProcessed(item);
-    const coerced = coerceWardrobeDisplayImages(item);
-    const resolvedUri = resolveWardrobeImageUri(coerced);
-    const isCutout =
-      itemHasProcessedCutout(coerced) || hasVerifiedCutoutUri(coerced);
+    try {
+      const coerced = coerceWardrobeDisplayImages(item);
+      const resolvedUri = resolveWardrobeImageUri(coerced);
+      const isCutout =
+        itemHasProcessedCutout(coerced) || hasVerifiedCutoutUri(coerced);
 
-    return {
-      resolvedUri,
-      isCutout,
-      repaired: repairedFlag,
-      item: coerced,
-    };
+      return {
+        resolvedUri,
+        isCutout,
+        repaired: repairedFlag,
+        item: coerced,
+      };
+    } catch (err) {
+      if (__DEV__) {
+        console.warn('[useResolvedGarmentImage] resolver failed', item?.id, err);
+      }
+      return {
+        resolvedUri: typeof item.imageUri === 'string' ? item.imageUri : '',
+        isCutout: false,
+        repaired: repairedFlag,
+        item: coerceWardrobeDisplayImages({
+          ...item,
+          imageUri: typeof item.imageUri === 'string' ? item.imageUri : '',
+        }),
+      };
+    }
   }, [
     item.id,
     item.imageUri,

@@ -93,7 +93,18 @@ export async function hydrateWardrobeItemWithLocalPhoto(item: WardrobeItem): Pro
 }
 
 export async function hydrateWardrobeItemsWithLocalPhotos(items: WardrobeItem[]): Promise<WardrobeItem[]> {
-  return Promise.all(items.map((item) => hydrateWardrobeItemWithLocalPhoto(item)));
+  return Promise.all(
+    items.map(async (item) => {
+      try {
+        return await hydrateWardrobeItemWithLocalPhoto(item);
+      } catch (err) {
+        if (__DEV__) {
+          console.warn('[wardrobeLocalPhotos] hydrate failed for item', item?.id, err);
+        }
+        return coerceWardrobeDisplayImages(item);
+      }
+    }),
+  );
 }
 
 export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[]): Promise<WardrobeItem[]> {

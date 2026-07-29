@@ -60,6 +60,7 @@ import { getOccasionLabel } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { applyWearIncrement, laundryProfileFromUser } from '@/utils/wearRules';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
+import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -122,14 +123,32 @@ type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
-export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
+export default function WardrobeScreen(props: WardrobeScreenProps) {
+  const { t } = useTranslations();
+  return (
+    <RenderErrorBoundary
+      fallbackMessage={
+        t('wardrobe.refreshFailedMessage')
+        || "We couldn't load your wardrobe. Pull to refresh or try again."
+      }
+    >
+      <WardrobeScreenInner {...props} />
+    </RenderErrorBoundary>
+  );
+}
+
+function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
-  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, markItemDirty, markItemClean, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
-  
+  const { items, isLoading, error: wardrobeLoadError, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, markItemDirty, markItemClean, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
+
+  const listItems = useMemo(
+    () => (Array.isArray(items) ? items : []),
+    [items],
+  );
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
     ? getMinimalistCategoryColors() 
     : getColorfulCategoryColors();
@@ -194,14 +213,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const option of CATEGORY_OPTIONS) {
-      counts[option.key] = countItemsForWardrobeCategory(items, option.key, presentationGender);
+      counts[option.key] = countItemsForWardrobeCategory(listItems, option.key, presentationGender);
     }
     return counts;
-  }, [CATEGORY_OPTIONS, items, presentationGender]);
+  }, [CATEGORY_OPTIONS, listItems, presentationGender]);
 
   const filteredItems = useMemo(
-    () => items.filter((item) => itemMatchesWardrobeCategory(item, selectedCategory, presentationGender)),
-    [items, selectedCategory, presentationGender],
+    () => listItems.filter((item) => itemMatchesWardrobeCategory(item, selectedCategory, presentationGender)),
+    [listItems, selectedCategory, presentationGender],
   );
 
   const handleRefresh = useCallback(async () => {
@@ -1056,7 +1075,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           <FlatList
             data={[selectedItem]}
             extraData={isEditingItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.modalContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -1526,7 +1545,32 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     );
   };
 
-  if (isLoading) {
+  if (!isLoading && listItems.length === 0 && wardrobeLoadError) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundRoot, paddingHorizontal: Spacing.lg }]}>
+        <Feather name="alert-circle" size={40} color={LUXURY_COLORS.coral} />
+        <ThemedText type="h3" style={{ marginTop: Spacing.lg, textAlign: 'center' }}>
+          {t('wardrobe.refreshFailed') || "Couldn't load wardrobe"}
+        </ThemedText>
+        <ThemedText type="body" style={{ marginTop: Spacing.sm, textAlign: 'center', opacity: 0.75 }}>
+          {wardrobeLoadError || t('wardrobe.refreshFailedMessage')}
+        </ThemedText>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            void reloadWardrobe();
+          }}
+          style={[styles.emptyButtonGradient, { marginTop: Spacing.xl, paddingHorizontal: Spacing.xl }]}
+        >
+          <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+            {t('common.retry') || 'Retry'}
+          </ThemedText>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (isLoading && listItems.length === 0) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundRoot }]}>
         <LinearGradient
@@ -1587,8 +1631,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('wardrobe.myWardrobe')}</ThemedText>
             <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                {items.length} {items.length === 1 ? (t('wardrobe.piece') || 'piece') : (t('wardrobe.pieces') || 'pieces')}
+                {listItems.length} {listItems.length === 1 ? (t('wardrobe.piece') || 'piece') : (t('wardrobe.pieces') || 'pieces')}
               </ThemedText>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginLeft: 8 }} />
+              ) : null}
             </View>
           </View>
           <View style={styles.headerActions}>
@@ -1791,7 +1838,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       <FlatList
         data={filteredItems}
         renderItem={renderWardrobeItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         numColumns={2}
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={[
@@ -2081,6 +2128,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,

@@ -36,6 +36,10 @@ import {
   applyWearIncrement,
   laundryProfileFromUser,
 } from '@/utils/wearRules';
+import {
+  readCachedWardrobeItemsForUser,
+  sanitizeWardrobeItemList,
+} from '@/utils/safeWardrobeItem';
 
 function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'imageProcessed'>): boolean {
   const urls = [item.enhancedImageUri, item.imageUri].filter(Boolean) as string[];
@@ -768,7 +772,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   const [plannedOutfits, setPlannedOutfits] = useState<PlannedOutfit[]>([]);
   const [suggestions, setSuggestions] = useState<OutfitSuggestion[]>([]);
   const [stats, setStats] = useState<WardrobeStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wardrobePhotosUnavailable, setWardrobePhotosUnavailable] = useState(false);
   const [backgroundRemovalProgress, setBackgroundRemovalProgress] = useState<BackgroundRemovalProgress | null>(null);
@@ -839,9 +843,25 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   };
 
   const loadWardrobe = useCallback(async (options?: { showLoader?: boolean }) => {
-    const showLoader = options?.showLoader !== false;
+    const gender = resolveUserPresentationGender(user);
+    const showLoader = options?.showLoader === true;
     if (showLoader) setIsLoading(true);
     setError(null);
+    const commitItems = (next: WardrobeItem[]) => {
+      const safe = sanitizeWardrobeItemList(next, gender);
+      if (__DEV__) {
+        console.log(`[WardrobeContext] loaded ${safe.length} items`);
+        if (safe[0]) {
+          console.log('[WardrobeContext] sample item', {
+            id: safe[0].id,
+            category: safe[0].category,
+            hasImage: Boolean(safe[0].imageUri),
+          });
+        }
+      }
+      setItems(safe);
+      return safe;
+    };
     try {
       // Silently migrate any legacy 'activewear' items to the correct subcategory
       apiService.post('/api/wardrobe/migrate-activewear', {}).catch(() => {});
@@ -867,7 +887,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       // Try backend first — it is the source of truth for wardrobe items
       try {
         const result = await apiService.fetchWardrobeItems();
-        if (result?.success && result.items) {
+        if (result?.success && Array.isArray(result.items)) {
           const gender = resolveUserPresentationGender(user);
           const localSavedItems = await (async () => {
             try {
@@ -880,96 +900,109 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             }
           })();
           const localById = new Map(localSavedItems.map((i) => [String(i.id), i]));
-          const backendItems = result.items.map((row: any) => {
-            const mapped = mapBackendItemToFrontend(row, imageCache, gender);
-            const saved = localById.get(String(row.id));
-            const cacheEntry = imageCache[String(row.id)];
-            const serverProcessed =
-              mapped.imageProcessed ||
-              !!row.backgroundRemoved ||
-              !!row.background_removed ||
-              isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
-              isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
+          const backendItems = result.items
+            .map((row: any) => {
+              try {
+                const mapped = mapBackendItemToFrontend(row, imageCache, gender);
+                const saved = localById.get(String(row.id));
+                const cacheEntry = imageCache[String(row.id)];
+                const serverProcessed =
+                  mapped.imageProcessed ||
+                  !!row.backgroundRemoved ||
+                  !!row.background_removed ||
+                  isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
+                  isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
 
-            if (cacheEntry?.imageProcessed && cacheEntry.imageUri) {
-              const cacheLocal = !isRemoteImageUri(cacheEntry.imageUri);
-              const serverCutout =
-                isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
-                isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
-              // Never let a local carpet cache overwrite a server cutout (regression repair)
-              if (cacheLocal && (serverCutout || (serverProcessed && mapped.imageUri && isRemoteImageUri(mapped.imageUri)))) {
-                return {
-                  ...mapped,
-                  originalImageUri:
-                    cacheEntry.originalImageUri
-                    || mapped.originalImageUri
-                    || cacheEntry.imageUri,
-                  imageProcessed: true,
-                };
+                if (cacheEntry?.imageProcessed && cacheEntry.imageUri) {
+                  const cacheLocal = !isRemoteImageUri(cacheEntry.imageUri);
+                  const serverCutout =
+                    isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
+                    isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
+                  if (cacheLocal && (serverCutout || (serverProcessed && mapped.imageUri && isRemoteImageUri(mapped.imageUri)))) {
+                    return {
+                      ...mapped,
+                      originalImageUri:
+                        cacheEntry.originalImageUri
+                        || mapped.originalImageUri
+                        || cacheEntry.imageUri,
+                      imageProcessed: true,
+                    };
+                  }
+                  const cacheOrig = cacheEntry.originalImageUri || '';
+                  if (cacheLocal && cacheOrig && cacheEntry.imageUri === cacheOrig && !serverProcessed) {
+                    return {
+                      ...mapped,
+                      originalImageUri: cacheOrig,
+                      imageUri: cacheOrig,
+                      enhancedImageUri: cacheOrig,
+                      imageProcessed: false,
+                    };
+                  }
+                  return {
+                    ...mapped,
+                    imageUri: cacheEntry.imageUri,
+                    enhancedImageUri: cacheEntry.enhancedImageUri || cacheEntry.imageUri,
+                    originalImageUri: cacheEntry.originalImageUri || mapped.originalImageUri,
+                    imageProcessed: true,
+                  };
+                }
+
+                if (!saved) return mapped;
+
+                const savedLocal =
+                  [saved.imageUri, saved.originalImageUri].find(
+                    (uri) => typeof uri === 'string' && uri.length > 0 && !isRemoteImageUri(uri),
+                  ) || '';
+
+                if (savedLocal && !serverProcessed && !saved.imageProcessed) {
+                  return {
+                    ...mapped,
+                    originalImageUri: savedLocal || mapped.originalImageUri,
+                    imageUri: savedLocal,
+                    enhancedImageUri: savedLocal,
+                  };
+                }
+
+                if (serverProcessed || saved.imageProcessed) {
+                  return {
+                    ...mapped,
+                    imageProcessed: true,
+                    imageUri: mapped.imageUri || saved.imageUri,
+                    enhancedImageUri: mapped.enhancedImageUri || saved.enhancedImageUri || mapped.imageUri,
+                  };
+                }
+
+                if (mapped.imageUri && !isProxyWardrobeImageUri(mapped.imageUri)) return mapped;
+                return mapped;
+              } catch (rowErr) {
+                console.warn('[WardrobeContext] skipped backend row', row?.id, rowErr);
+                return null;
               }
-              const cacheOrig = cacheEntry.originalImageUri || '';
-              if (cacheLocal && cacheOrig && cacheEntry.imageUri === cacheOrig && !serverProcessed) {
-                // Carpet falsely marked processed — keep original, allow rembg retry
-                return {
-                  ...mapped,
-                  originalImageUri: cacheOrig,
-                  imageUri: cacheOrig,
-                  enhancedImageUri: cacheOrig,
-                  imageProcessed: false,
-                };
-              }
-              return {
-                ...mapped,
-                imageUri: cacheEntry.imageUri,
-                enhancedImageUri: cacheEntry.enhancedImageUri || cacheEntry.imageUri,
-                originalImageUri: cacheEntry.originalImageUri || mapped.originalImageUri,
-                imageProcessed: true,
-              };
-            }
+            })
+            .filter((item): item is WardrobeItem => item != null);
+          let hydratedItems: WardrobeItem[];
+          try {
+            const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
+            hydratedItems = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
+          } catch (hydrateErr) {
+            console.warn('[WardrobeContext] photo hydrate failed, using server items', hydrateErr);
+            hydratedItems = backendItems;
+          }
+          const committed = commitItems(hydratedItems);
 
-            if (!saved) return mapped;
-
-            const savedLocal =
-              [saved.imageUri, saved.originalImageUri].find(
-                (uri) => typeof uri === 'string' && uri.length > 0 && !isRemoteImageUri(uri),
-              ) || '';
-
-            if (savedLocal && !serverProcessed && !saved.imageProcessed) {
-              return {
-                ...mapped,
-                originalImageUri: savedLocal || mapped.originalImageUri,
-                imageUri: savedLocal,
-                enhancedImageUri: savedLocal,
-              };
-            }
-
-            if (serverProcessed || saved.imageProcessed) {
-              return {
-                ...mapped,
-                imageProcessed: true,
-                imageUri: mapped.imageUri || saved.imageUri,
-                enhancedImageUri: mapped.enhancedImageUri || saved.enhancedImageUri || mapped.imageUri,
-              };
-            }
-
-            if (mapped.imageUri && !isProxyWardrobeImageUri(mapped.imageUri)) return mapped;
-            return mapped;
-          });
-          const migratedItems = await migrateWardrobeItemsToPermanentPhotos(backendItems);
-          const hydratedItems = await hydrateWardrobeItemsWithLocalPhotos(migratedItems);
-          const localCount = hydratedItems.filter(
+          const localCount = committed.filter(
             (i) => i.imageUri && !isRemoteImageUri(i.imageUri),
           ).length;
           if (__DEV__) {
-            console.log(`[Wardrobe] local photos available: ${localCount}/${hydratedItems.length}`);
+            console.log(`[Wardrobe] local photos available: ${localCount}/${committed.length}`);
           }
-          setItems(hydratedItems);
-          setWardrobePhotosUnavailable(localCount === 0 && hydratedItems.length > 0);
-          preloadWardrobeImages(hydratedItems).catch(() => {});
+          setWardrobePhotosUnavailable(localCount === 0 && committed.length > 0);
+          preloadWardrobeImages(committed).catch(() => {});
 
           for (let i = 0; i < result.items.length; i++) {
             const row = result.items[i];
-            const item = hydratedItems[i];
+            const item = committed[i];
+            if (!item) continue;
             const rawCategory = String(row.category || row.metadata?.category || '').toLowerCase();
             if (!rawCategory || rawCategory === 'unknown' || rawCategory !== item.category) {
               apiService.updateWardrobeItem(String(item.id), { category: item.category }).catch(() => {});
@@ -977,7 +1010,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           }
           // Sync remote image URLs into the device cache so tiles survive offline reloads.
           const cacheUpdates: ImageCache = { ...imageCache };
-          for (const item of hydratedItems) {
+          for (const item of committed) {
             const key = String(item.id);
             const existing = cacheUpdates[key] || {};
             const localFromOriginal =
@@ -1009,10 +1042,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           }
           await setImageCache(cacheUpdates);
           // Cache locally for offline fallback
-          await saveFullLocalCache(hydratedItems);
+          await saveFullLocalCache(committed);
           await loadLocalSecondary();
           // Repair bulk-uploaded items missing CDN images (background removal queue)
-          backfillMissingServerImages(hydratedItems, cacheUpdates).then((count) => {
+          backfillMissingServerImages(committed, cacheUpdates).then((count) => {
             if (count > 0) {
               setTimeout(() => loadWardrobe({ showLoader: false }), 20000);
             }
@@ -1030,10 +1063,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         AsyncStorage.getItem(PLANNED_STORAGE_KEY),
       ]);
       if (itemsData) {
-        const all: WardrobeItem[] = JSON.parse(itemsData);
-        const localItems = await hydrateWardrobeItemsWithLocalPhotos(all.filter(i => i.userId === user?.id));
-        setItems(localItems);
-        preloadWardrobeImages(localItems).catch(() => {});
+        try {
+          const all: WardrobeItem[] = JSON.parse(itemsData);
+          const localItems = await hydrateWardrobeItemsWithLocalPhotos(
+            all.filter((i) => i.userId === user?.id),
+          );
+          commitItems(localItems);
+          preloadWardrobeImages(localItems).catch(() => {});
+        } catch (parseErr) {
+          console.warn('[WardrobeContext] local wardrobe parse failed', parseErr);
+          commitItems([]);
+        }
+      } else {
+        commitItems([]);
       }
       if (outfitsData) {
         const all: SavedOutfit[] = JSON.parse(outfitsData);
@@ -1052,21 +1094,38 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [user, user?.id]);
 
   const reloadWardrobe = useCallback(
-    () => loadWardrobe({ showLoader: false }),
+    () => loadWardrobe({ showLoader: itemsRef.current.length === 0 }),
     [loadWardrobe],
   );
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      loadWardrobe();
-    } else {
+    if (!isAuthenticated || !user) {
       setItems([]);
       setSavedOutfits([]);
       setPlannedOutfits([]);
       setSuggestions([]);
       setStats(null);
       setIsLoading(false);
+      setError(null);
+      return;
     }
+
+    let cancelled = false;
+    const gender = resolveUserPresentationGender(user);
+
+    void (async () => {
+      const cached = await readCachedWardrobeItemsForUser(user.id, gender);
+      if (cancelled) return;
+      if (cached.length > 0) {
+        setItems(cached);
+        preloadWardrobeImages(cached).catch(() => {});
+      }
+      await loadWardrobe({ showLoader: cached.length === 0 });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, user?.id, loadWardrobe]);
 
   const addItem = useCallback(async (
@@ -1886,7 +1945,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const shuffleOutfit = useCallback((occasion?: ClothingOccasion): OutfitSuggestion | null => {
     const filteredItems = occasion
-      ? items.filter(item => item.occasions.includes(occasion))
+      ? items.filter((item) => (item.occasions || []).includes(occasion))
       : items;
     const tops = filteredItems.filter(i => i.category === 'tops');
     const bottoms = filteredItems.filter(i => i.category === 'bottoms');
@@ -1927,10 +1986,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       acc[item.category] = (acc[item.category] || 0) + 1;
       return acc;
     }, {} as Record<ClothingCategory, number>);
-    const sortedByWear = [...items].sort((a, b) => b.timesWorn - a.timesWorn);
+    const sortedByWear = [...items].sort((a, b) => (b.timesWorn || 0) - (a.timesWorn || 0));
     const mostWornItems = sortedByWear.slice(0, 5);
     const leastWornItems = sortedByWear.filter(i => i.timesWorn === 0).slice(0, 5);
-    const totalWears = items.reduce((sum, item) => sum + item.timesWorn, 0);
+    const totalWears = items.reduce((sum, item) => sum + (item.timesWorn || 0), 0);
     const averageWearCount = totalWears / items.length;
     const totalCost = items.reduce((sum, item) => sum + (item.purchasePrice || 0), 0);
     const costPerWear = totalWears > 0 ? totalCost / totalWears : 0;
