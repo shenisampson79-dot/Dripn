@@ -1,6 +1,12 @@
 /**
- * Quick Add auto-capture gating (YOLO → stable → centered → snap).
- * Single-item UX: pick the largest confident detection only.
+ * Quick Add auto-capture gating.
+ *
+ * 3-state UX (trust loop):
+ *   idle  (white)  — nothing useful seen → "Move item into frame"
+ *   hold  (amber)  — weak / partial hit → specific "Almost there…" hint
+ *   ready (green)  — locked → countdown → snap
+ *
+ * Single-item UX: pick the largest usable detection only.
  */
 
 export type QuickAddBBox = {
@@ -19,21 +25,112 @@ export type QuickAddYoloDetection = {
 export type QuickAddCaptureUi = 'idle' | 'hold' | 'ready' | 'struggling';
 
 export const QUICK_ADD_CAPTURE = {
-  selectConfidence: 0.5,
-  captureConfidence: 0.62,
-  /** Sample interval is ~0.7s — 3 frames ≈ 2s hold, not ~7s. */
-  stableFrames: 3,
-  /** Shoes / accessories often sit under 0.12 of frame. */
-  minArea: 0.04,
-  iouThreshold: 0.55,
-  captureCooldownMs: 2000,
+  /** Floor to enter amber HOLD (must stay ≤ YOLO parse ~0.16). */
+  weakConfidence: 0.15,
+  /** Alias used by selectors — same as weak so UI never stays white on a hit. */
+  selectConfidence: 0.15,
+  /** Default snap confidence for clothing; see captureConfidenceFor(). */
+  captureConfidence: 0.38,
   /**
-   * Matches the on-screen square guide (~280pt) as a fraction of a typical phone preview.
-   * Used for gating and as a crop fallback when YOLO misses.
+   * HOLD may arm with this if shape/coverage is good (boots often sit here).
+   * Ready still needs captureConfidenceFor() after boost.
    */
-  guide: { x: 0.12, y: 0.22, width: 0.76, height: 0.48 } as QuickAddBBox,
-  strugglingMs: 3500,
+  holdConfidence: 0.22,
+  /** ~2 samples @ 850ms ≈ 1.7s stable before green. */
+  stableFrames: 2,
+  /** Shoes / accessories often sit under 0.12 of frame. */
+  minArea: 0.018,
+  /** Ready: ≥70% of the object must sit inside the guide (≈20% overflow OK). */
+  readyCoverage: 0.7,
+  /** Hold: show amber once this much of the object overlaps the guide. */
+  holdCoverage: 0.4,
+  iouThreshold: 0.42,
+  captureCooldownMs: 1800,
+  /**
+   * Fallback guide when layout is unknown. Prefer guideFromLayout().
+   * Taller than the visual square to absorb preview↔photo crop mismatch.
+   */
+  guide: { x: 0.1, y: 0.2, width: 0.8, height: 0.52 } as QuickAddBBox,
+  strugglingMs: 3200,
 } as const;
+
+export function isFootwearClass(classOrCategory?: string | null): boolean {
+  return /shoe|boot|sandal|sneaker|heel|loafer|footwear/.test(
+    String(classOrCategory || '').toLowerCase(),
+  );
+}
+
+/** Confidence required to auto-snap — shoes/boots are harder for YOLO. */
+export function captureConfidenceFor(classOrCategory?: string | null): number {
+  const c = String(classOrCategory || '').toLowerCase();
+  if (isFootwearClass(c)) return 0.24;
+  if (/accessor|bag|hat|belt|scarf/.test(c)) return 0.3;
+  return QUICK_ADD_CAPTURE.captureConfidence;
+}
+
+/**
+ * Tall / bottom-heavy blobs → treat as footwear and boost confidence.
+ * Rain boots & dark shoes often score weakly as Clothing/Accessories.
+ */
+export function looksLikeFootwear(bbox: QuickAddBBox): boolean {
+  const aspect = bbox.height / Math.max(bbox.width, 1e-6);
+  const area = bbox.width * bbox.height;
+  const cy = bbox.y + bbox.height / 2;
+  const bottomHeavy = cy >= 0.4;
+  return area >= 0.015 && area <= 0.3 && aspect >= 0.85 && aspect <= 2.9 && bottomHeavy;
+}
+
+export function boostDetection(det: QuickAddYoloDetection): QuickAddYoloDetection {
+  const shoeClass = isFootwearClass(det.class);
+  const footwearShape = looksLikeFootwear(det.bbox);
+  if (shoeClass) {
+    return {
+      ...det,
+      confidence: Math.min(0.95, det.confidence * 1.22 + 0.05),
+    };
+  }
+  if (footwearShape && !/bag/.test(String(det.class).toLowerCase())) {
+    return {
+      ...det,
+      class: 'shoes',
+      confidence: Math.min(0.95, det.confidence * 1.28 + 0.06),
+    };
+  }
+  return det;
+}
+
+export function boostDetections(detections: QuickAddYoloDetection[]): QuickAddYoloDetection[] {
+  return detections.map(boostDetection);
+}
+
+/**
+ * Normalize the on-screen square guide into camera-image [0–1] coords,
+ * expanded so preview↔photo crop mismatch doesn't block HOLD/READY.
+ */
+export function guideFromLayout(layout: {
+  screenWidth: number;
+  screenHeight: number;
+  overlayTop: number;
+  overlayBottom: number;
+  frameSize: number;
+}): QuickAddBBox {
+  const { screenWidth: sw, screenHeight: sh, overlayTop, overlayBottom, frameSize } = layout;
+  if (sw <= 0 || sh <= 0) return { ...QUICK_ADD_CAPTURE.guide };
+  const usableH = Math.max(frameSize, sh - overlayTop - overlayBottom);
+  const left = (sw - frameSize) / 2;
+  const topInUsable = (usableH - frameSize) / 2;
+  // ~20% overflow tolerance beyond the visible square.
+  const padX = (frameSize * 0.2) / sw;
+  const padY = (frameSize * 0.24) / sh;
+  const x = Math.max(0, left / sw - padX);
+  const y = Math.max(0, (overlayTop + topInUsable) / sh - padY);
+  return {
+    x,
+    y,
+    width: Math.min(1 - x, frameSize / sw + padX * 2),
+    height: Math.min(1 - y, frameSize / sh + padY * 2),
+  };
+}
 
 export function bboxFromTuple(bbox: [number, number, number, number]): QuickAddBBox {
   return { x: bbox[0], y: bbox[1], width: bbox[2], height: bbox[3] };
@@ -61,35 +158,58 @@ function intersectionArea(a: QuickAddBBox, b: QuickAddBBox): number {
   return Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
 }
 
-export function selectBestDetection(
-  detections: QuickAddYoloDetection[],
-  minConfidence = QUICK_ADD_CAPTURE.selectConfidence,
-): QuickAddYoloDetection | null {
-  const ranked = detections
-    .filter((d) => d.confidence > minConfidence)
-    .sort((a, b) => b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height);
-  return ranked[0] || null;
+/** Fraction of the item that overlaps the guide (1 = fully inside). */
+export function itemGuideCoverage(
+  bbox: QuickAddBBox,
+  frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
+): number {
+  const itemArea = Math.max(1e-6, bbox.width * bbox.height);
+  return intersectionArea(bbox, frame) / itemArea;
 }
 
-/**
- * Soft containment: centre inside guide, and most of the item overlaps the guide.
- * Uses coverage-of-bbox (not IoU) so small shoes in a large guide still count as centered.
- */
-export function isInsideGuideFrame(
+export function centreInGuide(
   bbox: QuickAddBBox,
   frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
 ): boolean {
   const cx = bbox.x + bbox.width / 2;
   const cy = bbox.y + bbox.height / 2;
-  const centreIn =
+  return (
     cx >= frame.x
     && cx <= frame.x + frame.width
     && cy >= frame.y
-    && cy <= frame.y + frame.height;
-  if (!centreIn) return false;
-  const area = Math.max(1e-6, bbox.width * bbox.height);
-  const covered = intersectionArea(bbox, frame) / area;
-  return covered >= 0.45;
+    && cy <= frame.y + frame.height
+  );
+}
+
+export function selectBestDetection(
+  detections: QuickAddYoloDetection[],
+  minConfidence = QUICK_ADD_CAPTURE.selectConfidence,
+): QuickAddYoloDetection | null {
+  const ranked = detections
+    .filter((d) => d.confidence >= minConfidence)
+    .sort((a, b) => b.bbox.width * b.bbox.height - a.bbox.width * a.bbox.height);
+  return ranked[0] || null;
+}
+
+/**
+ * Ready containment: centre in guide + ≥70% of object inside (≈20% overflow OK).
+ */
+export function isInsideGuideFrame(
+  bbox: QuickAddBBox,
+  frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
+  minCoverage = QUICK_ADD_CAPTURE.readyCoverage,
+): boolean {
+  if (!centreInGuide(bbox, frame)) return false;
+  return itemGuideCoverage(bbox, frame) >= minCoverage;
+}
+
+/** Soft presence for amber HOLD — partial overlap or centre near frame. */
+export function isAlmostInGuide(
+  bbox: QuickAddBBox,
+  frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
+): boolean {
+  if (centreInGuide(bbox, frame)) return true;
+  return itemGuideCoverage(bbox, frame) >= QUICK_ADD_CAPTURE.holdCoverage;
 }
 
 export function addPadding(bbox: QuickAddBBox, padding = 0.08): QuickAddBBox {
@@ -105,7 +225,6 @@ export function addPadding(bbox: QuickAddBBox, padding = 0.08): QuickAddBBox {
   };
 }
 
-/** Slightly tighter pad for already-small subjects so rembg doesn't leave a huge canvas. */
 export function paddingForBBox(bbox: QuickAddBBox, categoryHint?: string | null): number {
   return paddingForCategory(categoryHint, bbox);
 }
@@ -152,7 +271,24 @@ export type CaptureEval = {
   isCentered: boolean;
   isStable: boolean;
   isConfident: boolean;
+  coverage: number;
 };
+
+function primaryHint(flags: {
+  isBigEnough: boolean;
+  isCentered: boolean;
+  isStable: boolean;
+  isConfident: boolean;
+  coverage: number;
+}): string {
+  if (!flags.isBigEnough) return 'Almost there — move closer';
+  if (!flags.isCentered || flags.coverage < QUICK_ADD_CAPTURE.readyCoverage) {
+    return 'Almost there — centre the item';
+  }
+  if (!flags.isConfident) return 'Almost there — hold steady';
+  if (!flags.isStable) return 'Hold still…';
+  return 'Hold still…';
+}
 
 export function evaluateCapture(
   det: QuickAddYoloDetection | null,
@@ -167,39 +303,49 @@ export function evaluateCapture(
       shouldCapture: false,
       ui: struggling ? 'struggling' : 'idle',
       hint: struggling
-        ? 'Try moving closer or clearer lighting'
-        : 'Fit item inside frame',
+        ? 'Try clearer lighting or move closer'
+        : 'Move item into frame',
       isBigEnough: false,
       isCentered: false,
       isStable: false,
       isConfident: false,
+      coverage: 0,
     };
   }
 
   const area = det.bbox.width * det.bbox.height;
+  const coverage = itemGuideCoverage(det.bbox, conf.guide);
   const isBigEnough = area > conf.minArea;
-  const isCentered = isInsideGuideFrame(det.bbox, conf.guide);
+  const isCentered = isInsideGuideFrame(det.bbox, conf.guide, conf.readyCoverage);
+  const almostIn = isAlmostInGuide(det.bbox, conf.guide);
   const isStable = track.stableFrames >= conf.stableFrames;
-  const isConfident = det.confidence > conf.captureConfidence;
+  const snapConf = captureConfidenceFor(det.class);
+  const isConfident = det.confidence >= snapConf;
+  const isWeakHit = det.confidence >= conf.weakConfidence;
 
   if (isBigEnough && isCentered && isStable && isConfident) {
     return {
       shouldCapture: true,
       ui: 'ready',
-      hint: 'Hold still…',
+      hint: 'Locked — hold still',
       isBigEnough,
       isCentered,
       isStable,
       isConfident,
+      coverage,
     };
   }
 
-  let hint = 'Fit item inside frame';
-  if (!isBigEnough) hint = 'Move closer';
-  else if (!isCentered) hint = 'Fit item inside frame';
-  else if (!isStable || !isConfident) hint = 'Hold still…';
+  const hint = primaryHint({
+    isBigEnough,
+    isCentered,
+    isStable,
+    isConfident,
+    coverage,
+  });
 
-  if (det && (isCentered || track.stableFrames > 1 || !isBigEnough)) {
+  // Amber HOLD: any weak detection with some frame presence — never stay white.
+  if (isWeakHit && (almostIn || isBigEnough || track.stableFrames > 0)) {
     return {
       shouldCapture: false,
       ui: 'hold',
@@ -208,17 +354,32 @@ export function evaluateCapture(
       isCentered,
       isStable,
       isConfident,
+      coverage,
+    };
+  }
+
+  if (isWeakHit) {
+    return {
+      shouldCapture: false,
+      ui: 'hold',
+      hint: 'Almost there — centre the item',
+      isBigEnough,
+      isCentered,
+      isStable,
+      isConfident,
+      coverage,
     };
   }
 
   return {
     shouldCapture: false,
     ui: 'idle',
-    hint,
+    hint: 'Move item into frame',
     isBigEnough,
     isCentered,
     isStable,
     isConfident,
+    coverage,
   };
 }
 
@@ -226,30 +387,35 @@ export function evaluateCapture(
 export function paddingForCategory(categoryHint?: string | null, bbox?: QuickAddBBox | null): number {
   const cat = String(categoryHint || '').toLowerCase();
   const area = bbox ? bbox.width * bbox.height : 0.15;
-  if (/shoe|boot|sandal|sneaker|heel|loafer|footwear/.test(cat)) {
-    return area < 0.1 ? 0.04 : 0.05; // ~75% fill
+  if (isFootwearClass(cat)) {
+    return area < 0.1 ? 0.04 : 0.05;
   }
   if (/accessor|bag|hat|belt|scarf|jewel|watch|sunglass/.test(cat)) {
-    return area < 0.1 ? 0.05 : 0.07; // ~65–75%
+    return area < 0.1 ? 0.05 : 0.07;
   }
   if (area < 0.08) return 0.05;
   if (area < 0.18) return 0.06;
-  return 0.07; // tops / default ~85%
+  return 0.07;
 }
 
 export function countConfidentDetections(
   detections: QuickAddYoloDetection[],
   minConfidence = QUICK_ADD_CAPTURE.selectConfidence,
 ): number {
-  return detections.filter((d) => d.confidence > minConfidence).length;
+  return detections.filter((d) => d.confidence >= minConfidence).length;
 }
 
 export class QuickAddCaptureController {
   track: QuickAddTrackState = createEmptyTrack();
   lastCaptureTime = 0;
+  guide: QuickAddBBox = { ...QUICK_ADD_CAPTURE.guide };
 
   reset() {
     this.track = createEmptyTrack();
+  }
+
+  setGuide(guide: QuickAddBBox) {
+    this.guide = guide;
   }
 
   /** Call when a photo is actually taken (auto or manual) so cooldown applies. */
@@ -261,10 +427,11 @@ export class QuickAddCaptureController {
     detections: QuickAddYoloDetection[],
     now = Date.now(),
   ): { best: QuickAddYoloDetection | null; eval: CaptureEval; armed: boolean; multiCount: number } {
-    const multiCount = countConfidentDetections(detections);
-    const best = selectBestDetection(detections);
+    const boosted = boostDetections(detections);
+    const multiCount = countConfidentDetections(boosted);
+    const best = selectBestDetection(boosted);
     if (!best) {
-      const evaluation = evaluateCapture(null, this.track);
+      const evaluation = evaluateCapture(null, this.track, { guide: this.guide });
       if (now - this.track.lastUpdated > 1200) {
         this.track = createEmptyTrack();
       }
@@ -272,7 +439,7 @@ export class QuickAddCaptureController {
     }
 
     this.track = updateTracking(this.track, best, now);
-    const evaluation = evaluateCapture(best, this.track);
+    const evaluation = evaluateCapture(best, this.track, { guide: this.guide });
     let nextEval = evaluation;
     if (multiCount >= 2 && !evaluation.shouldCapture) {
       nextEval = {

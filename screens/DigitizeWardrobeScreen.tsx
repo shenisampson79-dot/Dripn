@@ -84,6 +84,16 @@ import { getScanNextSuggestion } from '@/utils/scanNextSuggestion';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { TrackedDetection } from '@/utils/digitizeDetectionTracker';
 import { DigitizeDetectionTracker } from '@/utils/digitizeDetectionTracker';
+import {
+  boostLiveDetection,
+  coalesceFootwearDetections,
+  coalesceFootwearTracks,
+  countItemsInView,
+  formatLiveStatusLine,
+  isFootwearPair,
+  liveFramingHint,
+  shouldBlockMultiItem,
+} from '@/utils/digitizeLiveDetect';
 import { getManualAddCategoryTabs, resolveUserPresentationGender } from '@/utils/wardrobeCategories';
 import { useAuth } from '@/contexts/AuthContext';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
@@ -95,14 +105,16 @@ const LIVE_FRAME_WIDTH = 640;
 /** Spec colours: detecting/locked yellow → capturing green */
 const LIVE_DETECT_COLOR = '#FFD60A';
 const LIVE_CAPTURE_COLOR = '#00E676';
-/** ~2–2.5s hold at LIVE_SAMPLE_MS before capture */
+/** ~1.6–2.4s hold at LIVE_SAMPLE_MS before capture */
 const LIVE_PROMOTE_HITS = 3;
 /** Primary must be this much larger than next item to auto-capture amid multi-detect */
-const LIVE_PRIMARY_AREA_RATIO = 1.55;
+const LIVE_PRIMARY_AREA_RATIO = 1.35;
+/** Match Quick Add — boots/shoes often score weakly. */
+const LIVE_YOLO_CONF = 0.14;
 
 type DigitizeStep = 'capture' | 'scanning' | 'review' | 'saving';
 type CaptureMode = 'photo' | 'live';
-type LiveTrackPhase = 'detecting' | 'locked' | 'capturing' | 'confirmed';
+type LiveTrackPhase = 'detected' | 'locked' | 'saving' | 'saved';
 
 type LiveOverlayBox = TrackedDetection & {
   phase: LiveTrackPhase;
@@ -143,19 +155,25 @@ function LiveStabilizeOverlay({
           const y = ny * height;
           const w = nw * width;
           const h = nh * height;
-          const capturing = track.phase === 'capturing' || track.phase === 'confirmed';
           const locked = track.phase === 'locked';
-          const stroke = capturing
+          const saving = track.phase === 'saving';
+          const saved = track.phase === 'saved';
+          const stroke = saved || saving
             ? LIVE_CAPTURE_COLOR
-            : locked || track.phase === 'detecting'
-              ? LIVE_DETECT_COLOR
-              : LIVE_DETECT_COLOR;
-          const label = capturing
-            ? (track.phase === 'confirmed' ? 'Captured' : 'Capturing…')
             : locked
-              ? 'Hold steady…'
-              : 'Detecting…';
-          const strokeWidth = capturing ? (track.isPrimary ? 3.5 : 2.5) : track.isPrimary ? 2.5 : 1.75;
+              ? LIVE_CAPTURE_COLOR
+              : LIVE_DETECT_COLOR;
+          const label = saved
+            ? 'Saved ✓'
+            : saving
+              ? 'Saving…'
+              : locked
+                ? 'Hold steady…'
+                : 'Detected';
+          const strokeWidth = saved || saving || locked
+            ? (track.isPrimary ? 3.5 : 2.5)
+            : track.isPrimary ? 2.5 : 1.75;
+          const fillGreen = saved || saving || locked;
           return (
             <React.Fragment key={track.trackId}>
               <Rect
@@ -167,12 +185,12 @@ function LiveStabilizeOverlay({
                 ry={6}
                 stroke={stroke}
                 strokeWidth={strokeWidth}
-                fill={capturing ? 'rgba(0,230,118,0.16)' : 'rgba(255,214,10,0.12)'}
+                fill={fillGreen ? 'rgba(0,230,118,0.16)' : 'rgba(255,214,10,0.12)'}
               />
               <Rect
                 x={x}
                 y={Math.max(0, y - 20)}
-                width={Math.min(w, capturing ? 92 : 100)}
+                width={Math.min(w, saved ? 72 : saving ? 80 : 100)}
                 height={18}
                 rx={3}
                 fill={stroke}
@@ -180,7 +198,7 @@ function LiveStabilizeOverlay({
               <SvgText
                 x={x + 5}
                 y={Math.max(13, y - 6)}
-                fill={capturing ? '#053B1F' : '#1A1400'}
+                fill={fillGreen ? '#053B1F' : '#1A1400'}
                 fontSize="10"
                 fontWeight="700"
               >
@@ -282,7 +300,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [liveNote, setLiveNote] = useState('Point at one piece, then Start');
+  const [liveInViewCount, setLiveInViewCount] = useState(0);
   const [liveAddedCount, setLiveAddedCount] = useState(0);
+  const [liveSavedTrackIds, setLiveSavedTrackIds] = useState<Set<string>>(() => new Set());
+  const [liveSavingTrackIds, setLiveSavingTrackIds] = useState<Set<string>>(() => new Set());
   const [autoSaveLive, setAutoSaveLive] = useState(true);
   const [liveTracks, setLiveTracks] = useState<LiveOverlayBox[]>([]);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
@@ -315,7 +336,12 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
-  const trackerRef = useRef(new DigitizeDetectionTracker({ promoteHits: LIVE_PROMOTE_HITS }));
+  const trackerRef = useRef(new DigitizeDetectionTracker({
+    promoteHits: LIVE_PROMOTE_HITS,
+    minConfidence: 0.22,
+    minBoxSide: 0.035,
+    iouMatch: 0.38,
+  }));
   const sessionSeenRef = useRef<Set<string>>(new Set());
   const lockHapticRef = useRef<Set<string>>(new Set());
   const multiHapticAtRef = useRef(0);
@@ -325,6 +351,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const challengeMilestonesRef = useRef<Set<number>>(new Set());
   const lastTimerHapticSecRef = useRef<number | null>(null);
   const liveSavedTempIdsRef = useRef<Set<string>>(new Set());
+  const liveSavingTrackIdsRef = useRef<Set<string>>(new Set());
+  const liveSavedTrackIdsRef = useRef<Set<string>>(new Set());
+  const liveInViewCountRef = useRef(0);
+  const liveAddedCountRef = useRef(0);
+  liveAddedCountRef.current = liveAddedCount;
   const savedWardrobeRef = useRef(savedWardrobe);
   savedWardrobeRef.current = savedWardrobe;
   challengeActiveRef.current = challengeActive;
@@ -749,9 +780,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     opts?: { label?: string; mode?: 'captured' | 'duplicate' },
   ) => {
     const mode = opts?.mode || 'captured';
-    const label = opts?.label || (mode === 'duplicate' ? 'Already added' : 'Captured');
-    // No full-screen white flash — unsafe for photosensitive users.
-    // Confirmation = haptic + thumbnail toast + brief camera-frame pulse.
+    const label = opts?.label || (mode === 'duplicate' ? 'Already in wardrobe' : 'Saved');
     setCapturePulse(true);
     if (mode === 'duplicate') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -769,9 +798,22 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     if (thumbUri) {
       setTimeout(() => {
         if (mountedRef.current) setCaptureToast(null);
-      }, 1400);
+      }, 2400);
     }
   }, []);
+
+  const playLiveShutter = useCallback(async () => {
+    if (!cameraRef.current || !isLive) return;
+    try {
+      await cameraRef.current.takePictureAsync({
+        quality: 0.12,
+        shutterSound: true,
+        skipProcessing: Platform.OS === 'android',
+      });
+    } catch {
+      /* optional — haptic still confirms */
+    }
+  }, [isLive]);
 
   const liveItemLabel = (track: {
     category: string;
@@ -799,6 +841,23 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     return titleCaseItemName(colorLabel ? `${colorLabel} ${noun}` : noun);
   };
 
+  const markTrackSaving = (trackId: string) => {
+    liveSavingTrackIdsRef.current.add(trackId);
+    setLiveSavingTrackIds(new Set(liveSavingTrackIdsRef.current));
+  };
+
+  const markTrackSaved = (trackId: string) => {
+    liveSavingTrackIdsRef.current.delete(trackId);
+    setLiveSavingTrackIds(new Set(liveSavingTrackIdsRef.current));
+    liveSavedTrackIdsRef.current.add(trackId);
+    setLiveSavedTrackIds(new Set(liveSavedTrackIdsRef.current));
+  };
+
+  const clearTrackSaving = (trackId: string) => {
+    liveSavingTrackIdsRef.current.delete(trackId);
+    setLiveSavingTrackIds(new Set(liveSavingTrackIdsRef.current));
+  };
+
   const ingestLivePromotion = useCallback(
     async (
       frameUri: string,
@@ -810,135 +869,143 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         confidence: number;
         bbox: [number, number, number, number];
       },
-    ) => {
-      if (sessionSeenRef.current.has(track.trackId)) return;
-      const crop = await cropNormalizedBBox(frameUri, track.bbox);
-      if (!crop?.base64) return;
+    ): Promise<'saved' | 'queued' | 'duplicate' | 'failed'> => {
+      if (sessionSeenRef.current.has(track.trackId)) return 'failed';
+      markTrackSaving(track.trackId);
+      try {
+        const crop = await cropNormalizedBBox(frameUri, track.bbox);
+        if (!crop?.base64) {
+          clearTrackSaving(track.trackId);
+          return 'failed';
+        }
 
-      const tempId = track.trackId;
-      const correctedCategory = preferCorrectedCategory(track.category);
-      const displayName = liveItemLabel({ ...track, category: correctedCategory });
-      const uncertain = track.confidence < 0.62 || correctedCategory === 'bags';
-      const item: ScanSessionItem = {
-        tempId,
-        name: displayName,
-        category: correctedCategory,
-        color: track.color || 'multicolor',
-        confidence: track.confidence,
-        bbox: track.bbox,
-        sceneCrop: crop.base64,
-        needsConfirm: uncertain,
-        confirmPrompt: uncertain
-          ? `We think this is a ${CATEGORY_LABELS[correctedCategory as ClothingCategory] || correctedCategory} — tap to fix`
-          : null,
-      };
+        const tempId = track.trackId;
+        const correctedCategory = preferCorrectedCategory(track.category);
+        const displayName = liveItemLabel({ ...track, category: correctedCategory });
+        const uncertain = track.confidence < 0.62 || correctedCategory === 'bags';
+        const item: ScanSessionItem = {
+          tempId,
+          name: displayName,
+          category: correctedCategory,
+          color: track.color || 'multicolor',
+          confidence: track.confidence,
+          bbox: track.bbox,
+          sceneCrop: crop.base64,
+          needsConfirm: uncertain,
+          confirmPrompt: uncertain
+            ? `We think this is a ${CATEGORY_LABELS[correctedCategory as ClothingCategory] || correctedCategory} — tap to fix`
+            : null,
+        };
 
-      const partitioned = partitionDigitizeCandidates(
-        [toCandidate(item)],
-        [
-          ...savedWardrobeRef.current.map((it) => ({
-            id: String(it.id),
-            name: it.name,
-            category: it.category,
-            subcategory: it.subcategory,
-            color: it.color,
-            brand: it.brand,
-            imageUri: it.enhancedImageUri || it.imageUri,
-            origin: it.origin,
-          })),
-          ...scanItems.map(toCandidate),
-        ],
-      );
-
-      if (partitioned.unique.length === 0) {
-        sessionSeenRef.current.add(track.trackId);
-        const match = partitioned.dropped[0]?.matchName;
-        await fireCaptureFeedback(crop.uri, {
-          mode: 'duplicate',
-          label: match ? `Already added · ${match}` : 'Already added',
-        });
-        setLiveNote(
-          challengeActiveRef.current
-            ? 'Already got this one'
-            : liveDuplicateConfirmation(match),
+        const partitioned = partitionDigitizeCandidates(
+          [toCandidate(item)],
+          [
+            ...savedWardrobeRef.current.map((it) => ({
+              id: String(it.id),
+              name: it.name,
+              category: it.category,
+              subcategory: it.subcategory,
+              color: it.color,
+              brand: it.brand,
+              imageUri: it.enhancedImageUri || it.imageUri,
+              origin: it.origin,
+            })),
+            ...scanItems.map(toCandidate),
+          ],
         );
-        if (!challengeActiveRef.current) {
-          setTimeout(() => {
-            if (mountedRef.current) setLiveNote(liveNextItemPrompt());
-          }, 1200);
+
+        if (partitioned.unique.length === 0) {
+          sessionSeenRef.current.add(track.trackId);
+          clearTrackSaving(track.trackId);
+          const match = partitioned.dropped[0]?.matchName;
+          await fireCaptureFeedback(crop.uri, {
+            mode: 'duplicate',
+            label: match ? `Already added · ${match}` : 'Already in wardrobe',
+          });
+          setLiveNote(formatLiveStatusLine(liveInViewCountRef.current, liveAddedCountRef.current, 'Already have this one'));
+          return 'duplicate';
         }
-        return;
-      }
 
-      sessionSeenRef.current.add(track.trackId);
-      setScanItems((prev) => {
-        if (prev.some((p) => p.tempId === tempId)) return prev;
-        return [...prev, item];
-      });
-      setSelectedIds((prev) => new Set(prev).add(tempId));
-      await fireCaptureFeedback(crop.uri, { mode: 'captured', label: displayName });
+        sessionSeenRef.current.add(track.trackId);
+        setScanItems((prev) => {
+          if (prev.some((p) => p.tempId === tempId)) return prev;
+          return [...prev, item];
+        });
+        setSelectedIds((prev) => new Set(prev).add(tempId));
 
-      const saveLive = autoSaveLive || challengeActiveRef.current;
-      if (saveLive) {
-        try {
-          await addItem({
-            name: item.name,
-            category: item.category as ClothingCategory,
-            color: item.color as WardrobeItem['color'],
-            imageUri: `data:image/jpeg;base64,${item.sceneCrop}`,
-            imageBase64: item.sceneCrop || undefined,
-            seasons: ['all-season'],
-            occasions: ['everyday'],
-            isFavorite: false,
-          });
-          liveSavedTempIdsRef.current.add(tempId);
-          setLiveAddedCount((n) => {
-            const nextSession = n + 1;
-            if (!challengeActiveRef.current && nextSession === 1) {
-              setChallengeInvite(true);
-            }
-            return nextSession;
-          });
-          setLastScanCategory(item.category);
-
-          if (challengeActiveRef.current && !challengeFinishedRef.current) {
-            setChallengeCount((prev) => {
-              const next = prev + 1;
-              const milestone = challengeMilestoneCopy(next);
-              if (milestone && !challengeMilestonesRef.current.has(next)) {
-                challengeMilestonesRef.current.add(next);
-                setChallengeMilestone(milestone);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                setTimeout(() => {
-                  if (mountedRef.current) setChallengeMilestone(null);
-                }, 900);
-              } else {
-                setLiveNote(challengeMicroFeedback(next));
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-              }
-              if (next >= SCAN_CHALLENGE_TARGET) {
-                setTimeout(() => finishChallengeRef.current?.('won'), 40);
-              }
-              return next;
+        const saveLive = autoSaveLive || challengeActiveRef.current;
+        if (saveLive) {
+          try {
+            await addItem({
+              name: item.name,
+              category: item.category as ClothingCategory,
+              color: item.color as WardrobeItem['color'],
+              imageUri: `data:image/jpeg;base64,${item.sceneCrop}`,
+              imageBase64: item.sceneCrop || undefined,
+              seasons: ['all-season'],
+              occasions: ['everyday'],
+              isFavorite: false,
             });
-          } else {
-            setLiveNote(liveCaptureConfirmation(item.name));
-            setTimeout(() => {
-              if (mountedRef.current && !challengeActiveRef.current) {
-                setLiveNote(liveNextItemPrompt());
+            liveSavedTempIdsRef.current.add(tempId);
+            markTrackSaved(track.trackId);
+            void playLiveShutter();
+            await fireCaptureFeedback(crop.uri, {
+              mode: 'captured',
+              label: liveCaptureConfirmation(item.name),
+            });
+
+            setLiveAddedCount((n) => {
+              const nextSession = n + 1;
+              liveAddedCountRef.current = nextSession;
+              if (!challengeActiveRef.current && nextSession === 1) {
+                setChallengeInvite(true);
               }
-            }, 1100);
+              return nextSession;
+            });
+            setLastScanCategory(item.category);
+
+            if (challengeActiveRef.current && !challengeFinishedRef.current) {
+              setChallengeCount((prev) => {
+                const next = prev + 1;
+                const milestone = challengeMilestoneCopy(next);
+                if (milestone && !challengeMilestonesRef.current.has(next)) {
+                  challengeMilestonesRef.current.add(next);
+                  setChallengeMilestone(milestone);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                  setTimeout(() => {
+                    if (mountedRef.current) setChallengeMilestone(null);
+                  }, 900);
+                } else {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                }
+                if (next >= SCAN_CHALLENGE_TARGET) {
+                  setTimeout(() => finishChallengeRef.current?.('won'), 40);
+                }
+                return next;
+              });
+            }
+            return 'saved';
+          } catch (err) {
+            console.warn('[DigitizeWardrobe] live auto-save failed:', err);
+            clearTrackSaving(track.trackId);
+            setLiveNote(formatLiveStatusLine(liveInViewCountRef.current, liveAddedCountRef.current, `${item.name} — open Review to save`));
+            return 'failed';
           }
-        } catch (err) {
-          console.warn('[DigitizeWardrobe] live auto-save failed:', err);
-          setLiveNote(`${item.name} ready — confirm in Review`);
         }
-      } else {
+
+        clearTrackSaving(track.trackId);
         setLastScanCategory(item.category);
-        setLiveNote(`${item.name} queued — open Review when ready`);
+        await fireCaptureFeedback(crop.uri, {
+          mode: 'captured',
+          label: `${item.name} queued — tap Review`,
+        });
+        return 'queued';
+      } catch {
+        clearTrackSaving(track.trackId);
+        return 'failed';
       }
     },
-    [addItem, autoSaveLive, fireCaptureFeedback, scanItems],
+    [addItem, autoSaveLive, fireCaptureFeedback, playLiveShutter, scanItems],
   );
 
   const processLiveFrame = useCallback(async () => {
@@ -958,20 +1025,31 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         { compress: 0.55, format: ImageManipulator.SaveFormat.JPEG },
       );
 
-      const onDevice = await detectGarmentsOnDevice(manipulated.uri);
-      if (!onDevice?.length) {
+      const onDeviceRaw = await detectGarmentsOnDevice(manipulated.uri, {
+        confThreshold: LIVE_YOLO_CONF,
+        maxDetections: 8,
+      });
+      if (!onDeviceRaw?.length) {
         setLiveTracks([]);
+        setLiveInViewCount(0);
+        liveInViewCountRef.current = 0;
         if (!yoloStatus.available) {
           setLiveNote('On-device YOLO unavailable — use Photo mode for best results');
           return;
         }
-        setLiveNote(
-          challengeActiveRef.current
-            ? 'One item at a time'
-            : 'Point at one item',
-        );
+        setLiveNote(formatLiveStatusLine(0, liveAddedCountRef.current, 'Point at one item'));
         return;
       }
+
+      const onDevice = coalesceFootwearDetections(
+        onDeviceRaw.map((d) => boostLiveDetection({
+          category: d.category,
+          name: d.name,
+          color: d.color,
+          confidence: d.confidence,
+          bbox: d.bbox,
+        })),
+      );
 
       const promotedRaw = trackerRef.current.update(
         onDevice.map((d) => ({
@@ -982,45 +1060,54 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
           bbox: d.bbox,
         })),
       );
-      const promoteHits = trackerRef.current.promoteFrameTarget;
       const lockHits = trackerRef.current.lockFrameTarget;
-      const snapshotBase = trackerRef.current.snapshot();
-      const primary = pickPrimaryTrack(snapshotBase);
+      const snapshotRaw = trackerRef.current.snapshot();
+      const snapshotBase = coalesceFootwearTracks(snapshotRaw);
+      const inView = countItemsInView(snapshotRaw);
+      setLiveInViewCount(inView);
+      liveInViewCountRef.current = inView;
+
+      const primary = pickPrimaryTrack(snapshotBase.length ? snapshotBase : snapshotRaw);
       const primaryId = primary?.trackId;
 
-      // Multi-item: never silently choose — require a clearly dominant primary.
-      let multiBlocked = false;
-      if (snapshotBase.length >= 2 && primary) {
-        const sortedAreas = snapshotBase
-          .map((t) => trackArea(t.bbox))
-          .sort((a, b) => b - a);
-        const dominant = sortedAreas[0] >= (sortedAreas[1] || 0) * LIVE_PRIMARY_AREA_RATIO;
-        if (!dominant) {
-          multiBlocked = true;
-          const now = Date.now();
-          if (now - multiHapticAtRef.current > 1800) {
-            multiHapticAtRef.current = now;
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          }
+      const multiBlocked = shouldBlockMultiItem(snapshotRaw, LIVE_PRIMARY_AREA_RATIO);
+      if (multiBlocked) {
+        const now = Date.now();
+        if (now - multiHapticAtRef.current > 1800) {
+          multiHapticAtRef.current = now;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         }
       }
 
       const justPromotedIds = new Set(promotedRaw.map((p) => p.trackId));
-      const snapshot: LiveOverlayBox[] = snapshotBase.map((track) => {
-        let phase: LiveTrackPhase = 'detecting';
-        if (justPromotedIds.has(track.trackId)) phase = 'capturing';
-        else if (track.promoted) phase = 'confirmed';
-        else if (track.hits >= promoteHits) phase = 'capturing';
-        else if (track.hits >= lockHits) phase = 'locked';
+      const snapshotSource = snapshotRaw.length ? snapshotRaw : snapshotBase;
+      const snapshot: LiveOverlayBox[] = snapshotSource.map((track) => {
+        let phase: LiveTrackPhase = 'detected';
+        if (
+          liveSavedTrackIdsRef.current.has(track.trackId)
+          || liveSavedTempIdsRef.current.has(track.trackId)
+        ) {
+          phase = 'saved';
+        } else if (
+          liveSavingTrackIdsRef.current.has(track.trackId)
+          || justPromotedIds.has(track.trackId)
+        ) {
+          phase = multiBlocked ? 'detected' : 'saving';
+        } else if (!multiBlocked && track.hits >= lockHits) {
+          phase = 'locked';
+        }
         return {
           ...track,
           phase,
           isPrimary: track.trackId === primaryId,
         };
       });
-      setLiveTracks(snapshot);
 
-      // Lock haptic once per track
+      const displayTracks = primary
+        ? snapshot.filter((t) => t.isPrimary || !isFootwearPair(t, primary))
+        : snapshot;
+      setLiveTracks(displayTracks);
+
       for (const track of snapshot) {
         if (track.phase === 'locked' && !lockHapticRef.current.has(track.trackId)) {
           lockHapticRef.current.add(track.trackId);
@@ -1032,28 +1119,31 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         ? []
         : promotedRaw.filter((p) => !primaryId || p.trackId === primaryId);
 
+      const framing = primary ? liveFramingHint(primary.bbox) : null;
+      let coaching = framing;
       if (multiBlocked) {
-        setLiveNote(
-          challengeActiveRef.current
-            ? 'One item at a time'
-            : `${snapshotBase.length} items detected — move closer to one`,
-        );
+        coaching = `${inView} items — move closer to one`;
       } else if (toPromote.length) {
-        setLiveNote(challengeActiveRef.current ? 'Capturing…' : 'Capturing…');
+        coaching = 'Saving…';
       } else if (snapshot.some((t) => t.phase === 'locked' && t.isPrimary)) {
-        setLiveNote('Hold steady…');
-      } else if (snapshot.some((t) => t.phase === 'confirmed') && !challengeActiveRef.current) {
-        setLiveNote(liveNextItemPrompt());
-      } else if (snapshotBase.length >= 2 && primary && !challengeActiveRef.current) {
-        setLiveNote('Capturing nearest item — hold steady');
-      } else if (onDevice.length > 0 && !challengeActiveRef.current) {
-        setLiveNote('Point at one item');
-      } else if (onDevice.length > 0 && challengeActiveRef.current) {
-        setLiveNote('Scan as fast as you can');
+        coaching = 'Hold steady…';
+      } else if (displayTracks.some((t) => t.phase === 'saved')) {
+        coaching = liveNextItemPrompt();
       }
+
+      setLiveNote(formatLiveStatusLine(inView, liveAddedCountRef.current, coaching));
 
       for (const track of toPromote) {
         await ingestLivePromotion(manipulated.uri, track);
+      }
+
+      if (toPromote.length) {
+        setLiveTracks((prev) => prev.map((t) => (
+          liveSavedTrackIdsRef.current.has(t.trackId)
+            ? { ...t, phase: 'saved' as LiveTrackPhase }
+            : t
+        )));
+        setLiveNote(formatLiveStatusLine(inView, liveAddedCountRef.current, liveNextItemPrompt()));
       }
     } catch (error) {
       console.warn('[DigitizeWardrobe] live frame failed:', error);
@@ -1139,6 +1229,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     setChallengeMilestone(null);
     setSessionSavedItems([]);
     liveSavedTempIdsRef.current.clear();
+    liveSavedTrackIdsRef.current.clear();
+    liveSavingTrackIdsRef.current.clear();
+    setLiveSavedTrackIds(new Set());
+    setLiveSavingTrackIds(new Set());
+    setLiveInViewCount(0);
+    liveInViewCountRef.current = 0;
+    liveAddedCountRef.current = 0;
 
     if (asChallenge) {
       challengeFinishedRef.current = false;
@@ -1156,7 +1253,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       challengeEndAtRef.current = null;
       setChallengeActive(false);
       setChallengeCount(0);
-      setLiveNote('Point at one item');
+      setLiveNote(formatLiveStatusLine(0, 0, 'Point at one item'));
     }
     setIsLive(true);
   }, [permission?.granted, requestPermission, openSettings]);
@@ -1188,7 +1285,9 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     setLiveNote(
       liveAddedCount > 0
         ? `Stopped · ${liveAddedCount} piece${liveAddedCount === 1 ? '' : 's'} saved this session`
-        : 'Stopped',
+        : scanItems.length > 0
+          ? `Stopped · ${scanItems.length} ready in Review`
+          : 'Stopped — wait for Saved ✓ before you move on',
     );
   };
 
@@ -1208,6 +1307,25 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
   const renderScanSuggestionChip = () => {
     if (!nextScanSuggestion || challengeActive) return null;
+    // Keep Live land compact so Start live stays on-screen.
+    if (mode === 'live') {
+      return (
+        <View
+          style={[
+            styles.suggestionChip,
+            styles.suggestionChipCompact,
+            {
+              borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)',
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(201,168,124,0.14)',
+            },
+          ]}
+        >
+          <ThemedText type="caption" style={{ color: theme.text, fontWeight: '700' }} numberOfLines={1}>
+            {nextScanSuggestion.chip}
+          </ThemedText>
+        </View>
+      );
+    }
     return (
       <View
         style={[
@@ -1267,17 +1385,26 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   );
 
   const renderCapture = () => (
-    <View style={styles.stepBody}>
-      <ThemedText type="h2" style={styles.title}>
-        Scan your wardrobe items
-      </ThemedText>
-      <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-        {mode === 'live'
-          ? 'Live scan (fast) — best for quick adds. Keep items clear and steady.'
-          : 'Lay items flat or keep them clearly separated'}
-      </ThemedText>
+    <View style={[styles.stepBody, mode === 'live' && styles.stepBodyLive]}>
+      {mode !== 'live' || challengeActive ? (
+        <>
+          <ThemedText type="h2" style={styles.title}>
+            Scan your wardrobe items
+          </ThemedText>
+          <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+            {mode === 'live'
+              ? 'Live scan — one item at a time'
+              : 'Lay items flat or keep them clearly separated'}
+          </ThemedText>
+        </>
+      ) : (
+        <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+          Live scan — one item at a time
+        </ThemedText>
+      )}
       {renderModeToggle()}
-      {!challengeActive ? renderScanSuggestionChip() : null}
+      {!challengeActive && mode !== 'live' ? renderScanSuggestionChip() : null}
+      {!challengeActive && mode === 'live' && !isLive ? renderScanSuggestionChip() : null}
 
       {mode === 'photo' ? (
         <>
@@ -1375,13 +1502,13 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 <View style={styles.liveLegendRow}>
                   <View style={[styles.liveLegendSwatch, { backgroundColor: LIVE_DETECT_COLOR }]} />
                   <ThemedText type="caption" style={styles.liveLegendText}>
-                    Hold steady
+                    Detected
                   </ThemedText>
                 </View>
                 <View style={styles.liveLegendRow}>
                   <View style={[styles.liveLegendSwatch, { backgroundColor: LIVE_CAPTURE_COLOR }]} />
                   <ThemedText type="caption" style={styles.liveLegendText}>
-                    Capturing
+                    Locked / Saved
                   </ThemedText>
                 </View>
               </View>
@@ -1397,20 +1524,23 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
                 <Image source={{ uri: captureToast.uri }} style={styles.captureToastThumb} contentFit="cover" />
                 <View style={{ flex: 1 }}>
                   <ThemedText type="caption" style={styles.captureToastText}>
-                    {captureToast.mode === 'duplicate' ? 'Already added' : '✓ Captured'}
+                    {captureToast.label}
                   </ThemedText>
-                  {captureToast.label ? (
+                  {captureToast.mode === 'duplicate' ? (
                     <ThemedText type="caption" style={styles.captureToastSub} numberOfLines={1}>
-                      {captureToast.label}
+                      Already in wardrobe
                     </ThemedText>
                   ) : null}
                 </View>
               </View>
             ) : null}
           </View>
-          <ThemedText type="caption" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
+          <ThemedText
+            type="caption"
+            style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}
+            numberOfLines={2}
+          >
             {liveNote}
-            {!challengeActive && liveAddedCount > 0 ? ` · ${liveAddedCount} saved` : ''}
           </ThemedText>
           {challengeInvite && !challengeActive ? (
             <View style={[styles.challengeInvite, { borderColor: LuxuryColors.gold }]}>
@@ -1438,76 +1568,93 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               On-device YOLO not linked in this binary — Live detect is limited; Photo mode is more reliable.
             </ThemedText>
           ) : null}
-          {!challengeActive ? (
-            <Pressable
-              onPress={() => setAutoSaveLive((v) => !v)}
-              style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
-            >
-              <ThemedText type="body" style={{ color: theme.text }}>
-                Auto-save unique items: {autoSaveLive ? 'On' : 'Off'}
-              </ThemedText>
-            </Pressable>
-          ) : null}
-          <View style={styles.captureActions}>
-            {!isLive ? (
-              <>
-                <Pressable onPress={startLive} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
-                  <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-                    Start live
-                  </ThemedText>
-                </Pressable>
-                <Pressable
-                  onPress={startChallenge}
-                  style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
-                >
-                  <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '700' }}>
-                    ⚡ Scan {SCAN_CHALLENGE_TARGET} in {SCAN_CHALLENGE_SECONDS}s
-                  </ThemedText>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable onPress={stopLive} style={[styles.primaryBtn, { backgroundColor: '#B33' }]}>
-                <ThemedText type="body" style={{ color: '#FFF', fontWeight: '600' }}>
-                  {challengeActive ? 'End challenge' : 'Stop'}
-                </ThemedText>
-              </Pressable>
-            )}
-            {scanItems.length > 0 && !challengeActive ? (
-              <Pressable
-                onPress={() => {
-                  stopLive();
-                  const alreadySaved = scanItems.filter((item) =>
-                    liveSavedTempIdsRef.current.has(item.tempId),
-                  );
-                  const pending = scanItems.filter(
-                    (item) => !liveSavedTempIdsRef.current.has(item.tempId),
-                  );
-                  setSessionSavedItems(alreadySaved);
-                  if (pending.length === 0) {
-                    setScanItems([]);
-                    setSkippedItems([]);
-                    setSelectedIds(new Set());
-                    setDetectedCount(alreadySaved.length);
-                    setDupeNote(null);
-                    setStep('review');
-                    return;
-                  }
-                  applyDedupToItems(pending);
-                  setDetectedCount(alreadySaved.length + pending.length);
-                  setStep('review');
-                }}
-                style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
-              >
-                <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-                  Review {scanItems.length} detected
-                </ThemedText>
-              </Pressable>
-            ) : null}
-          </View>
         </View>
       )}
     </View>
   );
+
+  const renderLiveFooter = () => {
+    if (mode !== 'live' || step !== 'capture') return null;
+    return (
+      <View
+        style={[
+          styles.liveFooter,
+          {
+            paddingBottom: Math.max(insets.bottom, 12),
+            borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+            backgroundColor: isDark ? theme.surface : '#FFF',
+          },
+        ]}
+      >
+        {!challengeActive ? (
+          <Pressable
+            onPress={() => setAutoSaveLive((v) => !v)}
+            style={[styles.secondaryBtn, { borderColor: theme.border, marginBottom: Spacing.sm }]}
+          >
+            <ThemedText type="body" style={{ color: theme.text }}>
+              Auto-save unique items: {autoSaveLive ? 'On' : 'Off'}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        <View style={styles.captureActions}>
+          {!isLive ? (
+            <>
+              <Pressable onPress={startLive} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
+                <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+                  Start live
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={startChallenge}
+                style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+              >
+                <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '700' }}>
+                  ⚡ Scan {SCAN_CHALLENGE_TARGET} in {SCAN_CHALLENGE_SECONDS}s
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable onPress={stopLive} style={[styles.primaryBtn, { backgroundColor: '#B33' }]}>
+              <ThemedText type="body" style={{ color: '#FFF', fontWeight: '600' }}>
+                {challengeActive ? 'End challenge' : 'Stop'}
+              </ThemedText>
+            </Pressable>
+          )}
+          {scanItems.length > 0 && !challengeActive ? (
+            <Pressable
+              onPress={() => {
+                stopLive();
+                const alreadySaved = scanItems.filter((item) =>
+                  liveSavedTempIdsRef.current.has(item.tempId),
+                );
+                const pending = scanItems.filter(
+                  (item) => !liveSavedTempIdsRef.current.has(item.tempId),
+                );
+                setSessionSavedItems(alreadySaved);
+                if (pending.length === 0) {
+                  setScanItems([]);
+                  setSkippedItems([]);
+                  setSelectedIds(new Set());
+                  setDetectedCount(alreadySaved.length);
+                  setDupeNote(null);
+                  setStep('review');
+                  return;
+                }
+                applyDedupToItems(pending);
+                setDetectedCount(alreadySaved.length + pending.length);
+                setStep('review');
+              }}
+              style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+            >
+              <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+                Review {scanItems.length} detected
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
 
   const renderScanning = () => (
     <View style={[styles.stepBody, styles.centered]}>
@@ -1854,7 +2001,17 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       </LinearGradient>
 
       <KeyboardAwareScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+        scrollEnabled={!(mode === 'live' && step === 'capture')}
+        contentContainerStyle={[
+          styles.scrollContent,
+          mode === 'live' && step === 'capture' ? styles.scrollContentLive : null,
+          {
+            paddingBottom:
+              mode === 'live' && step === 'capture'
+                ? Spacing.md
+                : insets.bottom + Spacing.xl,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {step === 'capture' && renderCapture()}
@@ -1862,6 +2019,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         {step === 'review' && renderReview()}
         {step === 'saving' && renderSaving()}
       </KeyboardAwareScrollView>
+      {renderLiveFooter()}
 
       <DuplicateComparisonSheet
         visible={dupeSheet.visible}
@@ -1952,18 +2110,6 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
             ) : (
               <View style={{ height: Spacing.md }} />
             )}
-            {(saveSuccess?.added.length || 0) > 0 ? (
-              <View style={{ marginBottom: Spacing.sm }}>
-                <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 4 }}>
-                  Added
-                </ThemedText>
-                {saveSuccess?.added.map((name) => (
-                  <ThemedText key={`add_${name}`} type="caption" style={{ color: theme.textSecondary }}>
-                    · {name}
-                  </ThemedText>
-                ))}
-              </View>
-            ) : null}
             {(saveSuccess?.skipped.length || 0) > 0 ? (
               <View style={{ marginBottom: Spacing.md }}>
                 <ThemedText type="caption" style={{ fontWeight: '700', marginBottom: 4 }}>
@@ -2059,7 +2205,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
   },
+  scrollContentLive: {
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    flexGrow: 1,
+  },
   stepBody: { flex: 1 },
+  stepBodyLive: {
+    flex: 1,
+    minHeight: 0,
+  },
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -2097,14 +2252,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
   },
-  liveWrap: { marginBottom: Spacing.md },
+  liveWrap: { marginBottom: Spacing.sm },
   liveCameraBox: {
     width: SCREEN_WIDTH - Spacing.lg * 2,
-    height: (SCREEN_WIDTH - Spacing.lg * 2) * 1.15,
+    // Shorter preview so Start live is visible on first land without scrolling.
+    height: Math.min((SCREEN_WIDTH - Spacing.lg * 2) * 0.78, 340),
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     backgroundColor: '#111',
+  },
+  liveFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
   liveCameraBoxPulse: {
     borderWidth: 3,
@@ -2166,6 +2327,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     marginBottom: Spacing.sm,
+  },
+  suggestionChipCompact: {
+    paddingVertical: 8,
+    marginBottom: Spacing.xs,
   },
   challengeModalBackdrop: {
     flex: 1,

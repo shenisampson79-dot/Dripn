@@ -312,6 +312,7 @@ function boxesToDetections(
  */
 export async function detectGarmentsOnDevice(
   imageUri: string,
+  opts?: { confThreshold?: number; maxDetections?: number },
 ): Promise<OnDeviceDetection[] | null> {
   if (!ON_DEVICE_YOLO_NATIVE) return null;
 
@@ -333,6 +334,8 @@ export async function detectGarmentsOnDevice(
     const output = new Float32Array(outBuf);
     const boxes = parseYoloGarmentOutput(output, {
       inputSize: INPUT_SIZE,
+      confThreshold: opts?.confThreshold,
+      maxDetections: opts?.maxDetections,
       scale,
       padX,
       padY,

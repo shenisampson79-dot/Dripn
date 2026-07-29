@@ -46,17 +46,20 @@ export class DigitizeDetectionTracker {
   private readonly iouMatch: number;
   private readonly promoteHits: number;
   private readonly minConfidence: number;
+  private readonly minBoxSide: number;
   private readonly ttlMs: number;
 
   constructor(opts?: {
     iouMatch?: number;
     promoteHits?: number;
     minConfidence?: number;
+    minBoxSide?: number;
     ttlMs?: number;
   }) {
-    this.iouMatch = opts?.iouMatch ?? 0.5;
+    this.iouMatch = opts?.iouMatch ?? 0.42;
     this.promoteHits = opts?.promoteHits ?? 5;
-    this.minConfidence = opts?.minConfidence ?? 0.55;
+    this.minConfidence = opts?.minConfidence ?? 0.28;
+    this.minBoxSide = opts?.minBoxSide ?? 0.04;
     this.ttlMs = opts?.ttlMs ?? 2500;
   }
 
@@ -91,7 +94,7 @@ export class DigitizeDetectionTracker {
 
     for (const det of detections) {
       if (det.confidence < this.minConfidence) continue;
-      if (det.bbox[2] < 0.08 || det.bbox[3] < 0.08) continue;
+      if (det.bbox[2] < this.minBoxSide || det.bbox[3] < this.minBoxSide) continue;
 
       const match = this.tracks.find(
         (t) =>
