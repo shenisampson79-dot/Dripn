@@ -997,7 +997,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             console.log(`[Wardrobe] local photos available: ${localCount}/${committed.length}`);
           }
           setWardrobePhotosUnavailable(localCount === 0 && committed.length > 0);
-          preloadWardrobeImages(committed).catch(() => {});
+          preloadWardrobeImages(committed, { highPriorityCount: 4, maxTotal: 10 }).catch(() => {});
 
           for (let i = 0; i < result.items.length; i++) {
             const row = result.items[i];
@@ -1069,7 +1069,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             all.filter((i) => i.userId === user?.id),
           );
           commitItems(localItems);
-          preloadWardrobeImages(localItems).catch(() => {});
+          preloadWardrobeImages(localItems, { highPriorityCount: 4, maxTotal: 10 }).catch(() => {});
         } catch (parseErr) {
           console.warn('[WardrobeContext] local wardrobe parse failed', parseErr);
           commitItems([]);
@@ -1118,7 +1118,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (cached.length > 0) {
         setItems(cached);
-        preloadWardrobeImages(cached).catch(() => {});
+        preloadWardrobeImages(cached, { highPriorityCount: 4, maxTotal: 8, deferRestMs: 4000 }).catch(() => {});
       }
       await loadWardrobe({ showLoader: cached.length === 0 });
     })();

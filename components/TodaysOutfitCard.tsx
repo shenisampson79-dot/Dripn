@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/ThemedText';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
+import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 import { SaveOutfitPromptModal } from '@/components/outfit/SaveOutfitPromptModal';
 import { WardrobeImageShimmer } from '@/components/WardrobeImageShimmer';
 import { wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
@@ -468,6 +469,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   openTodaysOutfitRef.current = openTodaysOutfit;
 
   // Background hydrate on mount — never blocks chip tap.
+  // Defer notification permission/scheduling so it cannot race first paint / OOM.
   useEffect(() => {
     if (!user) {
       setCardState('idle');
@@ -476,7 +478,10 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
     activeDateKeyRef.current = todayKey();
     void traceTodaysOutfit('trigger', { source: 'mount', userId: user.id, dateKey: todayKey() });
     void loadOutfit({ open: false });
-    void syncTodaysOutfitLocalNotification();
+    const notifyTimer = setTimeout(() => {
+      void syncTodaysOutfitLocalNotification();
+    }, 8000);
+    return () => clearTimeout(notifyTimer);
   }, [user?.id]);
 
   // Intent bus: notifications / deep links are remote chip taps.
@@ -510,9 +515,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
   useEffect(() => {
     if (!user || wardrobeItems.length < 4) return;
-    void onboardingProfileService.getProfile().then((profile) => {
-      void prewarmTodaysWardrobeOutfit({ wardrobeItems, profile, user });
-    });
+    const timer = setTimeout(() => {
+      void onboardingProfileService.getProfile().then((profile) => {
+        void prewarmTodaysWardrobeOutfit({ wardrobeItems, profile, user });
+      });
+    }, 6000);
+    return () => clearTimeout(timer);
   }, [user?.id, wardrobeItems.length]);
 
   const maybeAutoOpenPopup = useCallback(async () => {
@@ -557,7 +565,11 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   useEffect(() => {
     if (!outfit || autoPopupCheckedRef.current) return;
     autoPopupCheckedRef.current = true;
-    void maybeAutoOpenPopup();
+    // Delay auto-open so wardrobe image preload + first paint can settle (avoids iOS jetsam).
+    const timer = setTimeout(() => {
+      void maybeAutoOpenPopup();
+    }, 3500);
+    return () => clearTimeout(timer);
   }, [outfit, maybeAutoOpenPopup]);
 
   useEffect(() => {
@@ -909,11 +921,13 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                   </View>
                 ) : (
                   <Animated.View style={contentFadeStyle}>
-                    <ZoomableOutfitVisual
-                      pieces={visualPieces}
-                      wardrobeItems={pieces}
-                      canvasWidth={canvasWidth}
-                    />
+                    <RenderErrorBoundary fallbackMessage="Outfit preview unavailable">
+                      <ZoomableOutfitVisual
+                        pieces={visualPieces}
+                        wardrobeItems={pieces}
+                        canvasWidth={canvasWidth}
+                      />
+                    </RenderErrorBoundary>
                   </Animated.View>
                 )}
 

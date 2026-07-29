@@ -116,7 +116,8 @@ async function writeBufferToCache(dest: string, buffer: ArrayBuffer): Promise<st
     if (__DEV__) console.warn('[WardrobeImage] cache write failed:', error);
   }
 
-  return `data:image/jpeg;base64,${base64}`;
+  // Never keep full JPEG base64 in JS heap — large wardrobes jetson/OOM on iOS.
+  return null;
 }
 
 function remoteCdnCandidates(item: WardrobeImageFields): string[] {
@@ -333,8 +334,12 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
 
     const dataUri = dataUriCandidate(item);
     if (dataUri) {
-      logSource(item.id, 'data');
-      return remember(id, dataUri);
+      // Only accept tiny data URIs — large base64 blobs jetsam iOS.
+      if (dataUri.length < 200_000) {
+        logSource(item.id, 'data');
+        return remember(id, dataUri);
+      }
+      logSource(item.id, 'none', 'data-uri-too-large');
     }
 
     for (const url of remoteCdnCandidates(item)) {
