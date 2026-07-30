@@ -7,7 +7,8 @@ import {
   type TodaysOutfitPopupPrefs,
 } from '@/utils/todaysOutfitPrefs';
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
-import type { DressFor, OnboardingProfile } from '@/services/OnboardingProfileService';
+import type { DressFor, OnboardingProfile, WorkDressCode } from '@/services/OnboardingProfileService';
+import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
 import {
   completeOutfitItemIds,
   MIN_OUTFIT_ITEMS,
@@ -396,13 +397,14 @@ function hydrateItems(itemIds: string[], wardrobeItems: WardrobeItem[]): Wardrob
 export function resolveTodaysOccasion(
   profile: OnboardingProfile,
   user?: OutfitUserContext,
-  prefs?: Pick<TodaysOutfitPopupPrefs, 'preferredOccasion'>,
+  prefs?: Pick<TodaysOutfitPopupPrefs, 'preferredOccasion' | 'workDressCode'>,
   now: Date = new Date(),
 ): {
   dressFor: DressFor;
   occasionType: OutfitOccasionId | 'todays_look';
   dayLabel: string;
   isWeekday: boolean;
+  workDressCode: WorkDressCode | null;
 } {
   const day = now.getDay();
   const hour = now.getHours();
@@ -418,6 +420,10 @@ export function resolveTodaysOccasion(
     || goals.includes('professional-image')
     || style === 'business'
     || style === 'smart-casual';
+
+  const workDressCode = normalizeWorkDressCode(
+    prefs?.workDressCode ?? profile.workDressCode,
+  );
 
   const explicit = profile.dressFor;
   const forced = prefs?.preferredOccasion && prefs.preferredOccasion !== 'auto'
@@ -442,7 +448,7 @@ export function resolveTodaysOccasion(
     dressFor = explicit || 'friends';
   }
 
-  const occasionType: OutfitOccasionId | 'todays_look' =
+  let occasionType: OutfitOccasionId | 'todays_look' =
     dressFor === 'work'
       ? professional
         ? 'work_outfit'
@@ -459,7 +465,16 @@ export function resolveTodaysOccasion(
               ? 'casual_day'
               : 'weekend';
 
-  return { dressFor, occasionType, dayLabel, isWeekday };
+  // Honour stated workplace dress code instead of assuming corporate formality.
+  if (dressFor === 'work' && workDressCode) {
+    if (workDressCode === 'creative' || workDressCode === 'smart_casual') {
+      occasionType = 'smart_casual';
+    } else {
+      occasionType = 'work_outfit';
+    }
+  }
+
+  return { dressFor, occasionType, dayLabel, isWeekday, workDressCode };
 }
 
 const OCCASION_ALLOCATION_CASCADE: Partial<Record<OutfitOccasionId | 'todays_look', OutfitOccasionId[]>> = {
@@ -518,6 +533,7 @@ function allocateLocal(
   priorOutfits: WardrobeItem[][] = [],
   excludeItemIds: string[] = [],
   weather: WeatherSnapshot | null = null,
+  workDressCode: WorkDressCode | null = null,
 ): WardrobeItem[] | null {
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
@@ -528,6 +544,7 @@ function allocateLocal(
     weather: weather
       ? { temperature: weather.temperature, condition: weather.condition }
       : null,
+    workDressCode,
   });
   if (!allocated.ok || allocated.items.length < MIN_OUTFIT_ITEMS) return null;
   const weatherSafe = stripIllegalOuterwearForWeather(
@@ -536,7 +553,12 @@ function allocateLocal(
       ? { temperature: weather.temperature, condition: weather.condition }
       : null,
   );
-  if (weatherSafe.length < MIN_OUTFIT_ITEMS || !isOutfitValid(weatherSafe)) return null;
+  if (
+    weatherSafe.length < MIN_OUTFIT_ITEMS
+    || !isOutfitValid(weatherSafe, { occasion: tryOccasion, workDressCode })
+  ) {
+    return null;
+  }
 
   // Hard diversity reject — jacket-only / same base look vs recent history
   if (priorOutfits.length && priorOutfits.some((h) => isTooSimilar(weatherSafe, h))) {
@@ -564,6 +586,7 @@ function generateLocalTiered(params: {
   priorOutfits?: WardrobeItem[][];
   dateKey?: string;
   weather?: WeatherSnapshot | null;
+  workDressCode?: WorkDressCode | null;
 }): LocalGenerationResult | null {
   const {
     wardrobeItems,
@@ -572,6 +595,7 @@ function generateLocalTiered(params: {
     laundryProfile = laundryProfileFromUser(null),
     priorOutfits = [],
     weather = null,
+    workDressCode = null,
   } = params;
   const cascade = allocationCascadeFor(occasionType);
   const started = Date.now();
@@ -594,6 +618,7 @@ function generateLocalTiered(params: {
         priorOutfits,
         excludeItemIds,
         weather,
+        workDressCode,
       );
       if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
         return {
@@ -620,6 +645,7 @@ function generateLocalTiered(params: {
         priorOutfits,
         excludeItemIds,
         weather,
+        workDressCode,
       );
       if (items) {
         return {
@@ -645,6 +671,7 @@ function generateLocalTiered(params: {
         priorOutfits,
         excludeItemIds,
         weather,
+        workDressCode,
       );
       if (items) {
         return {
@@ -665,8 +692,13 @@ function generateLocalTiered(params: {
       weather: weather
         ? { temperature: weather.temperature, condition: weather.condition }
         : null,
+      workDressCode,
     });
-    if (fallback.ok && fallback.items.length >= MIN_OUTFIT_ITEMS && isOutfitValid(fallback.items)) {
+    if (
+      fallback.ok
+      && fallback.items.length >= MIN_OUTFIT_ITEMS
+      && isOutfitValid(fallback.items, { occasion: 'casual_day', workDressCode })
+    ) {
       return {
         items: fallback.items,
         vibeLabel: occasionLabelForType('casual_day'),
@@ -1180,7 +1212,7 @@ export async function generateTodaysWardrobeOutfit(params: {
     country: user?.country,
     stylistId: user?.stylistPreferences?.selectedStylistId,
   };
-  const { dressFor, occasionType, dayLabel } = resolveTodaysOccasion(
+  const { dressFor, occasionType, dayLabel, workDressCode } = resolveTodaysOccasion(
     profile,
     userContext,
     popupPrefs,
@@ -1312,6 +1344,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       priorOutfits,
       dateKey: today,
       weather,
+      workDressCode,
     });
 
     if (!generated) {

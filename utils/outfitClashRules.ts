@@ -57,6 +57,8 @@ export type ItemSignals = {
   isChelseaBoots?: boolean;
   isSlides?: boolean;
   isLeatherSandals?: boolean;
+  /** Short-sleeve top (incl. linen / button-down) — never pair with a necktie. */
+  isShortSleeve?: boolean;
 };
 
 export type OutfitClash = {
@@ -66,10 +68,18 @@ export type OutfitClash = {
   severity: 'fatal' | 'major' | 'moderate' | 'minor';
 };
 
+export type WorkDressCode =
+  | 'creative'
+  | 'smart_casual'
+  | 'business_casual'
+  | 'business_formal';
+
 export type ClashDetectOptions = {
   regional?: RegionalStyleContext | null;
   occasion?: string | null;
   eventType?: string | null;
+  /** User workplace dress expectation — creative/smart_casual skip office footwear lock. */
+  workDressCode?: WorkDressCode | null;
 };
 
 export type OutfitContext = {
@@ -92,7 +102,11 @@ function itemText(item: WardrobeItem): string {
 }
 
 function isShortSleeveTop(item: WardrobeItem): boolean {
-  return /short[\s-]?sleeve|short\s+sleeve/.test(itemText(item));
+  const t = itemText(item);
+  if (/long[\s-]?sleeve/.test(t)) return false;
+  // Camp / Cuban / bowling shirts are short-sleeve by cut; otherwise require an explicit short-sleeve cue.
+  return /short[\s-]?sleeve|short\s+sleeve|½\s*sleeve|half[\s-]?sleeve/.test(t)
+    || /(camp|cuban|bowling)\s+(shirt|top)/.test(t);
 }
 
 export function isShortsItem(item: WardrobeItem): boolean {
@@ -173,8 +187,8 @@ export function isDressyBootFootwear(item: WardrobeItem): boolean {
   if (/combat|hiking|work boot|timberland|ugg|shearling|doc\b|dr\.? ?marten|army boot|chunky boot/.test(t)) {
     return false;
   }
-  return /chelsea|dress boot|riding boot|heeled boot|ankle boot|leather boot|leather chelsea|lace[\s-]?up\s*boot|derby\s*boot/.test(t)
-    || (/leather/.test(t) && /boot/.test(t));
+  // Do not treat generic "leather boots" as dressy — rugged work boots were slipping through.
+  return /chelsea|dress boot|riding boot|heeled boot|ankle boot|leather chelsea|derby\s*boot|chukka/.test(t);
 }
 
 export function isCasualTrainer(item: WardrobeItem): boolean {
@@ -255,6 +269,8 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     || (cat === 'accessories' && /cufflink|pocket square|lapel|cravat|ascot/.test(t));
   const isRevealing = Boolean(garment.meta?.isRevealing);
   const isSlipDress = subtype === 'slip_dress';
+  const shortSleeve = (cat === 'tops' || cat === 'shirts' || cat === 'formal' || structuredShirt || isDressShirt)
+    && isShortSleeveTop(item);
 
   let formalityTier: FormalityTier = 3;
 
@@ -324,6 +340,7 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
     isChelseaBoots,
     isSlides,
     isLeatherSandals,
+    isShortSleeve: shortSleeve,
   };
 }
 
@@ -469,6 +486,13 @@ export const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isTie')
       && /t-shirt|tee\b|graphic top|crew[\s-]?neck|polo\b/.test(ctx.text)
       && !ctx.any('isDressShirt'),
+  },
+  {
+    id: 'tie_short_sleeve',
+    penalty: 90,
+    hint: 'A necktie needs a long-sleeve collared shirt — not short sleeves',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isTie') && ctx.any('isShortSleeve'),
   },
   {
     id: 'tie_no_structured_collar',
@@ -636,14 +660,27 @@ export const CLASH_RULES: Array<{
     severity: 'fatal',
     when: (ctx) => {
       const occasion = String(ctx.occasion || ctx.options?.occasion || 'casual').toLowerCase();
-      if (!occasion || occasion === 'casual' || !/formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
+      // work_outfit / work dress codes need smart shoes (oxford, loafer, Chelsea) — not rugged boots.
+      if (
+        !occasion
+        || occasion === 'casual'
+        || !/formal|black.?tie|gala|wedding|office|business|interview|work_outfit|work\b/.test(occasion)
+      ) {
         return false;
       }
+      // Creative / casual workplaces opt out via workDressCode.
+      const dressCode = String(ctx.options?.workDressCode || '').toLowerCase();
+      if (dressCode === 'creative' || dressCode === 'smart_casual') return false;
+
       return ctx.signals.some((s) => {
-        if (!s.subtype) return false;
         const shoeLike = s.isCasualTrainer || s.isFormalShoes || s.isHeels || s.isBoots
-          || s.isSlides || s.isLeatherSandals || s.isUggs;
-        return shoeLike && (s.formalityTier ?? 3) < 4;
+          || s.isSlides || s.isLeatherSandals || s.isUggs || s.isCombatBoots;
+        if (!shoeLike) return false;
+        // Rugged / combat boots never pass office lock even if mis-tiered.
+        if (s.isCombatBoots || (s.isBoots && !s.isDressyBoots && !s.isChelseaBoots && !s.isFormalShoes)) {
+          return true;
+        }
+        return (s.formalityTier ?? 3) < 4;
       });
     },
   },
@@ -982,6 +1019,7 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   blazer_leather_sandals: 'Swap sandals for loafers or minimal sneakers with a blazer',
   footwear_lane_mismatch: 'Let footwear set one direction — match shoes to the tailored or street lane',
   occasion_footwear_lock: 'Formal occasions need loafers, oxfords, heels, or Chelsea boots',
+  tie_short_sleeve: 'Drop the tie with short sleeves — or switch to a long-sleeve collared shirt',
   blazer_chunky_trainers: 'Swap chunky athletic trainers for plain white lifestyle sneakers, or drop the blazer',
   athletic_shorts_blazer: 'Swap athletic shorts for tailored shorts, chinos, or trousers',
   revealing_stack: 'Keep one revealing hero piece — tone down the second silhouette',

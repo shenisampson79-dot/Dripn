@@ -19,7 +19,8 @@ import {
   isTopItem,
 } from '@/utils/completeOutfit';
 import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
-import { isOutfitValid } from '@/utils/outfitClashRules';
+import { isOutfitValid, type WorkDressCode } from '@/utils/outfitClashRules';
+import { scoreFootwearDirection } from '@/utils/garmentTaxonomy';
 import { filterItemsForBestLook } from '@/utils/wardrobeTruthReconciliation';
 import {
   cloneDiversityTracker,
@@ -252,6 +253,13 @@ function isSameFullOutfitAsPrevious(items: WardrobeItem[], previous: WardrobeIte
   return items.every((item) => prevIds.has(String(item.id)));
 }
 
+function clashOptionsFor(
+  occasion: OutfitOccasionId,
+  workDressCode?: WorkDressCode | null,
+): { occasion: string; workDressCode?: WorkDressCode | null } {
+  return { occasion, workDressCode: workDressCode || null };
+}
+
 /** Score(O) = V(O) - R(O) - C(O) + D(O); higher is better. */
 function scoreCombo(
   items: WardrobeItem[],
@@ -265,6 +273,7 @@ function scoreCombo(
   wardrobePressure: number,
   diversity?: DiversityTracker | null,
   weather?: WeatherLike | null,
+  workDressCode?: WorkDressCode | null,
 ): number {
   let score = 0;
   const gym = occasion === 'gym';
@@ -335,6 +344,21 @@ function scoreCombo(
     score += 0.5;
   }
 
+  // Prefer smart office footwear when dressing for work (unless creative workplace).
+  const footwear = scoreFootwearDirection(items, { occasion });
+  score += footwear.adjustment;
+  const officeLike =
+    occasion === 'work_outfit'
+    || (occasion === 'smart_casual' && (workDressCode === 'business_casual' || workDressCode === 'business_formal'));
+  if (officeLike && workDressCode !== 'creative' && workDressCode !== 'smart_casual') {
+    for (const item of items) {
+      if (!isShoesItem(item)) continue;
+      const t = `${item.name || ''} ${item.subcategory || ''}`.toLowerCase();
+      if (/oxford|derby|brogue|loafer|chelsea|dress shoe|heel|pump/.test(t)) score += 10;
+      if (/combat|hiking|timberland|work boot|rugged|chunky boot|doc\b|dr\.?\s*marten/.test(t)) score -= 14;
+    }
+  }
+
   return score;
 }
 
@@ -366,10 +390,12 @@ function pickValidOptional(
   laundryProfile: LaundryProfile,
   referenceDate: Date,
   canWearRelaxLevel: 0 | 1 | 2,
+  workDressCode?: WorkDressCode | null,
 ): WardrobeItem | undefined {
+  const clashOpts = clashOptionsFor(occasion, workDressCode);
   for (const item of candidates) {
     if (!itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, canWearRelaxLevel)) continue;
-    if (isOutfitValid([...baseItems, item])) return item;
+    if (isOutfitValid([...baseItems, item], clashOpts)) return item;
   }
   return undefined;
 }
@@ -480,6 +506,7 @@ function allocateWithMode(params: {
   referenceDate?: Date;
   diversityTracker?: DiversityTracker;
   weather?: WeatherLike | null;
+  workDressCode?: WorkDressCode | null;
 }): DayAllocation[] | null {
   const {
     wardrobe,
@@ -490,6 +517,7 @@ function allocateWithMode(params: {
     referenceDate = new Date(),
     diversityTracker,
     weather = null,
+    workDressCode = null,
   } = params;
   const primaryOccasion = occasionTypes[0] || 'casual_day';
   const log: UsageLog = { lastDay: new Map(), weekCount: new Map() };
@@ -606,8 +634,9 @@ function allocateWithMode(params: {
           if (isSameFullOutfitAsPrevious([top, bottom, shoe], previous)) continue;
 
           const baseItems: WardrobeItem[] = [top, bottom, shoe];
+          const clashOpts = clashOptionsFor(occasionType, workDressCode);
           // Hard filter before soft reuse/variety scoring — invalid outfits never enter the candidate set
-          if (!isOutfitValid(baseItems)) continue;
+          if (!isOutfitValid(baseItems, clashOpts)) continue;
 
           const tempC = parseWeatherTempC(weather);
           const weatherPolicy = outerwearWeatherPolicy(
@@ -629,6 +658,7 @@ function allocateWithMode(params: {
               laundryProfile,
               planDate,
               canWearRelaxLevel,
+              workDressCode,
             );
             // Warm: light rare — omit outerwear when preferEmpty (soft omit after hard heavy-block)
             if (weatherPolicy.preferEmpty && outerwear) {
@@ -645,6 +675,7 @@ function allocateWithMode(params: {
                 laundryProfile,
                 planDate,
                 canWearRelaxLevel,
+                workDressCode,
               );
             }
           }
@@ -662,11 +693,12 @@ function allocateWithMode(params: {
                   laundryProfile,
                   planDate,
                   canWearRelaxLevel,
+                  workDressCode,
                 );
 
           const combo: Combo = { top, bottom, shoes: shoe, outerwear, accessory };
           const items = comboItems(combo);
-          if (!isOutfitValid(items)) continue;
+          if (!isOutfitValid(items, clashOpts)) continue;
           if (isSameFullOutfitAsPrevious(items, previous)) continue;
           const sig = hashOutfit(items);
           if (sig && diversity.outfitHashes.has(sig)) continue;
@@ -683,6 +715,7 @@ function allocateWithMode(params: {
             wardrobePressure,
             diversity,
             weather,
+            workDressCode,
           );
           if (score > bestScore) {
             bestScore = score;
@@ -734,6 +767,8 @@ export function allocateMultiDayPlan(params: {
   diversityTracker?: DiversityTracker;
   /** Ambient weather — hard-gates outerwear (fleece impossible when hot) */
   weather?: WeatherLike | null;
+  /** Workplace formality — creative/smart_casual relax office footwear lock. */
+  workDressCode?: WorkDressCode | null;
 }): AllocationResult {
   const {
     wardrobe,
@@ -746,6 +781,7 @@ export function allocateMultiDayPlan(params: {
     priorOutfits,
     diversityTracker,
     weather = null,
+    workDressCode = null,
   } = params;
 
   const planDiversity =
@@ -814,6 +850,7 @@ export function allocateMultiDayPlan(params: {
       referenceDate,
       diversityTracker: cloneDiversityTracker(planDiversity),
       weather,
+      workDressCode,
     });
     if (!allocated) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -849,6 +886,7 @@ export function allocateMultiDayPlan(params: {
     referenceDate,
     diversityTracker: cloneDiversityTracker(planDiversity),
     weather,
+    workDressCode,
   });
 
   if (!allocated) {
@@ -863,6 +901,8 @@ export function allocateMultiDayPlan(params: {
       laundryProfile,
       referenceDate,
       diversityTracker: cloneDiversityTracker(planDiversity),
+      weather,
+      workDressCode,
     });
     if (!retry) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -987,6 +1027,7 @@ export function allocateSingleDayOutfit(params: {
   priorOutfits?: WardrobeItem[][];
   /** Ambient weather — hard-gates outerwear (fleece impossible when hot) */
   weather?: WeatherLike | null;
+  workDressCode?: WorkDressCode | null;
 }): SingleDayAllocation {
   const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
@@ -1006,6 +1047,8 @@ export function allocateSingleDayOutfit(params: {
     seedDiversityTracker(params.priorOutfits || []),
   );
   const weather = params.weather ?? null;
+  const workDressCode = params.workDressCode ?? null;
+  const clashOpts = clashOptionsFor(occasion, workDressCode);
 
   for (const mode of ['strict', 'soft', 'rotation'] as const) {
     const plan = allocateMultiDayPlan({
@@ -1016,13 +1059,14 @@ export function allocateSingleDayOutfit(params: {
       referenceDate,
       diversityTracker: cloneDiversityTracker(diversityTracker),
       weather,
+      workDressCode,
     });
     if (plan.ok && plan.days[0]?.itemIds?.length) {
       const byId = new Map(params.wardrobe.map((w) => [String(w.id), w]));
       const items = plan.days[0].itemIds
         .map((id) => byId.get(String(id)))
         .filter((item): item is WardrobeItem => Boolean(item));
-      if (items.length >= 3 && isOutfitValid(items)) {
+      if (items.length >= 3 && isOutfitValid(items, clashOpts)) {
         return {
           ok: true,
           occasionType: occasion,

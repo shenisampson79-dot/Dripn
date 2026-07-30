@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { DressFor } from '@/services/OnboardingProfileService';
+import type { DressFor, WorkDressCode } from '@/services/OnboardingProfileService';
+import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
 import {
   getHourInTimeZone,
   TODAYS_OUTFIT_TIMEZONE,
@@ -20,6 +21,8 @@ export type TodaysOutfitPopupPrefs = {
   appearAtHour: number;
   /** Force an occasion, or auto = time-aware. */
   preferredOccasion: TodaysOutfitOccasionPref;
+  /** Workplace dress code — shapes work-day footwear and formality. */
+  workDressCode?: WorkDressCode | null;
 };
 
 /** @deprecated Kept for reading older stored prefs only. */
@@ -32,6 +35,7 @@ export const DEFAULT_TODAYS_OUTFIT_POPUP_PREFS: TodaysOutfitPopupPrefs = {
   enabled: true,
   appearAtHour: 8,
   preferredOccasion: 'auto',
+  workDressCode: null,
 };
 
 export const OCCASION_PREF_OPTIONS: Array<{ id: TodaysOutfitOccasionPref; label: string }> = [
@@ -73,14 +77,26 @@ export function normalizeTodaysOutfitPopupPrefs(
     enabled: base.enabled !== false,
     appearAtHour,
     preferredOccasion,
+    workDressCode: normalizeWorkDressCode(base.workDressCode),
   };
 }
 
 export async function getTodaysOutfitPopupPrefs(): Promise<TodaysOutfitPopupPrefs> {
   try {
     const raw = await AsyncStorage.getItem(PREFS_KEY);
-    if (!raw) return { ...DEFAULT_TODAYS_OUTFIT_POPUP_PREFS };
-    return normalizeTodaysOutfitPopupPrefs(JSON.parse(raw));
+    const prefs = raw
+      ? normalizeTodaysOutfitPopupPrefs(JSON.parse(raw))
+      : { ...DEFAULT_TODAYS_OUTFIT_POPUP_PREFS };
+    if (!prefs.workDressCode) {
+      try {
+        const { onboardingProfileService } = await import('@/services/OnboardingProfileService');
+        const profile = await onboardingProfileService.getProfile();
+        prefs.workDressCode = normalizeWorkDressCode(profile.workDressCode);
+      } catch {
+        /* ignore */
+      }
+    }
+    return prefs;
   } catch {
     return { ...DEFAULT_TODAYS_OUTFIT_POPUP_PREFS };
   }
@@ -100,6 +116,17 @@ export async function saveTodaysOutfitPopupPrefs(
     void syncTodaysOutfitLocalNotification(next);
   } catch {
     // non-fatal
+  }
+  // Mirror work dress code into onboarding profile (generator + Settings share one value).
+  if (partial.workDressCode !== undefined) {
+    try {
+      const { onboardingProfileService } = await import('@/services/OnboardingProfileService');
+      await onboardingProfileService.saveProfile({
+        workDressCode: normalizeWorkDressCode(partial.workDressCode),
+      });
+    } catch {
+      // non-fatal
+    }
   }
   return next;
 }

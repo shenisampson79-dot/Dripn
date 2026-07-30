@@ -165,6 +165,7 @@ export interface UserProfile {
   onboardingProfile?: {
     identity?: string;
     dressFor?: string;
+    workDressCode?: string | null;
     quizGender?: 'female' | 'male';
     likedStyles?: string[];
     quizComplete?: boolean;

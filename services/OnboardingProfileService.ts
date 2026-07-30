@@ -15,6 +15,53 @@ export type DressFor =
   | 'myself'
   | 'event';
 
+/** How formal the user's workplace expects them to dress. */
+export type WorkDressCode =
+  | 'creative'
+  | 'smart_casual'
+  | 'business_casual'
+  | 'business_formal';
+
+export const WORK_DRESS_CODE_OPTIONS: Array<{ id: WorkDressCode; label: string; description: string }> = [
+  {
+    id: 'creative',
+    label: 'Creative / casual',
+    description: 'Art, media, startups — boots and relaxed pieces are fine',
+  },
+  {
+    id: 'smart_casual',
+    label: 'Smart casual',
+    description: 'Neat but not corporate — chinos, knitwear, clean shoes',
+  },
+  {
+    id: 'business_casual',
+    label: 'Business casual',
+    description: 'Office-ready — collared shirts, tailored trousers, smart shoes',
+  },
+  {
+    id: 'business_formal',
+    label: 'Business formal',
+    description: 'Suits, ties, oxfords / loafers / Chelsea boots',
+  },
+];
+
+export function normalizeWorkDressCode(value: unknown): WorkDressCode | null {
+  if (
+    value === 'creative'
+    || value === 'smart_casual'
+    || value === 'business_casual'
+    || value === 'business_formal'
+  ) {
+    return value;
+  }
+  return null;
+}
+
+export function getWorkDressCodeLabel(code: WorkDressCode | null | undefined): string {
+  if (!code) return 'Not set';
+  return WORK_DRESS_CODE_OPTIONS.find((o) => o.id === code)?.label || code;
+}
+
 export type QuizGender = 'female' | 'male';
 
 export interface QuizLike {
@@ -27,6 +74,8 @@ export interface QuizLike {
 export interface OnboardingProfile {
   identity?: StyleIdentity;
   dressFor?: DressFor;
+  /** Workplace formality — used for weekday work looks / footwear. */
+  workDressCode?: WorkDressCode | null;
   quizGender?: QuizGender;
   /** Unique style labels from current quiz session likes */
   likedStyles?: string[];

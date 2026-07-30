@@ -28,6 +28,12 @@ import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from 
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
 import { getLocalizedCountryName, filterCountriesBySearch } from "@/utils/countryLocalization";
+import {
+  onboardingProfileService,
+  WORK_DRESS_CODE_OPTIONS,
+  type WorkDressCode,
+} from "@/services/OnboardingProfileService";
+import { saveTodaysOutfitPopupPrefs } from "@/utils/todaysOutfitPrefs";
 
 const REGION_I18N_KEYS: Record<string, string> = {
   Americas: "americas",
@@ -685,6 +691,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
   const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);
+  const [workDressCode, setWorkDressCode] = useState<WorkDressCode | null>(null);
   const [shopSearchQuery, setShopSearchQuery] = useState("");
   const [dressCodePreference, setDressCodePreference] = useState<DressCodePreference>(null);
   const [subcultureStyle, setSubcultureStyle] = useState<SubcultureStyle>(null);
@@ -1395,6 +1402,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         },
       },
     });
+    if (workDressCode) {
+      try {
+        await onboardingProfileService.saveProfile({ workDressCode });
+        await saveTodaysOutfitPopupPrefs({ workDressCode });
+      } catch {
+        /* non-fatal */
+      }
+    }
     navigation.replace("OnboardingQuiz");
   };
 
@@ -2186,6 +2201,43 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   );
                 })}
               </View>
+
+              {(stylePreference === 'business' || stylePreference === 'smart-casual') ? (
+                <View style={{ marginTop: Spacing.lg, marginBottom: Spacing.md }}>
+                  <ThemedText type="body" style={{ fontWeight: '600', marginBottom: Spacing.xs }}>
+                    {t('onboarding.workDressCodeTitle') || 'Work dress code'}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ opacity: 0.7, marginBottom: Spacing.md }}>
+                    {t('onboarding.workDressCodeSubtitle')
+                      || 'How formal is your workplace? We’ll use this for weekday work looks — you can change it later in Settings.'}
+                  </ThemedText>
+                  {WORK_DRESS_CODE_OPTIONS.map((opt) => {
+                    const selected = workDressCode === opt.id;
+                    return (
+                      <Pressable
+                        key={opt.id}
+                        onPress={() => setWorkDressCode(opt.id)}
+                        style={({ pressed }) => [
+                          styles.lifestyleOption,
+                          {
+                            backgroundColor: selected ? `${theme.link}20` : theme.backgroundDefault,
+                            borderColor: selected ? theme.link : theme.border,
+                            borderWidth: selected ? 2 : 1,
+                            opacity: pressed ? 0.85 : 1,
+                            marginBottom: Spacing.sm,
+                          },
+                        ]}
+                      >
+                        <View style={styles.lifestyleTextContainer}>
+                          <ThemedText type="body" style={{ fontWeight: '600' }}>{opt.label}</ThemedText>
+                          <ThemedText type="small" style={{ opacity: 0.7 }}>{opt.description}</ThemedText>
+                        </View>
+                        {selected ? <Feather name="check-circle" size={20} color={theme.link} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
             </ScrollView>
           </View>
         );

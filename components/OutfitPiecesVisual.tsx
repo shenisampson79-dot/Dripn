@@ -21,7 +21,8 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
-const STACK_OVERLAP = 28;
+/** Stack overlap — keep modest so shirt/trouser hems stay visible at full layer size. */
+const STACK_OVERLAP = 18;
 
 export type OutfitPieceVisual = {
   role?: string;
@@ -331,7 +332,8 @@ export function OutfitPiecesVisual({
     return base * (compact ? 0.94 : 1);
   };
   const baseOverlap = compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
-  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.55 : 1));
+  // tight used to multiply by 1.55 and clipped hems under the next layer; keep a light nudge only.
+  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.15 : 1));
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {

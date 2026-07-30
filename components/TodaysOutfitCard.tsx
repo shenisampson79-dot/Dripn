@@ -215,7 +215,6 @@ function ZoomableOutfitVisual({
               pieces={pieces}
               wardrobeItems={wardrobeItems}
               label=""
-              tight
               canvasWidth={canvasWidth}
               visualScale={1.12}
             />
@@ -883,7 +882,6 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
                             pieces={visualPieces}
                             wardrobeItems={pieces}
                             label=""
-                            tight
                             canvasWidth={canvasWidth}
                             visualScale={1.12}
                           />
@@ -1187,7 +1185,8 @@ const styles = StyleSheet.create({
   visualBlock: { marginBottom: Spacing.sm },
   visualFrame: {
     borderRadius: BorderRadius.md,
-    overflow: 'hidden',
+    // Visible so stacked cutouts aren't clipped at the frame edge (hems were disappearing).
+    overflow: 'visible',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
   },

@@ -44,6 +44,11 @@ import {
   type TodaysOutfitPopupPrefs,
 } from "@/utils/todaysOutfitPrefs";
 import {
+  getWorkDressCodeLabel,
+  WORK_DRESS_CODE_OPTIONS,
+  type WorkDressCode,
+} from "@/services/OnboardingProfileService";
+import {
   getAnalyticsConsent,
   setAnalyticsConsent,
 } from "@/utils/analyticsConsent";
@@ -196,7 +201,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [outfitPopupPrefs, setOutfitPopupPrefs] = useState<TodaysOutfitPopupPrefs>(
     DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
   );
-  const [outfitPopupPicker, setOutfitPopupPicker] = useState<'appearAt' | 'occasion' | null>(null);
+  const [outfitPopupPicker, setOutfitPopupPicker] = useState<'appearAt' | 'occasion' | 'workDress' | null>(null);
   const {
     remainingCredits,
     hasMonthlyAllowance,
@@ -996,6 +1001,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
+          <SettingItem
+            icon="briefcase"
+            title={t('settings.workDressCode') || 'Work dress code'}
+            subtitle={getWorkDressCodeLabel(outfitPopupPrefs.workDressCode)}
+            onPress={() => setOutfitPopupPicker('workDress')}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          />
         </View>
       </View>
 
@@ -1467,6 +1481,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               <ThemedText type="h3" style={styles.modalTitle}>
                 {outfitPopupPicker === 'occasion'
                   ? (t('settings.outfitPopupOccasion') || 'Occasion')
+                  : outfitPopupPicker === 'workDress'
+                    ? (t('settings.workDressCode') || 'Work dress code')
                   : (t('settings.outfitPopupAppearAt') || 'Appear at')}
               </ThemedText>
               <Pressable
@@ -1500,6 +1516,34 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                       ) : null}
                     </Pressable>
                   ))
+                : outfitPopupPicker === 'workDress'
+                  ? WORK_DRESS_CODE_OPTIONS.map((option) => (
+                      <Pressable
+                        key={option.id}
+                        onPress={() => {
+                          void updateOutfitPopupPrefs({
+                            workDressCode: option.id as WorkDressCode,
+                          });
+                          setOutfitPopupPicker(null);
+                        }}
+                        style={[
+                          styles.modalOption,
+                          outfitPopupPrefs.workDressCode === option.id && {
+                            backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                          <ThemedText type="body">{option.label}</ThemedText>
+                          <ThemedText type="small" style={{ opacity: 0.65, marginTop: 2 }}>
+                            {option.description}
+                          </ThemedText>
+                        </View>
+                        {outfitPopupPrefs.workDressCode === option.id ? (
+                          <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
+                        ) : null}
+                      </Pressable>
+                    ))
                 : Array.from({ length: 24 }, (_, hour) => (
                     <Pressable
                       key={hour}

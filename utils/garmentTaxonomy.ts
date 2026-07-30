@@ -636,7 +636,7 @@ export function scoreFootwearDirection(items, options: { occasion?: string; even
   }
 
   const occasion = String(options.occasion || options.eventType || '').toLowerCase();
-  if (occasion && /formal|black.?tie|gala|wedding|office|business|interview/.test(occasion)) {
+  if (occasion && /formal|black.?tie|gala|wedding|office|business|interview|work_outfit|work\b/.test(occasion)) {
     const f = shoe.formality ?? shoe.meta?.formality ?? 2;
     if (f < 4) {
       adjustment -= 16;
