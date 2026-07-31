@@ -33,6 +33,14 @@
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
     "verify:outfit-score": "npx tsx scripts/verify-outfit-score.ts",
+    "verify:allocation-score": "npx tsx utils/outfitAllocationScore.test.ts",
+    "verify:auto-pipeline": "npx tsx utils/outfitAutoAnalysisPipeline.test.ts",
+    "verify:pipeline-wire": "npx tsx utils/yoloToPipelineCandidates.test.ts",
+    "verify:hybrid-detection": "npx tsx utils/hybridDetectionLayer.test.ts",
+    "verify:live-regression": "npx tsx utils/liveRegression.test.ts",
+    "verify:fashion-color": "npx tsx utils/fashionColorTaxonomy.test.ts",
+    "verify:dual-style-signals": "npx tsx utils/dualStyleSignals.test.ts",
+    "verify:feedback-brain": "npx tsx utils/outfitFeedbackBrain.test.ts",
     "verify:outfit-mix-occasion": "npx tsx scripts/verify-outfit-mix-occasion.ts",
     "verify:outfit-mix-integrity": "npx tsx scripts/verify-outfit-mix-integrity.ts",
     "verify:ui-integrity": "npx tsx scripts/verify-ui-integrity.ts",
@@ -44,9 +52,12 @@
     "verify:garment-image-priority": "npx tsx scripts/verify-garment-image-priority.ts",
     "verify:outfit-intent": "npx tsx scripts/verify-outfit-intent.ts",
     "verify:fallback-outfit": "npx tsx scripts/verify-fallback-outfit.ts",
-    "test:currency": "node scripts/test-currency-resolve.mjs"
-  },
-  "dependencies": {
+    "test:currency": "node scripts/test-currency-resolve.mjs",
+    "enrich:sloane-brands": "node scripts/enrich-sloane-brands.mjs",
+    "build:sloane-signals": "node scripts/enrich-sloane-brands.mjs && node scripts/build-shop-window-signals.mjs",
+    "build:shop-window-signals": "node scripts/enrich-sloane-brands.mjs && node scripts/build-shop-window-signals.mjs",
+    "prepare:yolo-shop-windows": "node scripts/prepare-yolo-shop-windows.mjs"
+  },  "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",

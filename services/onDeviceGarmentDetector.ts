@@ -4,9 +4,15 @@
  * Requires a native EAS binary that links Nitro + TFLite. OTA JS on older binaries
  * feature-detects and falls back to cloud Vision — do not rely on Expo Go / OTA alone.
  *
- * Model: assets/models/garment-yolo-n320.tflite (~11.6 MB float32)
- * Source: kesimeg/yolov8n-clothing-detection (Fashionpedia 4-class) exported @ 320.
+ * Production model: assets/models/garment-yolo-n320.tflite
+ *   = Fashionpedia 4-class (kesimeg/yolov8n-clothing-detection @ 320). Backup twin:
+ *   garment-yolo-n320.fashionpedia.bak.tflite
+ *
+ * Do NOT ship shop-window fine-tunes until shoes recall / mAP50 are competitive.
+ * Experimental weights (if present): garment-yolo-n320.shopwindows.experimental.tflite
+ *
  * Classes: Clothing, Shoes, Bags, Accessories — Clothing is remapped via bbox geometry.
+ * Hybrid layer (utils/outfitAutoAnalysisPipeline) recovers missed shoes after inference.
  */
 
 import { Platform } from 'react-native';
@@ -15,10 +21,24 @@ import { decode as decodeJpeg } from 'jpeg-js';
 
 import type { LiveTrackedItem } from '@/types/liveStylist';
 import {
+  looksLikeFootwearBbox,
   mapYoloClassToWardrobeCategory,
   parseYoloGarmentOutput,
   type ParsedYoloBox,
 } from '@/services/yoloGarmentParse';
+import {
+  SKIN_DISCARD_RATIO,
+  classifyColorFromRgb,
+  clipShortsBbox,
+  formatGarmentDisplayName,
+  isFloorLengthTrousersEvidence,
+  isSkinPixel,
+  measureBottomBandBrightness,
+  measureLowerSkinRatio,
+  measureSkinRatio,
+  resolveClassByRegionLock,
+} from '@/utils/bodyGeometryGuardrails';
+import { FOOT_ZONE_BRIGHTNESS_MIN } from '@/utils/liveFootwearGate';
 
 /** Flip true once the TFLite native path ships in JS (this build). */
 export const ON_DEVICE_YOLO_NATIVE = true;
@@ -32,7 +52,21 @@ export type OnDeviceDetection = {
   bbox: [number, number, number, number];
   suggestion?: string;
   trackId?: string;
+  /** Skin fraction in ROI — used by footwear barefoot gate. */
+  skinRatio?: number;
 };
+
+export type OnDeviceFootZoneMeta = {
+  brightness: number;
+  visible: boolean;
+  cropped: boolean;
+};
+
+let lastFootZoneMeta: OnDeviceFootZoneMeta | null = null;
+
+export function getLastOnDeviceFootZone(): OnDeviceFootZoneMeta | null {
+  return lastFootZoneMeta;
+}
 
 const INPUT_SIZE = 320;
 const MODEL_ASSET = require('../assets/models/garment-yolo-n320.tflite');
@@ -167,89 +201,97 @@ export function getOnDeviceYoloStatus(): {
   };
 }
 
-function looksLikeFootwearBbox(bbox: [number, number, number, number]): boolean {
-  const [, ny, nw, nh] = bbox;
-  const aspect = nh / Math.max(nw, 1e-6);
-  const area = nw * nh;
-  const cy = ny + nh / 2;
-  const bottomHeavy = cy >= 0.34;
-  const bottomTouch = ny + nh >= 0.72;
-  return area >= 0.008 && area <= 0.45 && aspect >= 0.7 && aspect <= 4.6 && (bottomTouch || bottomHeavy);
-}
+type ColorSampleMode = 'top' | 'bottom' | 'footwear' | 'garment';
 
 function estimateColorFromRoi(
   rgba: Uint8Array,
   width: number,
   height: number,
   bbox: [number, number, number, number],
+  mode: ColorSampleMode = 'garment',
 ): string {
   const [nx, ny, nw, nh] = bbox;
   const x0 = Math.max(0, Math.floor(nx * width));
   const y0 = Math.max(0, Math.floor(ny * height));
   const x1 = Math.min(width, Math.ceil((nx + nw) * width));
   const y1 = Math.min(height, Math.ceil((ny + nh) * height));
-  if (x1 <= x0 || y1 <= y0) return 'unknown';
+  if (x1 <= x0 || y1 <= y0) return 'other';
 
-  const footwear = looksLikeFootwearBbox(bbox);
-  // Sample inside the ROI so floor edges don’t wash the colour to grey.
-  const mx0 = x0 + Math.floor((x1 - x0) * 0.22);
-  const mx1 = x1 - Math.floor((x1 - x0) * 0.22);
-  // Footwear: avoid the bottom edge where floor often dominates.
-  const my0 = footwear
-    ? y0 + Math.floor((y1 - y0) * 0.25)
-    : y0 + Math.floor((y1 - y0) * 0.22);
+  const footwear = mode === 'footwear' || looksLikeFootwearBbox(bbox);
+  const bottoms = mode === 'bottom' || (!footwear && ny + nh * 0.5 > 0.52);
+  const bw = x1 - x0;
+  const bh = y1 - y0;
+  // Avoid centre (phone occlusion on mirror selfies) — sample side bands for tops
+  const insetX = footwear ? 0.22 : bottoms ? 0.1 : 0.12;
+  const insetY = footwear ? 0.25 : bottoms ? 0.12 : 0.22;
+  const mx0 = x0 + Math.floor(bw * insetX);
+  const mx1 = x1 - Math.floor(bw * insetX);
+  // Bottoms: bias to upper fabric (avoid ankles / carpet)
+  const my0 = y0 + Math.floor(bh * insetY);
   const my1 = footwear
-    ? y0 + Math.floor((y1 - y0) * 0.82)
-    : y1 - Math.floor((y1 - y0) * 0.22);
-  const sx0 = mx1 > mx0 ? mx0 : x0;
-  const sx1 = mx1 > mx0 ? mx1 : x1;
-  const sy0 = my1 > my0 ? my0 : y0;
-  const sy1 = my1 > my0 ? my1 : y1;
+    ? y0 + Math.floor(bh * 0.82)
+    : bottoms
+      ? y0 + Math.floor(bh * 0.72)
+      : y1 - Math.floor(bh * insetY);
+  const centreL = x0 + Math.floor(bw * 0.35);
+  const centreR = x0 + Math.floor(bw * 0.65);
 
   let r = 0;
   let g = 0;
   let b = 0;
   let n = 0;
-  const stepX = Math.max(1, Math.floor((sx1 - sx0) / 18));
-  const stepY = Math.max(1, Math.floor((sy1 - sy0) / 18));
-  for (let y = sy0; y < sy1; y += stepY) {
-    for (let x = sx0; x < sx1; x += stepX) {
+  let chromaN = 0;
+  let cr = 0;
+  let cg = 0;
+  let cb = 0;
+  let darkN = 0;
+  const stepX = Math.max(1, Math.floor((mx1 - mx0) / 18));
+  const stepY = Math.max(1, Math.floor((my1 - my0) / 18));
+  for (let y = my0; y < my1; y += stepY) {
+    for (let x = mx0; x < mx1; x += stepX) {
+      // Skip centre vertical band on garment boxes (phone / hands)
+      if (!footwear && x >= centreL && x <= centreR) continue;
       const i = (y * width + x) * 4;
-      r += rgba[i] ?? 0;
-      g += rgba[i + 1] ?? 0;
-      b += rgba[i + 2] ?? 0;
+      const pr = rgba[i] ?? 0;
+      const pg = rgba[i + 1] ?? 0;
+      const pb = rgba[i + 2] ?? 0;
+      if (!footwear && isSkinPixel(pr, pg, pb)) continue;
+      const maxC = Math.max(pr, pg, pb);
+      // Tops only: skip near-black (phone / shadow). Bottoms need those samples
+      // or black/grey shorts collapse to "other" / no colour.
+      if (!footwear && !bottoms && maxC < 48) continue;
+      if (bottoms && maxC < 90) darkN += 1;
+      r += pr;
+      g += pg;
+      b += pb;
       n += 1;
+      const chroma = maxC - Math.min(pr, pg, pb);
+      if (chroma > 40) {
+        cr += pr;
+        cg += pg;
+        cb += pb;
+        chromaN += 1;
+      }
     }
   }
-  if (!n) return 'unknown';
-  r = Math.round(r / n);
-  g = Math.round(g / n);
-  b = Math.round(b / n);
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  if (max < 40) return 'black';
-  if (min > 210) return 'white';
-  if (max - min < 35) {
-    if (max < 90) return 'charcoal';
-    if (max < 145) return 'gray';
-    // Warm near-white (cream henleys on sheets) — not "light gray"
-    if (min > 165 && r >= g - 5 && g >= b - 10) {
-      if (r - b > 12) return 'cream';
-      if (r - b > 6) return 'beige';
-      return 'white';
-    }
-    if (min > 170) return 'white';
-    return 'light gray';
+  if (!n && !chromaN) return 'other';
+  // Dark shorts / trousers: majority near-black fabric → black (not carpet beige)
+  if (bottoms && n > 0 && darkN / n >= 0.45 && chromaN < Math.max(4, n * 0.2)) {
+    return 'black';
   }
-  if (r > g + 25 && r > b + 25) return r > 160 ? 'red' : 'burgundy';
-  if (g > r + 25 && g > b + 20) return 'green';
-  if (b > r + 25 && b > g + 20) return 'blue';
-  if (r > 150 && g > 120 && b < 90) return 'mustard';
-  if (r > 160 && g > 100 && b < 100) return 'orange';
-  if (r > 140 && g < 100 && b > 120) return 'purple';
-  if (r > 150 && g > 130 && b > 100) return 'beige';
-  return 'multicolor';
+  // Prefer chromatic samples when available (true garment hue over shadow)
+  if (chromaN >= Math.max(4, n * 0.15)) {
+    return classifyColorFromRgb(
+      Math.round(cr / chromaN),
+      Math.round(cg / chromaN),
+      Math.round(cb / chromaN),
+    );
+  }
+  return classifyColorFromRgb(
+    Math.round(r / n),
+    Math.round(g / n),
+    Math.round(b / n),
+  );
 }
 
 function letterboxRgbToFloat32(
@@ -308,22 +350,63 @@ function boxesToDetections(
   width: number,
   height: number,
 ): OnDeviceDetection[] {
-  return boxes.map((box, i) => {
-    const footwearLike = looksLikeFootwearBbox(box.bbox);
-    let mapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
-    if (footwearLike) {
-      mapped = { category: 'shoes', subcategory: 'shoes', name: 'Shoes' };
+  const out: OnDeviceDetection[] = [];
+  boxes.forEach((box, i) => {
+    // Discard skin-dominated boxes — arms AND bare feet (never "shoes")
+    const skinRatio = measureSkinRatio(rgba, width, height, box.bbox);
+    if (skinRatio > SKIN_DISCARD_RATIO) {
+      return;
     }
-    return {
-      name: mapped.name,
-      category: mapped.category,
-      subcategory: mapped.subcategory,
-      color: estimateColorFromRoi(rgba, width, height, box.bbox),
-      confidence: footwearLike ? Math.min(0.95, box.confidence * 1.2 + 0.05) : box.confidence,
+    // Extra bare-foot guard: footwear-shaped but still mostly skin
+    if (looksLikeFootwearBbox(box.bbox) && skinRatio >= 0.22) {
+      return;
+    }
+
+    const lowerSkin = measureLowerSkinRatio(rgba, width, height, box.bbox);
+    const colorProbe = estimateColorFromRoi(rgba, width, height, box.bbox, 'garment');
+    const yoloMapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
+    const locked = resolveClassByRegionLock({
       bbox: box.bbox,
-      trackId: `yolo_${mapped.category}_${i}`,
-    };
+      yoloCategory: yoloMapped.category,
+      yoloSubcategory: yoloMapped.subcategory,
+      lowerSkinRatio: lowerSkin,
+      fabricColor: colorProbe,
+    });
+    // Geometry said shoes but ROI is skin → drop
+    if (locked.category === 'shoes' && skinRatio >= 0.22) {
+      return;
+    }
+    // Never soft-boost shoe confidence — barefoot false positives looked "locked"
+    const isShorts = locked.subcategory === 'shorts' || /short/i.test(locked.name);
+    // Only clip after confirmed shorts — never clip a floor-length trousers box
+    const bbox = isShorts && !isFloorLengthTrousersEvidence(box.bbox)
+      ? clipShortsBbox(box.bbox)
+      : box.bbox;
+    const sampleMode: ColorSampleMode =
+      locked.category === 'shoes'
+        ? 'footwear'
+        : locked.category === 'bottoms'
+          ? 'bottom'
+          : 'top';
+    const color = estimateColorFromRoi(rgba, width, height, bbox, sampleMode);
+    const name = formatGarmentDisplayName({
+      color,
+      category: locked.category,
+      subcategory: locked.subcategory,
+      fallbackName: locked.name,
+    });
+    out.push({
+      name,
+      category: locked.category,
+      subcategory: locked.subcategory,
+      color,
+      confidence: box.confidence,
+      bbox,
+      trackId: `yolo_${locked.category}_${i}`,
+      skinRatio,
+    });
   });
+  return out;
 }
 
 /**
@@ -365,11 +448,24 @@ export async function detectGarmentsOnDevice(
 
     if (!boxes.length) {
       // Empty on-device result → let cloud Vision try (better UX than "no garments").
+      const brightness = measureBottomBandBrightness(data, width, height);
+      lastFootZoneMeta = {
+        brightness,
+        visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
+        cropped: brightness < FOOT_ZONE_BRIGHTNESS_MIN,
+      };
       return null;
     }
+    const brightness = measureBottomBandBrightness(data, width, height);
+    lastFootZoneMeta = {
+      brightness,
+      visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
+      cropped: brightness < FOOT_ZONE_BRIGHTNESS_MIN,
+    };
     return boxesToDetections(boxes, data, width, height);
   } catch (err) {
     console.warn('[onDeviceYolo] inference failed, falling back to cloud:', err);
+    lastFootZoneMeta = null;
     return null;
   }
 }

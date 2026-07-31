@@ -5,6 +5,7 @@ import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import type { LiveFeedback, LiveTrackedItem } from '@/types/liveStylist';
+import { REGION } from '@/utils/bodyGeometryGuardrails';
 
 type Props = {
   width: number;
@@ -13,6 +14,8 @@ type Props = {
   feedback: LiveFeedback | null;
   onSelectItem?: (item: LiveTrackedItem) => void;
   selectedTrackId?: string | null;
+  /** Dev: draw top / transition / bottom / footwear guide lines */
+  showRegionGuides?: boolean;
 };
 
 function scoreColor(score: number): string {
@@ -28,6 +31,7 @@ export function LiveArOverlay({
   feedback,
   onSelectItem,
   selectedTrackId,
+  showRegionGuides = false,
 }: Props) {
   const boxes = useMemo(
     () =>
@@ -44,6 +48,22 @@ export function LiveArOverlay({
   return (
     <View style={[StyleSheet.absoluteFill, styles.root]} pointerEvents="box-none">
       <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+        {showRegionGuides ? (
+          <>
+            <Rect x={0} y={REGION.TOP_MAX * height} width={width} height={1} fill="rgba(80,200,120,0.55)" />
+            <Rect x={0} y={REGION.BOTTOM_MIN * height} width={width} height={1} fill="rgba(80,160,255,0.55)" />
+            <Rect x={0} y={REGION.FOOTWEAR_MIN * height} width={width} height={1} fill="rgba(255,180,80,0.55)" />
+            <SvgText x={8} y={REGION.TOP_MAX * height - 4} fill="rgba(80,200,120,0.9)" fontSize="9">
+              top
+            </SvgText>
+            <SvgText x={8} y={REGION.BOTTOM_MIN * height - 4} fill="rgba(80,160,255,0.9)" fontSize="9">
+              transition→bottom
+            </SvgText>
+            <SvgText x={8} y={REGION.FOOTWEAR_MIN * height - 4} fill="rgba(255,180,80,0.9)" fontSize="9">
+              footwear
+            </SvgText>
+          </>
+        ) : null}
         {boxes.map((item) => {
           const [nx, ny, nw, nh] = item.bbox!;
           const x = nx * width;

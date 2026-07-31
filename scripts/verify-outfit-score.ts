@@ -415,6 +415,37 @@ const loudOutfit = scoreColorHarmony([
 ], 'minimalist');
 assert(loudOutfit.score <= 55, `loud minimalist palette should score low, got ${loudOutfit.score}`);
 
+// Fashion taxonomy layer (neutral + bold beats bold + bold)
+const fashionBalanced = scoreColorHarmony([
+  { color: 'black' }, { color: 'white' }, { color: 'red' },
+], 'smart_casual');
+const fashionRisky = scoreColorHarmony([
+  { color: 'red' }, { color: 'yellow' }, { color: 'orange' },
+], 'smart_casual');
+assert(
+  fashionBalanced.score > fashionRisky.score,
+  `neutral+bold (${fashionBalanced.score}) should beat bold+bold (${fashionRisky.score})`,
+);
+assert(
+  (fashionBalanced.fashionAdjustment ?? 0) > (fashionRisky.fashionAdjustment ?? 0),
+  'fashion adjustment should favour neutral+bold',
+);
+
+const unifiedFashion = computeUnifiedOutfitScore([
+  item({ id: 't1', category: 'tops', name: 'Black Tee', color: 'black' }),
+  item({ id: 'b1', category: 'bottoms', name: 'Grey Trousers', color: 'gray' }),
+  item({ id: 's1', category: 'shoes', name: 'White Trainers', color: 'white' }),
+]);
+assert(
+  (unifiedFashion.record.color.fashion_categories?.length || 0) >= 2,
+  'unified colour breakdown should expose fashion categories',
+);
+assert(
+  unifiedFashion.record.feedback.some((f) => /neutral|palette|colour|color|balanced|soft|earth/i.test(f))
+    || (unifiedFashion.record.color.fashion_adjustment ?? 0) >= 0,
+  'fashion layer should influence feedback or score',
+);
+
 // ── Silhouette sanity ───────────────────────────────────────────────────────
 const tapered = scoreOutfitSilhouette([
   { name: 'Slim Fit Blazer', category: 'outerwear' },

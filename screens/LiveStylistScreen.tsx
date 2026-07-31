@@ -26,6 +26,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
+import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
@@ -34,14 +35,67 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { apiService } from '@/services/ApiService';
 import {
   detectGarmentsOnDevice,
+  getLastOnDeviceFootZone,
   getOnDeviceYoloStatus,
   warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
 import { framesLikelySame, hashBase64Frame, stripBase64Prefix } from '@/utils/liveFrameHash';
+import {
+  applyDetectionMemory,
+  createDetectionMemory,
+  type DetectionMemory,
+} from '@/utils/liveDetectionMemory';
+import {
+  buildDebugSnapshot,
+  detectionsToDebugRows,
+  emptyDebugSnapshot,
+  inspectDetection,
+  type BeliefDecision,
+  type LiveBeliefDebugSnapshot,
+} from '@/utils/liveBeliefDebug';
+import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
+import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
+
+function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
+  return items.map((item, i) => ({
+    name: item.name,
+    category: String(item.category || 'tops'),
+    subcategory: item.subcategory || undefined,
+    color: item.color || undefined,
+    confidence: Number(item.confidence || 0.5),
+    bbox: (item.bbox && item.bbox.length === 4
+      ? item.bbox
+      : [0.2, 0.1, 0.5, 0.35]) as [number, number, number, number],
+    trackId: item.trackId || item.tempId || `live_${i}`,
+  }));
+}
+
+function detectionsToLiveItems(
+  detections: OnDeviceDetection[],
+  seed?: LiveTrackedItem[],
+): LiveTrackedItem[] {
+  return detections.map((d, i) => {
+    const prev = seed?.find((s) => s.trackId === d.trackId) || seed?.[i];
+    return {
+      tempId: d.trackId || prev?.tempId || `belief_${i}`,
+      trackId: d.trackId || prev?.trackId || `belief_${i}`,
+      name: d.name || d.category,
+      category: d.category,
+      subcategory: d.subcategory || null,
+      color: d.color || prev?.color || 'other',
+      confidence: d.confidence,
+      bbox: d.bbox,
+      needsConfirm: false,
+      source: prev?.source,
+      suggestion: d.suggestion || prev?.suggestion || null,
+      wardrobeMatch: prev?.wardrobeMatch ?? null,
+    };
+  });
+}
 
 type LiveParams = {
   occasionType?: string;
@@ -76,13 +130,44 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [selected, setSelected] = useState<LiveTrackedItem | null>(null);
   const [shopHints, setShopHints] = useState<FallbackMissingItem[]>([]);
   const [statusNote, setStatusNote] = useState('Tap Start for live styling');
+  const [showBeliefDebug, setShowBeliefDebug] = useState(true);
+  const [debugCollapsed, setDebugCollapsed] = useState(false);
+  const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
 
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
   const previousFeedbackRef = useRef<LiveFeedback | null>(null);
+  const detectionMemoryRef = useRef<DetectionMemory>(createDetectionMemory());
+  const decisionLogRef = useRef<BeliefDecision[]>([]);
+  const inspectRef = useRef<ReturnType<typeof inspectDetection> | null>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
   const lastCoachShownAtRef = useRef(0);
+
+  const publishDebug = useCallback((args: {
+    frameDetections: OnDeviceDetection[];
+    source: string;
+    cropped: boolean;
+  }) => {
+    if (!mountedRef.current) return;
+    const mem = detectionMemoryRef.current;
+    setDebugSnapshot(
+      buildDebugSnapshot({
+        belief: mem.belief,
+        frameDetections: detectionsToDebugRows(
+          args.frameDetections,
+          args.source.includes('cloud') || args.source.includes('vision') ? 'vision' : 'yolo',
+        ),
+        decisions: decisionLogRef.current,
+        cropped: args.cropped,
+        source: args.source,
+        inspect: inspectRef.current,
+        footwearCandidates: mem.lastFootwearCandidates,
+        footZone: mem.lastFootZone,
+        shoeScore: mem.lastShoeScore,
+      }),
+    );
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -95,13 +180,61 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return;
+
+    const footZone = getLastOnDeviceFootZone();
+
+    // Always run server/cloud labels through belief — never paint raw frame truth
     if (res.items?.length) {
-      previousItemsRef.current = res.items;
-      setItems(res.items);
+      const raw = liveItemsToDetections(res.items);
+      const stabilized = applyDetectionMemory(raw, detectionMemoryRef.current, {
+        decisions: decisionLogRef.current,
+        bottomBandBrightness: footZone?.brightness,
+        occasionType,
+      });
+      detectionMemoryRef.current = stabilized.memory;
+      const painted = detectionsToLiveItems(stabilized.detections, res.items);
+      previousItemsRef.current = painted;
+      setItems(painted);
+      publishDebug({
+        frameDetections: raw,
+        source: String(res.source || 'cloud_vision'),
+        cropped: stabilized.cropped,
+      });
+    } else if (
+      detectionMemoryRef.current.belief?.top
+      || detectionMemoryRef.current.belief?.bottom
+      || detectionMemoryRef.current.belief?.footwear
+    ) {
+      const held = applyDetectionMemory([], detectionMemoryRef.current, {
+        decisions: decisionLogRef.current,
+        bottomBandBrightness: footZone?.brightness,
+        occasionType,
+      });
+      detectionMemoryRef.current = held.memory;
+      if (held.detections.length) {
+        const painted = detectionsToLiveItems(held.detections, previousItemsRef.current);
+        previousItemsRef.current = painted;
+        setItems(painted);
+      }
+      publishDebug({
+        frameDetections: [],
+        source: String(res.source || 'cloud_vision'),
+        cropped: held.cropped,
+      });
     }
 
-    const next = res.feedback;
-    if (!next) return;
+    const baseFeedback = res.feedback;
+    if (!baseFeedback) return;
+
+    // Soft shoe-style nudge only when real shoes already in belief (never invent)
+    const next = { ...baseFeedback };
+    const shoeScore = detectionMemoryRef.current.lastShoeScore;
+    if (shoeScore && detectionMemoryRef.current.belief?.footwear) {
+      const delta = shoeStyleScoreDelta(shoeScore);
+      if (delta !== 0) {
+        next.score = Math.max(0, Math.min(100, Math.round((next.score || 0) + delta)));
+      }
+    }
 
     const holdMs = next.ui?.holdMs ?? 1000;
     const withinHold = Date.now() - lastCoachShownAtRef.current < holdMs;
@@ -122,7 +255,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     if (res.source === 'cloud_vision') setSourceLabel('Cloud vision');
     else if (String(res.source || '').includes('on_device')) setSourceLabel('On-device');
     else setSourceLabel(String(res.source || 'Live'));
-  }, []);
+  }, [occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
     if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
@@ -161,9 +294,48 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       };
 
       if (onDevice?.length) {
-        payload.detections = onDevice;
+        const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
+        const { detections: corrected, pipeline } = correctOnDeviceDetections(onDevice, {
+          id: frameHash,
+          context: occasionType,
+          // Never invent or rematerialize shoes in Live (barefoot common)
+          hybrid: { rematerializeBottom: false, inferMissingFootwear: false },
+        });
+        if (pipeline?.discarded) {
+          setStatusNote(
+            pipeline.discardReason === 'too_blurry'
+              ? 'Hold steadier — frame too blurry'
+              : pipeline.discardReason === 'too_many_items'
+                ? 'Too many items in frame'
+                : 'Frame skipped — low quality',
+          );
+          return;
+        }
+        // Temporal memory — hold top/bottom across flaky frames (no restart needed)
+        const footZone = getLastOnDeviceFootZone();
+        const stabilized = applyDetectionMemory(corrected, detectionMemoryRef.current, {
+          decisions: decisionLogRef.current,
+          bottomBandBrightness: footZone?.brightness,
+          occasionType,
+        });
+        detectionMemoryRef.current = stabilized.memory;
+        payload.detections = stabilized.detections;
         payload.detectorSource = 'yolo';
         payload.sceneType = 'worn';
+        payload.frameCropped = stabilized.cropped;
+        const repairs = [
+          ...(pipeline?.repairs || []),
+          ...stabilized.repairs,
+        ];
+        if (repairs.length) {
+          payload.pipelineRepairs = repairs;
+          payload.pipelineConfidence = pipeline?.confidence;
+        }
+        publishDebug({
+          frameDetections: onDevice,
+          source: 'on_device_yolo',
+          cropped: stabilized.cropped,
+        });
       } else {
         payload.imageBase64 = stripBase64Prefix(base64);
       }
@@ -189,7 +361,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, occasionType]);
+  }, [applyResponse, occasionType, publishDebug]);
 
   useEffect(() => {
     if (!isLive) return undefined;
@@ -218,6 +390,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLive((v) => {
       const next = !v;
+      if (next) {
+        detectionMemoryRef.current = createDetectionMemory();
+        decisionLogRef.current = [];
+        inspectRef.current = null;
+        lastHashRef.current = null;
+        previousItemsRef.current = [];
+        previousFeedbackRef.current = null;
+        setItems([]);
+        setFeedback(null);
+        setDebugSnapshot(emptyDebugSnapshot('live'));
+      }
       setStatusNote(next ? 'Live — sampling…' : 'Paused');
       return next;
     });
@@ -270,18 +453,64 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           items={items}
           feedback={feedback}
           selectedTrackId={selected?.trackId}
+          showRegionGuides={showBeliefDebug}
           onSelectItem={(item) => {
             Haptics.selectionAsync();
             setSelected(item);
+            if (item.bbox) {
+              inspectRef.current = inspectDetection({
+                name: item.name,
+                category: item.category,
+                subcategory: item.subcategory || undefined,
+                color: item.color,
+                confidence: item.confidence || 0.5,
+                bbox: item.bbox as [number, number, number, number],
+                trackId: item.trackId,
+              });
+              setDebugSnapshot((prev) => ({
+                ...prev,
+                inspect: inspectRef.current,
+              }));
+              if (!showBeliefDebug) setShowBeliefDebug(true);
+            }
           }}
         />
+        {showBeliefDebug ? (
+          <LiveBeliefDebugOverlay
+            snapshot={debugSnapshot}
+            collapsed={debugCollapsed}
+            onToggleCollapse={() => setDebugCollapsed((v) => !v)}
+            onClose={() => setShowBeliefDebug(false)}
+          />
+        ) : null}
       </View>
 
       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.metaRow}>
-          <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
-            {sourceLabel} · {statusNote}
-          </ThemedText>
+          <Pressable
+            onLongPress={() => {
+              Haptics.selectionAsync();
+              setShowBeliefDebug((v) => !v);
+            }}
+            delayLongPress={450}
+            style={{ flex: 1 }}
+          >
+            <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              {sourceLabel} · {statusNote}
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setShowBeliefDebug((v) => !v);
+            }}
+            style={[styles.debugChip, showBeliefDebug ? styles.debugChipOn : null]}
+            hitSlop={8}
+          >
+            <ThemedText type="caption" style={{ color: showBeliefDebug ? '#0B0B0F' : 'rgba(255,255,255,0.8)', fontWeight: '700' }}>
+              DBG
+            </ThemedText>
+          </Pressable>
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
         <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
@@ -387,6 +616,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
     gap: 8,
+  },
+  debugChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  debugChipOn: {
+    backgroundColor: LuxuryColors.gold,
+    borderColor: LuxuryColors.gold,
   },
   actions: {
     flexDirection: 'row',

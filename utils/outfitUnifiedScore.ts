@@ -14,6 +14,11 @@ import {
   scoreColorHarmony,
   type ColorWheelRelation,
 } from '@/utils/outfitColorHarmony';
+import {
+  fashionPaletteFeedbackLine,
+  scoreFashionPalette,
+  type FashionColorCategory,
+} from '@/utils/fashionColorTaxonomy';
 import { scoreOutfitSilhouette } from '@/utils/outfitSilhouetteScore';
 import type { BrandTier, ClothingSeason, OutfitContextMeta, OutfitOccasion } from '@/utils/outfitContextEnrichment';
 
@@ -61,6 +66,10 @@ export type UnifiedColorBreakdown = {
   clash_penalty: number;
   seasonal_match: number | null;
   COLOR_SCORE: number;
+  fashion_categories?: Array<FashionColorCategory | 'unknown'>;
+  fashion_pair_fit?: number;
+  fashion_adjustment?: number;
+  fashion_summary?: string | null;
 };
 
 export type UnifiedFitBreakdown = {
@@ -307,6 +316,7 @@ function computeColorBreakdown(
   userSeason: string | null,
 ): UnifiedColorBreakdown {
   const harmony = scoreColorHarmony(items, primaryStyle, userSeason);
+  const fashion = scoreFashionPalette(items);
   const palette = [...new Set(items.map((i) => (i.color || 'unknown').toLowerCase()).filter(Boolean))];
   const harmonyBase = HARMONY_BASE[harmony.wheelRelationship] ?? 0.7;
   const contrastScore = clamp01(harmony.score / 100);
@@ -315,6 +325,7 @@ function computeColorBreakdown(
   if (harmony.wheelRelationship === 'clashing') clashPenalty += 0.55;
   if (harmony.issues.includes('color_wheel_clash')) clashPenalty += 0.25;
   if (harmony.issues.includes('too_many_color_groups')) clashPenalty += 0.2;
+  if (harmony.issues.includes('fashion_category_clash')) clashPenalty += 0.15;
   const loudCount = harmony.groups.filter((g) => g === 'loud').length;
   if (loudCount >= 1 && harmony.groups.filter((g) => g === 'warm').length >= 1) clashPenalty += 0.35;
   if (loudCount >= 1 || palette.length >= 3 && contrastScore < 0.45) clashPenalty += 0.25;
@@ -325,9 +336,18 @@ function computeColorBreakdown(
     ? harmony.seasonalMatch >= 75 ? 0.05 : harmony.seasonalMatch < 50 ? -0.08 : 0
     : 0;
 
+  // Fashion category pair-fit is a third signal alongside wheel + contrast
+  const fashionFit = fashion.pairFit;
+  const fashionBoost = fashion.adjustment / 100; // −0.10…+0.10
+
   const blendedHarmony = clamp01(0.55 * harmonyBase + 0.45 * contrastScore);
   const COLOR_SCORE = clamp01(
-    0.4 * blendedHarmony + 0.3 * contrastScore + 0.3 * (1 - clashPenalty) + seasonalBoost,
+    0.32 * blendedHarmony
+    + 0.25 * contrastScore
+    + 0.25 * (1 - clashPenalty)
+    + 0.18 * fashionFit
+    + seasonalBoost
+    + fashionBoost,
   );
 
   return {
@@ -337,6 +357,10 @@ function computeColorBreakdown(
     clash_penalty: round2(clashPenalty),
     seasonal_match: harmony.seasonalMatch,
     COLOR_SCORE: round2(COLOR_SCORE),
+    fashion_categories: fashion.categories,
+    fashion_pair_fit: round2(fashionFit),
+    fashion_adjustment: fashion.adjustment,
+    fashion_summary: fashion.summary,
   };
 }
 
@@ -386,6 +410,14 @@ function buildFeedback(
   if (color.clash_penalty >= 0.4) {
     lines.push(`Color ${color.harmony_type.replace(/_/g, ' ')} — simplify palette or add a neutral anchor`);
   }
+  const fashionLine = fashionPaletteFeedbackLine({
+    categories: color.fashion_categories || [],
+    bases: [],
+    adjustment: color.fashion_adjustment ?? 0,
+    pairFit: color.fashion_pair_fit ?? 0.5,
+    summary: color.fashion_summary ?? null,
+  });
+  if (fashionLine) lines.push(fashionLine);
   if (fit.silhouette_balance < 0.55) {
     lines.push('Fit imbalance — balance fitted and relaxed pieces');
   }

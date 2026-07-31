@@ -14,9 +14,17 @@ Ship a new **EAS preview or production** binary to enable on-device detection.
 | --- | --- |
 | Runtime | `react-native-fast-tflite` 3.x (Expo config plugin, Core ML / NNAPI delegates) |
 | Camera loop | Existing `expo-camera` ~1 fps (`LiveStylistScreen`) — Vision Camera not required |
-| Model | `assets/models/garment-yolo-n320.tflite` |
+| Model | `assets/models/garment-yolo-n320.tflite` (**Fashionpedia** production) |
 | Size | **~11.6 MB** float32 (float16 export failed TFLite CPU prepare on Windows; float32 is the compatible ship) |
 | Source weights | [kesimeg/yolov8n-clothing-detection](https://huggingface.co/kesimeg/yolov8n-clothing-detection) (YOLOv8n, Fashionpedia 4-class) |
+| Backup | `garment-yolo-n320.fashionpedia.bak.tflite` (identical twin) |
+| Experimental | `garment-yolo-n320.shopwindows.experimental.tflite` — Sloane/Croydon fine-tune; **do not ship** until shoes recall improves |
+
+### Model policy
+
+Ship Fashionpedia until a custom train beats it on **shoes recall** and overall mAP50.
+Shop-window labels (~62 weak boxes) are for scoring signals + future fine-tunes, not a production swap.
+Hybrid detection (`utils/outfitAutoAnalysisPipeline` + server `services/hybridDetection.js`) recovers missed shoes without retraining.
 | Input | `1×320×320×3` float32 NHWC, 0–1, letterboxed |
 | Output | `1×8×2100` → cx,cy,w,h + 4 class scores |
 

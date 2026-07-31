@@ -1,4 +1,8 @@
 import type { StyleArchetype } from '@/utils/outfitAestheticClassifier';
+import {
+  scoreFashionPalette,
+  type FashionColorCategory,
+} from '@/utils/fashionColorTaxonomy';
 
 export type ColorGroup = 'neutral' | 'earth' | 'cool' | 'warm' | 'soft' | 'loud' | 'unknown';
 export type ColorWheelRelation =
@@ -20,6 +24,10 @@ export type ColorHarmonyResult = {
   issues: string[];
   summary: string;
   adjustment: number;
+  /** Fashion taxonomy categories (neutral / pastel / bold / dark / earth). */
+  fashionCategories?: Array<FashionColorCategory | 'unknown'>;
+  /** Points already baked into score from fashion category pairs. */
+  fashionAdjustment?: number;
 };
 
 const COLOR_TO_GROUP: Record<string, ColorGroup> = {
@@ -286,6 +294,8 @@ export function scoreColorHarmony(
       issues: [],
       summary: 'No colour data — palette not scored',
       adjustment: 0,
+      fashionCategories: [],
+      fashionAdjustment: 0,
     };
   }
 
@@ -334,6 +344,15 @@ export function scoreColorHarmony(
 
   const seasonal = scoreSeasonalMatch(items, groups, userSeason);
   score += seasonal.adjustment;
+
+  const fashion = scoreFashionPalette(items);
+  score += fashion.adjustment;
+  if (fashion.adjustment <= -5) {
+    issues.push('fashion_category_clash');
+  } else if (fashion.adjustment >= 7) {
+    issues.push('fashion_category_balance');
+  }
+
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   let adjustment: number;
@@ -344,7 +363,11 @@ export function scoreColorHarmony(
   else adjustment = -14;
 
   let summary: string;
-  if (score >= 82) {
+  if (fashion.summary && fashion.adjustment >= 6) {
+    summary = fashion.summary;
+  } else if (fashion.summary && fashion.adjustment <= -5) {
+    summary = fashion.summary;
+  } else if (score >= 82) {
     summary = `${wheelRelationship.replace(/_/g, ' ')} palette with strong balance`;
   } else if (wheelRelationship === 'clashing') {
     summary = 'Colours clash on the wheel — add a neutral anchor or move to analogous tones';
@@ -363,6 +386,8 @@ export function scoreColorHarmony(
     issues,
     summary,
     adjustment,
+    fashionCategories: fashion.categories,
+    fashionAdjustment: fashion.adjustment,
   };
 }
 
@@ -372,6 +397,12 @@ export function formatColorHarmonyForPrompt(result: ColorHarmonyResult): string 
     `- Palette groups: ${result.groups.join(', ') || 'unknown'}`,
     `- Wheel relationship: ${result.wheelRelationship.replace(/_/g, ' ')}`,
   ];
+  if (result.fashionCategories?.length) {
+    lines.push(`- Fashion categories: ${result.fashionCategories.join(', ')}`);
+  }
+  if (result.fashionAdjustment) {
+    lines.push(`- Fashion category adjustment: ${result.fashionAdjustment > 0 ? '+' : ''}${result.fashionAdjustment}`);
+  }
   if (result.seasonalMatch != null) {
     lines.push(`- Seasonal palette match: ${result.seasonalMatch}/100`);
     if (result.seasonalNote) lines.push(`- ${result.seasonalNote}`);
