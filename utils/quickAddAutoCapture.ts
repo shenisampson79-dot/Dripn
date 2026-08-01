@@ -2,11 +2,12 @@
  * Quick Add auto-capture gating.
  *
  * 3-state UX (trust loop):
- *   idle  (white)  — nothing useful seen → "Move item into frame"
+ *   idle  (white)  — nothing useful seen → "Centre the garment in the box…"
  *   hold  (amber)  — weak / partial hit → specific "Almost there…" hint
  *   ready (green)  — locked → countdown → snap
  *
  * Single-item UX: pick the largest usable detection only.
+ * The guide is a target for the garment centre — items may overflow the box.
  */
 
 export type QuickAddBBox = {
@@ -168,6 +169,15 @@ export function itemGuideCoverage(
   return intersectionArea(bbox, frame) / itemArea;
 }
 
+/** Fraction of the guide filled by the item (1 = guide fully covered). */
+export function guideFilledByItem(
+  bbox: QuickAddBBox,
+  frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
+): number {
+  const guideArea = Math.max(1e-6, frame.width * frame.height);
+  return intersectionArea(bbox, frame) / guideArea;
+}
+
 export function centreInGuide(
   bbox: QuickAddBBox,
   frame: QuickAddBBox = QUICK_ADD_CAPTURE.guide,
@@ -195,7 +205,9 @@ export function selectBestDetection(
 }
 
 /**
- * Ready containment: centre in guide + ≥70% of object inside (≈20% overflow OK).
+ * Ready when the item centre is in the guide AND either:
+ * - most of a smaller item sits inside the guide, OR
+ * - a large item fills the guide (overflow OK — clothes rarely fit in the box).
  */
 export function isInsideGuideFrame(
   bbox: QuickAddBBox,
@@ -203,7 +215,11 @@ export function isInsideGuideFrame(
   minCoverage = QUICK_ADD_CAPTURE.readyCoverage,
 ): boolean {
   if (!centreInGuide(bbox, frame)) return false;
-  return itemGuideCoverage(bbox, frame) >= minCoverage;
+  if (itemGuideCoverage(bbox, frame) >= minCoverage) return true;
+  const area = bbox.width * bbox.height;
+  // Large garments fill the camera; only require centre + guide mostly filled.
+  if (area >= 0.22 && guideFilledByItem(bbox, frame) >= 0.45) return true;
+  return false;
 }
 
 /** Soft presence for amber HOLD — partial overlap or centre near frame. */
@@ -283,12 +299,15 @@ function primaryHint(flags: {
   isStable: boolean;
   isConfident: boolean;
   coverage: number;
+  area: number;
 }): string {
-  if (!flags.isBigEnough) return 'Almost there — move closer';
-  if (!flags.isCentered || flags.coverage < QUICK_ADD_CAPTURE.readyCoverage) {
-    return 'Almost there — centre the item';
+  if (!flags.isBigEnough) return 'Move a little closer';
+  if (!flags.isCentered) {
+    return flags.area >= 0.22
+      ? 'Centre the garment in the box (it can overflow)'
+      : 'Centre the item in the box';
   }
-  if (!flags.isConfident) return 'Almost there — hold steady';
+  if (!flags.isConfident) return 'Hold steady…';
   if (!flags.isStable) return 'Hold still…';
   return 'Hold still…';
 }
@@ -307,7 +326,7 @@ export function evaluateCapture(
       ui: struggling ? 'struggling' : 'idle',
       hint: struggling
         ? 'Try clearer lighting or move closer'
-        : 'Move item into frame',
+        : 'Centre the garment in the box — it can fill the screen',
       isBigEnough: false,
       isCentered: false,
       isStable: false,
@@ -330,7 +349,7 @@ export function evaluateCapture(
     return {
       shouldCapture: true,
       ui: 'ready',
-      hint: 'Locked — hold still',
+      hint: 'Locked — capturing…',
       isBigEnough,
       isCentered,
       isStable,
@@ -345,6 +364,7 @@ export function evaluateCapture(
     isStable,
     isConfident,
     coverage,
+    area,
   });
 
   // Amber HOLD: any weak detection with some frame presence — never stay white.
@@ -365,7 +385,7 @@ export function evaluateCapture(
     return {
       shouldCapture: false,
       ui: 'hold',
-      hint: 'Almost there — centre the item',
+      hint: 'Centre the garment in the box (it can overflow)',
       isBigEnough,
       isCentered,
       isStable,
@@ -377,7 +397,7 @@ export function evaluateCapture(
   return {
     shouldCapture: false,
     ui: 'idle',
-    hint: 'Move item into frame',
+    hint: 'Centre the garment in the box — it can fill the screen',
     isBigEnough,
     isCentered,
     isStable,

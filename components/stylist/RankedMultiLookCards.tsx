@@ -15,7 +15,8 @@ import { BorderRadius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, type WardrobeItem } from '@/contexts/WardrobeContext';
-import { apiService } from '@/services/ApiService';
+import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
+import { OutfitTasteFeedback } from '@/components/outfit/OutfitTasteFeedback';
 import { setWornDaily } from '@/utils/todaysOutfitDailyStore';
 import {
   buildStyleSession,
@@ -169,28 +170,26 @@ export function RankedMultiLookCards({
           lookRole: card.role,
         });
 
-        apiService
-          .recordOutfitEngagement({
-            items: pieces.map((item) => ({
-              id: String(item.id),
-              name: item.name,
-              category: item.category,
-              color: item.color,
-            })),
-            signal: labels.resolvedAction === 'wear_today' ? 'wore' : 'saved',
-            occasion: session.occasion || occasion || 'stylist_chat_multi',
-            contextSnapshot: {
-              source: 'stylist_chat_ranked_multi',
-              role: card.role,
-              messageId,
-              styleSession: {
-                targetDate: session.targetDate,
-                kind: session.kind,
-                timeContext: session.timeContext,
-              },
+        void recordStylistOutfitFeedback({
+          items: pieces.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+            category: item.category,
+            color: item.color,
+          })),
+          signal: labels.resolvedAction === 'wear_today' ? 'wore' : 'saved',
+          source: 'stylist_chat',
+          occasion: session.occasion || occasion || 'stylist_chat_multi',
+          contextSnapshot: {
+            role: card.role,
+            messageId,
+            styleSession: {
+              targetDate: session.targetDate,
+              kind: session.kind,
+              timeContext: session.timeContext,
             },
-          })
-          .catch(() => {});
+          },
+        });
       }
 
       setCommittedId(card.id);
@@ -322,6 +321,45 @@ export function RankedMultiLookCards({
                 )}
               </Pressable>
             </View>
+
+            <OutfitTasteFeedback
+              compact
+              disabled={Boolean(busyId)}
+              onLike={() => {
+                const pieces = card.itemIds
+                  .map((id) => wardrobeItems.find((item) => String(item.id) === String(id)))
+                  .filter((item): item is WardrobeItem => Boolean(item));
+                void recordStylistOutfitFeedback({
+                  items: pieces.map((item) => ({
+                    id: String(item.id),
+                    name: item.name,
+                    category: item.category,
+                    color: item.color,
+                  })),
+                  signal: 'liked',
+                  source: 'stylist_chat',
+                  occasion: session.occasion || occasion,
+                  contextSnapshot: { role: card.role, messageId, action: 'like' },
+                });
+              }}
+              onSkip={() => {
+                const pieces = card.itemIds
+                  .map((id) => wardrobeItems.find((item) => String(item.id) === String(id)))
+                  .filter((item): item is WardrobeItem => Boolean(item));
+                void recordStylistOutfitFeedback({
+                  items: pieces.map((item) => ({
+                    id: String(item.id),
+                    name: item.name,
+                    category: item.category,
+                    color: item.color,
+                  })),
+                  signal: 'skipped',
+                  source: 'stylist_chat',
+                  occasion: session.occasion || occasion,
+                  contextSnapshot: { role: card.role, messageId, action: 'not_this' },
+                });
+              }}
+            />
 
             {card.itemIds.length >= 2 && labels.resolvedAction !== 'save' ? (
               <OutfitSaveActions

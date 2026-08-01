@@ -1,0 +1,50 @@
+﻿{
+  "id": "c414df75-b49b-4154-800a-8dbce3e4fef0",
+  "status": "ERRORED",
+  "platform": "ANDROID",
+  "error": {
+    "errorCode": "EAS_BUILD_UNKNOWN_GRADLE_ERROR",
+    "message": "Gradle build failed with unknown error. See logs for the \"Run gradlew\" phase for more information."
+  },
+  "artifacts": {},
+  "fingerprint": {
+    "id": "019f91b9-a4c4-7a5e-ad24-4e1ba12b1d02",
+    "hash": "5b5417201aaec7cca203d61d285b17f4c5d6aff6"
+  },
+  "initiatingActor": {
+    "id": "ec567669-72dd-45c6-9449-8fc37aa81188",
+    "displayName": "ahmayatazah"
+  },
+  "logFiles": [
+    "https://storage.googleapis.com/eas-workflows-production/logs/6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f/c414df75-b49b-4154-800a-8dbce3e4fef0/2026-07-24T01%3A24%3A52Z-045d2cdd-2e3d-4a0c-bea3-5c8396cc5606.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260724%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260724T013319Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=28e5b0439e2739f394b56c2392fe7ea986395a2b83df40b94fb33ca6b85cd82e432327f4af22b8b5917c07ba93600709135bc402821ae97a9aaf1244b9848100f3d9746db724a1e30f7fa442ccc94a36a4f2ef9c540bf2c4a7a7a899d861621bcb2c2576c9873c2731eae879df7f87c7c532f44692c5c2fd48c26837e6af1e466625ded189a92f232fa7b238c2f609ecb81bd6712000cb05220504aecf4d8137dc747830d2dab0a8f8446d2ccb2ddfadf7aa67be87e0725542c273a2dbd684c62edc47e36e8fa4dc1595b85e5dcdaa43987f2f31ac83ed602ef42cae1c8b9c5042ce5e8898aac06858ee2c994b0f98d7b18e5a352724651d631d9d5cd76869c8"
+  ],
+  "project": {
+    "id": "6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f",
+    "name": "dripn",
+    "slug": "dripn",
+    "ownerAccount": {
+      "id": "dd97228e-fe89-435e-83d8-1c504de90e49",
+      "name": "ahmayatazah"
+    }
+  },
+  "channel": "preview",
+  "distribution": "INTERNAL",
+  "buildProfile": "preview",
+  "sdkVersion": "56.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "1",
+  "runtimeVersion": "1.0.0",
+  "gitCommitHash": "de2b0a6ccd54fbda8fc1ef54efce3ee48cbd0b40",
+  "gitCommitMessage": "Restore EAS ignore rules and exclude local YOLO export tooling.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>",
+  "priority": "NORMAL",
+  "createdAt": "2026-07-24T01:24:50.473Z",
+  "updatedAt": "2026-07-24T01:39:05.794Z",
+  "completedAt": "2026-07-24T01:39:05.599Z",
+  "expirationDate": "2026-08-07T01:24:50.497Z",
+  "isForIosSimulator": false,
+  "metrics": {
+    "buildWaitTime": 1730,
+    "buildQueueTime": 4970,
+    "buildDuration": 848426
+  }
+}

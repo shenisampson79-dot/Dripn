@@ -69,6 +69,13 @@ console.log('=== Quick Add auto-capture ===\n');
 }
 
 {
+  const large = { x: 0.05, y: 0.05, width: 0.9, height: 0.9 };
+  const guide = { x: 0.2, y: 0.25, width: 0.6, height: 0.4 };
+  assert.equal(isInsideGuideFrame(large, guide), true);
+  console.log('✓ large overflowing garment locks when centred');
+}
+
+{
   const g = guideFromLayout({
     screenWidth: 390,
     screenHeight: 844,
@@ -145,7 +152,7 @@ console.log('=== Quick Add auto-capture ===\n');
 
   const idle = evaluateCapture(null, createEmptyTrack());
   assert.equal(idle.ui, 'idle');
-  assert.equal(idle.hint, 'Move item into frame');
+  assert.match(idle.hint, /centre the garment|fill the screen/i);
   console.log('✓ 3-state UI + specific hints (idle / hold / ready)');
 }
 

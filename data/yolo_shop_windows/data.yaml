@@ -1,0 +1,10 @@
+path: C:/Users/sheni/Downloads/dripn/StyleWise/data/yolo_shop_windows
+train: images/train
+val: images/val
+names:
+  0: Clothing
+  1: Shoes
+  2: Bags
+  3: Accessories
+nc: 4
+# Weak labels from shop-window outfit structure — refine with hand boxes before production train.

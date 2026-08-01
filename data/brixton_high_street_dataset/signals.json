@@ -1,0 +1,662 @@
+{
+  "version": 4,
+  "source": "brixton_high_street",
+  "generated_at": "2026-07-31T15:49:55.507Z",
+  "sample_size": 29,
+  "valid_count": 26,
+  "colour_combos": [
+    {
+      "combo": "beige+white",
+      "frequency": 9,
+      "score_boost": 8
+    },
+    {
+      "combo": "black+white",
+      "frequency": 7,
+      "score_boost": 8
+    },
+    {
+      "combo": "beige+black",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "beige+cream",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "blue+white",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "grey+white",
+      "frequency": 4,
+      "score_boost": 6
+    },
+    {
+      "combo": "navy+white",
+      "frequency": 4,
+      "score_boost": 6
+    },
+    {
+      "combo": "beige+brown",
+      "frequency": 3,
+      "score_boost": 6
+    },
+    {
+      "combo": "black+cream",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "combo": "black+grey",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "combo": "blue+cream",
+      "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "cream+white",
+      "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "beige+blue",
+      "frequency": 2,
+      "score_boost": 4
+    },
+    {
+      "combo": "beige+green",
+      "frequency": 2,
+      "score_boost": 3
+    },
+    {
+      "combo": "beige+grey",
+      "frequency": 2,
+      "score_boost": 3
+    }
+  ],
+  "garment_pairings": [
+    {
+      "pairing": "t-shirt×shorts",
+      "frequency": 5,
+      "score_boost": 6
+    },
+    {
+      "pairing": "t-shirt×trousers",
+      "frequency": 5,
+      "score_boost": 6
+    },
+    {
+      "pairing": "blouse×trousers",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "pairing": "shirt×shorts",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "pairing": "shirt×trousers",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "pairing": "blouse×shorts",
+      "frequency": 1,
+      "score_boost": 5
+    },
+    {
+      "pairing": "other×shorts",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "other×trousers",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "polo×trousers",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "shirt×skirt",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "t-shirt×jeans",
+      "frequency": 1,
+      "score_boost": 3
+    }
+  ],
+  "footwear_by_style": {
+    "smart_casual": [
+      {
+        "subcategory": "heels",
+        "frequency": 2,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "loafers",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "flats",
+        "frequency": 1,
+        "score_boost": 4
+      },
+      {
+        "subcategory": "sandals",
+        "frequency": 1,
+        "score_boost": 3
+      }
+    ],
+    "business_casual": [],
+    "resort": [],
+    "casual": [
+      {
+        "subcategory": "sneakers",
+        "frequency": 9,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "loafers",
+        "frequency": 2,
+        "score_boost": 5
+      }
+    ]
+  },
+  "layering_patterns": [
+    {
+      "pattern": "none",
+      "frequency": 14
+    },
+    {
+      "pattern": "light",
+      "frequency": 12
+    }
+  ],
+  "silhouette_counts": [
+    {
+      "silhouette": "relaxed",
+      "frequency": 11
+    },
+    {
+      "silhouette": "athletic",
+      "frequency": 8
+    },
+    {
+      "silhouette": "fitted",
+      "frequency": 3
+    },
+    {
+      "silhouette": "relaxed_tailored",
+      "frequency": 2
+    },
+    {
+      "silhouette": "tailored",
+      "frequency": 2
+    }
+  ],
+  "footwear_overall": [
+    {
+      "subcategory": "sneakers",
+      "frequency": 9
+    },
+    {
+      "subcategory": "loafers",
+      "frequency": 4
+    },
+    {
+      "subcategory": "heels",
+      "frequency": 2
+    },
+    {
+      "subcategory": "flats",
+      "frequency": 1
+    },
+    {
+      "subcategory": "sandals",
+      "frequency": 1
+    }
+  ],
+  "luxury": {
+    "brand_colour_systems": [
+      {
+        "brand": "jd_sports",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 5
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 4
+          },
+          {
+            "combo": "beige+black",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 3
+          },
+          {
+            "combo": "navy+white",
+            "frequency": 3
+          }
+        ]
+      },
+      {
+        "brand": "hm",
+        "top_colours": [
+          {
+            "combo": "blue+white",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "black+blue",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+pink",
+            "frequency": 2
+          }
+        ]
+      },
+      {
+        "brand": "apricot",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "reiss",
+        "top_colours": [
+          {
+            "combo": "beige+brown",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "cream+green",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+green",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "benetton",
+        "top_colours": [
+          {
+            "combo": "cream+lilac",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+purple",
+            "frequency": 1
+          },
+          {
+            "combo": "lilac+purple",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "brixton_high_street",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "only",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+yellow",
+            "frequency": 1
+          },
+          {
+            "combo": "white+yellow",
+            "frequency": 1
+          }
+        ]
+      }
+    ],
+    "brand_pairings": [
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 5,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "t-shirt×trousers",
+        "frequency": 2,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "t-shirt×trousers",
+        "frequency": 2,
+        "brand_bias": "brixton_high_street"
+      },
+      {
+        "pair": "blouse×shorts",
+        "frequency": 1,
+        "brand_bias": "hm"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "hm"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "only"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "apricot"
+      },
+      {
+        "pair": "other×shorts",
+        "frequency": 1,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "polo×trousers",
+        "frequency": 1,
+        "brand_bias": "brixton_high_street"
+      },
+      {
+        "pair": "shirt×shorts",
+        "frequency": 1,
+        "brand_bias": "hm"
+      },
+      {
+        "pair": "shirt×shorts",
+        "frequency": 1,
+        "brand_bias": "reiss"
+      },
+      {
+        "pair": "shirt×skirt",
+        "frequency": 1,
+        "brand_bias": "benetton"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 1,
+        "brand_bias": "apricot"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 1,
+        "brand_bias": "brixton_high_street"
+      }
+    ],
+    "brand_silhouettes": [
+      {
+        "brand": "hm",
+        "silhouette": "relaxed",
+        "frequency": 5
+      },
+      {
+        "brand": "reiss",
+        "silhouette": "fitted",
+        "frequency": 2
+      },
+      {
+        "brand": "only",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "apricot",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "benetton",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "jd_sports",
+        "silhouette": "athletic",
+        "frequency": 8
+      },
+      {
+        "brand": "brixton_high_street",
+        "silhouette": "relaxed",
+        "frequency": 3
+      }
+    ],
+    "quiet_luxury_palettes": [
+      {
+        "combo": "beige+white",
+        "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "black+white",
+        "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+black",
+        "frequency": 4,
+        "score_boost": 6
+      },
+      {
+        "combo": "black+grey",
+        "frequency": 3,
+        "score_boost": 5
+      },
+      {
+        "combo": "grey+white",
+        "frequency": 3,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+brown",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+cream",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+grey",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "combo": "brown+navy",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "combo": "brown+white",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "combo": "black+brown",
+        "frequency": 1,
+        "score_boost": 4
+      },
+      {
+        "combo": "black+cream",
+        "frequency": 1,
+        "score_boost": 4
+      }
+    ],
+    "footwear_rules": [
+      {
+        "context": "smart_casual",
+        "preferred": [
+          "heels",
+          "loafers",
+          "flats",
+          "sandals"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "business_casual",
+        "preferred": [],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "resort",
+        "preferred": [],
+        "avoided": [
+          "chunky_boots",
+          "oxfords"
+        ]
+      },
+      {
+        "context": "casual",
+        "preferred": [
+          "sneakers",
+          "loafers"
+        ],
+        "avoided": [
+          "oxfords",
+          "heels"
+        ]
+      }
+    ],
+    "style_tags": [
+      {
+        "tag": "jd_sports",
+        "frequency": 9
+      },
+      {
+        "tag": "morleys",
+        "frequency": 6
+      },
+      {
+        "tag": "nike",
+        "frequency": 6
+      },
+      {
+        "tag": "hm",
+        "frequency": 5
+      },
+      {
+        "tag": "sneakers",
+        "frequency": 5
+      },
+      {
+        "tag": "fitting_room",
+        "frequency": 4
+      },
+      {
+        "tag": "try_on",
+        "frequency": 4
+      },
+      {
+        "tag": "loafers",
+        "frequency": 3
+      },
+      {
+        "tag": "reiss",
+        "frequency": 3
+      },
+      {
+        "tag": "straw_hat",
+        "frequency": 3
+      },
+      {
+        "tag": "wide_leg",
+        "frequency": 3
+      },
+      {
+        "tag": "adidas",
+        "frequency": 2
+      }
+    ]
+  },
+  "insights": "Brixton High Street (JD / H&M / Morleys): 26/29 valid wearable looks. Top colour combos: beige+white (9), black+white (7), beige+black (4), beige+cream (4), blue+white (4). Top garment pairings: t-shirt×shorts (5), t-shirt×trousers (5), blouse×trousers (3), shirt×shorts (2), shirt×trousers (2). Footwear leaders: sneakers×9, loafers×4, heels×2, flats×1, sandals×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
+}

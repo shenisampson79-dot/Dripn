@@ -807,6 +807,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
           <View style={styles.responseActions}>
             {renderPrimaryButton('Save this look', () => flow.completeAndClose())}
+            <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
+              <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                {t('outfitFeedback.dontLike') || "Don't like"}
+              </ThemedText>
+            </Pressable>
             <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
               <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                 {t('stylistFlow.editAndRerun')}
@@ -1209,6 +1214,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                       {t('stylistFlow.done')}
                     </ThemedText>
                   </Pressable>
+                  <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                      {t('outfitFeedback.dontLike') || "Don't like"}
+                    </ThemedText>
+                  </Pressable>
                   <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
                     <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                       {t('stylistFlow.editAndRerun')}
@@ -1239,6 +1249,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : (
                   renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())
                 )}
+                <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
+                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                    {t('outfitFeedback.dontLike') || "Don't like"}
+                  </ThemedText>
+                </Pressable>
                 <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
                   <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
                     {t('stylistFlow.editAndRerun')}

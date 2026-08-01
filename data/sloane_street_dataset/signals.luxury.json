@@ -1,0 +1,785 @@
+{
+  "version": 4,
+  "source": "sloane_street",
+  "generated_at": "2026-07-31T15:49:55.505Z",
+  "sample_size": 42,
+  "valid_count": 40,
+  "colour_combos": [
+    {
+      "combo": "beige+cream",
+      "frequency": 8,
+      "score_boost": 8
+    },
+    {
+      "combo": "beige+white",
+      "frequency": 7,
+      "score_boost": 8
+    },
+    {
+      "combo": "beige+brown",
+      "frequency": 5,
+      "score_boost": 7
+    },
+    {
+      "combo": "brown+cream",
+      "frequency": 5,
+      "score_boost": 7
+    },
+    {
+      "combo": "beige+blue",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "blue+cream",
+      "frequency": 4,
+      "score_boost": 6
+    },
+    {
+      "combo": "brown+white",
+      "frequency": 4,
+      "score_boost": 6
+    },
+    {
+      "combo": "cream+grey",
+      "frequency": 4,
+      "score_boost": 6
+    },
+    {
+      "combo": "beige+black",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "combo": "beige+grey",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "combo": "beige+navy",
+      "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "blue+navy",
+      "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "blue+white",
+      "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "cream+white",
+      "frequency": 3,
+      "score_boost": 3
+    },
+    {
+      "combo": "navy+white",
+      "frequency": 3,
+      "score_boost": 3
+    }
+  ],
+  "garment_pairings": [
+    {
+      "pairing": "shirt×trousers",
+      "frequency": 6,
+      "score_boost": 6
+    },
+    {
+      "pairing": "other×trousers",
+      "frequency": 5,
+      "score_boost": 6
+    },
+    {
+      "pairing": "polo×shorts",
+      "frequency": 3,
+      "score_boost": 5
+    },
+    {
+      "pairing": "knit×trousers",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "pairing": "shirt×shorts",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "pairing": "sweater×trousers",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "pairing": "blouse×skirt",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "blouse×trousers",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "other×shorts",
+      "frequency": 1,
+      "score_boost": 4
+    },
+    {
+      "pairing": "other×skirt",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "polo×jeans",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "polo×skirt",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "polo×trousers",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "shirt×jeans",
+      "frequency": 1,
+      "score_boost": 2
+    },
+    {
+      "pairing": "t-shirt×shorts",
+      "frequency": 1,
+      "score_boost": 2
+    },
+    {
+      "pairing": "t-shirt×skirt",
+      "frequency": 1,
+      "score_boost": 2
+    }
+  ],
+  "footwear_by_style": {
+    "smart_casual": [
+      {
+        "subcategory": "loafers",
+        "frequency": 3,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "mules",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "sneakers",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "subcategory": "mary_janes",
+        "frequency": 1,
+        "score_boost": 3
+      }
+    ],
+    "business_casual": [],
+    "resort": [
+      {
+        "subcategory": "sandals",
+        "frequency": 2,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "espadrilles",
+        "frequency": 1,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "flats",
+        "frequency": 1,
+        "score_boost": 4
+      }
+    ],
+    "casual": [
+      {
+        "subcategory": "sneakers",
+        "frequency": 3,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "sandals",
+        "frequency": 1,
+        "score_boost": 5
+      }
+    ]
+  },
+  "layering_patterns": [
+    {
+      "pattern": "none",
+      "frequency": 27
+    },
+    {
+      "pattern": "light",
+      "frequency": 8
+    },
+    {
+      "pattern": "structured",
+      "frequency": 5
+    }
+  ],
+  "silhouette_counts": [
+    {
+      "silhouette": "relaxed",
+      "frequency": 16
+    },
+    {
+      "silhouette": "tailored",
+      "frequency": 16
+    },
+    {
+      "silhouette": "slim",
+      "frequency": 5
+    },
+    {
+      "silhouette": "relaxed_tailored",
+      "frequency": 2
+    },
+    {
+      "silhouette": "oversized",
+      "frequency": 1
+    }
+  ],
+  "footwear_overall": [
+    {
+      "subcategory": "sneakers",
+      "frequency": 5
+    },
+    {
+      "subcategory": "loafers",
+      "frequency": 3
+    },
+    {
+      "subcategory": "sandals",
+      "frequency": 3
+    },
+    {
+      "subcategory": "mules",
+      "frequency": 2
+    },
+    {
+      "subcategory": "espadrilles",
+      "frequency": 1
+    },
+    {
+      "subcategory": "flats",
+      "frequency": 1
+    },
+    {
+      "subcategory": "mary_janes",
+      "frequency": 1
+    }
+  ],
+  "luxury": {
+    "brand_colour_systems": [
+      {
+        "brand": "sloane_street",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 5
+          },
+          {
+            "combo": "beige+brown",
+            "frequency": 4
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 4
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "cream+grey",
+            "frequency": 3
+          }
+        ]
+      },
+      {
+        "brand": "varley",
+        "top_colours": [
+          {
+            "combo": "beige+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "docksides",
+        "top_colours": [
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "navy+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "k_way",
+        "top_colours": [
+          {
+            "combo": "beige+coral",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+green",
+            "frequency": 1
+          },
+          {
+            "combo": "coral+green",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "liberty",
+        "top_colours": [
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "loro_piana",
+        "top_colours": [
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "loveshackfancy",
+        "top_colours": [
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "paige",
+        "top_colours": [
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "rixo",
+        "top_colours": [
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+green",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+purple",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+purple",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "sandro",
+        "top_colours": [
+          {
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "veronica_beard",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+yellow",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "white_company",
+        "top_colours": [
+          {
+            "combo": "brown+cream",
+            "frequency": 1
+          }
+        ]
+      }
+    ],
+    "brand_pairings": [
+      {
+        "pair": "other×trousers",
+        "frequency": 5,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 5,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "blouse×skirt",
+        "frequency": 1,
+        "brand_bias": "veronica_beard"
+      },
+      {
+        "pair": "knit×trousers",
+        "frequency": 1,
+        "brand_bias": "varley"
+      },
+      {
+        "pair": "polo×jeans",
+        "frequency": 1,
+        "brand_bias": "paige"
+      },
+      {
+        "pair": "polo×shorts",
+        "frequency": 1,
+        "brand_bias": "varley"
+      },
+      {
+        "pair": "polo×shorts",
+        "frequency": 1,
+        "brand_bias": "docksides"
+      },
+      {
+        "pair": "polo×skirt",
+        "frequency": 1,
+        "brand_bias": "sandro"
+      },
+      {
+        "pair": "shirt×jeans",
+        "frequency": 1,
+        "brand_bias": "loro_piana"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 1,
+        "brand_bias": "sandro"
+      },
+      {
+        "pair": "sweater×trousers",
+        "frequency": 1,
+        "brand_bias": "varley"
+      },
+      {
+        "pair": "sweater×trousers",
+        "frequency": 1,
+        "brand_bias": "white_company"
+      },
+      {
+        "pair": "t-shirt×skirt",
+        "frequency": 1,
+        "brand_bias": "k_way"
+      }
+    ],
+    "brand_silhouettes": [
+      {
+        "brand": "k_way",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "rixo",
+        "silhouette": "relaxed",
+        "frequency": 2
+      },
+      {
+        "brand": "varley",
+        "silhouette": "relaxed",
+        "frequency": 2
+      },
+      {
+        "brand": "docksides",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "sloane_street",
+        "silhouette": "tailored",
+        "frequency": 10
+      },
+      {
+        "brand": "sandro",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "loro_piana",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "liberty",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "loveshackfancy",
+        "silhouette": "slim",
+        "frequency": 1
+      },
+      {
+        "brand": "white_company",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "veronica_beard",
+        "silhouette": "tailored",
+        "frequency": 2
+      },
+      {
+        "brand": "paige",
+        "silhouette": "relaxed",
+        "frequency": 1
+      }
+    ],
+    "quiet_luxury_palettes": [
+      {
+        "combo": "beige+brown",
+        "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+cream",
+        "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "brown+cream",
+        "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+white",
+        "frequency": 4,
+        "score_boost": 5
+      },
+      {
+        "combo": "brown+white",
+        "frequency": 4,
+        "score_boost": 5
+      },
+      {
+        "combo": "cream+grey",
+        "frequency": 4,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+grey",
+        "frequency": 3,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+navy",
+        "frequency": 3,
+        "score_boost": 5
+      },
+      {
+        "combo": "cream+white",
+        "frequency": 3,
+        "score_boost": 4
+      },
+      {
+        "combo": "navy+white",
+        "frequency": 3,
+        "score_boost": 4
+      },
+      {
+        "combo": "beige+black",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "combo": "brown+grey",
+        "frequency": 2,
+        "score_boost": 4
+      }
+    ],
+    "footwear_rules": [
+      {
+        "context": "smart_casual",
+        "preferred": [
+          "loafers",
+          "mules",
+          "sneakers",
+          "mary_janes"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "business_casual",
+        "preferred": [],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "resort",
+        "preferred": [
+          "sandals",
+          "espadrilles",
+          "flats"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "oxfords"
+        ]
+      },
+      {
+        "context": "casual",
+        "preferred": [
+          "sneakers",
+          "sandals"
+        ],
+        "avoided": [
+          "oxfords",
+          "heels"
+        ]
+      }
+    ],
+    "style_tags": [
+      {
+        "tag": "smart casual",
+        "frequency": 20
+      },
+      {
+        "tag": "relaxed",
+        "frequency": 18
+      },
+      {
+        "tag": "tailored",
+        "frequency": 18
+      },
+      {
+        "tag": "quiet luxury",
+        "frequency": 16
+      },
+      {
+        "tag": "casual",
+        "frequency": 8
+      },
+      {
+        "tag": "resort",
+        "frequency": 8
+      },
+      {
+        "tag": "athleisure",
+        "frequency": 3
+      },
+      {
+        "tag": "minimal",
+        "frequency": 1
+      }
+    ]
+  },
+  "insights": "Sloane Street (luxury lane): 40/42 valid wearable looks. Top colour combos: beige+cream (8), beige+white (7), beige+brown (5), brown+cream (5), beige+blue (4). Top garment pairings: shirt×trousers (6), other×trousers (5), polo×shorts (3), knit×trousers (2), shirt×shorts (2). Footwear leaders: sneakers×5, loafers×3, sandals×3, mules×2, espadrilles×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
+}

@@ -1,5 +1,5 @@
 import apiService from '@/services/ApiService';
-
+import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 export type SaveGeneratedOutfitParams = {
   name: string;
   description?: string;
@@ -109,11 +109,13 @@ export async function saveGeneratedOutfitToProfile(params: SaveGeneratedOutfitPa
       calendarDate,
     });
 
-    apiService.recordOutfitEngagement({
+    void recordStylistOutfitFeedback({
       items: wardrobeItemIds,
       signal: loved ? 'liked' : 'saved',
+      source: 'other',
       occasion,
-    }).catch(() => {});
+      contextSnapshot: { path: 'saveGeneratedOutfit' },
+    });
 
     return result;
   } catch (err) {

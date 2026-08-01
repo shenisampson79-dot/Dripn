@@ -45,9 +45,12 @@ import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
 import {
-  detectGarmentsOnDevice,
   getOnDeviceYoloStatus,
 } from '@/services/onDeviceGarmentDetector';
+import {
+  detectGarmentsOnDeviceHybrid,
+  SINGLE_ITEM_HYBRID_OPTS,
+} from '@/utils/onDeviceHybridDetect';
 import type { ScanSessionItem } from '@/types/scanWardrobe';
 import {
   correctWardrobeImageOrientation,
@@ -1027,9 +1030,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         { compress: 0.55, format: ImageManipulator.SaveFormat.JPEG },
       );
 
-      const onDeviceRaw = await detectGarmentsOnDevice(manipulated.uri, {
+      const onDeviceRaw = await detectGarmentsOnDeviceHybrid(manipulated.uri, {
         confThreshold: LIVE_YOLO_CONF,
         maxDetections: 8,
+        ...SINGLE_ITEM_HYBRID_OPTS,
       });
       if (!onDeviceRaw?.length) {
         setLiveTracks([]);

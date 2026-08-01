@@ -1,0 +1,2394 @@
+[
+  {
+    "id": "sloane_001",
+    "source": "sloane_street",
+    "image_path": "images/001.jpg",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck_short_sleeve",
+        "color": "coral"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "mini_straight",
+        "color": "olive"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "bucket_hat",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "resort",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "coral",
+      "olive",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "K-Way coral tee with olive mini skirt and beige bucket hat",
+    "confidence": 0.86,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "k_way",
+    "price_tier": "premium",
+    "style_tags": [
+      "relaxed",
+      "casual"
+    ]
+  },
+  {
+    "id": "sloane_002",
+    "source": "sloane_street",
+    "image_path": "images/002.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "blue"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "belt",
+        "subcategory": "chain_belt",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "summer",
+        "bohemian",
+        "floral"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "purple",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "RIXO paisley maxi dress with gold chain belt and black strappy sandals",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "rixo",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_003",
+    "source": "sloane_street",
+    "image_path": "images/003.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "cream"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "clutch",
+        "color": "multicolour"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "summer",
+        "floral",
+        "tropical"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "blue",
+      "green"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "notes": "Central RIXO midi dress with tropical leaf print on navy base",
+    "confidence": 0.82,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "rixo",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_004",
+    "source": "sloane_street",
+    "image_path": "images/004.jpg",
+    "outfit": {
+      "top": {
+        "category": "knit",
+        "subcategory": "sleeveless_tank",
+        "color": "grey"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "taupe"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "shoulder_drape",
+        "color": "grey"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "cream"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "resort",
+        "minimal",
+        "tonal",
+        "loungewear"
+      ]
+    },
+    "colour_palette": [
+      "grey",
+      "taupe",
+      "cream"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Varley tonal grey knit with draped sweater and taupe wide-leg trousers",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "varley",
+    "price_tier": "premium",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "casual",
+      "athleisure"
+    ]
+  },
+  {
+    "id": "sloane_005",
+    "source": "sloane_street",
+    "image_path": "images/005.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "textured_knit_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "relaxed_drawstring",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "resort",
+        "summer",
+        "minimal",
+        "loungewear"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "light_blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Varley cream knit polo with soft light-blue shorts and beige tote",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "varley",
+    "price_tier": "premium",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "casual",
+      "athleisure"
+    ]
+  },
+  {
+    "id": "sloane_006",
+    "source": "sloane_street",
+    "image_path": "images/006.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "short_sleeve_pique",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "other",
+        "subcategory": "shirt_tied_shoulders",
+        "color": "white"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer",
+        "preppy",
+        "nautical",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "beige",
+      "white"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "notes": "Docksides navy polo with beige chinos, shoulder-tied shirt, and cap",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "docksides",
+    "price_tier": "premium",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_007",
+    "source": "sloane_street",
+    "image_path": "images/007.jpg",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "asymmetrical_draped_tunic",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "tonal",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "off_white",
+      "ivory"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "oversized"
+    },
+    "notes": "Monochrome cream draped tunic with matching wide-leg trousers",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_008",
+    "source": "sloane_street",
+    "image_path": "images/008.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "short_sleeve_textured",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored",
+        "color": "brown"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer",
+        "minimal",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "brown",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Sandro cream textured short-sleeve shirt with dark tailored trousers",
+    "confidence": 0.84,
+    "score_hint": {
+      "base_score": 78,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "sandro",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_009",
+    "source": "sloane_street",
+    "image_path": "images/009.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_button_down",
+        "color": "grey"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored_straight",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "duffle",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "grey",
+      "cream",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Striped charcoal shirt with cream trousers and brown leather duffle",
+    "confidence": 0.85,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_010",
+    "source": "sloane_street",
+    "image_path": "images/010.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "cropped_knit_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_maxi_knit",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "tonal",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "pale_yellow",
+      "ivory"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Sandro matching cream knit polo and floor-length pleated skirt",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "sandro",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_011",
+    "source": "sloane_street",
+    "image_path": "images/011.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "evening",
+      "secondary": [
+        "floral",
+        "romantic",
+        "occasion"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "pink",
+      "olive"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Cream maxi gown with pink floral embroidery and green leaf motifs",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored"
+    ]
+  },
+  {
+    "id": "sloane_012",
+    "source": "sloane_street",
+    "image_path": "images/012.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "plaid_flannel_long_sleeve",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight_leg",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "smart_casual",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Loro Piana light-blue plaid shirt with light jeans and beige cap",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "loro_piana",
+    "price_tier": "ultra_luxury",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "casual",
+      "minimal"
+    ]
+  },
+  {
+    "id": "sloane_013",
+    "source": "sloane_street",
+    "image_path": "images/013.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "waistcoat",
+        "color": "terracotta"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "terracotta"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "jewelry",
+        "subcategory": "necklace",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort",
+        "summer",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "terracotta",
+      "brown",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed_tailored"
+    },
+    "notes": "Middle of 3 mannequins: women's matching waistcoat + wide-leg trousers in terracotta botanical print. Left maxi dress and right cream dress not labelled as primary.",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "tailored",
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_014",
+    "source": "sloane_street",
+    "image_path": "images/014.jpg",
+    "outfit": {
+      "top": {
+        "category": "sweater",
+        "subcategory": "sleeveless_knit",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "navy"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "shoulder_tied_knit",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual",
+        "resort",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "cream",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed_tailored"
+    },
+    "notes": "Varley window — primary = right mannequin: navy sleeveless knit top, cream/beige jumper wrapped around neck, navy wide-leg trousers. Left mannequin (cream polo + pale shorts + tote) not primary. Partial forms; no footwear.",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "varley",
+    "price_tier": "premium",
+    "style_tags": [
+      "tailored",
+      "relaxed",
+      "smart casual",
+      "athleisure"
+    ]
+  },
+  {
+    "id": "sloane_015",
+    "source": "sloane_street",
+    "image_path": "images/015.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_button_down",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_leg",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "waist_tied_knit",
+        "color": "pink"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "bucket_bag",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "white",
+      "charcoal",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Pink striped shirt with sweater tied at waist, charcoal trousers, black loafers.",
+    "confidence": 0.86,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_016",
+    "source": "sloane_street",
+    "image_path": "images/016.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "long_sleeve_knit_polo",
+        "color": "taupe"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "slim_tailored",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "shoulder_tied_knit",
+        "color": "brown"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "taupe",
+      "brown",
+      "beige",
+      "grey"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Taupe knit polo with brown sweater over shoulders, beige trousers, suede loafers.",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_017",
+    "source": "sloane_street",
+    "image_path": "images/017.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "camp_collar_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_leg",
+        "color": "charcoal"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "charcoal",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "notes": "Cream camp-collar shirt, charcoal trousers, white sneakers and cap.",
+    "confidence": 0.84,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_018",
+    "source": "sloane_street",
+    "image_path": "images/018.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "blue"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Light blue tiered midi dress with V-neck; footwear not visible.",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "casual"
+    ]
+  },
+  {
+    "id": "sloane_019",
+    "source": "sloane_street",
+    "image_path": "images/019.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "athletic_long_sleeve",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "bike_shorts",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "headband",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "slim"
+    },
+    "notes": "All-black running kit: long-sleeve top, bike shorts, sneakers.",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "casual"
+    ]
+  },
+  {
+    "id": "sloane_020",
+    "source": "sloane_street",
+    "image_path": "images/020.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "beige"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "beige",
+      "black",
+      "rust"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "slim"
+    },
+    "notes": "Ruched maxi dress with midriff cutout in beige-black-rust print.",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_021",
+    "source": "sloane_street",
+    "image_path": "images/021.jpg",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "eyeglasses",
+        "color": "clear"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "blue",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "notes": "MOSCOT eyewear heads only (sand, suitcases, beach umbrella props). No full-body outfit — excluded from scoring signals.",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "eyewear_only"
+      ]
+    },
+    "brand": "moscot",
+    "price_tier": "premium",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_022",
+    "source": "sloane_street",
+    "image_path": "images/022.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "cropped_mandarin_jacket",
+        "color": "mauve"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "mauve"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "mauve"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "notes": "Monochrome dusty-pink cropped jacket and matching trousers.",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_023",
+    "source": "sloane_street",
+    "image_path": "images/023.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "longline_tunic",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "jewelry",
+        "subcategory": "cuff_bracelet",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "grey",
+      "black",
+      "gold"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "notes": "Cream geometric tunic over wide cream trousers with gold cuff.",
+    "confidence": 0.85,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_024",
+    "source": "sloane_street",
+    "image_path": "images/024.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "striped_short_sleeve",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored_shorts",
+        "color": "coral"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "shoulder_tied_knit",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "blue",
+      "coral",
+      "cream"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Navy-stripe polo, coral shorts, cream sweater on shoulders, navy tote.",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_025",
+    "source": "sloane_street",
+    "image_path": "images/025.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "linen_button_down",
+        "color": "yellow"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored_knee_length",
+        "color": "olive"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "espadrilles",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "olive",
+      "beige",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Pale yellow linen shirt, olive shorts, beige espadrilles, white cap.",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_026",
+    "source": "sloane_street",
+    "image_path": "images/026.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "white"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mules",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "handbag",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "brown",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "notes": "White shirt-style mini dress with brown studded mules and tan bag.",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_027",
+    "source": "sloane_street",
+    "image_path": "images/027.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "sports_bra",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "joggers",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [
+      "brown",
+      "cream",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Brown sports bra, cream joggers, white sneakers, matching brown cap.",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "casual"
+    ]
+  },
+  {
+    "id": "sloane_028",
+    "source": "sloane_street",
+    "image_path": "images/028.jpg",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck_pocket",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic_shorts",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "blue"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "navy",
+      "grey",
+      "yellow"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Light blue tee, navy shorts, grey sneakers with yellow laces, matching cap.",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "casual"
+    ]
+  },
+  {
+    "id": "sloane_029",
+    "source": "sloane_street",
+    "image_path": "images/029.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "blue"
+      },
+      "bottom": null,
+      "outerwear": {
+        "category": "knitwear",
+        "subcategory": "cardigan",
+        "color": "light_blue"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_janes",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "accessory",
+        "subcategory": "bow",
+        "color": "blue"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "light_blue"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Liberty floral smocked dress with open light-blue cardigan on kids mannequin",
+    "confidence": 0.82,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "liberty",
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_030",
+    "source": "sloane_street",
+    "image_path": "images/030.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "beige",
+      "off_white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "slim"
+    },
+    "notes": "LoveShackFancy one-shoulder cream crochet maxi with shoulder flower",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "loveshackfancy",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "quiet luxury",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_031",
+    "source": "sloane_street",
+    "image_path": "images/031.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "camisole",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "structured_single_breasted",
+        "color": "black"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "business_formal",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "black"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "notes": "Women's monochrome black suit (blazer + wide-leg trousers over camisole). No footwear visible in frame.",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury",
+      "tailored"
+    ]
+  },
+  {
+    "id": "sloane_032",
+    "source": "sloane_street",
+    "image_path": "images/032.jpg",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "peach",
+      "cream",
+      "navy",
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "BRORA sale rail (Final Reductions) — hangers only, no mannequin. Not a structured outfit; excluded from scoring signals.",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "sale_rail_no_mannequin"
+      ]
+    },
+    "brand": "brora",
+    "price_tier": "premium",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_033",
+    "source": "sloane_street",
+    "image_path": "images/033.jpg",
+    "outfit": {
+      "top": {
+        "category": "sweater",
+        "subcategory": "sweater",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "trousers",
+        "color": "off_white"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mules",
+        "color": "cream"
+      },
+      "accessory": {
+        "category": "accessory",
+        "subcategory": "belt",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "off_white",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "notes": "White Company cream knit and bone trousers with cognac belt",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "white_company",
+    "price_tier": "premium",
+    "style_tags": [
+      "quiet luxury",
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_034",
+    "source": "sloane_street",
+    "image_path": "images/034.jpg",
+    "outfit": {
+      "top": {
+        "category": "knit",
+        "subcategory": "top",
+        "color": "beige"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "trousers",
+        "color": "brown"
+      },
+      "outerwear": {
+        "category": "knitwear",
+        "subcategory": "cardigan",
+        "color": "white"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "beige",
+      "white",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Beige knit top, draped white cardigan, brown wide-leg trousers, sneakers",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_035",
+    "source": "sloane_street",
+    "image_path": "images/035.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "white"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "off_white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "notes": "Veronica Beard white sleeveless midi with lace embroidery panel",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "veronica_beard",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "quiet luxury",
+      "tailored",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_036",
+    "source": "sloane_street",
+    "image_path": "images/036.jpg",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "polo",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "jeans",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "accessory",
+        "subcategory": "belt",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "casual",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "beige",
+      "blue",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "PAIGE cream-tan striped polo with flared light-wash jeans",
+    "confidence": 0.84,
+    "score_hint": {
+      "base_score": 78,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "paige",
+    "price_tier": "premium",
+    "style_tags": [
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_037",
+    "source": "sloane_street",
+    "image_path": "images/037.jpg",
+    "outfit": {
+      "top": {
+        "category": "other",
+        "subcategory": "camisole",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "skirt",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "evening",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "slim"
+    },
+    "notes": "Center mannequin black cropped camisole with matching black midi skirt",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "quiet luxury"
+    ]
+  },
+  {
+    "id": "sloane_038",
+    "source": "sloane_street",
+    "image_path": "images/038.jpg",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "blouse",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "skirt",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "accessory",
+        "subcategory": "belt",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "cream",
+      "yellow",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "notes": "Veronica Beard black draped top with cream-yellow floral midi skirt",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": "veronica_beard",
+    "price_tier": "contemporary_luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_039",
+    "source": "sloane_street",
+    "image_path": "images/039.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "shirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "trousers",
+        "color": "tan"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "jacket",
+        "color": "tan"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "gold"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "handbag",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "white",
+      "navy",
+      "gold"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Striped shirt, draped tan jacket, wide-leg tan trousers, gold loafers",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_040",
+    "source": "sloane_street",
+    "image_path": "images/040.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "shirt",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "shorts",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "vest",
+        "subcategory": "vest",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "knitwear",
+        "subcategory": "sweater",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "beige",
+      "white"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "notes": "Safari resort look: blue shirt, beige vest and shorts, sweater on shoulders",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "relaxed",
+      "resort"
+    ]
+  },
+  {
+    "id": "sloane_041",
+    "source": "sloane_street",
+    "image_path": "images/041.jpg",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "shirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "trousers",
+        "color": "white"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "blazer",
+        "color": "navy"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "accessory",
+        "subcategory": "cane",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "white",
+      "brown"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "notes": "Navy blazer over white shirt and white trousers with walking cane",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": [
+      "tailored",
+      "smart casual"
+    ]
+  },
+  {
+    "id": "sloane_042",
+    "source": "sloane_street",
+    "image_path": "images/042.jpg",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "dress",
+        "color": "orange"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "evening",
+      "secondary": [
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "orange"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "slim"
+    },
+    "notes": "Center mannequin bright orange sleeveless ruched midi dress",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "brand": null,
+    "price_tier": "luxury",
+    "style_tags": []
+  }
+]

@@ -1,0 +1,176 @@
+[
+    {
+        "id":  1,
+        "file":  "001.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (1).jpeg",
+        "bytes":  298754
+    },
+    {
+        "id":  2,
+        "file":  "002.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (10).jpeg",
+        "bytes":  290774
+    },
+    {
+        "id":  3,
+        "file":  "003.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (11).jpeg",
+        "bytes":  237787
+    },
+    {
+        "id":  4,
+        "file":  "004.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (2).jpeg",
+        "bytes":  283962
+    },
+    {
+        "id":  5,
+        "file":  "005.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (3).jpeg",
+        "bytes":  291527
+    },
+    {
+        "id":  6,
+        "file":  "006.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (4).jpeg",
+        "bytes":  277534
+    },
+    {
+        "id":  7,
+        "file":  "007.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (5).jpeg",
+        "bytes":  298798
+    },
+    {
+        "id":  8,
+        "file":  "008.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (6).jpeg",
+        "bytes":  253034
+    },
+    {
+        "id":  9,
+        "file":  "009.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (7).jpeg",
+        "bytes":  165032
+    },
+    {
+        "id":  10,
+        "file":  "010.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (8).jpeg",
+        "bytes":  262653
+    },
+    {
+        "id":  11,
+        "file":  "011.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM (9).jpeg",
+        "bytes":  261515
+    },
+    {
+        "id":  12,
+        "file":  "012.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.16 PM.jpeg",
+        "bytes":  321132
+    },
+    {
+        "id":  13,
+        "file":  "013.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (1).jpeg",
+        "bytes":  227684
+    },
+    {
+        "id":  14,
+        "file":  "014.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (10).jpeg",
+        "bytes":  285540
+    },
+    {
+        "id":  15,
+        "file":  "015.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (11).jpeg",
+        "bytes":  292338
+    },
+    {
+        "id":  16,
+        "file":  "016.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (12).jpeg",
+        "bytes":  322299
+    },
+    {
+        "id":  17,
+        "file":  "017.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (2).jpeg",
+        "bytes":  224163
+    },
+    {
+        "id":  18,
+        "file":  "018.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (3).jpeg",
+        "bytes":  303725
+    },
+    {
+        "id":  19,
+        "file":  "019.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (4).jpeg",
+        "bytes":  230038
+    },
+    {
+        "id":  20,
+        "file":  "020.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (5).jpeg",
+        "bytes":  257661
+    },
+    {
+        "id":  21,
+        "file":  "021.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (6).jpeg",
+        "bytes":  218439
+    },
+    {
+        "id":  22,
+        "file":  "022.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (7).jpeg",
+        "bytes":  217601
+    },
+    {
+        "id":  23,
+        "file":  "023.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (8).jpeg",
+        "bytes":  173928
+    },
+    {
+        "id":  24,
+        "file":  "024.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM (9).jpeg",
+        "bytes":  202799
+    },
+    {
+        "id":  25,
+        "file":  "025.jpg",
+        "src":  "WhatsApp Image 2026-07-30 at 6.11.17 PM.jpeg",
+        "bytes":  254913
+    },
+    {
+        "id":  26,
+        "file":  "026.jpg",
+        "src":  "fitting_room_26_fitting_room_cream_suit.jpg",
+        "bytes":  125367
+    },
+    {
+        "id":  27,
+        "file":  "027.jpg",
+        "src":  "fitting_room_27_fitting_room_navy_polo.jpg",
+        "bytes":  133005
+    },
+    {
+        "id":  28,
+        "file":  "028.jpg",
+        "src":  "fitting_room_28_fitting_room_black_gilet.jpg",
+        "bytes":  119024
+    },
+    {
+        "id":  29,
+        "file":  "029.jpg",
+        "src":  "fitting_room_29_fitting_room_olive_coord.jpg",
+        "bytes":  124082
+    }
+]

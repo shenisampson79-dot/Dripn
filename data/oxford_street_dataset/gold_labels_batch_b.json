@@ -1,0 +1,769 @@
+[
+  {
+    "id": "oxford_151",
+    "source": "oxford_street",
+    "image_path": "images/151.jpg",
+    "brand": "abercrombie_and_fitch",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck_short_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight_leg",
+        "color": "indigo"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "button_down_open",
+        "color": "white"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["preppy", "layered"]
+    },
+    "colour_palette": ["white", "indigo"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["denim", "layered_shirt"],
+    "notes": "Male mannequin in open white button-down over white graphic tee and dark indigo jeans; cream sweatshirt draped on shoulder as prop",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_158",
+    "source": "oxford_street",
+    "image_path": "images/158.jpg",
+    "brand": "tk_maxx",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "button_down",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_leg",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_plaid",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["autumn", "country"]
+    },
+    "colour_palette": ["beige", "tan", "black", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "oversized"
+    },
+    "style_tags": ["plaid", "neutral"],
+    "notes": "Right mannequin in white shirt, cropped beige-plaid boxy jacket and tan trousers; feet hidden by dried grass display",
+    "confidence": 0.85,
+    "score_hint": {
+      "base_score": 80,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_166",
+    "source": "oxford_street",
+    "image_path": "images/166.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "striped_short_sleeve",
+        "color": "off_white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pleated_chinos",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["minimal", "preppy"]
+    },
+    "colour_palette": ["off_white", "beige", "sage_green", "blue"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["pleated", "summer"],
+    "notes": "Male mannequin in striped polo with sage collar, pleated beige chinos and white gum-sole sneakers; sunglasses on placket",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_173",
+    "source": "oxford_street",
+    "image_path": "images/173.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "striped_long_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "midi_straight",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "backpack",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["preppy", "academic"]
+    },
+    "colour_palette": ["white", "black", "navy"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["striped", "midi_skirt"],
+    "notes": "Primary right figure on digital screen in striped polo-style top, black midi skirt and black loafers with socks",
+    "confidence": 0.82,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_180",
+    "source": "oxford_street",
+    "image_path": "images/180.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_short_sleeve",
+        "color": "burgundy"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "mini_denim",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "combat_boots",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder_bag",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "streetwear",
+      "secondary": ["grunge", "y2k"]
+    },
+    "colour_palette": ["burgundy", "black", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["graphic_tee", "fishnet", "combat_boots"],
+    "notes": "Central female mannequin in burgundy graphic tee, black mini skirt with grommet belt, white fishnet tights and black combat boots",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_187",
+    "source": "oxford_street",
+    "image_path": "images/187.jpg",
+    "brand": "skechers",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "denim_button_down",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "cropped_straight",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["denim_on_denim"]
+    },
+    "colour_palette": ["blue", "white", "lavender"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["double_denim", "athletic_sneakers"],
+    "notes": "Skechers poster figure in medium-wash denim shirt, light cropped frayed jeans and white Slip-ins sneakers",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 76,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_194",
+    "source": "oxford_street",
+    "image_path": "images/194.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck_short_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "sweat_shorts",
+        "color": "grey"
+      },
+      "outerwear": {
+        "category": "hoodie",
+        "subcategory": "zip_up",
+        "color": "grey"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "streetwear",
+      "secondary": ["athleisure"]
+    },
+    "colour_palette": ["grey", "white", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["tracksuit", "chunky_sneakers"],
+    "notes": "Black male mannequin in grey zip hoodie over white tee, matching grey sweat shorts and chunky grey sneakers with Yankees cap",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_201",
+    "source": "oxford_street",
+    "image_path": "images/201.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "raglan_cropped",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic_shorts",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "bucket_hat",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": ["streetwear"]
+    },
+    "colour_palette": ["white", "navy", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "athletic"
+    },
+    "style_tags": ["sportswear", "three_stripes"],
+    "notes": "Grey female mannequin in white-navy raglan cropped tee, navy stripe shorts, white sneakers and black bucket hat",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_208",
+    "source": "oxford_street",
+    "image_path": "images/208.jpg",
+    "brand": "under_armour",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "performance_crew",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic_shorts",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "running_shoes",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": []
+    },
+    "colour_palette": ["blue", "grey", "white", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "athletic"
+    },
+    "style_tags": ["monochrome", "sportswear"],
+    "notes": "Male mannequin in cerulean blue performance tee and matching shorts with grey running shoes and black cap",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 77,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_216",
+    "source": "oxford_street",
+    "image_path": "images/216.jpg",
+    "brand": "reserved",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "lace_crochet",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_frayed",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "burgundy"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["boho", "summer"]
+    },
+    "colour_palette": ["white", "blue", "burgundy"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["crochet", "denim_shorts"],
+    "notes": "Central mannequin in white lace blouse with tassels, frayed denim shorts and burgundy tote; bare mannequin base",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 81,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_223",
+    "source": "oxford_street",
+    "image_path": "images/223.jpg",
+    "brand": "apc",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "slip_midi",
+        "color": "black"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_janes",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "jewelry",
+        "subcategory": "chain_necklace",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal"]
+    },
+    "colour_palette": ["black", "gold"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["slip_dress", "monochrome"],
+    "notes": "Foreground mannequin in black midi slip dress with thin straps, black Mary Jane shoes and gold chain necklace",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_230",
+    "source": "oxford_street",
+    "image_path": "images/230.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "strapless_handkerchief",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "midi_polka_dot",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["resort", "summer"]
+    },
+    "colour_palette": ["black", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["polka_dot", "monochrome"],
+    "notes": "Primary foreground mannequin in black-and-white polka dot strapless top and matching midi skirt with black thong sandals",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_237",
+    "source": "oxford_street",
+    "image_path": "images/237.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "draped_sleeveless",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "woven_clutch",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["smart_casual", "resort"]
+    },
+    "colour_palette": ["cream", "beige", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["monochrome", "wide_leg"],
+    "notes": "Grey mannequin in cream draped sleeveless top and matching wide-leg trousers with black strappy sandals and woven bag",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_244",
+    "source": "oxford_street",
+    "image_path": "images/244.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "t_shirt_dress",
+        "color": "red"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "ballet_flats",
+        "color": "red"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": ["red", "grey", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["striped", "waist_tie"],
+    "notes": "Grey mannequin in red-grey-white striped t-shirt dress with waist tie and red mesh ballet flats",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 80,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_251",
+    "source": "oxford_street",
+    "image_path": "images/251.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "striped_tank",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "joggers",
+        "color": "mauve"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "sweatshirt_tied",
+        "color": "mauve"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": ["casual"]
+    },
+    "colour_palette": ["white", "black", "mauve"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["lounge", "co_ord"],
+    "notes": "Grey mannequin in striped tank top, mauve joggers with matching sweatshirt tied over shoulders and dark sneakers",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 79,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  }
+]

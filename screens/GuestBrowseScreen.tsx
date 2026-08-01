@@ -43,6 +43,8 @@ import {
   getStylistSpeakTranslator,
   resolveStylistSpeakLanguage,
 } from "@/utils/stylistLanguage";
+import { OutfitTasteFeedback } from "@/components/outfit/OutfitTasteFeedback";
+import { recordStylistOutfitFeedback } from "@/utils/outfitFeedbackBrain";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -809,6 +811,40 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
               </View>
             </Pressable>
           )}
+
+          {(item.outfitPieces?.length || item.outfitContext) ? (
+            <View style={{ marginTop: 10 }}>
+              <OutfitTasteFeedback
+                compact
+                onLike={() => {
+                  void recordStylistOutfitFeedback({
+                    items: (item.outfitPieces || []).map((p, i) => ({
+                      id: `guest_${item.id}_${p.role || i}`,
+                      name: p.descriptor || p.garment || 'piece',
+                    })),
+                    signal: 'liked',
+                    source: 'guest_chat',
+                    occasion: item.outfitOccasion || undefined,
+                    localOnly: true,
+                    contextSnapshot: { messageId: item.id },
+                  });
+                }}
+                onSkip={() => {
+                  void recordStylistOutfitFeedback({
+                    items: (item.outfitPieces || []).map((p, i) => ({
+                      id: `guest_${item.id}_${p.role || i}`,
+                      name: p.descriptor || p.garment || 'piece',
+                    })),
+                    signal: 'skipped',
+                    source: 'guest_chat',
+                    occasion: item.outfitOccasion || undefined,
+                    localOnly: true,
+                    contextSnapshot: { messageId: item.id },
+                  });
+                }}
+              />
+            </View>
+          ) : null}
         </View>
       </View>
     );

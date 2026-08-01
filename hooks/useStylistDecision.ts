@@ -28,6 +28,7 @@ import {
 } from '@/services/DecisionSessionManager';
 import { stabilizeDecisionImage } from '@/services/VisionAnalysisService';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
@@ -1298,9 +1299,10 @@ export function useStylistDecision({
       if (
         pieces.length >= 2
         && displayState !== 'SHOP_REQUIRED'
+        && displayState !== 'REJECTED_WARDROBE_FIX'
         && response?.success !== false
       ) {
-        void apiService.recordOutfitEngagement({
+        void recordStylistOutfitFeedback({
           items: pieces
             .map((p) => ({
               id: String(p.wardrobeItemId ?? p.id ?? ''),
@@ -1310,9 +1312,9 @@ export function useStylistDecision({
             }))
             .filter((p) => p.id),
           signal: 'liked',
+          source: 'stylist_decision',
           occasion: eventDetails?.eventType || decisionType || undefined,
           contextSnapshot: {
-            source: 'stylist_decision',
             displayState: displayState || null,
             decisionType,
           },
@@ -1320,6 +1322,36 @@ export function useStylistDecision({
       }
     } catch {
       // non-blocking
+    }
+    navigation.goBack();
+  };
+
+  /** Explicit reject — soft skip for stylist brain (does not alter hard rules). */
+  const rejectAndClose = () => {
+    try {
+      const pieces = response?.outfitPieces || [];
+      if (pieces.length >= 1) {
+        void recordStylistOutfitFeedback({
+          items: pieces
+            .map((p) => ({
+              id: String(p.wardrobeItemId ?? p.id ?? ''),
+              name: p.name || 'item',
+              category: p.category || undefined,
+              color: (p as { color?: string }).color,
+            }))
+            .filter((p) => p.id),
+          signal: 'skipped',
+          source: 'stylist_decision',
+          occasion: eventDetails?.eventType || decisionType || undefined,
+          contextSnapshot: {
+            displayState: response?.displayState || null,
+            decisionType,
+            action: 'not_this',
+          },
+        });
+      }
+    } catch {
+      /* ignore */
     }
     navigation.goBack();
   };
@@ -1470,6 +1502,7 @@ export function useStylistDecision({
     submitDecision,
     resetFlow,
     completeAndClose,
+    rejectAndClose,
     continueInChat,
     getDecisionContinuity,
     editAndRerun,

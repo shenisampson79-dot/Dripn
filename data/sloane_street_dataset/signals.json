@@ -1,0 +1,2400 @@
+{
+  "version": 4,
+  "source": "sloane_street+croydon_mall+brixton_high_street+oxford_street",
+  "generated_at": "2026-07-31T15:49:55.513Z",
+  "sample_size": 516,
+  "valid_count": 147,
+  "colour_combos": [
+    {
+      "combo": "black+white",
+      "frequency": 37,
+      "score_boost": 8
+    },
+    {
+      "combo": "beige+white",
+      "frequency": 33,
+      "score_boost": 8
+    },
+    {
+      "combo": "blue+white",
+      "frequency": 27,
+      "score_boost": 7
+    },
+    {
+      "combo": "grey+white",
+      "frequency": 19,
+      "score_boost": 7
+    },
+    {
+      "combo": "beige+black",
+      "frequency": 17,
+      "score_boost": 7
+    },
+    {
+      "combo": "beige+cream",
+      "frequency": 17,
+      "score_boost": 6
+    },
+    {
+      "combo": "blue+cream",
+      "frequency": 17,
+      "score_boost": 6
+    },
+    {
+      "combo": "navy+white",
+      "frequency": 17,
+      "score_boost": 6
+    },
+    {
+      "combo": "cream+white",
+      "frequency": 16,
+      "score_boost": 5
+    },
+    {
+      "combo": "beige+blue",
+      "frequency": 14,
+      "score_boost": 5
+    },
+    {
+      "combo": "black+cream",
+      "frequency": 14,
+      "score_boost": 4
+    },
+    {
+      "combo": "beige+brown",
+      "frequency": 13,
+      "score_boost": 4
+    },
+    {
+      "combo": "black+grey",
+      "frequency": 13,
+      "score_boost": 4
+    },
+    {
+      "combo": "brown+white",
+      "frequency": 13,
+      "score_boost": 3
+    },
+    {
+      "combo": "brown+cream",
+      "frequency": 12,
+      "score_boost": 3
+    }
+  ],
+  "garment_pairings": [
+    {
+      "pairing": "shirt×trousers",
+      "frequency": 22,
+      "score_boost": 6
+    },
+    {
+      "pairing": "t-shirt×shorts",
+      "frequency": 19,
+      "score_boost": 6
+    },
+    {
+      "pairing": "polo×trousers",
+      "frequency": 9,
+      "score_boost": 5
+    },
+    {
+      "pairing": "shirt×shorts",
+      "frequency": 8,
+      "score_boost": 5
+    },
+    {
+      "pairing": "other×trousers",
+      "frequency": 7,
+      "score_boost": 5
+    },
+    {
+      "pairing": "blouse×trousers",
+      "frequency": 6,
+      "score_boost": 5
+    },
+    {
+      "pairing": "t-shirt×trousers",
+      "frequency": 6,
+      "score_boost": 4
+    },
+    {
+      "pairing": "polo×shorts",
+      "frequency": 4,
+      "score_boost": 4
+    },
+    {
+      "pairing": "shirt×jeans",
+      "frequency": 4,
+      "score_boost": 4
+    },
+    {
+      "pairing": "sweater×trousers",
+      "frequency": 4,
+      "score_boost": 3
+    },
+    {
+      "pairing": "t-shirt×skirt",
+      "frequency": 4,
+      "score_boost": 3
+    },
+    {
+      "pairing": "knit×trousers",
+      "frequency": 3,
+      "score_boost": 3
+    },
+    {
+      "pairing": "other×shorts",
+      "frequency": 3,
+      "score_boost": 3
+    },
+    {
+      "pairing": "polo×skirt",
+      "frequency": 3,
+      "score_boost": 2
+    },
+    {
+      "pairing": "blouse×shorts",
+      "frequency": 2,
+      "score_boost": 2
+    },
+    {
+      "pairing": "blouse×skirt",
+      "frequency": 2,
+      "score_boost": 2
+    },
+    {
+      "pairing": "polo×jeans",
+      "frequency": 2,
+      "score_boost": 2
+    },
+    {
+      "pairing": "sweater×shorts",
+      "frequency": 2,
+      "score_boost": 2
+    },
+    {
+      "pairing": "t-shirt×jeans",
+      "frequency": 2,
+      "score_boost": 2
+    },
+    {
+      "pairing": "top×skirt",
+      "frequency": 2,
+      "score_boost": 2
+    }
+  ],
+  "footwear_by_style": {
+    "smart_casual": [
+      {
+        "subcategory": "loafers",
+        "frequency": 11,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "sneakers",
+        "frequency": 5,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "flats",
+        "frequency": 3,
+        "score_boost": 4
+      },
+      {
+        "subcategory": "heels",
+        "frequency": 2,
+        "score_boost": 3
+      },
+      {
+        "subcategory": "mules",
+        "frequency": 2,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "boots",
+        "frequency": 1,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "deck_shoes",
+        "frequency": 1,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "derby",
+        "frequency": 1,
+        "score_boost": 2
+      }
+    ],
+    "business_casual": [
+      {
+        "subcategory": "oxfords",
+        "frequency": 1,
+        "score_boost": 6
+      }
+    ],
+    "resort": [
+      {
+        "subcategory": "sandals",
+        "frequency": 3,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "sneakers",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "espadrilles",
+        "frequency": 1,
+        "score_boost": 4
+      },
+      {
+        "subcategory": "flats",
+        "frequency": 1,
+        "score_boost": 3
+      },
+      {
+        "subcategory": "heels",
+        "frequency": 1,
+        "score_boost": 2
+      }
+    ],
+    "casual": [
+      {
+        "subcategory": "sneakers",
+        "frequency": 32,
+        "score_boost": 6
+      },
+      {
+        "subcategory": "sandals",
+        "frequency": 12,
+        "score_boost": 5
+      },
+      {
+        "subcategory": "loafers",
+        "frequency": 4,
+        "score_boost": 4
+      },
+      {
+        "subcategory": "mules",
+        "frequency": 2,
+        "score_boost": 3
+      },
+      {
+        "subcategory": "athletic",
+        "frequency": 1,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "ballet_flats",
+        "frequency": 1,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "boat_shoes",
+        "frequency": 1,
+        "score_boost": 2
+      },
+      {
+        "subcategory": "combat_boots",
+        "frequency": 1,
+        "score_boost": 2
+      }
+    ]
+  },
+  "layering_patterns": [
+    {
+      "pattern": "none",
+      "frequency": 89
+    },
+    {
+      "pattern": "light",
+      "frequency": 45
+    },
+    {
+      "pattern": "structured",
+      "frequency": 13
+    }
+  ],
+  "silhouette_counts": [
+    {
+      "silhouette": "relaxed",
+      "frequency": 67
+    },
+    {
+      "silhouette": "tailored",
+      "frequency": 42
+    },
+    {
+      "silhouette": "athletic",
+      "frequency": 20
+    },
+    {
+      "silhouette": "relaxed_tailored",
+      "frequency": 6
+    },
+    {
+      "silhouette": "slim",
+      "frequency": 5
+    },
+    {
+      "silhouette": "oversized",
+      "frequency": 4
+    },
+    {
+      "silhouette": "fitted",
+      "frequency": 3
+    }
+  ],
+  "footwear_overall": [
+    {
+      "subcategory": "sneakers",
+      "frequency": 39
+    },
+    {
+      "subcategory": "sandals",
+      "frequency": 16
+    },
+    {
+      "subcategory": "loafers",
+      "frequency": 15
+    },
+    {
+      "subcategory": "flats",
+      "frequency": 5
+    },
+    {
+      "subcategory": "mules",
+      "frequency": 4
+    },
+    {
+      "subcategory": "heels",
+      "frequency": 3
+    },
+    {
+      "subcategory": "mary_janes",
+      "frequency": 2
+    },
+    {
+      "subcategory": "athletic",
+      "frequency": 1
+    },
+    {
+      "subcategory": "ballet_flats",
+      "frequency": 1
+    },
+    {
+      "subcategory": "boat_shoes",
+      "frequency": 1
+    },
+    {
+      "subcategory": "boots",
+      "frequency": 1
+    },
+    {
+      "subcategory": "combat_boots",
+      "frequency": 1
+    }
+  ],
+  "luxury": {
+    "brand_colour_systems": [
+      {
+        "brand": "oxford_street",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 7
+          },
+          {
+            "combo": "black+white",
+            "frequency": 7
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 7
+          },
+          {
+            "combo": "blue+brown",
+            "frequency": 5
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 4
+          }
+        ]
+      },
+      {
+        "brand": "jd_sports",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 6
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 4
+          },
+          {
+            "combo": "beige+black",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 3
+          },
+          {
+            "combo": "navy+white",
+            "frequency": 3
+          }
+        ]
+      },
+      {
+        "brand": "sloane_street",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 5
+          },
+          {
+            "combo": "beige+brown",
+            "frequency": 4
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 4
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "cream+grey",
+            "frequency": 3
+          }
+        ]
+      },
+      {
+        "brand": "next",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 4
+          },
+          {
+            "combo": "beige+black",
+            "frequency": 3
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 3
+          },
+          {
+            "combo": "red+white",
+            "frequency": 3
+          }
+        ]
+      },
+      {
+        "brand": "adidas",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+red",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+coral",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "hm",
+        "top_colours": [
+          {
+            "combo": "blue+white",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "black+blue",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+pink",
+            "frequency": 2
+          }
+        ]
+      },
+      {
+        "brand": "uniqlo",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 3
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          }
+        ]
+      },
+      {
+        "brand": "varley",
+        "top_colours": [
+          {
+            "combo": "beige+cream",
+            "frequency": 3
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "apricot",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "foot_locker",
+        "top_colours": [
+          {
+            "combo": "beige+blue",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+grey",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "nike",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 2
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+white",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "reiss",
+        "top_colours": [
+          {
+            "combo": "beige+brown",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "cream+green",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+green",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "abercrombie_and_fitch",
+        "top_colours": [
+          {
+            "combo": "indigo+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "agnes_b",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "allsaints",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "apc",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "arket",
+        "top_colours": [
+          {
+            "combo": "black+navy",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "benetton",
+        "top_colours": [
+          {
+            "combo": "cream+lilac",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+purple",
+            "frequency": 1
+          },
+          {
+            "combo": "lilac+purple",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "brixton_high_street",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "canada_goose",
+        "top_colours": [
+          {
+            "combo": "black+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+yellow",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "croydon_mall",
+        "top_colours": [
+          {
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "docksides",
+        "top_colours": [
+          {
+            "combo": "beige+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "navy+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "hawes_and_curtis",
+        "top_colours": [
+          {
+            "combo": "blue+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "hobbs",
+        "top_colours": [
+          {
+            "combo": "navy+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "jaeger",
+        "top_colours": [
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+navy",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "k_way",
+        "top_colours": [
+          {
+            "combo": "beige+coral",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+green",
+            "frequency": 1
+          },
+          {
+            "combo": "coral+green",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "liberty",
+        "top_colours": [
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "longchamp",
+        "top_colours": [
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+pink",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+pink",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "loro_piana",
+        "top_colours": [
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "loveshackfancy",
+        "top_colours": [
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "lululemon",
+        "top_colours": [
+          {
+            "combo": "black+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "mango",
+        "top_colours": [
+          {
+            "combo": "blue+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "marks_and_spencer",
+        "top_colours": [
+          {
+            "combo": "black+blue_grey",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "blue_grey+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "mirror",
+        "top_colours": [
+          {
+            "combo": "beige+green",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "green+grey",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "montirex",
+        "top_colours": [
+          {
+            "combo": "black+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "black+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "oliver_bonas",
+        "top_colours": [
+          {
+            "combo": "burgundy+red",
+            "frequency": 1
+          },
+          {
+            "combo": "burgundy+white",
+            "frequency": 1
+          },
+          {
+            "combo": "red+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "only",
+        "top_colours": [
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+yellow",
+            "frequency": 1
+          },
+          {
+            "combo": "white+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "paige",
+        "top_colours": [
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "polo_ralph_lauren",
+        "top_colours": [
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "reserved",
+        "top_colours": [
+          {
+            "combo": "blue+burgundy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          },
+          {
+            "combo": "burgundy+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "rixo",
+        "top_colours": [
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+green",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+navy",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+purple",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+purple",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "sandro",
+        "top_colours": [
+          {
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "brown+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "skechers",
+        "top_colours": [
+          {
+            "combo": "blue+lavender",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          },
+          {
+            "combo": "lavender+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "supply_and_demand",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "tk_maxx",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+white",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "umbro",
+        "top_colours": [
+          {
+            "combo": "black+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+orange",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "under_armour",
+        "top_colours": [
+          {
+            "combo": "black+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "black+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+white",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "veronica_beard",
+        "top_colours": [
+          {
+            "combo": "beige+black",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+yellow",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+yellow",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "white_company",
+        "top_colours": [
+          {
+            "combo": "brown+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "zara",
+        "top_colours": [
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+green",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+green",
+            "frequency": 1
+          }
+        ]
+      }
+    ],
+    "brand_pairings": [
+      {
+        "pair": "other×trousers",
+        "frequency": 5,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 5,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 5,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 4,
+        "brand_bias": "oxford_street"
+      },
+      {
+        "pair": "polo×trousers",
+        "frequency": 3,
+        "brand_bias": "oxford_street"
+      },
+      {
+        "pair": "shirt×shorts",
+        "frequency": 3,
+        "brand_bias": "next"
+      },
+      {
+        "pair": "shirt×trousers",
+        "frequency": 3,
+        "brand_bias": "next"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 3,
+        "brand_bias": "oxford_street"
+      },
+      {
+        "pair": "shirt×jeans",
+        "frequency": 2,
+        "brand_bias": "next"
+      },
+      {
+        "pair": "shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "sloane_street"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "foot_locker"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "adidas"
+      },
+      {
+        "pair": "t-shirt×trousers",
+        "frequency": 2,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "t-shirt×trousers",
+        "frequency": 2,
+        "brand_bias": "brixton_high_street"
+      },
+      {
+        "pair": "blouse×shorts",
+        "frequency": 1,
+        "brand_bias": "hm"
+      },
+      {
+        "pair": "blouse×shorts",
+        "frequency": 1,
+        "brand_bias": "reserved"
+      },
+      {
+        "pair": "blouse×skirt",
+        "frequency": 1,
+        "brand_bias": "veronica_beard"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "hm"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "only"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "apricot"
+      },
+      {
+        "pair": "blouse×trousers",
+        "frequency": 1,
+        "brand_bias": "agnes_b"
+      },
+      {
+        "pair": "knit×trousers",
+        "frequency": 1,
+        "brand_bias": "varley"
+      },
+      {
+        "pair": "other×shorts",
+        "frequency": 1,
+        "brand_bias": "jd_sports"
+      },
+      {
+        "pair": "other×shorts",
+        "frequency": 1,
+        "brand_bias": "nike"
+      }
+    ],
+    "brand_silhouettes": [
+      {
+        "brand": "k_way",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "rixo",
+        "silhouette": "relaxed",
+        "frequency": 2
+      },
+      {
+        "brand": "varley",
+        "silhouette": "relaxed",
+        "frequency": 2
+      },
+      {
+        "brand": "docksides",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "sloane_street",
+        "silhouette": "tailored",
+        "frequency": 10
+      },
+      {
+        "brand": "sandro",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "loro_piana",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "liberty",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "loveshackfancy",
+        "silhouette": "slim",
+        "frequency": 1
+      },
+      {
+        "brand": "white_company",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "veronica_beard",
+        "silhouette": "tailored",
+        "frequency": 2
+      },
+      {
+        "brand": "paige",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "croydon_mall",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "foot_locker",
+        "silhouette": "athletic",
+        "frequency": 2
+      },
+      {
+        "brand": "next",
+        "silhouette": "relaxed",
+        "frequency": 15
+      },
+      {
+        "brand": "hawes_and_curtis",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "mirror",
+        "silhouette": "relaxed_tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "zara",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "adidas",
+        "silhouette": "athletic",
+        "frequency": 2
+      },
+      {
+        "brand": "jd_sports",
+        "silhouette": "athletic",
+        "frequency": 9
+      },
+      {
+        "brand": "hm",
+        "silhouette": "relaxed",
+        "frequency": 5
+      },
+      {
+        "brand": "reiss",
+        "silhouette": "fitted",
+        "frequency": 2
+      },
+      {
+        "brand": "only",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "apricot",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "benetton",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "brixton_high_street",
+        "silhouette": "relaxed",
+        "frequency": 3
+      },
+      {
+        "brand": "oliver_bonas",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "oxford_street",
+        "silhouette": "relaxed",
+        "frequency": 12
+      },
+      {
+        "brand": "polo_ralph_lauren",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "agnes_b",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "uniqlo",
+        "silhouette": "relaxed",
+        "frequency": 3
+      },
+      {
+        "brand": "arket",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "allsaints",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "mango",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "hobbs",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "lululemon",
+        "silhouette": "athletic",
+        "frequency": 1
+      },
+      {
+        "brand": "abercrombie_and_fitch",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "tk_maxx",
+        "silhouette": "oversized",
+        "frequency": 1
+      },
+      {
+        "brand": "skechers",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "under_armour",
+        "silhouette": "athletic",
+        "frequency": 1
+      },
+      {
+        "brand": "reserved",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "apc",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "nike",
+        "silhouette": "relaxed",
+        "frequency": 2
+      },
+      {
+        "brand": "umbro",
+        "silhouette": "athletic",
+        "frequency": 1
+      },
+      {
+        "brand": "supply_and_demand",
+        "silhouette": "oversized",
+        "frequency": 1
+      },
+      {
+        "brand": "montirex",
+        "silhouette": "athletic",
+        "frequency": 1
+      },
+      {
+        "brand": "longchamp",
+        "silhouette": "relaxed",
+        "frequency": 1
+      },
+      {
+        "brand": "canada_goose",
+        "silhouette": "athletic",
+        "frequency": 1
+      },
+      {
+        "brand": "jaeger",
+        "silhouette": "tailored",
+        "frequency": 1
+      },
+      {
+        "brand": "marks_and_spencer",
+        "silhouette": "relaxed",
+        "frequency": 1
+      }
+    ],
+    "quiet_luxury_palettes": [
+      {
+        "combo": "black+white",
+        "frequency": 20,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+white",
+        "frequency": 16,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+black",
+        "frequency": 12,
+        "score_boost": 6
+      },
+      {
+        "combo": "grey+white",
+        "frequency": 10,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+cream",
+        "frequency": 9,
+        "score_boost": 5
+      },
+      {
+        "combo": "black+grey",
+        "frequency": 9,
+        "score_boost": 5
+      },
+      {
+        "combo": "navy+white",
+        "frequency": 9,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+brown",
+        "frequency": 8,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+grey",
+        "frequency": 7,
+        "score_boost": 4
+      },
+      {
+        "combo": "brown+white",
+        "frequency": 7,
+        "score_boost": 4
+      },
+      {
+        "combo": "cream+white",
+        "frequency": 7,
+        "score_boost": 4
+      },
+      {
+        "combo": "black+cream",
+        "frequency": 6,
+        "score_boost": 4
+      }
+    ],
+    "footwear_rules": [
+      {
+        "context": "smart_casual",
+        "preferred": [
+          "loafers",
+          "sneakers",
+          "flats",
+          "heels"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "business_casual",
+        "preferred": [
+          "oxfords"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "rugged_boots",
+          "combat_boots"
+        ]
+      },
+      {
+        "context": "resort",
+        "preferred": [
+          "sandals",
+          "sneakers",
+          "espadrilles",
+          "flats"
+        ],
+        "avoided": [
+          "chunky_boots",
+          "oxfords"
+        ]
+      },
+      {
+        "context": "casual",
+        "preferred": [
+          "sneakers",
+          "sandals",
+          "loafers",
+          "mules"
+        ],
+        "avoided": [
+          "oxfords",
+          "heels"
+        ]
+      }
+    ],
+    "style_tags": [
+      {
+        "tag": "tailored",
+        "frequency": 24
+      },
+      {
+        "tag": "relaxed",
+        "frequency": 20
+      },
+      {
+        "tag": "smart casual",
+        "frequency": 20
+      },
+      {
+        "tag": "quiet luxury",
+        "frequency": 16
+      },
+      {
+        "tag": "resort",
+        "frequency": 10
+      },
+      {
+        "tag": "jd_sports",
+        "frequency": 9
+      },
+      {
+        "tag": "casual",
+        "frequency": 8
+      },
+      {
+        "tag": "monochrome",
+        "frequency": 8
+      },
+      {
+        "tag": "next",
+        "frequency": 8
+      },
+      {
+        "tag": "wide_leg",
+        "frequency": 7
+      },
+      {
+        "tag": "graphic_tee",
+        "frequency": 6
+      },
+      {
+        "tag": "menswear",
+        "frequency": 6
+      }
+    ]
+  },
+  "insights": "Shop-window corpus (Sloane + Croydon + Brixton + Oxford): 147/516 valid wearable looks. Top colour combos: black+white (37), beige+white (33), blue+white (27), grey+white (19), beige+black (17). Top garment pairings: shirt×trousers (22), t-shirt×shorts (19), polo×trousers (9), shirt×shorts (8), other×trousers (7). Footwear leaders: sneakers×39, sandals×16, loafers×15, flats×5, mules×4. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.",
+  "lanes": {
+    "luxury": {
+      "source": "sloane_street",
+      "colour_combos": [
+        {
+          "combo": "beige+cream",
+          "frequency": 8,
+          "score_boost": 8
+        },
+        {
+          "combo": "beige+white",
+          "frequency": 7,
+          "score_boost": 8
+        },
+        {
+          "combo": "beige+brown",
+          "frequency": 5,
+          "score_boost": 7
+        },
+        {
+          "combo": "brown+cream",
+          "frequency": 5,
+          "score_boost": 7
+        },
+        {
+          "combo": "beige+blue",
+          "frequency": 4,
+          "score_boost": 7
+        },
+        {
+          "combo": "blue+cream",
+          "frequency": 4,
+          "score_boost": 6
+        },
+        {
+          "combo": "brown+white",
+          "frequency": 4,
+          "score_boost": 6
+        },
+        {
+          "combo": "cream+grey",
+          "frequency": 4,
+          "score_boost": 6
+        },
+        {
+          "combo": "beige+black",
+          "frequency": 3,
+          "score_boost": 5
+        },
+        {
+          "combo": "beige+grey",
+          "frequency": 3,
+          "score_boost": 5
+        },
+        {
+          "combo": "beige+navy",
+          "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "combo": "blue+navy",
+          "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "combo": "blue+white",
+          "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "combo": "cream+white",
+          "frequency": 3,
+          "score_boost": 3
+        },
+        {
+          "combo": "navy+white",
+          "frequency": 3,
+          "score_boost": 3
+        }
+      ],
+      "garment_pairings": [
+        {
+          "pairing": "shirt×trousers",
+          "frequency": 6,
+          "score_boost": 6
+        },
+        {
+          "pairing": "other×trousers",
+          "frequency": 5,
+          "score_boost": 6
+        },
+        {
+          "pairing": "polo×shorts",
+          "frequency": 3,
+          "score_boost": 5
+        },
+        {
+          "pairing": "knit×trousers",
+          "frequency": 2,
+          "score_boost": 5
+        },
+        {
+          "pairing": "shirt×shorts",
+          "frequency": 2,
+          "score_boost": 5
+        },
+        {
+          "pairing": "sweater×trousers",
+          "frequency": 2,
+          "score_boost": 5
+        },
+        {
+          "pairing": "blouse×skirt",
+          "frequency": 1,
+          "score_boost": 4
+        },
+        {
+          "pairing": "blouse×trousers",
+          "frequency": 1,
+          "score_boost": 4
+        },
+        {
+          "pairing": "other×shorts",
+          "frequency": 1,
+          "score_boost": 4
+        },
+        {
+          "pairing": "other×skirt",
+          "frequency": 1,
+          "score_boost": 3
+        },
+        {
+          "pairing": "polo×jeans",
+          "frequency": 1,
+          "score_boost": 3
+        },
+        {
+          "pairing": "polo×skirt",
+          "frequency": 1,
+          "score_boost": 3
+        },
+        {
+          "pairing": "polo×trousers",
+          "frequency": 1,
+          "score_boost": 3
+        },
+        {
+          "pairing": "shirt×jeans",
+          "frequency": 1,
+          "score_boost": 2
+        },
+        {
+          "pairing": "t-shirt×shorts",
+          "frequency": 1,
+          "score_boost": 2
+        },
+        {
+          "pairing": "t-shirt×skirt",
+          "frequency": 1,
+          "score_boost": 2
+        }
+      ],
+      "footwear_by_style": {
+        "smart_casual": [
+          {
+            "subcategory": "loafers",
+            "frequency": 3,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "mules",
+            "frequency": 2,
+            "score_boost": 5
+          },
+          {
+            "subcategory": "sneakers",
+            "frequency": 2,
+            "score_boost": 4
+          },
+          {
+            "subcategory": "mary_janes",
+            "frequency": 1,
+            "score_boost": 3
+          }
+        ],
+        "business_casual": [],
+        "resort": [
+          {
+            "subcategory": "sandals",
+            "frequency": 2,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "espadrilles",
+            "frequency": 1,
+            "score_boost": 5
+          },
+          {
+            "subcategory": "flats",
+            "frequency": 1,
+            "score_boost": 4
+          }
+        ],
+        "casual": [
+          {
+            "subcategory": "sneakers",
+            "frequency": 3,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "sandals",
+            "frequency": 1,
+            "score_boost": 5
+          }
+        ]
+      }
+    },
+    "casual": {
+      "source": "croydon_mall+brixton_high_street+oxford_street",
+      "colour_combos": [
+        {
+          "combo": "black+white",
+          "frequency": 36,
+          "score_boost": 8
+        },
+        {
+          "combo": "beige+white",
+          "frequency": 26,
+          "score_boost": 8
+        },
+        {
+          "combo": "blue+white",
+          "frequency": 24,
+          "score_boost": 7
+        },
+        {
+          "combo": "grey+white",
+          "frequency": 17,
+          "score_boost": 7
+        },
+        {
+          "combo": "beige+black",
+          "frequency": 14,
+          "score_boost": 7
+        },
+        {
+          "combo": "navy+white",
+          "frequency": 14,
+          "score_boost": 6
+        },
+        {
+          "combo": "blue+cream",
+          "frequency": 13,
+          "score_boost": 6
+        },
+        {
+          "combo": "cream+white",
+          "frequency": 13,
+          "score_boost": 6
+        },
+        {
+          "combo": "black+cream",
+          "frequency": 12,
+          "score_boost": 5
+        },
+        {
+          "combo": "black+grey",
+          "frequency": 11,
+          "score_boost": 5
+        },
+        {
+          "combo": "beige+blue",
+          "frequency": 10,
+          "score_boost": 4
+        },
+        {
+          "combo": "black+blue",
+          "frequency": 10,
+          "score_boost": 4
+        },
+        {
+          "combo": "beige+cream",
+          "frequency": 9,
+          "score_boost": 4
+        },
+        {
+          "combo": "blue+brown",
+          "frequency": 9,
+          "score_boost": 3
+        },
+        {
+          "combo": "brown+white",
+          "frequency": 9,
+          "score_boost": 3
+        }
+      ],
+      "garment_pairings": [
+        {
+          "pairing": "t-shirt×shorts",
+          "frequency": 18,
+          "score_boost": 6
+        },
+        {
+          "pairing": "shirt×trousers",
+          "frequency": 16,
+          "score_boost": 6
+        },
+        {
+          "pairing": "polo×trousers",
+          "frequency": 8,
+          "score_boost": 5
+        },
+        {
+          "pairing": "shirt×shorts",
+          "frequency": 6,
+          "score_boost": 5
+        },
+        {
+          "pairing": "t-shirt×trousers",
+          "frequency": 6,
+          "score_boost": 5
+        },
+        {
+          "pairing": "blouse×trousers",
+          "frequency": 5,
+          "score_boost": 5
+        },
+        {
+          "pairing": "shirt×jeans",
+          "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "pairing": "t-shirt×skirt",
+          "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "pairing": "blouse×shorts",
+          "frequency": 2,
+          "score_boost": 4
+        },
+        {
+          "pairing": "other×shorts",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "pairing": "other×trousers",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "pairing": "polo×skirt",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "pairing": "sweater×shorts",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "pairing": "sweater×trousers",
+          "frequency": 2,
+          "score_boost": 2
+        },
+        {
+          "pairing": "t-shirt×jeans",
+          "frequency": 2,
+          "score_boost": 2
+        },
+        {
+          "pairing": "top×skirt",
+          "frequency": 2,
+          "score_boost": 2
+        },
+        {
+          "pairing": "top×trousers",
+          "frequency": 2,
+          "score_boost": 2
+        },
+        {
+          "pairing": "blouse×jeans",
+          "frequency": 1,
+          "score_boost": 2
+        },
+        {
+          "pairing": "blouse×skirt",
+          "frequency": 1,
+          "score_boost": 2
+        },
+        {
+          "pairing": "jacket×skirt",
+          "frequency": 1,
+          "score_boost": 2
+        }
+      ],
+      "footwear_by_style": {
+        "smart_casual": [
+          {
+            "subcategory": "loafers",
+            "frequency": 8,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "flats",
+            "frequency": 3,
+            "score_boost": 5
+          },
+          {
+            "subcategory": "sneakers",
+            "frequency": 3,
+            "score_boost": 4
+          },
+          {
+            "subcategory": "heels",
+            "frequency": 2,
+            "score_boost": 3
+          },
+          {
+            "subcategory": "boots",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "deck_shoes",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "derby",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "desert_boot",
+            "frequency": 1,
+            "score_boost": 2
+          }
+        ],
+        "business_casual": [
+          {
+            "subcategory": "oxfords",
+            "frequency": 1,
+            "score_boost": 6
+          }
+        ],
+        "resort": [
+          {
+            "subcategory": "sneakers",
+            "frequency": 2,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "heels",
+            "frequency": 1,
+            "score_boost": 5
+          },
+          {
+            "subcategory": "sandals",
+            "frequency": 1,
+            "score_boost": 4
+          }
+        ],
+        "casual": [
+          {
+            "subcategory": "sneakers",
+            "frequency": 29,
+            "score_boost": 6
+          },
+          {
+            "subcategory": "sandals",
+            "frequency": 11,
+            "score_boost": 5
+          },
+          {
+            "subcategory": "loafers",
+            "frequency": 4,
+            "score_boost": 4
+          },
+          {
+            "subcategory": "mules",
+            "frequency": 2,
+            "score_boost": 3
+          },
+          {
+            "subcategory": "athletic",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "ballet_flats",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "boat_shoes",
+            "frequency": 1,
+            "score_boost": 2
+          },
+          {
+            "subcategory": "combat_boots",
+            "frequency": 1,
+            "score_boost": 2
+          }
+        ]
+      }
+    }
+  }
+}

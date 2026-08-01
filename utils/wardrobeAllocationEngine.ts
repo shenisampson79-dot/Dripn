@@ -20,13 +20,15 @@ import {
 } from '@/utils/completeOutfit';
 import { passesEditorialOccasionGate } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid, type WorkDressCode } from '@/utils/outfitClashRules';
-import { scoreFootwearDirection } from '@/utils/garmentTaxonomy';
+import {
+  passesWorkDressCodeItemGate,
+} from '@/utils/workDressCodeRules';
+import { scoreOutfitForAllocation } from '@/utils/outfitAllocationScore';
 import { filterItemsForBestLook } from '@/utils/wardrobeTruthReconciliation';
 import {
   cloneDiversityTracker,
   createDiversityTracker,
   hashOutfit,
-  scoreOutfitDiversity,
   seedDiversityTracker,
   seedTrackerFromExcludeIds,
   updateDiversityTracker,
@@ -45,7 +47,6 @@ import {
   filterOuterwearCandidatesForWeather,
   outerwearWeatherPolicy,
   parseWeatherTempC,
-  weatherOuterwearScoreAdjustment,
   type WeatherLike,
 } from '@/utils/weatherOuterwear';
 
@@ -136,8 +137,14 @@ function preferForOccasion(items: WardrobeItem[], occasion: OutfitOccasionId): W
   return gated;
 }
 
-export function buildOccasionPools(wardrobe: WardrobeItem[], occasion: OutfitOccasionId) {
-  const pool = preferForOccasion(wardrobe, occasion);
+export function buildOccasionPools(
+  wardrobe: WardrobeItem[],
+  occasion: OutfitOccasionId,
+  workDressCode?: WorkDressCode | null,
+) {
+  const pool = preferForOccasion(wardrobe, occasion).filter((item) =>
+    passesWorkDressCodeItemGate(item, workDressCode || null),
+  );
   return {
     tops: pool.filter(isTopItem),
     bottoms: pool.filter(isBottomItem),
@@ -151,8 +158,9 @@ export function buildOccasionPools(wardrobe: WardrobeItem[], occasion: OutfitOcc
 export function computeAllocationCapacity(
   wardrobe: WardrobeItem[],
   occasion: OutfitOccasionId,
+  workDressCode?: WorkDressCode | null,
 ): AllocationCapacity {
-  const { tops, bottoms, shoes } = buildOccasionPools(wardrobe, occasion);
+  const { tops, bottoms, shoes } = buildOccasionPools(wardrobe, occasion, workDressCode);
   const topN = tops.length;
   const bottomN = bottoms.length;
   const shoeN = shoes.length;
@@ -225,14 +233,6 @@ export function modeUserCopy(
   }
 }
 
-function colorKey(item: WardrobeItem): string {
-  return String(item.color || 'unknown').toLowerCase().trim();
-}
-
-function silhouetteKey(item: WardrobeItem): string {
-  return String(item.subcategory || item.category || 'item').toLowerCase();
-}
-
 function categoryWeight(item: WardrobeItem): number {
   if (isTopItem(item)) return CATEGORY_WEIGHT.top;
   if (isBottomItem(item)) return CATEGORY_WEIGHT.bottom;
@@ -260,7 +260,10 @@ function clashOptionsFor(
   return { occasion, workDressCode: workDressCode || null };
 }
 
-/** Score(O) = V(O) - R(O) - C(O) + D(O); higher is better. */
+/**
+ * Rank valid candidates: calibrated 0–100 style/context score (work-weighted)
+ * plus laundry/mode hard penalties so sweaty reuse never wins.
+ */
 function scoreCombo(
   items: WardrobeItem[],
   dayIndex: number,
@@ -274,45 +277,33 @@ function scoreCombo(
   diversity?: DiversityTracker | null,
   weather?: WeatherLike | null,
   workDressCode?: WorkDressCode | null,
+  brandInspiration?: string | null,
 ): number {
   let score = 0;
   const gym = occasion === 'gym';
 
   if (isSameFullOutfitAsPrevious(items, previous)) {
-    score -= 10000;
+    return -10000;
   }
 
-  // Plan-wide diversity (item / color / fit / silhouette / exact duplicate)
-  if (diversity) {
-    score += scoreOutfitDiversity(items, diversity);
-  }
+  // Primary ranker — Context-heavy on work days
+  score += scoreOutfitForAllocation(items, {
+    occasion,
+    workDressCode: workDressCode || null,
+    weather,
+    previous,
+    diversity,
+    cascadeStep: 0,
+    brandInspiration: brandInspiration || null,
+  });
 
-  // Variety vs previous day
-  if (previous?.length) {
-    const prevColors = new Set(previous.map(colorKey));
-    const prevSil = new Set(previous.map(silhouetteKey));
-    const prevIds = new Set(previous.map((i) => String(i.id)));
-    for (const item of items) {
-      const id = String(item.id);
-      if (!prevIds.has(id)) score += 4;
-      if (!prevColors.has(colorKey(item))) score += 2;
-      if (!prevSil.has(silhouetteKey(item))) score += 1;
-    }
-  }
+  // Soft laundry / reuse pressure (mode-dependent; keep large negatives for hard reuse)
+  score += Math.min(8, Math.max(-12, reuseScoreComponent(items, referenceDate, laundryProfile, wardrobePressure) / 4));
 
-  score += reuseScoreComponent(items, referenceDate, laundryProfile, wardrobePressure);
-
-  // Reuse penalty R(O)
   for (const item of items) {
     const id = String(item.id);
     const days = daysSinceUsed(id, dayIndex, log);
     const w = categoryWeight(item);
-    const uses = log.weekCount.get(id) || 0;
-
-    // Soft favorites boost — hearted wardrobe items
-    if (item.isFavorite) {
-      score += 3 * w;
-    }
 
     if (mode === 'strict') {
       if (days < 999 && isLaundrySensitive(item)) score -= 1000 * w;
@@ -322,40 +313,15 @@ function scoreCombo(
       else if (days < 999 && isShoesItem(item)) score -= 8 * w;
       else if (days < 999) score -= 4 * w;
     } else {
-      // rotation: spaced reuse — heavy if too soon; prefer less-used pieces without hard-failing long plans
       const gap = gym ? 3 : 2;
       if (isLaundrySensitive(item)) {
         if (days < gap) score -= 300 * w;
         else if (days < 7) score -= 28 * w;
-        score -= Math.min(uses, 8) * 5 * w; // soft preference for fresher pieces
-        if (isTopItem(item)) score -= Math.min(uses, 8) * 4 * w;
+        score -= Math.min(log.weekCount.get(id) || 0, 8) * 5 * w;
+        if (isTopItem(item)) score -= Math.min(log.weekCount.get(id) || 0, 8) * 4 * w;
       } else if (isShoesItem(item)) {
         if (days < 1) score -= 10 * w;
       }
-    }
-  }
-
-  // Hard incomplete would be filtered out; small bonus for optional pieces —
-  // reversed when weather prefers bare summer looks
-  const weatherAdj = weatherOuterwearScoreAdjustment(items, weather);
-  if (weatherAdj !== 0) {
-    score += weatherAdj;
-  } else if (items.some(isOuterwearItem)) {
-    score += 0.5;
-  }
-
-  // Prefer smart office footwear when dressing for work (unless creative workplace).
-  const footwear = scoreFootwearDirection(items, { occasion });
-  score += footwear.adjustment;
-  const officeLike =
-    occasion === 'work_outfit'
-    || (occasion === 'smart_casual' && (workDressCode === 'business_casual' || workDressCode === 'business_formal'));
-  if (officeLike && workDressCode !== 'creative' && workDressCode !== 'smart_casual') {
-    for (const item of items) {
-      if (!isShoesItem(item)) continue;
-      const t = `${item.name || ''} ${item.subcategory || ''}`.toLowerCase();
-      if (/oxford|derby|brogue|loafer|chelsea|dress shoe|heel|pump/.test(t)) score += 10;
-      if (/combat|hiking|timberland|work boot|rugged|chunky boot|doc\b|dr\.?\s*marten/.test(t)) score -= 14;
     }
   }
 
@@ -507,6 +473,7 @@ function allocateWithMode(params: {
   diversityTracker?: DiversityTracker;
   weather?: WeatherLike | null;
   workDressCode?: WorkDressCode | null;
+  brandInspiration?: string | null;
 }): DayAllocation[] | null {
   const {
     wardrobe,
@@ -518,6 +485,7 @@ function allocateWithMode(params: {
     diversityTracker,
     weather = null,
     workDressCode = null,
+    brandInspiration = null,
   } = params;
   const primaryOccasion = occasionTypes[0] || 'casual_day';
   const log: UsageLog = { lastDay: new Map(), weekCount: new Map() };
@@ -529,7 +497,7 @@ function allocateWithMode(params: {
     const occasionType = occasionTypes[dayIndex] || primaryOccasion;
     const planDate = new Date(referenceDate);
     planDate.setDate(planDate.getDate() + dayIndex);
-    const pools = buildOccasionPools(wardrobe, occasionType);
+    const pools = buildOccasionPools(wardrobe, occasionType, workDressCode);
     const boundPools = daysToPlan === 1
       ? {
           tops: capPoolForSingleDay(pools.tops),
@@ -716,6 +684,7 @@ function allocateWithMode(params: {
             diversity,
             weather,
             workDressCode,
+            brandInspiration,
           );
           if (score > bestScore) {
             bestScore = score;
@@ -769,6 +738,8 @@ export function allocateMultiDayPlan(params: {
   weather?: WeatherLike | null;
   /** Workplace formality — creative/smart_casual relax office footwear lock. */
   workDressCode?: WorkDressCode | null;
+  /** Optional "dress like X" luxury brand soft bias */
+  brandInspiration?: string | null;
 }): AllocationResult {
   const {
     wardrobe,
@@ -782,6 +753,7 @@ export function allocateMultiDayPlan(params: {
     diversityTracker,
     weather = null,
     workDressCode = null,
+    brandInspiration = null,
   } = params;
 
   const planDiversity =
@@ -805,7 +777,7 @@ export function allocateMultiDayPlan(params: {
   }
 
   const primaryOccasion = occasionTypes[0];
-  const capacity = computeAllocationCapacity(wardrobe, primaryOccasion);
+  const capacity = computeAllocationCapacity(wardrobe, primaryOccasion, workDressCode);
   const requested = occasionTypes.length;
   let mode = forceMode || resolveAllocationMode(requested, capacity);
 
@@ -851,6 +823,7 @@ export function allocateMultiDayPlan(params: {
       diversityTracker: cloneDiversityTracker(planDiversity),
       weather,
       workDressCode,
+      brandInspiration,
     });
     if (!allocated) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -887,6 +860,7 @@ export function allocateMultiDayPlan(params: {
     diversityTracker: cloneDiversityTracker(planDiversity),
     weather,
     workDressCode,
+    brandInspiration,
   });
 
   if (!allocated) {
@@ -903,6 +877,7 @@ export function allocateMultiDayPlan(params: {
       diversityTracker: cloneDiversityTracker(planDiversity),
       weather,
       workDressCode,
+      brandInspiration,
     });
     if (!retry) {
       const copy = modeUserCopy('failure', capacity, requested, primaryOccasion);
@@ -1028,6 +1003,8 @@ export function allocateSingleDayOutfit(params: {
   /** Ambient weather — hard-gates outerwear (fleece impossible when hot) */
   weather?: WeatherLike | null;
   workDressCode?: WorkDressCode | null;
+  /** Optional "dress like X" luxury brand soft bias */
+  brandInspiration?: string | null;
 }): SingleDayAllocation {
   const occasion = normalizeAllocatorOccasion(params.occasionType, params.referenceDate);
   const exclude = new Set((params.excludeItemIds || []).map(String));
@@ -1039,15 +1016,16 @@ export function allocateSingleDayOutfit(params: {
   const pool = filterItemsForBestLook(poolBase).length >= 3
     ? filterItemsForBestLook(poolBase)
     : poolBase;
-  const capacity = computeAllocationCapacity(pool, occasion);
+  const weather = params.weather ?? null;
+  const workDressCode = params.workDressCode ?? null;
+  const brandInspiration = params.brandInspiration ?? null;
+  const capacity = computeAllocationCapacity(pool, occasion, workDressCode);
   const laundryProfile = params.laundryProfile ?? DEFAULT_LAUNDRY_PROFILE;
   const referenceDate = params.referenceDate ?? new Date();
   const diversityTracker = seedTrackerFromExcludeIds(
     params.excludeItemIds,
     seedDiversityTracker(params.priorOutfits || []),
   );
-  const weather = params.weather ?? null;
-  const workDressCode = params.workDressCode ?? null;
   const clashOpts = clashOptionsFor(occasion, workDressCode);
 
   for (const mode of ['strict', 'soft', 'rotation'] as const) {
@@ -1060,6 +1038,7 @@ export function allocateSingleDayOutfit(params: {
       diversityTracker: cloneDiversityTracker(diversityTracker),
       weather,
       workDressCode,
+      brandInspiration,
     });
     if (plan.ok && plan.days[0]?.itemIds?.length) {
       const byId = new Map(params.wardrobe.map((w) => [String(w.id), w]));

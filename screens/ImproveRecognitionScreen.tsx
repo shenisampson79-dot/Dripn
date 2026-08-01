@@ -1,5 +1,6 @@
 /**
- * Guided Improve recognition — front shot + care-label close-up (~10s).
+ * Guided Improve recognition — care-label close-up (~10s).
+ * Reuses the Quick Add front photo when available (no re-shoot).
  * Opt-in after Quick Add save. Never blocks the initial save.
  */
 
@@ -29,10 +30,13 @@ import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
 import {
-  detectGarmentsOnDevice,
   getOnDeviceYoloStatus,
   warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
+import {
+  detectGarmentsOnDeviceHybrid,
+  SINGLE_ITEM_HYBRID_OPTS,
+} from '@/utils/onDeviceHybridDetect';
 import {
   QuickAddCaptureController,
   bboxFromTuple,
@@ -40,12 +44,20 @@ import {
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
 import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
+import { takeImproveRecognitionFrontHandoff } from '@/utils/improveRecognitionHandoff';
+import { assessCareLabelPresence } from '@/utils/careLabelPresence';
 
 const FRAME_SIZE = 280;
-const LABEL_FRAME_W = 300;
-const LABEL_FRAME_H = 180;
+/** Care tags are usually tall — portrait guide matches real labels. */
+const LABEL_FRAME_W = 200;
+const LABEL_FRAME_H = 360;
 const SAMPLE_MS = 1100;
 const SAMPLE_WIDTH = 640;
+const LABEL_SAMPLE_MS = 850;
+/** Amber dwell samples before green countdown starts. */
+const LABEL_AMBER_STREAK = 2;
+/** Green countdown seconds before auto-capture. */
+const LABEL_COUNTDOWN_SEC = 3;
 
 type ImproveStep = 'front' | 'label' | 'processing' | 'done';
 
@@ -77,11 +89,36 @@ function pickBrandSizeMaterial(analysis: any): {
   };
 }
 
+/** Heuristic: did Vision actually see a care/size tag (not a random wall/floor)? */
+function looksLikeCareLabel(analysis: any): { ok: boolean; reason: string; fields: ReturnType<typeof pickBrandSizeMaterial> } {
+  const fields = pickBrandSizeMaterial(analysis);
+  const hitCount = [fields.brand, fields.size, fields.material].filter(Boolean).length;
+  if (hitCount >= 1) {
+    return { ok: true, reason: 'metadata', fields };
+  }
+  const blob = JSON.stringify(analysis || {}).toLowerCase();
+  const careSignals = (
+    /\b(care|wash|bleach|iron|dry.?clean|do not|composition|cotton|polyester|viscose|elastane|nylon|made in|rn\s?\d|ca\s?\d|%\b)/.test(blob)
+    || /\b(size|uk|eu|us)\s*[:=]?\s*\d{1,3}\b/.test(blob)
+  );
+  if (careSignals) {
+    return { ok: true, reason: 'care_text', fields };
+  }
+  return { ok: false, reason: 'no_label_signals', fields };
+}
+
+type ImproveOutcome = 'full' | 'front_only' | 'label_unread';
+
 export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { updateItem, items } = useWardrobe();
   const itemId = String(route.params?.itemId || '');
   const itemName = route.params?.itemName || items.find((i) => String(i.id) === itemId)?.name;
+  const handoff = useMemo(() => takeImproveRecognitionFrontHandoff(), []);
+  const seededFrontB64 = handoff.base64
+    || (route.params?.frontImageBase64 ? stripDataUri(route.params.frontImageBase64) : null);
+  const seededFrontUri = handoff.uri || route.params?.frontImageUri || null;
+  const hasSeededFront = !!(seededFrontB64 || seededFrontUri);
 
   const [permission, requestPermission] = useCameraPermissions();
   const yoloStatus = useMemo(() => getOnDeviceYoloStatus(), []);
@@ -89,15 +126,28 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   const controllerRef = useRef(new QuickAddCaptureController());
   const inFlightRef = useRef(false);
   const capturingRef = useRef(false);
-  const stepRef = useRef<ImproveStep>('front');
+  const seedStartedRef = useRef(false);
+  const labelInFlightRef = useRef(false);
+  const labelAmberStreakRef = useRef(0);
+  const labelCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const labelCountdownActiveRef = useRef(false);
+  const takePhotoRef = useRef<() => Promise<void>>(async () => {});
+  const stepRef = useRef<ImproveStep>(hasSeededFront ? 'processing' : 'front');
 
-  const [step, setStep] = useState<ImproveStep>('front');
+  const [step, setStep] = useState<ImproveStep>(hasSeededFront ? 'processing' : 'front');
   const [torch, setTorch] = useState(false);
-  const [hint, setHint] = useState('Show the front');
+  const [hint, setHint] = useState(
+    hasSeededFront
+      ? 'Preparing care-label capture…'
+      : 'Centre the garment in the box — it can fill the screen',
+  );
   const [frameUi, setFrameUi] = useState<QuickAddCaptureUi>('idle');
   const [flash, setFlash] = useState(false);
-  const [frontBase64, setFrontBase64] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState('Improving recognition…');
+  const [frontBase64, setFrontBase64] = useState<string | null>(seededFrontB64);
+  const [statusText, setStatusText] = useState(
+    hasSeededFront ? 'Preparing care-label capture…' : 'Improving recognition…',
+  );
+  const [labelCountdown, setLabelCountdown] = useState<number | null>(null);
 
   stepRef.current = step;
 
@@ -112,10 +162,42 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (!itemId) {
       Alert.alert('Missing item', 'Save the item first, then improve recognition.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        { text: 'OK', onPress: () => navigation.popToTop() },
       ]);
     }
   }, [itemId, navigation]);
+
+  // Reuse the Quick Add front photo — jump straight to the care label.
+  useEffect(() => {
+    if (seedStartedRef.current || !hasSeededFront) return;
+    seedStartedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        let b64 = seededFrontB64;
+        if (!b64 && seededFrontUri) {
+          b64 = stripDataUri(await convertImageToBase64(seededFrontUri));
+        }
+        if (!b64) throw new Error('missing front image');
+        if (!cancelled) {
+          setFrontBase64(b64);
+          setStep('label');
+          setHint('Fill the tall box with the care label');
+          setFrameUi('idle');
+          labelAmberStreakRef.current = 0;
+          setLabelCountdown(null);
+          setStatusText('Improving recognition…');
+        }
+      } catch (err) {
+        console.warn('[ImproveRecognition] seed front failed:', err);
+        if (!cancelled) {
+          setStep('front');
+          setHint('Centre the garment in the box — it can fill the screen');
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hasSeededFront, seededFrontB64, seededFrontUri]);
 
   const openSettings = () => {
     Linking.openSettings().catch(() => {});
@@ -128,20 +210,36 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
     setFlash(false);
   };
 
-  const finishSuccess = () => {
+  const finishSuccess = (outcome: ImproveOutcome) => {
     setStep('done');
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    Alert.alert(
-      'Perfect',
-      'We’ll recognise this instantly next time.',
-      [{ text: 'OK', onPress: () => navigation.popToTop() }],
-    );
+    Haptics.notificationAsync(
+      outcome === 'full'
+        ? Haptics.NotificationFeedbackType.Success
+        : Haptics.NotificationFeedbackType.Warning,
+    ).catch(() => {});
+    const copy =
+      outcome === 'full'
+        ? {
+            title: 'Recognition improved',
+            body: 'We saved a visual fingerprint of the front and details from the care label (brand/size/fabric when readable). Next time you scan a similar photo, we can match this item faster.',
+          }
+        : outcome === 'front_only'
+          ? {
+              title: 'Front fingerprint saved',
+              body: 'We saved a visual fingerprint from the front photo only. Without a clear care label we can’t confirm brand/size — you can run Improve again later for that.',
+            }
+          : {
+              title: 'Front saved — label unclear',
+              body: 'We kept the front fingerprint, but couldn’t read brand/size from that photo. Try Improve again with a sharper close-up of the care tag.',
+            };
+    Alert.alert(copy.title, copy.body, [{ text: 'OK', onPress: () => navigation.popToTop() }]);
   };
 
   const submitImprove = async (opts: {
     frontB64: string;
     labelB64?: string | null;
     labelAnalysis?: any;
+    outcome: ImproveOutcome;
   }) => {
     setStep('processing');
     setStatusText('Saving recognition details…');
@@ -170,10 +268,9 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       if (Object.keys(patch).length) {
         await updateItem(itemId, patch as any);
       }
-      finishSuccess();
+      finishSuccess(opts.outcome);
     } catch (err) {
       console.warn('[ImproveRecognition] submit failed:', err);
-      // Still mark locally so UX isn't a dead end offline
       try {
         await updateItem(itemId, {
           ...(fromLabel.brand ? { brand: fromLabel.brand } : {}),
@@ -185,7 +282,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       }
       Alert.alert(
         'Saved locally',
-        'We couldn’t sync recognition to the server right now, but your photos were captured. Try again when online.',
+        'We couldn’t sync to the server right now. Your front photo fingerprint may still be incomplete until you’re online.',
         [{ text: 'OK', onPress: () => navigation.popToTop() }],
       );
     }
@@ -203,24 +300,35 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       const b64 = pipeline.imageBase64 || await convertImageToBase64(pipeline.imageUri);
       setFrontBase64(b64);
       setStep('label');
-      setHint('Capture the label');
+      setHint('Centre the care label in the box');
       setFrameUi('idle');
       controllerRef.current.reset();
     } catch (err) {
       console.warn('[ImproveRecognition] front failed:', err);
       Alert.alert('Couldn’t capture', 'Try again with better light.');
       setStep('front');
-      setHint('Show the front');
+      setHint('Centre the garment in the box — it can fill the screen');
     } finally {
       capturingRef.current = false;
     }
   }, []);
 
   const handleLabelCapture = useCallback(async (uri: string) => {
-    if (capturingRef.current || !frontBase64) return;
+    if (capturingRef.current) return;
+    if (!frontBase64) {
+      Alert.alert('Still preparing', 'One moment — then tap capture again.');
+      return;
+    }
     capturingRef.current = true;
+    labelCountdownActiveRef.current = false;
+    if (labelCountdownTimerRef.current) {
+      clearInterval(labelCountdownTimerRef.current);
+      labelCountdownTimerRef.current = null;
+    }
+    setLabelCountdown(null);
     setStep('processing');
-    setStatusText('Reading the care label…');
+    setStatusText('Checking this is a care label…');
+    setFrameUi('ready');
     try {
       await fireFlash();
       const compressed = await ImageManipulator.manipulateAsync(
@@ -235,20 +343,60 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       } catch (analyzeErr) {
         console.warn('[ImproveRecognition] label analyze failed:', analyzeErr);
       }
+
+      const check = looksLikeCareLabel(analysis);
+      if (!check.ok) {
+        capturingRef.current = false;
+        setStep('label');
+        setFrameUi('idle');
+        labelAmberStreakRef.current = 0;
+        setHint('Fill the tall box with the care label');
+        Alert.alert(
+          'Not a care label',
+          'We couldn’t see brand, size, or care text in that photo. Point at the garment’s care/size tag inside the tall box until the frame turns green.',
+          [
+            { text: 'Try again' },
+            {
+              text: 'Skip label',
+              style: 'cancel',
+              onPress: () => {
+                void submitImprove({
+                  frontB64: frontBase64,
+                  labelB64: null,
+                  outcome: 'front_only',
+                });
+              },
+            },
+          ],
+        );
+        return;
+      }
+
       await submitImprove({
         frontB64: frontBase64,
         labelB64,
         labelAnalysis: analysis,
+        outcome: 'full',
       });
     } catch (err) {
       console.warn('[ImproveRecognition] label failed:', err);
-      Alert.alert('Couldn’t capture label', 'Try a closer shot of the care tag.', [
-        { text: 'Retry', onPress: () => { setStep('label'); setHint('Capture the label'); } },
+      Alert.alert('Couldn’t capture label', 'Try a closer, sharper shot of the care tag.', [
+        {
+          text: 'Retry',
+          onPress: () => {
+            setStep('label');
+            setHint('Fill the tall box with the care label · then tap capture');
+          },
+        },
         {
           text: 'Skip label',
           style: 'cancel',
           onPress: () => {
-            void submitImprove({ frontB64: frontBase64, labelB64: null });
+            void submitImprove({
+              frontB64: frontBase64,
+              labelB64: null,
+              outcome: 'front_only',
+            });
           },
         },
       ]);
@@ -276,6 +424,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       console.warn('[ImproveRecognition] shutter failed:', err);
     }
   };
+  takePhotoRef.current = takePhoto;
 
   const sampleForAuto = useCallback(async () => {
     if (
@@ -298,17 +447,20 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
         [{ resize: { width: SAMPLE_WIDTH } }],
         { compress: 0.55, format: ImageManipulator.SaveFormat.JPEG },
       );
-      const onDevice = await detectGarmentsOnDevice(small.uri);
+      const onDevice = await detectGarmentsOnDeviceHybrid(small.uri, {
+        ...SINGLE_ITEM_HYBRID_OPTS,
+      });
       if (stepRef.current !== 'front') return;
       const detections: QuickAddYoloDetection[] = (onDevice || []).map((d) => ({
         class: d.category || d.name || 'clothing',
         confidence: d.confidence,
         bbox: bboxFromTuple(d.bbox),
       }));
-      const { best, eval: evaluation, trigger } = controllerRef.current.onFrame(detections);
-      setHint(evaluation.hint === 'Center the item' ? 'Show the front' : evaluation.hint);
+      const { best, eval: evaluation, armed } = controllerRef.current.onFrame(detections);
+      setHint(evaluation.hint);
       setFrameUi(evaluation.ui);
-      if (trigger && best) {
+      if (armed && best) {
+        controllerRef.current.markCaptured();
         await handleFrontCapture(small.uri, best);
       }
     } catch {
@@ -324,6 +476,121 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
     return () => clearInterval(id);
   }, [step, permission?.granted, yoloStatus.available, sampleForAuto]);
 
+  const clearLabelCountdown = useCallback(() => {
+    if (labelCountdownTimerRef.current) {
+      clearInterval(labelCountdownTimerRef.current);
+      labelCountdownTimerRef.current = null;
+    }
+    labelCountdownActiveRef.current = false;
+    setLabelCountdown(null);
+  }, []);
+
+  const startLabelCountdown = useCallback(() => {
+    if (labelCountdownActiveRef.current || capturingRef.current) return;
+    labelCountdownActiveRef.current = true;
+    let n = LABEL_COUNTDOWN_SEC;
+    setFrameUi('ready');
+    setLabelCountdown(n);
+    setHint(`Hold still — capturing in ${n}…`);
+    Haptics.selectionAsync().catch(() => {});
+    labelCountdownTimerRef.current = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        if (labelCountdownTimerRef.current) {
+          clearInterval(labelCountdownTimerRef.current);
+          labelCountdownTimerRef.current = null;
+        }
+        labelCountdownActiveRef.current = false;
+        setLabelCountdown(null);
+        setHint('Capturing care label…');
+        void takePhotoRef.current();
+        return;
+      }
+      setLabelCountdown(n);
+      setFrameUi('ready');
+      setHint(`Hold still — capturing in ${n}…`);
+      Haptics.selectionAsync().catch(() => {});
+    }, 1000);
+  }, []);
+
+  const sampleLabelPresence = useCallback(async () => {
+    if (
+      stepRef.current !== 'label'
+      || !cameraRef.current
+      || !frontBase64
+      || labelInFlightRef.current
+      || capturingRef.current
+    ) return;
+
+    if (labelCountdownActiveRef.current) {
+      labelInFlightRef.current = true;
+      try {
+        const snap = await cameraRef.current.takePictureAsync({
+          quality: 0.35,
+          shutterSound: false,
+          skipProcessing: Platform.OS === 'android',
+        });
+        if (!snap?.uri || stepRef.current !== 'label') return;
+        const presence = await assessCareLabelPresence(snap.uri);
+        if (presence.ui === 'idle') {
+          clearLabelCountdown();
+          labelAmberStreakRef.current = 0;
+          setFrameUi('idle');
+          setHint('Fill the tall box with the care label');
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        labelInFlightRef.current = false;
+      }
+      return;
+    }
+
+    labelInFlightRef.current = true;
+    try {
+      const snap = await cameraRef.current.takePictureAsync({
+        quality: 0.4,
+        shutterSound: false,
+        skipProcessing: Platform.OS === 'android',
+      });
+      if (!snap?.uri || stepRef.current !== 'label') return;
+      const presence = await assessCareLabelPresence(snap.uri);
+      if (stepRef.current !== 'label' || capturingRef.current || labelCountdownActiveRef.current) return;
+
+      if (presence.ui === 'idle') {
+        labelAmberStreakRef.current = 0;
+        setFrameUi('idle');
+        setHint('Fill the tall box with the care label');
+        return;
+      }
+
+      // Amber first so the user can prepare, even if presence score is already "ready".
+      labelAmberStreakRef.current += 1;
+      setFrameUi('hold');
+      if (labelAmberStreakRef.current < LABEL_AMBER_STREAK) {
+        setHint('Label spotted — hold steady…');
+        return;
+      }
+      setHint('Ready — starting countdown…');
+      startLabelCountdown();
+    } catch {
+      /* ignore sample errors */
+    } finally {
+      labelInFlightRef.current = false;
+    }
+  }, [clearLabelCountdown, frontBase64, startLabelCountdown]);
+
+  useEffect(() => {
+    if (step !== 'label' || !permission?.granted || !frontBase64) return undefined;
+    labelAmberStreakRef.current = 0;
+    clearLabelCountdown();
+    const id = setInterval(() => { void sampleLabelPresence(); }, LABEL_SAMPLE_MS);
+    return () => {
+      clearInterval(id);
+      clearLabelCountdown();
+    };
+  }, [step, permission?.granted, frontBase64, sampleLabelPresence, clearLabelCountdown]);
+
   if (step === 'processing' || step === 'done') {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
@@ -336,11 +603,13 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   }
 
   const isLabel = step === 'label';
-  const progressLabel = isLabel ? 'Step 2 of 2' : 'Step 1 of 2';
-  const title = isLabel ? 'Capture the label' : 'Show the front';
+  const progressLabel = isLabel
+    ? (hasSeededFront ? 'Step 1 of 1' : 'Step 2 of 2')
+    : 'Step 1 of 2';
+  const title = isLabel ? 'Capture the care label' : 'Show the front';
   const subtitle = isLabel
-    ? 'Care tag / size label · fill the frame'
-    : 'Whole garment facing the camera · ~10 seconds';
+    ? 'Amber to prepare · green countdown · then capture'
+    : 'Centre the garment in the box — it can fill the screen';
 
   return (
     <View style={styles.root}>
@@ -373,7 +642,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
         style={[styles.topFade, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.topBar}>
-          <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.iconBtn}>
+          <Pressable onPress={() => navigation.popToTop()} hitSlop={10} style={styles.iconBtn}>
             <Feather name="x" size={22} color="#FFF" />
           </Pressable>
           <View style={{ alignItems: 'center', flex: 1 }}>
@@ -405,8 +674,17 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
             frameUi === 'ready' && styles.frameReady,
             frameUi === 'hold' && styles.frameHold,
           ]}
-        />
+        >
+          {labelCountdown != null ? (
+            <ThemedText type="h2" style={styles.countdownText}>{labelCountdown}</ThemedText>
+          ) : null}
+        </View>
         <ThemedText type="body" style={styles.hint}>{hint}</ThemedText>
+        {isLabel ? (
+          <ThemedText type="caption" style={styles.hintSub}>
+            Amber prepare → green 3·2·1 → capture (or tap shutter)
+          </ThemedText>
+        ) : null}
       </View>
 
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
@@ -416,12 +694,16 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
               if (!frontBase64) return;
               Alert.alert(
                 'Skip label?',
-                'Front photo alone still helps. Label makes brand & size more reliable.',
+                'We’ll still save a visual fingerprint from the front photo. Brand/size from the care tag will be skipped.',
                 [
                   { text: 'Keep going', style: 'cancel' },
                   {
                     text: 'Skip',
-                    onPress: () => void submitImprove({ frontB64: frontBase64, labelB64: null }),
+                    onPress: () => void submitImprove({
+                      frontB64: frontBase64,
+                      labelB64: null,
+                      outcome: 'front_only',
+                    }),
                   },
                 ],
               );
@@ -499,17 +781,33 @@ const styles = StyleSheet.create({
     width: LABEL_FRAME_W,
     height: LABEL_FRAME_H,
     borderRadius: 14,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: 'rgba(255,255,255,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   frameHold: { borderColor: '#E0A84A' },
   frameReady: { borderColor: '#4CAF50' },
+  countdownText: {
+    color: '#FFF',
+    fontSize: 56,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowRadius: 8,
+  },
   hint: {
     color: '#FFF',
     marginTop: Spacing.md,
     fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 24,
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowRadius: 6,
+  },
+  hintSub: {
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 6,
+    textAlign: 'center',
   },
   bottomBar: {
     position: 'absolute',

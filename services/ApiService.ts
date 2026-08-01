@@ -1196,6 +1196,8 @@ class ApiService {
     hybridMerge?: boolean;
     occasionType?: string;
     stylistId?: string;
+    workDressCode?: string;
+    brandInspiration?: string;
     weather?: {
       temperature: number;
       condition?: string;

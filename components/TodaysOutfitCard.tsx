@@ -33,7 +33,8 @@ import {
   type WardrobeTodaysOutfit,
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
-import { apiService } from '@/services/ApiService';
+import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
+import { OutfitTasteFeedback } from '@/components/outfit/OutfitTasteFeedback';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
 import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
@@ -531,29 +532,27 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   }, [ensureFreshForToday]);
 
   const handleClose = async (
-    signal: 'wore' | 'skipped' | null = 'skipped',
+    signal: 'wore' | 'skipped' | 'liked' | null = 'skipped',
   ) => {
     if (signal && pieces.length > 0) {
-      apiService
-        .recordOutfitEngagement({
-          items: pieces.map((item) => ({
-            id: String(item.id),
-            name: item.name,
-            category: item.category,
-            color: item.color,
-          })),
-          signal,
-          occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
-          contextSnapshot: {
-            source: 'todays_outfit_card',
-            dayLabel: outfit?.dayLabel,
-            occasionLabel: outfit?.occasionLabel,
-            weatherTemp: outfit?.weatherTemp,
-            weatherCondition: outfit?.weatherCondition,
-            vibeLabel: outfit?.vibeLabel,
-          },
-        })
-        .catch(() => {});
+      void recordStylistOutfitFeedback({
+        items: pieces.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          category: item.category,
+          color: item.color,
+        })),
+        signal: signal === 'liked' ? 'liked' : signal,
+        source: 'todays_outfit',
+        occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+        contextSnapshot: {
+          dayLabel: outfit?.dayLabel,
+          occasionLabel: outfit?.occasionLabel,
+          weatherTemp: outfit?.weatherTemp,
+          weatherCondition: outfit?.weatherCondition,
+          vibeLabel: outfit?.vibeLabel,
+        },
+      });
     }
 
     setShowSaveModal(false);
@@ -629,26 +628,24 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           await markPlannedOutfitWorn(planId);
         }
 
-        apiService
-          .recordOutfitEngagement({
-            items: piecesSnap.map((item) => ({
-              id: String(item.id),
-              name: item.name,
-              category: item.category,
-              color: item.color,
-            })),
-            signal: 'wore',
-            occasion: outfitSnap?.dressFor || outfitSnap?.occasionType || 'todays_look',
-            contextSnapshot: {
-              source: 'todays_outfit_card',
-              dayLabel: outfitSnap?.dayLabel,
-              occasionLabel: outfitSnap?.occasionLabel,
-              weatherTemp: outfitSnap?.weatherTemp,
-              weatherCondition: outfitSnap?.weatherCondition,
-              vibeLabel: outfitSnap?.vibeLabel,
-            },
-          })
-          .catch(() => {});
+        void recordStylistOutfitFeedback({
+          items: piecesSnap.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+            category: item.category,
+            color: item.color,
+          })),
+          signal: 'wore',
+          source: 'todays_outfit',
+          occasion: outfitSnap?.dressFor || outfitSnap?.occasionType || 'todays_look',
+          contextSnapshot: {
+            dayLabel: outfitSnap?.dayLabel,
+            occasionLabel: outfitSnap?.occasionLabel,
+            weatherTemp: outfitSnap?.weatherTemp,
+            weatherCondition: outfitSnap?.weatherCondition,
+            vibeLabel: outfitSnap?.vibeLabel,
+          },
+        });
       }
     } catch (error) {
       console.warn('[TodaysOutfitCard] Wear this failed:', error);
@@ -659,6 +656,43 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
   const handleDismiss = () => {
     void handleClose('skipped');
   };
+
+  const handleShowAnother = () => {
+    if (!actionsEnabled || wearBusy) return;
+    void traceTodaysOutfit('button_click', { action: 'show_another', outfitId: outfit?.id });
+    if (pieces.length > 0) {
+      void recordStylistOutfitFeedback({
+        items: pieces.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          category: item.category,
+          color: item.color,
+        })),
+        signal: 'skipped',
+        source: 'todays_outfit',
+        occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+        contextSnapshot: { action: 'show_another' },
+      });
+    }
+    void loadOutfit({ open: true, forceRefresh: true });
+  };
+
+  const handleLikeLook = () => {
+    if (!pieces.length) return;
+    void recordStylistOutfitFeedback({
+      items: pieces.map((item) => ({
+        id: String(item.id),
+        name: item.name,
+        category: item.category,
+        color: item.color,
+      })),
+      signal: 'liked',
+      source: 'todays_outfit',
+      occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+      contextSnapshot: { action: 'like' },
+    });
+  };
+
   const handleDismissGap = () => {
     setGapVisible(false);
     loadGenRef.current += 1;
@@ -984,6 +1018,13 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
 
                 {itemIds.length > 0 && actionsEnabled ? (
                   <View style={styles.saveWrap}>
+                    <OutfitTasteFeedback
+                      compact
+                      disabled={wearBusy}
+                      onLike={handleLikeLook}
+                      onSkip={() => void handleClose('skipped')}
+                      onAnother={handleShowAnother}
+                    />
                     <Pressable
                       style={[styles.saveBtn, { borderColor: theme.border }]}
                       onPress={() => {
@@ -1038,14 +1079,12 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
           if (outfit?.id) {
             void setSavedDaily(outfit.id).then(setDailyState);
           }
-          apiService
-            .recordOutfitEngagement({
-              items: itemIds,
-              signal: 'saved',
-              occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
-              contextSnapshot: { source: 'todays_outfit_card' },
-            })
-            .catch(() => {});
+          void recordStylistOutfitFeedback({
+            items: itemIds,
+            signal: 'saved',
+            source: 'todays_outfit',
+            occasion: outfit?.dressFor || outfit?.occasionType || 'todays_look',
+          });
           setShowSaveModal(false);
           setSaveHandoff(false);
           if (restoreOutfitAfterSaveRef.current) {

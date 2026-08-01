@@ -1,0 +1,769 @@
+[
+  {
+    "id": "oxford_044",
+    "source": "oxford_street",
+    "image_path": "images/044.jpg",
+    "brand": "polo_ralph_lauren",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_button_down",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored_straight",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "navy"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "tie",
+        "subcategory": "wide_stripe",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["preppy", "classic"]
+    },
+    "colour_palette": ["navy", "cream", "blue", "white"],
+    "features": {
+      "layering": "structured",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["preppy", "tailored"],
+    "notes": "Male mannequin in navy blazer over striped shirt and tie with white knit draped at the chest and cream tailored trousers",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 88,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_051",
+    "source": "oxford_street",
+    "image_path": "images/051.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "button_down",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored",
+        "color": "brown"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "tie",
+        "subcategory": "graphic_pattern",
+        "color": "blue"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["editorial", "classic"]
+    },
+    "colour_palette": ["brown", "white", "blue", "tan"],
+    "features": {
+      "layering": "structured",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["tailored", "suit"],
+    "notes": "Male mannequin in brown suit with white shirt and blue cityscape tie, styled with dried flowers and tan leather bag",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_058",
+    "source": "oxford_street",
+    "image_path": "images/058.jpg",
+    "brand": "agnes_b",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "ruffle_collar",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pinstripe_straight",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal", "monochrome"]
+    },
+    "colour_palette": ["white", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["minimal", "monochrome"],
+    "notes": "Hanging white ruffle-collar blouse with pinstripe trousers and black penny loafers in agnès b. window display",
+    "confidence": 0.82,
+    "score_hint": {
+      "base_score": 78,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_065",
+    "source": "oxford_street",
+    "image_path": "images/065.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "striped_short_sleeve",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "cargo_midi",
+        "color": "tan"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "brown"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["contemporary", "streetwear"]
+    },
+    "colour_palette": ["blue", "white", "tan", "brown"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["cargo", "striped", "midi"],
+    "notes": "Female mannequin in blue striped tee with dark tank trim over tan cargo midi skirt and studded brown flats",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_073",
+    "source": "oxford_street",
+    "image_path": "images/073.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored_shorts",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "linen_button_down",
+        "color": "white"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "deck_shoes",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["summer", "minimal"]
+    },
+    "colour_palette": ["white", "charcoal", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["summer", "minimal"],
+    "notes": "Male mannequin in open white linen shirt over white tee with charcoal tailored shorts and black suede deck shoes on the stand",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_080",
+    "source": "oxford_street",
+    "image_path": "images/080.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "long_sleeve_knit_polo",
+        "color": "beige"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino",
+        "color": "burgundy"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "desert_boot",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "burgundy"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["preppy", "normcore"]
+    },
+    "colour_palette": ["beige", "burgundy", "black", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["preppy", "layered"],
+    "notes": "Right-hand male mannequin in beige knit polo over check shirt with burgundy chino shorts, black shoes and white socks",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_087",
+    "source": "oxford_street",
+    "image_path": "images/087.jpg",
+    "brand": "arket",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_midi",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "structured_collar",
+        "color": "navy"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "handbag",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal", "smart_casual"]
+    },
+    "colour_palette": ["navy", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["minimal", "tailored"],
+    "notes": "Headless mannequin in navy structured collar jacket with black pleated midi skirt and black handbag",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_094",
+    "source": "oxford_street",
+    "image_path": "images/094.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "jacket",
+        "subcategory": "striped_peplum",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "flared_mini",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["preppy", "structured"]
+    },
+    "colour_palette": ["navy", "light_blue", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["striped", "peplum", "flared"],
+    "notes": "Female mannequin in navy striped double-breasted peplum jacket over light blue striped flared mini skirt",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_101",
+    "source": "oxford_street",
+    "image_path": "images/101.jpg",
+    "brand": "allsaints",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "camp_collar_short_sleeve",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pleated_relaxed",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["relaxed", "contemporary"]
+    },
+    "colour_palette": ["black", "beige"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["relaxed", "embroidered"],
+    "notes": "Male mannequin in black camp-collar shirt with gold bird embroidery and beige pleated trousers with chunky black loafers",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_108",
+    "source": "oxford_street",
+    "image_path": "images/108.jpg",
+    "brand": "mango",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "sleeveless_turtleneck",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "bias_plaid_midi",
+        "color": "brown"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "cream"
+      },
+      "accessory": {
+        "category": "sunglasses",
+        "subcategory": "cat_eye",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["smart_casual", "preppy"]
+    },
+    "colour_palette": ["light_blue", "brown", "cream", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["plaid", "feminine", "midi"],
+    "notes": "Female mannequin in light blue sleeveless roll-neck with brown plaid bias-cut midi skirt and cream pointed pumps",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_115",
+    "source": "oxford_street",
+    "image_path": "images/115.jpg",
+    "brand": "hobbs",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "color_block_pleated",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "navy"
+      },
+      "accessory": {
+        "category": "belt",
+        "subcategory": "sash",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["elegant", "classic"]
+    },
+    "colour_palette": ["navy", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["color_block", "pleated", "midi"],
+    "notes": "Female mannequin in navy and white colour-block pleated midi dress with piped sash belt and navy pointed flats",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_123",
+    "source": "oxford_street",
+    "image_path": "images/123.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "v_neck",
+        "color": "olive"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "slim_cropped",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "vest",
+        "subcategory": "knit_sleeveless",
+        "color": "camel"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "grey"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["classic", "layered"]
+    },
+    "colour_palette": ["olive", "camel", "blue", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["denim", "layered", "smart_casual"],
+    "notes": "Central female mannequin in olive blouse with camel knit vest, cropped blue jeans and black loafers",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_130",
+    "source": "oxford_street",
+    "image_path": "images/130.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "knit_stripe",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "drawstring_straight",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "low_top",
+        "color": "white"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["minimal", "quiet_luxury"]
+    },
+    "colour_palette": ["cream", "beige", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["tonal", "minimal", "knit"],
+    "notes": "Male mannequin in cream striped knit polo with beige drawstring trousers and white sneakers",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_137",
+    "source": "oxford_street",
+    "image_path": "images/137.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "smocked_puff_sleeve",
+        "color": "burgundy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_jane",
+        "color": "burgundy"
+      },
+      "accessory": {
+        "category": "necklace",
+        "subcategory": "beaded_choker",
+        "color": "multicolour"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["casual", "romantic"]
+    },
+    "colour_palette": ["burgundy", "red", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["smocked", "puff_sleeve", "midi"],
+    "notes": "Central female mannequin in burgundy smocked puff-sleeve midi dress with matching Mary Jane flats and beaded choker",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  },
+  {
+    "id": "oxford_144",
+    "source": "oxford_street",
+    "image_path": "images/144.jpg",
+    "brand": "lululemon",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "sports_bra",
+        "subcategory": "cropped",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_tennis",
+        "color": "white"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "zip_athletic",
+        "color": "white"
+      },
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "athletic",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "gym_duffel",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": ["tennis", "sporty"]
+    },
+    "colour_palette": ["white", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "athletic"
+    },
+    "style_tags": ["athleisure", "tennis", "monochrome"],
+    "notes": "Female mannequin in all-white cropped top, pleated tennis skirt and zip jacket with white trainers and black gym bag",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "gold"
+  }
+]

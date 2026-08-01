@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oxford Street Labeler · Dripn</title>
+  <style>
+    :root {
+      --bg: #0f0e0c;
+      --panel: #1a1814;
+      --ink: #f5f0e8;
+      --muted: #9a9184;
+      --gold: #c9a87c;
+      --ok: #3ddc97;
+      --bad: #ff6b6b;
+      --chip: #2a2620;
+      --chip-on: #4a3f2e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a2620;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
+    header .meta { color: var(--muted); font-size: 13px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.1fr) minmax(320px, 0.9fr);
+      gap: 0;
+      min-height: calc(100vh - 52px);
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .image-pane {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-right: 1px solid #2a2620;
+      min-height: 50vh;
+    }
+    .image-pane img {
+      max-width: 100%;
+      max-height: calc(100vh - 80px);
+      object-fit: contain;
+      border-radius: 4px;
+    }
+    .controls {
+      padding: 14px 16px 80px;
+      overflow-y: auto;
+      background: var(--panel);
+    }
+    .section { margin-bottom: 14px; }
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border: 1px solid #3a342c;
+      background: var(--chip);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip.on { background: var(--chip-on); border-color: var(--gold); color: #fff; }
+    .chip.radio.on { background: var(--gold); color: #0f0e0c; border-color: var(--gold); font-weight: 600; }
+    label.field {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      background: #12100e;
+      border: 1px solid #3a342c;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    textarea { min-height: 56px; resize: vertical; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .footer {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      width: min(100%, 0.9fr);
+      max-width: 520px;
+      background: rgba(15, 14, 12, 0.95);
+      border-top: 1px solid #2a2620;
+      padding: 10px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 900px) {
+      .footer { max-width: 100%; left: 0; }
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-ok { background: var(--ok); color: #062416; }
+    .btn-skip { background: #3a342c; color: var(--ink); }
+    .btn-bad { background: var(--bad); color: #fff; }
+    .btn-copy { background: #2a3a4a; color: #d8e8f8; }
+    .btn-dl { background: var(--gold); color: #0f0e0c; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+    .load-box {
+      padding: 10px;
+      border: 1px dashed #3a342c;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #2a2620;
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Oxford Street Labeler <span class="badge">tap · don’t type</span></h1>
+    <div class="meta" id="progress">Load dataset.json to start</div>
+  </header>
+  <div class="layout">
+    <div class="image-pane">
+      <img id="img" alt="outfit" />
+    </div>
+    <div class="controls">
+      <div class="load-box">
+        <p class="hint" id="loadStatus" style="margin-top:0">Looking for <code>./dataset.json</code>…</p>
+        <button type="button" class="btn-dl" id="btnAutoLoad" style="margin-bottom:8px">Load dataset.json automatically</button>
+        <label class="field">Or pick the file manually</label>
+        <input type="file" id="fileDataset" accept="application/json,.json" />
+        <p class="hint">Exact path on your PC:<br><code>C:\Users\sheni\Downloads\dripn\StyleWise\data\oxford_street_dataset\dataset.json</code></p>
+        <label class="field" style="margin-top:8px">Images base URL</label>
+        <input type="text" id="imgBase" value="./images/" />
+        <p class="hint">Serve this folder (not open as a file:// page): <code>npx serve . -p 4173</code> then open <code>http://localhost:4173/labeler.html</code>.</p>
+      </div>
+
+      <div class="section">
+        <h2>Style (1–4 keys)</h2>
+        <div class="chips" id="styles"></div>
+      </div>
+      <div class="section">
+        <h2>Top</h2>
+        <div class="chips" id="tops"></div>
+      </div>
+      <div class="section">
+        <h2>Bottom</h2>
+        <div class="chips" id="bottoms"></div>
+      </div>
+      <div class="section">
+        <h2>Outerwear</h2>
+        <div class="chips" id="outerwear"></div>
+      </div>
+      <div class="section">
+        <h2>Footwear</h2>
+        <div class="chips" id="footwear"></div>
+      </div>
+      <div class="section">
+        <h2>Colour category</h2>
+        <div class="chips" id="colors"></div>
+      </div>
+      <div class="section">
+        <h2>Fit</h2>
+        <div class="chips" id="fits"></div>
+      </div>
+      <div class="section">
+        <div class="row2">
+          <div>
+            <label class="field">Confidence</label>
+            <input type="number" id="confidence" min="0" max="1" step="0.01" value="0.85" />
+          </div>
+          <div>
+            <label class="field">Brand (optional)</label>
+            <input type="text" id="brand" placeholder="uniqlo" />
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <label class="field">Notes</label>
+        <textarea id="notes" placeholder="Primary figure only"></textarea>
+      </div>
+      <p class="hint">
+        Shortcuts: ←/→ navigate · Space accept · S skip · D discard · C copy last · 1–4 style
+      </p>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn-ok" id="btnAccept">✓ Accept & next</button>
+    <button class="btn-copy" id="btnCopy">⎘ Copy last</button>
+    <button class="btn-skip" id="btnSkip">Skip</button>
+    <button class="btn-bad" id="btnDiscard">Discard</button>
+    <button class="btn-dl" id="btnDownload">Download labels.json</button>
+  </div>
+
+  <script>
+    const STYLES = ['casual', 'smart_casual', 'streetwear', 'formal', 'athleisure', 'feminine_chic', 'business_casual'];
+    const TOPS = ['t-shirt', 'shirt', 'blouse', 'polo', 'hoodie', 'sweater', 'dress', 'tank_top', 'none'];
+    const BOTTOMS = ['trousers', 'jeans', 'shorts', 'skirt', 'leggings', 'none'];
+    const OUTERWEAR = ['jacket', 'blazer', 'coat', 'trench', 'cardigan', 'sweater', 'puffer', 'vest', 'none'];
+    const FOOTWEAR = ['sneakers', 'loafers', 'boots', 'heels', 'sandals', 'flats', 'none'];
+    const COLORS = ['neutral', 'pastel', 'bold', 'dark', 'earth', 'light'];
+    const FITS = ['slim', 'regular', 'relaxed', 'oversized', 'tailored'];
+
+    let dataset = [];
+    let index = 0;
+    let lastAccepted = null;
+    const edits = new Map(); // id -> patch
+
+    function $(id) { return document.getElementById(id); }
+
+    function makeChips(el, options, multi, group) {
+      el.innerHTML = '';
+      options.forEach((opt) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip' + (multi ? '' : ' radio');
+        b.textContent = opt;
+        b.dataset.value = opt;
+        b.dataset.group = group;
+        b.onclick = () => {
+          if (multi) b.classList.toggle('on');
+          else {
+            [...el.querySelectorAll('.chip')].forEach((c) => c.classList.remove('on'));
+            b.classList.add('on');
+          }
+        };
+        el.appendChild(b);
+      });
+    }
+
+    function selected(el, multi) {
+      const ons = [...el.querySelectorAll('.chip.on')].map((c) => c.dataset.value);
+      if (multi) return ons;
+      return ons[0] || null;
+    }
+
+    function setSelected(el, value, multi) {
+      [...el.querySelectorAll('.chip')].forEach((c) => {
+        const on = multi
+          ? (Array.isArray(value) && value.includes(c.dataset.value))
+          : c.dataset.value === value;
+        c.classList.toggle('on', on);
+      });
+    }
+
+    function piece(category, color) {
+      if (!category || category === 'none') return null;
+      return { category, subcategory: category, color: color || null };
+    }
+
+    function currentRow() {
+      return dataset[index];
+    }
+
+    function render() {
+      const row = currentRow();
+      if (!row) return;
+      const base = $('imgBase').value || './images/';
+      const file = (row.image_path || '').replace(/^images\//, '');
+      $('img').src = base.replace(/\/?$/, '/') + file;
+      $('progress').textContent = `${row.id} · ${index + 1} / ${dataset.length} · edits ${edits.size}`;
+      const existing = edits.get(row.id) || row;
+      setSelected($('styles'), existing.style?.primary || 'casual', false);
+      setSelected($('tops'), existing.outfit?.top?.category || 'none', false);
+      setSelected($('bottoms'), existing.outfit?.bottom?.category || (existing.outfit?.top?.category === 'dress' ? 'none' : 'trousers'), false);
+      setSelected($('outerwear'), existing.outfit?.outerwear?.category || 'none', false);
+      setSelected($('footwear'), existing.outfit?.footwear?.subcategory || existing.outfit?.footwear?.category || 'none', false);
+      setSelected($('colors'), existing._colorCat || 'neutral', false);
+      setSelected($('fits'), existing.features?.silhouette === 'athletic' ? 'slim' : (existing.features?.silhouette || 'regular'), false);
+      $('confidence').value = (existing.label_status === 'gold' || existing.label_status === 'labeled' || edits.has(row.id))
+        ? (existing.confidence ?? 0.85)
+        : 0.85;
+      $('brand').value = existing.brand || '';
+      $('notes').value = existing.notes || '';
+    }
+
+    function buildPatch(valid, discarded) {
+      const row = currentRow();
+      const style = selected($('styles'), false) || 'casual';
+      const top = selected($('tops'), false);
+      const bottom = selected($('bottoms'), false);
+      const outer = selected($('outerwear'), false);
+      const fw = selected($('footwear'), false);
+      const colorCat = selected($('colors'), false) || 'neutral';
+      const fit = selected($('fits'), false) || 'regular';
+      const conf = Number($('confidence').value) || 0.8;
+      const brand = ($('brand').value || '').trim() || null;
+      const notes = ($('notes').value || '').trim();
+      const colour_palette = colorCat === 'neutral'
+        ? ['beige', 'white', 'black'].slice(0, 2)
+        : colorCat === 'pastel' ? ['light_blue', 'cream']
+          : colorCat === 'bold' ? ['red', 'blue']
+            : colorCat === 'dark' ? ['black', 'navy']
+              : colorCat === 'earth' ? ['beige', 'olive', 'brown']
+                : ['white', 'cream'];
+
+      const isDress = top === 'dress';
+      return {
+        id: row.id,
+        source: 'oxford_street',
+        image_path: row.image_path,
+        brand,
+        price_tier: row.price_tier || 'high_street',
+        outfit: {
+          top: piece(top, colour_palette[0]),
+          bottom: isDress ? null : piece(bottom, colour_palette[1] || colour_palette[0]),
+          outerwear: piece(outer, colour_palette[0]),
+          footwear: fw && fw !== 'none' ? { category: 'shoes', subcategory: fw, color: colour_palette[0] } : null,
+          accessory: null,
+        },
+        style: { primary: style, secondary: [colorCat, fit] },
+        colour_palette,
+        features: {
+          layering: outer && outer !== 'none' ? 'light' : 'none',
+          contrast: colorCat === 'neutral' || colorCat === 'earth' ? 'low' : 'medium',
+          silhouette: fit === 'slim' || fit === 'tailored' ? 'tailored' : fit === 'oversized' ? 'oversized' : fit === 'relaxed' ? 'relaxed' : 'regular',
+        },
+        style_tags: ['oxford_street', colorCat],
+        notes: notes || `Primary ${style} look`,
+        confidence: conf,
+        score_hint: { base_score: Math.round(60 + conf * 30), boost: valid },
+        rules: discarded
+          ? { valid: false, violations: ['discarded'] }
+          : { valid: !!valid && conf >= 0.75, violations: valid && conf >= 0.75 ? [] : ['needs_review'] },
+        use_for_detection: true,
+        label_status: discarded ? 'discarded' : (valid && conf >= 0.75 ? 'labeled' : 'pending'),
+        _colorCat: colorCat,
+      };
+    }
+
+    function accept(valid) {
+      const patch = buildPatch(valid, false);
+      edits.set(patch.id, patch);
+      if (valid) lastAccepted = patch;
+      next();
+    }
+
+    function discard() {
+      const patch = buildPatch(false, true);
+      edits.set(patch.id, patch);
+      next();
+    }
+
+    function next() {
+      if (index < dataset.length - 1) index += 1;
+      render();
+    }
+    function prev() {
+      if (index > 0) index -= 1;
+      render();
+    }
+
+    function download() {
+      const labels = [...edits.values()].map(({ _colorCat, ...rest }) => rest);
+      const blob = new Blob([JSON.stringify({ version: 1, labels }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'oxford_label_edits.json';
+      a.click();
+    }
+
+    function numId(row) {
+      const m = String(row.id || '').match(/(\d+)/);
+      return m ? Number(m[1]) : 0;
+    }
+
+    function isDone(row) {
+      return row.label_status === 'gold'
+        || row.label_status === 'labeled'
+        || row.label_status === 'discarded'
+        || row.rules?.valid === true;
+    }
+
+    /** Spread pending across the full walk — not folder order 001,002,003… */
+    function spreadQueue(rows) {
+      const sorted = [...rows].sort((a, b) => numId(a) - numId(b));
+      const n = sorted.length;
+      if (n <= 2) return sorted;
+      const stride = Math.max(3, Math.round(Math.sqrt(n)));
+      const out = [];
+      for (let start = 0; start < stride; start++) {
+        for (let i = start; i < n; i += stride) out.push(sorted[i]);
+      }
+      return out;
+    }
+
+    function ingestDataset(raw) {
+      const all = Array.isArray(raw) ? raw : (raw.labels || raw.items || []);
+      if (!Array.isArray(all) || !all.length) {
+        throw new Error('dataset.json did not contain an array of rows');
+      }
+      const pending = [];
+      const done = [];
+      for (const row of all) {
+        if (isDone(row)) done.push(row);
+        else pending.push(row);
+      }
+      dataset = [...spreadQueue(pending), ...done.sort((a, b) => numId(a) - numId(b))];
+      index = 0;
+      $('loadStatus').textContent =
+        `Loaded ${dataset.length} · queue spreads ${pending.length} pending across the walk (not folder order)`;
+      render();
+    }
+
+    $('fileDataset').onchange = async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      try {
+        ingestDataset(JSON.parse(await f.text()));
+      } catch (err) {
+        $('loadStatus').textContent = `Failed to parse file: ${err.message}`;
+      }
+    };
+
+    async function autoLoadDataset() {
+      $('loadStatus').textContent = 'Fetching ./dataset.json…';
+      try {
+        const res = await fetch('./dataset.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        ingestDataset(await res.json());
+      } catch (err) {
+        $('loadStatus').textContent =
+          `Auto-load failed (${err.message}). Use the file picker and choose dataset.json in this folder — not in Downloads.`;
+      }
+    }
+
+    $('btnAutoLoad').onclick = () => autoLoadDataset();
+    // Auto-load when served over http(s); file:// cannot fetch local JSON
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      autoLoadDataset();
+    } else {
+      $('loadStatus').textContent =
+        'Opened as a local file — click “Load dataset.json automatically” only works via a server. Use the file picker: pick dataset.json next to this labeler.html.';
+    }
+
+    $('btnAccept').onclick = () => accept(true);
+    $('btnSkip').onclick = () => next();
+    $('btnDiscard').onclick = () => discard();
+    $('btnCopy').onclick = () => {
+      if (!lastAccepted) return;
+      const row = currentRow();
+      const copy = { ...JSON.parse(JSON.stringify(lastAccepted)), id: row.id, image_path: row.image_path };
+      edits.set(row.id, copy);
+      render();
+    };
+    $('btnDownload').onclick = download;
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.matches('input, textarea')) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+      if (e.key === ' ') { e.preventDefault(); accept(true); }
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); next(); }
+      if (e.key === 'd' || e.key === 'D') { e.preventDefault(); discard(); }
+      if (e.key === 'c' || e.key === 'C') { e.preventDefault(); $('btnCopy').click(); }
+      const styleKeys = { '1': 'casual', '2': 'smart_casual', '3': 'streetwear', '4': 'formal' };
+      if (styleKeys[e.key]) setSelected($('styles'), styleKeys[e.key], false);
+    });
+
+    makeChips($('styles'), STYLES, false, 'style');
+    makeChips($('tops'), TOPS, false, 'top');
+    makeChips($('bottoms'), BOTTOMS, false, 'bottom');
+    makeChips($('outerwear'), OUTERWEAR, false, 'outer');
+    makeChips($('footwear'), FOOTWEAR, false, 'fw');
+    makeChips($('colors'), COLORS, false, 'color');
+    makeChips($('fits'), FITS, false, 'fit');
+  </script>
+</body>
+</html>

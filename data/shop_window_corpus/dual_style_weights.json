@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "note": "Context weights for dual-style scoring — never flatten luxury+casual into one boost",
+  "contexts": {
+    "work": {
+      "luxury": 1,
+      "casual": 0.2
+    },
+    "business": {
+      "luxury": 1,
+      "casual": 0.15
+    },
+    "smart_casual": {
+      "luxury": 0.7,
+      "casual": 0.5
+    },
+    "elevated_casual": {
+      "luxury": 0.55,
+      "casual": 0.75
+    },
+    "weekend": {
+      "luxury": 0.4,
+      "casual": 1
+    },
+    "casual": {
+      "luxury": 0.35,
+      "casual": 1
+    },
+    "resort": {
+      "luxury": 0.5,
+      "casual": 0.8
+    }
+  }
+}

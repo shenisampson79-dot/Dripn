@@ -40,10 +40,13 @@ import {
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import {
-  detectGarmentsOnDevice,
   getOnDeviceYoloStatus,
   warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
+import {
+  detectGarmentsOnDeviceHybrid,
+  SINGLE_ITEM_HYBRID_OPTS,
+} from '@/utils/onDeviceHybridDetect';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
 import { normalizeWardrobeCategory } from '@/utils/wardrobeCategories';
 import {
@@ -62,6 +65,8 @@ import {
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
 import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
+import { setImproveRecognitionFrontHandoff } from '@/utils/improveRecognitionHandoff';
+import { normalizeQuickAddColor, pickVisionFields } from '@/utils/quickAddPerception';
 
 const FRAME_SIZE = 280;
 const SUCCESS_GREEN = '#4CAF50';
@@ -98,8 +103,7 @@ function asCategory(raw?: string | null): ClothingCategory {
 }
 
 function asColor(raw?: string | null): ClothingColor {
-  const c = String(raw || 'multicolor').toLowerCase().trim();
-  return (COLOR_KEYS.includes(c as ClothingColor) ? c : 'multicolor') as ClothingColor;
+  return normalizeQuickAddColor(raw);
 }
 
 function bandFromScores(detConf?: number, analysisConf?: number): ConfidenceBand {
@@ -131,7 +135,7 @@ export default function QuickAddScreen({ navigation }: Props) {
   const [step, setStep] = useState<Step>('camera');
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [torch, setTorch] = useState(false);
-  const [hint, setHint] = useState('Move item into frame');
+  const [hint, setHint] = useState('Centre the garment in the box — it can fill the screen');
   const [frameUi, setFrameUi] = useState<QuickAddCaptureUi>('idle');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [captureThumb, setCaptureThumb] = useState<string | null>(null);
@@ -173,37 +177,35 @@ export default function QuickAddScreen({ navigation }: Props) {
     imageBase64: string | undefined,
     analysis: any,
     detectionConfidence?: number,
+    opts?: { provisional?: boolean },
   ): Draft => {
-    const main = analysis?.analysis?.mainItem || analysis?.clothingAnalysis || analysis || {};
+    const vision = pickVisionFields(analysis || {});
     const category = asCategory(
       analysis?.suggestedCategory
-        || analysis?.categoryHint
-        || main?.type
-        || main?.category
-        || 'tops',
+      || vision.category
+      || analysis?.categoryHint
+      || 'tops',
     );
-    // Never empty — always guess a colour + category so Save stays one tap.
-    const color = asColor(main?.color || 'multicolor');
-    const brand = main?.brand ? String(main.brand) : undefined;
-    const material = main?.material ? String(main.material) : undefined;
-    const seasons = resolveSeasonChips(main?.seasons || []) as ClothingSeason[];
-    const occasions = resolveOccasionChips(main?.occasions || []) as ClothingOccasion[];
+    const color = asColor(vision.color);
+    const brand = vision.brand;
+    const material = vision.material;
+    const seasons = resolveSeasonChips(vision.seasons || []) as ClothingSeason[];
+    const occasions = resolveOccasionChips(vision.occasions || []) as ClothingOccasion[];
     const style = occasions[0] || 'everyday';
     const colorLabel = COLOR_LABELS[color] || color;
     const catLabel = CATEGORY_LABELS[category] || category;
     const name = sanitizeWardrobeItemName(
-      analysis?.suggestedName
-        || analysis?.analysis?.suggestedName
-        || main?.description
+      vision.suggestedName
+        || analysis?.suggestedName
+        || vision.description
         || `${brand ? `${brand} ` : ''}${colorLabel} ${catLabel}`,
     ) || `${colorLabel} ${catLabel}`;
 
-    const analysisConf = Number(
-      analysis?.confidence
-        || analysis?.analysis?.confidence
-        || main?.confidence
-        || 0,
-    );
+    const analysisConf = vision.confidence;
+    let band = bandFromScores(detectionConfidence, analysisConf);
+    if (opts?.provisional || color === 'other') {
+      band = band === 'high' ? 'medium' : 'low';
+    }
 
     return {
       imageUri,
@@ -216,7 +218,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       style,
       seasons,
       occasions: occasions.length ? occasions : (['everyday'] as ClothingOccasion[]),
-      confidence: bandFromScores(detectionConfidence, analysisConf),
+      confidence: band,
       detectionConfidence,
     };
   };
@@ -233,19 +235,32 @@ export default function QuickAddScreen({ navigation }: Props) {
     setHint('Identifying your item…');
     setFrameUi('idle');
     try {
-      const result = await processQuickAddCapture(uri, detection);
+      const applyResult = (result: Awaited<ReturnType<typeof processQuickAddCapture>>) => {
+        if (!result.analysis && !result.imageUri) return;
+        const next = buildDraftFromAnalysis(
+          result.imageUri,
+          result.imageBase64,
+          result.analysis || {},
+          result.detectionConfidence ?? detection?.confidence,
+          { provisional: result.provisional },
+        );
+        setDraft(next);
+        setStep('result');
+        setCaptureThumb(null);
+      };
+
+      const result = await processQuickAddCapture(uri, detection, {
+        onPartial: (partial) => {
+          // Late vision refine — only if user is still on result / processing
+          if (stepRef.current === 'result' || stepRef.current === 'processing') {
+            applyResult(partial);
+          }
+        },
+      });
       if (!result.analysis && !result.imageUri) {
         throw new Error('No analysis');
       }
-      const next = buildDraftFromAnalysis(
-        result.imageUri,
-        result.imageBase64,
-        result.analysis || {},
-        result.detectionConfidence ?? detection?.confidence,
-      );
-      setDraft(next);
-      setStep('result');
-      setCaptureThumb(null);
+      applyResult(result);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.warn('[QuickAdd] process failed:', error);
@@ -258,7 +273,7 @@ export default function QuickAddScreen({ navigation }: Props) {
             onPress: () => {
               setCaptureThumb(null);
               setStep('camera');
-              setHint('Move item into frame');
+              setHint('Centre the garment in the box — it can fill the screen');
               controllerRef.current.reset();
             },
           },
@@ -267,7 +282,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       );
       setStep('camera');
       setCaptureThumb(null);
-      setHint('Move item into frame');
+      setHint('Centre the garment in the box — it can fill the screen');
     } finally {
       capturingRef.current = false;
     }
@@ -301,7 +316,7 @@ export default function QuickAddScreen({ navigation }: Props) {
     } catch (error) {
       console.warn('[QuickAdd] capture failed:', error);
       setCaptureThumb(null);
-      setHint('Move item into frame');
+      setHint('Centre the garment in the box — it can fill the screen');
       Alert.alert('Camera', 'Could not take photo. Try again.');
     }
   }, [clearCountdown, processCapturedUri]);
@@ -382,9 +397,10 @@ export default function QuickAddScreen({ navigation }: Props) {
         [{ resize: { width: SAMPLE_WIDTH } }],
         { compress: 0.55, format: ImageManipulator.SaveFormat.JPEG },
       );
-      const onDevice = await detectGarmentsOnDevice(small.uri, {
+      const onDevice = await detectGarmentsOnDeviceHybrid(small.uri, {
         confThreshold: QUICK_ADD_YOLO_CONF,
         maxDetections: 6,
+        ...SINGLE_ITEM_HYBRID_OPTS,
       });
       if (stepRef.current !== 'camera') return;
 
@@ -540,9 +556,17 @@ export default function QuickAddScreen({ navigation }: Props) {
       const { ok, item } = await persistDraft();
       if (!ok || !item?.id) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.replace('ImproveRecognition', {
+      // Push on top of Quick Add — do NOT replace (replace dismisses the modal
+      // and briefly flashes the Wardrobe screen underneath).
+      // Prefer URI handoff — large base64 in nav params can drop silently.
+      setImproveRecognitionFrontHandoff({
+        uri: draft.imageUri,
+        base64: draft.imageBase64,
+      });
+      navigation.navigate('ImproveRecognition', {
         itemId: item.id,
         itemName: item.name || draft.name,
+        frontImageUri: draft.imageUri,
       });
     } catch (error) {
       Alert.alert(
@@ -577,7 +601,7 @@ export default function QuickAddScreen({ navigation }: Props) {
         onClose={() => {
           setDraft(null);
           setCaptureThumb(null);
-          setHint('Move item into frame');
+          setHint('Centre the garment in the box — it can fill the screen');
           setFrameUi('idle');
           controllerRef.current.reset();
           lastBestRef.current = null;
@@ -591,7 +615,7 @@ export default function QuickAddScreen({ navigation }: Props) {
               onPress: () => {
                 setDraft(null);
                 setCaptureThumb(null);
-                setHint('Move item into frame');
+                setHint('Centre the garment in the box — it can fill the screen');
                 setStep('camera');
                 controllerRef.current.reset();
                 lastBestRef.current = null;
@@ -645,8 +669,8 @@ export default function QuickAddScreen({ navigation }: Props) {
             <ThemedText type="body" style={styles.title}>Quick Add</ThemedText>
             <ThemedText type="caption" style={styles.subtitle}>
               {yoloStatus.available
-                ? 'White → amber → green · auto-snap when locked'
-                : 'Fit item inside frame · snap anytime'}
+                ? 'Centre in the box (overflow OK) · white → amber → green'
+                : 'Centre garment in the box · overflow OK · snap anytime'}
             </ThemedText>
           </View>
           <Pressable onPress={() => setTorch((v) => !v)} hitSlop={10} style={styles.iconBtn}>

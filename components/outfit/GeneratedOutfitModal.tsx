@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
+import { OutfitTasteFeedback } from '@/components/outfit/OutfitTasteFeedback';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
@@ -14,6 +15,7 @@ import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import { wardrobeProcessedTileBackground, wardrobeTileBackground } from '@/utils/wardrobeImage';
 import { useTranslations } from "@/contexts/TranslationContext";
+import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 
 export type GeneratedOutfitModalData = {
   items: WardrobeItem[];
@@ -26,6 +28,8 @@ type Props = {
   occasion?: string;
   defaultTitle?: string;
   onClose: () => void;
+  /** Called after "Don't like" — parent can show next look */
+  onSkipLook?: () => void;
 };
 
 export function GeneratedOutfitModal({
@@ -34,12 +38,15 @@ export function GeneratedOutfitModal({
   occasion = 'custom',
   defaultTitle = 'My Outfit',
   onClose,
+  onSkipLook,
 }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [savedThisSession, setSavedThisSession] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [skipped, setSkipped] = useState(false);
 
   const orderedItems = useMemo(
     () => sortOutfitItemsByVisualOrder(outfit?.items || []),
@@ -60,7 +67,40 @@ export function GeneratedOutfitModal({
 
   const handleClose = () => {
     setSavedThisSession(false);
+    setLiked(false);
+    setSkipped(false);
     onClose();
+  };
+
+  const feedbackItems = orderedItems.map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    category: item.category,
+    color: item.color,
+  }));
+
+  const handleLike = () => {
+    setLiked(true);
+    setSkipped(false);
+    void recordStylistOutfitFeedback({
+      items: feedbackItems,
+      signal: 'liked',
+      source: 'get_outfits_now',
+      occasion,
+    });
+  };
+
+  const handleSkip = () => {
+    setSkipped(true);
+    setLiked(false);
+    void recordStylistOutfitFeedback({
+      items: feedbackItems,
+      signal: 'skipped',
+      source: 'get_outfits_now',
+      occasion,
+    });
+    if (onSkipLook) onSkipLook();
+    else handleClose();
   };
 
   return (
@@ -133,13 +173,30 @@ export function GeneratedOutfitModal({
           </ScrollView>
 
           <View style={styles.footer}>
+            {orderedItems.length > 0 ? (
+              <OutfitTasteFeedback
+                liked={liked}
+                skipped={skipped}
+                onLike={handleLike}
+                onSkip={handleSkip}
+              />
+            ) : null}
+
             {!savedThisSession ? (
               <OutfitSaveActions
                 wardrobeItemIds={wardrobeItemIds}
                 defaultTitle={defaultTitle}
                 defaultDescription={whyCopy}
                 occasion={occasion}
-                onSaved={() => setSavedThisSession(true)}
+                onSaved={() => {
+                  setSavedThisSession(true);
+                  void recordStylistOutfitFeedback({
+                    items: feedbackItems,
+                    signal: 'saved',
+                    source: 'get_outfits_now',
+                    occasion,
+                  });
+                }}
               />
             ) : (
               <View style={styles.savedHint}>

@@ -30,6 +30,8 @@ import {
 } from '@/utils/fashionEditorialRubric';
 import { isOutfitValid } from '@/utils/outfitClashRules';
 import { stripIllegalOuterwearForWeather } from '@/utils/weatherOuterwear';
+import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
+import { hydrateOutfitFeedbackBrain } from '@/utils/outfitFeedbackBrain';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
 import {
   localDateKey,
@@ -534,6 +536,7 @@ function allocateLocal(
   excludeItemIds: string[] = [],
   weather: WeatherSnapshot | null = null,
   workDressCode: WorkDressCode | null = null,
+  brandInspiration: string | null = null,
 ): WardrobeItem[] | null {
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
@@ -545,6 +548,7 @@ function allocateLocal(
       ? { temperature: weather.temperature, condition: weather.condition }
       : null,
     workDressCode,
+    brandInspiration,
   });
   if (!allocated.ok || allocated.items.length < MIN_OUTFIT_ITEMS) return null;
   const weatherSafe = stripIllegalOuterwearForWeather(
@@ -587,6 +591,7 @@ function generateLocalTiered(params: {
   dateKey?: string;
   weather?: WeatherSnapshot | null;
   workDressCode?: WorkDressCode | null;
+  brandInspiration?: string | null;
 }): LocalGenerationResult | null {
   const {
     wardrobeItems,
@@ -596,6 +601,7 @@ function generateLocalTiered(params: {
     priorOutfits = [],
     weather = null,
     workDressCode = null,
+    brandInspiration = null,
   } = params;
   const cascade = allocationCascadeFor(occasionType);
   const started = Date.now();
@@ -619,6 +625,7 @@ function generateLocalTiered(params: {
         excludeItemIds,
         weather,
         workDressCode,
+        brandInspiration,
       );
       if (items && outfitMeetsOccasionStandard(items, tryOccasion)) {
         return {
@@ -646,6 +653,7 @@ function generateLocalTiered(params: {
         excludeItemIds,
         weather,
         workDressCode,
+        brandInspiration,
       );
       if (items) {
         return {
@@ -672,6 +680,7 @@ function generateLocalTiered(params: {
         excludeItemIds,
         weather,
         workDressCode,
+        brandInspiration,
       );
       if (items) {
         return {
@@ -693,6 +702,7 @@ function generateLocalTiered(params: {
         ? { temperature: weather.temperature, condition: weather.condition }
         : null,
       workDressCode,
+      brandInspiration,
     });
     if (
       fallback.ok
@@ -1254,6 +1264,7 @@ export async function generateTodaysWardrobeOutfit(params: {
 
   const started = Date.now();
   try {
+    void hydrateOutfitFeedbackBrain();
     const weather = await Promise.race([
       fetchWeatherSnapshot(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
@@ -1336,6 +1347,10 @@ export async function generateTodaysWardrobeOutfit(params: {
       throw new Error('Could not build today’s outfit from the stylist server.');
     }
 
+    const brandInspiration = resolveBrandInspiration(
+      user?.extendedPreferences?.favoriteBrands || null,
+    );
+
     const generated = generateLocalTiered({
       wardrobeItems: generationPool,
       occasionType,
@@ -1345,6 +1360,7 @@ export async function generateTodaysWardrobeOutfit(params: {
       dateKey: today,
       weather,
       workDressCode,
+      brandInspiration,
     });
 
     if (!generated) {

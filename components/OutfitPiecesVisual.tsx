@@ -21,8 +21,27 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
-/** Stack overlap — keep modest so shirt/trouser hems stay visible at full layer size. */
-const STACK_OVERLAP = 18;
+/** Stack overlap — keep modest so semantic edges (hem / waist) stay visible. */
+const STACK_OVERLAP = 14;
+
+/** Preserve critical garment zones: tops keep hem, bottoms keep waistband, shoes stay whole. */
+const SLOT_CONTENT_POSITION: Record<LayerSlot, string> = {
+  outerwear: 'top',
+  top: 'top',
+  bottom: 'top',
+  shoes: 'bottom',
+  dress: 'center',
+  accessory: 'center',
+};
+
+const SLOT_SAFE_PAD: Record<LayerSlot, { paddingTop: number; paddingBottom: number }> = {
+  outerwear: { paddingTop: 4, paddingBottom: 18 },
+  top: { paddingTop: 2, paddingBottom: 22 },
+  bottom: { paddingTop: 20, paddingBottom: 10 },
+  shoes: { paddingTop: 8, paddingBottom: 4 },
+  dress: { paddingTop: 6, paddingBottom: 10 },
+  accessory: { paddingTop: 4, paddingBottom: 4 },
+};
 
 export type OutfitPieceVisual = {
   role?: string;
@@ -43,20 +62,20 @@ type ResolvedLayer = {
 };
 
 const LAYER_HEIGHT: Record<LayerSlot, number> = {
-  outerwear: 178,
-  top: 158,
-  bottom: 198,
-  shoes: 108,
-  dress: 318,
+  outerwear: 188,
+  top: 172,
+  bottom: 210,
+  shoes: 118,
+  dress: 330,
   accessory: 118,
 };
 
 const LAYER_HEIGHT_LARGE: Record<LayerSlot, number> = {
-  outerwear: 258,
-  top: 228,
-  bottom: 258,
-  shoes: 178,
-  dress: 400,
+  outerwear: 268,
+  top: 242,
+  bottom: 272,
+  shoes: 188,
+  dress: 420,
   accessory: 168,
 };
 
@@ -331,14 +350,19 @@ export function OutfitPiecesVisual({
     const base = large ? LAYER_WIDTH_LARGE[slot] : LAYER_WIDTH[slot];
     return base * (compact ? 0.94 : 1);
   };
-  const baseOverlap = compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
-  // tight used to multiply by 1.55 and clipped hems under the next layer; keep a light nudge only.
-  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.15 : 1));
+  const baseOverlap = compact ? 22 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
+  // Prefer readable hems over dense collage; tight only nudges slightly.
+  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));
+
+  // Adaptive canvas: taller stacks get more vertical room (tall shirts / dresses).
+  const adaptiveBoost = stack.some((l) => l.slot === 'dress') ? 1.06
+    : stack.filter((l) => l.slot === 'top' || l.slot === 'outerwear').length >= 2 ? 1.04
+      : 1;
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
       const overlap = index === 0 ? 0 : stackOverlap;
-      return sum + layerHeight(layer.slot) - overlap;
+      return sum + Math.round(layerHeight(layer.slot) * adaptiveBoost) - overlap;
     }, (compact ? Spacing.sm : Spacing.md) * 2);
 
   const getAccessoryTop = (index: number) => {
@@ -381,6 +405,7 @@ export function OutfitPiecesVisual({
         style={styles.layerImage}
         processed={isProcessedLayer}
         contentFit="contain"
+        contentPosition={SLOT_CONTENT_POSITION[layer.slot]}
         preferCover={false}
         showLoading
         tileBackgroundColor={layerBg}
@@ -429,6 +454,7 @@ export function OutfitPiecesVisual({
               ? wardrobeProcessedTileBackground()
               : wardrobeTileBackground(isDark);
             const widthPct = `${Math.round(layerWidth(layer.slot) * 100)}%` as DimensionValue;
+            const safePad = SLOT_SAFE_PAD[layer.slot];
             return (
               <View
                 key={layer.key}
@@ -438,9 +464,16 @@ export function OutfitPiecesVisual({
                   {
                     width: widthPct,
                     maxWidth: '100%',
-                    height: layerHeight(layer.slot),
+                    height: Math.round(layerHeight(layer.slot) * adaptiveBoost),
                     marginTop: index === 0 ? 0 : -stackOverlap,
                     zIndex: large ? 10 + index : index + 1,
+                    paddingTop: Math.round(safePad.paddingTop * sizeScale),
+                    paddingBottom: Math.round(safePad.paddingBottom * sizeScale),
+                    justifyContent:
+                      layer.slot === 'shoes' ? 'flex-end'
+                        : layer.slot === 'bottom' ? 'flex-start'
+                          : layer.slot === 'top' || layer.slot === 'outerwear' ? 'flex-start'
+                            : 'center',
                   },
                 ]}
               >

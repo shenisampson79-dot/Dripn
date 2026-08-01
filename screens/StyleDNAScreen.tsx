@@ -102,6 +102,7 @@ const COLOR_STYLE_MAP: Record<ClothingColor, StyleTheme[]> = {
   multicolor: ["boho", "streetwear", "sporty"],
   denim: ["smart-casual", "streetwear", "sporty"],
   cream: ["luxury", "smart-casual", "boho"],
+  other: ["minimalist", "classic", "boho"],
 };
 
 const CATEGORY_STYLE_MAP: Record<ClothingCategory, StyleTheme[]> = {
@@ -337,6 +338,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
       denim: "#4A6FA5",
       cream: "#F5F0E6",
       multicolor: "transparent",
+      other: "#C0C0C0",
     };
     return colorMap[color];
   };

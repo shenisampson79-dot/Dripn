@@ -262,6 +262,8 @@ export function QuickAddTagItem({
           onPress={onSave}
           disabled={saving}
           style={[styles.saveBtn, { opacity: saving ? 0.7 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Save"
         >
           {saving ? (
             <ActivityIndicator color="#FFF" />
@@ -269,8 +271,14 @@ export function QuickAddTagItem({
             <ThemedText type="body" style={styles.saveBtnText}>Save</ThemedText>
           )}
         </Pressable>
-        <Pressable onPress={onImprove} disabled={saving} hitSlop={8} style={styles.improveHit}>
-          <ThemedText type="caption" style={styles.improveText}>
+        <Pressable
+          onPress={onImprove}
+          disabled={saving}
+          style={[styles.improveBtn, { opacity: saving ? 0.7 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Improve recognition"
+        >
+          <ThemedText type="body" style={styles.improveBtnText}>
             Improve recognition (10s)
           </ThemedText>
         </Pressable>
@@ -409,16 +417,16 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   bottomCta: {
-    height: 96,
+    paddingTop: 12,
     paddingHorizontal: Spacing.md,
-    justifyContent: 'center',
+    gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E5E5E5',
   },
   saveBtn: {
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#000',
+    backgroundColor: '#6B5344',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -427,13 +435,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 17,
   },
-  improveHit: {
-    marginTop: 8,
+  improveBtn: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#5B6B7A',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  improveText: {
-    color: '#666',
-    fontSize: 13,
+  improveBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 17,
   },
   sheetBackdrop: {
     flex: 1,

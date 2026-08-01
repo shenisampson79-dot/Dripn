@@ -232,7 +232,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     description?: string;
   }) => {
     const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
+    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor', 'other'];
 
     const typeToCategory: Record<string, ClothingCategory> = {
       'shirt': 'tops', 'blouse': 'tops', 't-shirt': 'tops', 'top': 'tops', 'sweater': 'tops', 'hoodie': 'tops',
@@ -356,7 +356,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
+    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor', 'other'];
     
     try {
       const { base64: imageBase64 } = await toJpegBase64(imageUri);
@@ -1468,6 +1468,7 @@ function getColorHex(color: ClothingColor): string {
     denim: '#4682B4',
     cream: '#FFFDD0',
     multicolor: 'linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #FFE66D 100%)',
+    other: '#C0C0C0',
   };
   return colorMap[color] || '#808080';
 }

@@ -11,8 +11,19 @@ import {
 } from '@/utils/wardrobeAllocationEngine';
 import { laundryProfileFromUser } from '@/utils/wearRules';
 import apiService from '@/services/ApiService';
+import type { WorkDressCode } from '@/services/OnboardingProfileService';
+import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
+import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
+import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
+import { hydrateOutfitFeedbackBrain } from '@/utils/outfitFeedbackBrain';
 
-export type GeneratedOutfitApiItem = {
+async function getTodaysOutfitPrefsSafe() {
+  try {
+    return await getTodaysOutfitPopupPrefs();
+  } catch {
+    return null;
+  }
+}export type GeneratedOutfitApiItem = {
   id: string | number;
   name?: string;
   category?: string;
@@ -108,6 +119,8 @@ export async function generateWardrobeOutfit(params: {
   priorOutfits?: WardrobeItem[][];
   /** Local allocator only — skip slow API decorate (Today's outfit, quick chips). */
   skipDecorate?: boolean;
+  workDressCode?: WorkDressCode | null;
+  brandInspiration?: string | null;
 }): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
   const {
     occasionType,
@@ -123,14 +136,38 @@ export async function generateWardrobeOutfit(params: {
     skipDecorate = false,
   } = params;
 
+  void hydrateOutfitFeedbackBrain();
+
+  let workDressCode = params.workDressCode ?? null;
+  let brandInspiration = params.brandInspiration ?? null;
+  if (workDressCode == null || brandInspiration == null) {
+    try {
+      const prefs = await getTodaysOutfitPrefsSafe();
+      if (workDressCode == null) {
+        workDressCode = normalizeWorkDressCode(
+          prefs?.workDressCode ?? onboardingProfile?.workDressCode ?? null,
+        );
+      }
+      if (brandInspiration == null) {
+        brandInspiration = resolveBrandInspiration(
+          user?.extendedPreferences?.favoriteBrands || null,
+        );
+      }
+    } catch {
+      /* keep nulls */
+    }
+  }
+
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
     occasionType,
     excludeItemIds,
     laundryProfile: laundryProfileFromUser(user),
     priorOutfits,
+    weather: weather || null,
+    workDressCode,
+    brandInspiration,
   });
-
   if (!allocated.ok) {
     throw new Error(allocated.message || 'Could not build a complete outfit from your wardrobe.');
   }

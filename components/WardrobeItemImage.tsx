@@ -36,6 +36,8 @@ type Props = {
   style?: StyleProp<ImageStyle>;
   processed?: boolean;
   contentFit?: 'contain' | 'cover';
+  /** expo-image contentPosition — preserve semantic edges (hem / waist / sole). */
+  contentPosition?: string | { top?: string | number; bottom?: string | number; left?: string | number; right?: string | number };
   transition?: number;
   preferCover?: boolean;
   showLoading?: boolean;
@@ -52,6 +54,7 @@ export function WardrobeItemImage({
   style,
   processed,
   contentFit,
+  contentPosition,
   transition = 280,
   preferCover = false,
   showLoading = true,
@@ -198,6 +201,7 @@ export function WardrobeItemImage({
           displayScale !== 1 ? { transform: [{ scale: displayScale }] } : null,
         ]}
         contentFit={contentFit ?? wardrobeImageContentFit(safeItem, false, preferCover && !isProcessed)}
+        contentPosition={contentPosition ?? 'center'}
         transition={transition}
         onError={handleError}
         recyclingKey={`${safeItem.id}:${uri}:${retryCount}`}

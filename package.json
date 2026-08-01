@@ -54,6 +54,8 @@
     "verify:fallback-outfit": "npx tsx scripts/verify-fallback-outfit.ts",
     "test:currency": "node scripts/test-currency-resolve.mjs",
     "enrich:sloane-brands": "node scripts/enrich-sloane-brands.mjs",
+    "ingest:oxford-street": "node scripts/ingest-oxford-street.mjs",
+    "apply:oxford-labels": "node scripts/apply-oxford-labels.mjs",
     "build:sloane-signals": "node scripts/enrich-sloane-brands.mjs && node scripts/build-shop-window-signals.mjs",
     "build:shop-window-signals": "node scripts/enrich-sloane-brands.mjs && node scripts/build-shop-window-signals.mjs",
     "prepare:yolo-shop-windows": "node scripts/prepare-yolo-shop-windows.mjs"

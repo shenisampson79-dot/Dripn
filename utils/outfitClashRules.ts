@@ -495,6 +495,41 @@ export const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isTie') && ctx.any('isShortSleeve'),
   },
   {
+    id: 'tie_linen_casual',
+    penalty: 90,
+    hint: 'Linen / camp shirts are too casual for a necktie',
+    severity: 'fatal',
+    when: (ctx) => {
+      if (!ctx.any('isTie')) return false;
+      return ctx.items.some((item, i) => {
+        const s = ctx.signals[i];
+        const cat = String(item.category || '').toLowerCase();
+        const isTop = cat === 'tops' || cat === 'shirts' || cat === 'formal'
+          || s.isDressShirt || s.isStructuredShirt;
+        if (!isTop) return false;
+        const t = `${item.name || ''} ${item.subcategory || ''}`.toLowerCase();
+        return /linen/.test(t) || /(camp|cuban|bowling)\s+(shirt|top)/.test(t);
+      });
+    },
+  },
+  {
+    id: 'tie_open_collar_casual',
+    penalty: 86,
+    hint: 'A tie needs a closed, structured collar — not an open casual neckline',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isTie') && /open[\s-]?collar|unbuttoned collar|spread casual|band collar|mandarin/.test(ctx.text),
+  },
+  {
+    id: 'work_dress_tie_blocked',
+    penalty: 92,
+    hint: 'Ties don’t fit this workplace dress code — save them for business casual or formal',
+    severity: 'fatal',
+    when: (ctx) => {
+      const code = String(ctx.options?.workDressCode || '').toLowerCase();
+      return ctx.any('isTie') && (code === 'creative' || code === 'smart_casual');
+    },
+  },
+  {
     id: 'tie_no_structured_collar',
     penalty: 88,
     hint: 'Tie needs a structured collared shirt',
@@ -1020,6 +1055,8 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   footwear_lane_mismatch: 'Let footwear set one direction — match shoes to the tailored or street lane',
   occasion_footwear_lock: 'Formal occasions need loafers, oxfords, heels, or Chelsea boots',
   tie_short_sleeve: 'Drop the tie with short sleeves — or switch to a long-sleeve collared shirt',
+  tie_linen_casual: 'Drop the tie with linen or camp shirts — or switch to a dress shirt',
+  work_dress_tie_blocked: 'Skip the tie for this workplace, or raise your work dress code in Settings',
   blazer_chunky_trainers: 'Swap chunky athletic trainers for plain white lifestyle sneakers, or drop the blazer',
   athletic_shorts_blazer: 'Swap athletic shorts for tailored shorts, chinos, or trousers',
   revealing_stack: 'Keep one revealing hero piece — tone down the second silhouette',

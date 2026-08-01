@@ -175,33 +175,64 @@ export function mapYoloClassToWardrobeCategory(
   return clothingGeometryToCategory(cy, aspect, h, w);
 }
 
+/**
+ * True only for short, floor-anchored foot boxes in the footwear region.
+ * Delegates to hard guardrails — never shoes on torso/legs.
+ */
+export function looksLikeFootwearBbox(bbox: [number, number, number, number]): boolean {
+  const [, ny, nw, nh] = bbox;
+  const cy = ny + nh / 2;
+  const bottom = ny + nh;
+  if (nh >= 0.20) return false;
+  if (nw <= nh) return false;
+  if (nw >= 0.38) return false;
+  if (bottom < 0.90) return false;
+  if (cy < 0.82) return false;
+  const aspect = nh / Math.max(nw, 1e-6);
+  if (aspect >= 1.0) return false;
+  return nw * nh <= 0.10;
+}
+
 function clothingGeometryToCategory(
   cy: number,
   aspect: number,
   h: number,
   w: number,
 ): { category: string; subcategory: string; name: string } {
-  // Tall / portrait blobs are almost always tops or dresses — even lying on the floor.
-  // (Cy-based "lower half = bottoms" falsely tags floor shirts as bottoms.)
+  if (cy < 0.42) {
+    return { category: 'tops', subcategory: 'top', name: 'Top' };
+  }
+  const y = cy - h / 2;
+  const bottom = y + h;
+  if (cy >= 0.80) {
+    if (h < 0.20 && w > h && w < 0.38 && bottom >= 0.90 && aspect < 1.0 && w * h <= 0.10) {
+      return { category: 'shoes', subcategory: 'shoes', name: 'Shoes' };
+    }
+    if (bottom > 0.92 || h >= 0.40) {
+      return { category: 'bottoms', subcategory: 'trousers', name: 'Trousers' };
+    }
+    if (bottom < 0.80 && h < 0.28) {
+      return { category: 'bottoms', subcategory: 'shorts', name: 'Shorts' };
+    }
+    return { category: 'bottoms', subcategory: 'trousers', name: 'Trousers' };
+  }
+  if (cy >= 0.55) {
+    if (bottom > 0.92 || h >= 0.40) {
+      return { category: 'bottoms', subcategory: 'trousers', name: 'Trousers' };
+    }
+    if (bottom < 0.80 && h < 0.28) {
+      return { category: 'bottoms', subcategory: 'shorts', name: 'Shorts' };
+    }
+    if (bottom < 0.80 && h < 0.36) {
+      return { category: 'bottoms', subcategory: 'shorts', name: 'Shorts' };
+    }
+    return { category: 'bottoms', subcategory: 'trousers', name: 'Trousers' };
+  }
   if (aspect > 1.55 && h > 0.4) {
     return { category: 'dresses', subcategory: 'dress', name: 'Dress / one-piece' };
-  }
-  if (aspect >= 1.15) {
-    return { category: 'tops', subcategory: 'top', name: 'Top' };
-  }
-  // Wide, short blobs → bottoms
-  if (aspect < 0.95 && w > 0.22) {
-    return { category: 'bottoms', subcategory: 'bottoms', name: 'Bottoms' };
-  }
-  // Ambiguous mid-aspect: only trust vertical position when clearly low in frame
-  if (cy > 0.68 && aspect < 1.1) {
-    return { category: 'bottoms', subcategory: 'bottoms', name: 'Bottoms' };
-  }
-  if (cy < 0.38) {
-    return { category: 'tops', subcategory: 'top', name: 'Top' };
   }
   if (aspect > 1.05 && h > 0.3) {
     return { category: 'outerwear', subcategory: 'outerwear', name: 'Outerwear' };
   }
-  return { category: 'tops', subcategory: 'clothing', name: 'Top' };
+  return { category: 'tops', subcategory: 'top', name: 'Top' };
 }

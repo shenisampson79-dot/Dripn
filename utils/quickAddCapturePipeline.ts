@@ -1,13 +1,19 @@
 /**
- * Quick Add capture pipeline: padded YOLO/guide crop → compress → analyze tags.
+ * Quick Add capture pipeline — perception system, not a blocking processor.
+ *
+ * Fast path: crop → vision (≤2s race) → UI tags
+ * Async: YOLO refine only if no snap box; rembg never blocks UI
  */
 
 import { Image } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 import { apiService } from '@/services/ApiService';
-import { detectGarmentsOnDevice } from '@/services/onDeviceGarmentDetector';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
+import {
+  detectGarmentsOnDeviceHybrid,
+  SINGLE_ITEM_HYBRID_OPTS,
+} from '@/utils/onDeviceHybridDetect';
 import {
   QUICK_ADD_CAPTURE,
   addPadding,
@@ -19,6 +25,12 @@ import {
   type QuickAddBBox,
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
+import {
+  QUICK_ADD_VISION_TIMEOUT_MS,
+  pickVisionFields,
+  resolveQuickAddCategory,
+  type PerceptionBBox,
+} from '@/utils/quickAddPerception';
 
 export type CapturePipelineResult = {
   imageUri: string;
@@ -27,6 +39,18 @@ export type CapturePipelineResult = {
   categoryHint?: string;
   detectionConfidence?: number;
   analysis: any;
+  /** True when tags came from timeout / local heuristic before vision finished. */
+  provisional?: boolean;
+};
+
+export type ProcessQuickAddOptions = {
+  /** Default false — rembg is background-only via onBackgroundReady. */
+  removeBackground?: boolean;
+  /** Called when rembg finishes (never delays tags). */
+  onBackgroundReady?: (imageUri: string) => void;
+  /** Called when a late vision result refines provisional tags. */
+  onPartial?: (result: CapturePipelineResult) => void;
+  visionTimeoutMs?: number;
 };
 
 function getImageSize(uri: string): Promise<{ width: number; height: number }> {
@@ -36,6 +60,33 @@ function getImageSize(uri: string): Promise<{ width: number; height: number }> {
       (width, height) => resolve({ width, height }),
       reject,
     );
+  });
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, ms);
+    promise
+      .then((value) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }
+      })
+      .catch(() => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      });
   });
 }
 
@@ -70,10 +121,10 @@ export async function cropNormalizedRegion(
       imageUri,
       [
         { crop: { originX, originY, width: cropW, height: cropH } },
-        { resize: { width: opts?.maxWidth ?? 1280 } },
+        { resize: { width: opts?.maxWidth ?? 800 } },
       ],
       {
-        compress: opts?.compress ?? 0.82,
+        compress: opts?.compress ?? 0.78,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       },
@@ -90,7 +141,9 @@ async function resolveDetection(
 ): Promise<QuickAddYoloDetection | null> {
   if (detection?.bbox) return detection;
   try {
-    const onDevice = await detectGarmentsOnDevice(photoUri);
+    const onDevice = await detectGarmentsOnDeviceHybrid(photoUri, {
+      ...SINGLE_ITEM_HYBRID_OPTS,
+    });
     if (!onDevice?.length) return null;
     const mapped: QuickAddYoloDetection[] = onDevice.map((d) => ({
       class: d.category || d.name || 'clothing',
@@ -103,25 +156,96 @@ async function resolveDetection(
   }
 }
 
+function bboxPerception(d: QuickAddYoloDetection | null): PerceptionBBox | null {
+  if (!d?.bbox) return null;
+  return { x: d.bbox.x, y: d.bbox.y, w: d.bbox.width, h: d.bbox.height };
+}
+
+function buildTaggedAnalysis(
+  analysis: any,
+  resolved: QuickAddYoloDetection | null,
+  categoryHint: string,
+): any {
+  const vision = pickVisionFields(analysis || {});
+  const base = analysis && typeof analysis === 'object' ? analysis : {};
+  return {
+    ...base,
+    categoryHint,
+    suggestedCategory: categoryHint,
+    detectionConfidence: resolved?.confidence,
+    analysis: {
+      ...(base.analysis && typeof base.analysis === 'object' ? base.analysis : {}),
+      category: categoryHint,
+      color: vision.color || base.analysis?.color,
+      confidence: vision.confidence,
+      brand: vision.brand,
+      material: vision.material,
+      suggestedName: vision.suggestedName,
+      seasons: vision.seasons,
+      occasions: vision.occasions,
+      description: vision.description,
+    },
+  };
+}
+
+function assembleResult(args: {
+  workUri: string;
+  base64?: string;
+  cropped: boolean;
+  resolved: QuickAddYoloDetection | null;
+  analysis: any;
+  provisional?: boolean;
+}): CapturePipelineResult {
+  const box = bboxPerception(args.resolved);
+  const vision = pickVisionFields(args.analysis || {});
+  const categoryHint = resolveQuickAddCategory({
+    yoloClass: args.resolved?.class || null,
+    visionCategory: vision.category,
+    visionConfidence: vision.confidence,
+    bbox: box,
+  });
+  const analysis = buildTaggedAnalysis(args.analysis, args.resolved, categoryHint);
+  return {
+    imageUri: args.workUri,
+    imageBase64: args.base64,
+    cropped: args.cropped,
+    categoryHint,
+    detectionConfidence: args.resolved?.confidence,
+    analysis,
+    provisional: args.provisional,
+  };
+}
+
 /**
- * Crop (YOLO → guide fallback) → rembg + garment analyze in parallel.
- * Always prefers a subject-tight crop so rembg doesn't leave a tiny item on a huge canvas.
+ * Perception fast path: crop → vision (raced) → tags.
+ * YOLO is not awaited before vision when a snap detection already exists.
+ * rembg never blocks — use onBackgroundReady.
  */
 export async function processQuickAddCapture(
   photoUri: string,
   detection?: QuickAddYoloDetection | null,
+  opts?: ProcessQuickAddOptions,
 ): Promise<CapturePipelineResult> {
-  let workUri = photoUri;
-  let cropped = false;
-  let base64: string | undefined;
+  const visionTimeoutMs = opts?.visionTimeoutMs ?? QUICK_ADD_VISION_TIMEOUT_MS;
 
-  const resolved = await resolveDetection(photoUri, detection);
+  // Prefer snap box immediately — do not block vision on a fresh YOLO pass.
+  let resolved: QuickAddYoloDetection | null = detection?.bbox ? detection : null;
+  const yoloRefinePromise = resolved
+    ? Promise.resolve(resolved)
+    : resolveDetection(photoUri, null);
+
   const cropBox: QuickAddBBox = resolved?.bbox || QUICK_ADD_CAPTURE.guide;
   const crop = await cropNormalizedRegion(photoUri, cropBox, {
     padding: resolved
       ? paddingForBBox(resolved.bbox, resolved.class)
       : paddingForCategory(undefined, QUICK_ADD_CAPTURE.guide),
+    maxWidth: 800,
+    compress: 0.78,
   });
+
+  let workUri = photoUri;
+  let cropped = false;
+  let base64: string | undefined;
   if (crop?.uri) {
     workUri = crop.uri;
     base64 = crop.base64;
@@ -131,59 +255,104 @@ export async function processQuickAddCapture(
   if (!base64) {
     const resized = await ImageManipulator.manipulateAsync(
       workUri,
-      [{ resize: { width: 1280 } }],
-      { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      [{ resize: { width: 800 } }],
+      { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
     workUri = resized.uri;
     base64 = resized.base64 || (await convertImageToBase64(resized.uri));
   }
 
-  const [analyzeOutcome, bgOutcome] = await Promise.allSettled([
-    apiService.analyzeGarmentByUri(workUri),
-    apiService.removeBackground(base64),
+  // Kick YOLO refine in parallel (gallery / no snap box) — do not await before vision.
+  const yoloRunning = yoloRefinePromise.then((d) => {
+    if (d) resolved = d;
+    return d;
+  });
+
+  const analyzePromise = apiService.analyzeGarmentPhoto(base64, { detailed: false });
+
+  // Background rembg — only when explicitly requested; never blocks tags
+  if (opts?.removeBackground) {
+    void apiService.removeBackground(base64)
+      .then((bg) => {
+        if (bg?.imageUrl && bg?.removed !== false) {
+          opts?.onBackgroundReady?.(bg.imageUrl);
+        }
+      })
+      .catch(() => {});
+  }
+
+  const raced = await withTimeout(analyzePromise, visionTimeoutMs);
+  // Best-effort YOLO by now (usually already done on auto-snap)
+  await Promise.race([
+    yoloRunning,
+    new Promise((r) => setTimeout(r, 50)),
   ]);
 
-  let finalUri = workUri;
-  if (
-    bgOutcome.status === 'fulfilled'
-    && bgOutcome.value?.imageUrl
-    && bgOutcome.value?.removed !== false
-  ) {
-    finalUri = bgOutcome.value.imageUrl;
+  if (raced) {
+    return assembleResult({
+      workUri,
+      base64,
+      cropped,
+      resolved,
+      analysis: raced,
+      provisional: false,
+    });
   }
 
-  let analysis: any = null;
-  if (analyzeOutcome.status === 'fulfilled') {
-    analysis = analyzeOutcome.value;
-  } else {
-    try {
-      const extract = await apiService.extractClothing({ imageBase64: base64 });
-      analysis = {
-        clothingAnalysis: extract?.clothingAnalysis,
-        suggestedName: extract?.analysis?.suggestedName,
-        analysis: extract?.analysis,
-      };
-    } catch {
-      analysis = null;
-    }
+  // Timeout / vision failure → provisional tags now; refine when vision lands
+  let fallbackAnalysis: any = null;
+  try {
+    // Don't await long extract on the hot path — provisional from YOLO/hanger only
+    fallbackAnalysis = null;
+  } catch {
+    fallbackAnalysis = null;
   }
 
-  if (resolved?.class && analysis) {
-    analysis = {
-      ...analysis,
-      categoryHint: resolved.class,
-      detectionConfidence: resolved.confidence,
-    };
-  }
-
-  return {
-    imageUri: finalUri,
-    imageBase64: base64,
+  const provisional = assembleResult({
+    workUri,
+    base64,
     cropped,
-    categoryHint: resolved?.class,
-    detectionConfidence: resolved?.confidence,
-    analysis,
-  };
+    resolved,
+    analysis: fallbackAnalysis,
+    provisional: true,
+  });
+
+  void analyzePromise
+    .then(async (late) => {
+      if (!late || !opts?.onPartial) return;
+      await yoloRunning;
+      opts.onPartial(assembleResult({
+        workUri,
+        base64,
+        cropped,
+        resolved,
+        analysis: late,
+        provisional: false,
+      }));
+    })
+    .catch(async () => {
+      if (!opts?.onPartial) return;
+      try {
+        const extract = await apiService.extractClothing({ imageBase64: base64 });
+        await yoloRunning;
+        opts.onPartial(assembleResult({
+          workUri,
+          base64,
+          cropped,
+          resolved,
+          analysis: {
+            clothingAnalysis: extract?.clothingAnalysis,
+            suggestedName: extract?.analysis?.suggestedName,
+            analysis: extract?.analysis,
+          },
+          provisional: false,
+        }));
+      } catch {
+        /* keep provisional */
+      }
+    });
+
+  return provisional;
 }
 
 /** Exported for digitize parity / tests. */

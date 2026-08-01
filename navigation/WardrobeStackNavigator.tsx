@@ -30,7 +30,13 @@ export type WardrobeStackParamList = {
   /** Fast single-item capture: snap → tag → save. */
   QuickAdd: undefined;
   /** Guided front + care-label capture after Quick Add save. */
-  ImproveRecognition: { itemId: string; itemName?: string };
+  ImproveRecognition: {
+    itemId: string;
+    itemName?: string;
+    /** Reuse the Quick Add front photo — skip re-shooting the garment. */
+    frontImageUri?: string;
+    frontImageBase64?: string;
+  };
   /** Full manual add / edit form (also used by Quick Add → Edit / Improve). */
   AddWardrobeItem: undefined;
   /** Outfit-engine scan (still used by Live Stylist → Still scan). */
@@ -85,6 +91,7 @@ export default function WardrobeStackNavigator() {
           title: "Improve recognition",
           headerShown: false,
           presentation: "fullScreenModal",
+          animation: "fade",
         }}
       />
       <Stack.Screen

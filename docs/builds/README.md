@@ -40,4 +40,5 @@ When a build finishes, **add a new dated file** in this folder (copy `TEMPLATE.m
 
 | Date | Why new binary | File |
 |------|----------------|------|
+| 2026-07-30 | Fashionpedia YOLO restore + hybrid detection | [2026-07-30-fashionpedia-restore.md](./2026-07-30-fashionpedia-restore.md) |
 | 2026-07-24 | On-device YOLO (TFLite + Nitro) | [2026-07-24-on-device-yolo.md](./2026-07-24-on-device-yolo.md) |

@@ -38,6 +38,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
+import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
+import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
+import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
 import { fetchWeatherSnapshot } from '@/services/TodaysOutfitGenerator';
@@ -334,11 +337,18 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     setStep('outfit');
     try {
       const weatherSnap = await fetchWeatherSnapshot();
+      const prefs = await getTodaysOutfitPopupPrefs().catch(() => null);
+      const workDressCode = normalizeWorkDressCode(prefs?.workDressCode ?? null);
+      const brandInspiration = resolveBrandInspiration(
+        user?.extendedPreferences?.favoriteBrands || null,
+      );
       const result = await apiService.generateOutfitFromScan({
         sessionWardrobe: confirmedItems,
         hybridMerge,
         occasionType: selectedOccasion,
         optionCount: 3,
+        workDressCode: workDressCode || undefined,
+        brandInspiration: brandInspiration || undefined,
         weather: weatherSnap
           ? {
               temperature: weatherSnap.temperature,
@@ -848,6 +858,28 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         outfit={generatedOutfit}
         occasion={selectedOccasion}
         onClose={() => setShowOutfitModal(false)}
+        onSkipLook={() => {
+          if (outfitOptions.length < 2) {
+            setShowOutfitModal(false);
+            return;
+          }
+          const currentIds = new Set((generatedOutfit?.items || []).map((i) => String(i.id)));
+          const idx = Math.max(
+            0,
+            outfitOptions.findIndex((opt) => {
+              const ids = (opt.hydratedItems || opt.outfit?.items || []).map((i: { id?: string | number }) =>
+                String(i.id),
+              );
+              return ids.length > 0 && ids.every((id: string) => currentIds.has(id));
+            }),
+          );
+          const next = outfitOptions[(idx + 1) % outfitOptions.length];
+          if (!next) {
+            setShowOutfitModal(false);
+            return;
+          }
+          openLook(next);
+        }}
       />
 
       <DuplicateComparisonSheet
