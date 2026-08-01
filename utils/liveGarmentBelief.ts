@@ -8,6 +8,8 @@
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import {
   formatGarmentDisplayName,
+  hasReliableFabricColor,
+  isBareTorsoTopLike,
   isFloorLengthTrousersEvidence,
   type BBoxTuple,
   type BottomSubtype,
@@ -611,7 +613,21 @@ export function applyOutfitBelief(
   const repairs: string[] = [];
   const decisions = opts?.decisions || [];
 
-  const tops = detections.filter((d) => beliefKindFromDetection(d) === 'top');
+  const topsRaw = detections.filter((d) => beliefKindFromDetection(d) === 'top');
+  const bareTorsoEvidence = topsRaw.some((d) => isBareTorsoTopLike({
+    category: d.category,
+    subcategory: d.subcategory,
+    name: d.name,
+    skinRatio: d.skinRatio,
+    fabricColor: d.color,
+  }));
+  const tops = topsRaw.filter((d) => !isBareTorsoTopLike({
+    category: d.category,
+    subcategory: d.subcategory,
+    name: d.name,
+    skinRatio: d.skinRatio,
+    fabricColor: d.color,
+  }));
   const bottoms = detections.filter((d) => {
     const k = beliefKindFromDetection(d);
     return k === 'shorts' || k === 'trousers' || k === 'skirt';
@@ -637,10 +653,13 @@ export function applyOutfitBelief(
     }
   }
 
-  // Weak / barefoot / unknown-skin shoes never enter belief
+  // Weak / barefoot shoes never enter belief — fabric-coloured trainers may
   if (shoeObs) {
     const skin = shoeObs.skinRatio;
-    if (skin == null || skin >= 0.22 || shoeObs.confidence < 0.75) {
+    const fabricOk = hasReliableFabricColor(shoeObs.color);
+    const skinOk = skin != null && skin < 0.22;
+    const confMin = fabricOk ? 0.62 : 0.75;
+    if ((!skinOk && !fabricOk) || shoeObs.confidence < confMin) {
       shoeObs = null;
     }
   }

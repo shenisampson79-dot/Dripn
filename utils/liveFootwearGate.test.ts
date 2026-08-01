@@ -56,6 +56,12 @@ const noSkinShoe: OnDeviceDetection = {
   skinRatio: undefined,
 };
 
+const noSkinNoFabric: OnDeviceDetection = {
+  ...realShoe,
+  color: 'unknown',
+  skinRatio: undefined,
+};
+
 // Brightness says feet visible even if garment boxes are short
 assert.equal(isCroppedFrame([shorts], { bottomBandBrightness: 0.25 }), false);
 assert.equal(isCroppedFrame([shorts], { bottomBandBrightness: 0.05 }), true);
@@ -68,9 +74,24 @@ const bare = analyzeFootwearCandidate(bareFoot);
 assert.equal(bare.valid, false);
 assert.equal(bare.rejectReason, 'barefoot');
 
-const unknownSkin = analyzeFootwearCandidate(noSkinShoe);
+// White trainers with no skin sample — fabric colour is enough evidence
+const fabricWithoutSkin = analyzeFootwearCandidate(noSkinShoe);
+assert.equal(fabricWithoutSkin.valid, true);
+
+const unknownSkin = analyzeFootwearCandidate(noSkinNoFabric);
 assert.equal(unknownSkin.valid, false);
 assert.equal(unknownSkin.rejectReason, 'skin_unknown');
+
+const trainerLabeled: OnDeviceDetection = {
+  name: 'Black trainers',
+  category: 'shoes',
+  subcategory: 'sneakers',
+  color: 'black',
+  confidence: 0.7,
+  bbox: [0.4, 0.86, 0.22, 0.12],
+  skinRatio: undefined,
+};
+assert.equal(analyzeFootwearCandidate(trainerLabeled).valid, true);
 
 const ok = analyzeFootwearCandidate(realShoe);
 assert.equal(ok.valid, true);

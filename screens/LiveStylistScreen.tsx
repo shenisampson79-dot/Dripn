@@ -295,11 +295,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       if (onDevice?.length) {
         const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
+        const footZoneEarly = getLastOnDeviceFootZone();
         const { detections: corrected, pipeline } = correctOnDeviceDetections(onDevice, {
           id: frameHash,
           context: occasionType,
-          // Never invent or rematerialize shoes in Live (barefoot common)
-          hybrid: { rematerializeBottom: false, inferMissingFootwear: false },
+          // Recover shoes when foot zone is visible — never invent on cropped thighs
+          hybrid: {
+            rematerializeBottom: false,
+            inferMissingFootwear: Boolean(footZoneEarly?.visible),
+          },
         });
         if (pipeline?.discarded) {
           setStatusNote(
@@ -406,10 +410,100 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     });
   };
 
-  const openStillScan = () => {
+  const openStillScan = useCallback(async () => {
+    if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
     setIsLive(false);
-    navigation.navigate('ScanWardrobe');
-  };
+    inFlightRef.current = true;
+    setIsBusy(true);
+    setStatusNote('Still scan — locking look…');
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        shutterSound: false,
+        skipProcessing: Platform.OS === 'android',
+      });
+      if (!photo?.uri) {
+        setStatusNote('Still scan failed — no photo');
+        return;
+      }
+
+      const manipulated = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: Math.max(FRAME_WIDTH, 720) } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      const base64 = manipulated.base64;
+      if (!base64) {
+        setStatusNote('Still scan failed — encode error');
+        return;
+      }
+
+      const frameHash = hashBase64Frame(base64);
+      lastHashRef.current = frameHash;
+
+      const onDevice = await detectGarmentsOnDevice(manipulated.uri);
+      const payload: Record<string, unknown> = {
+        occasionType,
+        hybridMatch: true,
+        frameHash,
+        previousItems: previousItemsRef.current,
+        previousFeedback: previousFeedbackRef.current,
+        richCritique: true,
+        mode: 'still',
+        sceneType: 'worn',
+        imageBase64: stripBase64Prefix(base64),
+      };
+
+      if (onDevice?.length) {
+        const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
+        const { detections: corrected, pipeline } = correctOnDeviceDetections(onDevice, {
+          id: frameHash,
+          context: occasionType,
+          hybrid: { rematerializeBottom: false, inferMissingFootwear: true },
+        });
+        if (!pipeline?.discarded) {
+          const footZone = getLastOnDeviceFootZone();
+          const stabilized = applyDetectionMemory(corrected, detectionMemoryRef.current, {
+            decisions: decisionLogRef.current,
+            bottomBandBrightness: footZone?.brightness,
+            occasionType,
+          });
+          detectionMemoryRef.current = stabilized.memory;
+          payload.detections = stabilized.detections;
+          payload.detectorSource = 'yolo';
+          payload.frameCropped = stabilized.cropped;
+          publishDebug({
+            frameDetections: onDevice,
+            source: 'still_scan',
+            cropped: stabilized.cropped,
+          });
+        }
+      }
+
+      const res = await apiService.liveScanFrame(payload);
+      if (!res.success) {
+        setStatusNote(res.message || 'Still scan failed');
+        return;
+      }
+      applyResponse(res);
+      setStatusNote(
+        res.itemCount
+          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${res.feedback?.score ?? '—'}`
+          : 'Still scan done',
+      );
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        /* optional */
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Still scan failed';
+      setStatusNote(msg);
+    } finally {
+      inFlightRef.current = false;
+      if (mountedRef.current) setIsBusy(false);
+    }
+  }, [applyResponse, occasionType, publishDebug]);
 
   if (!permission) {
     return (

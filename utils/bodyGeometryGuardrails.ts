@@ -70,11 +70,17 @@ export function isHardFootwear(bbox: BBoxTuple): boolean {
   return area(bbox) <= 0.10;
 }
 
-/** Shoe only if geometry passes AND ROI is not skin-dominant. */
-export function isValidShoe(bbox: BBoxTuple, skinRatio?: number | null): boolean {
+/** Shoe only if geometry passes AND ROI is not skin-dominant.
+ *  Reliable fabric colour (black trainers etc.) may pass when skin sample is missing.
+ */
+export function isValidShoe(
+  bbox: BBoxTuple,
+  skinRatio?: number | null,
+  fabricColor?: string | null,
+): boolean {
   if (!isHardFootwear(bbox)) return false;
-  if (skinRatio == null) return false;
-  if (skinRatio >= 0.22) return false;
+  if (skinRatio != null && skinRatio >= 0.22) return false;
+  if (skinRatio == null) return hasReliableFabricColor(fabricColor);
   return true;
 }
 
@@ -376,6 +382,19 @@ export function isSkinPixel(r: number, g: number, b: number): boolean {
     && Math.max(r, g, b) - Math.min(r, g, b) >= 8;
   if (darker) return true;
 
+  // Deep / very dark skin — still warm-leaning, low absolute channels
+  const deep =
+    r >= 22
+    && r <= 95
+    && g >= 12
+    && b >= 6
+    && r >= g - 2
+    && g >= b - 10
+    && (r - b) >= 4
+    && (r - g) <= 40
+    && Math.max(r, g, b) - Math.min(r, g, b) >= 4;
+  if (deep) return true;
+
   // Mid / olive tones
   const mid =
     r > 70
@@ -441,6 +460,37 @@ export function measureLowerSkinRatio(
 }
 
 export const SKIN_DISCARD_RATIO = 0.4;
+/** Tops/outerwear: lower threshold — bare torso must not become a locked "Top". */
+export const BARE_TORSO_SKIN_RATIO = 0.22;
+
+export function hasReliableFabricColor(color?: string | null): boolean {
+  const c = String(color || '').toLowerCase().trim();
+  if (!c) return false;
+  return !/^(other|unknown|none|n\/a|-)$/.test(c);
+}
+
+/**
+ * Bare chest / arms boxed as Clothing→Top. Discard when ROI is skin-heavy
+ * or lacks a real fabric colour (colour pipeline skips skin → other/unknown).
+ * Fabric colour matters more than skin ratio — deep skin often undercounts.
+ */
+export function isBareTorsoTopLike(args: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+  skinRatio?: number | null;
+  fabricColor?: string | null;
+}): boolean {
+  const cat = `${args.category || ''} ${args.subcategory || ''} ${args.name || ''}`.toLowerCase();
+  const isTopLike = /top|shirt|tee|polo|blouse|knit|sweater|outer|blazer|jacket|coat|vest|gilet|clothing|dress/.test(cat)
+    && !/bottom|trouser|short|skirt|pant|shoe|boot|bag/.test(cat);
+  if (!isTopLike) return false;
+  const skin = args.skinRatio;
+  if (skin != null && skin >= BARE_TORSO_SKIN_RATIO) return true;
+  // No readable fabric colour on a "top" → almost always bare torso / ghost box
+  if (!hasReliableFabricColor(args.fabricColor)) return true;
+  return false;
+}
 
 function isFootwearCat(category: string, subcategory?: string): boolean {
   return /shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford/i.test(

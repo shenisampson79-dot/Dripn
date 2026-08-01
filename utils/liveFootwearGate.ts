@@ -9,6 +9,7 @@ import {
   REGION,
   centerY,
   formatGarmentDisplayName,
+  hasReliableFabricColor,
   isHardFootwear,
   isValidShoe,
   type BBoxTuple,
@@ -16,6 +17,8 @@ import {
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
 
 export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals';
+
+const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel/i;
 
 export type FootwearRejectReason =
   | 'cropped_frame'
@@ -178,9 +181,10 @@ export function analyzeFootwearCandidate(
   const bbox = det.bbox as BBoxTuple;
   const position = bbox[1] + bbox[3];
   const skinRatio = det.skinRatio != null ? det.skinRatio : null;
+  const fabricOk = hasReliableFabricColor(det.color);
   const zoneOk = isInFootwearZone(bbox) || isHardFootwear(bbox);
   const shapeOk = isShoeShape(bbox) || isHardFootwear(bbox);
-  const labeled = /shoe|boot|sneaker|sandal|loafer|footwear/i.test(
+  const labeled = FOOTWEAR_LABEL_RE.test(
     `${det.category} ${det.subcategory || ''} ${det.name || ''}`,
   );
 
@@ -199,17 +203,17 @@ export function analyzeFootwearCandidate(
   } else if (!shapeOk) {
     valid = false;
     rejectReason = 'invalid_shape';
-  } else if (skinRatio == null) {
-    // Missing skin sample → do not guess shoes (barefoot often fails dark-skin heuristics)
+  } else if (skinRatio == null && !fabricOk) {
+    // No skin + no fabric colour → refuse to guess (barefoot / dark-skin miss)
     valid = false;
     rejectReason = 'skin_unknown';
-  } else if (skinRatio >= BAREFOOT_SKIN_RATIO) {
+  } else if (skinRatio != null && skinRatio >= BAREFOOT_SKIN_RATIO) {
     valid = false;
     rejectReason = 'barefoot';
-  } else if (!isValidShoe(bbox, skinRatio)) {
+  } else if (!isValidShoe(bbox, skinRatio, det.color)) {
     valid = false;
     rejectReason = 'invalid_shape';
-  } else if (det.confidence < SHOE_MIN_CONFIDENCE) {
+  } else if (det.confidence < (fabricOk || labeled ? 0.62 : SHOE_MIN_CONFIDENCE)) {
     valid = false;
     rejectReason = 'low_confidence';
   }
@@ -249,7 +253,7 @@ export function gateFootwearDetections(
 
   const shoeLike = detections.filter((d) => {
     const blob = `${d.category} ${d.subcategory || ''} ${d.name || ''}`.toLowerCase();
-    return /shoe|boot|sneaker|sandal|loafer|footwear/.test(blob) || passesShoeGeometry(d.bbox as BBoxTuple);
+    return FOOTWEAR_LABEL_RE.test(blob) || passesShoeGeometry(d.bbox as BBoxTuple);
   });
 
   if (!zone.detectionEnabled) {

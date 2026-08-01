@@ -31,6 +31,7 @@ import {
   classifyColorFromRgb,
   clipShortsBbox,
   formatGarmentDisplayName,
+  isBareTorsoTopLike,
   isFloorLengthTrousersEvidence,
   isSkinPixel,
   measureBottomBandBrightness,
@@ -372,6 +373,16 @@ function boxesToDetections(
       lowerSkinRatio: lowerSkin,
       fabricColor: colorProbe,
     });
+    // Bare torso / arms must never lock as a Top (swim / topless looks)
+    if (isBareTorsoTopLike({
+      category: locked.category,
+      subcategory: locked.subcategory,
+      name: locked.name,
+      skinRatio,
+      fabricColor: colorProbe,
+    })) {
+      return;
+    }
     // Geometry said shoes but ROI is skin → drop
     if (locked.category === 'shoes' && skinRatio >= 0.22) {
       return;
