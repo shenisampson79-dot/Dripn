@@ -341,6 +341,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         payload.detectorSource = 'yolo';
         payload.sceneType = 'worn';
         payload.frameCropped = stabilized.cropped;
+        if (stabilized.memory?.belief?.torsoState) {
+          payload.torsoState = stabilized.memory.belief.torsoState;
+        }
         const repairs = [
           ...(pipeline?.repairs || []),
           ...stabilized.repairs,
@@ -486,6 +489,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           payload.detections = stabilized.detections;
           payload.detectorSource = 'yolo';
           payload.frameCropped = stabilized.cropped;
+          if (stabilized.memory?.belief?.torsoState) {
+            payload.torsoState = stabilized.memory.belief.torsoState;
+          }
           publishDebug({
             frameDetections: onDevice,
             source: 'still_scan',

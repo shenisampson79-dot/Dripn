@@ -111,4 +111,24 @@ const held = updateBelief(
 );
 assert.ok(held && held.kind === 'shorts');
 
+// Bare-torso ghost top must hard-clear held top belief (not TTL hold)
+const ghostTop: OnDeviceDetection = {
+  name: 'Top',
+  category: 'tops',
+  subcategory: 'top',
+  color: 'unknown',
+  confidence: 0.95,
+  bbox: [0.2, 0.08, 0.55, 0.4],
+  trackId: 'ghost',
+  skinRatio: 0.4,
+};
+let bareState = createOutfitBeliefState();
+bareState = applyOutfitBelief(bareState, [topRed, shorts], { now: 10000 }).state;
+assert.ok(bareState.top, 'seed a real top first');
+const bareR = applyOutfitBelief(bareState, [ghostTop, shorts], { now: 11000 });
+assert.equal(bareR.state.torsoState, 'bare');
+assert.equal(bareR.state.top, null, 'bare torso destroys top belief');
+assert.ok(bareR.repairs.some((r) => /bare_torso/i.test(r)));
+assert.ok(!bareR.detections.some((d) => /top/i.test(d.category)));
+
 console.log('liveGarmentBelief.test.ts: all passed');

@@ -600,6 +600,44 @@ export function isBareTorsoTopLike(args: {
   return false;
 }
 
+export type TorsoState = 'covered' | 'bare' | 'uncertain';
+
+/**
+ * Structural torso state (upstream truth) — not just a discard filter.
+ * Used so belief can hard-clear ghost tops when the chest is bare.
+ */
+export function detectTorsoState(args: {
+  topDetections?: Array<{
+    category?: string | null;
+    subcategory?: string | null;
+    name?: string | null;
+    skinRatio?: number | null;
+    color?: string | null;
+  }> | null;
+  hasFabricTop?: boolean;
+}): TorsoState {
+  const tops = Array.isArray(args.topDetections) ? args.topDetections : [];
+  if (args.hasFabricTop) return 'covered';
+
+  if (tops.length === 0) return 'uncertain';
+
+  const bareHits = tops.filter((t) => isBareTorsoTopLike({
+    category: t.category,
+    subcategory: t.subcategory,
+    name: t.name,
+    skinRatio: t.skinRatio,
+    fabricColor: t.color,
+  }));
+  if (bareHits.length > 0 && bareHits.length >= tops.length) return 'bare';
+
+  const covered = tops.some((t) => hasReliableFabricColor(t.color)
+    && (t.skinRatio == null || t.skinRatio < BARE_TORSO_SKIN_RATIO));
+  if (covered) return 'covered';
+
+  if (bareHits.length > 0) return 'bare';
+  return 'uncertain';
+}
+
 function isFootwearCat(category: string, subcategory?: string): boolean {
   return /shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford/i.test(
     `${category || ''} ${subcategory || ''}`,

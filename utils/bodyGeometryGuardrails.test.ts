@@ -18,6 +18,8 @@ import {
   resolveClassByRegionLock,
   resolveDetectionConflicts,
   scoreBottomHypotheses,
+  detectTorsoState,
+  isBareTorsoTopLike,
 } from './bodyGeometryGuardrails';
 
 assert.equal(REGION.TOP_MAX, 0.42);
@@ -202,5 +204,29 @@ const sameRole = resolveDetectionConflicts([
 ]);
 assert.equal(sameRole.length, 1);
 assert.equal(sameRole[0].category, 'tops');
+
+assert.equal(
+  isBareTorsoTopLike({
+    category: 'tops',
+    subcategory: 'top',
+    name: 'Top',
+    skinRatio: 0.35,
+    fabricColor: 'unknown',
+  }),
+  true,
+);
+assert.equal(
+  detectTorsoState({
+    topDetections: [{ category: 'tops', name: 'Top', skinRatio: 0.4, color: 'unknown' }],
+  }),
+  'bare',
+);
+assert.equal(
+  detectTorsoState({
+    topDetections: [{ category: 'tops', name: 'Blue top', skinRatio: 0.05, color: 'blue' }],
+    hasFabricTop: true,
+  }),
+  'covered',
+);
 
 console.log('bodyGeometryGuardrails.test.ts: all passed');

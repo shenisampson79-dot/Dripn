@@ -7,6 +7,7 @@
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import {
+  detectTorsoState,
   formatGarmentDisplayName,
   hasReliableFabricColor,
   isBareTorsoTopLike,
@@ -14,6 +15,7 @@ import {
   looksLikeShortsWithFootwearExtension,
   type BBoxTuple,
   type BottomSubtype,
+  type TorsoState,
 } from '@/utils/bodyGeometryGuardrails';
 import {
   appendDecision,
@@ -46,6 +48,8 @@ export type OutfitBeliefState = {
   top: GarmentBelief | null;
   bottom: GarmentBelief | null;
   footwear: GarmentBelief | null;
+  /** Upstream body truth — bare kills ghost tops even if belief wants to hold. */
+  torsoState?: TorsoState;
 };
 
 /** Minimum confidence to change kind OR color. Below this → ignore proposal. */
@@ -81,7 +85,7 @@ const DARK_FAMILY = new Set(['black', 'charcoal', 'gray', 'navy']);
 const LIGHT_FAMILY = new Set(['white', 'cream', 'beige', 'ivory']);
 
 export function createOutfitBeliefState(): OutfitBeliefState {
-  return { top: null, bottom: null, footwear: null };
+  return { top: null, bottom: null, footwear: null, torsoState: 'uncertain' };
 }
 
 export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
@@ -675,13 +679,6 @@ export function applyOutfitBelief(
   const decisions = opts?.decisions || [];
 
   const topsRaw = detections.filter((d) => beliefKindFromDetection(d) === 'top');
-  const bareTorsoEvidence = topsRaw.some((d) => isBareTorsoTopLike({
-    category: d.category,
-    subcategory: d.subcategory,
-    name: d.name,
-    skinRatio: d.skinRatio,
-    fabricColor: d.color,
-  }));
   const tops = topsRaw.filter((d) => !isBareTorsoTopLike({
     category: d.category,
     subcategory: d.subcategory,
@@ -695,7 +692,15 @@ export function applyOutfitBelief(
   });
   const shoes = detections.filter((d) => beliefKindFromDetection(d) === 'shoes');
 
-  const topObs = tops.sort((a, b) => b.confidence - a.confidence)[0] || null;
+  const torsoState = detectTorsoState({
+    topDetections: topsRaw,
+    hasFabricTop: tops.some((d) => hasReliableFabricColor(d.color)),
+  });
+
+  // Bare torso: never feed a top observation (even a "held" one cannot reinforce)
+  const topObs = torsoState === 'bare'
+    ? null
+    : (tops.sort((a, b) => b.confidence - a.confidence)[0] || null);
   let bottomObs = bottoms.sort((a, b) => b.confidence - a.confidence)[0] || null;
   let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
 
@@ -748,12 +753,27 @@ export function applyOutfitBelief(
   const prevBottomColor = state.bottom?.color;
   const prevShoeSub = state.footwear?.subcategory;
 
-  const top = updateBelief(
-    state.top,
-    topObs ? observationFromDetection(topObs, now, decisions) : null,
-    now,
-    decisions,
-  );
+  // Structural override: bare torso DESTROYS top belief (not TTL hold)
+  let top: GarmentBelief | null = null;
+  if (torsoState === 'bare') {
+    if (state.top) {
+      repairs.push('cleared_bare_torso_top');
+      appendDecision(decisions, {
+        type: 'update',
+        message: 'Cleared top',
+        reason: 'torsoState=bare',
+        slot: 'top',
+        time: now,
+      });
+    }
+  } else {
+    top = updateBelief(
+      state.top,
+      topObs ? observationFromDetection(topObs, now, decisions) : null,
+      now,
+      decisions,
+    );
+  }
   const bottom = updateBelief(
     state.bottom,
     bottomObs ? observationFromDetection(bottomObs, now, decisions) : null,
@@ -799,7 +819,7 @@ export function applyOutfitBelief(
     repairs.push(`belief_footwear→${footwear.subcategory}`);
   }
 
-  const next: OutfitBeliefState = { top, bottom, footwear };
+  const next: OutfitBeliefState = { top, bottom, footwear, torsoState };
   const out: OnDeviceDetection[] = [];
   if (top) out.push(beliefToDetection(top));
   if (bottom) out.push(beliefToDetection(bottom));

@@ -493,6 +493,41 @@ case_('SHORTS_SOCKS_DOCS_BLUE_TEE', () => {
   assert.equal(state.top?.color, 'blue');
 });
 
+case_('BARE_TORSO_SWIM_SHORTS_NO_GHOST_TOP', () => {
+  let state = createOutfitBeliefState();
+  const realTop = det({
+    category: 'tops',
+    subcategory: 'top',
+    color: 'blue',
+    confidence: 0.92,
+    bbox: [0.2, 0.08, 0.55, 0.4],
+  });
+  const shorts = det({
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'black',
+    confidence: 0.9,
+    bbox: [0.3, 0.52, 0.4, 0.24],
+  });
+  state = applyOutfitBelief(state, [realTop, shorts], { now: 1000 }).state;
+  assert.ok(state.top);
+
+  const ghostTop = det({
+    category: 'tops',
+    subcategory: 'top',
+    name: 'Top',
+    color: 'unknown',
+    confidence: 0.95,
+    bbox: [0.2, 0.08, 0.55, 0.4],
+    skinRatio: 0.42,
+  });
+  const r = applyOutfitBelief(state, [ghostTop, shorts], { now: 2000 });
+  assert.equal(r.state.torsoState, 'bare');
+  assert.equal(r.state.top, null, 'ghost top must be destroyed, not held');
+  assert.equal(r.detections.filter((d) => /top/i.test(d.category)).length, 0);
+  assert.ok(r.state.bottom);
+});
+
 if (failed) {
   console.error(`\nliveRegression.test.ts: ${failed} failed`);
   process.exit(1);
