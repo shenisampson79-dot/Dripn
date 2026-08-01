@@ -1,0 +1,561 @@
+{
+  "street": "croydon",
+  "total": 22,
+  "reviewed_at": "2026-08-01",
+  "items": [
+    {
+      "id": "001",
+      "status": "ok",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "multicolor"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        },
+        {
+          "category": "bags",
+          "subcategory": "shoulder_bag",
+          "color": "brown"
+        }
+      ],
+      "notes": "Matches label"
+    },
+    {
+      "id": "002",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "t_shirt",
+          "color": "beige"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "gray"
+        },
+        {
+          "category": "bags",
+          "subcategory": "crossbody",
+          "color": "beige"
+        }
+      ],
+      "notes": "Tee taupe→beige; sneakers silver→gray not white"
+    },
+    {
+      "id": "003",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "shirt",
+          "color": "multicolor"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "denim"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "clogs",
+          "color": "beige"
+        }
+      ],
+      "notes": "Primary is RIGHT mannequin not center"
+    },
+    {
+      "id": "004",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "polo",
+          "color": "green"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        {
+          "category": "bags",
+          "subcategory": "tote",
+          "color": "beige"
+        }
+      ],
+      "notes": "Polo mint green not white"
+    },
+    {
+      "id": "005",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "green"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "green"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "white"
+        }
+      ],
+      "notes": "Drop hat; white flats not silver heels"
+    },
+    {
+      "id": "006",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "shirt",
+          "color": "red"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "white"
+        },
+        {
+          "category": "bags",
+          "subcategory": "crossbody",
+          "color": "beige"
+        }
+      ],
+      "notes": "Footwear loafers not sneakers"
+    },
+    {
+      "id": "007",
+      "status": "uncertain",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "shirt",
+          "color": "red"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        {
+          "category": "bags",
+          "subcategory": "crossbody",
+          "color": "beige"
+        }
+      ],
+      "notes": "Same red shirt as 006 — sneakers vs loafers inconsistency"
+    },
+    {
+      "id": "008",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "tank",
+          "color": "multicolor"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "jeans",
+          "color": "denim"
+        },
+        {
+          "category": "bags",
+          "subcategory": "shoulder_bag",
+          "color": "cream"
+        }
+      ],
+      "notes": "Retarget polka top + denim jeans not halter knit"
+    },
+    {
+      "id": "009",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "green"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "navy"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "beige"
+        },
+        {
+          "category": "bags",
+          "subcategory": "shoulder_bag",
+          "color": "beige"
+        }
+      ],
+      "notes": "Trousers navy not black; mint→green"
+    },
+    {
+      "id": "010",
+      "status": "uncertain",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "shirt",
+          "color": "multicolor"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        }
+      ],
+      "notes": "Stripe orange vs multicolor; sandals beige vs white"
+    },
+    {
+      "id": "011",
+      "status": "uncertain",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "orange"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        },
+        {
+          "category": "bags",
+          "subcategory": "tote",
+          "color": "beige"
+        }
+      ],
+      "notes": "Top yellow-peach vs orange stripes"
+    },
+    {
+      "id": "012",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "t_shirt",
+          "color": "cream"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        {
+          "category": "bags",
+          "subcategory": "backpack",
+          "color": "red"
+        },
+        {
+          "category": "accessories",
+          "subcategory": "cap",
+          "color": "red"
+        }
+      ],
+      "notes": "Tee cream; backpack red; add NY cap"
+    },
+    {
+      "id": "013",
+      "status": "ok",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "hoodie",
+          "color": "beige"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "joggers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ],
+      "notes": "Matches"
+    },
+    {
+      "id": "014",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "polo",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "chinos",
+          "color": "brown"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        {
+          "category": "accessories",
+          "subcategory": "sunglasses",
+          "color": "black"
+        },
+        {
+          "category": "bags",
+          "subcategory": "backpack",
+          "color": "black"
+        }
+      ],
+      "notes": "Sunglasses black; chinos brown; add backpack"
+    },
+    {
+      "id": "015",
+      "status": "ok",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "t_shirt",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        }
+      ],
+      "notes": "Matches"
+    },
+    {
+      "id": "016",
+      "status": "ok",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "orange"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        }
+      ],
+      "notes": "Rust→orange mapping OK"
+    },
+    {
+      "id": "017",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "jeans",
+          "color": "denim"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "beige"
+        },
+        {
+          "category": "accessories",
+          "subcategory": "sunglasses",
+          "color": "black"
+        }
+      ],
+      "notes": "Jeans denim not blue; add sunglasses"
+    },
+    {
+      "id": "018",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "polo",
+          "color": "cream"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "gray"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ],
+      "notes": "Polo cream; trousers gray not olive"
+    },
+    {
+      "id": "019",
+      "status": "fix",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "sweatshirt",
+          "color": "cream"
+        },
+        {
+          "category": "tops",
+          "subcategory": "sports_bra",
+          "color": "black"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "black"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "gray"
+        }
+      ],
+      "notes": "Add Nike Pro layers; shoes gray"
+    },
+    {
+      "id": "020",
+      "status": "ok",
+      "pieces": [
+        {
+          "category": "dresses",
+          "subcategory": "midi",
+          "color": "black"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "black"
+        },
+        {
+          "category": "bags",
+          "subcategory": "clutch",
+          "color": "black"
+        }
+      ],
+      "notes": "Matches"
+    },
+    {
+      "id": "021",
+      "status": "uncertain",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "shirt",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "beige"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ],
+      "notes": "Shorts khaki → green or beige?"
+    },
+    {
+      "id": "022",
+      "status": "uncertain",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "t_shirt",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "trousers",
+          "color": "navy"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ],
+      "notes": "Trousers black vs navy; side-stripe?"
+    }
+  ],
+  "counts": {
+    "ok": 5,
+    "fix": 12,
+    "uncertain": 5
+  }
+}

@@ -1,13 +1,13 @@
 {
   "version": 4,
   "source": "sloane_street",
-  "generated_at": "2026-07-31T15:49:55.505Z",
+  "generated_at": "2026-08-01T22:16:14.236Z",
   "sample_size": 42,
-  "valid_count": 40,
+  "valid_count": 38,
   "colour_combos": [
     {
       "combo": "beige+cream",
-      "frequency": 8,
+      "frequency": 7,
       "score_boost": 8
     },
     {
@@ -56,28 +56,28 @@
       "score_boost": 5
     },
     {
-      "combo": "beige+navy",
-      "frequency": 3,
-      "score_boost": 4
-    },
-    {
       "combo": "blue+navy",
-      "frequency": 3,
-      "score_boost": 4
-    },
-    {
-      "combo": "blue+white",
       "frequency": 3,
       "score_boost": 4
     },
     {
       "combo": "cream+white",
       "frequency": 3,
-      "score_boost": 3
+      "score_boost": 4
     },
     {
       "combo": "navy+white",
       "frequency": 3,
+      "score_boost": 4
+    },
+    {
+      "combo": "beige+green",
+      "frequency": 2,
+      "score_boost": 3
+    },
+    {
+      "combo": "beige+navy",
+      "frequency": 2,
       "score_boost": 3
     }
   ],
@@ -98,6 +98,11 @@
       "score_boost": 5
     },
     {
+      "pairing": "blouse×skirt",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
       "pairing": "knit×trousers",
       "frequency": 2,
       "score_boost": 5
@@ -106,16 +111,6 @@
       "pairing": "shirt×shorts",
       "frequency": 2,
       "score_boost": 5
-    },
-    {
-      "pairing": "sweater×trousers",
-      "frequency": 2,
-      "score_boost": 5
-    },
-    {
-      "pairing": "blouse×skirt",
-      "frequency": 1,
-      "score_boost": 4
     },
     {
       "pairing": "blouse×trousers",
@@ -130,7 +125,7 @@
     {
       "pairing": "other×skirt",
       "frequency": 1,
-      "score_boost": 3
+      "score_boost": 4
     },
     {
       "pairing": "polo×jeans",
@@ -149,6 +144,11 @@
     },
     {
       "pairing": "shirt×jeans",
+      "frequency": 1,
+      "score_boost": 3
+    },
+    {
+      "pairing": "sweater×trousers",
       "frequency": 1,
       "score_boost": 2
     },
@@ -179,11 +179,6 @@
         "subcategory": "sneakers",
         "frequency": 2,
         "score_boost": 4
-      },
-      {
-        "subcategory": "mary_janes",
-        "frequency": 1,
-        "score_boost": 3
       }
     ],
     "business_casual": [],
@@ -224,7 +219,7 @@
     },
     {
       "pattern": "light",
-      "frequency": 8
+      "frequency": 6
     },
     {
       "pattern": "structured",
@@ -238,18 +233,18 @@
     },
     {
       "silhouette": "tailored",
-      "frequency": 16
+      "frequency": 15
     },
     {
       "silhouette": "slim",
       "frequency": 5
     },
     {
-      "silhouette": "relaxed_tailored",
-      "frequency": 2
+      "silhouette": "oversized",
+      "frequency": 1
     },
     {
-      "silhouette": "oversized",
+      "silhouette": "relaxed_tailored",
       "frequency": 1
     }
   ],
@@ -276,10 +271,6 @@
     },
     {
       "subcategory": "flats",
-      "frequency": 1
-    },
-    {
-      "subcategory": "mary_janes",
       "frequency": 1
     }
   ],
@@ -315,7 +306,7 @@
         "top_colours": [
           {
             "combo": "beige+cream",
-            "frequency": 3
+            "frequency": 2
           },
           {
             "combo": "beige+blue",
@@ -326,11 +317,11 @@
             "frequency": 1
           },
           {
-            "combo": "beige+navy",
+            "combo": "blue+cream",
             "frequency": 1
           },
           {
-            "combo": "blue+cream",
+            "combo": "cream+grey",
             "frequency": 1
           }
         ]
@@ -365,15 +356,6 @@
           },
           {
             "combo": "coral+green",
-            "frequency": 1
-          }
-        ]
-      },
-      {
-        "brand": "liberty",
-        "top_colours": [
-          {
-            "combo": "blue+white",
             "frequency": 1
           }
         ]
@@ -561,11 +543,6 @@
       {
         "pair": "sweater×trousers",
         "frequency": 1,
-        "brand_bias": "varley"
-      },
-      {
-        "pair": "sweater×trousers",
-        "frequency": 1,
         "brand_bias": "white_company"
       },
       {
@@ -611,11 +588,6 @@
         "frequency": 1
       },
       {
-        "brand": "liberty",
-        "silhouette": "tailored",
-        "frequency": 1
-      },
-      {
         "brand": "loveshackfancy",
         "silhouette": "slim",
         "frequency": 1
@@ -638,18 +610,18 @@
     ],
     "quiet_luxury_palettes": [
       {
-        "combo": "beige+brown",
+        "combo": "brown+cream",
         "frequency": 5,
+        "score_boost": 6
+      },
+      {
+        "combo": "beige+brown",
+        "frequency": 4,
         "score_boost": 6
       },
       {
         "combo": "beige+cream",
-        "frequency": 5,
-        "score_boost": 6
-      },
-      {
-        "combo": "brown+cream",
-        "frequency": 5,
+        "frequency": 4,
         "score_boost": 6
       },
       {
@@ -673,14 +645,9 @@
         "score_boost": 5
       },
       {
-        "combo": "beige+navy",
-        "frequency": 3,
-        "score_boost": 5
-      },
-      {
         "combo": "cream+white",
         "frequency": 3,
-        "score_boost": 4
+        "score_boost": 5
       },
       {
         "combo": "navy+white",
@@ -688,13 +655,18 @@
         "score_boost": 4
       },
       {
-        "combo": "beige+black",
+        "combo": "beige+navy",
         "frequency": 2,
         "score_boost": 4
       },
       {
         "combo": "brown+grey",
         "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "combo": "beige+black",
+        "frequency": 1,
         "score_boost": 4
       }
     ],
@@ -704,8 +676,7 @@
         "preferred": [
           "loafers",
           "mules",
-          "sneakers",
-          "mary_janes"
+          "sneakers"
         ],
         "avoided": [
           "chunky_boots",
@@ -749,18 +720,18 @@
     "style_tags": [
       {
         "tag": "smart casual",
-        "frequency": 20
+        "frequency": 18
       },
       {
         "tag": "relaxed",
-        "frequency": 18
-      },
-      {
-        "tag": "tailored",
-        "frequency": 18
+        "frequency": 17
       },
       {
         "tag": "quiet luxury",
+        "frequency": 16
+      },
+      {
+        "tag": "tailored",
         "frequency": 16
       },
       {
@@ -773,7 +744,7 @@
       },
       {
         "tag": "athleisure",
-        "frequency": 3
+        "frequency": 2
       },
       {
         "tag": "minimal",
@@ -781,5 +752,5 @@
       }
     ]
   },
-  "insights": "Sloane Street (luxury lane): 40/42 valid wearable looks. Top colour combos: beige+cream (8), beige+white (7), beige+brown (5), brown+cream (5), beige+blue (4). Top garment pairings: shirt×trousers (6), other×trousers (5), polo×shorts (3), knit×trousers (2), shirt×shorts (2). Footwear leaders: sneakers×5, loafers×3, sandals×3, mules×2, espadrilles×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
+  "insights": "Sloane Street (luxury lane): 38/42 valid wearable looks. Top colour combos: beige+cream (7), beige+white (7), beige+brown (5), brown+cream (5), beige+blue (4). Top garment pairings: shirt×trousers (6), other×trousers (5), polo×shorts (3), blouse×skirt (2), knit×trousers (2). Footwear leaders: sneakers×5, loafers×3, sandals×3, mules×2, espadrilles×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
 }

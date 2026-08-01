@@ -1,0 +1,222 @@
+{
+  "street": "sloane",
+  "total": 42,
+  "reviewed_at": "2026-08-01",
+  "items": [
+    {
+      "id": "001",
+      "status": "uncertain",
+      "notes": "Coral tee → pink or orange?"
+    },
+    {
+      "id": "002",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "003",
+      "status": "uncertain",
+      "notes": "Which of ~5 RIXO mannequins is primary?"
+    },
+    {
+      "id": "004",
+      "status": "fix",
+      "notes": "Remove footwear — sandals on pedestal not worn"
+    },
+    {
+      "id": "005",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "006",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "007",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "008",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "009",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "010",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "011",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "012",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "013",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "014",
+      "status": "fix",
+      "notes": "HARD: label women Varley knit; photo three mens mannequins — relabel"
+    },
+    {
+      "id": "015",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "016",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "017",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "018",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "019",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "020",
+      "status": "fix",
+      "notes": "Two-piece not dress; midriff cutout multicolor"
+    },
+    {
+      "id": "021",
+      "status": "ok",
+      "notes": "Invalid MOSCOT — correct"
+    },
+    {
+      "id": "022",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "023",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "024",
+      "status": "uncertain",
+      "notes": "Coral shorts → pink or orange?"
+    },
+    {
+      "id": "025",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "026",
+      "status": "fix",
+      "notes": "Remove worn footwear — clogs on pedestal"
+    },
+    {
+      "id": "027",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "028",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "029",
+      "status": "uncertain",
+      "notes": "Kids Liberty look — keep in adult dataset?"
+    },
+    {
+      "id": "030",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "031",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "032",
+      "status": "ok",
+      "notes": "Invalid BRORA rail — correct"
+    },
+    {
+      "id": "033",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "034",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "035",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "036",
+      "status": "uncertain",
+      "notes": "Polo cream-stripe vs textured knit OK?"
+    },
+    {
+      "id": "037",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "038",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "039",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "040",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "041",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    },
+    {
+      "id": "042",
+      "status": "ok",
+      "notes": "Multi-mannequin; primary OK"
+    }
+  ],
+  "counts": {
+    "ok": 33,
+    "fix": 4,
+    "uncertain": 5
+  }
+}

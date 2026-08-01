@@ -1,9 +1,9 @@
 {
   "version": 4,
   "source": "brixton_high_street",
-  "generated_at": "2026-07-31T15:49:55.507Z",
+  "generated_at": "2026-08-01T22:16:14.238Z",
   "sample_size": 29,
-  "valid_count": 26,
+  "valid_count": 25,
   "colour_combos": [
     {
       "combo": "beige+white",
@@ -21,11 +21,6 @@
       "score_boost": 7
     },
     {
-      "combo": "beige+cream",
-      "frequency": 4,
-      "score_boost": 7
-    },
-    {
       "combo": "blue+white",
       "frequency": 4,
       "score_boost": 7
@@ -33,7 +28,7 @@
     {
       "combo": "grey+white",
       "frequency": 4,
-      "score_boost": 6
+      "score_boost": 7
     },
     {
       "combo": "navy+white",
@@ -46,17 +41,22 @@
       "score_boost": 6
     },
     {
+      "combo": "beige+cream",
+      "frequency": 3,
+      "score_boost": 6
+    },
+    {
       "combo": "black+cream",
       "frequency": 3,
       "score_boost": 5
     },
     {
-      "combo": "black+grey",
+      "combo": "blue+cream",
       "frequency": 3,
       "score_boost": 5
     },
     {
-      "combo": "blue+cream",
+      "combo": "brown+white",
       "frequency": 3,
       "score_boost": 4
     },
@@ -71,12 +71,12 @@
       "score_boost": 4
     },
     {
-      "combo": "beige+green",
+      "combo": "beige+grey",
       "frequency": 2,
       "score_boost": 3
     },
     {
-      "combo": "beige+grey",
+      "combo": "black+blue",
       "frequency": 2,
       "score_boost": 3
     }
@@ -89,7 +89,7 @@
     },
     {
       "pairing": "t-shirt×trousers",
-      "frequency": 5,
+      "frequency": 4,
       "score_boost": 6
     },
     {
@@ -98,13 +98,13 @@
       "score_boost": 5
     },
     {
-      "pairing": "shirt×shorts",
+      "pairing": "shirt×trousers",
       "frequency": 2,
       "score_boost": 5
     },
     {
-      "pairing": "shirt×trousers",
-      "frequency": 2,
+      "pairing": "bikini_top×shorts",
+      "frequency": 1,
       "score_boost": 5
     },
     {
@@ -126,6 +126,11 @@
       "pairing": "polo×trousers",
       "frequency": 1,
       "score_boost": 4
+    },
+    {
+      "pairing": "shirt×shorts",
+      "frequency": 1,
+      "score_boost": 3
     },
     {
       "pairing": "shirt×skirt",
@@ -171,7 +176,7 @@
       },
       {
         "subcategory": "loafers",
-        "frequency": 2,
+        "frequency": 1,
         "score_boost": 5
       }
     ]
@@ -183,13 +188,13 @@
     },
     {
       "pattern": "light",
-      "frequency": 12
+      "frequency": 11
     }
   ],
   "silhouette_counts": [
     {
       "silhouette": "relaxed",
-      "frequency": 11
+      "frequency": 10
     },
     {
       "silhouette": "athletic",
@@ -215,7 +220,7 @@
     },
     {
       "subcategory": "loafers",
-      "frequency": 4
+      "frequency": 3
     },
     {
       "subcategory": "heels",
@@ -302,7 +307,7 @@
             "frequency": 1
           },
           {
-            "combo": "beige+navy",
+            "combo": "beige+natural",
             "frequency": 1
           }
         ]
@@ -310,14 +315,6 @@
       {
         "brand": "reiss",
         "top_colours": [
-          {
-            "combo": "beige+brown",
-            "frequency": 2
-          },
-          {
-            "combo": "beige+cream",
-            "frequency": 2
-          },
           {
             "combo": "brown+cream",
             "frequency": 2
@@ -327,7 +324,15 @@
             "frequency": 2
           },
           {
-            "combo": "beige+green",
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
             "frequency": 1
           }
         ]
@@ -404,9 +409,9 @@
         "brand_bias": "jd_sports"
       },
       {
-        "pair": "t-shirt×trousers",
-        "frequency": 2,
-        "brand_bias": "brixton_high_street"
+        "pair": "bikini_top×shorts",
+        "frequency": 1,
+        "brand_bias": "hm"
       },
       {
         "pair": "blouse×shorts",
@@ -441,11 +446,6 @@
       {
         "pair": "shirt×shorts",
         "frequency": 1,
-        "brand_bias": "hm"
-      },
-      {
-        "pair": "shirt×shorts",
-        "frequency": 1,
         "brand_bias": "reiss"
       },
       {
@@ -460,6 +460,11 @@
       },
       {
         "pair": "shirt×trousers",
+        "frequency": 1,
+        "brand_bias": "brixton_high_street"
+      },
+      {
+        "pair": "t-shirt×trousers",
         "frequency": 1,
         "brand_bias": "brixton_high_street"
       }
@@ -498,15 +503,10 @@
       {
         "brand": "brixton_high_street",
         "silhouette": "relaxed",
-        "frequency": 3
+        "frequency": 2
       }
     ],
     "quiet_luxury_palettes": [
-      {
-        "combo": "beige+white",
-        "frequency": 5,
-        "score_boost": 6
-      },
       {
         "combo": "black+white",
         "frequency": 5,
@@ -518,9 +518,9 @@
         "score_boost": 6
       },
       {
-        "combo": "black+grey",
-        "frequency": 3,
-        "score_boost": 5
+        "combo": "beige+white",
+        "frequency": 4,
+        "score_boost": 6
       },
       {
         "combo": "grey+white",
@@ -543,6 +543,21 @@
         "score_boost": 5
       },
       {
+        "combo": "black+brown",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
+        "combo": "black+grey",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
+        "combo": "brown+grey",
+        "frequency": 2,
+        "score_boost": 4
+      },
+      {
         "combo": "brown+navy",
         "frequency": 2,
         "score_boost": 4
@@ -550,16 +565,6 @@
       {
         "combo": "brown+white",
         "frequency": 2,
-        "score_boost": 4
-      },
-      {
-        "combo": "black+brown",
-        "frequency": 1,
-        "score_boost": 4
-      },
-      {
-        "combo": "black+cream",
-        "frequency": 1,
         "score_boost": 4
       }
     ],
@@ -630,14 +635,6 @@
       },
       {
         "tag": "fitting_room",
-        "frequency": 4
-      },
-      {
-        "tag": "try_on",
-        "frequency": 4
-      },
-      {
-        "tag": "loafers",
         "frequency": 3
       },
       {
@@ -649,14 +646,22 @@
         "frequency": 3
       },
       {
+        "tag": "try_on",
+        "frequency": 3
+      },
+      {
         "tag": "wide_leg",
         "frequency": 3
       },
       {
         "tag": "adidas",
         "frequency": 2
+      },
+      {
+        "tag": "apricot",
+        "frequency": 2
       }
     ]
   },
-  "insights": "Brixton High Street (JD / H&M / Morleys): 26/29 valid wearable looks. Top colour combos: beige+white (9), black+white (7), beige+black (4), beige+cream (4), blue+white (4). Top garment pairings: t-shirt×shorts (5), t-shirt×trousers (5), blouse×trousers (3), shirt×shorts (2), shirt×trousers (2). Footwear leaders: sneakers×9, loafers×4, heels×2, flats×1, sandals×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
+  "insights": "Brixton High Street (JD / H&M / Morleys): 25/29 valid wearable looks. Top colour combos: beige+white (9), black+white (7), beige+black (4), blue+white (4), grey+white (4). Top garment pairings: t-shirt×shorts (5), t-shirt×trousers (4), blouse×trousers (3), shirt×trousers (2), bikini_top×shorts (1). Footwear leaders: sneakers×9, loafers×3, heels×2, flats×1, sandals×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
 }

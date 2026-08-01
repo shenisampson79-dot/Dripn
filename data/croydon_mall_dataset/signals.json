@@ -1,18 +1,18 @@
 {
   "version": 4,
   "source": "croydon_mall",
-  "generated_at": "2026-07-31T15:49:55.506Z",
+  "generated_at": "2026-08-01T22:16:14.237Z",
   "sample_size": 22,
-  "valid_count": 22,
+  "valid_count": 20,
   "colour_combos": [
     {
       "combo": "beige+white",
-      "frequency": 6,
+      "frequency": 8,
       "score_boost": 8
     },
     {
-      "combo": "black+white",
-      "frequency": 5,
+      "combo": "grey+white",
+      "frequency": 6,
       "score_boost": 8
     },
     {
@@ -21,22 +21,22 @@
       "score_boost": 7
     },
     {
-      "combo": "beige+black",
-      "frequency": 3,
-      "score_boost": 7
-    },
-    {
-      "combo": "beige+blue",
-      "frequency": 3,
-      "score_boost": 7
-    },
-    {
       "combo": "beige+grey",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "black+white",
+      "frequency": 4,
+      "score_boost": 7
+    },
+    {
+      "combo": "beige+black",
       "frequency": 3,
       "score_boost": 6
     },
     {
-      "combo": "black+cream",
+      "combo": "beige+blue",
       "frequency": 3,
       "score_boost": 6
     },
@@ -46,17 +46,17 @@
       "score_boost": 6
     },
     {
-      "combo": "grey+white",
-      "frequency": 3,
-      "score_boost": 5
-    },
-    {
-      "combo": "red+white",
-      "frequency": 3,
-      "score_boost": 5
-    },
-    {
       "combo": "beige+brown",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "combo": "beige+cream",
+      "frequency": 2,
+      "score_boost": 5
+    },
+    {
+      "combo": "beige+red",
       "frequency": 2,
       "score_boost": 4
     },
@@ -66,17 +66,17 @@
       "score_boost": 4
     },
     {
-      "combo": "black+red",
+      "combo": "black+cream",
       "frequency": 2,
       "score_boost": 4
     },
     {
-      "combo": "blue+cream",
+      "combo": "black+grey",
       "frequency": 2,
       "score_boost": 3
     },
     {
-      "combo": "brown+cream",
+      "combo": "blue+cream",
       "frequency": 2,
       "score_boost": 3
     }
@@ -84,7 +84,7 @@
   "garment_pairings": [
     {
       "pairing": "shirt×trousers",
-      "frequency": 6,
+      "frequency": 5,
       "score_boost": 6
     },
     {
@@ -103,12 +103,12 @@
       "score_boost": 5
     },
     {
-      "pairing": "shirt×jeans",
-      "frequency": 2,
+      "pairing": "knit×jeans",
+      "frequency": 1,
       "score_boost": 5
     },
     {
-      "pairing": "knit×jeans",
+      "pairing": "shirt×jeans",
       "frequency": 1,
       "score_boost": 5
     },
@@ -145,12 +145,12 @@
     ],
     "resort": [
       {
-        "subcategory": "sneakers",
-        "frequency": 2,
+        "subcategory": "heels",
+        "frequency": 1,
         "score_boost": 6
       },
       {
-        "subcategory": "heels",
+        "subcategory": "loafers",
         "frequency": 1,
         "score_boost": 5
       }
@@ -162,12 +162,12 @@
         "score_boost": 6
       },
       {
-        "subcategory": "sandals",
-        "frequency": 3,
+        "subcategory": "mules",
+        "frequency": 2,
         "score_boost": 5
       },
       {
-        "subcategory": "mules",
+        "subcategory": "sandals",
         "frequency": 2,
         "score_boost": 4
       }
@@ -176,7 +176,7 @@
   "layering_patterns": [
     {
       "pattern": "none",
-      "frequency": 18
+      "frequency": 16
     },
     {
       "pattern": "light",
@@ -190,7 +190,7 @@
   "silhouette_counts": [
     {
       "silhouette": "relaxed",
-      "frequency": 12
+      "frequency": 11
     },
     {
       "silhouette": "athletic",
@@ -202,24 +202,28 @@
     },
     {
       "silhouette": "relaxed_tailored",
-      "frequency": 2
+      "frequency": 1
     }
   ],
   "footwear_overall": [
     {
       "subcategory": "sneakers",
-      "frequency": 11
-    },
-    {
-      "subcategory": "sandals",
-      "frequency": 3
+      "frequency": 9
     },
     {
       "subcategory": "mules",
       "frequency": 2
     },
     {
+      "subcategory": "sandals",
+      "frequency": 2
+    },
+    {
       "subcategory": "heels",
+      "frequency": 1
+    },
+    {
+      "subcategory": "loafers",
       "frequency": 1
     },
     {
@@ -233,7 +237,11 @@
         "brand": "next",
         "top_colours": [
           {
-            "combo": "black+white",
+            "combo": "beige+white",
+            "frequency": 4
+          },
+          {
+            "combo": "grey+white",
             "frequency": 3
           },
           {
@@ -241,15 +249,11 @@
             "frequency": 2
           },
           {
-            "combo": "beige+white",
+            "combo": "beige+cream",
             "frequency": 2
           },
           {
             "combo": "black+blue",
-            "frequency": 2
-          },
-          {
-            "combo": "black+cream",
             "frequency": 2
           }
         ]
@@ -262,20 +266,20 @@
             "frequency": 2
           },
           {
+            "combo": "beige+grey",
+            "frequency": 2
+          },
+          {
             "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+grey",
             "frequency": 2
           },
           {
             "combo": "blue+white",
             "frequency": 2
-          },
-          {
-            "combo": "beige+grey",
-            "frequency": 1
-          },
-          {
-            "combo": "blue+grey",
-            "frequency": 1
           }
         ]
       },
@@ -342,7 +346,15 @@
         "brand": "jd_sports",
         "top_colours": [
           {
+            "combo": "black+grey",
+            "frequency": 1
+          },
+          {
             "combo": "black+white",
+            "frequency": 1
+          },
+          {
+            "combo": "grey+white",
             "frequency": 1
           }
         ]
@@ -390,11 +402,6 @@
       },
       {
         "pair": "shirt×trousers",
-        "frequency": 3,
-        "brand_bias": "next"
-      },
-      {
-        "pair": "shirt×jeans",
         "frequency": 2,
         "brand_bias": "next"
       },
@@ -402,6 +409,11 @@
         "pair": "t-shirt×shorts",
         "frequency": 2,
         "brand_bias": "foot_locker"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "next"
       },
       {
         "pair": "polo×trousers",
@@ -448,7 +460,7 @@
       {
         "brand": "next",
         "silhouette": "relaxed",
-        "frequency": 12
+        "frequency": 11
       },
       {
         "brand": "hawes_and_curtis",
@@ -483,14 +495,24 @@
         "score_boost": 6
       },
       {
+        "combo": "black+grey",
+        "frequency": 2,
+        "score_boost": 6
+      },
+      {
         "combo": "black+white",
         "frequency": 2,
         "score_boost": 6
       },
       {
+        "combo": "grey+white",
+        "frequency": 2,
+        "score_boost": 5
+      },
+      {
         "combo": "beige+black",
         "frequency": 1,
-        "score_boost": 6
+        "score_boost": 5
       },
       {
         "combo": "beige+brown",
@@ -503,22 +525,12 @@
         "score_boost": 5
       },
       {
-        "combo": "black+grey",
-        "frequency": 1,
-        "score_boost": 5
-      },
-      {
         "combo": "brown+navy",
         "frequency": 1,
         "score_boost": 5
       },
       {
         "combo": "brown+white",
-        "frequency": 1,
-        "score_boost": 5
-      },
-      {
-        "combo": "grey+white",
         "frequency": 1,
         "score_boost": 4
       }
@@ -549,8 +561,8 @@
       {
         "context": "resort",
         "preferred": [
-          "sneakers",
-          "heels"
+          "heels",
+          "loafers"
         ],
         "avoided": [
           "chunky_boots",
@@ -561,8 +573,8 @@
         "context": "casual",
         "preferred": [
           "sneakers",
-          "sandals",
-          "mules"
+          "mules",
+          "sandals"
         ],
         "avoided": [
           "oxfords",
@@ -573,11 +585,11 @@
     "style_tags": [
       {
         "tag": "next",
-        "frequency": 8
+        "frequency": 7
       },
       {
         "tag": "menswear",
-        "frequency": 4
+        "frequency": 3
       },
       {
         "tag": "sale_window",
@@ -600,10 +612,6 @@
         "frequency": 2
       },
       {
-        "tag": "sale",
-        "frequency": 2
-      },
-      {
         "tag": "stripe_shirt",
         "frequency": 2
       },
@@ -618,8 +626,12 @@
       {
         "tag": "adidas_originals",
         "frequency": 1
+      },
+      {
+        "tag": "aviator",
+        "frequency": 1
       }
     ]
   },
-  "insights": "Croydon mall: 22/22 valid wearable looks. Top colour combos: beige+white (6), black+white (5), blue+white (5), beige+black (3), beige+blue (3). Top garment pairings: shirt×trousers (6), t-shirt×shorts (5), shirt×shorts (3), polo×trousers (2), shirt×jeans (2). Footwear leaders: sneakers×11, sandals×3, mules×2, heels×1, oxfords×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
+  "insights": "Croydon mall: 20/22 valid wearable looks. Top colour combos: beige+white (8), grey+white (6), blue+white (5), beige+grey (4), black+white (4). Top garment pairings: shirt×trousers (5), t-shirt×shorts (5), shirt×shorts (3), polo×trousers (2), knit×jeans (1). Footwear leaders: sneakers×9, mules×2, sandals×2, heels×1, loafers×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure."
 }

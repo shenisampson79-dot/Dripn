@@ -219,7 +219,7 @@
       "contrast": "low",
       "silhouette": "relaxed"
     },
-    "notes": "Varley tonal grey knit with draped sweater and taupe wide-leg trousers",
+    "notes": "Varley tonal grey knit with draped sweater and taupe wide-leg trousers User approved: sandals go with outfit.",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 84,
@@ -791,15 +791,17 @@
       "contrast": "medium",
       "silhouette": "relaxed_tailored"
     },
-    "notes": "Varley window — primary = right mannequin: navy sleeveless knit top, cream/beige jumper wrapped around neck, navy wide-leg trousers. Left mannequin (cream polo + pale shorts + tote) not primary. Partial forms; no footwear.",
-    "confidence": 0.92,
+    "notes": "Varley window — primary = right mannequin: navy sleeveless knit top, cream/beige jumper wrapped around neck, navy wide-leg trousers. Left mannequin (cream polo + pale shorts + tote) not primary. Partial forms; no footwear. [user discarded: user_discarded_label_mismatch]",
+    "confidence": 0.5,
     "score_hint": {
-      "base_score": 84,
-      "boost": true
+      "base_score": 0,
+      "boost": false
     },
     "rules": {
-      "valid": true,
-      "violations": []
+      "valid": false,
+      "violations": [
+        "user_discarded_label_mismatch"
+      ]
     },
     "brand": "varley",
     "price_tier": "premium",
@@ -1110,11 +1112,15 @@
     "image_path": "images/020.jpg",
     "outfit": {
       "top": {
-        "category": "dress",
-        "subcategory": "dress",
-        "color": "beige"
+        "category": "blouse",
+        "subcategory": "blouse",
+        "color": "multicolor"
       },
-      "bottom": null,
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "skirt",
+        "color": "multicolor"
+      },
       "outerwear": null,
       "footwear": null,
       "accessory": null
@@ -1126,6 +1132,7 @@
       ]
     },
     "colour_palette": [
+      "multicolor",
       "beige",
       "black",
       "rust"
@@ -1135,7 +1142,7 @@
       "contrast": "high",
       "silhouette": "slim"
     },
-    "notes": "Ruched maxi dress with midriff cutout in beige-black-rust print.",
+    "notes": "Two-piece: multicolor blouse + multicolor skirt with midriff cutout (not a single dress)",
     "confidence": 0.89,
     "score_hint": {
       "base_score": 79,
@@ -1471,7 +1478,7 @@
       "contrast": "low",
       "silhouette": "tailored"
     },
-    "notes": "White shirt-style mini dress with brown studded mules and tan bag.",
+    "notes": "White shirt-style mini dress with brown studded mules and tan bag. User approved: footwear goes with dress.",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 84,
@@ -1651,15 +1658,17 @@
       "contrast": "medium",
       "silhouette": "tailored"
     },
-    "notes": "Liberty floral smocked dress with open light-blue cardigan on kids mannequin",
-    "confidence": 0.82,
+    "notes": "Liberty floral smocked dress with open light-blue cardigan on kids mannequin [user discarded: user_discarded_kids]",
+    "confidence": 0.5,
     "score_hint": {
-      "base_score": 83,
-      "boost": true
+      "base_score": 0,
+      "boost": false
     },
     "rules": {
-      "valid": true,
-      "violations": []
+      "valid": false,
+      "violations": [
+        "user_discarded_kids"
+      ]
     },
     "brand": "liberty",
     "price_tier": "luxury",

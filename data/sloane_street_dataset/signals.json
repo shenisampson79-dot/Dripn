@@ -1,39 +1,34 @@
 {
   "version": 4,
   "source": "sloane_street+croydon_mall+brixton_high_street+oxford_street",
-  "generated_at": "2026-07-31T15:49:55.513Z",
+  "generated_at": "2026-08-01T22:16:14.244Z",
   "sample_size": 516,
-  "valid_count": 147,
+  "valid_count": 142,
   "colour_combos": [
     {
       "combo": "black+white",
-      "frequency": 37,
+      "frequency": 36,
       "score_boost": 8
     },
     {
       "combo": "beige+white",
-      "frequency": 33,
+      "frequency": 35,
       "score_boost": 8
     },
     {
       "combo": "blue+white",
-      "frequency": 27,
+      "frequency": 26,
       "score_boost": 7
     },
     {
       "combo": "grey+white",
-      "frequency": 19,
+      "frequency": 22,
       "score_boost": 7
     },
     {
       "combo": "beige+black",
       "frequency": 17,
       "score_boost": 7
-    },
-    {
-      "combo": "beige+cream",
-      "frequency": 17,
-      "score_boost": 6
     },
     {
       "combo": "blue+cream",
@@ -46,8 +41,13 @@
       "score_boost": 6
     },
     {
-      "combo": "cream+white",
+      "combo": "beige+cream",
       "frequency": 16,
+      "score_boost": 6
+    },
+    {
+      "combo": "cream+white",
+      "frequency": 15,
       "score_boost": 5
     },
     {
@@ -56,7 +56,7 @@
       "score_boost": 5
     },
     {
-      "combo": "black+cream",
+      "combo": "brown+white",
       "frequency": 14,
       "score_boost": 4
     },
@@ -66,12 +66,12 @@
       "score_boost": 4
     },
     {
-      "combo": "black+grey",
+      "combo": "black+cream",
       "frequency": 13,
       "score_boost": 4
     },
     {
-      "combo": "brown+white",
+      "combo": "black+grey",
       "frequency": 13,
       "score_boost": 3
     },
@@ -84,7 +84,7 @@
   "garment_pairings": [
     {
       "pairing": "shirt×trousers",
-      "frequency": 22,
+      "frequency": 21,
       "score_boost": 6
     },
     {
@@ -98,12 +98,12 @@
       "score_boost": 5
     },
     {
-      "pairing": "shirt×shorts",
-      "frequency": 8,
+      "pairing": "other×trousers",
+      "frequency": 7,
       "score_boost": 5
     },
     {
-      "pairing": "other×trousers",
+      "pairing": "shirt×shorts",
       "frequency": 7,
       "score_boost": 5
     },
@@ -114,7 +114,7 @@
     },
     {
       "pairing": "t-shirt×trousers",
-      "frequency": 6,
+      "frequency": 5,
       "score_boost": 4
     },
     {
@@ -123,18 +123,13 @@
       "score_boost": 4
     },
     {
-      "pairing": "shirt×jeans",
+      "pairing": "t-shirt×skirt",
       "frequency": 4,
       "score_boost": 4
     },
     {
-      "pairing": "sweater×trousers",
-      "frequency": 4,
-      "score_boost": 3
-    },
-    {
-      "pairing": "t-shirt×skirt",
-      "frequency": 4,
+      "pairing": "blouse×skirt",
+      "frequency": 3,
       "score_boost": 3
     },
     {
@@ -150,15 +145,20 @@
     {
       "pairing": "polo×skirt",
       "frequency": 3,
+      "score_boost": 3
+    },
+    {
+      "pairing": "shirt×jeans",
+      "frequency": 3,
+      "score_boost": 2
+    },
+    {
+      "pairing": "sweater×trousers",
+      "frequency": 3,
       "score_boost": 2
     },
     {
       "pairing": "blouse×shorts",
-      "frequency": 2,
-      "score_boost": 2
-    },
-    {
-      "pairing": "blouse×skirt",
       "frequency": 2,
       "score_boost": 2
     },
@@ -240,22 +240,22 @@
         "score_boost": 6
       },
       {
-        "subcategory": "sneakers",
-        "frequency": 2,
-        "score_boost": 5
-      },
-      {
         "subcategory": "espadrilles",
         "frequency": 1,
-        "score_boost": 4
+        "score_boost": 5
       },
       {
         "subcategory": "flats",
         "frequency": 1,
-        "score_boost": 3
+        "score_boost": 4
       },
       {
         "subcategory": "heels",
+        "frequency": 1,
+        "score_boost": 3
+      },
+      {
+        "subcategory": "loafers",
         "frequency": 1,
         "score_boost": 2
       }
@@ -268,12 +268,12 @@
       },
       {
         "subcategory": "sandals",
-        "frequency": 12,
+        "frequency": 11,
         "score_boost": 5
       },
       {
         "subcategory": "loafers",
-        "frequency": 4,
+        "frequency": 3,
         "score_boost": 4
       },
       {
@@ -306,11 +306,11 @@
   "layering_patterns": [
     {
       "pattern": "none",
-      "frequency": 89
+      "frequency": 87
     },
     {
       "pattern": "light",
-      "frequency": 45
+      "frequency": 42
     },
     {
       "pattern": "structured",
@@ -320,19 +320,15 @@
   "silhouette_counts": [
     {
       "silhouette": "relaxed",
-      "frequency": 67
+      "frequency": 65
     },
     {
       "silhouette": "tailored",
-      "frequency": 42
+      "frequency": 41
     },
     {
       "silhouette": "athletic",
       "frequency": 20
-    },
-    {
-      "silhouette": "relaxed_tailored",
-      "frequency": 6
     },
     {
       "silhouette": "slim",
@@ -343,6 +339,10 @@
       "frequency": 4
     },
     {
+      "silhouette": "relaxed_tailored",
+      "frequency": 4
+    },
+    {
       "silhouette": "fitted",
       "frequency": 3
     }
@@ -350,14 +350,14 @@
   "footwear_overall": [
     {
       "subcategory": "sneakers",
-      "frequency": 39
-    },
-    {
-      "subcategory": "sandals",
-      "frequency": 16
+      "frequency": 37
     },
     {
       "subcategory": "loafers",
+      "frequency": 15
+    },
+    {
+      "subcategory": "sandals",
       "frequency": 15
     },
     {
@@ -371,10 +371,6 @@
     {
       "subcategory": "heels",
       "frequency": 3
-    },
-    {
-      "subcategory": "mary_janes",
-      "frequency": 2
     },
     {
       "subcategory": "athletic",
@@ -394,6 +390,10 @@
     },
     {
       "subcategory": "combat_boots",
+      "frequency": 1
+    },
+    {
+      "subcategory": "deck_shoes",
       "frequency": 1
     }
   ],
@@ -433,7 +433,7 @@
           },
           {
             "combo": "grey+white",
-            "frequency": 4
+            "frequency": 5
           },
           {
             "combo": "beige+black",
@@ -444,7 +444,7 @@
             "frequency": 3
           },
           {
-            "combo": "navy+white",
+            "combo": "black+grey",
             "frequency": 3
           }
         ]
@@ -478,7 +478,11 @@
         "brand": "next",
         "top_colours": [
           {
-            "combo": "black+white",
+            "combo": "beige+white",
+            "frequency": 4
+          },
+          {
+            "combo": "grey+white",
             "frequency": 4
           },
           {
@@ -486,15 +490,11 @@
             "frequency": 3
           },
           {
-            "combo": "black+cream",
+            "combo": "beige+cream",
             "frequency": 3
           },
           {
-            "combo": "grey+white",
-            "frequency": 3
-          },
-          {
-            "combo": "red+white",
+            "combo": "black+white",
             "frequency": 3
           }
         ]
@@ -575,31 +575,6 @@
         ]
       },
       {
-        "brand": "varley",
-        "top_colours": [
-          {
-            "combo": "beige+cream",
-            "frequency": 3
-          },
-          {
-            "combo": "beige+blue",
-            "frequency": 1
-          },
-          {
-            "combo": "beige+grey",
-            "frequency": 1
-          },
-          {
-            "combo": "beige+navy",
-            "frequency": 1
-          },
-          {
-            "combo": "blue+cream",
-            "frequency": 1
-          }
-        ]
-      },
-      {
         "brand": "apricot",
         "top_colours": [
           {
@@ -619,7 +594,7 @@
             "frequency": 1
           },
           {
-            "combo": "beige+navy",
+            "combo": "beige+natural",
             "frequency": 1
           }
         ]
@@ -632,20 +607,20 @@
             "frequency": 2
           },
           {
+            "combo": "beige+grey",
+            "frequency": 2
+          },
+          {
             "combo": "beige+white",
+            "frequency": 2
+          },
+          {
+            "combo": "blue+grey",
             "frequency": 2
           },
           {
             "combo": "blue+white",
             "frequency": 2
-          },
-          {
-            "combo": "beige+grey",
-            "frequency": 1
-          },
-          {
-            "combo": "blue+grey",
-            "frequency": 1
           }
         ]
       },
@@ -674,14 +649,6 @@
         "brand": "reiss",
         "top_colours": [
           {
-            "combo": "beige+brown",
-            "frequency": 2
-          },
-          {
-            "combo": "beige+cream",
-            "frequency": 2
-          },
-          {
             "combo": "brown+cream",
             "frequency": 2
           },
@@ -690,7 +657,40 @@
             "frequency": 2
           },
           {
-            "combo": "beige+green",
+            "combo": "beige+brown",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "black+cream",
+            "frequency": 1
+          }
+        ]
+      },
+      {
+        "brand": "varley",
+        "top_colours": [
+          {
+            "combo": "beige+cream",
+            "frequency": 2
+          },
+          {
+            "combo": "beige+blue",
+            "frequency": 1
+          },
+          {
+            "combo": "beige+grey",
+            "frequency": 1
+          },
+          {
+            "combo": "blue+cream",
+            "frequency": 1
+          },
+          {
+            "combo": "cream+grey",
             "frequency": 1
           }
         ]
@@ -897,15 +897,6 @@
           },
           {
             "combo": "coral+green",
-            "frequency": 1
-          }
-        ]
-      },
-      {
-        "brand": "liberty",
-        "top_colours": [
-          {
-            "combo": "blue+white",
             "frequency": 1
           }
         ]
@@ -1378,19 +1369,9 @@
         "brand_bias": "next"
       },
       {
-        "pair": "shirt×trousers",
-        "frequency": 3,
-        "brand_bias": "next"
-      },
-      {
         "pair": "t-shirt×shorts",
         "frequency": 3,
         "brand_bias": "oxford_street"
-      },
-      {
-        "pair": "shirt×jeans",
-        "frequency": 2,
-        "brand_bias": "next"
       },
       {
         "pair": "shirt×shorts",
@@ -1398,9 +1379,19 @@
         "brand_bias": "sloane_street"
       },
       {
+        "pair": "shirt×trousers",
+        "frequency": 2,
+        "brand_bias": "next"
+      },
+      {
         "pair": "t-shirt×shorts",
         "frequency": 2,
         "brand_bias": "foot_locker"
+      },
+      {
+        "pair": "t-shirt×shorts",
+        "frequency": 2,
+        "brand_bias": "next"
       },
       {
         "pair": "t-shirt×shorts",
@@ -1413,9 +1404,9 @@
         "brand_bias": "jd_sports"
       },
       {
-        "pair": "t-shirt×trousers",
-        "frequency": 2,
-        "brand_bias": "brixton_high_street"
+        "pair": "bikini_top×shorts",
+        "frequency": 1,
+        "brand_bias": "hm"
       },
       {
         "pair": "blouse×shorts",
@@ -1505,11 +1496,6 @@
         "frequency": 1
       },
       {
-        "brand": "liberty",
-        "silhouette": "tailored",
-        "frequency": 1
-      },
-      {
         "brand": "loveshackfancy",
         "silhouette": "slim",
         "frequency": 1
@@ -1542,7 +1528,7 @@
       {
         "brand": "next",
         "silhouette": "relaxed",
-        "frequency": 15
+        "frequency": 14
       },
       {
         "brand": "hawes_and_curtis",
@@ -1597,7 +1583,7 @@
       {
         "brand": "brixton_high_street",
         "silhouette": "relaxed",
-        "frequency": 3
+        "frequency": 2
       },
       {
         "brand": "oliver_bonas",
@@ -1728,22 +1714,17 @@
       },
       {
         "combo": "beige+white",
-        "frequency": 16,
+        "frequency": 15,
         "score_boost": 6
       },
       {
         "combo": "beige+black",
-        "frequency": 12,
+        "frequency": 11,
         "score_boost": 6
       },
       {
         "combo": "grey+white",
-        "frequency": 10,
-        "score_boost": 5
-      },
-      {
-        "combo": "beige+cream",
-        "frequency": 9,
+        "frequency": 11,
         "score_boost": 5
       },
       {
@@ -1757,8 +1738,13 @@
         "score_boost": 5
       },
       {
-        "combo": "beige+brown",
+        "combo": "beige+cream",
         "frequency": 8,
+        "score_boost": 5
+      },
+      {
+        "combo": "beige+brown",
+        "frequency": 7,
         "score_boost": 5
       },
       {
@@ -1812,9 +1798,9 @@
         "context": "resort",
         "preferred": [
           "sandals",
-          "sneakers",
           "espadrilles",
-          "flats"
+          "flats",
+          "heels"
         ],
         "avoided": [
           "chunky_boots",
@@ -1838,15 +1824,15 @@
     "style_tags": [
       {
         "tag": "tailored",
-        "frequency": 24
+        "frequency": 22
       },
       {
         "tag": "relaxed",
-        "frequency": 20
+        "frequency": 19
       },
       {
         "tag": "smart casual",
-        "frequency": 20
+        "frequency": 18
       },
       {
         "tag": "quiet luxury",
@@ -1870,7 +1856,7 @@
       },
       {
         "tag": "next",
-        "frequency": 8
+        "frequency": 7
       },
       {
         "tag": "wide_leg",
@@ -1881,19 +1867,19 @@
         "frequency": 6
       },
       {
-        "tag": "menswear",
+        "tag": "morleys",
         "frequency": 6
       }
     ]
   },
-  "insights": "Shop-window corpus (Sloane + Croydon + Brixton + Oxford): 147/516 valid wearable looks. Top colour combos: black+white (37), beige+white (33), blue+white (27), grey+white (19), beige+black (17). Top garment pairings: shirt×trousers (22), t-shirt×shorts (19), polo×trousers (9), shirt×shorts (8), other×trousers (7). Footwear leaders: sneakers×39, sandals×16, loafers×15, flats×5, mules×4. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.",
+  "insights": "Shop-window corpus (Sloane + Croydon + Brixton + Oxford): 142/516 valid wearable looks. Top colour combos: black+white (36), beige+white (35), blue+white (26), grey+white (22), beige+black (17). Top garment pairings: shirt×trousers (21), t-shirt×shorts (19), polo×trousers (9), other×trousers (7), shirt×shorts (7). Footwear leaders: sneakers×37, loafers×15, sandals×15, flats×5, mules×4. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.",
   "lanes": {
     "luxury": {
       "source": "sloane_street",
       "colour_combos": [
         {
           "combo": "beige+cream",
-          "frequency": 8,
+          "frequency": 7,
           "score_boost": 8
         },
         {
@@ -1942,28 +1928,28 @@
           "score_boost": 5
         },
         {
-          "combo": "beige+navy",
-          "frequency": 3,
-          "score_boost": 4
-        },
-        {
           "combo": "blue+navy",
-          "frequency": 3,
-          "score_boost": 4
-        },
-        {
-          "combo": "blue+white",
           "frequency": 3,
           "score_boost": 4
         },
         {
           "combo": "cream+white",
           "frequency": 3,
-          "score_boost": 3
+          "score_boost": 4
         },
         {
           "combo": "navy+white",
           "frequency": 3,
+          "score_boost": 4
+        },
+        {
+          "combo": "beige+green",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "combo": "beige+navy",
+          "frequency": 2,
           "score_boost": 3
         }
       ],
@@ -1984,6 +1970,11 @@
           "score_boost": 5
         },
         {
+          "pairing": "blouse×skirt",
+          "frequency": 2,
+          "score_boost": 5
+        },
+        {
           "pairing": "knit×trousers",
           "frequency": 2,
           "score_boost": 5
@@ -1992,16 +1983,6 @@
           "pairing": "shirt×shorts",
           "frequency": 2,
           "score_boost": 5
-        },
-        {
-          "pairing": "sweater×trousers",
-          "frequency": 2,
-          "score_boost": 5
-        },
-        {
-          "pairing": "blouse×skirt",
-          "frequency": 1,
-          "score_boost": 4
         },
         {
           "pairing": "blouse×trousers",
@@ -2016,7 +1997,7 @@
         {
           "pairing": "other×skirt",
           "frequency": 1,
-          "score_boost": 3
+          "score_boost": 4
         },
         {
           "pairing": "polo×jeans",
@@ -2035,6 +2016,11 @@
         },
         {
           "pairing": "shirt×jeans",
+          "frequency": 1,
+          "score_boost": 3
+        },
+        {
+          "pairing": "sweater×trousers",
           "frequency": 1,
           "score_boost": 2
         },
@@ -2065,11 +2051,6 @@
             "subcategory": "sneakers",
             "frequency": 2,
             "score_boost": 4
-          },
-          {
-            "subcategory": "mary_janes",
-            "frequency": 1,
-            "score_boost": 3
           }
         ],
         "business_casual": [],
@@ -2109,12 +2090,12 @@
       "colour_combos": [
         {
           "combo": "black+white",
-          "frequency": 36,
+          "frequency": 35,
           "score_boost": 8
         },
         {
           "combo": "beige+white",
-          "frequency": 26,
+          "frequency": 28,
           "score_boost": 8
         },
         {
@@ -2124,7 +2105,7 @@
         },
         {
           "combo": "grey+white",
-          "frequency": 17,
+          "frequency": 20,
           "score_boost": 7
         },
         {
@@ -2144,12 +2125,12 @@
         },
         {
           "combo": "cream+white",
-          "frequency": 13,
+          "frequency": 12,
           "score_boost": 6
         },
         {
           "combo": "black+cream",
-          "frequency": 12,
+          "frequency": 11,
           "score_boost": 5
         },
         {
@@ -2168,17 +2149,17 @@
           "score_boost": 4
         },
         {
-          "combo": "beige+cream",
-          "frequency": 9,
+          "combo": "brown+white",
+          "frequency": 10,
           "score_boost": 4
         },
         {
-          "combo": "blue+brown",
+          "combo": "beige+cream",
           "frequency": 9,
           "score_boost": 3
         },
         {
-          "combo": "brown+white",
+          "combo": "blue+brown",
           "frequency": 9,
           "score_boost": 3
         }
@@ -2191,7 +2172,7 @@
         },
         {
           "pairing": "shirt×trousers",
-          "frequency": 16,
+          "frequency": 15,
           "score_boost": 6
         },
         {
@@ -2200,24 +2181,19 @@
           "score_boost": 5
         },
         {
-          "pairing": "shirt×shorts",
-          "frequency": 6,
-          "score_boost": 5
-        },
-        {
-          "pairing": "t-shirt×trousers",
-          "frequency": 6,
-          "score_boost": 5
-        },
-        {
           "pairing": "blouse×trousers",
           "frequency": 5,
           "score_boost": 5
         },
         {
-          "pairing": "shirt×jeans",
-          "frequency": 3,
-          "score_boost": 4
+          "pairing": "shirt×shorts",
+          "frequency": 5,
+          "score_boost": 5
+        },
+        {
+          "pairing": "t-shirt×trousers",
+          "frequency": 5,
+          "score_boost": 5
         },
         {
           "pairing": "t-shirt×skirt",
@@ -2232,7 +2208,7 @@
         {
           "pairing": "other×shorts",
           "frequency": 2,
-          "score_boost": 3
+          "score_boost": 4
         },
         {
           "pairing": "other×trousers",
@@ -2241,6 +2217,11 @@
         },
         {
           "pairing": "polo×skirt",
+          "frequency": 2,
+          "score_boost": 3
+        },
+        {
+          "pairing": "shirt×jeans",
           "frequency": 2,
           "score_boost": 3
         },
@@ -2270,17 +2251,17 @@
           "score_boost": 2
         },
         {
+          "pairing": "bikini_top×shorts",
+          "frequency": 1,
+          "score_boost": 2
+        },
+        {
           "pairing": "blouse×jeans",
           "frequency": 1,
           "score_boost": 2
         },
         {
           "pairing": "blouse×skirt",
-          "frequency": 1,
-          "score_boost": 2
-        },
-        {
-          "pairing": "jacket×skirt",
           "frequency": 1,
           "score_boost": 2
         }
@@ -2337,12 +2318,12 @@
         ],
         "resort": [
           {
-            "subcategory": "sneakers",
-            "frequency": 2,
+            "subcategory": "heels",
+            "frequency": 1,
             "score_boost": 6
           },
           {
-            "subcategory": "heels",
+            "subcategory": "loafers",
             "frequency": 1,
             "score_boost": 5
           },
@@ -2360,12 +2341,12 @@
           },
           {
             "subcategory": "sandals",
-            "frequency": 11,
+            "frequency": 10,
             "score_boost": 5
           },
           {
             "subcategory": "loafers",
-            "frequency": 4,
+            "frequency": 3,
             "score_boost": 4
           },
           {

@@ -1,0 +1,215 @@
+{
+  "street": "brixton",
+  "total": 29,
+  "reviewed_at": "2026-08-01",
+  "items": [
+    {
+      "id": "001",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "002",
+      "status": "uncertain",
+      "notes": "Bikini under cover-up — add swimwear piece?"
+    },
+    {
+      "id": "003",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "004",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "005",
+      "status": "fix",
+      "notes": "Primary = brown draped mini not lime dress",
+      "pieces": [
+        {
+          "category": "dresses",
+          "subcategory": "mini",
+          "color": "brown"
+        },
+        {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "brown"
+        },
+        {
+          "category": "accessories",
+          "subcategory": "fascinator",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "006",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "007",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "008",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "009",
+      "status": "ok",
+      "notes": "Invalid/discarded Sloggi — correct"
+    },
+    {
+      "id": "010",
+      "status": "fix",
+      "notes": "Co-ord brown not beige",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "blouse",
+          "color": "brown"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "skirt",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "011",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "012",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "013",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "014",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "015",
+      "status": "fix",
+      "notes": "Jacket/shorts black not grey; add beige cap",
+      "pieces": [
+        {
+          "category": "outerwear",
+          "subcategory": "jacket",
+          "color": "black"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "black"
+        },
+        {
+          "category": "accessories",
+          "subcategory": "cap",
+          "color": "beige"
+        }
+      ]
+    },
+    {
+      "id": "016",
+      "status": "uncertain",
+      "notes": "Lavender/purple vs dusty blue colorblock"
+    },
+    {
+      "id": "017",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "018",
+      "status": "ok",
+      "notes": "Invalid/discarded — correct"
+    },
+    {
+      "id": "019",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "020",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "021",
+      "status": "fix",
+      "notes": "Shorts beige not olive",
+      "pieces": [
+        {
+          "category": "tops",
+          "subcategory": "t_shirt",
+          "color": "white"
+        },
+        {
+          "category": "bottoms",
+          "subcategory": "shorts",
+          "color": "beige"
+        }
+      ]
+    },
+    {
+      "id": "022",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "023",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "024",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "025",
+      "status": "ok",
+      "notes": "Invalid/discarded — correct"
+    },
+    {
+      "id": "026",
+      "status": "ok",
+      "notes": "Matches"
+    },
+    {
+      "id": "027",
+      "status": "uncertain",
+      "notes": "Fitting-room clutter — keep valid?"
+    },
+    {
+      "id": "028",
+      "status": "uncertain",
+      "notes": "Fitting-room clutter — keep valid?"
+    },
+    {
+      "id": "029",
+      "status": "uncertain",
+      "notes": "Fitting-room clutter — keep valid?"
+    }
+  ],
+  "counts": {
+    "ok": 20,
+    "fix": 4,
+    "uncertain": 5
+  }
+}

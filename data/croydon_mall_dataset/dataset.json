@@ -6,20 +6,67 @@
     "brand": null,
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "dress_shirt", "color": "white" },
-      "bottom": { "category": "trousers", "subcategory": "suit_trousers", "color": "tan" },
-      "outerwear": { "category": "blazer", "subcategory": "single_breasted_suit_jacket", "color": "tan" },
-      "footwear": { "category": "shoes", "subcategory": "oxfords", "color": "brown" },
-      "accessory": { "category": "tie", "subcategory": "silk_tie", "color": "tan" }
+      "top": {
+        "category": "shirt",
+        "subcategory": "dress_shirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit_trousers",
+        "color": "tan"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted_suit_jacket",
+        "color": "tan"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "oxfords",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "tie",
+        "subcategory": "silk_tie",
+        "color": "tan"
+      }
     },
-    "style": { "primary": "business_casual", "secondary": ["formal", "tonal", "tailored"] },
-    "colour_palette": ["tan", "white", "brown", "gold"],
-    "features": { "layering": "structured", "contrast": "low", "silhouette": "tailored" },
-    "style_tags": ["three_piece_suit", "monochrome", "sale_window", "menswear"],
+    "style": {
+      "primary": "business_casual",
+      "secondary": [
+        "formal",
+        "tonal",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "white",
+      "brown",
+      "gold"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "three_piece_suit",
+      "monochrome",
+      "sale_window",
+      "menswear"
+    ],
     "notes": "Center-left mannequin in tonal tan three-piece suit with white shirt, matching tie, pocket square, and dark brown dress shoes",
     "confidence": 0.88,
-    "score_hint": { "base_score": 82, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_002",
@@ -28,20 +75,59 @@
     "brand": "foot_locker",
     "price_tier": "premium",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "oversized_crew_neck", "color": "taupe" },
-      "bottom": { "category": "shorts", "subcategory": "jersey_shorts", "color": "blue" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "oversized_crew_neck",
+        "color": "taupe"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "jersey_shorts",
+        "color": "blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "silver"
+      },
       "accessory": null
     },
-    "style": { "primary": "athleisure", "secondary": ["streetwear", "summer", "oversized"] },
-    "colour_palette": ["taupe", "blue", "white"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "athletic" },
-    "style_tags": ["foot_locker", "chunky_sneakers", "relaxed", "mall_window"],
-    "notes": "Foot Locker taller adult mannequin taupe tee + light blue jersey shorts + metallic/white sneakers",
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "streetwear",
+        "summer",
+        "oversized"
+      ]
+    },
+    "colour_palette": [
+      "taupe",
+      "blue",
+      "white",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "athletic"
+    },
+    "style_tags": [
+      "foot_locker",
+      "chunky_sneakers",
+      "relaxed",
+      "mall_window"
+    ],
+    "notes": "Foot Locker taller adult mannequin taupe tee + light blue jersey shorts + silver & white sneakers",
     "confidence": 0.92,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_003",
@@ -50,20 +136,64 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "short_sleeve_stripe_knit", "color": "brown" },
-      "bottom": { "category": "shorts", "subcategory": "denim_shorts", "color": "blue" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "short_sleeve_stripe_knit",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_shorts",
+        "color": "blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "clogs", "color": "black" },
-      "accessory": { "category": "eyewear", "subcategory": "sunglasses", "color": "black" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "clogs",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["summer", "smart_casual", "resort"] },
-    "colour_palette": ["tan", "brown", "blue", "black", "cream"],
-    "features": { "layering": "light", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["open_shirt_layer", "denim_shorts", "clogs", "paper_flower_backdrop"],
-    "notes": "Center mannequin with striped short-sleeve knit shirt open over tan tee, light-wash denim shorts, black clog slides and sunglasses",
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "smart_casual",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "brown",
+      "blue",
+      "black",
+      "cream"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "open_shirt_layer",
+      "denim_shorts",
+      "clogs",
+      "paper_flower_backdrop"
+    ],
+    "notes": "Primary right/center stripe knit open over brown under-tee, light-wash denim shorts, clog slides and sunglasses",
     "confidence": 0.9,
-    "score_hint": { "base_score": 84, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_004",
@@ -72,20 +202,57 @@
     "brand": "hawes_and_curtis",
     "price_tier": "premium",
     "outfit": {
-      "top": { "category": "polo", "subcategory": "short_sleeve_polo", "color": "white" },
-      "bottom": { "category": "trousers", "subcategory": "tailored_trousers", "color": "blue" },
+      "top": {
+        "category": "polo",
+        "subcategory": "short_sleeve_polo",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored_trousers",
+        "color": "blue"
+      },
       "outerwear": null,
       "footwear": null,
-      "accessory": { "category": "belt", "subcategory": "leather_belt", "color": "brown" }
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather_belt",
+        "color": "brown"
+      }
     },
-    "style": { "primary": "smart_casual", "secondary": ["business_casual", "summer"] },
-    "colour_palette": ["white", "blue", "brown"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "tailored" },
-    "style_tags": ["outlet", "polo", "tailored", "hawes_and_curtis"],
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "business_casual",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "blue",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "outlet",
+      "polo",
+      "tailored",
+      "hawes_and_curtis"
+    ],
     "notes": "Right-window mannequin in white short-sleeve polo tucked into light blue tailored trousers with dark belt; footwear cropped",
     "confidence": 0.85,
-    "score_hint": { "base_score": 78, "boost": false },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_005",
@@ -94,20 +261,62 @@
     "brand": "mirror",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "cropped_camp_collar", "color": "green" },
-      "bottom": { "category": "trousers", "subcategory": "wide_leg", "color": "green" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "cropped_camp_collar",
+        "color": "green"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "green"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "heels", "color": "silver" },
-      "accessory": { "category": "hat", "subcategory": "wide_brim_straw", "color": "beige" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "silver"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "wide_brim_straw",
+        "color": "beige"
+      }
     },
-    "style": { "primary": "resort", "secondary": ["summer", "co_ord", "smart_casual"] },
-    "colour_palette": ["green", "beige", "silver"],
-    "features": { "layering": "none", "contrast": "low", "silhouette": "relaxed_tailored" },
-    "style_tags": ["matching_set", "straw_hat", "holiday", "sale_window"],
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "summer",
+        "co_ord",
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "green",
+      "beige",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed_tailored"
+    },
+    "style_tags": [
+      "matching_set",
+      "straw_hat",
+      "holiday",
+      "sale_window"
+    ],
     "notes": "Right-window center mannequin in sage green cropped shirt and matching wide-leg trousers with straw hat, sunglasses and strappy heels",
     "confidence": 0.9,
-    "score_hint": { "base_score": 85, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_006",
@@ -116,20 +325,59 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "camp_collar_embroidered", "color": "red" },
-      "bottom": { "category": "trousers", "subcategory": "tapered_chinos", "color": "cream" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "camp_collar_embroidered",
+        "color": "red"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tapered_chinos",
+        "color": "cream"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "beige"
+      },
       "accessory": null
     },
-    "style": { "primary": "resort", "secondary": ["casual", "summer", "holiday"] },
-    "colour_palette": ["red", "cream", "white"],
-    "features": { "layering": "none", "contrast": "high", "silhouette": "relaxed" },
-    "style_tags": ["tropical_embroidery", "camp_collar", "sale", "menswear"],
-    "notes": "Center-right mannequin in red palm-embroidered short-sleeve shirt with off-white trousers and white sneakers",
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "casual",
+        "summer",
+        "holiday"
+      ]
+    },
+    "colour_palette": [
+      "red",
+      "cream",
+      "white",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "tropical_embroidery",
+      "camp_collar",
+      "sale",
+      "menswear"
+    ],
+    "notes": "Center-right mannequin in red palm-embroidered short-sleeve shirt with off-white trousers and beige loafers",
     "confidence": 0.91,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_007",
@@ -138,20 +386,65 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "camp_collar_embroidered", "color": "red" },
-      "bottom": { "category": "trousers", "subcategory": "relaxed_linen", "color": "cream" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "camp_collar_embroidered",
+        "color": "red"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "relaxed_linen",
+        "color": "cream"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
-      "accessory": { "category": "eyewear", "subcategory": "sunglasses", "color": "black" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
     },
-    "style": { "primary": "resort", "secondary": ["casual", "summer", "holiday"] },
-    "colour_palette": ["red", "cream", "white", "black"],
-    "features": { "layering": "none", "contrast": "high", "silhouette": "relaxed" },
-    "style_tags": ["tropical_print", "held_accessories", "sale", "menswear"],
-    "notes": "Center-right mannequin in red embroidered camp-collar shirt, off-white trousers, white sneakers, holding sunglasses and white cap",
-    "confidence": 0.93,
-    "score_hint": { "base_score": 87, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "casual",
+        "summer",
+        "holiday"
+      ]
+    },
+    "colour_palette": [
+      "red",
+      "cream",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "tropical_print",
+      "held_accessories",
+      "sale",
+      "menswear"
+    ],
+    "notes": "Center-right mannequin in red embroidered camp-collar shirt, off-white trousers, white sneakers, holding sunglasses and white cap [user discarded: user_discarded_uncertain]",
+    "confidence": 0.5,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "user_discarded_uncertain"
+      ]
+    }
   },
   {
     "id": "croydon_008",
@@ -160,20 +453,62 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "knit", "subcategory": "halter_knit_top", "color": "brown" },
-      "bottom": { "category": "jeans", "subcategory": "wide_leg", "color": "blue" },
+      "top": {
+        "category": "knit",
+        "subcategory": "halter_knit_top",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg",
+        "color": "blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sandals", "color": "brown" },
-      "accessory": { "category": "bag", "subcategory": "structured_handbag", "color": "cream" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "structured_handbag",
+        "color": "cream"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["summer", "boho", "denim"] },
-    "colour_palette": ["brown", "cream", "blue"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["wide_leg_denim", "halter", "handbag", "sale_window"],
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "boho",
+        "denim"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "cream",
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "wide_leg_denim",
+      "halter",
+      "handbag",
+      "sale_window"
+    ],
     "notes": "Center-left female mannequin in brown-and-cream patterned halter knit, light-wash wide-leg jeans, dark sandals and cream handbag",
     "confidence": 0.9,
-    "score_hint": { "base_score": 85, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_009",
@@ -182,20 +517,57 @@
     "brand": "zara",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "collar_shirt", "color": "mint green" },
-      "bottom": { "category": "trousers", "subcategory": "straight_leg", "color": "black" },
-      "outerwear": { "category": "jacket", "subcategory": "cropped_blouson", "color": "cream" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "collar_shirt",
+        "color": "mint green"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_leg",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_blouson",
+        "color": "cream"
+      },
       "footwear": null,
       "accessory": null
     },
-    "style": { "primary": "smart_casual", "secondary": ["minimal", "clean"] },
-    "colour_palette": ["cream", "mint green", "black"],
-    "features": { "layering": "light", "contrast": "medium", "silhouette": "tailored" },
-    "style_tags": ["zara", "cropped_jacket", "minimalist", "menswear"],
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "clean"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "mint green",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "zara",
+      "cropped_jacket",
+      "minimalist",
+      "menswear"
+    ],
     "notes": "Left-window male mannequin in cream cropped jacket over mint shirt with dark trousers; footwear hidden by display block",
     "confidence": 0.88,
-    "score_hint": { "base_score": 80, "boost": false },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_010",
@@ -204,20 +576,65 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "vertical_stripe_button_down", "color": "orange" },
-      "bottom": { "category": "jeans", "subcategory": "cropped_straight", "color": "dark blue" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "vertical_stripe_button_down",
+        "color": "multicolor"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "cropped_straight",
+        "color": "dark blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sandals", "color": "white" },
-      "accessory": { "category": "eyewear", "subcategory": "sunglasses", "color": "black" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "gold"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["summer", "smart_casual", "resort"] },
-    "colour_palette": ["orange", "white", "dark blue"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["stripe_shirt", "cropped_denim", "sunglasses", "paper_flowers"],
-    "notes": "Center mannequin in orange-and-white striped shirt, dark cropped jeans, white strappy sandals and round sunglasses",
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "smart_casual",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "orange",
+      "white",
+      "dark blue",
+      "multicolor",
+      "beige",
+      "gold"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "stripe_shirt",
+      "cropped_denim",
+      "sunglasses",
+      "paper_flowers"
+    ],
+    "notes": "Center mannequin in multicolor vertical-stripe button-down, dark blue cropped jeans, beige sandals, gold sunglasses",
     "confidence": 0.91,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_011",
@@ -226,20 +643,64 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "knotted_stripe_shirt", "color": "yellow" },
-      "bottom": { "category": "jeans", "subcategory": "cropped_straight", "color": "dark blue" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "knotted_stripe_shirt",
+        "color": "yellow"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "cropped_straight",
+        "color": "dark blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sandals", "color": "beige" },
-      "accessory": { "category": "eyewear", "subcategory": "sunglasses", "color": "black" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["summer", "smart_casual"] },
-    "colour_palette": ["yellow", "peach", "dark blue", "beige"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed_tailored" },
-    "style_tags": ["waist_knot", "stripe", "cropped_jeans", "next"],
-    "notes": "Second-from-left mannequin in yellow-peach striped shirt knotted at waist, dark cropped jeans, beige sandals and sunglasses",
-    "confidence": 0.92,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "peach",
+      "dark blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed_tailored"
+    },
+    "style_tags": [
+      "waist_knot",
+      "stripe",
+      "cropped_jeans",
+      "next"
+    ],
+    "notes": "Second-from-left mannequin in yellow-peach striped shirt knotted at waist, dark cropped jeans, beige sandals and sunglasses [user discarded: user_discarded_uncertain]",
+    "confidence": 0.5,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "user_discarded_uncertain"
+      ]
+    }
   },
   {
     "id": "croydon_012",
@@ -248,20 +709,62 @@
     "brand": "adidas",
     "price_tier": "premium",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "graphic_ringer_tee", "color": "white" },
-      "bottom": { "category": "shorts", "subcategory": "jersey_shorts", "color": "black" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_ringer_tee",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "jersey_shorts",
+        "color": "black"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "black" },
-      "accessory": { "category": "bag", "subcategory": "backpack", "color": "maroon" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "maroon"
+      }
     },
-    "style": { "primary": "athleisure", "secondary": ["streetwear", "sportswear"] },
-    "colour_palette": ["white", "maroon", "black", "gum"],
-    "features": { "layering": "none", "contrast": "high", "silhouette": "athletic" },
-    "style_tags": ["adidas_originals", "trefoil", "gum_sole", "backpack"],
-    "notes": "Left foreground mannequin in white Adidas Originals ringer tee, black shorts, gum-sole sneakers, maroon backpack and NY cap at hip",
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "streetwear",
+        "sportswear"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "maroon",
+      "black",
+      "gum"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "athletic"
+    },
+    "style_tags": [
+      "adidas_originals",
+      "trefoil",
+      "gum_sole",
+      "backpack"
+    ],
+    "notes": "Left foreground mannequin in white Adidas Originals ringer tee, black shorts, sneakers, maroon NY cap; maroon backpack also present",
     "confidence": 0.94,
-    "score_hint": { "base_score": 88, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 88,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_013",
@@ -270,20 +773,62 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "sweater", "subcategory": "v_neck_stripe_knit", "color": "pink" },
-      "bottom": { "category": "jeans", "subcategory": "wide_leg", "color": "dark blue" },
+      "top": {
+        "category": "sweater",
+        "subcategory": "v_neck_stripe_knit",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg",
+        "color": "dark blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
-      "accessory": { "category": "belt", "subcategory": "thin_metallic", "color": "silver" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "belt",
+        "subcategory": "thin_metallic",
+        "color": "silver"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["everyday", "relaxed"] },
-    "colour_palette": ["pink", "white", "dark blue", "silver"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["stripe_knit", "wide_leg_denim", "next", "in_store"],
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "everyday",
+        "relaxed"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "white",
+      "dark blue",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "stripe_knit",
+      "wide_leg_denim",
+      "next",
+      "in_store"
+    ],
     "notes": "Floor mannequin in pale pink striped V-neck knit, dark wide-leg jeans, thin silver belt and white sneakers",
     "confidence": 0.9,
-    "score_hint": { "base_score": 84, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_014",
@@ -292,20 +837,62 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "crew_neck_logo_tee", "color": "white" },
-      "bottom": { "category": "trousers", "subcategory": "chinos", "color": "tan" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck_logo_tee",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "chinos",
+        "color": "tan"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "black" },
-      "accessory": { "category": "eyewear", "subcategory": "aviator_sunglasses", "color": "silver" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "backpack",
+        "color": "black"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["everyday", "minimal"] },
-    "colour_palette": ["white", "tan", "black", "silver"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["logo_tee", "chinos", "skate_sneakers", "aviator"],
-    "notes": "Central male mannequin in white logo tee, tan chinos, black low-top sneakers and silver aviator sunglasses",
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "everyday",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "tan",
+      "black",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "logo_tee",
+      "chinos",
+      "skate_sneakers",
+      "aviator"
+    ],
+    "notes": "Central male mannequin in white logo tee, tan chinos, sneakers, black backpack; silver aviators also worn",
     "confidence": 0.93,
-    "score_hint": { "base_score": 85, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_015",
@@ -314,20 +901,56 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "camp_collar", "color": "orange" },
-      "bottom": { "category": "shorts", "subcategory": "chino_shorts", "color": "black" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "camp_collar",
+        "color": "orange"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino_shorts",
+        "color": "black"
+      },
       "outerwear": null,
       "footwear": null,
-      "accessory": { "category": "eyewear", "subcategory": "sunglasses", "color": "black" }
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
     },
-    "style": { "primary": "resort", "secondary": ["casual", "summer"] },
-    "colour_palette": ["orange", "black"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["camp_collar", "summer_shorts", "sunglasses", "next"],
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "casual",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "orange",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "camp_collar",
+      "summer_shorts",
+      "sunglasses",
+      "next"
+    ],
     "notes": "Male mannequin in burnt-orange camp-collar shirt, black knee shorts and dark sunglasses; footwear cropped at shin",
     "confidence": 0.88,
-    "score_hint": { "base_score": 78, "boost": false },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_016",
@@ -336,20 +959,57 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "short_sleeve_button_up", "color": "rust" },
-      "bottom": { "category": "shorts", "subcategory": "tailored_shorts", "color": "navy" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "short_sleeve_button_up",
+        "color": "rust"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored_shorts",
+        "color": "navy"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "clogs", "color": "brown" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "clogs",
+        "color": "brown"
+      },
       "accessory": null
     },
-    "style": { "primary": "casual", "secondary": ["summer", "resort"] },
-    "colour_palette": ["rust", "navy", "brown"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["camp_shirt", "suede_clogs", "summer", "next"],
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "rust",
+      "navy",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "camp_shirt",
+      "suede_clogs",
+      "summer",
+      "next"
+    ],
     "notes": "Side-profile mannequin in rust short-sleeve shirt, navy tailored shorts and brown suede clog slides",
     "confidence": 0.92,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_017",
@@ -358,20 +1018,57 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "graphic_crew_neck", "color": "white" },
-      "bottom": { "category": "shorts", "subcategory": "denim_shorts", "color": "blue" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_shorts",
+        "color": "blue"
+      },
       "outerwear": null,
       "footwear": null,
-      "accessory": { "category": "hat", "subcategory": "baseball_cap", "color": "navy" }
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "navy"
+      }
     },
-    "style": { "primary": "casual", "secondary": ["summer", "beach"] },
-    "colour_palette": ["white", "blue", "navy"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["graphic_tee", "denim_shorts", "baseball_cap", "next"],
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "beach"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "blue",
+      "navy"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic_tee",
+      "denim_shorts",
+      "baseball_cap",
+      "next"
+    ],
     "notes": "Male mannequin in white surf graphic tee, light-wash denim shorts, navy baseball cap and aviators; footwear cropped",
     "confidence": 0.9,
-    "score_hint": { "base_score": 80, "boost": false },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_018",
@@ -380,20 +1077,58 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "polo", "subcategory": "quarter_zip_textured", "color": "white" },
-      "bottom": { "category": "trousers", "subcategory": "slim_chinos", "color": "olive" },
+      "top": {
+        "category": "polo",
+        "subcategory": "quarter_zip_textured",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "slim_chinos",
+        "color": "grey"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": null
     },
-    "style": { "primary": "smart_casual", "secondary": ["minimal", "textured", "summer"] },
-    "colour_palette": ["white", "olive"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "tailored" },
-    "style_tags": ["textured_polo", "slim_trousers", "clean_sneakers", "next"],
-    "notes": "Male mannequin in white textured quarter-zip polo, olive slim trousers and white low-top sneakers",
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "textured",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "olive",
+      "grey"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "textured_polo",
+      "slim_trousers",
+      "clean_sneakers",
+      "next"
+    ],
+    "notes": "Male mannequin in white textured quarter-zip polo, grey slim trousers and white low-top sneakers",
     "confidence": 0.94,
-    "score_hint": { "base_score": 87, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_019",
@@ -402,20 +1137,58 @@
     "brand": "jd_sports",
     "price_tier": "premium",
     "outfit": {
-      "top": { "category": "sweater", "subcategory": "cropped_sweatshirt", "color": "white" },
-      "bottom": { "category": "shorts", "subcategory": "sweat_shorts", "color": "white" },
+      "top": {
+        "category": "sweater",
+        "subcategory": "cropped_sweatshirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "sweat_shorts",
+        "color": "white"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "silver"
+      },
       "accessory": null
     },
-    "style": { "primary": "athleisure", "secondary": ["sporty", "summer", "nike"] },
-    "colour_palette": ["white", "black"],
-    "features": { "layering": "light", "contrast": "high", "silhouette": "athletic" },
-    "style_tags": ["nike_pro", "cropped_sweat", "monochrome_white", "jd_window"],
-    "notes": "Center female mannequin in white cropped sweatshirt over black Nike Pro bra, matching white sweat shorts and white sneakers",
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "sporty",
+        "summer",
+        "nike"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black",
+      "silver"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "athletic"
+    },
+    "style_tags": [
+      "nike_pro",
+      "cropped_sweat",
+      "monochrome_white",
+      "jd_window"
+    ],
+    "notes": "Center female mannequin: white cropped sweatshirt over black & white Nike Pro sports bra; white sweat shorts over black & white Nike Pro cycling shorts; silver & white trainers",
     "confidence": 0.93,
-    "score_hint": { "base_score": 88, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 88,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_020",
@@ -424,20 +1197,64 @@
     "brand": "foot_locker",
     "price_tier": "premium",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "oversized_crew_neck", "color": "taupe" },
-      "bottom": { "category": "shorts", "subcategory": "jersey_shorts", "color": "blue" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "oversized_crew_neck",
+        "color": "taupe"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "jersey_shorts",
+        "color": "blue"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "silver" },
-      "accessory": { "category": "jewelry", "subcategory": "chain_necklace", "color": "gold" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "silver"
+      },
+      "accessory": {
+        "category": "jewelry",
+        "subcategory": "chain_necklace",
+        "color": "gold"
+      }
     },
-    "style": { "primary": "athleisure", "secondary": ["streetwear", "summer", "oversized"] },
-    "colour_palette": ["taupe", "blue", "silver", "white", "gold"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "athletic" },
-    "style_tags": ["foot_locker", "metallic_sneakers", "jersey_shorts", "chain"],
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "streetwear",
+        "summer",
+        "oversized"
+      ]
+    },
+    "colour_palette": [
+      "taupe",
+      "blue",
+      "silver",
+      "white",
+      "gold"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "athletic"
+    },
+    "style_tags": [
+      "foot_locker",
+      "metallic_sneakers",
+      "jersey_shorts",
+      "chain"
+    ],
     "notes": "Adult right mannequin in taupe oversized tee, light blue drawstring jersey shorts, metallic silver sneakers and gold chain",
     "confidence": 0.92,
-    "score_hint": { "base_score": 87, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_021",
@@ -446,20 +1263,62 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "t-shirt", "subcategory": "oversized_crew_neck", "color": "white" },
-      "bottom": { "category": "shorts", "subcategory": "sweat_shorts", "color": "khaki" },
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "oversized_crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "sweat_shorts",
+        "color": "beige"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
-      "accessory": { "category": "hat", "subcategory": "baseball_cap", "color": "white" }
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
     },
-    "style": { "primary": "athleisure", "secondary": ["casual", "minimal", "summer"] },
-    "colour_palette": ["white", "khaki"],
-    "features": { "layering": "none", "contrast": "low", "silhouette": "relaxed" },
-    "style_tags": ["neutral", "sweat_shorts", "baseball_cap", "next"],
-    "notes": "Right adult male mannequin in white oversized tee, khaki sweat shorts, white crew socks, chunky white sneakers and white cap",
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "casual",
+        "minimal",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "khaki",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "neutral",
+      "sweat_shorts",
+      "baseball_cap",
+      "next"
+    ],
+    "notes": "Right adult male mannequin in white oversized tee, beige sweat shorts, white crew socks, chunky white sneakers and white cap",
     "confidence": 0.93,
-    "score_hint": { "base_score": 86, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   },
   {
     "id": "croydon_022",
@@ -468,19 +1327,56 @@
     "brand": "next",
     "price_tier": "high_street",
     "outfit": {
-      "top": { "category": "shirt", "subcategory": "vertical_stripe_button_down", "color": "blue" },
-      "bottom": { "category": "trousers", "subcategory": "wide_leg_side_stripe", "color": "black" },
+      "top": {
+        "category": "shirt",
+        "subcategory": "vertical_stripe_button_down",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_side_stripe",
+        "color": "black"
+      },
       "outerwear": null,
-      "footwear": { "category": "shoes", "subcategory": "sneakers", "color": "white" },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": null
     },
-    "style": { "primary": "smart_casual", "secondary": ["athleisure", "relaxed"] },
-    "colour_palette": ["blue", "white", "black"],
-    "features": { "layering": "none", "contrast": "medium", "silhouette": "relaxed" },
-    "style_tags": ["stripe_shirt", "side_stripe_trousers", "sneakers", "next"],
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "athleisure",
+        "relaxed"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "stripe_shirt",
+      "side_stripe_trousers",
+      "sneakers",
+      "next"
+    ],
     "notes": "Left entrance mannequin in light-blue vertical stripe shirt, black wide-leg trousers with white side stripe and white sneakers",
     "confidence": 0.91,
-    "score_hint": { "base_score": 85, "boost": true },
-    "rules": { "valid": true, "violations": [] }
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    }
   }
 ]

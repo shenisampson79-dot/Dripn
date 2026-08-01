@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Street label reviewer · Dripn</title>
+  <style>
+    :root {
+      --bg: #0f0e0c;
+      --panel: #1a1814;
+      --ink: #f5f0e8;
+      --muted: #9a9184;
+      --line: #2a2620;
+      --ok: #3ddc97;
+      --fix: #ff8a5b;
+      --uncertain: #f0c75e;
+      --chip: #2a2620;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      background: rgba(15,14,12,0.96);
+      z-index: 5;
+    }
+    header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .filters select, .filters button, .nav button, .actions button, .export-bar button {
+      background: var(--chip);
+      color: var(--ink);
+      border: 1px solid #3a342c;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .filters button.on { border-color: var(--uncertain); background: #332a18; }
+    .export-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #14120f;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .export-bar strong { color: var(--ink); }
+    .export-bar button.primary {
+      background: #2f4a38;
+      border-color: #3ddc97;
+      color: #d9ffe9;
+      font-weight: 600;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.15fr) minmax(300px, 0.85fr);
+      min-height: calc(100vh - 110px);
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .image-pane {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-right: 1px solid var(--line);
+      min-height: 48vh;
+    }
+    .image-pane img {
+      max-width: 100%;
+      max-height: calc(100vh - 140px);
+      object-fit: contain;
+      border-radius: 4px;
+    }
+    .side {
+      padding: 16px 16px 100px;
+      background: var(--panel);
+      overflow-y: auto;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.ok { background: rgba(61,220,151,0.15); color: var(--ok); }
+    .badge.fix { background: rgba(255,138,91,0.18); color: var(--fix); }
+    .badge.uncertain { background: rgba(240,199,94,0.18); color: var(--uncertain); }
+    .id-line { font-size: 22px; font-weight: 700; margin: 8px 0 4px; }
+    .path { color: var(--muted); font-size: 12px; margin-bottom: 14px; word-break: break-all; }
+    .section { margin-bottom: 16px; }
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .notes, .decision-box {
+      background: #221e18;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+    .decision-box {
+      border-color: #4a3f2e;
+      background: #261f14;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .actions button.apply {
+      background: #2f4a38;
+      border-color: #3ddc97;
+      color: #d9ffe9;
+      font-weight: 600;
+    }
+    .actions button.keep {
+      background: #3a342c;
+    }
+    .actions button.discard {
+      background: #4a2420;
+      border-color: #ff8a5b;
+    }
+    .actions button.clear {
+      background: transparent;
+      color: var(--muted);
+    }
+    .actions button.chosen {
+      outline: 2px solid var(--uncertain);
+    }
+    textarea {
+      width: 100%;
+      min-height: 72px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #3a342c;
+      background: #14120f;
+      color: var(--ink);
+      padding: 10px;
+      font: inherit;
+      resize: vertical;
+    }
+    .piece {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      background: #221e18;
+    }
+    .piece .cat { color: var(--muted); }
+    pre.outfit {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.4;
+      background: #221e18;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      color: #ddd4c4;
+    }
+    .nav {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      z-index: 6;
+    }
+    .nav button { min-width: 88px; padding: 10px 12px; font-weight: 600; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 18px; line-height: 1.4; }
+    .error {
+      padding: 24px;
+      color: var(--fix);
+      max-width: 520px;
+      line-height: 1.5;
+    }
+    .strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #14120f;
+    }
+    .thumb {
+      flex: 0 0 auto;
+      width: 54px;
+      height: 54px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 2px solid transparent;
+      cursor: pointer;
+      opacity: 0.7;
+      background: #000;
+      position: relative;
+    }
+    .thumb.on { border-color: var(--uncertain); opacity: 1; }
+    .thumb.fix { outline: 1px solid var(--fix); }
+    .thumb.uncertain { outline: 1px solid var(--uncertain); }
+    .thumb.decided { box-shadow: inset 0 0 0 999px rgba(61,220,151,0.18); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Street label reviewer</h1>
+      <div class="meta" id="progress">Loading…</div>
+    </div>
+    <div class="filters">
+      <select id="street">
+        <option value="all">All streets</option>
+        <option value="croydon">Croydon</option>
+        <option value="brixton">Brixton</option>
+        <option value="sloane">Sloane</option>
+      </select>
+      <button type="button" data-status="all">All</button>
+      <button type="button" data-status="fix" class="on">Must fix</button>
+      <button type="button" data-status="uncertain">Your call</button>
+      <button type="button" data-status="ok">OK</button>
+    </div>
+  </header>
+  <div class="export-bar">
+    <span id="decisionStats">Decisions: 0</span>
+    <button type="button" class="primary" id="downloadBtn">Download decisions.json</button>
+    <button type="button" id="copyBtn">Copy summary for chat</button>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="layout">
+    <div class="image-pane"><img id="photo" alt="outfit" /></div>
+    <div class="side" id="side"></div>
+  </div>
+  <div class="nav">
+    <button type="button" id="prev">← Prev</button>
+    <button type="button" id="next">Next →</button>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'dripn_street_label_decisions_v1';
+    const STREET_DIRS = {
+      croydon: '../croydon_mall_dataset',
+      brixton: '../brixton_high_street_dataset',
+      sloane: '../sloane_street_dataset',
+    };
+
+    const state = {
+      rows: [],
+      filtered: [],
+      index: 0,
+      status: 'fix',
+      street: 'all',
+      datasets: {},
+      decisions: loadDecisions(),
+    };
+
+    function loadDecisions() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function saveDecisions() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.decisions));
+      updateStats();
+    }
+
+    function pad(id) {
+      return String(id).padStart(3, '0');
+    }
+
+    function formatOutfit(outfit) {
+      if (!outfit) return '(no outfit label)';
+      const lines = [];
+      for (const [slot, piece] of Object.entries(outfit)) {
+        if (!piece || typeof piece !== 'object') continue;
+        const cat = piece.category || piece.subcategory || '';
+        const sub = piece.subcategory && piece.subcategory !== cat ? ` / ${piece.subcategory}` : '';
+        const color = piece.color ? ` · ${piece.color}` : '';
+        lines.push(`${slot}: ${cat}${sub}${color}`);
+      }
+      return lines.join('\n') || '(empty)';
+    }
+
+    function updateStats() {
+      const needed = state.rows.filter((r) => r.status === 'fix' || r.status === 'uncertain');
+      const decided = needed.filter((r) => state.decisions[r.key]);
+      const el = document.getElementById('decisionStats');
+      el.innerHTML = `Decisions: <strong>${decided.length}</strong> / ${needed.length} must-fix + your-call`;
+    }
+
+    function setDecision(key, action, note) {
+      if (action === 'clear') {
+        delete state.decisions[key];
+      } else {
+        state.decisions[key] = {
+          action,
+          note: (note || '').trim(),
+          at: new Date().toISOString(),
+        };
+      }
+      saveDecisions();
+      renderStrip();
+      render();
+    }
+
+    function applyFilters() {
+      state.filtered = state.rows.filter((r) => {
+        if (state.street !== 'all' && r.street !== state.street) return false;
+        if (state.status !== 'all' && r.status !== state.status) return false;
+        return true;
+      });
+      if (state.index >= state.filtered.length) state.index = 0;
+      renderStrip();
+      render();
+      updateStats();
+    }
+
+    function renderStrip() {
+      const strip = document.getElementById('strip');
+      strip.innerHTML = '';
+      state.filtered.forEach((row, i) => {
+        const img = document.createElement('img');
+        const decided = !!state.decisions[row.key];
+        img.className = `thumb ${row.status}` + (i === state.index ? ' on' : '') + (decided ? ' decided' : '');
+        img.src = row.imageUrl;
+        img.alt = row.key;
+        img.title = `${row.key} · ${row.status}` + (decided ? ` · ${state.decisions[row.key].action}` : '');
+        img.addEventListener('click', () => {
+          state.index = i;
+          renderStrip();
+          render();
+        });
+        strip.appendChild(img);
+      });
+    }
+
+    function render() {
+      const progress = document.getElementById('progress');
+      const photo = document.getElementById('photo');
+      const side = document.getElementById('side');
+
+      if (!state.filtered.length) {
+        progress.textContent = 'No rows match filters';
+        photo.removeAttribute('src');
+        side.innerHTML = '<div class="error">No images in this filter.</div>';
+        return;
+      }
+
+      const row = state.filtered[state.index];
+      const decision = state.decisions[row.key];
+      progress.textContent = `${state.index + 1} / ${state.filtered.length} · ${row.key} · ${row.status}` +
+        (decision ? ` · decided: ${decision.action}` : '');
+      photo.src = row.imageUrl;
+      photo.alt = row.key;
+
+      const pieces = row.status !== 'ok'
+        ? (row.pieces || [])
+            .map((p) => `<div class="piece"><span>${p.subcategory || p.category}</span><span class="cat">${p.category} · ${p.color || '?'}</span></div>`)
+            .join('')
+        : '';
+
+      const needsDecision = row.status === 'fix' || row.status === 'uncertain';
+      const decisionHtml = needsDecision ? `
+        <div class="section">
+          <h2>Your decision</h2>
+          <div class="decision-box">
+            <div class="actions">
+              <button type="button" class="apply ${decision?.action === 'apply' ? 'chosen' : ''}" data-action="apply">✓ Apply proposed fix</button>
+              <button type="button" class="keep ${decision?.action === 'keep' ? 'chosen' : ''}" data-action="keep">Keep current label</button>
+              <button type="button" class="discard ${decision?.action === 'discard' ? 'chosen' : ''}" data-action="discard">Discard / invalid</button>
+              <button type="button" class="clear" data-action="clear">Clear</button>
+            </div>
+            <label for="note">Optional note (e.g. “shorts beige”, “use loafers”)</label>
+            <textarea id="note" placeholder="Your call details…">${escapeHtml(decision?.note || '')}</textarea>
+            <p class="hint" style="margin-top:8px">A = apply · S = keep · D = discard · then → next</p>
+          </div>
+        </div>
+      ` : `
+        <div class="section">
+          <h2>Your decision</h2>
+          <div class="notes">OK rows need no action. Filter <strong>Must fix</strong> / <strong>Your call</strong> to decide the rest.</div>
+        </div>
+      `;
+
+      side.innerHTML = `
+        <span class="badge ${row.status}">${row.status}</span>
+        <div class="id-line">${row.key}</div>
+        <div class="path">File: ${row.imagePath}<br/>Dataset ID: ${row.datasetId}</div>
+        ${decisionHtml}
+        <div class="section">
+          <h2>Review note</h2>
+          <div class="notes">${escapeHtml(row.notes || '(none)')}</div>
+        </div>
+        ${pieces ? `<div class="section"><h2>Proposed fix pieces</h2>${pieces}</div>` : ''}
+        <div class="section">
+          <h2>Current dataset.json outfit</h2>
+          <pre class="outfit">${escapeHtml(formatOutfit(row.currentOutfit))}</pre>
+        </div>
+        <p class="hint">When finished: Download decisions.json, then tell me in chat “apply my decisions” (or paste the copied summary).</p>
+      `;
+
+      if (needsDecision) {
+        const noteEl = side.querySelector('#note');
+        side.querySelectorAll('[data-action]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            setDecision(row.key, btn.dataset.action, noteEl.value);
+            if (btn.dataset.action !== 'clear') go(1);
+          });
+        });
+        noteEl.addEventListener('change', () => {
+          if (decision) setDecision(row.key, decision.action, noteEl.value);
+        });
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function go(delta) {
+      if (!state.filtered.length) return;
+      state.index = (state.index + delta + state.filtered.length) % state.filtered.length;
+      renderStrip();
+      render();
+    }
+
+    function buildExport() {
+      const items = Object.entries(state.decisions).map(([key, d]) => {
+        const row = state.rows.find((r) => r.key === key);
+        return {
+          key,
+          street: row?.street,
+          id: row?.id,
+          review_status: row?.status,
+          action: d.action,
+          note: d.note,
+          proposed_pieces: row?.pieces || [],
+          at: d.at,
+        };
+      }).sort((a, b) => a.key.localeCompare(b.key));
+      return {
+        exported_at: new Date().toISOString(),
+        count: items.length,
+        items,
+      };
+    }
+
+    function buildChatSummary() {
+      const exp = buildExport();
+      if (!exp.items.length) return 'No decisions yet.';
+      const lines = ['Street label decisions:', ''];
+      for (const it of exp.items) {
+        const note = it.note ? ` — ${it.note}` : '';
+        lines.push(`- ${it.key}: ${it.action}${note}`);
+      }
+      lines.push('', 'Please apply these to the datasets.');
+      return lines.join('\n');
+    }
+
+    async function loadStreet(street) {
+      const [review, dataset] = await Promise.all([
+        fetch(`${street}_review.json`).then((r) => {
+          if (!r.ok) throw new Error(`Missing ${street}_review.json`);
+          return r.json();
+        }),
+        fetch(`${STREET_DIRS[street]}/dataset.json`).then((r) => {
+          if (!r.ok) throw new Error(`Missing ${street} dataset.json`);
+          return r.json();
+        }),
+      ]);
+      const rows = Array.isArray(dataset) ? dataset : (dataset.items || []);
+      const byNum = new Map();
+      for (const row of rows) {
+        const m = String(row.id || '').match(/(\d+)$/);
+        if (m) byNum.set(m[1].padStart(3, '0'), row);
+      }
+      state.datasets[street] = byNum;
+      return (review.items || []).map((item) => {
+        const num = pad(item.id);
+        const current = byNum.get(num) || {};
+        return {
+          street,
+          id: num,
+          key: `${street}_${num}`,
+          datasetId: current.id || `${street}_${num}`,
+          status: item.status,
+          notes: item.notes,
+          pieces: item.pieces || [],
+          currentOutfit: current.outfit || null,
+          imagePath: current.image_path || `images/${num}.jpg`,
+          imageUrl: `${STREET_DIRS[street]}/images/${num}.jpg`,
+        };
+      });
+    }
+
+    async function init() {
+      try {
+        const parts = await Promise.all(['croydon', 'brixton', 'sloane'].map(loadStreet));
+        state.rows = parts.flat();
+        applyFilters();
+      } catch (err) {
+        document.getElementById('side').innerHTML = `
+          <div class="error">
+            Could not load reviews/images.<br/><br/>
+            Run:<br/>
+            <code>npx --yes serve "C:\\Users\\sheni\\Downloads\\dripn\\StyleWise\\data" -p 5177</code><br/><br/>
+            Then open:<br/>
+            <code>http://localhost:5177/street_label_reviews/reviewer.html</code><br/><br/>
+            ${escapeHtml(err.message)}
+          </div>`;
+        document.getElementById('progress').textContent = 'Load failed';
+      }
+    }
+
+    document.getElementById('prev').addEventListener('click', () => go(-1));
+    document.getElementById('next').addEventListener('click', () => go(1));
+    document.getElementById('street').addEventListener('change', (e) => {
+      state.street = e.target.value;
+      state.index = 0;
+      applyFilters();
+    });
+    document.querySelectorAll('.filters button[data-status]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filters button[data-status]').forEach((b) => b.classList.remove('on'));
+        btn.classList.add('on');
+        state.status = btn.dataset.status;
+        state.index = 0;
+        applyFilters();
+      });
+    });
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(buildExport(), null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'decisions.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = buildChatSummary();
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById('copyBtn').textContent = 'Copied!';
+        setTimeout(() => { document.getElementById('copyBtn').textContent = 'Copy summary for chat'; }, 1200);
+      } catch {
+        prompt('Copy this:', text);
+      }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+      if (e.key === 'ArrowRight' || e.key === 'j') go(1);
+      if (e.key === 'ArrowLeft' || e.key === 'k') go(-1);
+      const row = state.filtered[state.index];
+      if (!row) return;
+      if (e.key === 'a' || e.key === 'A') {
+        const note = document.querySelector('#note')?.value || '';
+        setDecision(row.key, 'apply', note);
+        go(1);
+      }
+      if (e.key === 's' || e.key === 'S') {
+        const note = document.querySelector('#note')?.value || '';
+        setDecision(row.key, 'keep', note);
+        go(1);
+      }
+      if (e.key === 'd' || e.key === 'D') {
+        const note = document.querySelector('#note')?.value || '';
+        setDecision(row.key, 'discard', note);
+        go(1);
+      }
+      if (e.key === '1') document.querySelector('[data-status="fix"]').click();
+      if (e.key === '2') document.querySelector('[data-status="uncertain"]').click();
+      if (e.key === '3') document.querySelector('[data-status="ok"]').click();
+      if (e.key === '0') document.querySelector('[data-status="all"]').click();
+    });
+
+    init();
+  </script>
+</body>
+</html>
