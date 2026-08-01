@@ -220,22 +220,26 @@ function estimateColorFromRoi(
 
   const footwear = mode === 'footwear' || looksLikeFootwearBbox(bbox);
   const bottoms = mode === 'bottom' || (!footwear && ny + nh * 0.5 > 0.52);
+  const tops = mode === 'top' || (!footwear && !bottoms);
   const bw = x1 - x0;
   const bh = y1 - y0;
-  // Avoid centre (phone occlusion on mirror selfies) — sample side bands for tops
-  const insetX = footwear ? 0.22 : bottoms ? 0.1 : 0.12;
-  const insetY = footwear ? 0.25 : bottoms ? 0.12 : 0.22;
+  // Tops: sample upper-central fabric (avoid wall edges + phone strip extremes)
+  // Bottoms/footwear: keep prior insets
+  const insetX = footwear ? 0.22 : bottoms ? 0.1 : 0.18;
+  const insetY = footwear ? 0.25 : bottoms ? 0.12 : 0.12;
   const mx0 = x0 + Math.floor(bw * insetX);
   const mx1 = x1 - Math.floor(bw * insetX);
-  // Bottoms: bias to upper fabric (avoid ankles / carpet)
-  const my0 = y0 + Math.floor(bh * insetY);
+  const my0 = y0 + Math.floor(bh * (tops ? 0.12 : insetY));
   const my1 = footwear
     ? y0 + Math.floor(bh * 0.82)
     : bottoms
       ? y0 + Math.floor(bh * 0.72)
-      : y1 - Math.floor(bh * insetY);
-  const centreL = x0 + Math.floor(bw * 0.35);
-  const centreR = x0 + Math.floor(bw * 0.65);
+      : tops
+        ? y0 + Math.floor(bh * 0.58) // upper torso fabric only
+        : y1 - Math.floor(bh * insetY);
+  // Phone strip — only skip a narrow centre for tops (was too wide → wall beige)
+  const centreL = x0 + Math.floor(bw * (tops ? 0.42 : 0.35));
+  const centreR = x0 + Math.floor(bw * (tops ? 0.58 : 0.65));
 
   let r = 0;
   let g = 0;
@@ -250,16 +254,14 @@ function estimateColorFromRoi(
   const stepY = Math.max(1, Math.floor((my1 - my0) / 18));
   for (let y = my0; y < my1; y += stepY) {
     for (let x = mx0; x < mx1; x += stepX) {
-      // Skip centre vertical band on garment boxes (phone / hands)
-      if (!footwear && x >= centreL && x <= centreR) continue;
+      if (!footwear && !tops && x >= centreL && x <= centreR) continue;
+      if (tops && x >= centreL && x <= centreR) continue;
       const i = (y * width + x) * 4;
       const pr = rgba[i] ?? 0;
       const pg = rgba[i + 1] ?? 0;
       const pb = rgba[i + 2] ?? 0;
       if (!footwear && isSkinPixel(pr, pg, pb)) continue;
       const maxC = Math.max(pr, pg, pb);
-      // Tops only: skip near-black (phone / shadow). Bottoms need those samples
-      // or black/grey shorts collapse to "other" / no colour.
       if (!footwear && !bottoms && maxC < 48) continue;
       if (bottoms && maxC < 90) darkN += 1;
       r += pr;
@@ -276,12 +278,11 @@ function estimateColorFromRoi(
     }
   }
   if (!n && !chromaN) return 'other';
-  // Dark shorts / trousers: majority near-black fabric → black (not carpet beige)
   if (bottoms && n > 0 && darkN / n >= 0.45 && chromaN < Math.max(4, n * 0.2)) {
     return 'black';
   }
-  // Prefer chromatic samples when available (true garment hue over shadow)
-  if (chromaN >= Math.max(4, n * 0.15)) {
+  // Prefer chromatic samples — teal/blue tees must not fall to beige wall average
+  if (chromaN >= Math.max(3, n * 0.12)) {
     return classifyColorFromRgb(
       Math.round(cr / chromaN),
       Math.round(cg / chromaN),

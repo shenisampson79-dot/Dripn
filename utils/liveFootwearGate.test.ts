@@ -13,7 +13,7 @@ import {
   stabilizeShoeSubtype,
 } from './liveFootwearGate';
 import { applyDetectionMemory, createDetectionMemory } from './liveDetectionMemory';
-import { isCroppedFrame } from './bodyGeometryGuardrails';
+import { isCroppedFrame, formatGarmentDisplayName } from './bodyGeometryGuardrails';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 const top: OnDeviceDetection = {
@@ -112,6 +112,20 @@ assert.match(String(gatedOk.accepted?.subcategory), /sneaker|boot|sandal/);
 
 assert.equal(classifyShoeSubtype({ bbox: realShoe.bbox, skinRatio: 0.08 }), 'sneakers');
 assert.equal(classifyShoeSubtype({ bbox: realShoe.bbox, skinRatio: 0.18 }), 'sandals');
+// Mid-calf Dr Martens-like shaft
+assert.equal(
+  classifyShoeSubtype({ bbox: [0.35, 0.78, 0.28, 0.18], skinRatio: 0.06 }),
+  'boots',
+);
+assert.match(
+  formatGarmentDisplayName({ color: 'black', category: 'shoes', subcategory: 'boots' }),
+  /boot/i,
+);
+assert.equal(
+  classifyShoeSubtype({ bbox: [0.4, 0.82, 0.24, 0.13], skinRatio: 0.05 }),
+  'boots',
+  'ankle-crop of boots still boots when shaft starts above ankle',
+);
 assert.equal(stabilizeShoeSubtype('sneakers', 'sandals', 0.7), 'sneakers');
 assert.equal(stabilizeShoeSubtype('sneakers', 'sandals', 0.95), 'sandals');
 

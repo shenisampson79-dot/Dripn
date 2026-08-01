@@ -314,7 +314,7 @@ export function gateFootwearDetections(
       color: best.d.color,
       category: 'shoes',
       subcategory: subtype,
-      fallbackName: 'Trainers',
+      fallbackName: subtype === 'boots' ? 'Boots' : 'Trainers',
     }),
     confidence: best.d.confidence,
     skinRatio: best.c.skinRatio ?? best.d.skinRatio,
@@ -347,7 +347,21 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-/** Rule-based subtype — slower/stricter than detection. */
+/** Rule-based subtype — shaft height + sole bulk beat low-res “sneakers” default. */
+export function scoreBootEvidence(bbox: BBoxTuple): number {
+  const [, y, w, h] = bbox;
+  const bottom = y + h;
+  const aspect = w / Math.max(0.01, h);
+  let score = 0;
+  if (y < 0.84) score += 0.35; // shaft rises above ankle
+  if (y < 0.80) score += 0.12;
+  if (h >= 0.11) score += 0.22;
+  if (h >= 0.14) score += 0.14;
+  if (aspect > 1.05 && aspect < 2.4) score += 0.12; // chunky lace-up silhouette
+  if (bottom >= 0.92) score += 0.08;
+  return Math.min(1, score);
+}
+
 export function classifyShoeSubtype(args: {
   bbox: BBoxTuple;
   skinRatio?: number | null;
@@ -357,15 +371,22 @@ export function classifyShoeSubtype(args: {
   const blob = `${args.name || ''} ${args.subcategory || ''}`.toLowerCase();
   if (/sandal|slide|flip/.test(blob)) return 'sandals';
   if (/boot/.test(blob)) return 'boots';
-  if (/sneaker|trainer|runner/.test(blob)) return 'sneakers';
+  if (/sneaker|trainer|runner/.test(blob) && scoreBootEvidence(args.bbox) < 0.5) {
+    return 'sneakers';
+  }
 
   const openness = args.skinRatio ?? 0;
-  const height = args.bbox[3];
-  const bulk = args.bbox[2] / Math.max(0.01, args.bbox[3]);
-
   // High skin but below barefoot reject threshold → open shoe
   if (openness > 0.14 && openness < BAREFOOT_SKIN_RATIO) return 'sandals';
-  if (height > 0.14 && bulk > 1.15) return 'boots';
+
+  const bootScore = scoreBootEvidence(args.bbox);
+  if (bootScore >= 0.55) return 'boots';
+
+  const height = args.bbox[3];
+  const shaftTop = args.bbox[1];
+  const bulk = args.bbox[2] / Math.max(0.01, args.bbox[3]);
+  if (height >= 0.11 && shaftTop < 0.84) return 'boots';
+  if (height > 0.12 && bulk > 1.05) return 'boots';
   return 'sneakers';
 }
 

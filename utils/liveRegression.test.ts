@@ -12,6 +12,8 @@ import {
   isCroppedFrame,
   isFloorLengthTrousersEvidence,
   isSkinPixel,
+  classifyColorFromRgb,
+  scoreBottomHypotheses,
 } from './bodyGeometryGuardrails';
 import {
   applyOutfitBelief,
@@ -22,6 +24,7 @@ import {
 import { applyDetectionMemory, createDetectionMemory } from './liveDetectionMemory';
 import {
   analyzeFootwearCandidate,
+  classifyShoeSubtype,
   gateFootwearDetections,
   SHOE_MIN_CONFIDENCE,
 } from './liveFootwearGate';
@@ -419,6 +422,75 @@ case_('BELIEF_APPLIES_ON_CLOUD_LIKE_ITEMS', () => {
   assert.equal(mem.belief.top?.color, 'red');
   const next = applyDetectionMemory([raw[1]], mem, { now: 2000, bottomBandBrightness: 0.2 });
   assert.equal(next.memory.belief.top?.color, 'red');
+});
+
+/**
+ * Critical UK streetwear regression (mirror selfie):
+ * blue tee + black shorts + mid-calf dark socks + Dr Martens.
+ * Must NOT lock Dark trousers / Black trainers / Beige top.
+ */
+case_('SHORTS_SOCKS_DOCS_BLUE_TEE', () => {
+  // Continuous dark column (shorts+socks+boots) → shorts hypothesis wins
+  const fusedLeg: [number, number, number, number] = [0.30, 0.50, 0.38, 0.48];
+  assert.equal(classifyBottomSubtype(fusedLeg, { lowerSkinRatio: 0.12, fabricColor: 'black' }), 'shorts');
+  assert.equal(scoreBottomHypotheses(fusedLeg, { lowerSkinRatio: 0.12 }).winner, 'shorts');
+  assert.equal(isFloorLengthTrousersEvidence(fusedLeg, { lowerSkinRatio: 0.12 }), false);
+
+  // Mid-calf Docs → boots, not trainers
+  const docsBox: [number, number, number, number] = [0.35, 0.78, 0.28, 0.18];
+  assert.equal(classifyShoeSubtype({ bbox: docsBox, skinRatio: 0.06 }), 'boots');
+  assert.match(
+    formatGarmentDisplayName({ color: 'black', category: 'shoes', subcategory: 'boots' }),
+    /boot/i,
+  );
+
+  // Saturated blue/teal never beige
+  assert.equal(classifyColorFromRgb(40, 150, 165), 'blue');
+  assert.notEqual(classifyColorFromRgb(55, 145, 175), 'beige');
+
+  // Belief path: false trousers demotes; boots lock; blue top holds
+  let state = createOutfitBeliefState();
+  const blueTop = det({
+    category: 'tops',
+    subcategory: 'top',
+    color: 'blue',
+    confidence: 0.9,
+    bbox: [0.22, 0.10, 0.52, 0.36],
+    name: 'Blue top',
+  });
+  const falseTrousers = det({
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'black',
+    confidence: 0.95,
+    bbox: fusedLeg,
+    name: 'Dark trousers',
+  });
+  const docs = det({
+    category: 'shoes',
+    subcategory: 'boots',
+    color: 'black',
+    confidence: 0.88,
+    bbox: docsBox,
+    skinRatio: 0.06,
+    name: 'Black boots',
+  });
+  const r1 = applyOutfitBelief(state, [blueTop, falseTrousers, docs], { now: 1000 });
+  state = r1.state;
+  assert.equal(state.top?.color, 'blue');
+  assert.equal(state.bottom?.kind, 'shorts', 'fused socks+boots column must be shorts');
+  assert.match(String(state.footwear?.subcategory || ''), /boot/i);
+
+  // Wall-beige noise must not overwrite blue
+  const beigeNoise = det({
+    category: 'tops',
+    subcategory: 'top',
+    color: 'beige',
+    confidence: 0.8,
+    bbox: [0.22, 0.10, 0.52, 0.36],
+  });
+  state = applyOutfitBelief(state, [beigeNoise, falseTrousers, docs], { now: 2500 }).state;
+  assert.equal(state.top?.color, 'blue');
 });
 
 if (failed) {

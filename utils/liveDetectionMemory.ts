@@ -12,6 +12,7 @@ import {
   formatGarmentDisplayName,
   isCroppedFrame,
   isFloorLengthTrousersEvidence,
+  looksLikeShortsWithFootwearExtension,
   type BBoxTuple,
   type BottomSubtype,
 } from '@/utils/bodyGeometryGuardrails';
@@ -105,9 +106,13 @@ function prelabelBottom(det: OnDeviceDetection): OnDeviceDetection {
   let subtype = bottomSubtypeOf(det) || classifyBottomSubtype(det.bbox as BBoxTuple, {
     fabricColor: det.color,
   });
-  // Never keep shorts when the box clearly reaches the floor
+  // Only promote shorts→trousers for true waist→floor columns
   if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
     subtype = 'trousers';
+  }
+  // Demote false trousers when the box is shorts+socks/boots
+  if (subtype === 'trousers' && looksLikeShortsWithFootwearExtension(det.bbox as BBoxTuple)) {
+    subtype = 'shorts';
   }
   const subcategory = subtype === 'shorts' ? 'shorts' : subtype === 'skirt' ? 'skirt' : 'trousers';
   const bbox = subtype === 'shorts' ? clipShortsBbox(det.bbox as BBoxTuple) : det.bbox;

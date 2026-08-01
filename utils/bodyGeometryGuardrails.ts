@@ -54,13 +54,17 @@ export type RegionLockedLabel = {
 };
 
 /**
- * HARD footwear — must look like a shoe at the floor, not a bare foot / hem.
- * Skin dominance is checked separately via isValidShoe / detector path.
+ * HARD footwear — shoe-shaped at the floor.
+ * Mid-calf boots (Docs) are taller than trainers — allow a taller shaft.
  */
 export function isHardFootwear(bbox: BBoxTuple): boolean {
   const [, y, w, h] = bbox;
   const cy = centerY(bbox);
   const bottom = y + h;
+  // Mid-calf boot shaft (still footwear, not a pant column) — must stay wider than tall
+  if (h >= 0.14 && h < 0.28 && bottom >= 0.90 && cy >= 0.78 && w > h && w < 0.42) {
+    return true;
+  }
   if (h >= 0.20) return false;
   if (w <= h) return false; // shoes are wider than tall
   if (w >= 0.38) return false;
@@ -99,7 +103,7 @@ export function isLikelyTruncatedBottom(
 export type BottomSubtype = 'shorts' | 'trousers' | 'skirt';
 
 /**
- * Shorts often get a YOLO box that includes bare legs down to the floor.
+ * Shorts often get a YOLO box that includes bare legs / socks / boots to the floor.
  * Lower-ROI skin → fabric ends mid-thigh even if the box touches the floor.
  */
 export function hasLegBleedBelowHem(
@@ -115,6 +119,89 @@ export function hasLegBleedBelowHem(
   return false;
 }
 
+/**
+ * Shorts + dark socks + boots: box starts mid-thigh and swallows calves/feet.
+ * Lower half is fabric (not skin), so leg-bleed alone misses this.
+ */
+export function looksLikeShortsWithFootwearExtension(
+  bbox: BBoxTuple,
+  opts?: { lowerSkinRatio?: number | null },
+): boolean {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  if (y < 0.48) return false; // true trousers usually start nearer the waist
+  if (h >= 0.52) return false; // full pant column
+  if (bottom < 0.86) return false;
+  // Mid-thigh / hip start + floor reach = shorts fused with socks/boots
+  if (y >= 0.50 && h <= 0.50 && bottom >= 0.90) return true;
+  if (y >= 0.48 && h < 0.42 && bottom >= 0.90) return true;
+  // Dark sock fill: low lower-skin, clearly not a waist-high pant
+  const lowerSkin = opts?.lowerSkinRatio;
+  if (lowerSkin != null && lowerSkin < 0.28 && y >= 0.50 && h < 0.48 && bottom >= 0.90) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Knee-boundary evidence: box crosses the knee with fabric both above and below.
+ * Shorts end above the knee; trousers are continuous from waist. With long socks
+ * the dark column continues, but the knee still sits inside a shorts+socks fuse.
+ */
+export function hasKneeBreakEvidence(bbox: BBoxTuple): boolean {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  const kneeY = 0.62; // typical knee in full-body mirror selfies
+  if (y >= kneeY || bottom <= kneeY + 0.1) return false;
+  const above = kneeY - y;
+  const below = bottom - kneeY;
+  // Mid-thigh start (shorts hem), not waist-start trousers
+  return y >= 0.50 && y < 0.58 && h < 0.50 && above >= 0.06 && below >= 0.18 && bottom >= 0.88;
+}
+
+/**
+ * Soft shorts vs trousers scores for layered legs (multi-hypothesis).
+ * Higher shorts score when knee-break / sock-boot fuse is present.
+ */
+export function scoreBottomHypotheses(
+  bbox: BBoxTuple,
+  opts?: { lowerSkinRatio?: number | null; fabricColor?: string | null },
+): { shorts: number; trousers: number; winner: BottomSubtype } {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  let shorts = 0.4;
+  let trousers = 0.4;
+  if (looksLikeShortsWithFootwearExtension(bbox, opts)) {
+    shorts += 0.3;
+    trousers -= 0.22;
+  }
+  if (hasKneeBreakEvidence(bbox)) {
+    shorts += 0.24;
+    trousers -= 0.18;
+  }
+  if (hasLegBleedBelowHem(bbox, opts?.lowerSkinRatio)) {
+    shorts += 0.16;
+    trousers -= 0.12;
+  }
+  if (y < 0.42 && h >= 0.45 && bottom >= 0.88) {
+    trousers += 0.28;
+    shorts -= 0.16;
+  } else if (y <= 0.48 && h >= 0.42 && bottom > 0.92
+    && !looksLikeShortsWithFootwearExtension(bbox, opts)
+    && !hasKneeBreakEvidence(bbox)) {
+    trousers += 0.22;
+    shorts -= 0.12;
+  }
+  if (y >= 0.48 && h < 0.4) {
+    shorts += 0.18;
+    trousers -= 0.1;
+  }
+  shorts = Math.max(0.05, Math.min(0.95, shorts));
+  trousers = Math.max(0.05, Math.min(0.95, trousers));
+  const winner: BottomSubtype = shorts >= trousers ? 'shorts' : 'trousers';
+  return { shorts, trousers, winner };
+}
+
 /** Clip a shorts box so the overlay ends near the hem, not the feet. */
 export function clipShortsBbox(bbox: BBoxTuple): BBoxTuple {
   const [x, y, w, h] = bbox;
@@ -125,19 +212,26 @@ export function clipShortsBbox(bbox: BBoxTuple): BBoxTuple {
 }
 
 /**
- * Tall floor-reaching bottom = trousers evidence (overrides a locked “shorts” mistake).
- * Hard lock: bottom edge past 0.92 → always trousers (geometry > skin).
+ * Tall floor-reaching bottom = trousers evidence.
+ * Socks/boots fused under shorts must NOT count as trousers.
  */
-export function isFloorLengthTrousersEvidence(bbox: BBoxTuple): boolean {
-  const [, , , h] = bbox;
-  const bottom = bbox[1] + h;
-  if (bottom > 0.92) return true;
-  return h >= 0.38 && bottom >= 0.84;
+export function isFloorLengthTrousersEvidence(
+  bbox: BBoxTuple,
+  opts?: { lowerSkinRatio?: number | null; fabricColor?: string | null },
+): boolean {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  if (looksLikeShortsWithFootwearExtension(bbox, opts)) return false;
+  if (hasLegBleedBelowHem(bbox, opts?.lowerSkinRatio)) return false;
+  // True trousers: start near waist and form a tall fabric column
+  if (bottom > 0.92 && h >= 0.42 && y <= 0.48) return true;
+  return h >= 0.42 && bottom >= 0.88 && y <= 0.48;
 }
 
 /**
  * Structural bottoms classifier.
- * Floor-length trousers with visible ankles must NOT become shorts.
+ * Floor-length trousers with visible ankles must NOT become shorts —
+ * but shorts + socks/boots must NOT become trousers.
  */
 export function classifyBottomSubtype(
   bbox: BBoxTuple,
@@ -147,33 +241,45 @@ export function classifyBottomSubtype(
   const bottom = y + h;
   const lowerSkin = opts?.lowerSkinRatio;
   const legBleed = hasLegBleedBelowHem(bbox, lowerSkin);
+  const sockBootExt = looksLikeShortsWithFootwearExtension(bbox, opts);
+  const kneeBreak = hasKneeBreakEvidence(bbox);
   const fabric = String(opts?.fabricColor || '').toLowerCase();
   const solidFabric = /gray|grey|black|navy|blue|charcoal|beige|khaki|cream|white|brown|green/.test(fabric);
 
-  // Absolute geometry lock — floor contact cannot become shorts
-  // Exception: mid-body start + extreme lower skin = shorts box that includes bare legs
+  // Layered legs: shorts + socks/boots (continuous dark column is NOT trousers)
+  if (sockBootExt || kneeBreak || (legBleed && y >= 0.48 && h < 0.48)) {
+    return 'shorts';
+  }
+
+  // Soft hypothesis when geometry is ambiguous — prefer layered shorts
+  const soft = scoreBottomHypotheses(bbox, opts);
+  if (soft.shorts >= 0.58 && soft.shorts - soft.trousers >= 0.08) {
+    return 'shorts';
+  }
+
+  // Floor contact: only trousers when waist-start tall column
   if (bottom > 0.92) {
-    if (legBleed && lowerSkin != null && lowerSkin >= 0.42 && y >= 0.48) {
+    if (legBleed && lowerSkin != null && lowerSkin >= 0.32 && y >= 0.48) {
+      return 'shorts';
+    }
+    if (y >= 0.50 && h <= 0.50) return 'shorts';
+    if (h >= 0.42 && y <= 0.48) return 'trousers';
+    return 'shorts';
+  }
+
+  // Solid fabric colour + long waist-start box → trousers
+  if (solidFabric && isFloorLengthTrousersEvidence(bbox, opts)) {
+    return 'trousers';
+  }
+
+  // Full-length bottoms: tall box from near waist
+  if (h >= 0.40 && bottom >= 0.85 && y < 0.48) {
+    if (legBleed && lowerSkin != null && lowerSkin >= 0.42 && y >= 0.45) {
       return 'shorts';
     }
     return 'trousers';
   }
-
-  // Solid fabric colour + long box → trousers (carpet/ankle skin must not win)
-  if (solidFabric && isFloorLengthTrousersEvidence(bbox)) {
-    return 'trousers';
-  }
-
-  // Full-length bottoms first: tall box deep into the frame = trousers
-  // Ankle/foot skin under trousers is normal when barefoot — do not flip to shorts
-  if (h >= 0.40 && bottom >= 0.85) {
-    // Shorts + bare legs: box starts mid-body and lower half is very skin-heavy
-    if (legBleed && lowerSkin != null && lowerSkin >= 0.42 && y >= 0.48 && !solidFabric) {
-      return 'shorts';
-    }
-    return 'trousers';
-  }
-  if (h >= 0.42 && bottom >= 0.82 && (lowerSkin == null || lowerSkin < 0.4)) {
+  if (h >= 0.42 && bottom >= 0.82 && y < 0.48 && (lowerSkin == null || lowerSkin < 0.4)) {
     return 'trousers';
   }
 
@@ -183,15 +289,16 @@ export function classifyBottomSubtype(
   if (bottom < 0.82 && h < 0.36) return 'shorts';
   if (bottom < 0.80 && h < 0.40) return 'shorts';
 
-  // True floor-length fabric
-  if (isFloorTouching(bbox) && h >= 0.36 && (lowerSkin == null || lowerSkin < 0.35)) {
+  // True floor-length fabric from waist
+  if (isFloorTouching(bbox) && h >= 0.42 && y < 0.48 && (lowerSkin == null || lowerSkin < 0.35)) {
     return 'trousers';
   }
 
-  // Ambiguous short ROI
+  // Ambiguous short ROI / mid-body start → shorts (not trousers-by-default)
+  if (y >= 0.45 && h < 0.42) return 'shorts';
   if (y >= 0.45 && y <= 0.62 && h < 0.38 && bottom < 0.88) return 'shorts';
 
-  return 'trousers';
+  return y < 0.48 && h >= 0.40 ? 'trousers' : 'shorts';
 }
 
 /** Shorts vs trousers for bottom-region garments. */
@@ -487,8 +594,9 @@ export function isBareTorsoTopLike(args: {
   if (!isTopLike) return false;
   const skin = args.skinRatio;
   if (skin != null && skin >= BARE_TORSO_SKIN_RATIO) return true;
-  // No readable fabric colour on a "top" → almost always bare torso / ghost box
-  if (!hasReliableFabricColor(args.fabricColor)) return true;
+  // Missing fabric colour alone is not enough — blue tees often lose colour under
+  // mirror glare; only discard when skin is also elevated (likely bare chest).
+  if (!hasReliableFabricColor(args.fabricColor) && skin != null && skin >= 0.12) return true;
   return false;
 }
 
@@ -527,9 +635,16 @@ export function resolveClassByRegionLock(args: {
   const vConf = Number(args.visionConfidence ?? 0);
   const bottomOpts = { lowerSkinRatio: args.lowerSkinRatio, fabricColor: args.fabricColor };
 
-  // 1) Hard footwear — only tiny floor-touching boxes
+  // 1) Hard footwear — trainers OR mid-calf boots at the floor
   if (isHardFootwear(args.bbox)) {
-    return { category: 'shoes', subcategory: 'shoes', name: 'Shoes', repair: 'region_lock→footwear' };
+    const [, , , h] = args.bbox;
+    const sub = h >= 0.14 ? 'boots' : 'shoes';
+    return {
+      category: 'shoes',
+      subcategory: sub,
+      name: h >= 0.14 ? 'Boots' : 'Shoes',
+      repair: 'region_lock→footwear',
+    };
   }
 
   // 2) Region locks
@@ -540,6 +655,17 @@ export function resolveClassByRegionLock(args: {
     return bottomsLabel(args.bbox, bottomOpts);
   }
   if (region === 'footwear') {
+    // Shin/boot shaft in footwear band → shoes, not trousers
+    const [, y, w, h] = args.bbox;
+    const bottom = y + h;
+    if (bottom >= 0.88 && h < 0.30 && w < 0.45) {
+      return {
+        category: 'shoes',
+        subcategory: h >= 0.14 ? 'boots' : 'shoes',
+        name: h >= 0.14 ? 'Boots' : 'Shoes',
+        repair: 'region_lock→boot_shaft',
+      };
+    }
     return bottomsLabel(args.bbox, bottomOpts);
   }
 
@@ -638,7 +764,7 @@ function sameRole(a: string, b: string): boolean {
   return role(a) === role(b);
 }
 
-/** Color priority — red last (skin/warm light bias). */
+/** Color priority — red last (skin/warm light bias). High chroma ≠ beige. */
 export function classifyColorFromRgb(r: number, g: number, b: number): string {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -647,13 +773,33 @@ export function classifyColorFromRgb(r: number, g: number, b: number): string {
   if (max < 40) return 'black';
   if (min > 210) return 'white';
 
-  // white / cream / beige first
-  if (min > 175 && chroma < 40 && r >= g - 5 && g >= b - 10) {
+  // Saturated hues first — never collapse blue/teal into beige
+  if (chroma > 55) {
+    if (
+      b > r + 12
+      && g > r + 12
+      && Math.abs(g - b) < 55
+      && Math.max(g, b) > 90
+    ) {
+      return g > b + 18 ? 'green' : 'blue';
+    }
+    if (b > r + 25 && b > g + 20) return max < 110 ? 'navy' : 'blue';
+    if (g > r + 18 && g > b + 15 && r > 45 && max < 170) return 'green';
+    if (g > r + 25 && g > b + 20) return 'green';
+    if (r > 150 && g > 120 && b < 90) return 'mustard';
+    if (r > 160 && g > 100 && b < 100 && chroma > 50) return 'orange';
+    if (r > 140 && g < 100 && b > 120) return 'purple';
+    if (r > g + 45 && r > b + 45 && chroma > 60) return r > 160 ? 'red' : 'burgundy';
+    // High saturation: refuse beige/cream fallback
+  }
+
+  // white / cream / beige only when low-mid chroma (unsaturated)
+  if (chroma < 45 && min > 175 && r >= g - 5 && g >= b - 10) {
     if (r - b > 12) return 'cream';
     if (r - b > 6) return 'beige';
     return 'white';
   }
-  if (r >= g - 10 && g >= b - 5 && min > 105 && chroma < 85 && r - b < 60 && r - g < 40) {
+  if (chroma <= 55 && r >= g - 10 && g >= b - 5 && min > 105 && r - b < 60 && r - g < 40) {
     if (min > 155) return 'cream';
     if (min > 115) return 'beige';
   }
@@ -668,7 +814,7 @@ export function classifyColorFromRgb(r: number, g: number, b: number): string {
 
   if (max < 55) return 'black';
 
-  // teal / cyan / turquoise — G and B both high (was falling through to "other")
+  // teal / cyan / turquoise
   if (
     chroma > 30
     && b > r + 12
@@ -679,7 +825,6 @@ export function classifyColorFromRgb(r: number, g: number, b: number): string {
     return g > b + 18 ? 'green' : 'blue';
   }
 
-  // blue / green before red
   if (b > r + 25 && b > g + 20) return max < 110 ? 'navy' : 'blue';
   if (g > r + 18 && g > b + 15 && r > 45 && max < 170) return 'green';
   if (g > r + 25 && g > b + 20) return 'green';
@@ -688,9 +833,9 @@ export function classifyColorFromRgb(r: number, g: number, b: number): string {
   if (r > 160 && g > 100 && b < 100 && chroma > 50) return 'orange';
   if (r > 140 && g < 100 && b > 120) return 'purple';
 
-  // red LAST — needs strong chroma
   if (r > g + 45 && r > b + 45 && chroma > 60) return r > 160 ? 'red' : 'burgundy';
 
-  if (r > 150 && g > 130 && b > 100) return 'beige';
+  // Low-chroma warm neutrals only
+  if (chroma < 45 && r > 150 && g > 130 && b > 100) return 'beige';
   return 'other';
 }

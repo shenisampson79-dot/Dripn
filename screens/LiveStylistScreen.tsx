@@ -241,10 +241,24 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const serverStable = Boolean(next.ui?.stable);
     const hadFeedback = Boolean(previousFeedbackRef.current);
     const scoreJump = Math.abs((previousFeedbackRef.current?.score || 0) - (next.score || 0)) >= 8;
+    const prevCoach = previousFeedbackRef.current?.coaching;
+    const nextCoach = next.coaching;
+    const coachChanged = Boolean(
+      nextCoach
+      && (
+        prevCoach?.summary !== nextCoach.summary
+        || prevCoach?.headline !== nextCoach.headline
+        || (prevCoach as { outfitSignature?: string } | undefined)?.outfitSignature
+          !== (nextCoach as { outfitSignature?: string }).outfitSignature
+      ),
+    );
+    const piecesChanged = (previousFeedbackRef.current?.itemCount || 0) !== (next.itemCount || 0);
 
-    if (res.feedbackChanged || !hadFeedback) {
+    if (res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged) {
       previousFeedbackRef.current = next;
-      const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold;
+      // Never keep stale coaching when belief/labels changed — hold only softens score flicker
+      const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold
+        || coachChanged || piecesChanged || Boolean(res.feedbackChanged);
       if (shouldPaint) {
         setFeedback(next);
         lastCoachShownAtRef.current = Date.now();

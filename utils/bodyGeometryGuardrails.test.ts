@@ -10,11 +10,14 @@ import {
   feetLikelyCropped,
   formatGarmentDisplayName,
   getStrictBodyRegion,
+  hasKneeBreakEvidence,
   isCroppedFrame,
+  isFloorLengthTrousersEvidence,
   isHardFootwear,
   isSkinPixel,
   resolveClassByRegionLock,
   resolveDetectionConflicts,
+  scoreBottomHypotheses,
 } from './bodyGeometryGuardrails';
 
 assert.equal(REGION.TOP_MAX, 0.42);
@@ -116,6 +119,9 @@ assert.ok(classifyColorFromRgb(200, 80, 70) === 'red' || classifyColorFromRgb(20
 assert.equal(classifyColorFromRgb(40, 150, 165), 'blue');
 assert.equal(classifyColorFromRgb(50, 170, 160), 'blue');
 assert.equal(classifyColorFromRgb(30, 80, 200), 'blue');
+// Saturated teal/blue must never collapse to beige
+assert.notEqual(classifyColorFromRgb(45, 160, 170), 'beige');
+assert.notEqual(classifyColorFromRgb(60, 140, 190), 'beige');
 assert.equal(isSkinPixel(180, 120, 90), true);
 assert.equal(isSkinPixel(95, 60, 40), true, 'darker skin must count as skin');
 
@@ -131,6 +137,44 @@ assert.equal(
 assert.equal(
   classifyBottomSubtype([0.3, 0.52, 0.4, 0.24], { lowerSkinRatio: 0.1 }),
   'shorts',
+);
+
+// Shorts + dark socks + boots fused to floor — must stay shorts
+assert.equal(
+  classifyBottomSubtype([0.30, 0.50, 0.38, 0.48], { lowerSkinRatio: 0.12, fabricColor: 'black' }),
+  'shorts',
+  'socks+boots fuse must not become trousers',
+);
+assert.equal(
+  isFloorLengthTrousersEvidence([0.30, 0.50, 0.38, 0.48], { lowerSkinRatio: 0.12 }),
+  false,
+);
+assert.ok(hasKneeBreakEvidence([0.30, 0.50, 0.38, 0.48]));
+assert.equal(
+  scoreBottomHypotheses([0.30, 0.50, 0.38, 0.48], { lowerSkinRatio: 0.12 }).winner,
+  'shorts',
+);
+
+// True joggers waist → floor
+assert.equal(
+  classifyBottomSubtype([0.30, 0.38, 0.35, 0.58], { lowerSkinRatio: 0.08, fabricColor: 'gray' }),
+  'trousers',
+);
+
+// Mid-calf Docs-like footwear region → boots not trousers
+assert.equal(
+  resolveClassByRegionLock({
+    bbox: [0.35, 0.78, 0.28, 0.18],
+    yoloCategory: 'clothing',
+  }).category,
+  'shoes',
+);
+assert.match(
+  resolveClassByRegionLock({
+    bbox: [0.35, 0.78, 0.28, 0.18],
+    yoloCategory: 'clothing',
+  }).name || '',
+  /boot|shoe/i,
 );
 
 assert.match(

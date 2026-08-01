@@ -11,6 +11,7 @@ import {
   hasReliableFabricColor,
   isBareTorsoTopLike,
   isFloorLengthTrousersEvidence,
+  looksLikeShortsWithFootwearExtension,
   type BBoxTuple,
   type BottomSubtype,
 } from '@/utils/bodyGeometryGuardrails';
@@ -289,6 +290,18 @@ export function observationFromDetection(
     color = null;
   }
 
+  // Tops: warm neutrals often come from wall/skin bleed under mirror light
+  if (kind === 'top' && color && /^(beige|cream|ivory|brown)$/.test(color) && conf < 0.92) {
+    appendDecision(log, {
+      type: 'ignore',
+      message: `Ignored wall-like top colour: ${color}`,
+      reason: 'beige/cream often background bleed',
+      slot: 'top',
+      time: now,
+    });
+    color = null;
+  }
+
   return {
     kind,
     category,
@@ -359,8 +372,24 @@ function resolveConflict(
 ): GarmentBelief {
   const slot = slotOfKind(prev.kind);
 
-  // Locked trousers must NEVER downgrade to shorts (ankle/carpet skin noise)
+  // Locked trousers: only hold against shorts when this still looks like a pant column
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
+    if (looksLikeShortsWithFootwearExtension(current.bbox) || !isFloorLengthTrousersEvidence(prev.bbox)) {
+      appendDecision(log, {
+        type: 'update',
+        message: 'trousers → shorts',
+        reason: 'shorts geometry overrides false trousers lock',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...current,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+        stability: Math.max(0.45, prev.stability * 0.55),
+        lastChangedAt: now,
+        lastSeenAt: now,
+      };
+    }
     appendDecision(log, {
       type: 'reject',
       message: 'Blocked shorts downgrade',
@@ -377,11 +406,12 @@ function resolveConflict(
     };
   }
 
-  // Locked shorts must yield to floor-length trousers (your grey jogger case)
+  // Locked shorts must yield to true waist→floor trousers (not socks/boots fuse)
   if (
     prev.kind === 'shorts'
     && current.kind === 'trousers'
     && isFloorLengthTrousersEvidence(current.bbox)
+    && !looksLikeShortsWithFootwearExtension(current.bbox)
     && current.confidence >= 0.75
   ) {
     appendDecision(log, {
@@ -511,8 +541,12 @@ export function updateBelief(
   const slot = slotOfKind(p.kind);
 
   if (p.kind === c.kind) {
-    // Locked shorts with a floor-length box → promote to trousers in place
-    if (p.kind === 'shorts' && isFloorLengthTrousersEvidence(c.bbox)) {
+    // Locked shorts with a true waist→floor pant box → promote to trousers
+    if (
+      p.kind === 'shorts'
+      && isFloorLengthTrousersEvidence(c.bbox)
+      && !looksLikeShortsWithFootwearExtension(c.bbox)
+    ) {
       appendDecision(log, {
         type: 'update',
         message: 'shorts → trousers',
@@ -529,6 +563,33 @@ export function updateBelief(
         bbox: c.bbox,
         trackId: c.trackId || p.trackId,
         color: stabilizeColor(p.color, c.color, c.confidence, 'trousers'),
+        lastChangedAt: now,
+        lastSeenAt: now,
+      };
+    }
+
+    // Locked trousers but clear shorts+socks/boots frame → recover shorts
+    if (
+      p.kind === 'trousers'
+      && (
+        looksLikeShortsWithFootwearExtension(c.bbox)
+        || (c.kind === 'trousers' && c.bbox[1] >= 0.48 && c.bbox[3] < 0.40 && c.confidence >= 0.75)
+      )
+    ) {
+      appendDecision(log, {
+        type: 'update',
+        message: 'trousers → shorts',
+        reason: 'shorts+socks/boots geometry override',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...c,
+        kind: 'shorts',
+        subcategory: 'shorts',
+        category: 'bottoms',
+        color: stabilizeColor(p.color, c.color, c.confidence, 'shorts') || c.color,
+        stability: Math.max(0.45, p.stability * 0.6),
         lastChangedAt: now,
         lastSeenAt: now,
       };
@@ -638,9 +699,12 @@ export function applyOutfitBelief(
   let bottomObs = bottoms.sort((a, b) => b.confidence - a.confidence)[0] || null;
   let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
 
-  // Floor-length bottoms labeled shorts → force trousers observation
+  // Floor-length bottoms labeled shorts → force trousers (true pant columns only)
   if (bottomObs && /short/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)) {
-    if (isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)) {
+    if (
+      isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
+      && !looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)
+    ) {
       bottomObs = {
         ...bottomObs,
         subcategory: 'trousers',
@@ -648,6 +712,20 @@ export function applyOutfitBelief(
           color: bottomObs.color,
           category: 'bottoms',
           subcategory: 'trousers',
+        }),
+      };
+    }
+  }
+  // False trousers from shorts+socks/boots → shorts
+  if (bottomObs && /trouser|pant|jean/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)) {
+    if (looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)) {
+      bottomObs = {
+        ...bottomObs,
+        subcategory: 'shorts',
+        name: formatGarmentDisplayName({
+          color: bottomObs.color,
+          category: 'bottoms',
+          subcategory: 'shorts',
         }),
       };
     }
