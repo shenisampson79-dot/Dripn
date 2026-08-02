@@ -1,0 +1,165 @@
+[
+  {
+    "id": "oxford_420",
+    "source": "oxford_street",
+    "image_path": "images/420.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in grey/yellow striped polo and light-wash wide jeans with black tote on white tiered pedestal amid racks and escalator — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_421",
+    "source": "oxford_street",
+    "image_path": "images/421.jpg",
+    "brand": "marks_and_spencer",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "satin_midi_slip",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "smart_casual",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "black",
+      "brown"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "marks_and_spencer",
+      "satin_slip",
+      "blazer"
+    ],
+    "notes": "M&S window mannequin in cream single-breasted blazer over cream satin midi slip dress with lace handkerchief hem layered over matching cream wide-leg trousers, dark sunglasses on head; brown pointed flats on pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_422",
+    "source": "oxford_street",
+    "image_path": "images/422.jpg",
+    "brand": "marks_and_spencer",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "mini",
+        "color": "dusty_blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_suede",
+        "color": "dusty_blue"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder_bag",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "contemporary",
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "dusty_blue",
+      "brown",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "marks_and_spencer",
+      "suede_co_ord",
+      "mini_skirt"
+    ],
+    "notes": "Centre M&S window mannequin in dusty-blue cropped suede jacket with matching mini skirt and small brown shoulder bag under arm; white strappy heels on pedestal so footwear null; ignore right cream blazer/slip mannequin",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  }
+]

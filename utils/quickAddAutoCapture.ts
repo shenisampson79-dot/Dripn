@@ -30,8 +30,11 @@ export const QUICK_ADD_CAPTURE = {
   weakConfidence: 0.14,
   /** Alias used by selectors — same as weak so UI never stays white on a hit. */
   selectConfidence: 0.14,
-  /** Default snap confidence for clothing; see captureConfidenceFor(). */
-  captureConfidence: 0.38,
+  /**
+   * Default snap confidence for clothing; see captureConfidenceFor().
+   * Flat-lay beige/tan on carpet often sits ~0.28–0.36 — 0.38 felt “stuck amber”.
+   */
+  captureConfidence: 0.30,
   /**
    * HOLD may arm with this if shape/coverage is good (boots often sit here).
    * Ready still needs captureConfidenceFor() after boost.
@@ -45,8 +48,31 @@ export const QUICK_ADD_CAPTURE = {
   readyCoverage: 0.55,
   /** Hold: show amber once this much of the object overlaps the guide. */
   holdCoverage: 0.28,
-  iouThreshold: 0.42,
+  /** Looser IoU — flat-lays jitter between samples and used to reset stability. */
+  iouThreshold: 0.34,
   captureCooldownMs: 1800,
+  /**
+   * Keep amber across 1–2 missed YOLO samples (~850ms each) instead of
+   * flashing white and cancelling the green countdown.
+   */
+  missGraceMs: 1800,
+  /**
+   * Temporal UI (time-based, not frame-reactive).
+   * Sample interval is ~850ms — buffer of 4 ≈ 3.4s (not 10 frames).
+   */
+  confBufferSize: 4,
+  /** Count as a buffer "hit" when confidence clears this floor. */
+  bufferHitConfidence: 0.22,
+  /** hitRate ≥ this → prefer amber presence. */
+  amberHitRate: 0.25,
+  /** hitRate ≥ this + geometry ready → prefer green presence. */
+  greenHitRate: 0.6,
+  /** Minimum amber dwell before green/countdown is allowed. */
+  amberMinMs: 800,
+  /** Ready-band samples required after amber min before arming green. */
+  greenStableSamples: 2,
+  /** Sustained true loss before white + cancel countdown. */
+  idleCancelMs: 1000,
   /**
    * Fallback guide when layout is unknown. Prefer guideFromLayout().
    * Taller than the visual square to absorb preview↔photo crop mismatch.
@@ -428,13 +454,249 @@ export function countConfidentDetections(
   return detections.filter((d) => d.confidence >= minConfidence).length;
 }
 
+/** Raw per-frame presence before temporal smoothing. */
+export type QuickAddPresenceBand = 'idle' | 'hold' | 'ready';
+
+export type QuickAddTemporalState = {
+  phase: 'white' | 'amber' | 'green';
+  amberEnteredAt: number | null;
+  readySamples: number;
+  idleEnteredAt: number | null;
+  countdownActive: boolean;
+  confBuffer: number[];
+};
+
+export function createQuickAddTemporalState(): QuickAddTemporalState {
+  return {
+    phase: 'white',
+    amberEnteredAt: null,
+    readySamples: 0,
+    idleEnteredAt: null,
+    countdownActive: false,
+    confBuffer: [],
+  };
+}
+
+export function pushConfidenceBuffer(
+  prev: number[],
+  confidence: number,
+  size = QUICK_ADD_CAPTURE.confBufferSize,
+): number[] {
+  const next = prev.length ? [...prev, confidence] : [confidence];
+  while (next.length > size) next.shift();
+  return next;
+}
+
+export function bufferHitRate(
+  buffer: number[],
+  hitFloor = QUICK_ADD_CAPTURE.bufferHitConfidence,
+): number {
+  if (!buffer.length) return 0;
+  const hits = buffer.filter((c) => c >= hitFloor).length;
+  return hits / buffer.length;
+}
+
+/**
+ * Map raw geometry eval + rolling hit-rate → presence band.
+ * Detection can flicker; band stays calmer.
+ * A hard miss (conf≈0) only stays hold while the buffer is still strongly warm.
+ */
+export function presenceBandFromSample(
+  rawUi: QuickAddCaptureUi,
+  confidence: number,
+  hitRate: number,
+  opts?: Partial<typeof QUICK_ADD_CAPTURE>,
+): QuickAddPresenceBand {
+  const conf = { ...QUICK_ADD_CAPTURE, ...opts };
+  const hardMiss = confidence < conf.bufferHitConfidence;
+
+  if (hardMiss && (rawUi === 'idle' || rawUi === 'struggling')) {
+    // Buffer still hot → brief sticky amber; otherwise drop to white path.
+    if (hitRate >= conf.greenHitRate) return 'hold';
+    return 'idle';
+  }
+
+  if (rawUi === 'ready' || (hitRate >= conf.greenHitRate && rawUi === 'hold' && confidence >= conf.captureConfidence)) {
+    return 'ready';
+  }
+  if (rawUi === 'hold' || rawUi === 'struggling' || hitRate >= conf.amberHitRate) {
+    return 'hold';
+  }
+  return 'idle';
+}
+
+/**
+ * Time-based white → amber → green. Separates detection flicker from UI commit.
+ * During green countdown, brief hold/miss does NOT cancel — only sustained idle.
+ */
+export function advanceQuickAddTemporal(
+  prev: QuickAddTemporalState,
+  sample: {
+    band: QuickAddPresenceBand;
+    confidence: number;
+    rawReady: boolean;
+    /** Miss-grace ghost frames — never promote to green. */
+    lockHold?: boolean;
+  },
+  nowMs: number,
+  opts?: Partial<typeof QUICK_ADD_CAPTURE>,
+): {
+  state: QuickAddTemporalState;
+  ui: QuickAddCaptureUi;
+  startCountdown: boolean;
+  cancelCountdown: boolean;
+} {
+  const conf = { ...QUICK_ADD_CAPTURE, ...opts };
+  const confBuffer = pushConfidenceBuffer(prev.confBuffer, sample.confidence, conf.confBufferSize);
+  const hitRate = bufferHitRate(confBuffer, conf.bufferHitConfidence);
+  // Soften flicker with hit-rate, but never ignore a hard ready lock this frame.
+  let effectiveBand: QuickAddPresenceBand = presenceBandFromSample(
+    sample.band === 'ready' ? 'ready' : sample.band === 'hold' ? 'hold' : 'idle',
+    sample.confidence,
+    hitRate,
+    conf,
+  );
+  if (sample.rawReady) effectiveBand = 'ready';
+  if (sample.band === 'hold' && effectiveBand === 'idle') effectiveBand = 'hold';
+  if (sample.lockHold) effectiveBand = 'hold';
+
+  const base: QuickAddTemporalState = {
+    ...prev,
+    confBuffer,
+  };
+
+  // —— Green / countdown active ——
+  if (base.countdownActive || base.phase === 'green') {
+    // Use raw miss intent for cancel — don't let a warm buffer block sustained-idle cancel.
+    const rawLost =
+      sample.band === 'idle'
+      && !sample.rawReady
+      && sample.confidence < conf.bufferHitConfidence;
+
+    if (rawLost) {
+      const idleEnteredAt = base.idleEnteredAt ?? nowMs;
+      const idleAge = nowMs - idleEnteredAt;
+      if (idleAge >= conf.idleCancelMs) {
+        return {
+          state: createQuickAddTemporalState(),
+          ui: 'idle',
+          startCountdown: false,
+          cancelCountdown: true,
+        };
+      }
+      // Brief miss during countdown — keep green, do not cancel.
+      return {
+        state: {
+          ...base,
+          phase: 'green',
+          idleEnteredAt,
+          countdownActive: true,
+        },
+        ui: 'ready',
+        startCountdown: false,
+        cancelCountdown: false,
+      };
+    }
+    return {
+      state: {
+        ...base,
+        phase: 'green',
+        idleEnteredAt: null,
+        countdownActive: true,
+        readySamples: base.readySamples + (effectiveBand === 'ready' ? 1 : 0),
+      },
+      ui: 'ready',
+      startCountdown: false,
+      cancelCountdown: false,
+    };
+  }
+
+  // —— Idle / white ——
+  if (effectiveBand === 'idle') {
+    const idleEnteredAt = base.idleEnteredAt ?? nowMs;
+    const idleAge = nowMs - idleEnteredAt;
+    // Still in amber dwell grace from a prior hit? drop only after sustained idle.
+    if (base.phase === 'amber' && idleAge < conf.idleCancelMs) {
+      return {
+        state: {
+          ...base,
+          phase: 'amber',
+          idleEnteredAt,
+          readySamples: 0,
+        },
+        ui: 'hold',
+        startCountdown: false,
+        cancelCountdown: false,
+      };
+    }
+    return {
+      state: {
+        ...createQuickAddTemporalState(),
+        confBuffer,
+        idleEnteredAt,
+      },
+      ui: 'idle',
+      startCountdown: false,
+      cancelCountdown: base.phase !== 'white',
+    };
+  }
+
+  // —— Enter / stay amber ——
+  const amberEnteredAt =
+    base.phase === 'white' || base.amberEnteredAt == null ? nowMs : base.amberEnteredAt;
+  const amberAge = nowMs - amberEnteredAt;
+  const readySamples =
+    effectiveBand === 'ready'
+      ? (base.phase === 'amber' ? base.readySamples + 1 : 1)
+      : 0;
+
+  if (
+    effectiveBand === 'ready'
+    && amberAge >= conf.amberMinMs
+    && readySamples >= conf.greenStableSamples
+  ) {
+    return {
+      state: {
+        phase: 'green',
+        amberEnteredAt,
+        readySamples,
+        idleEnteredAt: null,
+        countdownActive: true,
+        confBuffer,
+      },
+      ui: 'ready',
+      startCountdown: true,
+      cancelCountdown: false,
+    };
+  }
+
+  return {
+    state: {
+      phase: 'amber',
+      amberEnteredAt,
+      readySamples,
+      idleEnteredAt: null,
+      countdownActive: false,
+      confBuffer,
+    },
+    ui: 'hold',
+    startCountdown: false,
+    cancelCountdown: false,
+  };
+}
+
 export class QuickAddCaptureController {
   track: QuickAddTrackState = createEmptyTrack();
   lastCaptureTime = 0;
   guide: QuickAddBBox = { ...QUICK_ADD_CAPTURE.guide };
+  /** Last real detection — used to hold amber through brief YOLO misses. */
+  lastBest: QuickAddYoloDetection | null = null;
+  temporal: QuickAddTemporalState = createQuickAddTemporalState();
 
   reset() {
     this.track = createEmptyTrack();
+    this.lastBest = null;
+    this.temporal = createQuickAddTemporalState();
   }
 
   setGuide(guide: QuickAddBBox) {
@@ -444,36 +706,122 @@ export class QuickAddCaptureController {
   /** Call when a photo is actually taken (auto or manual) so cooldown applies. */
   markCaptured(now = Date.now()) {
     this.lastCaptureTime = now;
+    this.temporal = {
+      ...this.temporal,
+      countdownActive: false,
+      phase: 'white',
+      amberEnteredAt: null,
+      readySamples: 0,
+      idleEnteredAt: null,
+    };
+  }
+
+  /** Screen calls this when countdown actually starts (keeps temporal in sync). */
+  markCountdownStarted() {
+    this.temporal = {
+      ...this.temporal,
+      phase: 'green',
+      countdownActive: true,
+      idleEnteredAt: null,
+    };
   }
 
   onFrame(
     detections: QuickAddYoloDetection[],
     now = Date.now(),
-  ): { best: QuickAddYoloDetection | null; eval: CaptureEval; armed: boolean; multiCount: number } {
+  ): {
+    best: QuickAddYoloDetection | null;
+    eval: CaptureEval;
+    armed: boolean;
+    multiCount: number;
+    cancelCountdown: boolean;
+  } {
     const boosted = boostDetections(detections);
     const multiCount = countConfidentDetections(boosted);
-    const best = selectBestDetection(boosted);
+    let best = selectBestDetection(boosted);
+    let rawEval: CaptureEval;
+    let ghostMiss = false;
+
     if (!best) {
-      const evaluation = evaluateCapture(null, this.track, { guide: this.guide });
-      if (now - this.track.lastUpdated > 1200) {
-        this.track = createEmptyTrack();
+      const grace = QUICK_ADD_CAPTURE.missGraceMs;
+      const withinGrace =
+        !!this.track.bbox
+        && !!this.lastBest
+        && this.track.lastUpdated > 0
+        && now - this.track.lastUpdated <= grace;
+
+      if (withinGrace && this.track.bbox && this.lastBest) {
+        best = {
+          ...this.lastBest,
+          bbox: this.track.bbox,
+        };
+        rawEval = evaluateCapture(best, this.track, { guide: this.guide });
+        rawEval = {
+          ...rawEval,
+          shouldCapture: false,
+          ui: 'hold',
+          hint: rawEval.isCentered || rawEval.isConfident ? 'Hold still…' : rawEval.hint,
+        };
+        ghostMiss = true;
+      } else {
+        rawEval = evaluateCapture(null, this.track, { guide: this.guide });
+        if (now - this.track.lastUpdated > grace) {
+          this.track = createEmptyTrack();
+          this.lastBest = null;
+        }
       }
-      return { best: null, eval: evaluation, armed: false, multiCount };
+    } else {
+      this.lastBest = best;
+      this.track = updateTracking(this.track, best, now);
+      rawEval = evaluateCapture(best, this.track, { guide: this.guide });
+      if (multiCount >= 2 && !rawEval.shouldCapture) {
+        rawEval = {
+          ...rawEval,
+          hint: '2 items detected — capture one at a time',
+          ui: rawEval.ui === 'idle' ? 'hold' : rawEval.ui,
+        };
+      }
     }
 
-    this.track = updateTracking(this.track, best, now);
-    const evaluation = evaluateCapture(best, this.track, { guide: this.guide });
-    let nextEval = evaluation;
-    if (multiCount >= 2 && !evaluation.shouldCapture) {
-      nextEval = {
-        ...evaluation,
-        hint: '2 items detected — capture one at a time',
-        ui: evaluation.ui === 'idle' ? 'hold' : evaluation.ui,
-      };
-    }
+    const rawBand: QuickAddPresenceBand =
+      rawEval.ui === 'ready' ? 'ready' : rawEval.ui === 'hold' || rawEval.ui === 'struggling' ? 'hold' : 'idle';
+
+    const advanced = advanceQuickAddTemporal(
+      this.temporal,
+      {
+        band: rawBand,
+        confidence: best && !ghostMiss ? best.confidence : ghostMiss ? Math.max(0.25, best?.confidence ?? 0.25) : 0,
+        rawReady: !!rawEval.shouldCapture && !ghostMiss,
+        lockHold: ghostMiss,
+      },
+      now,
+    );
+    this.temporal = advanced.state;
+
+    const smoothed: CaptureEval = {
+      ...rawEval,
+      ui: advanced.ui,
+      shouldCapture: advanced.startCountdown,
+      hint:
+        advanced.ui === 'ready'
+          ? 'Locked — capturing…'
+          : advanced.ui === 'hold'
+            ? (rawEval.ui === 'idle' ? 'Hold still…' : rawEval.hint)
+            : rawEval.hint,
+    };
+
     const armed =
-      nextEval.shouldCapture
+      advanced.startCountdown
+      && !!best
+      && !ghostMiss
       && now - this.lastCaptureTime >= QUICK_ADD_CAPTURE.captureCooldownMs;
-    return { best, eval: nextEval, armed, multiCount };
+
+    return {
+      best: best ?? null,
+      eval: smoothed,
+      armed,
+      multiCount,
+      cancelCountdown: advanced.cancelCountdown,
+    };
   }
 }

@@ -1,0 +1,2008 @@
+[
+  {
+    "id": "oxford_374",
+    "source": "oxford_street",
+    "image_path": "images/374.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "colorblock_midi",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "tan"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder_bag",
+        "color": "grey"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "periwinkle",
+      "white",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "colorblock",
+      "midi_dress",
+      "loafers"
+    ],
+    "notes": "Left primary mannequin in sleeveless navy/periwinkle/white geometric color-block midi dress with small grey shoulder bag and tan horsebit clog loafers; ignore right mannequin in white denim jacket",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_375",
+    "source": "oxford_street",
+    "image_path": "images/375.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight_cuffed",
+        "color": "dark_blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "button_down_shirt_jacket",
+        "color": "white"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "navy",
+      "dark_blue",
+      "brown",
+      "tan"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "denim",
+      "open_jacket",
+      "tote"
+    ],
+    "notes": "Centre mannequin in open white button-down shirt jacket over navy tee, dark-wash cuffed straight jeans, brown lug-sole lace-up loafers and large tan leather tote under arm",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_376",
+    "source": "oxford_street",
+    "image_path": "images/376.jpg",
+    "brand": "tory_burch",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "pleated_maxi",
+        "color": "red"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "gladiator_sandals",
+        "color": "gold"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder_bag",
+        "color": "pink"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "evening",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "red",
+      "gold",
+      "pink"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "flowing"
+    },
+    "style_tags": [
+      "tory_burch",
+      "maxi",
+      "summer"
+    ],
+    "notes": "Right primary Tory Burch mannequin in bright red pleated spaghetti-strap maxi dress with gold lace-up flat sandals and studded pink shoulder bag; ignore silver heels on white pedestal and left sequin dress mannequin",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_377",
+    "source": "oxford_street",
+    "image_path": "images/377.jpg",
+    "brand": "tory_burch",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "sequin_midi",
+        "color": "silver"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "block_heel_sandals",
+        "color": "white"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "evening",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "silver",
+      "red",
+      "black",
+      "white",
+      "green"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "straight"
+    },
+    "style_tags": [
+      "tory_burch",
+      "sequin",
+      "summer_sale"
+    ],
+    "notes": "Left primary Tory Burch mannequin in sleeveless silver sequin midi with red/black floral motif and white block-heel ankle-strap sandals beside SUMMER SALE pedestal; ignore right red maxi mannequin",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_378",
+    "source": "oxford_street",
+    "image_path": "images/378.jpg",
+    "brand": "tory_burch",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "lace_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "lace_maxi",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "ankle_strap_heels",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "bucket_bag",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "romantic"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "beige",
+      "navy"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "tory_burch",
+      "lace",
+      "co_ord"
+    ],
+    "notes": "Centre Tory Burch mannequin in cream open-knit lace short-sleeve top and matching lace maxi skirt with navy floral brooch, thin white belt, cream bucket bag and beige pointed ankle-strap heels",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_379",
+    "source": "oxford_street",
+    "image_path": "images/379.jpg",
+    "brand": "tory_burch",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "one_shoulder_midi",
+        "color": "multicolor"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "thong_sandals",
+        "color": "white"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "summer",
+        "print"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "teal",
+      "brown",
+      "grey",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "tory_burch",
+      "print_dress",
+      "one_shoulder"
+    ],
+    "notes": "Standing primary mannequin in one-shoulder knee-length abstract floral print dress in blue/teal/brown/grey with gathered waist and white thong sandals; ignore seated white kaftan mannequin",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_381",
+    "source": "oxford_street",
+    "image_path": "images/381.jpg",
+    "brand": "7_for_all_mankind",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "fitted_crew",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg_flare",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "leather_racer",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "denim",
+        "rock"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "blue",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "7_for_all_mankind",
+      "leather",
+      "flare_jeans"
+    ],
+    "notes": "Centre female 7 For All Mankind mannequin in distressed brown leather racer jacket over brown fitted top, high-waisted light-wash flare jeans and black belt; shoes on gold pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_382",
+    "source": "oxford_street",
+    "image_path": "images/382.jpg",
+    "brand": "7_for_all_mankind",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "slim",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "suede_trucker",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "denim"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "navy",
+      "blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "slim"
+    },
+    "style_tags": [
+      "7_for_all_mankind",
+      "suede",
+      "cap"
+    ],
+    "notes": "Centre male 7 For All Mankind mannequin in brown suede trucker jacket over navy tee, medium-wash slim jeans, beige 7-buckle belt and navy baseball cap with tonal 7; loafers on pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_383",
+    "source": "oxford_street",
+    "image_path": "images/383.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "draped_midi",
+        "color": "olive"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "handbag",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "feminine",
+      "secondary": [
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "olive",
+      "black",
+      "cream",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "draped_dress",
+      "loafers",
+      "socks"
+    ],
+    "notes": "Centre mannequin in olive draped one-shoulder midi dress with tan/brown two-tone handbag and black chunky loafers over thick cream ribbed socks",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_384",
+    "source": "oxford_street",
+    "image_path": "images/384.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "sweater",
+        "subcategory": "ribbed_long_sleeve",
+        "color": "sage"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "mini",
+        "color": "khaki"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "feminine"
+      ]
+    },
+    "colour_palette": [
+      "sage",
+      "khaki",
+      "brown",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "ribbed_knit",
+      "mini_skirt",
+      "crossbody"
+    ],
+    "notes": "Centre mannequin in sage ribbed long-sleeve top with khaki mini skirt, cognac crossbody saddle bag, cream slouch socks and dark brown lace-up loafers",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_385",
+    "source": "oxford_street",
+    "image_path": "images/385.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "corduroy_mini",
+        "color": "rust"
+      },
+      "outerwear": {
+        "category": "cardigan",
+        "subcategory": "fuzzy_toggle",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "rust"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "autumnal"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "rust",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "cardigan",
+      "corduroy",
+      "cap"
+    ],
+    "notes": "Left primary mannequin in cream fuzzy toggle cardigan, rust corduroy mini skirt, rust baseball cap and cream ribbed socks; loafers on silver pedestal so footwear null; pale tote on floor",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_386",
+    "source": "oxford_street",
+    "image_path": "images/386.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "long_sleeve",
+        "color": "terracotta"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_cuffed",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "geometric_silk",
+        "color": "multicolor"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "autumnal"
+      ]
+    },
+    "colour_palette": [
+      "terracotta",
+      "cream",
+      "olive",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "straight"
+    },
+    "style_tags": [
+      "scarf",
+      "cuffed_trousers",
+      "loafers"
+    ],
+    "notes": "Centre mannequin in terracotta long-sleeve top, cream cuffed straight trousers, olive/cream/brown geometric neck scarf and small brown handbag; black loafers with cream socks on pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_388",
+    "source": "oxford_street",
+    "image_path": "images/388.jpg",
+    "brand": "longchamp",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "sweater",
+        "subcategory": "ribbed_crew",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "print_straight",
+        "color": "off_white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "bucket_bag",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "preppy"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "off_white",
+      "tan",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "straight"
+    },
+    "style_tags": [
+      "longchamp",
+      "logo_print",
+      "bucket_bag"
+    ],
+    "notes": "Centre Longchamp mannequin in cream ribbed sweater with gold shoulder buttons, off-white Longchamp stamp-print straight trousers, tan bucket bag with pom charm and brown pouch necklace; brown loafers on glass platform so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_389",
+    "source": "oxford_street",
+    "image_path": "images/389.jpg",
+    "brand": "paul_and_shark",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_oxford",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "chinos",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "sweater",
+        "subcategory": "shoulders_tied",
+        "color": "navy"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "navy"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "preppy",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "navy",
+      "cream"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "slim"
+    },
+    "style_tags": [
+      "paul_and_shark",
+      "preppy",
+      "shoulders_tied"
+    ],
+    "notes": "Centre male Paul & Shark mannequin in light blue/white striped shirt with sleeves rolled, navy sweater tied over shoulders, cream slim chinos and navy suede loafers; holding folded burgundy garment",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_390",
+    "source": "oxford_street",
+    "image_path": "images/390.jpg",
+    "brand": "paul_and_shark",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "open_knit",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "knit_midi",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "straw_tote",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "preppy",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "paul_and_shark",
+      "knit_set",
+      "straw_tote"
+    ],
+    "notes": "Centre Paul & Shark mannequin in black open-knit polo with striped collar and matching black knit midi skirt, gold-buckle black belt, black suede loafers and tan straw tote with white shirt draped over bag",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_391",
+    "source": "oxford_street",
+    "image_path": "images/391.jpg",
+    "brand": "paul_and_shark",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "crew",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "utility_knit_sleeve",
+        "color": "off_white"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "tan"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "preppy"
+      ]
+    },
+    "colour_palette": [
+      "off_white",
+      "cream",
+      "beige",
+      "tan"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "straight"
+    },
+    "style_tags": [
+      "paul_and_shark",
+      "utility",
+      "neutral"
+    ],
+    "notes": "Centre mannequin in off-white utility vest jacket with beige knit sleeves over white polo, cream straight trousers and tan suede loafers; ignore white duffle on blue pedestal",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_392",
+    "source": "oxford_street",
+    "image_path": "images/392.jpg",
+    "brand": "onitsuka_tiger",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "button_down",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic",
+        "color": "yellow"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_zip",
+        "color": "black"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "mint"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "streetwear",
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white",
+      "yellow",
+      "mint",
+      "grey"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "onitsuka_tiger",
+      "nippon_made",
+      "archive"
+    ],
+    "notes": "Centre Onitsuka Tiger mannequin in black cropped zip jacket over white button-down, yellow Archive 1974 athletic shorts, grey crew socks and mint/white chunky sneakers",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_393",
+    "source": "oxford_street",
+    "image_path": "images/393.jpg",
+    "brand": "canada_goose",
+    "price_tier": "luxury",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "crew",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "cargo",
+        "color": "brown"
+      },
+      "outerwear": {
+        "category": "vest",
+        "subcategory": "quilted_puffer",
+        "color": "yellow"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "outdoor",
+      "secondary": [
+        "casual",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "navy",
+      "brown",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "canada_goose",
+      "puffer_vest",
+      "cargo"
+    ],
+    "notes": "Centre Canada Goose mannequin in bright yellow quilted puffer vest with logo patch over navy sweatshirt, brown cargo trousers and black baseball cap; white sneakers on black pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_395",
+    "source": "oxford_street",
+    "image_path": "images/395.jpg",
+    "brand": "canada_goose",
+    "price_tier": "luxury",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped",
+        "color": "black_white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "hooded_windbreaker",
+        "color": "grey"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "sunglasses",
+        "subcategory": "sport",
+        "color": "orange"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": [
+        "casual",
+        "outdoor"
+      ]
+    },
+    "colour_palette": [
+      "grey",
+      "black",
+      "white",
+      "orange"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "canada_goose",
+      "windbreaker",
+      "sport"
+    ],
+    "notes": "Left primary mannequin in light grey hooded windbreaker over black/white striped shirt, black athletic shorts, orange-tint sport sunglasses and cream crossbody; white high-tops on black pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_396",
+    "source": "oxford_street",
+    "image_path": "images/396.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior floor shot of mannequin on raised white pedestal amid clothing racks, track lighting and LIFT signage — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_397",
+    "source": "oxford_street",
+    "image_path": "images/397.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior floor display of mannequin in cream polo and grey trousers on white multi-tier platform amid racks and track lighting — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_398",
+    "source": "oxford_street",
+    "image_path": "images/398.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior pedestal display of mannequin in beige textured blazer over white tee and navy trousers — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_399",
+    "source": "oxford_street",
+    "image_path": "images/399.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior M&S-style suit display of tan blazer/trouser set with blue shirt and knit tie on white pedestal; PAY/KIDS/ONLINE PICK UP signage — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_400",
+    "source": "oxford_street",
+    "image_path": "images/400.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior Marks & Spencer navy three-piece suit mannequin on white pedestal amid suit racks — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_401",
+    "source": "oxford_street",
+    "image_path": "images/401.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior navy suit mannequin with striped shirt and briefcase on tiered pedestal; windows visible behind looking out — shot from inside, not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_403",
+    "source": "oxford_street",
+    "image_path": "images/403.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior black tuxedo mannequin on white pedestal with suit racks behind — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_404",
+    "source": "oxford_street",
+    "image_path": "images/404.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in navy zip jacket, light blue shirt, grey trousers and backpack on white pedestal — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_405",
+    "source": "oxford_street",
+    "image_path": "images/405.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear Jaeger store-interior mannequin in beige linen-look suit with white shirt amid racks and digital screen — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_406",
+    "source": "oxford_street",
+    "image_path": "images/406.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear Autograph/M&S store-interior mannequin in cream ribbed tank and voluminous pleated maxi skirt on pedestal amid bag displays — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_407",
+    "source": "oxford_street",
+    "image_path": "images/407.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear Jaeger store-interior mannequin in rust blazer and matching pleated culottes with black clutch — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_408",
+    "source": "oxford_street",
+    "image_path": "images/408.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear Jaeger store-interior mannequin in yellow/black check waistcoat and matching trousers — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_410",
+    "source": "oxford_street",
+    "image_path": "images/410.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior torso mannequins on white circular pedestals (crochet top/denim shorts and paisley maxi) with shoe wall behind — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_411",
+    "source": "oxford_street",
+    "image_path": "images/411.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in layered striped shirts, light-wash jeans and brown bag on raised white platform — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_412",
+    "source": "oxford_street",
+    "image_path": "images/412.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior three-mannequin circular platform display amid aisles and blue digital screen — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_413",
+    "source": "oxford_street",
+    "image_path": "images/413.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in beige trench over brown polo and dark jeans with black bag amid denim racks — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_414",
+    "source": "oxford_street",
+    "image_path": "images/414.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in brown plaid shirt with matching shirt tied at shoulders and cream wide-leg trousers on white pedestal — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_415",
+    "source": "oxford_street",
+    "image_path": "images/415.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in dark denim jumpsuit with black belt, scarf and brown bag on white platform — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_417",
+    "source": "oxford_street",
+    "image_path": "images/417.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in black windowpane zip jacket and red midi skirt on white pedestal amid clothing racks — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_418",
+    "source": "oxford_street",
+    "image_path": "images/418.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior mannequin in red button-down and white wide-leg trousers on pedestal with large G wall relief — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_419",
+    "source": "oxford_street",
+    "image_path": "images/419.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Clear store-interior partial mannequin in blue/white striped shirt dress with aviators on white pedestal amid racks — not a street-facing shop window",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  }
+]

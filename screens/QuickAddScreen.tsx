@@ -410,7 +410,7 @@ export default function QuickAddScreen({ navigation }: Props) {
         bbox: bboxFromTuple(d.bbox),
       }));
 
-      const { best, eval: evaluation, armed } = controllerRef.current.onFrame(detections);
+      const { best, eval: evaluation, armed, cancelCountdown } = controllerRef.current.onFrame(detections);
       if (best) lastBestRef.current = best;
       const now = Date.now();
       if (now - lastUiHintAt.current > 80) {
@@ -429,8 +429,10 @@ export default function QuickAddScreen({ navigation }: Props) {
       }
 
       if (armed && best) {
+        controllerRef.current.markCountdownStarted();
         startCountdown(best);
-      } else if (!evaluation.shouldCapture) {
+      } else if (cancelCountdown) {
+        // Sustained idle only — brief YOLO misses must not abort green.
         clearCountdown();
       }
     } catch (err) {

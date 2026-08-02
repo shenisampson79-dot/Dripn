@@ -12,6 +12,7 @@ import {
   hasReliableFabricColor,
   isBareTorsoTopLike,
   isFloorLengthTrousersEvidence,
+  looksLikeDress,
   looksLikeShortsWithFootwearExtension,
   type BBoxTuple,
   type BottomSubtype,
@@ -29,7 +30,15 @@ import {
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 
-export type BeliefKind = 'top' | 'shorts' | 'trousers' | 'skirt' | 'shoes' | 'other';
+export type BeliefKind =
+  | 'top'
+  | 'outerwear'
+  | 'dress'
+  | 'shorts'
+  | 'trousers'
+  | 'skirt'
+  | 'shoes'
+  | 'other';
 
 export type GarmentBelief = {
   kind: BeliefKind;
@@ -63,6 +72,8 @@ export const BELIEF_SWITCH_CONF = 0.93;
 export const BELIEF_MISS_TTL_MS = 18000;
 export const BELIEF_DECAY = 0.985;
 export const BELIEF_FLOOR = 0.15;
+/** Overlap needed to keep a dress locked against trousers/skirt/shorts flips. */
+export const DRESS_PERSIST_IOU = 0.6;
 
 const COLOR_ALIASES: Record<string, string> = {
   grey: 'gray',
@@ -92,10 +103,12 @@ export function createOutfitBeliefState(): OutfitBeliefState {
 export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
   const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
   if (/shoe|boot|sneaker|footwear|sandal|flip.?flop|slide|thong|mule|loafer/.test(blob)) return 'shoes';
+  if (/dress/.test(blob)) return 'dress';
+  if (/outer|jacket|blazer|coat|gilet|vest/.test(blob)) return 'outerwear';
   if (/short/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
   if (/trouser|jean|pant|bottom/.test(blob)) return 'trousers';
-  if (/top|shirt|tee|polo|knit|sweater|blouse|jersey|outer|blazer|jacket|coat|dress/.test(blob)) {
+  if (/top|shirt|tee|polo|knit|sweater|blouse|jersey/.test(blob)) {
     return 'top';
   }
   return 'other';
@@ -105,6 +118,19 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
   if (kind === 'shorts') return { category: 'bottoms', subcategory: 'shorts' };
   if (kind === 'trousers') return { category: 'bottoms', subcategory: 'trousers' };
   if (kind === 'skirt') return { category: 'bottoms', subcategory: 'skirt' };
+  if (kind === 'dress') {
+    const sub = String(det?.subcategory || '').toLowerCase();
+    if (/maxi/.test(sub)) return { category: 'dresses', subcategory: 'maxi_dress' };
+    if (/midi/.test(sub)) return { category: 'dresses', subcategory: 'midi_dress' };
+    return { category: 'dresses', subcategory: sub || 'dress' };
+  }
+  if (kind === 'outerwear') {
+    const blob = `${det?.subcategory || ''} ${det?.name || ''}`.toLowerCase();
+    return {
+      category: 'outerwear',
+      subcategory: /blazer/.test(blob) ? 'blazer' : (/coat/.test(blob) ? 'coat' : 'jacket'),
+    };
+  }
   if (kind === 'shoes') {
     const sub = String(det?.subcategory || '').toLowerCase();
     const name = String(det?.name || '').toLowerCase();
@@ -121,6 +147,17 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
   }
   if (kind === 'top') return { category: 'tops', subcategory: 'top' };
   return { category: 'tops', subcategory: 'top' };
+}
+
+function isBottomLikeKind(kind: BeliefKind): boolean {
+  return kind === 'trousers' || kind === 'skirt' || kind === 'shorts';
+}
+
+function preferUpperDetection(a: OnDeviceDetection, b: OnDeviceDetection): number {
+  const aOuter = beliefKindFromDetection(a) === 'outerwear' ? 1 : 0;
+  const bOuter = beliefKindFromDetection(b) === 'outerwear' ? 1 : 0;
+  if (aOuter !== bOuter) return bOuter - aOuter;
+  return b.confidence - a.confidence;
 }
 
 /** Canonical belief color — dark family collapses to black for bottoms/tops, not footwear. */
@@ -284,8 +321,8 @@ export function observationFromDetection(
   const conf = Math.max(0, Math.min(1, det.confidence || 0.5));
   const rawColor = normalizeBeliefColor(det.color, kind);
   let color = rawColor;
-  const slot = kind === 'top' ? 'top' as const
-    : kind === 'shorts' || kind === 'trousers' || kind === 'skirt' ? 'bottom' as const
+  const slot = kind === 'top' || kind === 'outerwear' ? 'top' as const
+    : kind === 'shorts' || kind === 'trousers' || kind === 'skirt' || kind === 'dress' ? 'bottom' as const
       : undefined;
 
   if (conf < COLOR_ADOPT_THRESHOLD && rawColor) {
@@ -380,8 +417,9 @@ function applyStabilizedColor(
 }
 
 function slotOfKind(kind: BeliefKind): 'top' | 'bottom' | 'footwear' {
-  if (kind === 'top') return 'top';
+  if (kind === 'top' || kind === 'outerwear') return 'top';
   if (kind === 'shoes') return 'footwear';
+  // dress shares bottom slot so jacket (top) + dress can coexist
   return 'bottom';
 }
 
@@ -392,6 +430,84 @@ function resolveConflict(
   log?: BeliefDecision[],
 ): GarmentBelief {
   const slot = slotOfKind(prev.kind);
+
+  // Dress persistence: overlapping trousers/skirt/shorts must not reclassify the one-piece.
+  if (prev.kind === 'dress' && isBottomLikeKind(current.kind)) {
+    if (beliefBboxIou(prev.bbox, current.bbox) >= DRESS_PERSIST_IOU) {
+      appendDecision(log, {
+        type: 'reject',
+        message: `Kept dress over ${current.kind}`,
+        reason: 'dress persistence IoU lock',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...prev,
+        lastSeenAt: now,
+        confidence: Math.min(1, prev.confidence + 0.03),
+        stability: Math.min(1, prev.stability + 0.08),
+        bbox: current.bbox,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom'),
+      };
+    }
+  }
+
+  // Strong dress evidence may correct a trousers misread (geometry or overlap).
+  if (isBottomLikeKind(prev.kind) && current.kind === 'dress') {
+    const iou = beliefBboxIou(prev.bbox, current.bbox);
+    if (iou >= DRESS_PERSIST_IOU || looksLikeDress(current.bbox)) {
+      appendDecision(log, {
+        type: 'update',
+        message: `${prev.kind} → dress`,
+        reason: iou >= DRESS_PERSIST_IOU ? 'dress IoU override' : 'dress geometry override',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...current,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+        stability: Math.max(0.5, prev.stability * 0.7),
+        lastChangedAt: now,
+        lastSeenAt: now,
+      };
+    }
+  }
+
+  // Outerwear wins over generic top in the same upper slot when boxes overlap.
+  if (prev.kind === 'top' && current.kind === 'outerwear') {
+    appendDecision(log, {
+      type: 'update',
+      message: 'top → outerwear',
+      reason: 'outerwear priority',
+      slot: 'top',
+      time: now,
+    });
+    return {
+      ...current,
+      color: current.color,
+      stability: Math.max(0.45, prev.stability * 0.6),
+      lastChangedAt: now,
+      lastSeenAt: now,
+    };
+  }
+  if (prev.kind === 'outerwear' && current.kind === 'top') {
+    if (beliefBboxIou(prev.bbox, current.bbox) >= 0.35 || current.confidence < BELIEF_SWITCH_CONF) {
+      appendDecision(log, {
+        type: 'reject',
+        message: 'Kept outerwear over top',
+        reason: 'outerwear resists generic top',
+        slot: 'top',
+        time: now,
+      });
+      return {
+        ...prev,
+        lastSeenAt: now,
+        confidence: Math.min(1, prev.confidence + 0.02),
+        bbox: current.confidence >= prev.confidence ? current.bbox : prev.bbox,
+        color: applyStabilizedColor(prev, current, log, now, 'top'),
+      };
+    }
+  }
 
   // Locked trousers: only hold against shorts when this still looks like a pant column
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
@@ -700,7 +816,10 @@ export function applyOutfitBelief(
   const repairs: string[] = [];
   const decisions = opts?.decisions || [];
 
-  const topsRaw = detections.filter((d) => beliefKindFromDetection(d) === 'top');
+  const topsRaw = detections.filter((d) => {
+    const k = beliefKindFromDetection(d);
+    return k === 'top' || k === 'outerwear';
+  });
   const tops = topsRaw.filter((d) => !isBareTorsoTopLike({
     category: d.category,
     subcategory: d.subcategory,
@@ -710,7 +829,7 @@ export function applyOutfitBelief(
   }));
   const bottoms = detections.filter((d) => {
     const k = beliefKindFromDetection(d);
-    return k === 'shorts' || k === 'trousers' || k === 'skirt';
+    return k === 'shorts' || k === 'trousers' || k === 'skirt' || k === 'dress';
   });
   const shoes = detections.filter((d) => beliefKindFromDetection(d) === 'shoes');
 
@@ -720,10 +839,16 @@ export function applyOutfitBelief(
   });
 
   // Bare torso: never feed a top observation (even a "held" one cannot reinforce)
+  // Prefer outerwear over a phantom tee when both fire.
   const topObs = torsoState === 'bare'
     ? null
-    : (tops.sort((a, b) => b.confidence - a.confidence)[0] || null);
-  let bottomObs = bottoms.sort((a, b) => b.confidence - a.confidence)[0] || null;
+    : (tops.sort(preferUpperDetection)[0] || null);
+  let bottomObs = bottoms.sort((a, b) => {
+    const aDress = beliefKindFromDetection(a) === 'dress' ? 1 : 0;
+    const bDress = beliefKindFromDetection(b) === 'dress' ? 1 : 0;
+    if (aDress !== bDress) return bDress - aDress;
+    return b.confidence - a.confidence;
+  })[0] || null;
   let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
 
   // Floor-length bottoms labeled shorts → force trousers (true pant columns only)

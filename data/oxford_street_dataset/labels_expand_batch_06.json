@@ -1,0 +1,2321 @@
+[
+  {
+    "id": "oxford_234",
+    "source": "oxford_street",
+    "image_path": "images/234.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "strapless_polka_maxi",
+        "color": "brown"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "bold"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "polka_dot",
+      "maxi",
+      "sunglasses"
+    ],
+    "notes": "Centre mannequin with black bob wig and dark sunglasses in strapless brown-and-white polka-dot maxi dress; sandals on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_235",
+    "source": "oxford_street",
+    "image_path": "images/235.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "sleeveless_wrap_stripe",
+        "color": "blue"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "bold"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "striped",
+      "wrap_dress",
+      "summer"
+    ],
+    "notes": "Centre mannequin in short sleeveless wrap dress with cobalt blue, white and black vertical stripes and thick blue collar; sandals on white pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_236",
+    "source": "oxford_street",
+    "image_path": "images/236.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "tank_top",
+        "subcategory": "square_neck",
+        "color": "olive"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "wrap_midi",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "brooch",
+        "subcategory": "shell",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "olive",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "wrap_skirt",
+      "summer",
+      "linen"
+    ],
+    "notes": "Centre grey mannequin in olive square-neck tank with cream wrap midi skirt and shell shoulder pin; flip-flops on white pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_238",
+    "source": "oxford_street",
+    "image_path": "images/238.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "pinstripe_button_down",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "knee_length",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "cream",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "pinstripe",
+      "summer"
+    ],
+    "notes": "NEXT mannequin in light pink vertical pinstripe long-sleeve shirt and cream knee-length shorts; sneakers on stone pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_239",
+    "source": "oxford_street",
+    "image_path": "images/239.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "striped_short_sleeve",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_cropped",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "light_blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "striped_polo",
+      "wide_leg"
+    ],
+    "notes": "NEXT mannequin in brown-and-light-blue striped short-sleeve polo and beige wide-leg cropped trousers; white flats on marble pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_240",
+    "source": "oxford_street",
+    "image_path": "images/240.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "quarter_zip",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_stripe",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "sporty"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "black",
+      "white",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "striped_trousers",
+      "crossbody"
+    ],
+    "notes": "NEXT mannequin in light blue quarter-zip sweatshirt with dark sleeve stripes, black wide-leg trousers with white vertical stripes, and cream crescent crossbody; sneakers on marble pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_241",
+    "source": "oxford_street",
+    "image_path": "images/241.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "lace_short_sleeve",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "cargo",
+        "color": "olive"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "feminine",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "olive"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "lace",
+      "cargo_shorts"
+    ],
+    "notes": "NEXT mannequin in light pink lace/eyelet short-sleeve blouse with keyhole ties and olive drawstring cargo shorts; Mary Jane flats on pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_242",
+    "source": "oxford_street",
+    "image_path": "images/242.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "lace_short_sleeve",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "cargo",
+        "color": "olive"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "feminine",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "olive"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "lace",
+      "cargo_shorts"
+    ],
+    "notes": "Left primary mannequin on marble platform in pink lace floral blouse and olive cargo shorts; bronze flats on pedestal so footwear null; ignore adjacent green jacket and denim skirt mannequin",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_243",
+    "source": "oxford_street",
+    "image_path": "images/243.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "floral_ruffle",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "jogger",
+        "color": "brown"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "feminine"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "pink",
+      "green",
+      "brown"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "floral",
+      "ruffle"
+    ],
+    "notes": "NEXT mannequin in cream floral ruffle blouse, taupe/brown jogger trousers and cream woven crossbody; white woven flats on gold pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_245",
+    "source": "oxford_street",
+    "image_path": "images/245.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "striped_crew",
+        "color": "multicolor"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_cuffed",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "camisole",
+        "subcategory": "scoop_neck",
+        "color": "coral"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "coral",
+      "blue"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "layered",
+      "denim_shorts"
+    ],
+    "notes": "NEXT mannequin in light blue/white/coral striped tee under coral scoop camisole with dark denim cuffed shorts; light blue Mary Janes on marble pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_246",
+    "source": "oxford_street",
+    "image_path": "images/246.jpg",
+    "brand": "gap",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "graphic_short_sleeve",
+        "color": "navy"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "barrel_leg",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "blue",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "gap",
+      "graphic",
+      "barrel_leg"
+    ],
+    "notes": "Centre Gap mannequin in navy short-sleeve graphic sweatshirt with pagoda print and medium-wash barrel-leg jeans with BARREL LEG hangtag; sneakers on white pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_247",
+    "source": "oxford_street",
+    "image_path": "images/247.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "graphic_crew",
+        "color": "pink"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_print",
+        "color": "multicolor"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "bold",
+        "feminine"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "yellow",
+      "blue",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "graphic",
+      "pleated_skirt"
+    ],
+    "notes": "NEXT mannequin in bright pink crew sweatshirt with matcha graphic and short multicolor diagonal-stripe pleated skirt; white flats on marble pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_248",
+    "source": "oxford_street",
+    "image_path": "images/248.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "vest",
+        "subcategory": "sleeveless_eyelet",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "eyelet_cuff",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "co_ord",
+      "eyelet"
+    ],
+    "notes": "NEXT mannequin in matching mid-blue sleeveless button vest with eyelet hem and blue trousers with eyelet ankle cuffs; burgundy sandals on marble pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_249",
+    "source": "oxford_street",
+    "image_path": "images/249.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "bikini_top",
+        "subcategory": "spaghetti_strap",
+        "color": "burgundy"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "harem_print",
+        "color": "orange"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "summer",
+        "bold"
+      ]
+    },
+    "colour_palette": [
+      "burgundy",
+      "orange",
+      "tan",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "resort",
+      "sunglasses"
+    ],
+    "notes": "RESORT mannequin in burgundy bikini top, ornate orange/tan/brown harem trousers and thick white sunglasses; white sandals on marble pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 76,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_250",
+    "source": "oxford_street",
+    "image_path": "images/250.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "bikini_top",
+        "subcategory": "bandeau",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "fringed_sarong",
+        "color": "rust"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "wide_brim",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "resort",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "rust",
+      "orange"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "resort",
+      "sarong"
+    ],
+    "notes": "RESORT mannequin in black bandeau bikini top, rust floral wrap sarong with long black fringe and black wide-brim sun hat; black thong sandals on marble pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_252",
+    "source": "oxford_street",
+    "image_path": "images/252.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "striped_short_sleeve",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "thin_stripe_long_sleeve",
+        "color": "white"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "striped",
+      "layered"
+    ],
+    "notes": "Mannequin in thick black-and-white striped short-sleeve tee over thin black-and-white striped long sleeve with wide-leg black trousers; beige flats on pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_253",
+    "source": "oxford_street",
+    "image_path": "images/253.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "coral"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "print_swim",
+        "color": "multicolor"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "bucket",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "resort",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "coral",
+      "orange",
+      "blue",
+      "green",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "bucket_hat",
+      "print_shorts",
+      "summer"
+    ],
+    "notes": "Male mannequin in coral crew tee, multicolor Fanta-logo print shorts and beige bucket hat; brown slide sandals on wooden platform so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 76,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_254",
+    "source": "oxford_street",
+    "image_path": "images/254.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "striped_crew",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "short_sleeve_unbuttoned",
+        "color": "white"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "bucket",
+        "color": "grey"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "blue",
+      "charcoal",
+      "grey",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "bucket_hat",
+      "layered",
+      "linen"
+    ],
+    "notes": "Male mannequin in grey bucket hat, unbuttoned white short-sleeve shirt over blue-and-white striped tee and charcoal trousers; brown two-strap sandals on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_255",
+    "source": "oxford_street",
+    "image_path": "images/255.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "relaxed_linen",
+        "color": "navy"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "short_sleeve_check",
+        "color": "sage"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "sage",
+      "white",
+      "navy"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "open_shirt",
+      "linen",
+      "summer"
+    ],
+    "notes": "Male mannequin in sage green short-sleeve check shirt worn open over white crew tee with navy relaxed trousers; brown two-strap sandals on white pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_256",
+    "source": "oxford_street",
+    "image_path": "images/256.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "dress_shirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "tan"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "tan"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "tie",
+        "subcategory": "necktie",
+        "color": "red"
+      }
+    },
+    "style": {
+      "primary": "formal",
+      "secondary": [
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "white",
+      "red",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "suit",
+      "tie",
+      "formal"
+    ],
+    "notes": "Male mannequin in tan textured single-breasted suit with white dress shirt, solid red necktie and dark pocket square; brown loafers on wooden pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_257",
+    "source": "oxford_street",
+    "image_path": "images/257.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted_linen",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "beige",
+      "black",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "linen_suit",
+      "smart_casual"
+    ],
+    "notes": "Foreground NEXT mannequin in light beige linen suit over black crew tee; dark loafers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_259",
+    "source": "oxford_street",
+    "image_path": "images/259.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "dress_shirt",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "sage"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "three_piece_single_breasted",
+        "color": "sage"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "tie",
+        "subcategory": "necktie",
+        "color": "pink"
+      }
+    },
+    "style": {
+      "primary": "formal",
+      "secondary": [
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "sage",
+      "white",
+      "pink"
+    ],
+    "features": {
+      "layering": "full",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "three_piece",
+      "suit"
+    ],
+    "notes": "Centre mannequin in light sage three-piece suit with white dress shirt, pink necktie and white pocket square; burgundy loafers on wooden pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_260",
+    "source": "oxford_street",
+    "image_path": "images/260.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted_linen",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "beige",
+      "white",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "linen_suit",
+      "smart_casual"
+    ],
+    "notes": "Primary left mannequin in light beige linen blazer and matching trousers over white crew tee; dark brown loafers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_261",
+    "source": "oxford_street",
+    "image_path": "images/261.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Large floor-to-ceiling lifestyle poster of man in grey double-breasted suit dominates frame; partial background mannequin only — poster-only, not usable primary outfit",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_262",
+    "source": "oxford_street",
+    "image_path": "images/262.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "button_down",
+        "color": "light_grey"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "tan"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "tan"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "light_grey",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "suit",
+      "tan"
+    ],
+    "notes": "Male mannequin in tan single-breasted suit with light grey button-down shirt; dark brown bit loafers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_263",
+    "source": "oxford_street",
+    "image_path": "images/263.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "suit",
+        "color": "rust"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted_linen",
+        "color": "rust"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "rust",
+      "white",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "next",
+      "linen_suit",
+      "rust"
+    ],
+    "notes": "Male mannequin in rust/terracotta textured linen suit over white crew tee; dark brown tassel loafers on wooden pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_264",
+    "source": "oxford_street",
+    "image_path": "images/264.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "chino",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "harrington_zip",
+        "color": "camel"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "camel",
+      "blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "harrington",
+      "premium"
+    ],
+    "notes": "NEXT N. PREMIUM mannequin in open camel zip harrington over blue crew tee with beige pleated chinos; cream sneakers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_265",
+    "source": "oxford_street",
+    "image_path": "images/265.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "striped_short_sleeve",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pleated",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "white",
+      "navy",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "next",
+      "striped_polo",
+      "pleated"
+    ],
+    "notes": "Male mannequin in brown polo with thin white horizontal stripes and navy pleated trousers; tan tassel loafers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_267",
+    "source": "oxford_street",
+    "image_path": "images/267.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "linen_drawstring",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "crochet_floral_short_sleeve",
+        "color": "olive"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "resort"
+      ]
+    },
+    "colour_palette": [
+      "olive",
+      "white",
+      "yellow",
+      "beige",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "crochet",
+      "floral",
+      "baseball_cap"
+    ],
+    "notes": "Male mannequin in olive crochet short-sleeve shirt with white/yellow daisy motifs over white tee, beige drawstring shorts and two-tone baseball cap; sandals on wooden pedestal so footwear null; ignore separate clogs on side pedestal",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_268",
+    "source": "oxford_street",
+    "image_path": "images/268.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "plaid_button_down",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "chino",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "yellow",
+      "beige",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "plaid",
+      "chino"
+    ],
+    "notes": "Male mannequin in blue/white/yellow plaid long-sleeve button-down with sleeves rolled and tan chino trousers; black sneakers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_269",
+    "source": "oxford_street",
+    "image_path": "images/269.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim",
+        "color": "olive"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "plaid_short_sleeve",
+        "color": "red"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "red",
+      "white",
+      "olive",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "plaid",
+      "denim_shorts",
+      "summer"
+    ],
+    "notes": "Male mannequin in open red-and-white plaid short-sleeve shirt over white crew tee with faded olive denim shorts; brown two-strap sandals on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_270",
+    "source": "oxford_street",
+    "image_path": "images/270.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "short_sleeve",
+        "color": "green"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino",
+        "color": "light_grey"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "sporty",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "green",
+      "light_grey",
+      "white",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "polo",
+      "shorts",
+      "summer"
+    ],
+    "notes": "Foreground mannequin in solid green polo with white collar tipping and light grey shorts; tan-and-white sneakers on white pedestal block so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_271",
+    "source": "oxford_street",
+    "image_path": "images/271.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "graphic_crew",
+        "color": "olive"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "baggy",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "olive",
+      "blue",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic",
+      "baggy_jeans"
+    ],
+    "notes": "Male mannequin in light olive Earth Rebellion graphic crew sweatshirt and light-wash baggy jeans; cream sneakers on white pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_272",
+    "source": "oxford_street",
+    "image_path": "images/272.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "graphic_crew",
+        "color": "yellow"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "sweatshirt",
+        "subcategory": "waist_tied",
+        "color": "olive"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "olive",
+      "blue",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic",
+      "waist_tied",
+      "jeans"
+    ],
+    "notes": "Centre mannequin in bright yellow graphic crew sweatshirt with olive sweatshirt tied at waist and medium-wash jeans; beige sneakers on wooden pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_274",
+    "source": "oxford_street",
+    "image_path": "images/274.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Large fashion advertisement poster behind glass with heavy street reflections (red bus, photographer) — poster-only, no physical mannequin outfit",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_275",
+    "source": "oxford_street",
+    "image_path": "images/275.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "jersey",
+        "subcategory": "football_long_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "charcoal"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "samba_style",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "red"
+      }
+    },
+    "style": {
+      "primary": "sporty",
+      "secondary": [
+        "casual",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "red",
+      "charcoal"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "adidas",
+      "liverpool",
+      "football"
+    ],
+    "notes": "Window mannequin in white Liverpool FC Adidas long-sleeve jersey, charcoal trousers, red LFC baseball cap, white crossbody bag and white sneakers with red stripes on circular glass base",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_276",
+    "source": "oxford_street",
+    "image_path": "images/276.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "jersey",
+        "subcategory": "football_cropped",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "samba_style",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "bucket",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "sporty",
+      "secondary": [
+        "street",
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "red",
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "adidas",
+      "liverpool",
+      "cropped_jersey"
+    ],
+    "notes": "Window mannequin in white cropped Liverpool FC Adidas jersey, dark wide-leg jeans with denim D-ring belt, white bucket hat with red crest and white sneakers with red stripes",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_277",
+    "source": "oxford_street",
+    "image_path": "images/277.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "jersey",
+        "subcategory": "football_short_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic",
+        "color": "light_grey"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "samba_style",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "sporty",
+      "secondary": [
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "red",
+      "light_grey"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "adidas",
+      "liverpool",
+      "kids"
+    ],
+    "notes": "Primary kids window mannequin in white Liverpool FC Adidas jersey, light grey shorts, white Adidas baseball cap and white Samba-style sneakers; ignore partial adult mannequin on right",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_278",
+    "source": "oxford_street",
+    "image_path": "images/278.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_cutoff",
+        "color": "light_blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "denim",
+        "color": "dark_blue"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "dark_blue",
+      "white",
+      "light_blue",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "denim",
+      "cutoff",
+      "summer"
+    ],
+    "notes": "Window mannequin in dark blue denim jacket over white tee with light-wash frayed cutoff shorts and brown leather belt; platform sandals on wooden plinth so footwear null; glass text Lose the noise Find your essentials",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_279",
+    "source": "oxford_street",
+    "image_path": "images/279.jpg",
+    "brand": "timberland",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "blue",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "timberland",
+      "denim_shorts",
+      "cap"
+    ],
+    "notes": "Timberland window mannequin in white logo tee, mid-wash denim shorts and camel baseball cap; wheat boots on black textured pedestal so footwear null; glass text make it your moment",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  }
+]

@@ -1,0 +1,1978 @@
+[
+  {
+    "id": "oxford_048",
+    "source": "oxford_street",
+    "image_path": "images/048.jpg",
+    "brand": "ba_sh",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "pleated_maxi_v_neck",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["evening", "romantic"]
+    },
+    "colour_palette": ["cream", "gold"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": ["pleated", "maxi", "plunging"],
+    "notes": "ba&sh headless mannequin in pale cream accordion-pleated sleeveless maxi with deep V-neck, wide waistband and small gold bead detail; no footwear",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_049",
+    "source": "oxford_street",
+    "image_path": "images/049.jpg",
+    "brand": "ba_sh",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "tiered_maxi_spaghetti",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "woven_chain_tote",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["boho", "summer"]
+    },
+    "colour_palette": ["cream", "beige", "gold"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["tiered", "maxi", "woven_bag"],
+    "notes": "ba&sh mannequin in pale cream tiered crinkle maxi with spaghetti straps and centre ring detail; woven beige bag with gold chain on stone pedestal; no footwear on mannequin",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_050",
+    "source": "oxford_street",
+    "image_path": "images/050.jpg",
+    "brand": "hoka",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "athletic_crew",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "running_print",
+        "color": "charcoal"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "running",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "running_belt",
+        "color": "yellow"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": ["sporty", "running"]
+    },
+    "colour_palette": ["black", "charcoal", "yellow", "white", "orange"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "athletic"
+    },
+    "style_tags": ["running", "hoka", "cap"],
+    "notes": "Hoka running mannequin in black tech tee, charcoal patterned shorts, yellow waist belt, orange-yellow socks and white Clifton-style runners with orange/lime accents; black HOKA cap",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_052",
+    "source": "oxford_street",
+    "image_path": "images/052.jpg",
+    "brand": "balibaris",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_pocket",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "chino_straight",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "striped_overshirt",
+        "color": "beige"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "desert_boots",
+        "color": "tan"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["summer", "french"]
+    },
+    "colour_palette": ["beige", "white", "cream", "tan"],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["overshirt", "chinos", "desert_boots"],
+    "notes": "Balibaris male mannequin in open beige/white striped overshirt over white pocket tee, cream chinos and tan suede desert boots",
+    "confidence": 0.94,
+    "score_hint": {
+      "base_score": 88,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_053",
+    "source": "oxford_street",
+    "image_path": "images/053.jpg",
+    "brand": "balibaris",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored_mid_thigh",
+        "color": "navy"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "striped_button_down",
+        "color": "sage"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "desert_boots",
+        "color": "tan"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "messenger",
+        "color": "grey"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["summer", "preppy"]
+    },
+    "colour_palette": ["sage", "white", "navy", "tan", "grey"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["striped_shirt", "shorts", "messenger"],
+    "notes": "Balibaris primary mannequin in open sage-white striped shirt over white tee, navy shorts, tan desert boots and grey messenger bag; coat-stand outfit ignored",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_054",
+    "source": "oxford_street",
+    "image_path": "images/054.jpg",
+    "brand": "kiltane",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "vest",
+        "subcategory": "knit_sweater_vest",
+        "color": "mustard"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "knit_neck_wrap",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["preppy", "knitwear"]
+    },
+    "colour_palette": ["mustard", "cream"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": ["sweater_vest", "scarf", "knit"],
+    "notes": "Kiltane wooden torso mannequin in mustard buttoned knit sweater vest with cream ribbed neck scarf; torso-only, no bottoms or footwear",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_055",
+    "source": "oxford_street",
+    "image_path": "images/055.jpg",
+    "brand": "kiltane",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "knit_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "ribbed_snood",
+        "color": "mustard"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["minimal", "knitwear"]
+    },
+    "colour_palette": ["cream", "mustard"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": ["polo", "snood", "knit"],
+    "notes": "Kiltane torso mannequin in cream short-sleeve knit polo with mustard ribbed neck warmer (K logo); no bottoms or footwear",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_056",
+    "source": "oxford_street",
+    "image_path": "images/056.jpg",
+    "brand": "agnes_b",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "abstract_print_short_sleeve",
+        "color": "multicolor"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["artistic", "contemporary"]
+    },
+    "colour_palette": ["beige", "blue", "orange", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "straight"
+    },
+    "style_tags": ["print_shirt", "artists", "monochrome_bottom"],
+    "notes": "agnès b. mannequin behind security grille in painterly blue/orange abstract short-sleeve shirt over long beige underlayer with black straight trousers; no footwear visible",
+    "confidence": 0.86,
+    "score_hint": {
+      "base_score": 80,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_057",
+    "source": "oxford_street",
+    "image_path": "images/057.jpg",
+    "brand": "agnes_b",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "ruffle_collar",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pinstripe_straight",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal", "monochrome"]
+    },
+    "colour_palette": ["white", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["ruffle", "pinstripe", "sale"],
+    "notes": "agnès b. hanging white ruffle-collar blouse with white pinstripe trousers behind security grille; black boots and spectator loafers on floor so footwear null",
+    "confidence": 0.84,
+    "score_hint": {
+      "base_score": 76,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_059",
+    "source": "oxford_street",
+    "image_path": "images/059.jpg",
+    "brand": "rails",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "ribbed_tank",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "pinstripe_button_down",
+        "color": "brown"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "woven_flats",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "canvas_tote",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["summer", "street"]
+    },
+    "colour_palette": ["brown", "white", "blue", "tan"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["pinstripe", "wide_jeans", "tote"],
+    "notes": "Rails primary mannequin on white gravel in open brown pinstripe shirt over white ribbed tank, light-wash wide jeans, brown woven flats and tan tote; pedestal New Balance ignored for footwear",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_060",
+    "source": "oxford_street",
+    "image_path": "images/060.jpg",
+    "brand": "rails",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "flat_front",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "linen_short_sleeve",
+        "color": "navy"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["summer", "relaxed"]
+    },
+    "colour_palette": ["navy", "white", "cream"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["linen", "shorts", "summer"],
+    "notes": "Rails centre mannequin in open navy short-sleeve shirt over white tee with cream shorts; grey New Balance 991 on black pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_061",
+    "source": "oxford_street",
+    "image_path": "images/061.jpg",
+    "brand": "rails",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "tie_front_sleeveless",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "brown"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "thong",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["summer", "co_ord"]
+    },
+    "colour_palette": ["brown", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["co_ord", "linen", "wide_leg"],
+    "notes": "Rails armless mannequin in brown sleeveless tie-front top and matching wide-leg trousers with black thong sandals; pedestal grey New Balance ignored",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_062",
+    "source": "oxford_street",
+    "image_path": "images/062.jpg",
+    "brand": "rails",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "floral_cowl",
+        "color": "multicolor"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "embroidered_denim",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["summer", "feminine"]
+    },
+    "colour_palette": ["cream", "orange", "teal", "blue", "brown"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["floral", "denim_shorts", "crossbody"],
+    "notes": "Rails centre torso in abstract floral cream/orange/teal top with light embroidered denim shorts and brown crossbody; woven sandals on pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_063",
+    "source": "oxford_street",
+    "image_path": "images/063.jpg",
+    "brand": "rails",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "linen_straight_cuffed",
+        "color": "tan"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "floral_camp_collar",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "canvas_tote",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["summer", "resort"]
+    },
+    "colour_palette": ["brown", "white", "tan", "beige"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["print_shirt", "linen", "tote"],
+    "notes": "Rails male mannequin in open brown floral short-sleeve shirt over white tee, tan cuffed linen trousers and beige tote; cream canvas sneakers on stand base so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_064",
+    "source": "oxford_street",
+    "image_path": "images/064.jpg",
+    "brand": "ganni",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "smocked_midi_spaghetti",
+        "color": "periwinkle"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["summer", "playful"]
+    },
+    "colour_palette": ["periwinkle", "white", "yellow"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": ["smocked", "midi", "ganni"],
+    "notes": "Ganni articulated mannequin in periwinkle smocked spaghetti-strap midi dress layered over white GANNI graphic tee; black studded loafers on circular base so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_066",
+    "source": "oxford_street",
+    "image_path": "images/066.jpg",
+    "brand": "apc",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "shirt_dress_belted",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "padded_flap",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["minimal", "utility"]
+    },
+    "colour_palette": ["navy", "cream"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["shirt_dress", "sale", "minimal"],
+    "notes": "A.P.C. suspended torso in navy belted short-sleeve shirt dress with flap pockets; cream padded bag on OSB pedestal; cream mules on floor so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_067",
+    "source": "oxford_street",
+    "image_path": "images/067.jpg",
+    "brand": "apc",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight_textured",
+        "color": "navy"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "crinkle_overshirt",
+        "color": "navy"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "canvas_tote",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["minimal", "monochrome"]
+    },
+    "colour_palette": ["navy", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "straight"
+    },
+    "style_tags": ["matching_set", "overshirt", "minimal"],
+    "notes": "A.P.C. mannequin in open navy crinkle overshirt over white tee with matching navy straight trousers; white A.P.C. tote on OSB pedestal; white sneakers on floor so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_068",
+    "source": "oxford_street",
+    "image_path": "images/068.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "shirt_dress_belted",
+        "color": "rust"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["summer", "minimal"]
+    },
+    "colour_palette": ["rust"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["shirt_dress", "summer", "belted"],
+    "notes": "Primary left mannequin in rust belted short-sleeve shirt dress under Bring the Breeze window copy; no footwear; cream tee mannequin on right ignored",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_069",
+    "source": "oxford_street",
+    "image_path": "images/069.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "rust"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "indigo"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "satin_button_down",
+        "color": "rust"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather_square_buckle",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["contemporary", "layered"]
+    },
+    "colour_palette": ["rust", "indigo", "tan", "black"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "straight"
+    },
+    "style_tags": ["monochrome_top", "denim", "belt"],
+    "notes": "Primary centre mannequin through diamond grille in open rust satin shirt over rust tee, indigo jeans and tan belt; black pumps on clear base so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_070",
+    "source": "oxford_street",
+    "image_path": "images/070.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "draped_twist_sleeveless",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pointed_flats",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal", "contemporary"]
+    },
+    "colour_palette": ["brown", "cream", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["draped", "wide_leg", "minimal"],
+    "notes": "Primary centre wooden-arm mannequin through diamond grille in dark brown draped sleeveless twist top with cream wide-leg trousers and black pointed shoes worn under hem",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_071",
+    "source": "oxford_street",
+    "image_path": "images/071.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweatshirt",
+        "subcategory": "striped_crew",
+        "color": "purple"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "floral_midi",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["soft", "feminine"]
+    },
+    "colour_palette": ["purple", "grey", "cream", "pink"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["striped", "floral_skirt", "soft"],
+    "notes": "Primary left adult mannequin on pole base in grey/purple striped sweatshirt with purple rib trim and cream floral midi skirt; pedestal stand so footwear null; child centre ignored",
+    "confidence": 0.87,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_072",
+    "source": "oxford_street",
+    "image_path": "images/072.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "linen_button_down",
+        "color": "lime"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored_straight",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": ["summer", "british"]
+    },
+    "colour_palette": ["lime", "navy", "tan"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": ["linen", "summer_essentials", "tailored"],
+    "notes": "Male mannequin under Summer Essentials copy in tucked lime linen shirt, navy tailored trousers and tan belt; charcoal suede loafers on metal baseplate so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_074",
+    "source": "oxford_street",
+    "image_path": "images/074.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "lace_bralette",
+        "color": "lavender"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "balloon",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_military",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "floral_waist_tie",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "bohemian",
+      "secondary": ["contemporary", "layered"]
+    },
+    "colour_palette": ["brown", "lavender", "blue"],
+    "features": {
+      "layering": "structured",
+      "contrast": "medium",
+      "silhouette": "voluminous"
+    },
+    "style_tags": ["military_jacket", "balloon_denim", "lace"],
+    "notes": "Primary left torso on stand in open dark brown silver-button cropped military jacket over lavender lace bralette, floral scarf at waist and light balloon jeans; no footwear on primary",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 80,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_075",
+    "source": "oxford_street",
+    "image_path": "images/075.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "lace_camisole",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "waist_tied_windbreaker",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "necklace",
+        "subcategory": "long_pendant",
+        "color": "silver"
+      }
+    },
+    "style": {
+      "primary": "bohemian",
+      "secondary": ["feminine", "layered"]
+    },
+    "colour_palette": ["cream", "beige", "black", "silver"],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["lace", "waist_tie_jacket", "wide_leg"],
+    "notes": "Headless mannequin in cream lace camisole, black wide-leg trousers, beige jacket tied at waist by sleeves and long silver star pendant necklace; no footwear",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_076",
+    "source": "oxford_street",
+    "image_path": "images/076.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Abercrombie & Fitch window showing an 8-panel lifestyle poster grid with red shopping bags — no physical mannequin outfit",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": ["not_shop_window"]
+    },
+    "use_for_detection": true,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_077",
+    "source": "oxford_street",
+    "image_path": "images/077.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_oxford",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_cargo",
+        "color": "khaki"
+      },
+      "outerwear": {
+        "category": "cardigan",
+        "subcategory": "full_zip",
+        "color": "red"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "derby",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["smart_casual", "layering"]
+    },
+    "colour_palette": ["red", "blue", "white", "khaki", "black"],
+    "features": {
+      "layering": "structured",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["zip_cardigan", "cargo", "uniqlo"],
+    "notes": "Uniqlo primary centre mannequin in red smooth cotton full-zip cardigan over blue/white striped oxford with khaki wide cargo pants and black derbies",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_078",
+    "source": "oxford_street",
+    "image_path": "images/078.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "partial_obscured",
+        "color": "red"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "wide_denim",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "partial_sleeve",
+        "color": "brown"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "chunky_derby",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["street"]
+    },
+    "colour_palette": ["charcoal", "black", "brown", "red"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["denim_shorts", "chunky_shoes", "uniqlo"],
+    "notes": "Uniqlo left mannequin with tops partly obscured by poster: washed charcoal wide denim shorts, black crew socks and chunky black platform derbies; orange/brown jacket sleeve and red hem visible",
+    "confidence": 0.78,
+    "score_hint": {
+      "base_score": 70,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_079",
+    "source": "oxford_street",
+    "image_path": "images/079.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "sweater",
+        "subcategory": "crew_knit",
+        "color": "beige"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino",
+        "color": "mauve"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "chunky_derby",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "burgundy"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["preppy", "layered"]
+    },
+    "colour_palette": ["beige", "mauve", "burgundy", "black", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["knit", "chino_shorts", "crossbody"],
+    "notes": "Uniqlo centre mannequin in beige crew sweater over light check shirt, mauve chino shorts, burgundy crossbody, thick white socks and black chunky shoes",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_081",
+    "source": "oxford_street",
+    "image_path": "images/081.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "ribbed_tank",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "pleated_wide",
+        "color": "khaki"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "open_shacket",
+        "color": "navy"
+      },
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "strappy",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "olive"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["fall", "street"]
+    },
+    "colour_palette": ["navy", "cream", "khaki", "black", "olive"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["wide_trousers", "sandals_socks", "cap"],
+    "notes": "Uniqlo left primary mannequin in olive cap, open navy shacket over cream ribbed tank, khaki pleated wide trousers and black strappy sandals over white crew socks",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_082",
+    "source": "oxford_street",
+    "image_path": "images/082.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "short_sleeve_knit",
+        "color": "green"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "barrel_leg",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "platform_strappy",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["minimal", "contemporary"]
+    },
+    "colour_palette": ["green", "cream", "navy", "black", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["polo", "barrel_leg", "sandals_socks"],
+    "notes": "Uniqlo primary centre-right mannequin in dark green short-sleeve polo, cream jersey barrel-leg trousers, navy shoulder bag and black platform sandals with white socks",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_083",
+    "source": "oxford_street",
+    "image_path": "images/083.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "polo",
+        "subcategory": "short_sleeve_knit",
+        "color": "olive"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "barrel_leg",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "vest",
+        "subcategory": "mesh_harness",
+        "color": "olive"
+      },
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "platform_strappy",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "navy"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["street", "layered"]
+    },
+    "colour_palette": ["olive", "beige", "navy", "black", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["harness", "barrel_leg", "uniqlo"],
+    "notes": "Uniqlo left primary mannequin in olive mesh harness over olive knit polo, beige barrel-leg trousers, navy crossbody and black strappy platform sandals with white socks",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_084",
+    "source": "oxford_street",
+    "image_path": "images/084.jpg",
+    "brand": "uniqlo",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_cropped",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "denim_button_down",
+        "color": "indigo"
+      },
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "chunky_strappy",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "mesh_visor",
+        "color": "khaki"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["fall", "street"]
+    },
+    "colour_palette": ["indigo", "cream", "beige", "black", "khaki"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["denim_shirt", "wide_trousers", "visor"],
+    "notes": "Uniqlo left primary mannequin in khaki mesh visor, open dark denim shirt over cream tee, beige wide cropped trousers and black chunky sandals over white socks",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_085",
+    "source": "oxford_street",
+    "image_path": "images/085.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "bra",
+        "subcategory": "longline_lace",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "underwear",
+        "subcategory": "high_waist_lace",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "sheer_short_sleeve",
+        "color": "beige"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "lingerie",
+      "secondary": ["romantic", "sale"]
+    },
+    "colour_palette": ["cream", "beige", "pink"],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "fitted"
+    },
+    "style_tags": ["lace", "lingerie", "sheer"],
+    "notes": "Primary left lingerie torso in cream longline lace bra and high-waist lace briefs under open sheer beige short-sleeve shirt; oversized pink tulip prop; no footwear",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 76,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_086",
+    "source": "oxford_street",
+    "image_path": "images/086.jpg",
+    "brand": "arket",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "lace_trim_camisole",
+        "color": "maroon"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "beige"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["minimal", "contemporary"]
+    },
+    "colour_palette": ["maroon", "navy", "beige"],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["camisole", "wide_leg", "sale"],
+    "notes": "ARKET armless mannequin in maroon silky camisole with navy lace trim and beige wide-leg trousers; dark loafers on SALE pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_088",
+    "source": "oxford_street",
+    "image_path": "images/088.jpg",
+    "brand": "arket",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "peplum_short_sleeve",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "minimal",
+      "secondary": ["contemporary", "monochrome"]
+    },
+    "colour_palette": ["white", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["peplum", "wide_leg", "monochrome"],
+    "notes": "ARKET mannequin in white short-sleeve peplum top and black wide-leg trousers; black tote on white pedestal; no footwear on mannequin stand",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_089",
+    "source": "oxford_street",
+    "image_path": "images/089.jpg",
+    "brand": "arket",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "jacket",
+        "subcategory": "snap_denim_shirt",
+        "color": "indigo"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "indigo"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["denim", "co_ord"]
+    },
+    "colour_palette": ["indigo"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "voluminous"
+    },
+    "style_tags": ["denim_set", "wide_leg", "sale"],
+    "notes": "ARKET headless mannequin in matching dark indigo snap-front denim jacket and balloon wide-leg trousers under FINAL SALE lettering; black bag on separate pedestal ignored; no footwear",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_090",
+    "source": "oxford_street",
+    "image_path": "images/090.jpg",
+    "brand": "gap",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "denim_midi_shirt",
+        "color": "blue"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "clear_tote",
+        "color": "clear"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": ["denim", "summer"]
+    },
+    "colour_palette": ["blue", "clear", "black"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": ["denim_dress", "midi", "tote"],
+    "notes": "Gap primary far-left wooden-arm mannequin in light-blue sleeveless belted denim midi dress with frayed hem holding clear plastic tote; no footwear on pedestal",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_091",
+    "source": "oxford_street",
+    "image_path": "images/091.jpg",
+    "brand": "muji",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_maxi",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "low_top",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "canvas_tote",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "minimal",
+      "secondary": ["travel", "casual"]
+    },
+    "colour_palette": ["black", "navy", "cream", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": ["travel", "tote", "minimal"],
+    "notes": "MUJI to GO left primary mannequin in black tee, navy ankle-length pleated skirt, white sneakers, small white crossbody and cream canvas tote with water bottles",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_092",
+    "source": "oxford_street",
+    "image_path": "images/092.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "athletic",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "running",
+        "color": "beige"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "zip_hooded_windbreaker",
+        "color": "lavender"
+      },
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "chunky_athletic",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "athleisure",
+      "secondary": ["running", "sporty"]
+    },
+    "colour_palette": ["lavender", "beige", "yellow", "white"],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "athletic"
+    },
+    "style_tags": ["windbreaker", "running_shorts", "cap"],
+    "notes": "Primary right athletic mannequin in beige/cream cap, lavender zip windbreaker over white tee, beige running shorts over yellow compression shorts, white crew socks and chunky white/grey sneakers",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_093",
+    "source": "oxford_street",
+    "image_path": "images/093.jpg",
+    "brand": null,
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "vest",
+        "subcategory": "eyelet_striped_peplum",
+        "color": "blue"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "eyelet_striped_midi",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": ["co_ord", "romantic"]
+    },
+    "colour_palette": ["blue", "white"],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": ["co_ord", "eyelet", "striped"],
+    "notes": "Primary left wood-grain mannequin in blue/white striped sleeveless eyelet peplum waistcoat and matching A-line midi skirt; no footwear on pedestal stand",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  }
+]

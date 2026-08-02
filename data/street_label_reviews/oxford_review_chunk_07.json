@@ -1,0 +1,685 @@
+[
+  {
+    "id": "340",
+    "status": "fix",
+    "notes": "Light blue Napapijri hoodie, dark grey cargo shorts, black sling OK; white sneakers + NB socks sit on separate circular pedestal with bare mannequin feet — footwear null; add black baseball cap under hood (notes mention, accessory missing)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "pullover_hoodie",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "cargo_shorts",
+        "color": "dark_grey"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "341",
+    "status": "ok",
+    "notes": "Pale aqua TNF logo tee, black athletic shorts, chunky navy/tan/white sneakers worn, sunglasses hooked at neckline match"
+  },
+  {
+    "id": "342",
+    "status": "ok",
+    "notes": "White tee with grey sweatshirt draped over shoulder, grey cargo joggers, dark grey Air Max worn, brown baseball cap match"
+  },
+  {
+    "id": "343",
+    "status": "ok",
+    "notes": "White NB Athletics tee, navy jacket tied across chest, navy joggers, navy/white sneakers worn, white baseball cap match"
+  },
+  {
+    "id": "345",
+    "status": "fix",
+    "notes": "Black MU track jacket over grey tee, charcoal denim shorts, black sneakers, black tote OK; missing black Adidas trefoil bucket hat (notes/tags only)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_neck_tee",
+        "color": "grey"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "denim_shorts",
+        "color": "charcoal"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "track_jacket",
+        "color": "black"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "tote",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "bucket_hat",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "346",
+    "status": "ok",
+    "notes": "Faded black Rolling Stones graphic tee, light-wash denim shorts, sunglasses at neckline; brown sandals on pedestal correctly footwear null"
+  },
+  {
+    "id": "347",
+    "status": "ok",
+    "notes": "Hanging olive double-breasted military jacket + cream cropped trousers; black slingback heels on floor pedestal correctly footwear null"
+  },
+  {
+    "id": "348",
+    "status": "uncertain",
+    "notes": "Beige plaid blazer, light blue graphic tee, blue jacket tied at waist OK; wide-leg trousers look dark brown/charcoal vs labelled burgundy — confirm colour",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_tee",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "burgundy"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "plaid_blazer",
+        "color": "beige"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "tied_at_waist_jacket",
+        "color": "blue"
+      }
+    ]
+  },
+  {
+    "id": "349",
+    "status": "fix",
+    "notes": "Red Louisville Kentucky tee over white base + black wide-leg with white side piping OK; black loafers are worn on feet (standing on white block) — not pedestal-only; set footwear black loafers",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_tee",
+        "color": "red"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "black"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "350",
+    "status": "fix",
+    "notes": "Light blue ruched blouse, black side-stripe bottoms, white handbag, footwear null for pedestal slides OK; dark oval glasses worn but accessory only bag — add glasses; bottoms could read as mini skirt vs shorts",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "short_sleeve_button_down",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "side_stripe_shorts",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "handbag",
+        "color": "white"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "eyeglasses",
+        "color": "dark"
+      }
+    ]
+  },
+  {
+    "id": "352",
+    "status": "fix",
+    "notes": "White sleeveless ruffle blouse + beige floral wide-legs + gold bag OK; tan flats are worn on feet on pedestal — not display-only; set footwear tan flats",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "sleeveless_ruffle_blouse",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "floral_wide_leg_trousers",
+        "color": "beige"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "flats",
+        "color": "tan"
+      },
+      {
+        "category": "bags",
+        "subcategory": "shoulder_bag",
+        "color": "gold"
+      }
+    ]
+  },
+  {
+    "id": "353",
+    "status": "ok",
+    "notes": "Cream windowpane camp-collar shirt partially tucked, white straight trousers, brown thong sandals worn, dark sunglasses match"
+  },
+  {
+    "id": "354",
+    "status": "ok",
+    "notes": "Second-from-left: cream cropped military jacket, black cropped leggings, black strappy sandals worn, dark sunglasses match"
+  },
+  {
+    "id": "355",
+    "status": "fix",
+    "notes": "White lace camisole over pink underlayer, multicolour sash, lavender flats OK; bottoms are light-wash A-line denim midi skirt not culottes; add grey/blue headscarf to accessory",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "lace_trim_camisole",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "denim_midi_skirt",
+        "color": "light_blue"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "flats",
+        "color": "lavender"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "sash",
+        "color": "multicolour"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "headscarf",
+        "color": "grey"
+      }
+    ]
+  },
+  {
+    "id": "356",
+    "status": "uncertain",
+    "notes": "Open pastel lime camp shirt over white Waltrip tee, light-wash jorts, black sneakers match; striped fabric tucked at waistband — add as sash accessory or ignore?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_tee",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "denim_shorts",
+        "color": "light_blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "short_sleeve_button_down",
+        "color": "lime"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "sash",
+        "color": "multicolour"
+      }
+    ]
+  },
+  {
+    "id": "357",
+    "status": "fix",
+    "notes": "Cream lace camisole, brown floral embroidered midi skirt over white underskirt, tan mid-calf boots, off-white crossbody OK; blue/grey striped headscarf worn but missing from accessory",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "lace_trim_camisole",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "layered_midi_skirt",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "boots",
+        "color": "tan"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "off_white"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "headscarf",
+        "color": "blue_grey"
+      }
+    ]
+  },
+  {
+    "id": "358",
+    "status": "fix",
+    "notes": "Black bomber, cream high-neck base, faded charcoal slim jeans, black lace-up boots OK; missing light grey zip overshirt/middle layer noted in notes but absent from outfit schema",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "turtleneck",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "slim_jeans",
+        "color": "charcoal"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "bomber",
+        "color": "black"
+      },
+      {
+        "category": "mid_layer",
+        "subcategory": "zip_overshirt",
+        "color": "light_grey"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "boots",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "360",
+    "status": "ok",
+    "notes": "Left Hobbs mannequin in navy botanical floral midi dress with ruffled high neck and beige pointed flats match"
+  },
+  {
+    "id": "361",
+    "status": "ok",
+    "notes": "Centre Hobbs tan sleeveless trench-style coat over matching beige straight trousers with beige block-heel pumps match"
+  },
+  {
+    "id": "362",
+    "status": "ok",
+    "notes": "Right Hobbs mustard textured long-sleeve blouse, medium-wash straight jeans, brown loafers match"
+  },
+  {
+    "id": "363",
+    "status": "ok",
+    "notes": "Chocolate brown button-front midi shirt dress with self waist tie and cream/beige pointed flats; PETITES window match"
+  },
+  {
+    "id": "364",
+    "status": "ok",
+    "notes": "Left/foreground magenta dress with cream geometric piping and pleated skirt, matching magenta bag, cream block-heel pumps match"
+  },
+  {
+    "id": "365",
+    "status": "ok",
+    "notes": "Centre burgundy floral lace tea-length over navy lining with navy pumps worn; navy sandals on gold pedestal correctly ignored"
+  },
+  {
+    "id": "367",
+    "status": "fix",
+    "notes": "White ruffle-collar pintuck blouse, camel creased trousers, brown woven bag, tan suede loafers OK; dark brown leather belt with gold buckle worn but missing from accessory",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "ruffle_collar_blouse",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "tailored_straight_trousers",
+        "color": "camel"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "tan"
+      },
+      {
+        "category": "bags",
+        "subcategory": "handbag",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "brown"
+      }
+    ]
+  },
+  {
+    "id": "368",
+    "status": "ok",
+    "notes": "Centre white midi with dense red/navy print, V-neck tie, brown horsebit wooden-sole clogs worn match"
+  },
+  {
+    "id": "369",
+    "status": "fix",
+    "notes": "Open light blue shirt over white top, white wide-legs, white sandals, brown woven bag OK; patterned neckerchief and brown gold-buckle belt worn but accessory only bag",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "button_down",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "white"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "white"
+      },
+      {
+        "category": "bags",
+        "subcategory": "handbag",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "neckerchief",
+        "color": "white_brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "brown"
+      }
+    ]
+  },
+  {
+    "id": "370",
+    "status": "ok",
+    "notes": "Open camel blazer over white crew, light-wash wide-leg jeans, brown suede loafers, dark brown shoulder bag match"
+  },
+  {
+    "id": "371",
+    "status": "fix",
+    "notes": "Beige blazer, dark wide-leg jeans, dark belt with gold buckle, brown suede loafers OK; under-top is dark (black/navy) not white as labelled",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_jeans",
+        "color": "dark_blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "blazer",
+        "color": "beige"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "dark_brown"
+      }
+    ]
+  },
+  {
+    "id": "372",
+    "status": "fix",
+    "notes": "Dark brown midi shirt dress, cream woven clutch, brown horsebit clogs OK; patterned cream/tan/brown turban+shoulder scarf worn but accessory only bag",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "shirt_midi_dress",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "mules",
+        "color": "brown"
+      },
+      {
+        "category": "bags",
+        "subcategory": "handbag",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "turban_headscarf",
+        "color": "cream_tan_brown"
+      }
+    ]
+  },
+  {
+    "id": "374",
+    "status": "fix",
+    "notes": "Navy/periwinkle geometric color-block midi dress and tan horsebit clog loafers OK; shoulder bag is tan leather not grey",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "colorblock_midi_dress",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "tan"
+      },
+      {
+        "category": "bags",
+        "subcategory": "shoulder_bag",
+        "color": "tan"
+      }
+    ]
+  },
+  {
+    "id": "375",
+    "status": "ok",
+    "notes": "Open white button-down shirt jacket over navy graphic tee, dark-wash cuffed straight jeans, brown lug-sole lace-ups, large tan/brown leather tote under arm match"
+  },
+  {
+    "id": "376",
+    "status": "ok",
+    "notes": "Bright red pleated spaghetti-strap maxi, gold lace-up flat sandals worn, studded pink shoulder bag; silver crystal heels on white pedestal correctly ignored"
+  },
+  {
+    "id": "377",
+    "status": "ok",
+    "notes": "Sleeveless silver/cream sequin floral midi, white block-heel ankle-strap sandals worn; silver embellished bag on SUMMER SALE pedestal not worn — accessory null OK"
+  },
+  {
+    "id": "378",
+    "status": "fix",
+    "notes": "Cream open-knit lace short-sleeve + matching lace skirt, cream bucket, beige ankle-strap heels OK; navy floral brooch and thin white belt worn but missing from accessory; skirt reads midi not maxi",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "lace_short_sleeve",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "lace_midi_skirt",
+        "color": "cream"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "ankle_strap_heels",
+        "color": "beige"
+      },
+      {
+        "category": "bags",
+        "subcategory": "bucket_bag",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "floral_brooch",
+        "color": "navy"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "white"
+      }
+    ]
+  },
+  {
+    "id": "379",
+    "status": "ok",
+    "notes": "Standing one-shoulder abstract floral midi in teal/navy/brown/grey with white thong sandals; seated white kaftan correctly ignored"
+  },
+  {
+    "id": "381",
+    "status": "fix",
+    "notes": "Distressed brown leather racer, brown fitted top, light-wash flare jeans, black belt OK; black peep-toe flats are worn on gold base — not pedestal-only; set footwear black flats",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "fitted_crew",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_flare_jeans",
+        "color": "blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "leather_racer",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "peep_toe_flats",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "382",
+    "status": "fix",
+    "notes": "Brown suede trucker, navy tee, medium slim jeans, navy 7 cap OK; brown penny loafers worn on platform — not pedestal-only; beige 7-buckle belt worn but accessory only cap",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_neck_tee",
+        "color": "navy"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "slim_jeans",
+        "color": "blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "suede_trucker",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "navy"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "belt",
+        "color": "beige"
+      }
+    ]
+  },
+  {
+    "id": "383",
+    "status": "ok",
+    "notes": "Olive draped one-shoulder midi, tan/brown two-tone handbag, black chunky loafers over thick cream ribbed socks worn match"
+  },
+  {
+    "id": "384",
+    "status": "ok",
+    "notes": "Sage ribbed long-sleeve, khaki mini skirt, cognac crossbody saddle, cream slouch socks, dark brown lace-up loafers worn match"
+  },
+  {
+    "id": "385",
+    "status": "fix",
+    "notes": "Cream fuzzy toggle cardigan, rust corduroy mini, rust baseball cap, cream ribbed socks OK; dark loafers with metal bit are worn on stand — not pedestal-only; set footwear brown loafers",
+    "pieces": [
+      {
+        "category": "bottoms",
+        "subcategory": "corduroy_mini_skirt",
+        "color": "rust"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "fuzzy_toggle_cardigan",
+        "color": "cream"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "rust"
+      }
+    ]
+  }
+]

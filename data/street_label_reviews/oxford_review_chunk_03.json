@@ -1,0 +1,237 @@
+[
+  {
+    "id": "096",
+    "status": "ok",
+    "notes": "Black cropped zip jacket + light crossover distressed jeans; black pointed shoes on pedestal correctly footwear null"
+  },
+  {
+    "id": "097",
+    "status": "ok",
+    "notes": "Gold-tan animal-print spaghetti maxi slip; black strappy sandals on pedestal correctly footwear null"
+  },
+  {
+    "id": "098",
+    "status": "ok",
+    "notes": "Open black biker over black fitted top, ochre ruched mini, gold pendant; multi-strap shoes on pedestal correctly footwear null"
+  },
+  {
+    "id": "099",
+    "status": "ok",
+    "notes": "White lace blouse + white pleated mini + woven straw bag; black ankle boots on pedestal correctly footwear null"
+  },
+  {
+    "id": "100",
+    "status": "ok",
+    "notes": "Dark animal-botanical sleeveless midi with waist knot + black structured handbag; pointed shoes on pedestal correctly footwear null"
+  },
+  {
+    "id": "102",
+    "status": "ok",
+    "notes": "Denim chore over white tee, charcoal shorts, black sunglasses; boat shoes on pedestal correctly footwear null"
+  },
+  {
+    "id": "103",
+    "status": "ok",
+    "notes": "Mustard suede bomber over white tee + light straight jeans; chukkas on pedestal correctly footwear null"
+  },
+  {
+    "id": "104",
+    "status": "ok",
+    "notes": "Cream AllSaints graphic short-sleeve + medium-wash straight jeans; chunky lace-ups on pedestal correctly footwear null"
+  },
+  {
+    "id": "105",
+    "status": "ok",
+    "notes": "Champagne satin slip midi on hanger with sunglasses; black slides on base correctly footwear null"
+  },
+  {
+    "id": "106",
+    "status": "ok",
+    "notes": "Sheer burgundy lace camisole over white wide-leg trousers + sunglasses on hanger; slides on base correctly footwear null"
+  },
+  {
+    "id": "107",
+    "status": "ok",
+    "notes": "Open white military jacket over black cropped tank, black cropped trousers, gold hoops; cream sandals on pedestal correctly footwear null"
+  },
+  {
+    "id": "109",
+    "status": "fix",
+    "notes": "Cream halter ruffle mini + brown thin belt OK; brown sandals are flat strappy (not heeled)",
+    "pieces": [
+      { "category": "dresses", "subcategory": "halter_ruffle_mini", "color": "cream" },
+      { "category": "accessories", "subcategory": "thin_leather_belt", "color": "brown" },
+      { "category": "footwear", "subcategory": "strappy_flat", "color": "brown" }
+    ]
+  },
+  {
+    "id": "110",
+    "status": "ok",
+    "notes": "Dark brown/teal floral ruched asymmetrical dress + silver chain hip belt; black thongs on metal base correctly footwear null"
+  },
+  {
+    "id": "111",
+    "status": "ok",
+    "notes": "Champagne satin scoop slip midi + dark sunglasses; black mule heels on pedestal correctly footwear null"
+  },
+  {
+    "id": "112",
+    "status": "ok",
+    "notes": "Burgundy lace asymmetrical camisole over cream wide cropped trousers + silver pendant; strappy heels on base correctly footwear null"
+  },
+  {
+    "id": "113",
+    "status": "ok",
+    "notes": "Tan hooded drawstring jacket on black torso + cognac suede crossbody with woven strap; no bottoms/footwear — matches"
+  },
+  {
+    "id": "114",
+    "status": "ok",
+    "notes": "Open cream utility jacket over red button-front maxi; tan flat on gold pedestal between mannequins correctly footwear null"
+  },
+  {
+    "id": "116",
+    "status": "fix",
+    "notes": "Sheer navy polka shirt midi over navy slip + navy slingback kittens OK; grey canvas tote is window reflection — drop bag",
+    "pieces": [
+      { "category": "dresses", "subcategory": "sheer_polka_shirt_midi", "color": "navy" },
+      { "category": "footwear", "subcategory": "slingback_kitten", "color": "navy" }
+    ]
+  },
+  {
+    "id": "117",
+    "status": "fix",
+    "notes": "Navy mesh midi with magenta floral embroidery + magenta pumps OK; dress color should be navy not magenta; pedestal fascinators/clutch correctly omitted",
+    "pieces": [
+      { "category": "dresses", "subcategory": "floral_embroidered_midi", "color": "navy" },
+      { "category": "footwear", "subcategory": "pointed_pump", "color": "magenta" }
+    ]
+  },
+  {
+    "id": "118",
+    "status": "ok",
+    "notes": "White magenta floral shirt midi + coordinating magenta pointed slingback kittens — matches"
+  },
+  {
+    "id": "119",
+    "status": "ok",
+    "notes": "Navy white-geometric belted midi + cream pointed pumps; black clutch on nearby pedestal correctly not worn"
+  },
+  {
+    "id": "120",
+    "status": "ok",
+    "notes": "Open camel blazer over black top + matching camel trousers, black loafers, camel handbag — matches"
+  },
+  {
+    "id": "121",
+    "status": "ok",
+    "notes": "Open beige trench over black top, white wide-leg trousers, white tassel loafers, cream tote — matches"
+  },
+  {
+    "id": "122",
+    "status": "fix",
+    "notes": "Navy floral belted midi with keyhole + ruffle hem OK; footwear are pointed heels/pumps not flats",
+    "pieces": [
+      { "category": "dresses", "subcategory": "floral_midi", "color": "navy" },
+      { "category": "footwear", "subcategory": "pointed_heel", "color": "black" }
+    ]
+  },
+  {
+    "id": "124",
+    "status": "ok",
+    "notes": "Charcoal micro-check long-sleeve belted shirt midi + nude studded flat sandals — matches"
+  },
+  {
+    "id": "125",
+    "status": "ok",
+    "notes": "Burgundy white wavy-stripe short-sleeve shirt midi + cream T-strap flat sandals — matches"
+  },
+  {
+    "id": "126",
+    "status": "ok",
+    "notes": "Hobbs sleeveless black tone-on-tone floral jacquard maxi + black textured ballet flats — matches"
+  },
+  {
+    "id": "127",
+    "status": "ok",
+    "notes": "Left cream asymmetrical draped mini + nude strappy heeled sandals — matches"
+  },
+  {
+    "id": "128",
+    "status": "ok",
+    "notes": "Champagne satin cowl scarf top, cream wide creased trousers with gold buckle belt, gold strappy sandals, gold beaded bag — matches"
+  },
+  {
+    "id": "129",
+    "status": "ok",
+    "notes": "Cream asymmetrical draped dress with elongated side panel + nude strappy heeled sandals — matches"
+  },
+  {
+    "id": "131",
+    "status": "ok",
+    "notes": "Left male: open blue white-stripe overshirt over white tee, cream chino shorts, black low-top sneakers — matches"
+  },
+  {
+    "id": "132",
+    "status": "fix",
+    "notes": "Cream overshirt, white tee, black shorts, black baseball cap OK; sneakers are laced low-tops not slip-ons",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "white" },
+      { "category": "outerwear", "subcategory": "overshirt", "color": "cream" },
+      { "category": "bottoms", "subcategory": "tailored_shorts", "color": "black" },
+      { "category": "footwear", "subcategory": "low_top", "color": "white" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" }
+    ]
+  },
+  {
+    "id": "133",
+    "status": "fix",
+    "notes": "Black white-diamond short-sleeve jumpsuit + brown gold-buckle belt OK; footwear are nude square-toe thong flats not pointed strap sandals",
+    "pieces": [
+      { "category": "dresses", "subcategory": "diamond_print_jumpsuit", "color": "black" },
+      { "category": "accessories", "subcategory": "leather_belt", "color": "brown" },
+      { "category": "footwear", "subcategory": "thong_flat", "color": "nude" }
+    ]
+  },
+  {
+    "id": "134",
+    "status": "ok",
+    "notes": "Black white swirling polka midi + matching neck scarf + black chunky gold-buckle sandals — matches"
+  },
+  {
+    "id": "135",
+    "status": "ok",
+    "notes": "Maroon short-sleeve knit button top + matching voluminous ankle-gathered trousers + black multi-strap sandals — matches"
+  },
+  {
+    "id": "136",
+    "status": "ok",
+    "notes": "Blush geometric mock-neck midi with hip ruching + beige pointed thong heels — matches"
+  },
+  {
+    "id": "138",
+    "status": "ok",
+    "notes": "Light-blue striped shirt, brown knit tied at waist, straight blue jeans, brown Mary Janes, brown shoulder bag — matches"
+  },
+  {
+    "id": "139",
+    "status": "ok",
+    "notes": "Open light denim western over white tee, distressed light denim shorts, white high-tops, red paisley bandana — matches"
+  },
+  {
+    "id": "140",
+    "status": "fix",
+    "notes": "Grey Beat Cafe tee, charcoal plaid shorts, tan tote OK; mannequin wears black high-top sneakers with striped socks — tan moccasins sit on pedestal only",
+    "pieces": [
+      { "category": "tops", "subcategory": "graphic_crew", "color": "grey" },
+      { "category": "bottoms", "subcategory": "plaid_shorts", "color": "charcoal" },
+      { "category": "footwear", "subcategory": "high_top", "color": "black" },
+      { "category": "bags", "subcategory": "tote", "color": "tan" }
+    ]
+  },
+  {
+    "id": "141",
+    "status": "ok",
+    "notes": "Sage/charcoal stripe tee, white shirt tied at waist, light denim shorts, white crew socks, grey mesh sneakers — matches"
+  }
+]

@@ -1,0 +1,601 @@
+[
+  {
+    "id": "142",
+    "status": "ok",
+    "notes": "White ruffle-cuff polo, light denim Bermudas, mint quilted bag; black ankle boots on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "143",
+    "status": "fix",
+    "notes": "Olive cropped tank, olive wide stripe trousers, white drawstring bag, flip-flops on pedestal correctly null; missing beige baseball cap (worn)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "cropped_layered_tank",
+        "color": "olive"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_stripe_trousers",
+        "color": "olive"
+      },
+      {
+        "category": "bags",
+        "subcategory": "drawstring_tote",
+        "color": "white"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    ]
+  },
+  {
+    "id": "145",
+    "status": "ok",
+    "notes": "Black camp-collar shirt, cream tailored shorts, black crossbody; sneakers on raised wooden platform correctly footwear null"
+  },
+  {
+    "id": "146",
+    "status": "ok",
+    "notes": "Navy visor, navy racerback tank, navy pleated tennis skirt, white sneakers on floor base — matches"
+  },
+  {
+    "id": "147",
+    "status": "fix",
+    "notes": "White polo, white athletic shorts, navy/olive tote, white sneakers OK; missing white baseball cap (worn)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "short_sleeve_polo",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "athletic_shorts",
+        "color": "white"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      {
+        "category": "bags",
+        "subcategory": "tote",
+        "color": "navy"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    ]
+  },
+  {
+    "id": "148",
+    "status": "ok",
+    "notes": "Navy baseball cap, white cropped tank with navy trim, white drawstring shorts, white sneakers — matches"
+  },
+  {
+    "id": "149",
+    "status": "ok",
+    "notes": "Navy athletic bomber over white crew, navy track pants with white thigh panel, white sneakers — matches"
+  },
+  {
+    "id": "150",
+    "status": "ok",
+    "notes": "Navy striped rugby sweater, light-wash straight jeans; bare ankles on metal stand footwear null — matches"
+  },
+  {
+    "id": "152",
+    "status": "ok",
+    "notes": "Left primary: burgundy sports bra + matching leggings, grey sweatshirt tied at waist; barefoot on pedestal — matches"
+  },
+  {
+    "id": "153",
+    "status": "ok",
+    "notes": "Centre: black sleeveless button vest, dark jeans, brown/tan striped sweater tied at waist; pedestal footwear null — matches"
+  },
+  {
+    "id": "154",
+    "status": "ok",
+    "notes": "Left: white ribbed button cardigan over white inner, blue wide-leg cuffed jeans; metal stand footwear null — matches"
+  },
+  {
+    "id": "156",
+    "status": "ok",
+    "notes": "Cream camp-collar short-sleeve shirt, charcoal straight trousers; metal tripod footwear null — matches"
+  },
+  {
+    "id": "157",
+    "status": "ok",
+    "notes": "Olive corduroy blazer, white textured knit, medium-wash jeans, brown tote; pedestal footwear null — matches"
+  },
+  {
+    "id": "159",
+    "status": "ok",
+    "notes": "Left: beige tartan Harrington, brown cardigan, light-blue collar, navy trousers; wheeled stand footwear null — matches"
+  },
+  {
+    "id": "160",
+    "status": "fix",
+    "notes": "Label targets left male vest+shorts; visual primary is centre female in black long-sleeve + burgundy satin midi + black platform loafers",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "long_sleeve_crew",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "satin_midi_skirt",
+        "color": "burgundy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "platform_loafer",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "161",
+    "status": "uncertain",
+    "notes": "White cap, beige crew knit, dusty-rose chino shorts OK; desert boots on raised silver pedestal correctly null; light-blue stripe oxford under sweater visible but omitted — keep or add?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_knit",
+        "color": "beige"
+      },
+      {
+        "category": "tops",
+        "subcategory": "vertical_stripe_oxford",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "chino_shorts",
+        "color": "burgundy"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    ]
+  },
+  {
+    "id": "162",
+    "status": "ok",
+    "notes": "Burgundy baseball cap, cream knit polo with navy collar, mid-wash wide cropped denim, black lace-up moccasins — matches"
+  },
+  {
+    "id": "163",
+    "status": "fix",
+    "notes": "Khaki cap, red half-zip ribbed cardigan, khaki wide trousers, black chunky loafers OK; missing striped oxford under cardigan (visible at collar/tag)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "half_zip_ribbed_cardigan",
+        "color": "red"
+      },
+      {
+        "category": "tops",
+        "subcategory": "stripe_oxford",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "khaki"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "chunky_loafer",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "khaki"
+      }
+    ]
+  },
+  {
+    "id": "164",
+    "status": "uncertain",
+    "notes": "Brown mock-neck long-sleeve, charcoal wide shorts, black strappy sandals OK; small black padded shoulder bag in label not clearly visible — keep or drop?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "mock_neck_long_sleeve",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_fit_chino_shorts",
+        "color": "charcoal"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "strappy_chunky_sandals",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "165",
+    "status": "ok",
+    "notes": "Burgundy hooded utility parka, blue-grey merino polo cardigan, cream high-rise wide jeans; chunky shoes on metal pedestal correctly null"
+  },
+  {
+    "id": "167",
+    "status": "fix",
+    "notes": "Beige cap, navy zip short jacket, pale yellow mini tee, grey smart trousers OK; sandals on clear pedestal correctly null; missing black crossbody bag (worn)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "mini_crew_tee",
+        "color": "yellow"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "zip_up_short_jacket",
+        "color": "navy"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "smart_easy_trousers",
+        "color": "grey"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    ]
+  },
+  {
+    "id": "168",
+    "status": "fix",
+    "notes": "Blue crew tee, light-blue/white striped oxford tied on shoulders, charcoal barrel jeans OK; sandals on metal pedestal correctly null; missing thin black braided belt",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "striped_oxford_tied",
+        "color": "light_blue"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "barrel_jeans",
+        "color": "charcoal"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "braided_belt",
+        "color": "black"
+      }
+    ]
+  },
+  {
+    "id": "169",
+    "status": "ok",
+    "notes": "Dark olive short-sleeve polo, beige barrel-leg trousers, black double-strap sandals, navy drawstring crossbody — matches"
+  },
+  {
+    "id": "170",
+    "status": "fix",
+    "notes": "Brown zip blouson, white tee, plum chino shorts, brown boat shoes OK; missing open light-blue oxford mid-layer (visible and on price card)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_tee",
+        "color": "white"
+      },
+      {
+        "category": "tops",
+        "subcategory": "oxford_button_down",
+        "color": "light_blue"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "zip_blouson",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "chino_shorts",
+        "color": "burgundy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "boat_shoes",
+        "color": "brown"
+      }
+    ]
+  },
+  {
+    "id": "171",
+    "status": "fix",
+    "notes": "Denim cap, cream zip short jacket with corduroy collar, burgundy mini tee, baggy barrel jeans OK; black chunky loafers worn on feet but labelled null — add footwear",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "mini_crew",
+        "color": "burgundy"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "zip_short_corduroy_collar",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "baggy_barrel_jeans",
+        "color": "blue"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "chunky_loafer",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "denim"
+      }
+    ]
+  },
+  {
+    "id": "172",
+    "status": "ok",
+    "notes": "Navy Harrington, charcoal AIRism polo, beige jersey easy-work trousers, burgundy crossbody sling; brown boat shoes on metal pedestal correctly null"
+  },
+  {
+    "id": "175",
+    "status": "ok",
+    "notes": "Left: black/grey tartan shirt, black leather-look wrap skirt; black pointed heels on marble pedestal correctly null"
+  },
+  {
+    "id": "176",
+    "status": "ok",
+    "notes": "Matching burgundy ribbed short-sleeve button top + wide trousers; silver/white sneakers on stone pedestal correctly null"
+  },
+  {
+    "id": "177",
+    "status": "uncertain",
+    "notes": "Brown draped sweatshirt, brown wide lounge pants, white sneakers on pedestal correctly null; tee reads black/white thin stripe vs labelled navy; cap charcoal-vs-brown — keep navy tee?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "striped_crew",
+        "color": "black"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "draped_sweatshirt",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_lounge",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "brown"
+      }
+    ]
+  },
+  {
+    "id": "179",
+    "status": "fix",
+    "notes": "Black Nirvana In Utero tee, waist-tied dark shirt, khaki cargos OK; boots on pedestal correctly null; bucket hat is multicolor text print not red; missing silver sunglasses",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_nirvana",
+        "color": "black"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "waist_tied_shirt",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "cargo_shorts",
+        "color": "khaki"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "bucket_hat",
+        "color": "multicolor"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "sunglasses",
+        "color": "silver"
+      }
+    ]
+  },
+  {
+    "id": "181",
+    "status": "fix",
+    "notes": "Black All Eyez On Me tee, terracotta wide trousers, tan waist pouch OK; boots on grey pedestal correctly null; missing sunglasses perched on head and gold chain",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "terracotta"
+      },
+      {
+        "category": "bags",
+        "subcategory": "waist_pouch",
+        "color": "tan"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "sunglasses",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "chain_necklace",
+        "color": "gold"
+      }
+    ]
+  },
+  {
+    "id": "183",
+    "status": "ok",
+    "notes": "Beige double-breasted pinstripe suit, white dress shirt, patterned light tie; dark loafers on flat pedestal correctly null"
+  },
+  {
+    "id": "184",
+    "status": "ok",
+    "notes": "Navy single-breasted suit, white fine-stripe open-collar shirt, white pocket square; beige suede loafers on black pedestal correctly null"
+  },
+  {
+    "id": "185",
+    "status": "uncertain",
+    "notes": "White dress shirt + navy geometric tie OK; suit reads black/charcoal vs labelled navy; brown tassel loafers on thin base correctly null — navy or black?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "dress_shirt",
+        "color": "white"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "single_breasted_blazer",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "tailored_trousers",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "geometric_tie",
+        "color": "navy"
+      }
+    ]
+  },
+  {
+    "id": "186",
+    "status": "fix",
+    "notes": "Tan suede bomber + charcoal ankle trousers OK; loafers on metal base correctly null; underlayer is white/cream crew not grey",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "suede_bomber",
+        "color": "tan"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_ankle_trousers",
+        "color": "charcoal"
+      }
+    ]
+  },
+  {
+    "id": "189",
+    "status": "uncertain",
+    "notes": "Left: multicolor plaid shirt OK and pedestal footwear null; yellow/red hazard graphic on jeans not clearly visible; dark layer draped on shoulders omitted — keep graphic / add drape?",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "plaid_button_down",
+        "color": "multicolor"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "draped_shoulder",
+        "color": "navy"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_jeans",
+        "color": "blue"
+      }
+    ]
+  },
+  {
+    "id": "190",
+    "status": "ok",
+    "notes": "Black/white trucker cap, white graphic tee, black sweatshirt draped on shoulder, indigo denim shorts, grey chunky sneakers — matches"
+  },
+  {
+    "id": "191",
+    "status": "fix",
+    "notes": "Olive/grey Lorenzo graphic tee over white long sleeves, light-wash denim shorts, black Nike crossbody, grey sneakers OK; missing cream/black baseball cap (worn)",
+    "pieces": [
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew_neck",
+        "color": "olive"
+      },
+      {
+        "category": "tops",
+        "subcategory": "long_sleeve_underlayer",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "denim_shorts",
+        "color": "light_blue"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "grey"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "cream"
+      }
+    ]
+  },
+  {
+    "id": "192",
+    "status": "ok",
+    "notes": "All-black: baseball cap, crew tee, jacket tied at waist, athletic shorts, black sneakers on floor plate — matches"
+  },
+  {
+    "id": "197",
+    "status": "ok",
+    "notes": "White NY baseball cap, black zip track jacket with pink sleeve stripes, matching black track pants; white sneakers on floral CERNUCCI pedestal correctly null"
+  }
+]

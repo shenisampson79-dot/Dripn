@@ -1,0 +1,2028 @@
+[
+  {
+    "id": "oxford_188",
+    "source": "oxford_street",
+    "image_path": "images/188.jpg",
+    "brand": "skechers",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Skechers x Romero Britto shop-window ad with AI-generated model poster and floating sneakers graphic — no physical mannequin outfit",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_189",
+    "source": "oxford_street",
+    "image_path": "images/189.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "plaid_button_down",
+        "color": "multicolor"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight_graphic",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "street",
+      "secondary": [
+        "casual",
+        "graphic"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "red",
+      "green",
+      "blue",
+      "yellow"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "plaid",
+      "graphic_denim",
+      "construction"
+    ],
+    "notes": "Left primary mannequin in white/red/green/black plaid long-sleeve shirt with blue jeans featuring yellow/red hazard-stripe graphic on right leg; metal pedestal rod so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_190",
+    "source": "oxford_street",
+    "image_path": "images/190.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim",
+        "color": "indigo"
+      },
+      "outerwear": {
+        "category": "sweatshirt",
+        "subcategory": "draped_shoulder",
+        "color": "black"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "trucker_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "street",
+      "secondary": [
+        "casual",
+        "sporty"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black",
+      "indigo",
+      "grey"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic_tee",
+      "denim_shorts",
+      "sneakers",
+      "cap"
+    ],
+    "notes": "Centre male mannequin in black/white trucker cap, white graphic crew tee with black sweatshirt draped over shoulder, dark indigo denim shorts, white crew socks and grey chunky sneakers on floor base",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_191",
+    "source": "oxford_street",
+    "image_path": "images/191.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "olive"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "grey"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "street",
+      "secondary": [
+        "casual",
+        "sporty"
+      ]
+    },
+    "colour_palette": [
+      "olive",
+      "white",
+      "light_blue",
+      "grey",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "layered_tee",
+      "denim_shorts",
+      "crossbody",
+      "cap"
+    ],
+    "notes": "Centre mannequin in cream/black baseball cap, olive Lorenzo graphic tee over white long sleeves, silver chain, black Nike crossbody, light-wash denim shorts, white Nike socks and grey/white sneakers on floor; separate black sneaker in FOOTASYLUM case ignored",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_192",
+    "source": "oxford_street",
+    "image_path": "images/192.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "athletic",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "tied_at_waist",
+        "color": "black"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "athletic",
+      "secondary": [
+        "street",
+        "monochrome"
+      ]
+    },
+    "colour_palette": [
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "all_black",
+      "athletic",
+      "sneakers",
+      "cap"
+    ],
+    "notes": "Centre male mannequin in all-black look: baseball cap, short-sleeve tee, jacket tied at waist, athletic shorts, black Nike socks and black sneakers on floor metal plate",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_193",
+    "source": "oxford_street",
+    "image_path": "images/193.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Adidas interior floor display with white tee/shorts mannequin on black mesh pedestal near CELEBRE rack — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_195",
+    "source": "oxford_street",
+    "image_path": "images/195.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Adidas interior floor display with striped tee and khaki shorts mannequin on black mesh pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_196",
+    "source": "oxford_street",
+    "image_path": "images/196.jpg",
+    "brand": "monterrain",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Interior sports-store floor display with Monterrain black crop tee and leggings mannequin on white hexagonal pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_197",
+    "source": "oxford_street",
+    "image_path": "images/197.jpg",
+    "brand": "cernucci",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "track_jacket",
+        "subcategory": "zip_up_stripe",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "track_pants",
+        "subcategory": "side_stripe",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "sporty",
+      "secondary": [
+        "casual",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "pink",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "tracksuit",
+      "side_stripe",
+      "cap"
+    ],
+    "notes": "Cernucci window mannequin in white NY baseball cap, black zip track jacket with light-pink sleeve stripes and matching black track pants; white sneakers on floral CERNUCCI pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_198",
+    "source": "oxford_street",
+    "image_path": "images/198.jpg",
+    "brand": "nike",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Nike interior floor display with beige cropped sweatshirt and sweatpants mannequin on metal mesh pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_199",
+    "source": "oxford_street",
+    "image_path": "images/199.jpg",
+    "brand": "new_balance",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "New Balance interior floor display with pastel pink cropped hoodie and shorts mannequin on silver pedestal plate — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_200",
+    "source": "oxford_street",
+    "image_path": "images/200.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Adidas interior floor display with striped tee/shorts set mannequin on metal mesh platform — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_202",
+    "source": "oxford_street",
+    "image_path": "images/202.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Footasylum interior floor display with navy #20 jersey and light-wash denim shorts mannequin on white pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_203",
+    "source": "oxford_street",
+    "image_path": "images/203.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Footasylum interior aisle display with Dream ACDMY jersey and distressed jeans mannequin — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_204",
+    "source": "oxford_street",
+    "image_path": "images/204.jpg",
+    "brand": "monterrain",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Monterrain interior floor display with light-grey hoodie and cargo shorts mannequin on black mesh pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_205",
+    "source": "oxford_street",
+    "image_path": "images/205.jpg",
+    "brand": "monterrain",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Monterrain interior floor display with grey tee/shorts and waist bag mannequin on black pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_206",
+    "source": "oxford_street",
+    "image_path": "images/206.jpg",
+    "brand": "berghaus",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Berghaus interior floor display with sage green tee/shorts set mannequin on black mesh pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_207",
+    "source": "oxford_street",
+    "image_path": "images/207.jpg",
+    "brand": "nike",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Nike interior floor display with blue/orange windbreaker and neon orange shorts mannequin on RUN IT BACK green pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_209",
+    "source": "oxford_street",
+    "image_path": "images/209.jpg",
+    "brand": "nike",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Nike interior APPAREL floor display with slate-blue tee and shorts mannequin — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_210",
+    "source": "oxford_street",
+    "image_path": "images/210.jpg",
+    "brand": "nike",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Nike interior floor display with grey marble-print tee/shorts mannequin on RUN IT BACK black pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_211",
+    "source": "oxford_street",
+    "image_path": "images/211.jpg",
+    "brand": "adidas",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Adidas interior floor display with yellow adidas jersey and black shorts mannequin on black mesh pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_212",
+    "source": "oxford_street",
+    "image_path": "images/212.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "crop_top",
+        "subcategory": "striped_sleeve",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "snakeskin",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "silver"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "sporty",
+      "secondary": [
+        "street",
+        "casual"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "crop_top",
+      "snakeskin",
+      "sneakers"
+    ],
+    "notes": "FOOTASYLUM WOMEN'S window mannequin in black short-sleeve crop with white shoulder stripes, dark snakeskin shorts, black crossbody, white socks and silver/white chunky sneakers on floor; beige clog in side case ignored",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_213",
+    "source": "oxford_street",
+    "image_path": "images/213.jpg",
+    "brand": "footasylum",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "jacket",
+        "subcategory": "polka_dot_windbreaker",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "polka_dot",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "sporty",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "polka_dot",
+      "matching_set",
+      "sneakers"
+    ],
+    "notes": "FOOTASYLUM WOMEN'S window mannequin in white/black polka-dot zip jacket and matching shorts with sunglasses tucked at waist, white socks and white/beige gum-sole sneakers on floor; silver sneaker in side case ignored",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_214",
+    "source": "oxford_street",
+    "image_path": "images/214.jpg",
+    "brand": "new_balance",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "ruffle_waist",
+        "color": "white"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "plaid_off_shoulder",
+        "color": "brown"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "beige"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "brown",
+      "white",
+      "beige"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic_tee",
+      "plaid",
+      "cap",
+      "sneakers"
+    ],
+    "notes": "Window mannequin in beige NB cap, cream Palma Beach Club graphic tee with brown/tan plaid shirt off shoulders, white ruffle-waist shorts, silver bangles, white socks and chunky beige/white sneakers on floor; black Samba in side case ignored",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 83,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_215",
+    "source": "oxford_street",
+    "image_path": "images/215.jpg",
+    "brand": "reserved",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "brown"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim",
+        "color": "light_blue"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "tied_at_waist",
+        "color": "yellow"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "white"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "vintage",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "light_blue",
+      "yellow",
+      "white"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic_tee",
+      "denim_shorts",
+      "waist_tie"
+    ],
+    "notes": "Reserved window torso mannequin in faded brown ORIGINAL VINTAGE CO graphic tee, light-wash denim shorts, yellow/blue plaid shirt tied at waist and white-frame sunglasses; brown ankle boots on floor pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_217",
+    "source": "oxford_street",
+    "image_path": "images/217.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "oversized_crew",
+        "color": "grey"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "wide_leg_distressed",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "thin_ribbon",
+        "color": "burgundy"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street",
+        "layered"
+      ]
+    },
+    "colour_palette": [
+      "grey",
+      "black",
+      "light_blue",
+      "burgundy"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "mesh_layer",
+      "distressed_denim",
+      "wide_leg"
+    ],
+    "notes": "Window mannequin in faded grey oversized tee over black sheer mesh long sleeves, light-wash wide-leg jeans with knee rips, burgundy neck ribbon and dark belt; taupe Mary Jane flats on white circular pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_218",
+    "source": "oxford_street",
+    "image_path": "images/218.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "camisole",
+        "subcategory": "lace_trim",
+        "color": "burgundy"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "denim_frayed",
+        "color": "light_blue"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "cropped_denim",
+        "color": "light_blue"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "feminine"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "burgundy",
+      "brown",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "denim_on_denim",
+      "sunglasses",
+      "tote"
+    ],
+    "notes": "Window mannequin in dark sunglasses, cropped light-wash denim jacket over burgundy lace-trim camisole, matching frayed denim shorts with black grommet belt and brown suede tote; Mary Jane flats on wood pedestal so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_219",
+    "source": "oxford_street",
+    "image_path": "images/219.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blazer",
+        "subcategory": "wrap_shawl",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "workwear"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "structured"
+    },
+    "style_tags": [
+      "wrap_blazer",
+      "wide_leg",
+      "monochrome"
+    ],
+    "notes": "Window mannequin in white long-sleeve wrap shawl-collar blazer with tie closure and solid black wide-leg trousers; black pointed pumps on wooden pedestal block so footwear null",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_220",
+    "source": "oxford_street",
+    "image_path": "images/220.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "jacquard_mini",
+        "color": "white"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "minimal",
+        "smart"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "mini_dress",
+      "mandarin_collar",
+      "jacquard"
+    ],
+    "notes": "Window mannequin in white short-sleeve mandarin-collar mini dress with tonal floral jacquard and keyhole neckline; black pointed flats on wood pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_221",
+    "source": "oxford_street",
+    "image_path": "images/221.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "mandarin_collar",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_cropped",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "minimal",
+        "contrast"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "structured"
+    },
+    "style_tags": [
+      "mandarin",
+      "wide_leg",
+      "monochrome"
+    ],
+    "notes": "Window mannequin in black long-sleeve mandarin-collar blouse with high neck detail and high-waisted white wide-leg cropped trousers; black pointed pumps on white oval base over wood platform so footwear null",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_222",
+    "source": "oxford_street",
+    "image_path": "images/222.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "halter_asymmetrical",
+        "color": "yellow"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_cropped",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "woven_bucket",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "smart"
+      ]
+    },
+    "colour_palette": [
+      "yellow",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "halter",
+      "wide_leg",
+      "sunglasses"
+    ],
+    "notes": "Centre window mannequin in canary yellow sleeveless asymmetrical halter top, white wide-leg cropped trousers, dark woven bucket bag and geometric sunglasses; dark slingback heels on white oval pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_224",
+    "source": "oxford_street",
+    "image_path": "images/224.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "burgundy"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "lace_up",
+        "color": "burgundy"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "minimal",
+        "city"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "burgundy"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "crew_tee",
+      "straight_trouser"
+    ],
+    "notes": "Window mannequin in light-blue short-sleeve crew tee with deep burgundy straight trousers and matching burgundy lace-up shoes on floor; olive hobo bag on wooden pedestal is accessory display not worn",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_225",
+    "source": "oxford_street",
+    "image_path": "images/225.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "drawstring",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "chore",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "workwear",
+        "relaxed"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "white",
+      "charcoal",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "chore_jacket",
+      "drawstring",
+      "socks_sandals"
+    ],
+    "notes": "Window mannequin in cream button chore jacket over white crew tee with charcoal drawstring trousers; black thong sandals over white socks on white oval base over wood platform so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_226",
+    "source": "oxford_street",
+    "image_path": "images/226.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew_neck",
+        "color": "sage"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "straight",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "sage",
+      "cream",
+      "beige",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic_tee",
+      "cap",
+      "sneakers",
+      "sunglasses"
+    ],
+    "notes": "Window mannequin in beige baseball cap, silver aviators, pale sage Gelato script tee, cream straight trousers and white low-top sneakers on thin circular floor base",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_227",
+    "source": "oxford_street",
+    "image_path": "images/227.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "tan"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "light_blue"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "open_short_sleeve",
+        "color": "brown"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "tan",
+      "light_blue"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "open_shirt",
+      "denim"
+    ],
+    "notes": "Window mannequin in dark brown open short-sleeve shirt over tan tee with light-wash straight jeans; maroon shoes on low square pedestal so footwear null; staff adjusting display partially obscures feet",
+    "confidence": 0.8,
+    "score_hint": {
+      "base_score": 72,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_228",
+    "source": "oxford_street",
+    "image_path": "images/228.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "bodysuit",
+        "subcategory": "lace_teddy",
+        "color": "hot_pink"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "lingerie",
+      "secondary": [
+        "feminine",
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "hot_pink"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "lace",
+      "teddy",
+      "sheer"
+    ],
+    "notes": "Left primary lingerie window mannequin in hot-pink floral lace teddy with spaghetti straps and sheer hosiery with matching thigh bands; clear glass pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_229",
+    "source": "oxford_street",
+    "image_path": "images/229.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Lingerie shop window dominated by NEVER CONTAINED / TOO HOT TO HIDE lifestyle poster of model in pink embroidered bra set — no primary physical mannequin outfit",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_231",
+    "source": "oxford_street",
+    "image_path": "images/231.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "pussy_bow_polka",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "cropped_polka",
+        "color": "black"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "retro",
+        "polka_dot"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "black",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "polka_dot",
+      "pussy_bow",
+      "sunglasses"
+    ],
+    "notes": "Left primary window mannequin in cream large-white-polka sleeveless pussy-bow blouse, black small-white-polka cropped trousers and oversized black sunglasses; black perforated flats on thin black base over wood platform so footwear null",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_232",
+    "source": "oxford_street",
+    "image_path": "images/232.jpg",
+    "brand": "next",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Next interior floor display with cobalt blue blazer and matching wide-leg trousers mannequin on black pedestal — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  },
+  {
+    "id": "oxford_233",
+    "source": "oxford_street",
+    "image_path": "images/233.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": []
+    },
+    "colour_palette": [],
+    "features": {
+      "layering": "none",
+      "contrast": "unknown",
+      "silhouette": "unknown"
+    },
+    "style_tags": [],
+    "notes": "Interior floor display with powder-blue one-shoulder top and brown satin midi skirt mannequin on white platform — not a shop-window capture",
+    "confidence": 0.95,
+    "score_hint": {
+      "base_score": 0,
+      "boost": false
+    },
+    "rules": {
+      "valid": false,
+      "violations": [
+        "not_shop_window"
+      ]
+    },
+    "use_for_detection": false,
+    "label_status": "discarded"
+  }
+]

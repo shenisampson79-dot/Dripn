@@ -1,0 +1,2384 @@
+[
+  {
+    "id": "oxford_095",
+    "source": "oxford_street",
+    "image_path": "images/095.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "striped_short_sleeve",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "striped_hotpants",
+        "color": "navy"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "playful"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "navy",
+      "red"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "striped",
+      "co_ord",
+      "summer"
+    ],
+    "notes": "Partial mannequin in light-blue striped short-sleeve blouse with asymmetrical button placket and navy-white-red striped hotpants; no footwear on mid-thigh form",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_096",
+    "source": "oxford_street",
+    "image_path": "images/096.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "jacket",
+        "subcategory": "cropped_zip",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "distressed_wide_leg",
+        "color": "light_blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "streetwear",
+      "secondary": [
+        "casual",
+        "edgy"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "light_blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "distressed",
+      "crossover_waist",
+      "cropped"
+    ],
+    "notes": "Centre mannequin in black cropped zip jacket with light-wash crossover-waist distressed jeans; black pointed shoes on metal pedestal so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_097",
+    "source": "oxford_street",
+    "image_path": "images/097.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "animal_print_maxi_slip",
+        "color": "gold"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "bold"
+      ]
+    },
+    "colour_palette": [
+      "gold",
+      "tan",
+      "brown",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fluid"
+    },
+    "style_tags": [
+      "animal_print",
+      "maxi",
+      "slip"
+    ],
+    "notes": "Centre-right mannequin in gold-tan animal-print spaghetti-strap maxi slip dress; black strappy sandals on metal pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_098",
+    "source": "oxford_street",
+    "image_path": "images/098.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "fitted",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "ruched_mini",
+        "color": "ochre"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "biker",
+        "color": "black"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "jewellery",
+        "subcategory": "pendant_necklace",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "edgy",
+      "secondary": [
+        "feminine_chic",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "ochre",
+      "gold"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "leather",
+      "mini",
+      "biker"
+    ],
+    "notes": "Left-centre mannequin in open black biker jacket over black fitted top with ochre ruched mini skirt and gold pendant; black multi-strap shoes on metal pedestal so footwear null",
+    "confidence": 0.89,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_099",
+    "source": "oxford_street",
+    "image_path": "images/099.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "lace_detail_button_down",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "skirt",
+        "subcategory": "pleated_mini",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "woven_round",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "minimal",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black",
+      "tan"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "monochrome",
+      "pleated",
+      "lace"
+    ],
+    "notes": "Centre mannequin in white lace-detail blouse and white pleated mini with small woven straw bag; black square-toe ankle boots on metal pedestal so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_100",
+    "source": "oxford_street",
+    "image_path": "images/100.jpg",
+    "brand": "allsaints",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "animal_botanical_midi",
+        "color": "black"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "structured_handbag",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "editorial",
+        "bold"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "bronze",
+      "ochre"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "draped"
+    },
+    "style_tags": [
+      "allsaints",
+      "animal_print",
+      "midi"
+    ],
+    "notes": "AllSaints centre mannequin in dark animal-botanical sleeveless midi with waist knot and small black handbag; black pointed shoes on pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_102",
+    "source": "oxford_street",
+    "image_path": "images/102.jpg",
+    "brand": "allsaints",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored",
+        "color": "charcoal"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "denim_chore",
+        "color": "blue"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer",
+        "street"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "charcoal",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "denim",
+      "summer",
+      "sunglasses"
+    ],
+    "notes": "Centre male mannequin in mid-wash denim chore jacket over white tee with charcoal shorts and black sunglasses; black boat shoes on metal pedestal so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_103",
+    "source": "oxford_street",
+    "image_path": "images/103.jpg",
+    "brand": "allsaints",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "light_grey"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "suede_bomber",
+        "color": "mustard"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "streetwear",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "mustard",
+      "white",
+      "light_grey",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "suede",
+      "bomber",
+      "allsaints"
+    ],
+    "notes": "Left male mannequin in open mustard suede bomber over white tee with light-wash straight jeans; black chukka boots on metal pedestal so footwear null",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_104",
+    "source": "oxford_street",
+    "image_path": "images/104.jpg",
+    "brand": "allsaints",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "graphic_short_sleeve",
+        "color": "cream"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "blue"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "streetwear",
+        "graphic"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "black",
+      "blue"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "allsaints",
+      "graphic_print",
+      "denim"
+    ],
+    "notes": "Centre male mannequin in cream AllSaints graphic short-sleeve shirt with medium-wash straight jeans; black chunky lace-ups on metal pedestal so footwear null",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_105",
+    "source": "oxford_street",
+    "image_path": "images/105.jpg",
+    "brand": "mango",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "satin_slip_midi",
+        "color": "champagne"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "minimal",
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "champagne",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fluid"
+    },
+    "style_tags": [
+      "satin",
+      "slip",
+      "mango"
+    ],
+    "notes": "Centre hanger display of champagne satin spaghetti-strap slip midi with sunglasses on hanger; black slides on pedestal only so footwear null",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 76,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_106",
+    "source": "oxford_street",
+    "image_path": "images/106.jpg",
+    "brand": "mango",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "camisole",
+        "subcategory": "lace_trim_sheer",
+        "color": "burgundy"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "white"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "burgundy",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "lace",
+      "wide_leg",
+      "mango"
+    ],
+    "notes": "Left Mango hanger look: sheer burgundy lace-trim camisole draped over white wide-leg trousers with sunglasses on hanger; black slides on pedestal only so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 78,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_107",
+    "source": "oxford_street",
+    "image_path": "images/107.jpg",
+    "brand": "mango",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "cropped_tank",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "cropped_slim",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "military_button",
+        "color": "white"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "jewellery",
+        "subcategory": "hoop_earrings",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "contemporary",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "black",
+      "cream",
+      "gold"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "fitted"
+    },
+    "style_tags": [
+      "military",
+      "cropped",
+      "mango"
+    ],
+    "notes": "Centre headless mannequin in open white military jacket over black cropped tank with black cropped trousers and gold hoops; cream strappy sandals on white pedestal so footwear null",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_109",
+    "source": "oxford_street",
+    "image_path": "images/109.jpg",
+    "brand": "zara",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "halter_ruffle_mini",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "strappy_heel",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "belt",
+        "subcategory": "thin_leather",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "romantic"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "brown",
+      "gold"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": [
+      "halter",
+      "ruffle",
+      "zara"
+    ],
+    "notes": "Centre Zara mannequin in cream halter ruffle mini with thin brown leather belt and brown strappy heeled sandals",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_110",
+    "source": "oxford_street",
+    "image_path": "images/110.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "ruched_asymmetrical",
+        "color": "brown"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "belt",
+        "subcategory": "chain",
+        "color": "silver"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "contemporary",
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "brown",
+      "teal",
+      "black",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "draped"
+    },
+    "style_tags": [
+      "floral",
+      "asymmetrical",
+      "ruched"
+    ],
+    "notes": "Centre headless mannequin in dark brown teal-floral ruched asymmetrical dress with silver chain hip belt; black thong sandals on metal base so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 81,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_111",
+    "source": "oxford_street",
+    "image_path": "images/111.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "satin_slip_midi",
+        "color": "champagne"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "eyewear",
+        "subcategory": "sunglasses",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "champagne",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fluid"
+    },
+    "style_tags": [
+      "satin",
+      "slip",
+      "midi"
+    ],
+    "notes": "Centre mannequin in champagne satin scoop-neck slip midi with dark sunglasses; black open-toe mule heels on black pedestal so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_112",
+    "source": "oxford_street",
+    "image_path": "images/112.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "camisole",
+        "subcategory": "lace_asymmetrical",
+        "color": "burgundy"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_cropped",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": null,
+      "accessory": {
+        "category": "jewellery",
+        "subcategory": "pendant_necklace",
+        "color": "silver"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "contemporary",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "burgundy",
+      "cream",
+      "black",
+      "silver"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "lace",
+      "culottes",
+      "layered"
+    ],
+    "notes": "Centre mannequin in burgundy lace-trim asymmetrical camisole over cream wide cropped trousers with silver pendant; black strappy heels on metal base so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_113",
+    "source": "oxford_street",
+    "image_path": "images/113.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": null,
+      "bottom": null,
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "hooded_parka",
+        "color": "tan"
+      },
+      "footwear": null,
+      "accessory": {
+        "category": "bag",
+        "subcategory": "crossbody",
+        "color": "cognac"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "utilitarian",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "tan",
+      "cognac",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "hooded",
+      "crossbody",
+      "lightweight"
+    ],
+    "notes": "Black torso mannequin in tan hooded drawstring jacket with cognac suede crossbody camera bag on woven strap; no bottoms or footwear on mid-thigh form",
+    "confidence": 0.88,
+    "score_hint": {
+      "base_score": 74,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_114",
+    "source": "oxford_street",
+    "image_path": "images/114.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "maxi_button_front",
+        "color": "red"
+      },
+      "bottom": null,
+      "outerwear": {
+        "category": "jacket",
+        "subcategory": "utility",
+        "color": "cream"
+      },
+      "footwear": null,
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "romantic"
+      ]
+    },
+    "colour_palette": [
+      "red",
+      "cream"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "maxi",
+      "utility",
+      "summer_sale"
+    ],
+    "notes": "Left fabric mannequin in open cream utility jacket over red button-front maxi; tan flat on gold pedestal only so footwear null",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 80,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_116",
+    "source": "oxford_street",
+    "image_path": "images/116.jpg",
+    "brand": "reiss",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "sheer_polka_shirt_midi",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "slingback_kitten",
+        "color": "navy"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "canvas_tote",
+        "color": "grey"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "black",
+      "grey"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "polka_dot",
+      "sheer",
+      "midi"
+    ],
+    "notes": "Centre-left Reiss mannequin in sheer navy polka-dot shirt midi over solid navy slip with sash, grey Reiss canvas tote and navy pointed slingback kitten heels",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_117",
+    "source": "oxford_street",
+    "image_path": "images/117.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "floral_embroidered_midi",
+        "color": "magenta"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pointed_pump",
+        "color": "magenta"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "romantic",
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "magenta",
+      "navy",
+      "pink"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": [
+      "floral",
+      "embroidered",
+      "midi"
+    ],
+    "notes": "Centre mannequin in navy sheer mesh midi with magenta floral embroidery and matching magenta pointed pumps; fascinators and clutch on adjacent gold pedestal not worn",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_118",
+    "source": "oxford_street",
+    "image_path": "images/118.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "floral_shirt_midi",
+        "color": "white"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "slingback_kitten",
+        "color": "magenta"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "floral"
+      ]
+    },
+    "colour_palette": [
+      "white",
+      "magenta",
+      "olive"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "floral",
+      "shirt_dress",
+      "midi"
+    ],
+    "notes": "Front mannequin in white shirt midi with dense magenta floral print and coordinating magenta pointed slingback kitten heels",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_119",
+    "source": "oxford_street",
+    "image_path": "images/119.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "geometric_midi",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pointed_pump",
+        "color": "cream"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "classic",
+        "petite"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "white",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "midi",
+      "belted",
+      "petite"
+    ],
+    "notes": "Centre petite-window mannequin in navy white-geometric long-sleeve belted midi with cream pointed pumps; black clutch on nearby pedestal not worn",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_120",
+    "source": "oxford_street",
+    "image_path": "images/120.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "high_neck",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "tailored_straight",
+        "color": "camel"
+      },
+      "outerwear": {
+        "category": "blazer",
+        "subcategory": "single_breasted",
+        "color": "camel"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafer",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "handbag",
+        "color": "camel"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "tailored",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "camel",
+      "black"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "suiting",
+      "camel",
+      "loafer"
+    ],
+    "notes": "Centre mannequin in open camel blazer over black high-neck top with matching camel trousers, black loafers and camel handbag",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_121",
+    "source": "oxford_street",
+    "image_path": "images/121.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg",
+        "color": "white"
+      },
+      "outerwear": {
+        "category": "coat",
+        "subcategory": "trench",
+        "color": "beige"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "tassel_loafer",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "cream"
+      }
+    },
+    "style": {
+      "primary": "smart_casual",
+      "secondary": [
+        "summer",
+        "minimal"
+      ]
+    },
+    "colour_palette": [
+      "beige",
+      "black",
+      "white",
+      "cream"
+    ],
+    "features": {
+      "layering": "structured",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "trench",
+      "wide_leg",
+      "tote"
+    ],
+    "notes": "Centre mannequin in open beige trench over black top with white wide-leg trousers, white tassel loafers and large cream tote",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_122",
+    "source": "oxford_street",
+    "image_path": "images/122.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "floral_midi",
+        "color": "navy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pointed_flat",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "romantic",
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "navy",
+      "cream",
+      "beige",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "fitted_flare"
+    },
+    "style_tags": [
+      "floral",
+      "midi",
+      "ruffle_hem"
+    ],
+    "notes": "Centre mannequin in navy floral long-sleeve belted midi with keyhole neck and ruffle hem, black pointed flats",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_124",
+    "source": "oxford_street",
+    "image_path": "images/124.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "microcheck_shirt_midi",
+        "color": "charcoal"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "studded_flat",
+        "color": "nude"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "classic",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "charcoal",
+      "nude"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "shirt_dress",
+      "midi",
+      "belted"
+    ],
+    "notes": "Centre mannequin in charcoal micro-check long-sleeve belted shirt midi with nude studded flat sandals",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_125",
+    "source": "oxford_street",
+    "image_path": "images/125.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "wavy_stripe_shirt_midi",
+        "color": "burgundy"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "t_strap_flat",
+        "color": "cream"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "summer",
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "burgundy",
+      "white",
+      "cream"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "shirt_dress",
+      "midi",
+      "belted"
+    ],
+    "notes": "Centre foreground mannequin in burgundy white wavy-stripe short-sleeve shirt midi with self-tie belt and cream T-strap flat sandals",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_126",
+    "source": "oxford_street",
+    "image_path": "images/126.jpg",
+    "brand": "hobbs",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "floral_jacquard_maxi",
+        "color": "black"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "ballet_flat",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "classic"
+      ]
+    },
+    "colour_palette": [
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "fluid"
+    },
+    "style_tags": [
+      "hobbs",
+      "maxi",
+      "jacquard"
+    ],
+    "notes": "Hobbs centre mannequin in sleeveless black tone-on-tone floral jacquard maxi with black textured ballet flats",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_127",
+    "source": "oxford_street",
+    "image_path": "images/127.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "draped_asymmetrical_mini",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "strappy_heel",
+        "color": "nude"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "nude"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "draped"
+    },
+    "style_tags": [
+      "asymmetrical",
+      "draped",
+      "mini"
+    ],
+    "notes": "Left mannequin in cream asymmetrical draped mini with hip gathering and nude strappy heeled sandals",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_128",
+    "source": "oxford_street",
+    "image_path": "images/128.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "blouse",
+        "subcategory": "cowl_scarf",
+        "color": "champagne"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_creased",
+        "color": "cream"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "strappy",
+        "color": "gold"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "beaded_handbag",
+        "color": "gold"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "tailored"
+      ]
+    },
+    "colour_palette": [
+      "champagne",
+      "cream",
+      "gold"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "tailored"
+    },
+    "style_tags": [
+      "cowl",
+      "wide_leg",
+      "metallic"
+    ],
+    "notes": "Centre mannequin in champagne satin cowl top with hanging scarf panel, cream wide creased trousers with gold-buckle belt, gold strappy sandals and gold beaded chain bag",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_129",
+    "source": "oxford_street",
+    "image_path": "images/129.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "draped_asymmetrical",
+        "color": "cream"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "strappy_heel",
+        "color": "nude"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "evening",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "nude"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "draped"
+    },
+    "style_tags": [
+      "asymmetrical",
+      "draped",
+      "statement"
+    ],
+    "notes": "Centre-left mannequin in cream asymmetrical draped dress with boat neck and elongated side panel, nude strappy heeled sandals",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_131",
+    "source": "oxford_street",
+    "image_path": "images/131.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "chino",
+        "color": "cream"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "striped_overshirt",
+        "color": "blue"
+      },
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "low_top",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "menswear"
+      ]
+    },
+    "colour_palette": [
+      "blue",
+      "white",
+      "cream",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "striped",
+      "summer",
+      "menswear"
+    ],
+    "notes": "Left male mannequin in open blue white-stripe long-sleeve overshirt over white tee with cream chino shorts and black low-top sneakers",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_132",
+    "source": "oxford_street",
+    "image_path": "images/132.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "tailored",
+        "color": "black"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "overshirt",
+        "color": "cream"
+      },
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "slip_on",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "hat",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "streetwear"
+      ]
+    },
+    "colour_palette": [
+      "cream",
+      "white",
+      "black"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "overshirt",
+      "cap",
+      "summer"
+    ],
+    "notes": "Left male mannequin in cream flap-pocket overshirt over white tee with black shorts, white slip-on sneakers and black baseball cap",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 83,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_133",
+    "source": "oxford_street",
+    "image_path": "images/133.jpg",
+    "brand": "whistles",
+    "price_tier": "premium",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "diamond_print_jumpsuit",
+        "color": "black"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "pointed_strap",
+        "color": "nude"
+      },
+      "accessory": {
+        "category": "belt",
+        "subcategory": "leather",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "contemporary",
+        "smart_casual"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white",
+      "brown",
+      "nude"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "whistles",
+      "jumpsuit",
+      "print"
+    ],
+    "notes": "Whistles centre mannequin in black white-diamond short-sleeve jumpsuit with brown leather gold-buckle belt and nude pointed strap sandals",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 87,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_134",
+    "source": "oxford_street",
+    "image_path": "images/134.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "polka_swirl_midi",
+        "color": "black"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "chunky_strap",
+        "color": "black"
+      },
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "neck_scarf",
+        "color": "black"
+      }
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "bold",
+        "contemporary"
+      ]
+    },
+    "colour_palette": [
+      "black",
+      "white",
+      "gold"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "high",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "polka_dot",
+      "optical",
+      "midi"
+    ],
+    "notes": "Centre-right mannequin in black white swirling polka midi with matching neck scarf and black chunky gold-buckle sandals",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_135",
+    "source": "oxford_street",
+    "image_path": "images/135.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "top",
+        "subcategory": "knit_button_v_neck",
+        "color": "maroon"
+      },
+      "bottom": {
+        "category": "trousers",
+        "subcategory": "wide_leg_parachute",
+        "color": "maroon"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "multi_strap",
+        "color": "black"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "contemporary",
+      "secondary": [
+        "monochrome",
+        "relaxed"
+      ]
+    },
+    "colour_palette": [
+      "maroon",
+      "black"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "low",
+      "silhouette": "voluminous"
+    },
+    "style_tags": [
+      "co_ord",
+      "wide_leg",
+      "monochrome"
+    ],
+    "notes": "Centre mannequin in maroon short-sleeve knit button top with matching voluminous ankle-gathered trousers and black multi-strap sandals",
+    "confidence": 0.9,
+    "score_hint": {
+      "base_score": 82,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_136",
+    "source": "oxford_street",
+    "image_path": "images/136.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "dress",
+        "subcategory": "ruched_geometric_midi",
+        "color": "pink"
+      },
+      "bottom": null,
+      "outerwear": null,
+      "footwear": {
+        "category": "sandals",
+        "subcategory": "thong_heel",
+        "color": "beige"
+      },
+      "accessory": null
+    },
+    "style": {
+      "primary": "feminine_chic",
+      "secondary": [
+        "contemporary",
+        "evening"
+      ]
+    },
+    "colour_palette": [
+      "pink",
+      "black",
+      "beige"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "draped"
+    },
+    "style_tags": [
+      "geometric",
+      "ruched",
+      "midi"
+    ],
+    "notes": "Centre-right mannequin in blush geometric mock-neck midi with hip ruching and beige pointed thong heels",
+    "confidence": 0.91,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_138",
+    "source": "oxford_street",
+    "image_path": "images/138.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "shirt",
+        "subcategory": "striped_button_down",
+        "color": "light_blue"
+      },
+      "bottom": {
+        "category": "jeans",
+        "subcategory": "straight",
+        "color": "blue"
+      },
+      "outerwear": {
+        "category": "jumper",
+        "subcategory": "waist_tied",
+        "color": "brown"
+      },
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_jane",
+        "color": "brown"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "shoulder",
+        "color": "brown"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "preppy",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "blue",
+      "brown"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "striped",
+      "denim",
+      "layered"
+    ],
+    "notes": "Centre headless mannequin in light-blue striped shirt with brown knit tied at waist, straight blue jeans, brown Mary Jane flats and brown leather shoulder bag",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 85,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_139",
+    "source": "oxford_street",
+    "image_path": "images/139.jpg",
+    "brand": "levis",
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "distressed_denim",
+        "color": "light_blue"
+      },
+      "outerwear": {
+        "category": "shirt",
+        "subcategory": "denim_western",
+        "color": "light_blue"
+      },
+      "footwear": {
+        "category": "sneakers",
+        "subcategory": "high_top",
+        "color": "white"
+      },
+      "accessory": {
+        "category": "scarf",
+        "subcategory": "bandana",
+        "color": "red"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "denim",
+        "summer"
+      ]
+    },
+    "colour_palette": [
+      "light_blue",
+      "white",
+      "red"
+    ],
+    "features": {
+      "layering": "light",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "levis",
+      "denim",
+      "distressed"
+    ],
+    "notes": "Levi's centre mannequin in open light denim western shirt over white tee with distressed light denim shorts, white high-tops and red paisley bandana",
+    "confidence": 0.93,
+    "score_hint": {
+      "base_score": 86,
+      "boost": true
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  },
+  {
+    "id": "oxford_140",
+    "source": "oxford_street",
+    "image_path": "images/140.jpg",
+    "brand": null,
+    "price_tier": "high_street",
+    "outfit": {
+      "top": {
+        "category": "t-shirt",
+        "subcategory": "graphic_crew",
+        "color": "grey"
+      },
+      "bottom": {
+        "category": "shorts",
+        "subcategory": "plaid",
+        "color": "charcoal"
+      },
+      "outerwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "moccasin",
+        "color": "tan"
+      },
+      "accessory": {
+        "category": "bag",
+        "subcategory": "tote",
+        "color": "tan"
+      }
+    },
+    "style": {
+      "primary": "casual",
+      "secondary": [
+        "summer",
+        "menswear"
+      ]
+    },
+    "colour_palette": [
+      "grey",
+      "charcoal",
+      "tan",
+      "white"
+    ],
+    "features": {
+      "layering": "none",
+      "contrast": "medium",
+      "silhouette": "relaxed"
+    },
+    "style_tags": [
+      "graphic",
+      "plaid",
+      "summer"
+    ],
+    "notes": "Centre male mannequin in grey Beat Cafe graphic tee with charcoal plaid knee shorts, tan suede lace-up moccasins with striped crew socks and tan canvas tote",
+    "confidence": 0.92,
+    "score_hint": {
+      "base_score": 84,
+      "boost": false
+    },
+    "rules": {
+      "valid": true,
+      "violations": []
+    },
+    "use_for_detection": true,
+    "label_status": "labeled"
+  }
+]

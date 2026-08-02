@@ -242,6 +242,7 @@
     </div>
     <div class="filters">
       <select id="street">
+        <option value="oxford">Oxford Street</option>
         <option value="all">All streets</option>
         <option value="croydon">Croydon</option>
         <option value="brixton">Brixton</option>
@@ -249,7 +250,7 @@
       </select>
       <button type="button" data-status="all">All</button>
       <button type="button" data-status="fix" class="on">Must fix</button>
-      <button type="button" data-status="uncertain">Your call</button>
+      <button type="button" data-status="uncertain">Your call / unlabelled</button>
       <button type="button" data-status="ok">OK</button>
     </div>
   </header>
@@ -274,6 +275,7 @@
       croydon: '../croydon_mall_dataset',
       brixton: '../brixton_high_street_dataset',
       sloane: '../sloane_street_dataset',
+      oxford: '../oxford_street_dataset',
     };
 
     const state = {
@@ -281,7 +283,7 @@
       filtered: [],
       index: 0,
       status: 'fix',
-      street: 'all',
+      street: 'oxford',
       datasets: {},
       decisions: loadDecisions(),
     };
@@ -533,8 +535,20 @@
 
     async function init() {
       try {
-        const parts = await Promise.all(['croydon', 'brixton', 'sloane'].map(loadStreet));
-        state.rows = parts.flat();
+        // Oxford first so Must-fix is usable even if older streets are slow to load.
+        const oxfordRows = await loadStreet('oxford');
+        state.rows = oxfordRows;
+        applyFilters();
+
+        const rest = await Promise.all(
+          ['croydon', 'brixton', 'sloane'].map((s) =>
+            loadStreet(s).catch((err) => {
+              console.warn(`[reviewer] skip ${s}:`, err);
+              return [];
+            }),
+          ),
+        );
+        state.rows = [...oxfordRows, ...rest.flat()];
         applyFilters();
       } catch (err) {
         document.getElementById('side').innerHTML = `

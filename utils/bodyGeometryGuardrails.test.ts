@@ -179,6 +179,35 @@ assert.match(
   /boot|shoe/i,
 );
 
+// Full-body maxi column → dress (not trousers)
+assert.equal(
+  resolveClassByRegionLock({
+    bbox: [0.25, 0.12, 0.45, 0.82],
+    yoloCategory: 'clothing',
+    fabricColor: 'black',
+  }).category,
+  'dresses',
+);
+
+// Denim jacket upper box → outerwear (not generic top)
+assert.equal(
+  resolveClassByRegionLock({
+    bbox: [0.22, 0.14, 0.48, 0.36],
+    yoloCategory: 'tops',
+    fabricColor: 'blue',
+  }).category,
+  'outerwear',
+);
+
+// Jacket + dress roles may coexist
+const jacketDress = resolveDetectionConflicts([
+  { bbox: [0.22, 0.14, 0.48, 0.36] as [number, number, number, number], confidence: 0.9, category: 'outerwear' },
+  { bbox: [0.25, 0.12, 0.45, 0.82] as [number, number, number, number], confidence: 0.85, category: 'dresses' },
+]);
+assert.equal(jacketDress.length, 2);
+assert.ok(jacketDress.some((c) => c.category === 'outerwear'));
+assert.ok(jacketDress.some((c) => c.category === 'dresses'));
+
 assert.match(
   formatGarmentDisplayName({ color: 'white', category: 'shoes', subcategory: 'sneakers' }),
   /trainer/i,

@@ -20,6 +20,8 @@ import {
   paddingForCategory,
   captureConfidenceFor,
   looksLikeFootwear,
+  advanceQuickAddTemporal,
+  createQuickAddTemporalState,
 } from './quickAddAutoCapture.ts';
 
 console.log('=== Quick Add auto-capture ===\n');
@@ -164,16 +166,23 @@ console.log('=== Quick Add auto-capture ===\n');
   };
   const ctl = new QuickAddCaptureController();
   let armedHits = 0;
-  const t0 = 1_000_000;
+  const t0 = Date.now();
+  // Temporal machine: amber min dwell + 2 ready samples (~850ms spacing).
   for (let i = 0; i < 6; i++) {
-    const { armed } = ctl.onFrame([centred], t0 + i * 50);
+    const { armed } = ctl.onFrame([centred], t0 + i * 900);
     if (armed) armedHits += 1;
   }
-  assert.ok(armedHits >= 1, 'should arm for countdown');
-  ctl.markCaptured(t0 + 300);
-  assert.equal(ctl.onFrame([centred], t0 + 500).armed, false);
-  assert.equal(ctl.onFrame([centred], t0 + 2500).armed, true);
-  console.log('✓ armed + cooldown (countdown owns the snap)');
+  assert.ok(armedHits >= 1, 'should arm for countdown after amber dwell');
+  const armedAt = t0 + 5 * 900;
+  ctl.markCaptured(armedAt + 300);
+  assert.equal(ctl.onFrame([centred], armedAt + 500).armed, false);
+  // After cooldown, need amber dwell again
+  let rearmed = false;
+  for (let i = 0; i < 6; i++) {
+    if (ctl.onFrame([centred], armedAt + 2500 + i * 900).armed) rearmed = true;
+  }
+  assert.equal(rearmed, true);
+  console.log('✓ armed + cooldown (temporal amber dwell + countdown)');
 }
 
 {
@@ -196,6 +205,66 @@ console.log('=== Quick Add auto-capture ===\n');
   assert.equal(multiCount, 2);
   assert.match(evaluation.hint, /2 items/i);
   console.log('✓ multi-item hint');
+}
+
+{
+  const ctl = new QuickAddCaptureController();
+  const coat = {
+    class: 'outerwear',
+    confidence: 0.34,
+    bbox: { x: 0.12, y: 0.18, width: 0.72, height: 0.62 },
+  };
+  const t0 = Date.now();
+  assert.equal(ctl.onFrame([coat], t0).eval.ui, 'hold');
+  // Miss within grace — must stay amber, not flash white
+  const miss = ctl.onFrame([], t0 + 800);
+  assert.equal(miss.eval.ui, 'hold', 'miss grace keeps amber');
+  assert.equal(miss.armed, false);
+  assert.equal(miss.cancelCountdown, false);
+  // Drain confidence buffer + idle cancel (miss grace → temporal hold → white)
+  let lostUi = 'hold' as string;
+  for (let i = 1; i <= 6; i++) {
+    const t = t0 + QUICK_ADD_CAPTURE.missGraceMs + i * (QUICK_ADD_CAPTURE.idleCancelMs + 50);
+    lostUi = ctl.onFrame([], t).eval.ui;
+  }
+  assert.ok(lostUi === 'idle' || lostUi === 'struggling', `expected idle after drain, got ${lostUi}`);
+  console.log('✓ miss grace sticky amber (beige coat flicker)');
+}
+
+{
+  let s = createQuickAddTemporalState();
+  const t0 = Date.now();
+  // Enter amber
+  let step = advanceQuickAddTemporal(s, { band: 'hold', confidence: 0.4, rawReady: false }, t0);
+  assert.equal(step.ui, 'hold');
+  s = step.state;
+  // Ready too early — still amber (min dwell)
+  step = advanceQuickAddTemporal(s, { band: 'ready', confidence: 0.5, rawReady: true }, t0 + 200);
+  assert.equal(step.ui, 'hold');
+  assert.equal(step.startCountdown, false);
+  s = step.state;
+  // After dwell + enough ready samples → green
+  step = advanceQuickAddTemporal(s, { band: 'ready', confidence: 0.5, rawReady: true }, t0 + 900);
+  s = step.state;
+  if (!step.startCountdown) {
+    step = advanceQuickAddTemporal(s, { band: 'ready', confidence: 0.5, rawReady: true }, t0 + 1000);
+  }
+  assert.equal(step.startCountdown, true);
+  assert.equal(step.ui, 'ready');
+  s = step.state;
+  // Brief idle during green — do NOT cancel
+  step = advanceQuickAddTemporal(s, { band: 'idle', confidence: 0, rawReady: false }, t0 + 1200);
+  assert.equal(step.cancelCountdown, false);
+  assert.equal(step.ui, 'ready');
+  s = step.state;
+  // Sustained idle → cancel
+  step = advanceQuickAddTemporal(
+    s,
+    { band: 'idle', confidence: 0, rawReady: false },
+    t0 + 1200 + QUICK_ADD_CAPTURE.idleCancelMs + 10,
+  );
+  assert.equal(step.cancelCountdown, true);
+  console.log('✓ temporal: amber dwell, green lock, sustained-idle cancel');
 }
 
 console.log('\nAll Quick Add auto-capture checks passed.');

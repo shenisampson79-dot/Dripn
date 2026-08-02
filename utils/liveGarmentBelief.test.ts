@@ -134,4 +134,54 @@ assert.equal(bareR.state.top, null, 'bare torso destroys top belief');
 assert.ok(bareR.repairs.some((r) => /bare_torso/i.test(r)));
 assert.ok(!bareR.detections.some((d) => /top/i.test(d.category)));
 
+// Dress persistence: overlapping trousers must not reclassify a locked dress
+const dressDet: OnDeviceDetection = {
+  name: 'Black maxi dress',
+  category: 'dresses',
+  subcategory: 'maxi_dress',
+  color: 'black',
+  confidence: 0.92,
+  bbox: [0.25, 0.12, 0.45, 0.82],
+  trackId: 'd1',
+};
+const trousersFlip: OnDeviceDetection = {
+  name: 'Dark trousers',
+  category: 'bottoms',
+  subcategory: 'trousers',
+  color: 'black',
+  confidence: 0.96,
+  bbox: [0.26, 0.14, 0.44, 0.80],
+  trackId: 'd1',
+};
+let dressState = createOutfitBeliefState();
+dressState = applyOutfitBelief(dressState, [dressDet], { now: 12000 }).state;
+assert.equal(dressState.bottom?.kind, 'dress');
+dressState = applyOutfitBelief(dressState, [trousersFlip], { now: 13000 }).state;
+assert.equal(dressState.bottom?.kind, 'dress', 'dress persists over overlapping trousers');
+
+// Outerwear preferred over phantom tee in the top slot
+const jacketDet: OnDeviceDetection = {
+  name: 'Blue jacket',
+  category: 'outerwear',
+  subcategory: 'jacket',
+  color: 'blue',
+  confidence: 0.88,
+  bbox: [0.22, 0.14, 0.48, 0.36],
+  trackId: 'j1',
+};
+const phantomTee: OnDeviceDetection = {
+  name: 'Blue top',
+  category: 'tops',
+  subcategory: 'top',
+  color: 'blue',
+  confidence: 0.95,
+  bbox: [0.24, 0.16, 0.46, 0.34],
+  trackId: 't2',
+};
+let layerState = createOutfitBeliefState();
+layerState = applyOutfitBelief(layerState, [jacketDet, dressDet, phantomTee], { now: 14000 }).state;
+assert.equal(layerState.top?.kind, 'outerwear', 'jacket wins over phantom tee');
+assert.equal(layerState.bottom?.kind, 'dress');
+assert.equal(layerState.top?.category, 'outerwear');
+
 console.log('liveGarmentBelief.test.ts: all passed');

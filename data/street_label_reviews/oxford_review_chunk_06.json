@@ -1,0 +1,290 @@
+[
+  {
+    "id": "263",
+    "status": "ok",
+    "notes": "Rust textured linen suit over white crew tee; dark brown tassel loafers on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "264",
+    "status": "ok",
+    "notes": "Camel/mustard zip harrington over blue crew tee with beige pleated chinos; cream sneakers on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "265",
+    "status": "ok",
+    "notes": "Brown polo with thin white stripes + navy pleated trousers; tan tassel loafers on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "267",
+    "status": "ok",
+    "notes": "Olive crochet floral short-sleeve over white tee, beige drawstring shorts, white/brown baseball cap; sandals on pedestal correctly footwear null"
+  },
+  {
+    "id": "268",
+    "status": "ok",
+    "notes": "Blue/white plaid rolled long-sleeve + tan chinos; black sneakers on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "269",
+    "status": "ok",
+    "notes": "Open red/terracotta plaid short-sleeve over white tee + olive denim shorts; brown two-strap sandals on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "270",
+    "status": "ok",
+    "notes": "Foreground green polo with white tipping + light grey shorts; sneakers on white pedestal block correctly footwear null"
+  },
+  {
+    "id": "271",
+    "status": "ok",
+    "notes": "Olive Earth Rebellion graphic crew sweatshirt + light-wash baggy jeans; cream sneakers on white pedestal correctly footwear null"
+  },
+  {
+    "id": "272",
+    "status": "ok",
+    "notes": "Yellow graphic crew sweatshirt with olive sweatshirt tied at waist + medium-wash jeans; beige sneakers on wooden pedestal correctly footwear null"
+  },
+  {
+    "id": "275",
+    "status": "fix",
+    "notes": "White LFC long-sleeve jersey, charcoal trousers, red cap, white Samba-style sneakers OK; notes mention white crossbody but accessory only has hat — add white LFC crossbody",
+    "pieces": [
+      { "category": "tops", "subcategory": "football_long_sleeve_jersey", "color": "white" },
+      { "category": "bottoms", "subcategory": "straight_trousers", "color": "charcoal" },
+      { "category": "footwear", "subcategory": "samba_style_sneakers", "color": "white" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "red" },
+      { "category": "bags", "subcategory": "crossbody", "color": "white" }
+    ]
+  },
+  {
+    "id": "276",
+    "status": "fix",
+    "notes": "White cropped LFC jersey, dark wide-leg jeans with D-ring, white bucket hat, white Samba sneakers OK; missing black crossbody on hip",
+    "pieces": [
+      { "category": "tops", "subcategory": "football_cropped_jersey", "color": "white" },
+      { "category": "bottoms", "subcategory": "wide_leg_jeans", "color": "blue" },
+      { "category": "footwear", "subcategory": "samba_style_sneakers", "color": "white" },
+      { "category": "accessories", "subcategory": "bucket_hat", "color": "white" },
+      { "category": "bags", "subcategory": "crossbody", "color": "black" }
+    ]
+  },
+  {
+    "id": "277",
+    "status": "uncertain",
+    "notes": "Kids LFC mannequin: white jersey, light grey shorts, white Adidas cap (backwards), white Samba sneakers match — keep kids window or discard like 273?",
+    "pieces": [
+      { "category": "tops", "subcategory": "football_short_sleeve_jersey", "color": "white" },
+      { "category": "bottoms", "subcategory": "athletic_shorts", "color": "light_grey" },
+      { "category": "footwear", "subcategory": "samba_style_sneakers", "color": "white" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "white" }
+    ]
+  },
+  {
+    "id": "278",
+    "status": "uncertain",
+    "notes": "White tee, light frayed denim cutoffs, brown belt OK; denim jacket wash looks medium/mid-blue not clearly dark_blue; platform sandals on wooden plinth correctly footwear null",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "white" },
+      { "category": "bottoms", "subcategory": "denim_cutoff_shorts", "color": "light_blue" },
+      { "category": "outerwear", "subcategory": "denim_jacket", "color": "medium_blue" },
+      { "category": "accessories", "subcategory": "leather_belt", "color": "brown" }
+    ]
+  },
+  {
+    "id": "279",
+    "status": "ok",
+    "notes": "White Timberland logo tee, mid-wash denim shorts, tan/camel baseball cap; wheat boots on black pedestal correctly footwear null"
+  },
+  {
+    "id": "281",
+    "status": "ok",
+    "notes": "Beige double-breasted linen suit over white dress shirt + matching trousers; loafers on glass pedestal correctly footwear null"
+  },
+  {
+    "id": "282",
+    "status": "ok",
+    "notes": "Black shawl-lapel tuxedo, white wing-collar shirt, black bow tie, white pocket square; patent shoes on glass pedestal correctly footwear null"
+  },
+  {
+    "id": "284",
+    "status": "fix",
+    "notes": "Beige zip windbreaker, green/white stripe tee, navy wide-legs, sunglasses OK; sneakers on acrylic pedestal correctly footwear null; missing white shirt tied at waist (visible in photo and notes)",
+    "pieces": [
+      { "category": "tops", "subcategory": "horizontal_stripe_crew", "color": "green" },
+      { "category": "tops", "subcategory": "shirt_tied_waist", "color": "white" },
+      { "category": "bottoms", "subcategory": "wide_leg_trousers", "color": "navy" },
+      { "category": "outerwear", "subcategory": "zip_windbreaker", "color": "beige" },
+      { "category": "accessories", "subcategory": "sunglasses", "color": "black" }
+    ]
+  },
+  {
+    "id": "285",
+    "status": "fix",
+    "notes": "Olive quilted puffer vest, white tee, grey jersey shorts OK; sneakers on acrylic pedestal correctly footwear null; missing navy zip jacket worn under vest",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "white" },
+      { "category": "bottoms", "subcategory": "jersey_shorts", "color": "grey" },
+      { "category": "outerwear", "subcategory": "zip_jacket", "color": "navy" },
+      { "category": "outerwear", "subcategory": "quilted_puffer_vest", "color": "olive" }
+    ]
+  },
+  {
+    "id": "286",
+    "status": "ok",
+    "notes": "Navy zip athletic jacket over heather grey tee + charcoal ultra-stretch wide trousers; sneakers on glass pedestal correctly footwear null"
+  },
+  {
+    "id": "288",
+    "status": "ok",
+    "notes": "White zip hooded pocketable parka over black cropped athletic top + navy full-length leggings; sneakers on acrylic pedestal correctly footwear null"
+  },
+  {
+    "id": "289",
+    "status": "ok",
+    "notes": "Beige baseball cap, grey crew sweatshirt, olive shirt tied at waist, grey pleated wide tapered trousers; brown lace-ups on acrylic pedestal correctly footwear null"
+  },
+  {
+    "id": "290",
+    "status": "uncertain",
+    "notes": "Cream tee, beige/cream smart culottes, navy zip short jacket OK; sandals on clear pedestal correctly footwear null; cap looks charcoal/black vs labelled grey",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "cream" },
+      { "category": "bottoms", "subcategory": "smart_culottes", "color": "beige" },
+      { "category": "outerwear", "subcategory": "zip_short_jacket", "color": "navy" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "charcoal" }
+    ]
+  },
+  {
+    "id": "291",
+    "status": "ok",
+    "notes": "White polo with thin navy horizontal stripes + tan pleated wide trousers; black sandals on clear pedestal correctly footwear null"
+  },
+  {
+    "id": "292",
+    "status": "ok",
+    "notes": "Medium-blue oversized crew tee with blue/white vertical stripe shirt draped on shoulders + dark brown barrel jeans; white sneakers on glass pedestal correctly footwear null"
+  },
+  {
+    "id": "293",
+    "status": "ok",
+    "notes": "Dark forest-green short-sleeve knit polo + beige jersey barrel-leg trousers; black platform sandals on acrylic pedestal correctly footwear null"
+  },
+  {
+    "id": "295",
+    "status": "fix",
+    "notes": "Burgundy merino ribbed crew + charcoal wide culottes + quilted brown crossbody OK; loafers on floor base correctly footwear null; underlayer is red packable parka (sign) not hoodie",
+    "pieces": [
+      { "category": "tops", "subcategory": "merino_crew_ribbed", "color": "burgundy" },
+      { "category": "bottoms", "subcategory": "wide_knee_culottes", "color": "charcoal" },
+      { "category": "outerwear", "subcategory": "packable_parka", "color": "red" },
+      { "category": "bags", "subcategory": "crossbody_quilted", "color": "brown" }
+    ]
+  },
+  {
+    "id": "296",
+    "status": "fix",
+    "notes": "Beige milano rib polo over white-blue pinstripe shirt + burgundy round mini bag OK; desert boots on glass stand correctly footwear null; shorts are dusty rose not burgundy; missing beige baseball cap from accessory",
+    "pieces": [
+      { "category": "tops", "subcategory": "milano_rib_polo", "color": "beige" },
+      { "category": "bottoms", "subcategory": "chino_shorts", "color": "dusty_rose" },
+      { "category": "outerwear", "subcategory": "pinstripe_underlayer", "color": "white" },
+      { "category": "bags", "subcategory": "round_mini_shoulder", "color": "burgundy" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "beige" }
+    ]
+  },
+  {
+    "id": "297",
+    "status": "ok",
+    "notes": "Left primary: dark chocolate crew jumper over white underlayer + shiny burgundy satin maxi skirt; chunky loafers on acrylic pedestal correctly footwear null"
+  },
+  {
+    "id": "298",
+    "status": "ok",
+    "notes": "MUJI second-from-left: black short-sleeve over white base, black mid-thigh shorts, black crossbody messenger; sneakers on wood platform correctly footwear null"
+  },
+  {
+    "id": "327",
+    "status": "fix",
+    "notes": "Black tee, beige zip hoodie draped on shoulders, beige sweatpants, black sneakers, off-white Just Do It cap OK; missing small black Nike waist pouch on hip",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "black" },
+      { "category": "bottoms", "subcategory": "sweatpants", "color": "beige" },
+      { "category": "outerwear", "subcategory": "zip_hoodie_draped", "color": "beige" },
+      { "category": "footwear", "subcategory": "sneakers", "color": "black" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "off_white" },
+      { "category": "bags", "subcategory": "waist_pouch", "color": "black" }
+    ]
+  },
+  {
+    "id": "328",
+    "status": "ok",
+    "notes": "Open black Nike windbreaker over black swoosh tee, black tapered track pants, black sneakers — matches"
+  },
+  {
+    "id": "329",
+    "status": "ok",
+    "notes": "Acid-wash grey-olive tee + matching shorts, white socks, grey/white/black Air Max sneakers; white base layer at hem — matches"
+  },
+  {
+    "id": "331",
+    "status": "ok",
+    "notes": "Black/white/burgundy striped Adidas polo, navy side-stripe shorts, white Samba-style sneakers, black trefoil cap — matches"
+  },
+  {
+    "id": "332",
+    "status": "ok",
+    "notes": "Open black windbreaker over white adidas 94 jersey, mid-wash jeans with light side stripes, light blue suede sneakers, black trefoil cap — matches"
+  },
+  {
+    "id": "333",
+    "status": "fix",
+    "notes": "Olive ribbed tee + matching shorts, beige Samba-style sneakers, tan quilted shoulder bag OK; missing beige NY Yankees cap from accessory",
+    "pieces": [
+      { "category": "tops", "subcategory": "ribbed_crew", "color": "olive" },
+      { "category": "bottoms", "subcategory": "ribbed_shorts", "color": "olive" },
+      { "category": "footwear", "subcategory": "sneakers", "color": "beige" },
+      { "category": "bags", "subcategory": "crossbody", "color": "tan" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "beige" }
+    ]
+  },
+  {
+    "id": "334",
+    "status": "fix",
+    "notes": "Heather grey Hoodrich logo sweatshirt + matching sweat shorts, grey/black NB sneakers, black NY cap OK; missing black backpack (strap visible)",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_sweatshirt", "color": "grey" },
+      { "category": "bottoms", "subcategory": "sweat_shorts", "color": "grey" },
+      { "category": "footwear", "subcategory": "sneakers", "color": "grey" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" },
+      { "category": "bags", "subcategory": "backpack", "color": "black" }
+    ]
+  },
+  {
+    "id": "335",
+    "status": "ok",
+    "notes": "Black New Balance logo hoodie + matching black track pants with white piping, chunky white/black sneakers, black NY cap — matches"
+  },
+  {
+    "id": "336",
+    "status": "ok",
+    "notes": "Open light grey zip hoodie over black graphic tee, grey graphic sweat shorts, white chunky sneakers, backwards grey baseball cap — matches"
+  },
+  {
+    "id": "338",
+    "status": "ok",
+    "notes": "White Lacoste tee with navy/light-blue chest stripes, navy shorts, white/grey chunky sneakers, black Lacoste cap; ignore pedestal sneakers on side table — matches"
+  },
+  {
+    "id": "339",
+    "status": "fix",
+    "notes": "Blue/black/grey colorblock windbreaker, black athletic shorts, black running sneakers, black backpack OK; under tee looks light blue not grey; missing black REPRIMO cap from accessory",
+    "pieces": [
+      { "category": "tops", "subcategory": "crew_neck", "color": "light_blue" },
+      { "category": "bottoms", "subcategory": "athletic_shorts", "color": "black" },
+      { "category": "outerwear", "subcategory": "colorblock_windbreaker", "color": "blue" },
+      { "category": "footwear", "subcategory": "sneakers", "color": "black" },
+      { "category": "bags", "subcategory": "backpack", "color": "black" },
+      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" }
+    ]
+  }
+]

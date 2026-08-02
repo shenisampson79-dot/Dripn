@@ -344,6 +344,7 @@ export function formatGarmentDisplayName(args: {
   const cat = String(args.category || '').toLowerCase();
   let kind = 'item';
   if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
+  else if (/dress/.test(sub) || cat === 'dresses' || cat === 'dress') kind = 'dress';
   else if (/trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
   else if (/skirt/.test(sub)) kind = 'skirt';
   else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
@@ -355,7 +356,7 @@ export function formatGarmentDisplayName(args: {
     kind = localizedShoeKind(sub || 'sneakers');
   }
   else if (/outer|blazer|jacket|coat/.test(sub) || cat === 'outerwear') kind = 'jacket';
-  else if (/top|shirt|tee|polo|knit|sweater|blouse|dress/.test(`${cat} ${sub}`)) kind = 'top';
+  else if (/top|shirt|tee|polo|knit|sweater|blouse/.test(`${cat} ${sub}`)) kind = 'top';
   else if (args.fallbackName) return String(args.fallbackName);
 
   const prettyColor = color && color !== 'other' && color !== 'unknown'
@@ -653,10 +654,42 @@ function isBottomCat(category: string): boolean {
   return /bottom|trouser|jean|short|skirt|pant/i.test(String(category || ''));
 }
 
+function isOuterCat(category: string): boolean {
+  return /outer|blazer|jacket|coat|vest|gilet/i.test(String(category || ''));
+}
+
+function isDressCat(category: string): boolean {
+  return /dress/i.test(String(category || ''));
+}
+
 function isTopCat(category: string): boolean {
-  return /top|shirt|polo|blouse|knit|sweater|outer|blazer|jacket|coat|vest|gilet|dress/i.test(
-    String(category || ''),
-  );
+  // Tops only — outerwear/dress are separate roles so jacket+dress can coexist.
+  return /top|shirt|polo|blouse|knit|sweater/i.test(String(category || ''))
+    && !isOuterCat(category)
+    && !isDressCat(category);
+}
+
+/** Floor-length column from upper torso → dress, not trousers. */
+export function looksLikeDress(bbox: BBoxTuple): boolean {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  // Must start near shoulders (not waist) so trousers/joggers aren't re-read as dresses.
+  return y <= 0.30 && bottom >= 0.88 && h >= 0.60;
+}
+
+/** Short/wide upper box or explicit jacket prior → outerwear. */
+export function looksLikeJacket(
+  bbox: BBoxTuple,
+  opts?: { yoloCategory?: string | null; yoloSubcategory?: string | null; visionCategory?: string | null; fabricColor?: string | null },
+): boolean {
+  const yoloBlob = `${opts?.yoloCategory || ''} ${opts?.yoloSubcategory || ''}`;
+  const vision = String(opts?.visionCategory || '');
+  if (/outer|jacket|blazer|coat|denim/i.test(`${yoloBlob} ${vision}`)) return true;
+  const [, , w, h] = bbox;
+  const aspect = h / Math.max(w, 1e-6);
+  const jacketShape = h < 0.48 && w > 0.22 && aspect < 1.4;
+  const denimTone = /blue|denim|indigo/i.test(String(opts?.fabricColor || ''));
+  return jacketShape && (denimTone || /outer|jacket/i.test(yoloBlob));
 }
 
 /**
@@ -677,6 +710,12 @@ export function resolveClassByRegionLock(args: {
   const vision = String(args.visionCategory || '');
   const vConf = Number(args.visionConfidence ?? 0);
   const bottomOpts = { lowerSkinRatio: args.lowerSkinRatio, fabricColor: args.fabricColor };
+  const jacketOpts = {
+    yoloCategory: args.yoloCategory,
+    yoloSubcategory: args.yoloSubcategory,
+    visionCategory: args.visionCategory,
+    fabricColor: args.fabricColor,
+  };
 
   // 1) Hard footwear — trainers OR mid-calf boots at the floor
   if (isHardFootwear(args.bbox)) {
@@ -690,11 +729,37 @@ export function resolveClassByRegionLock(args: {
     };
   }
 
+  // Full-body dress column (before region splits jacket vs hem)
+  if (looksLikeDress(args.bbox) && !looksLikeJacket(args.bbox, jacketOpts)) {
+    return {
+      category: 'dresses',
+      subcategory: 'maxi_dress',
+      name: 'Maxi dress',
+      repair: 'region_lock→dress',
+    };
+  }
+
   // 2) Region locks
   if (region === 'top') {
+    if (looksLikeJacket(args.bbox, jacketOpts)) {
+      return {
+        category: 'outerwear',
+        subcategory: 'jacket',
+        name: 'Jacket',
+        repair: 'region_lock→outerwear',
+      };
+    }
     return { category: 'tops', subcategory: 'top', name: 'Top', repair: 'region_lock→top' };
   }
   if (region === 'bottom') {
+    if (looksLikeDress(args.bbox)) {
+      return {
+        category: 'dresses',
+        subcategory: 'maxi_dress',
+        name: 'Maxi dress',
+        repair: 'region_lock→dress',
+      };
+    }
     return bottomsLabel(args.bbox, bottomOpts);
   }
   if (region === 'footwear') {
@@ -709,12 +774,28 @@ export function resolveClassByRegionLock(args: {
         repair: 'region_lock→boot_shaft',
       };
     }
+    if (looksLikeDress(args.bbox)) {
+      return {
+        category: 'dresses',
+        subcategory: 'maxi_dress',
+        name: 'Maxi dress',
+        repair: 'region_lock→dress',
+      };
+    }
     return bottomsLabel(args.bbox, bottomOpts);
   }
 
   // 3) Transition zone (0.42–0.55): never shoes; prefer tops unless clearly tall bottoms
   if (isFootwearCat(yolo) || isFootwearCat(vision)) {
     return { category: 'tops', subcategory: 'top', name: 'Top', repair: 'transition_block_shoes→tops' };
+  }
+  if (looksLikeJacket(args.bbox, jacketOpts)) {
+    return {
+      category: 'outerwear',
+      subcategory: 'jacket',
+      name: 'Jacket',
+      repair: 'transition→outerwear',
+    };
   }
   const h = args.bbox[3];
   const cy = centerY(args.bbox);
@@ -725,17 +806,33 @@ export function resolveClassByRegionLock(args: {
 
   // Vision within transition if confident and not impossible
   if (vConf >= 0.7 && vision) {
-    if (isTopCat(vision) || /outer|blazer|jacket/i.test(vision)) {
+    if (isOuterCat(vision) || /outer|blazer|jacket/i.test(vision)) {
       return {
-        category: /outer|blazer|jacket|coat|vest/i.test(vision) ? 'outerwear' : 'tops',
-        subcategory: /blazer/i.test(vision) ? 'blazer' : 'top',
-        name: /blazer/i.test(vision) ? 'Blazer' : 'Top',
+        category: 'outerwear',
+        subcategory: /blazer/i.test(vision) ? 'blazer' : 'jacket',
+        name: /blazer/i.test(vision) ? 'Blazer' : 'Jacket',
+        repair: 'transition_vision',
+      };
+    }
+    if (isDressCat(vision)) {
+      return {
+        category: 'dresses',
+        subcategory: 'dress',
+        name: 'Dress',
+        repair: 'transition_vision→dress',
+      };
+    }
+    if (isTopCat(vision)) {
+      return {
+        category: 'tops',
+        subcategory: 'top',
+        name: 'Top',
         repair: 'transition_vision',
       };
     }
   }
 
-  if (isTopCat(yolo) || !yolo) {
+  if (isTopCat(yolo) || isOuterCat(yolo) || !yolo) {
     return { category: 'tops', subcategory: 'top', name: 'Top', repair: 'transition→tops' };
   }
   if (isBottomCat(yolo)) {
@@ -800,6 +897,8 @@ export function resolveDetectionConflicts<T extends {
 function sameRole(a: string, b: string): boolean {
   const role = (c: string) => {
     if (isFootwearCat(c)) return 'shoes';
+    if (isDressCat(c)) return 'dress';
+    if (isOuterCat(c)) return 'outerwear';
     if (isBottomCat(c)) return 'bottoms';
     if (isTopCat(c)) return 'tops';
     return c;

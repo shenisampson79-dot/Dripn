@@ -1,29 +1,102 @@
-# Street label review — Sloane · Croydon · Brixton
+# Street label review — Sloane · Croydon · Brixton · **Oxford Street**
+
+Visual review of shop-window labels against photos.
+
+| Street | Total | OK | Must fix | Your call | Status |
+|--------|------:|---:|---------:|----------:|--------|
+| Croydon | 22 | 5 | 12 | 5 | Applied |
+| Brixton | 29 | 20 | 4 | 5 | Applied |
+| Sloane | 42 | 33* | 4 | 5 | Applied |
+| **Oxford (all)** | **423** | **28** | **24** | **371*** | **Ready — Must fix = gold fixes** |
+| Croydon+Brixton+Sloane | 93 | — | — | — | Applied earlier |
+
+\*Your call includes ~363 not-yet-labelled windows + gold edge cases. **Must fix** is still the 24 gold corrections.
+
+**Reviewer (same as smaller streets — open this in your browser):**  
+http://localhost:5177/street_label_reviews/reviewer.html  
+
+```bash
+npx --yes serve "C:\Users\sheni\Downloads\dripn\StyleWise\data" -l 5177
+```
+
+Oxford machine JSON: `oxford_review.json` (**all 423** images). Gold fixes → **Must fix**; unlabelled → **Your call / unlabelled**.
+
+---
+
+## OXFORD — MUST FIX (please approve)
+
+| ID | Issue | Proposed |
+|----|--------|----------|
+| **008** | Shoulder bag brown | → **black** |
+| **015** | Olive sandals labelled worn | **Remove footwear** — on floor |
+| **022** | Missing cap | Add **white baseball_cap** |
+| **037** | Missing navy layer | Add **navy overshirt** |
+| **051** | Missing carried bag | Add **tan tote** |
+| **058** | Loafers on floor | **Remove footwear** |
+| **073** | Deck shoes on stand | **Remove footwear** |
+| **080** | Check shirt under polo missing | Add **grey check shirt**; shoes → **derby** |
+| **115** | Footwear flats | → **navy pumps** |
+| **123** | Phantom camel vest; bag grey; jeans blue | **Drop vest**; bag → **black**; jeans → **denim** |
+| **151** | Missing sneakers | Add **white sneakers** |
+| **180** | Missing fishnets | Add **black fishnet tights** |
+| **194** | Missing bag | Add **black quilted crossbody** |
+| **216** | Burgundy tote wrong mannequin | **Drop tote** (centre lace blouse + shorts only) |
+| **223** | Slip labelled midi | → **slip_maxi** |
+| **323** | Shorts charcoal | → **brown** |
+| **330** | Missing backpack | Add **cream backpack** |
+| **337** | Missing bag | Add **tan Adidas quilted crossbody** |
+| **344** | Missing backpack/harness | Add **black backpack** |
+| **351** | Sandals on pedestal; gloves worn | **Remove sandals**; add **brown gloves** |
+| **380** | Co-ord light_blue; sandals olive | Co-ord → **cream**; sandals → **white** |
+| **387** | Boat shoes | → **pink loafers** |
+| **394** | Missing vest + bag | Add **charcoal zip vest** + **black crossbody** |
+| **402** | Loafers on base; peak lapel | **Remove footwear**; → **shawl_lapel** tuxedo |
+
+---
+
+## OXFORD — YOUR CALL
+
+| ID | Question |
+|----|----------|
+| **173** | Digital-screen ad — keep or **discard**? |
+| **187** | Skechers poster — **discard**? |
+| **258** | Suit dusty **blue** vs labelled **navy**? |
+| **273** | Kids mannequin — keep or **discard**? |
+| **287** | Crossbody **white** vs cream; jeans → **denim**? |
+| **294** | Beige tote unclear — keep or drop? |
+| **316** | Add cream Nike base under black shorts? |
+| **366** | Slingback **heels** vs flats; wide-leg vs straight? |
+
+---
+
+## OXFORD — OK as-is
+
+001, 030, 044, 065, 094, 101, 108, 130, 137, 144, 158, 166, 201, 208, 230, 237, 244, 251, 266, 280, 301, 309, 359, 373
+
+---
+
+## Suggested Oxford reply
+
+```text
+Oxford: apply all MUST FIX.
+173 discard digital; 187 discard poster; 258 blue; 273 discard kids;
+287 white bag + denim; 294 drop tote; 316 add cream base; 366 heels + wide-leg.
+```
+
+---
+
+## Prior streets (already applied)
+
+See below for Croydon / Brixton / Sloane history (unchanged).
+
+---
+
+# Street label review — Sloane · Croydon · Brixton (archive)
 
 Visual review of all **93** images against existing `dataset.json` rows.
 
 **Status:** user decisions applied from `decisions.json` (2026-08-01) via `apply-decisions.mjs`.  
 See `apply_report.json` for the patch list.
-
-Reviewer: http://localhost:5177/street_label_reviews/reviewer.html  
-Full machine JSON: `croydon_review.json`, `brixton_review.json`, `sloane_review.json`.
-
----
-
-## Summary
-
-| Street | Total | OK | Must fix | Your call |
-|--------|------:|---:|---------:|----------:|
-| Croydon | 22 | 5 | 12 | 5 |
-| Brixton | 29 | 20 | 4 | 5 |
-| Sloane | 42 | 33* | 4 | 5 |
-| **Total** | **93** | **58** | **20** | **15** |
-
-\*Sloane multi-mannequin windows where the current primary looks correct are counted as OK; only real decisions are in Your call.
-
----
-
-## MUST FIX (please approve these)
 
 ### Croydon
 | ID | Issue | Proposed |
