@@ -377,10 +377,10 @@ export function formatGarmentDisplayName(args: {
     ? color.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
   if (prettyColor) {
-    // All dark-family bottoms display as "Dark" — no grey↔dark flicker
+    // True black bottoms → "Dark". Mid grey chinos stay "Grey" (not Dark).
     // Footwear keeps Grey distinct (flip-flops must not become "Black …")
     const tone =
-      /^(black|charcoal|gray|grey)$/.test(color) && (kind === 'shorts' || kind === 'trousers')
+      /^(black|charcoal)$/.test(color) && (kind === 'shorts' || kind === 'trousers')
         ? 'Dark'
         : /^(gray|grey)$/.test(color)
           ? 'Grey'

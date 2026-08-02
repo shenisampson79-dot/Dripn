@@ -10,6 +10,7 @@ import {
   getStrictBodyRegion,
   type BBoxTuple,
 } from '@/utils/bodyGeometryGuardrails';
+import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
 import {
   classifyFashionColor,
   formatColorPipelineDebug,
@@ -126,11 +127,18 @@ function slotStatus(b: GarmentBelief | null | undefined): BeliefSlotStatus {
 function slotFromBelief(b: GarmentBelief | null | undefined): DebugBeliefSlot | null {
   if (!b) return null;
   const fashion = classifyFashionColor(b.color);
-  const label = formatGarmentDisplayName({
-    color: b.color,
-    category: b.category,
-    subcategory: b.subcategory,
-  });
+  const isShoes = b.kind === 'shoes' || String(b.category).toLowerCase() === 'shoes';
+  const label = isShoes
+    ? buildFootwearDisplayLabel({
+      type: b.subcategory,
+      color: b.color,
+      fallbackName: b.subcategory === 'boat_shoes' ? 'Boat shoes' : null,
+    })
+    : formatGarmentDisplayName({
+      color: b.color,
+      category: b.category,
+      subcategory: b.subcategory,
+    });
   return {
     label: label || b.kind,
     confidence: b.confidence,

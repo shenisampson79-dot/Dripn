@@ -29,8 +29,10 @@ assert.equal(stabilizeColor('red', 'gray', 0.9, 'top'), 'red');
 assert.equal(stabilizeColor('black', 'gray', 0.5, 'shorts'), 'black');
 assert.equal(stabilizeColor('red', 'blue', 0.5, 'top'), 'red'); // below threshold
 assert.equal(stabilizeColor('red', 'blue', 0.97, 'top'), 'blue');
-assert.equal(formatGarmentDisplayName({ color: 'gray', category: 'bottoms', subcategory: 'shorts' }), 'Dark shorts');
+assert.equal(formatGarmentDisplayName({ color: 'gray', category: 'bottoms', subcategory: 'shorts' }), 'Grey shorts');
 assert.equal(formatGarmentDisplayName({ color: 'black', category: 'bottoms', subcategory: 'shorts' }), 'Dark shorts');
+assert.equal(stabilizeColor('black', 'white', 0.85, 'shorts'), 'white');
+assert.equal(normalizeBeliefColor('gray', 'shorts'), 'gray');
 
 const topRed: OnDeviceDetection = {
   name: 'Red top',
@@ -55,7 +57,7 @@ const topBlackStrong: OnDeviceDetection = {
   confidence: 0.99,
 };
 const shorts: OnDeviceDetection = {
-  name: 'Dark shorts',
+  name: 'Grey shorts',
   category: 'bottoms',
   subcategory: 'shorts',
   color: 'gray',
@@ -75,7 +77,7 @@ let r = applyOutfitBelief(state, [topRed, shorts], { now: 2000 });
 state = r.state;
 assert.equal(state.top?.color, 'red');
 assert.equal(beliefToDetection(state.top!).name, 'Red top');
-assert.equal(beliefToDetection(state.bottom!).name, 'Dark shorts');
+assert.equal(beliefToDetection(state.bottom!).name, 'Grey shorts');
 
 r = applyOutfitBelief(state, [topBlackStrong, shorts], { now: 3000 });
 state = r.state;
@@ -95,9 +97,9 @@ for (let i = 0; i < 8; i++) {
 }
 assert.ok(state.bottom, 'shorts still held after gaps');
 
-// Gray vs black shorts — same belief
+// Gray shorts resist false black remaps (same family / light recovery)
 r = applyOutfitBelief(state, [topRed, { ...shorts, color: 'black', name: 'Black shorts' }], { now: 7000 });
-assert.equal(beliefToDetection(r.state.bottom!).name, 'Dark shorts');
+assert.equal(beliefToDetection(r.state.bottom!).name, 'Grey shorts');
 
 // Memory wrapper
 let mem = createDetectionMemory();

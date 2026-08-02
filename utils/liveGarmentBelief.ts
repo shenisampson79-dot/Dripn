@@ -218,8 +218,12 @@ export function normalizeBeliefColor(raw?: string | null, kind?: BeliefKind): st
   // "dark" without a real sample — bottoms may use black; footwear must not invent black
   if (c === 'dark') return kind === 'shoes' ? null : 'black';
   const aliased = COLOR_ALIASES[c] || c;
-  // Grey footwear must stay grey — collapsing to black made flip-flops read as "Black sandals"
-  if (aliased === 'gray' || aliased === 'charcoal') {
+  // Grey footwear / shorts must stay grey — collapsing shorts→black made white chinos "Dark".
+  if (aliased === 'gray') {
+    if (kind === 'shoes' || kind === 'shorts') return 'gray';
+    return 'black';
+  }
+  if (aliased === 'charcoal') {
     if (kind === 'shoes') return 'gray';
     return 'black';
   }
@@ -332,10 +336,25 @@ export function stabilizeColorDetailed(
     && currentConfidence >= 0.72
   ) {
     return {
-      color: c === 'light_grey' ? 'light_gray' : c,
+      color: c === 'light_grey' || c === 'grey' ? 'gray' : c,
       changed: true,
       code: 'hard_flip',
       reason: 'grey shorts under bright light',
+    };
+  }
+
+  // False dark lock: dim ROI painted light shorts black — recover on light proposals.
+  if (
+    kind === 'shorts'
+    && p === 'black'
+    && /^(white|gray|grey|cream|beige|ivory|light_gray|light_grey)$/.test(c || '')
+    && currentConfidence >= 0.78
+  ) {
+    return {
+      color: c === 'grey' || c === 'light_grey' ? 'gray' : (c === 'light_gray' ? 'gray' : c),
+      changed: true,
+      code: 'hard_flip',
+      reason: 'light shorts recover from false black',
     };
   }
 

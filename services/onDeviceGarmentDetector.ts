@@ -263,7 +263,8 @@ function estimateColorFromRoi(
       if (!footwear && isSkinPixel(pr, pg, pb)) continue;
       const maxC = Math.max(pr, pg, pb);
       if (!footwear && !bottoms && maxC < 48) continue;
-      if (bottoms && maxC < 90) darkN += 1;
+      // True black fabric only — dim rooms made light chino shorts look "black".
+      if (bottoms && maxC < 55) darkN += 1;
       r += pr;
       g += pg;
       b += pb;
@@ -278,8 +279,14 @@ function estimateColorFromRoi(
     }
   }
   if (!n && !chromaN) return 'other';
-  if (bottoms && n > 0 && darkN / n >= 0.45 && chromaN < Math.max(4, n * 0.2)) {
-    return 'black';
+  if (bottoms && n > 0) {
+    const meanLuma = (r + g + b) / (3 * n);
+    // Light / mid greys must not collapse to black under warm indoor light.
+    if (meanLuma >= 110) {
+      /* fall through to RGB classify */
+    } else if (darkN / n >= 0.55 && chromaN < Math.max(4, n * 0.15) && meanLuma < 70) {
+      return 'black';
+    }
   }
   // Prefer chromatic samples — teal/blue tees must not fall to beige wall average
   if (chromaN >= Math.max(3, n * 0.12)) {

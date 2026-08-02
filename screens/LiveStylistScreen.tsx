@@ -143,6 +143,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
   const lastCoachShownAtRef = useRef(0);
+  const lastCloudFillAtRef = useRef(0);
+  const lastBeliefSignatureRef = useRef('');
+
+  const paintBeliefItems = useCallback((detections: OnDeviceDetection[]) => {
+    if (!mountedRef.current || !detections.length) return;
+    const painted = detectionsToLiveItems(detections, previousItemsRef.current);
+    previousItemsRef.current = painted;
+    setItems(painted);
+  }, []);
+
+  const beliefSignature = useCallback((detections: OnDeviceDetection[]) => (
+    detections
+      .map((d) => `${d.category}:${d.subcategory || ''}:${d.color || ''}:${d.name || ''}`)
+      .sort()
+      .join('|')
+  ), []);
 
   const publishDebug = useCallback((args: {
     frameDetections: OnDeviceDetection[];
@@ -253,12 +269,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       ),
     );
     const piecesChanged = (previousFeedbackRef.current?.itemCount || 0) !== (next.itemCount || 0);
+    const paintedSig = beliefSignature(previousItemsRef.current.map((it, i) => ({
+      name: it.name,
+      category: String(it.category || ''),
+      subcategory: it.subcategory || undefined,
+      color: it.color || undefined,
+      confidence: Number(it.confidence || 0),
+      bbox: (it.bbox || [0, 0, 1, 1]) as [number, number, number, number],
+      trackId: it.trackId || `p_${i}`,
+    })));
+    const beliefChanged = Boolean(paintedSig && paintedSig !== lastBeliefSignatureRef.current);
+    if (paintedSig) lastBeliefSignatureRef.current = paintedSig;
 
-    if (res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged) {
+    if (res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged || beliefChanged) {
       previousFeedbackRef.current = next;
-      // Never keep stale coaching when belief/labels changed — hold only softens score flicker
+      // Flush coaching when belief labels change — boxes and copy must stay in sync
       const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold
-        || coachChanged || piecesChanged || Boolean(res.feedbackChanged);
+        || coachChanged || piecesChanged || beliefChanged || Boolean(res.feedbackChanged);
       if (shouldPaint) {
         setFeedback(next);
         lastCoachShownAtRef.current = Date.now();
@@ -266,10 +293,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
 
     if (res.shopHints?.length) setShopHints(res.shopHints as FallbackMissingItem[]);
-    if (res.source === 'cloud_vision') setSourceLabel('Cloud vision');
-    else if (String(res.source || '').includes('on_device')) setSourceLabel('On-device');
+    if (res.source === 'cloud_vision' || String(res.source || '').includes('hybrid')) {
+      setSourceLabel(String(res.source || '').includes('hybrid') ? 'Cloud fill' : 'Cloud vision');
+    } else if (String(res.source || '').includes('on_device')) setSourceLabel('On-device');
     else setSourceLabel(String(res.source || 'Live'));
-  }, [occasionType, publishDebug]);
+  }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
     if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
@@ -352,11 +380,25 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           payload.pipelineRepairs = repairs;
           payload.pipelineConfidence = pipeline?.confidence;
         }
+        // Paint boxes from belief immediately — don't wait on the network round-trip
+        paintBeliefItems(stabilized.detections);
         publishDebug({
           frameDetections: onDevice,
           source: 'on_device_yolo',
           cropped: stabilized.cropped,
         });
+
+        const belief = stabilized.memory.belief;
+        const missingTop = !belief?.top && !belief?.layer;
+        const missingShoes = !belief?.footwear && Boolean(footZone?.visible);
+        const sparse = stabilized.detections.length < 2;
+        const incomplete = missingTop || missingShoes || sparse;
+        const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= 4000;
+        if (incomplete && cloudFillReady) {
+          payload.imageBase64 = stripBase64Prefix(base64);
+          payload.cloudFill = true;
+          lastCloudFillAtRef.current = Date.now();
+        }
       } else {
         payload.imageBase64 = stripBase64Prefix(base64);
       }
@@ -382,7 +424,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, occasionType, publishDebug]);
+  }, [applyResponse, occasionType, paintBeliefItems, publishDebug]);
 
   useEffect(() => {
     if (!isLive) return undefined;
