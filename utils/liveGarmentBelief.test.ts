@@ -20,7 +20,10 @@ import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 assert.equal(normalizeBeliefColor('grey'), 'black');
 assert.equal(normalizeBeliefColor('dark grey'), 'black');
+assert.equal(normalizeBeliefColor('grey', 'shoes'), 'gray');
+assert.equal(normalizeBeliefColor('gray', 'shoes'), 'gray');
 assert.equal(colorDistance('gray', 'black'), 0);
+assert.ok(colorDistance('gray', 'black', 'shoes') > 0);
 assert.equal(stabilizeColor('red', 'black', 0.99, 'top'), 'red');
 assert.equal(stabilizeColor('red', 'gray', 0.9, 'top'), 'red');
 assert.equal(stabilizeColor('black', 'gray', 0.5, 'shorts'), 'black');

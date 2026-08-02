@@ -110,8 +110,43 @@ assert.ok(gatedOk.accepted);
 assert.match(String(gatedOk.accepted?.name), /trainer/i, 'UK label: trainers');
 assert.match(String(gatedOk.accepted?.subcategory), /sneaker|boot|sandal/);
 
+const greyFlipFlops: OnDeviceDetection = {
+  name: 'Grey Flip Flops',
+  category: 'shoes',
+  subcategory: 'flip_flops',
+  color: 'gray',
+  confidence: 0.9,
+  bbox: [0.35, 0.88, 0.22, 0.08],
+  skinRatio: 0.16,
+  trackId: 'ff1',
+};
+const gatedFlip = gateFootwearDetections([top, shorts, greyFlipFlops], {
+  bottomBandBrightness: 0.3,
+});
+assert.ok(gatedFlip.accepted);
+assert.equal(gatedFlip.accepted?.subcategory, 'flip_flops');
+assert.match(String(gatedFlip.accepted?.name), /grey flip flops/i);
+assert.doesNotMatch(String(gatedFlip.accepted?.name), /black sandal/i);
+
 assert.equal(classifyShoeSubtype({ bbox: realShoe.bbox, skinRatio: 0.08 }), 'sneakers');
 assert.equal(classifyShoeSubtype({ bbox: realShoe.bbox, skinRatio: 0.18 }), 'sandals');
+assert.equal(
+  classifyShoeSubtype({
+    bbox: [0.35, 0.88, 0.22, 0.08],
+    skinRatio: 0.16,
+    name: 'Grey Flip Flops',
+    subcategory: 'flip_flops',
+  }),
+  'flip_flops',
+);
+assert.equal(
+  formatGarmentDisplayName({ color: 'gray', category: 'shoes', subcategory: 'flip_flops' }),
+  'Grey flip flops',
+);
+assert.equal(
+  formatGarmentDisplayName({ color: 'grey', category: 'shoes', subcategory: 'flip_flops' }),
+  'Grey flip flops',
+);
 // Mid-calf Dr Martens-like shaft
 assert.equal(
   classifyShoeSubtype({ bbox: [0.35, 0.78, 0.28, 0.18], skinRatio: 0.06 }),

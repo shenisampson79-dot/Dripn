@@ -16,9 +16,9 @@ import {
 } from '@/utils/bodyGeometryGuardrails';
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
 
-export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals';
+export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides';
 
-const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel/i;
+const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel|flip.?flop|slide|thong/i;
 
 export type FootwearRejectReason =
   | 'cropped_frame'
@@ -85,13 +85,15 @@ export const BAREFOOT_BLOCK_MS = 5500;
 const SHOE_FORMALITY: Record<ShoeSubtype, number> = {
   sneakers: 0.3,
   sandals: 0.2,
+  flip_flops: 0.15,
+  slides: 0.18,
   boots: 0.7,
 };
 
 const COMPATIBILITY: Record<string, Partial<Record<ShoeSubtype, number>>> = {
-  shorts: { sneakers: 0.9, sandals: 0.95, boots: 0.3 },
-  trousers: { sneakers: 0.8, boots: 0.9, sandals: 0.4 },
-  skirt: { sneakers: 0.75, sandals: 0.9, boots: 0.55 },
+  shorts: { sneakers: 0.9, sandals: 0.95, flip_flops: 0.97, slides: 0.96, boots: 0.3 },
+  trousers: { sneakers: 0.8, boots: 0.9, sandals: 0.4, flip_flops: 0.25, slides: 0.35 },
+  skirt: { sneakers: 0.75, sandals: 0.9, flip_flops: 0.7, slides: 0.8, boots: 0.55 },
 };
 
 export function isInFootwearZone(bbox: BBoxTuple): boolean {
@@ -310,11 +312,20 @@ export function gateFootwearDetections(
     ...best.d,
     category: 'shoes',
     subcategory: subtype,
+    color: best.d.color,
     name: formatGarmentDisplayName({
       color: best.d.color,
       category: 'shoes',
       subcategory: subtype,
-      fallbackName: subtype === 'boots' ? 'Boots' : 'Trainers',
+      fallbackName: subtype === 'boots'
+        ? 'Boots'
+        : subtype === 'flip_flops'
+          ? 'Flip flops'
+          : subtype === 'slides'
+            ? 'Slides'
+            : subtype === 'sandals'
+              ? 'Sandals'
+              : 'Trainers',
     }),
     confidence: best.d.confidence,
     skinRatio: best.c.skinRatio ?? best.d.skinRatio,
@@ -369,7 +380,10 @@ export function classifyShoeSubtype(args: {
   subcategory?: string;
 }): ShoeSubtype {
   const blob = `${args.name || ''} ${args.subcategory || ''}`.toLowerCase();
-  if (/sandal|slide|flip/.test(blob)) return 'sandals';
+  // Keep flip-flops / slides distinct — do not collapse to generic "sandals"
+  if (/flip.?flop|thong/.test(blob)) return 'flip_flops';
+  if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return 'slides';
+  if (/sandal/.test(blob)) return 'sandals';
   if (/boot/.test(blob)) return 'boots';
   if (/sneaker|trainer|runner/.test(blob) && scoreBootEvidence(args.bbox) < 0.5) {
     return 'sneakers';
@@ -445,7 +459,11 @@ export function scoreShoeStyle(args: {
       : 'trousers';
   const structure = COMPATIBILITY[bottomKey]?.[subtype] ?? 0.5;
 
-  const styleType = subtype === 'boots' ? 'structured' : subtype === 'sandals' ? 'relaxed' : 'casual';
+  const styleType = subtype === 'boots'
+    ? 'structured'
+    : (subtype === 'sandals' || subtype === 'flip_flops' || subtype === 'slides')
+      ? 'relaxed'
+      : 'casual';
   const outfitStyle = bottomKey === 'shorts' ? 'casual' : bottomKey === 'skirt' ? 'relaxed' : 'structured';
   const style =
     styleType === outfitStyle ? 0.9
@@ -461,7 +479,7 @@ export function scoreShoeStyle(args: {
 
   const occasion = String(args.occasionType || 'casual').toLowerCase();
   let context = 0.75;
-  if (/casual|day|weekend|travel/.test(occasion) && (subtype === 'sneakers' || subtype === 'sandals')) {
+  if (/casual|day|weekend|travel/.test(occasion) && (subtype === 'sneakers' || subtype === 'sandals' || subtype === 'flip_flops' || subtype === 'slides')) {
     context = 0.9;
   }
   if (/work|formal|office/.test(occasion) && subtype === 'boots') context = 0.85;

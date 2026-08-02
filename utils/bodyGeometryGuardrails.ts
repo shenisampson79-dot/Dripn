@@ -346,10 +346,12 @@ export function formatGarmentDisplayName(args: {
   if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
   else if (/trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
   else if (/skirt/.test(sub)) kind = 'skirt';
+  else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
+  else if (/\bslides?\b/.test(sub)) kind = localizedShoeKind('slides');
   else if (/sandal/.test(sub)) kind = localizedShoeKind('sandals');
   else if (/boot/.test(sub)) kind = localizedShoeKind('boots');
   else if (/sneaker|trainer/.test(sub)) kind = localizedShoeKind('sneakers');
-  else if (/shoe|boot|sneaker|sandal|trainer/.test(sub) || cat === 'shoes') {
+  else if (/shoe|boot|sneaker|sandal|trainer|flip|slide/.test(sub) || cat === 'shoes') {
     kind = localizedShoeKind(sub || 'sneakers');
   }
   else if (/outer|blazer|jacket|coat/.test(sub) || cat === 'outerwear') kind = 'jacket';
@@ -361,10 +363,13 @@ export function formatGarmentDisplayName(args: {
     : '';
   if (prettyColor) {
     // All dark-family bottoms display as "Dark" — no grey↔dark flicker
+    // Footwear keeps Grey distinct (flip-flops must not become "Black …")
     const tone =
       /^(black|charcoal|gray|grey)$/.test(color) && (kind === 'shorts' || kind === 'trousers')
         ? 'Dark'
-        : prettyColor;
+        : /^(gray|grey)$/.test(color)
+          ? 'Grey'
+          : prettyColor;
     return `${tone} ${kind}`;
   }
   return kind[0].toUpperCase() + kind.slice(1);

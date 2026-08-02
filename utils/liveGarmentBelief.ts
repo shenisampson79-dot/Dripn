@@ -90,7 +90,7 @@ export function createOutfitBeliefState(): OutfitBeliefState {
 
 export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
   const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
-  if (/shoe|boot|sneaker|footwear/.test(blob)) return 'shoes';
+  if (/shoe|boot|sneaker|footwear|sandal|flip.?flop|slide|thong|mule|loafer/.test(blob)) return 'shoes';
   if (/short/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
   if (/trouser|jean|pant|bottom/.test(blob)) return 'trousers';
@@ -106,29 +106,40 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
   if (kind === 'skirt') return { category: 'bottoms', subcategory: 'skirt' };
   if (kind === 'shoes') {
     const sub = String(det?.subcategory || '').toLowerCase();
-    if (/sandal/.test(sub)) return { category: 'shoes', subcategory: 'sandals' };
-    if (/boot/.test(sub)) return { category: 'shoes', subcategory: 'boots' };
-    if (/sneaker|trainer/.test(sub)) return { category: 'shoes', subcategory: 'sneakers' };
+    const name = String(det?.name || '').toLowerCase();
+    const blob = `${sub} ${name}`;
+    if (/flip.?flop|thong/.test(blob)) return { category: 'shoes', subcategory: 'flip_flops' };
+    if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return { category: 'shoes', subcategory: 'slides' };
+    if (/sandal/.test(blob)) return { category: 'shoes', subcategory: 'sandals' };
+    if (/boot/.test(blob)) return { category: 'shoes', subcategory: 'boots' };
+    if (/sneaker|trainer/.test(blob)) return { category: 'shoes', subcategory: 'sneakers' };
+    if (sub === 'flip_flops' || sub === 'slides' || sub === 'sandals' || sub === 'boots' || sub === 'sneakers') {
+      return { category: 'shoes', subcategory: sub };
+    }
     return { category: 'shoes', subcategory: 'sneakers' };
   }
   if (kind === 'top') return { category: 'tops', subcategory: 'top' };
   return { category: 'tops', subcategory: 'top' };
 }
 
-/** Canonical belief color — dark family collapses to black. */
-export function normalizeBeliefColor(raw?: string | null): string | null {
+/** Canonical belief color — dark family collapses to black for bottoms/tops, not footwear. */
+export function normalizeBeliefColor(raw?: string | null, kind?: BeliefKind): string | null {
   const c = String(raw || '')
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
   if (!c || c === 'other' || c === 'unknown' || c === 'dark') return c === 'dark' ? 'black' : null;
   const aliased = COLOR_ALIASES[c] || c;
-  if (aliased === 'gray' || aliased === 'charcoal') return 'black';
+  // Grey footwear must stay grey — collapsing to black made flip-flops read as "Black sandals"
+  if (aliased === 'gray' || aliased === 'charcoal') {
+    if (kind === 'shoes') return 'gray';
+    return 'black';
+  }
   return aliased;
 }
 
-export function colorFamily(color?: string | null): 'light' | 'dark' | 'color' | 'unknown' {
-  const c = normalizeBeliefColor(color);
+export function colorFamily(color?: string | null, kind?: BeliefKind): 'light' | 'dark' | 'color' | 'unknown' {
+  const c = normalizeBeliefColor(color, kind);
   if (!c) return 'unknown';
   if (LIGHT_FAMILY.has(c)) return 'light';
   if (DARK_FAMILY.has(c)) return 'dark';
@@ -136,11 +147,14 @@ export function colorFamily(color?: string | null): 'light' | 'dark' | 'color' |
   return 'unknown';
 }
 
-export function colorDistance(a?: string | null, b?: string | null): number {
-  const x = normalizeBeliefColor(a);
-  const y = normalizeBeliefColor(b);
+export function colorDistance(a?: string | null, b?: string | null, kind?: BeliefKind): number {
+  const x = normalizeBeliefColor(a, kind);
+  const y = normalizeBeliefColor(b, kind);
   if (!x || !y) return 1;
   if (x === y) return 0;
+  if (kind === 'shoes' && (x === 'gray' || x === 'black') && (y === 'gray' || y === 'black')) {
+    return x === y ? 0 : 0.35;
+  }
   if (DARK_FAMILY.has(x) && DARK_FAMILY.has(y)) return 0;
   if ((x === 'red' || x === 'burgundy') && (y === 'red' || y === 'burgundy')) return 0.1;
   if (LIGHT_FAMILY.has(x) && LIGHT_FAMILY.has(y)) return 0.15;
@@ -173,8 +187,8 @@ export function stabilizeColorDetailed(
   currentConfidence: number,
   kind?: BeliefKind,
 ): StabilizeColorResult {
-  const p = normalizeBeliefColor(prev);
-  const c = normalizeBeliefColor(current);
+  const p = normalizeBeliefColor(prev, kind);
+  const c = normalizeBeliefColor(current, kind);
   if (!p) return { color: c, changed: Boolean(c), code: 'init' };
   // Persistence: colour once set cannot vanish on a weak / empty frame
   if (!c) return { color: p, changed: false, code: 'hold', reason: 'color persistence — missing proposal' };
@@ -265,7 +279,7 @@ export function observationFromDetection(
   const kind = beliefKindFromDetection(det);
   const { category, subcategory } = kindToWardrobe(kind, det);
   const conf = Math.max(0, Math.min(1, det.confidence || 0.5));
-  const rawColor = normalizeBeliefColor(det.color);
+  const rawColor = normalizeBeliefColor(det.color, kind);
   let color = rawColor;
   const slot = kind === 'top' ? 'top' as const
     : kind === 'shorts' || kind === 'trousers' || kind === 'skirt' ? 'bottom' as const

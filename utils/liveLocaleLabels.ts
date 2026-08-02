@@ -14,6 +14,8 @@ const SHOE_LABELS: Record<string, Record<LiveLocale, string>> = {
   shoes: { UK: 'trainers', US: 'shoes' },
   boots: { UK: 'boots', US: 'boots' },
   sandals: { UK: 'sandals', US: 'sandals' },
+  flip_flops: { UK: 'flip flops', US: 'flip-flops' },
+  slides: { UK: 'slides', US: 'slides' },
 };
 
 export function localizedShoeKind(
