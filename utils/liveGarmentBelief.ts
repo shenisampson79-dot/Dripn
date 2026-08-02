@@ -55,7 +55,10 @@ export type GarmentBelief = {
 };
 
 export type OutfitBeliefState = {
+  /** Base upper (tee, tank, blouse). */
   top: GarmentBelief | null;
+  /** Optional layer over the base (shirt, overshirt, jacket, knit). */
+  layer: GarmentBelief | null;
   bottom: GarmentBelief | null;
   footwear: GarmentBelief | null;
   /** Upstream body truth — bare kills ghost tops even if belief wants to hold. */
@@ -97,7 +100,46 @@ const DARK_FAMILY = new Set(['black', 'charcoal', 'gray', 'navy']);
 const LIGHT_FAMILY = new Set(['white', 'cream', 'beige', 'ivory']);
 
 export function createOutfitBeliefState(): OutfitBeliefState {
-  return { top: null, bottom: null, footwear: null, torsoState: 'uncertain' };
+  return { top: null, layer: null, bottom: null, footwear: null, torsoState: 'uncertain' };
+}
+
+/** Jacket / overshirt / button-up — sits over a base tee when both are seen. */
+export function isUpperLayerCandidate(det: OnDeviceDetection): boolean {
+  const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  if (/outer|jacket|blazer|coat|gilet|vest|cardigan|hoodie|sweater|knit|overshirt/.test(blob)) return true;
+  // "shirt" but not t-shirt / tee
+  if (/\bshirt\b/.test(blob) && !/t-?shirt|\btee\b/.test(blob)) return true;
+  return false;
+}
+
+/** Tee / tank / plain top — base under a layer. */
+export function isBaseTopCandidate(det: OnDeviceDetection): boolean {
+  const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  if (isUpperLayerCandidate(det)) return false;
+  return /tee|t-?shirt|tank|singlet|polo|blouse|^top$|\btop\b/.test(blob)
+    || beliefKindFromDetection(det) === 'top';
+}
+
+function splitUpperDetections(uppers: OnDeviceDetection[]): {
+  base: OnDeviceDetection | null;
+  layer: OnDeviceDetection | null;
+} {
+  if (!uppers.length) return { base: null, layer: null };
+  const sorted = [...uppers].sort((a, b) => b.confidence - a.confidence);
+  const layers = sorted.filter(isUpperLayerCandidate);
+  const bases = sorted.filter(isBaseTopCandidate);
+  if (layers.length && bases.length) {
+    return { base: bases[0], layer: layers[0] };
+  }
+  if (layers.length && !bases.length) {
+    // Jacket alone — show as layer; no phantom base tee
+    return { base: null, layer: layers[0] };
+  }
+  if (bases.length >= 2) {
+    // Two tops, neither strongly a layer: keep strongest as base, second as layer
+    return { base: bases[0], layer: bases[1] };
+  }
+  return { base: bases[0] || sorted[0], layer: null };
 }
 
 export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
@@ -246,6 +288,20 @@ export function stabilizeColorDetailed(
     };
   }
 
+  // Warm neutrals: beige/cream must not flicker to white under bright light.
+  if (
+    /^(beige|cream|ivory)$/.test(p || '')
+    && c === 'white'
+    && currentConfidence < 0.98
+  ) {
+    return {
+      color: p,
+      changed: false,
+      code: 'warm_neutral_lock',
+      reason: 'beige/cream resists white flicker',
+    };
+  }
+
   if (currentConfidence < CHANGE_THRESHOLD) {
     return {
       color: p,
@@ -348,12 +404,12 @@ export function observationFromDetection(
     color = null;
   }
 
-  // Tops: warm neutrals often come from wall/skin bleed under mirror light
+  // Base tees only — jackets/layers keep beige/cream (not wall-bleed).
   if (kind === 'top' && color && /^(beige|cream|ivory|brown)$/.test(color) && conf < 0.92) {
     appendDecision(log, {
       type: 'ignore',
       message: `Ignored wall-like top colour: ${color}`,
-      reason: 'beige/cream often background bleed',
+      reason: 'beige/cream often background bleed on tees',
       slot: 'top',
       time: now,
     });
@@ -430,6 +486,26 @@ function resolveConflict(
   log?: BeliefDecision[],
 ): GarmentBelief {
   const slot = slotOfKind(prev.kind);
+
+  // Trousers persistence: truncated mid-thigh YOLO boxes must not flip long pants to shorts.
+  if (prev.kind === 'trousers' && current.kind === 'shorts') {
+    if (beliefBboxIou(prev.bbox, current.bbox) >= 0.45 || isFloorLengthTrousersEvidence(prev.bbox)) {
+      appendDecision(log, {
+        type: 'reject',
+        message: 'Kept trousers over shorts',
+        reason: 'trousers persistence vs truncated shorts box',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...prev,
+        lastSeenAt: now,
+        confidence: Math.min(1, prev.confidence + 0.02),
+        bbox: isFloorLengthTrousersEvidence(current.bbox) ? current.bbox : prev.bbox,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom'),
+      };
+    }
+  }
 
   // Dress persistence: overlapping trousers/skirt/shorts must not reclassify the one-piece.
   if (prev.kind === 'dress' && isBottomLikeKind(current.kind)) {
@@ -839,10 +915,11 @@ export function applyOutfitBelief(
   });
 
   // Bare torso: never feed a top observation (even a "held" one cannot reinforce)
-  // Prefer outerwear over a phantom tee when both fire.
-  const topObs = torsoState === 'bare'
-    ? null
-    : (tops.sort(preferUpperDetection)[0] || null);
+  // When tee + shirt/jacket both fire, keep both (base + layer).
+  const split = torsoState === 'bare' ? { base: null, layer: null } : splitUpperDetections(tops);
+  // Jacket alone → top slot. Tee + jacket → top=tee, layer=jacket.
+  const resolvedTopObs = split.base || split.layer;
+  const layerObs = split.base && split.layer ? split.layer : null;
   let bottomObs = bottoms.sort((a, b) => {
     const aDress = beliefKindFromDetection(a) === 'dress' ? 1 : 0;
     const bDress = beliefKindFromDetection(b) === 'dress' ? 1 : 0;
@@ -900,14 +977,15 @@ export function applyOutfitBelief(
   const prevBottomColor = state.bottom?.color;
   const prevShoeSub = state.footwear?.subcategory;
 
-  // Structural override: bare torso DESTROYS top belief (not TTL hold)
+  // Structural override: bare torso DESTROYS top + layer belief (not TTL hold)
   let top: GarmentBelief | null = null;
+  let layer: GarmentBelief | null = null;
   if (torsoState === 'bare') {
-    if (state.top) {
+    if (state.top || state.layer) {
       repairs.push('cleared_bare_torso_top');
       appendDecision(decisions, {
         type: 'update',
-        message: 'Cleared top',
+        message: 'Cleared top/layer',
         reason: 'torsoState=bare',
         slot: 'top',
         time: now,
@@ -916,7 +994,13 @@ export function applyOutfitBelief(
   } else {
     top = updateBelief(
       state.top,
-      topObs ? observationFromDetection(topObs, now, decisions) : null,
+      resolvedTopObs ? observationFromDetection(resolvedTopObs, now, decisions) : null,
+      now,
+      decisions,
+    );
+    layer = updateBelief(
+      state.layer ?? null,
+      layerObs ? observationFromDetection(layerObs, now, decisions) : null,
       now,
       decisions,
     );
@@ -959,16 +1043,18 @@ export function applyOutfitBelief(
   if (prevBottomColor && bottom?.color && prevBottomColor !== bottom.color) {
     repairs.push(`belief_bottom_color→${bottom.color}`);
   }
-  if (state.top && !topObs && top) repairs.push('belief_top_held');
+  if (state.top && !resolvedTopObs && top) repairs.push('belief_top_held');
+  if (state.layer && !layerObs && layer) repairs.push('belief_layer_held');
   if (state.bottom && !bottomObs && bottom) repairs.push('belief_bottom_held');
   if (state.footwear && !shoeObs && footwear) repairs.push('belief_footwear_held');
   if (prevShoeSub && footwear?.subcategory && prevShoeSub !== footwear.subcategory) {
     repairs.push(`belief_footwear→${footwear.subcategory}`);
   }
 
-  const next: OutfitBeliefState = { top, bottom, footwear, torsoState };
+  const next: OutfitBeliefState = { top, layer, bottom, footwear, torsoState };
   const out: OnDeviceDetection[] = [];
   if (top) out.push(beliefToDetection(top));
+  if (layer) out.push(beliefToDetection(layer));
   if (bottom) out.push(beliefToDetection(bottom));
   if (footwear) out.push(beliefToDetection(footwear));
 

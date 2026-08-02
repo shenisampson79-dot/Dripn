@@ -294,6 +294,19 @@ export function classifyBottomSubtype(
     return 'trousers';
   }
 
+  // Beige/cream solid fabric with a mid-thigh-truncated box still often = full trousers
+  // (YOLO only drew the hip→thigh region). Prefer trousers when the box reaches low
+  // and legs aren't clearly bare under a hem.
+  if (
+    solidFabric
+    && /beige|khaki|cream|white|brown/.test(fabric)
+    && bottom >= 0.78
+    && (lowerSkin == null || lowerSkin < 0.28)
+    && !sockBootExt
+  ) {
+    return 'trousers';
+  }
+
   // Ambiguous short ROI / mid-body start → shorts (not trousers-by-default)
   if (y >= 0.45 && h < 0.42) return 'shorts';
   if (y >= 0.45 && y <= 0.62 && h < 0.38 && bottom < 0.88) return 'shorts';
@@ -345,7 +358,7 @@ export function formatGarmentDisplayName(args: {
   let kind = 'item';
   if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
   else if (/dress/.test(sub) || cat === 'dresses' || cat === 'dress') kind = 'dress';
-  else if (/trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
+  else if (/chino/.test(sub) || /trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
   else if (/skirt/.test(sub)) kind = 'skirt';
   else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
   else if (/\bslides?\b/.test(sub)) kind = localizedShoeKind('slides');
@@ -936,9 +949,10 @@ export function classifyColorFromRgb(r: number, g: number, b: number): string {
   }
 
   // white / cream / beige only when low-mid chroma (unsaturated)
+  // Bright + slightly warm → cream/beige (jacket fabric), not pure white.
   if (chroma < 45 && min > 175 && r >= g - 5 && g >= b - 10) {
-    if (r - b > 12) return 'cream';
-    if (r - b > 6) return 'beige';
+    if (r - b > 10) return 'cream';
+    if (r - b > 4 || (r > g && r - b >= 2)) return 'beige';
     return 'white';
   }
   if (chroma <= 55 && r >= g - 10 && g >= b - 5 && min > 105 && r - b < 60 && r - g < 40) {

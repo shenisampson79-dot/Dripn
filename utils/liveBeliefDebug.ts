@@ -73,6 +73,7 @@ export type LiveBeliefDebugSnapshot = {
   cropped: boolean;
   belief: {
     top: DebugBeliefSlot | null;
+    layer?: DebugBeliefSlot | null;
     bottom: DebugBeliefSlot | null;
     shoes: DebugBeliefSlot | { status: BeliefSlotStatus; label: string };
   };
@@ -203,10 +204,12 @@ export function buildDebugSnapshot(args: {
   const zone = args.footZone || null;
   const belief: OutfitBeliefState = {
     top: args.belief.top,
+    layer: args.belief.layer ?? null,
     bottom: args.belief.bottom,
     footwear: args.belief.footwear ?? null,
   };
   const topSlot = slotFromBelief(belief.top);
+  const layerSlot = slotFromBelief(belief.layer);
   const bottomSlot = slotFromBelief(belief.bottom);
   return {
     updatedAt: args.now ?? Date.now(),
@@ -214,6 +217,7 @@ export function buildDebugSnapshot(args: {
     cropped: args.cropped,
     belief: {
       top: topSlot,
+      layer: layerSlot,
       bottom: bottomSlot,
       shoes: shoesSlot(belief, zone, candidates),
     },

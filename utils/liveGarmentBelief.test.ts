@@ -180,8 +180,33 @@ const phantomTee: OnDeviceDetection = {
 };
 let layerState = createOutfitBeliefState();
 layerState = applyOutfitBelief(layerState, [jacketDet, dressDet, phantomTee], { now: 14000 }).state;
-assert.equal(layerState.top?.kind, 'outerwear', 'jacket wins over phantom tee');
+assert.equal(layerState.top?.kind, 'top', 'tee stays as base under jacket');
+assert.equal(layerState.layer?.kind, 'outerwear', 'jacket occupies layer slot');
 assert.equal(layerState.bottom?.kind, 'dress');
-assert.equal(layerState.top?.category, 'outerwear');
+assert.equal(layerState.layer?.category, 'outerwear');
+
+// Tee + overshirt (no outerwear category) still layers
+const overshirt: OnDeviceDetection = {
+  name: 'Blue shirt',
+  category: 'tops',
+  subcategory: 'shirt',
+  color: 'blue',
+  confidence: 0.9,
+  bbox: [0.22, 0.12, 0.5, 0.4],
+  trackId: 's1',
+};
+const teeBase: OnDeviceDetection = {
+  name: 'White top',
+  category: 'tops',
+  subcategory: 't-shirt',
+  color: 'white',
+  confidence: 0.88,
+  bbox: [0.28, 0.2, 0.4, 0.28],
+  trackId: 't3',
+};
+let shirtLayer = createOutfitBeliefState();
+shirtLayer = applyOutfitBelief(shirtLayer, [overshirt, teeBase], { now: 15000 }).state;
+assert.equal(shirtLayer.top?.subcategory, 'top');
+assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
 
 console.log('liveGarmentBelief.test.ts: all passed');

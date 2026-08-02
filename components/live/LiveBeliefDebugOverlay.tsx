@@ -103,6 +103,7 @@ export function LiveBeliefDebugOverlay({
               FINAL BELIEF
             </ThemedText>
             <SlotLine role="TOP" slot={snapshot.belief.top} />
+            {snapshot.belief.layer ? <SlotLine role="LAYER" slot={snapshot.belief.layer} /> : null}
             <SlotLine role="BOTTOM" slot={snapshot.belief.bottom} />
             <SlotLine role="SHOES" slot={snapshot.belief.shoes} />
 
