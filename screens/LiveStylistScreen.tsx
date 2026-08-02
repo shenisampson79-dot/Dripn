@@ -55,6 +55,7 @@ import {
   type LiveBeliefDebugSnapshot,
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
+import { syncCoachingToBelief } from '@/utils/liveLayeringIntelligence';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 const SAMPLE_INTERVAL_MS = 1100;
@@ -251,6 +252,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         next.score = Math.max(0, Math.min(100, Math.round((next.score || 0) + delta)));
       }
     }
+    // Single UI truth: coaching piece names must match boxes / DBG belief labels
+    if (next.coaching && previousItemsRef.current.length) {
+      next.coaching = syncCoachingToBelief(
+        next.coaching,
+        previousItemsRef.current.map((it) => ({
+          name: it.name,
+          category: String(it.category || ''),
+          subcategory: it.subcategory,
+          color: it.color,
+        })),
+      ) || next.coaching;
+    }
 
     const holdMs = next.ui?.holdMs ?? 1000;
     const withinHold = Date.now() - lastCoachShownAtRef.current < holdMs;
@@ -393,7 +406,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         const missingShoes = !belief?.footwear && Boolean(footZone?.visible);
         const sparse = stabilized.detections.length < 2;
         const incomplete = missingTop || missingShoes || sparse;
-        const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= 4000;
+        // Missing top/shoes → fill after 2s; otherwise sparse frames after 4s
+        const fillMs = (missingTop || missingShoes) ? 2000 : 4000;
+        const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= fillMs;
         if (incomplete && cloudFillReady) {
           payload.imageBase64 = stripBase64Prefix(base64);
           payload.cloudFill = true;

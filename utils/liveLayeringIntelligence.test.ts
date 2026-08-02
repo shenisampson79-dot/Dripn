@@ -5,9 +5,13 @@
 import assert from 'node:assert/strict';
 import {
   applyFootwearVeto,
+  pickMoreSpecificSubtype,
   normalizeWarmLightingColor,
   resolveShortsWithContext,
+  stabilizeColorFromHistory,
   stabilizeFootwearIdentity,
+  syncCoachingToBelief,
+  shouldLockBelief,
   weightedVote,
 } from './liveLayeringIntelligence';
 
@@ -53,5 +57,38 @@ assert.equal(
   'athletic_shorts',
 );
 assert.equal(resolveShortsWithContext(null, {}), 'casual_shorts');
+
+assert.equal(pickMoreSpecificSubtype('sneakers', 'boat_shoes'), 'boat_shoes');
+assert.equal(pickMoreSpecificSubtype('boat_shoes', 'sneakers'), 'boat_shoes');
+assert.equal(pickMoreSpecificSubtype('sandals', 'flip_flops'), 'flip_flops');
+assert.ok(shouldLockBelief({ confidence: 0.9, seenFrames: 4, agreeRatio: 0.8 }));
+
+const colorHold = stabilizeColorFromHistory({
+  history: [
+    { label: 'shorts', confidence: 0.9, color: 'white' },
+    { label: 'shorts', confidence: 0.88, color: 'white' },
+    { label: 'shorts', confidence: 0.85, color: 'gray' },
+  ],
+  proposed: { label: 'shorts', confidence: 0.8, color: 'black' },
+  lockedColor: 'white',
+});
+assert.notEqual(colorHold.color, 'black');
+
+const synced = syncCoachingToBelief(
+  {
+    headline: 'Smart casual',
+    summary: 'Light Blue Shirt and White Shorts sit in the same lane, and Brown Boat Shoes ground the look.',
+    bullets: ['Keep pieces in one style lane'],
+  },
+  [
+    { name: 'Light Green top', category: 'tops', subcategory: 'top' },
+    { name: 'Grey shorts', category: 'bottoms', subcategory: 'shorts' },
+    { name: 'Red And Brown boat shoes', category: 'shoes', subcategory: 'boat_shoes' },
+  ],
+);
+assert.match(synced?.summary || '', /Grey shorts/i);
+assert.match(synced?.summary || '', /Light Green top/i);
+assert.match(synced?.summary || '', /Red And Brown boat shoes/i);
+assert.doesNotMatch(synced?.summary || '', /White Shorts|Light Blue Shirt/i);
 
 console.log('liveLayeringIntelligence.test.ts: all passed');

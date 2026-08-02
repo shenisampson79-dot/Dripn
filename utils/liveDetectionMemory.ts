@@ -33,6 +33,8 @@ import {
   type OutfitBeliefState,
 } from '@/utils/liveGarmentBelief';
 import {
+  pickMoreSpecificSubtype,
+  stabilizeColorFromHistory,
   stabilizeFootwearIdentity,
   type LimSample,
 } from '@/utils/liveLayeringIntelligence';
@@ -58,6 +60,8 @@ export type DetectionMemory = {
   footwearBlockedUntil: number;
   /** Temporal footwear identity samples (LIM stability engine). */
   footwearHistory: LimSample[];
+  /** Temporal bottom colour samples — median vote resists dim-room black. */
+  bottomColorHistory: LimSample[];
 };
 
 export function createDetectionMemory(): DetectionMemory {
@@ -72,6 +76,7 @@ export function createDetectionMemory(): DetectionMemory {
     lastShoeScore: null,
     footwearBlockedUntil: 0,
     footwearHistory: [],
+    bottomColorHistory: [],
   };
 }
 
@@ -213,6 +218,7 @@ export function applyDetectionMemory(
     repairs.push('belief→reject_footwear');
   }
 
+  let bottomColorHistory = memory.bottomColorHistory || [];
   const prepared = nonShoes.map((d) => {
     if (roleOfCategory(d.category, d.subcategory) === 'top') {
       return {
@@ -225,7 +231,29 @@ export function applyDetectionMemory(
         }),
       };
     }
-    return prelabelBottom(d);
+    const bottom = prelabelBottom(d);
+    if (roleOfCategory(bottom.category, bottom.subcategory) !== 'bottom') return bottom;
+    // LIM: median colour over last frames — dim ROI must not paint light shorts black.
+    const colorLim = stabilizeColorFromHistory({
+      history: bottomColorHistory,
+      proposed: {
+        label: String(bottom.subcategory || 'shorts'),
+        confidence: bottom.confidence,
+        color: bottom.color,
+      },
+      lockedColor: memory.belief?.bottom?.color || null,
+    });
+    bottomColorHistory = colorLim.history;
+    const color = colorLim.color || bottom.color;
+    return {
+      ...bottom,
+      color,
+      name: formatGarmentDisplayName({
+        color,
+        category: bottom.category,
+        subcategory: bottom.subcategory || 'shorts',
+      }),
+    };
   });
 
   let footwearHistory = memory.footwearHistory || [];
@@ -245,18 +273,22 @@ export function applyDetectionMemory(
     });
     footwearHistory = lim.history;
     if (lim.subtype) {
-      const keepBoatName = lim.subtype === 'boat_shoes'
+      const specific = pickMoreSpecificSubtype(
+        memory.belief?.footwear?.subcategory,
+        lim.subtype,
+      ) || lim.subtype;
+      const keepBoatName = specific === 'boat_shoes'
         && /boat|deck|topsider|sperry/i.test(String(acceptedShoe.name || ''));
       acceptedShoe = {
         ...acceptedShoe,
-        subcategory: lim.subtype,
+        subcategory: specific,
         color: lim.color || acceptedShoe.color,
         name: keepBoatName
           ? String(acceptedShoe.name)
           : buildFootwearDisplayLabel({
-            type: lim.subtype,
+            type: specific,
             color: lim.color || acceptedShoe.color,
-            fallbackName: lim.subtype === 'boat_shoes' ? 'Boat shoes' : acceptedShoe.name,
+            fallbackName: specific === 'boat_shoes' ? 'Boat shoes' : acceptedShoe.name,
           }),
       };
     }
@@ -292,6 +324,7 @@ export function applyDetectionMemory(
 
   const believed = applyOutfitBelief(beliefMem, prepared, { now, decisions });
   repairs.push(...believed.repairs);
+  if (!believed.state.bottom) bottomColorHistory = [];
 
   const topDet = believed.detections.find((d) => roleOfCategory(d.category, d.subcategory) === 'top') || null;
   const bottomDet = believed.detections.find((d) => roleOfCategory(d.category, d.subcategory) === 'bottom') || null;
@@ -315,6 +348,7 @@ export function applyDetectionMemory(
     lastShoeScore: shoeScore.label === 'None' ? null : shoeScore,
     footwearBlockedUntil,
     footwearHistory,
+    bottomColorHistory,
   };
 
   return {
