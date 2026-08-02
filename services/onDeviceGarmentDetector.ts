@@ -351,17 +351,22 @@ function boxesToDetections(
   rgba: Uint8Array,
   width: number,
   height: number,
+  opts?: { bodyGuards?: boolean },
 ): OnDeviceDetection[] {
+  /** Live worn outfits only — beige coats / tan leather flat-lays look like "skin". */
+  const bodyGuards = opts?.bodyGuards !== false;
   const out: OnDeviceDetection[] = [];
   boxes.forEach((box, i) => {
-    // Discard skin-dominated boxes — arms AND bare feet (never "shoes")
     const skinRatio = measureSkinRatio(rgba, width, height, box.bbox);
-    if (skinRatio > SKIN_DISCARD_RATIO) {
-      return;
-    }
-    // Extra bare-foot guard: footwear-shaped but still mostly skin
-    if (looksLikeFootwearBbox(box.bbox) && skinRatio >= 0.22) {
-      return;
+    if (bodyGuards) {
+      // Discard skin-dominated boxes — arms AND bare feet (never "shoes")
+      if (skinRatio > SKIN_DISCARD_RATIO) {
+        return;
+      }
+      // Extra bare-foot guard: footwear-shaped but still mostly skin
+      if (looksLikeFootwearBbox(box.bbox) && skinRatio >= 0.22) {
+        return;
+      }
     }
 
     const lowerSkin = measureLowerSkinRatio(rgba, width, height, box.bbox);
@@ -371,22 +376,24 @@ function boxesToDetections(
       bbox: box.bbox,
       yoloCategory: yoloMapped.category,
       yoloSubcategory: yoloMapped.subcategory,
-      lowerSkinRatio: lowerSkin,
+      lowerSkinRatio: bodyGuards ? lowerSkin : 0,
       fabricColor: colorProbe,
     });
-    // Bare torso / arms must never lock as a Top (swim / topless looks)
-    if (isBareTorsoTopLike({
-      category: locked.category,
-      subcategory: locked.subcategory,
-      name: locked.name,
-      skinRatio,
-      fabricColor: colorProbe,
-    })) {
-      return;
-    }
-    // Geometry said shoes but ROI is skin → drop
-    if (locked.category === 'shoes' && skinRatio >= 0.22) {
-      return;
+    if (bodyGuards) {
+      // Bare torso / arms must never lock as a Top (swim / topless looks)
+      if (isBareTorsoTopLike({
+        category: locked.category,
+        subcategory: locked.subcategory,
+        name: locked.name,
+        skinRatio,
+        fabricColor: colorProbe,
+      })) {
+        return;
+      }
+      // Geometry said shoes but ROI is skin → drop
+      if (locked.category === 'shoes' && skinRatio >= 0.22) {
+        return;
+      }
     }
     // Never soft-boost shoe confidence — barefoot false positives looked "locked"
     const isShorts = locked.subcategory === 'shorts' || /short/i.test(locked.name);
@@ -427,7 +434,15 @@ function boxesToDetections(
  */
 export async function detectGarmentsOnDevice(
   imageUri: string,
-  opts?: { confThreshold?: number; maxDetections?: number },
+  opts?: {
+    confThreshold?: number;
+    maxDetections?: number;
+    /**
+     * When true (default), drop skin-heavy / bare-torso boxes — for Live worn outfits.
+     * Flat-lay Quick Add / Digitize must set false: beige coats read as "skin".
+     */
+    bodyGuards?: boolean;
+  },
 ): Promise<OnDeviceDetection[] | null> {
   if (!ON_DEVICE_YOLO_NATIVE) return null;
 
@@ -474,7 +489,9 @@ export async function detectGarmentsOnDevice(
       visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
       cropped: brightness < FOOT_ZONE_BRIGHTNESS_MIN,
     };
-    return boxesToDetections(boxes, data, width, height);
+    return boxesToDetections(boxes, data, width, height, {
+      bodyGuards: opts?.bodyGuards,
+    });
   } catch (err) {
     console.warn('[onDeviceYolo] inference failed, falling back to cloud:', err);
     lastFootZoneMeta = null;

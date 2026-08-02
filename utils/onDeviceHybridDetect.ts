@@ -13,6 +13,8 @@ import {
 export type DetectHybridOptions = HybridDetectionOptions & {
   confThreshold?: number;
   maxDetections?: number;
+  /** Pass-through to YOLO post-process. False for flat-lay single-item capture. */
+  bodyGuards?: boolean;
 };
 
 function toPlainDetection(d: OnDeviceDetection): OnDeviceDetection {
@@ -40,6 +42,7 @@ export async function detectGarmentsOnDeviceHybrid(
   const raw = await detectGarmentsOnDevice(imageUri, {
     confThreshold: opts?.confThreshold,
     maxDetections: opts?.maxDetections,
+    bodyGuards: opts?.bodyGuards,
   });
   if (!raw?.length) return [];
 
@@ -50,8 +53,10 @@ export async function detectGarmentsOnDeviceHybrid(
   return hybrid.detections.map(toPlainDetection);
 }
 
-/** Defaults for single-item wardrobe capture flows. */
-export const SINGLE_ITEM_HYBRID_OPTS: HybridDetectionOptions = {
+/** Defaults for single-item wardrobe capture flows (flat-lay / hanger). */
+export const SINGLE_ITEM_HYBRID_OPTS: DetectHybridOptions = {
   rematerializeBottom: true,
   inferMissingFootwear: false,
+  /** Beige coats & tan leather read as skin — never discard for Quick Add. */
+  bodyGuards: false,
 };

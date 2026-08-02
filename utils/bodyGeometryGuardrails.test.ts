@@ -215,6 +215,11 @@ assert.equal(
   }),
   true,
 );
+// Beige / tan fabric matches the skin heuristic — Quick Add flat-lays must
+// call detect with bodyGuards:false or coats vanish and the frame stays white.
+assert.equal(isSkinPixel(180, 140, 100), true, 'tan coat ≈ skin');
+assert.equal(isSkinPixel(210, 175, 140), true, 'beige fabric ≈ skin');
+assert.equal(isSkinPixel(30, 60, 120), false, 'navy ≠ skin');
 assert.equal(
   detectTorsoState({
     topDetections: [{ category: 'tops', name: 'Top', skinRatio: 0.4, color: 'unknown' }],
