@@ -46,6 +46,15 @@ import {
 import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
 import { takeImproveRecognitionFrontHandoff } from '@/utils/improveRecognitionHandoff';
 import { assessCareLabelPresence } from '@/utils/careLabelPresence';
+import {
+  CARE_LABEL_CAPTURE,
+  advanceCareLabelCapture,
+  createCareLabelCaptureState,
+  improveRecognitionFailCopy,
+  improveRecognitionSuccessCopy,
+  presenceBandFromUi,
+  type CareLabelCaptureState,
+} from '@/utils/careLabelCaptureState';
 
 const FRAME_SIZE = 280;
 /** Care tags are usually tall — portrait guide matches real labels. */
@@ -53,11 +62,8 @@ const LABEL_FRAME_W = 200;
 const LABEL_FRAME_H = 360;
 const SAMPLE_MS = 1100;
 const SAMPLE_WIDTH = 640;
-const LABEL_SAMPLE_MS = 850;
-/** Amber dwell samples before green countdown starts. */
-const LABEL_AMBER_STREAK = 2;
-/** Green countdown seconds before auto-capture. */
-const LABEL_COUNTDOWN_SEC = 3;
+/** Presence sample interval — short enough to meet ~900ms amber min with 2+ samples. */
+const LABEL_SAMPLE_MS = 450;
 
 type ImproveStep = 'front' | 'label' | 'processing' | 'done';
 
@@ -128,7 +134,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   const capturingRef = useRef(false);
   const seedStartedRef = useRef(false);
   const labelInFlightRef = useRef(false);
-  const labelAmberStreakRef = useRef(0);
+  const labelCaptureStateRef = useRef<CareLabelCaptureState>(createCareLabelCaptureState());
   const labelCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const labelCountdownActiveRef = useRef(false);
   const takePhotoRef = useRef<() => Promise<void>>(async () => {});
@@ -184,7 +190,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
           setStep('label');
           setHint('Fill the tall box with the care label');
           setFrameUi('idle');
-          labelAmberStreakRef.current = 0;
+          labelCaptureStateRef.current = createCareLabelCaptureState();
           setLabelCountdown(null);
           setStatusText('Improving recognition…');
         }
@@ -206,7 +212,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   const fireFlash = async () => {
     setFlash(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    await new Promise((r) => setTimeout(r, 90));
+    await new Promise((r) => setTimeout(r, 200));
     setFlash(false);
   };
 
@@ -217,21 +223,7 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
         ? Haptics.NotificationFeedbackType.Success
         : Haptics.NotificationFeedbackType.Warning,
     ).catch(() => {});
-    const copy =
-      outcome === 'full'
-        ? {
-            title: 'Recognition improved',
-            body: 'We saved a visual fingerprint of the front and details from the care label (brand/size/fabric when readable). Next time you scan a similar photo, we can match this item faster.',
-          }
-        : outcome === 'front_only'
-          ? {
-              title: 'Front fingerprint saved',
-              body: 'We saved a visual fingerprint from the front photo only. Without a clear care label we can’t confirm brand/size — you can run Improve again later for that.',
-            }
-          : {
-              title: 'Front saved — label unclear',
-              body: 'We kept the front fingerprint, but couldn’t read brand/size from that photo. Try Improve again with a sharper close-up of the care tag.',
-            };
+    const copy = improveRecognitionSuccessCopy(outcome);
     Alert.alert(copy.title, copy.body, [{ text: 'OK', onPress: () => navigation.popToTop() }]);
   };
 
@@ -349,11 +341,12 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
         capturingRef.current = false;
         setStep('label');
         setFrameUi('idle');
-        labelAmberStreakRef.current = 0;
+        labelCaptureStateRef.current = createCareLabelCaptureState();
         setHint('Fill the tall box with the care label');
+        const fail = improveRecognitionFailCopy();
         Alert.alert(
-          'Not a care label',
-          'We couldn’t see brand, size, or care text in that photo. Point at the garment’s care/size tag inside the tall box until the frame turns green.',
+          fail.title,
+          fail.body,
           [
             { text: 'Try again' },
             {
@@ -488,7 +481,12 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
   const startLabelCountdown = useCallback(() => {
     if (labelCountdownActiveRef.current || capturingRef.current) return;
     labelCountdownActiveRef.current = true;
-    let n = LABEL_COUNTDOWN_SEC;
+    labelCaptureStateRef.current = {
+      ...labelCaptureStateRef.current,
+      phase: 'green',
+      countdownActive: true,
+    };
+    let n = CARE_LABEL_CAPTURE.countdownSec;
     setFrameUi('ready');
     setLabelCountdown(n);
     setHint(`Hold still — capturing in ${n}…`);
@@ -513,6 +511,27 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
     }, 1000);
   }, []);
 
+  const applyLabelCaptureAdvance = useCallback((
+    band: ReturnType<typeof presenceBandFromUi>,
+  ) => {
+    const prev = {
+      ...labelCaptureStateRef.current,
+      countdownActive: labelCountdownActiveRef.current,
+    };
+    const next = advanceCareLabelCapture(prev, band, Date.now());
+    labelCaptureStateRef.current = next.state;
+    // Don't clobber "capturing in 3…" while the green countdown is running.
+    if (next.cancelCountdown || next.startCountdown || !labelCountdownActiveRef.current) {
+      setHint(next.hint);
+    }
+    if (next.state.phase === 'white') setFrameUi('idle');
+    else if (next.state.phase === 'amber') setFrameUi('hold');
+    else setFrameUi('ready');
+
+    if (next.cancelCountdown) clearLabelCountdown();
+    if (next.startCountdown) startLabelCountdown();
+  }, [clearLabelCountdown, startLabelCountdown]);
+
   const sampleLabelPresence = useCallback(async () => {
     if (
       stepRef.current !== 'label'
@@ -522,67 +541,27 @@ export default function ImproveRecognitionScreen({ navigation, route }: Props) {
       || capturingRef.current
     ) return;
 
-    if (labelCountdownActiveRef.current) {
-      labelInFlightRef.current = true;
-      try {
-        const snap = await cameraRef.current.takePictureAsync({
-          quality: 0.35,
-          shutterSound: false,
-          skipProcessing: Platform.OS === 'android',
-        });
-        if (!snap?.uri || stepRef.current !== 'label') return;
-        const presence = await assessCareLabelPresence(snap.uri);
-        if (presence.ui === 'idle') {
-          clearLabelCountdown();
-          labelAmberStreakRef.current = 0;
-          setFrameUi('idle');
-          setHint('Fill the tall box with the care label');
-        }
-      } catch {
-        /* ignore */
-      } finally {
-        labelInFlightRef.current = false;
-      }
-      return;
-    }
-
     labelInFlightRef.current = true;
     try {
       const snap = await cameraRef.current.takePictureAsync({
-        quality: 0.4,
+        quality: labelCountdownActiveRef.current ? 0.35 : 0.4,
         shutterSound: false,
         skipProcessing: Platform.OS === 'android',
       });
       if (!snap?.uri || stepRef.current !== 'label') return;
       const presence = await assessCareLabelPresence(snap.uri);
-      if (stepRef.current !== 'label' || capturingRef.current || labelCountdownActiveRef.current) return;
-
-      if (presence.ui === 'idle') {
-        labelAmberStreakRef.current = 0;
-        setFrameUi('idle');
-        setHint('Fill the tall box with the care label');
-        return;
-      }
-
-      // Amber first so the user can prepare, even if presence score is already "ready".
-      labelAmberStreakRef.current += 1;
-      setFrameUi('hold');
-      if (labelAmberStreakRef.current < LABEL_AMBER_STREAK) {
-        setHint('Label spotted — hold steady…');
-        return;
-      }
-      setHint('Ready — starting countdown…');
-      startLabelCountdown();
+      if (stepRef.current !== 'label' || capturingRef.current) return;
+      applyLabelCaptureAdvance(presenceBandFromUi(presence.ui));
     } catch {
       /* ignore sample errors */
     } finally {
       labelInFlightRef.current = false;
     }
-  }, [clearLabelCountdown, frontBase64, startLabelCountdown]);
+  }, [applyLabelCaptureAdvance, frontBase64]);
 
   useEffect(() => {
     if (step !== 'label' || !permission?.granted || !frontBase64) return undefined;
-    labelAmberStreakRef.current = 0;
+    labelCaptureStateRef.current = createCareLabelCaptureState();
     clearLabelCountdown();
     const id = setInterval(() => { void sampleLabelPresence(); }, LABEL_SAMPLE_MS);
     return () => {
@@ -787,7 +766,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   frameHold: { borderColor: '#E0A84A' },
-  frameReady: { borderColor: '#4CAF50' },
+  frameReady: {
+    borderColor: '#4CAF50',
+    transform: [{ scale: 1.03 }],
+    opacity: 0.95,
+  },
   countdownText: {
     color: '#FFF',
     fontSize: 56,
