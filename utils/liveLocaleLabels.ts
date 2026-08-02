@@ -1,6 +1,7 @@
 /**
  * Live / garment display localization.
- * Internal subtype stays sneakers|boots|sandals; UI label follows locale.
+ * Internal subtype stays fine-grained (sneakers|boots|sandals|flip_flops|slides).
+ * Canonical families (for rules) live in footwearLayers.ts — never use those as UI labels.
  */
 
 export type LiveLocale = 'UK' | 'US';
@@ -14,7 +15,7 @@ const SHOE_LABELS: Record<string, Record<LiveLocale, string>> = {
   shoes: { UK: 'trainers', US: 'shoes' },
   boots: { UK: 'boots', US: 'boots' },
   sandals: { UK: 'sandals', US: 'sandals' },
-  flip_flops: { UK: 'flip flops', US: 'flip-flops' },
+  flip_flops: { UK: 'flip-flops', US: 'flip-flops' },
   slides: { UK: 'slides', US: 'slides' },
 };
 

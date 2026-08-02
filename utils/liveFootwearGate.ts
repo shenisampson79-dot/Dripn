@@ -8,13 +8,13 @@ import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import {
   REGION,
   centerY,
-  formatGarmentDisplayName,
   hasReliableFabricColor,
   isHardFootwear,
   isValidShoe,
   type BBoxTuple,
 } from '@/utils/bodyGeometryGuardrails';
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
+import { buildFootwearDisplayLabel, toCanonicalFootwearFamily } from '@/utils/footwearLayers';
 
 export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides';
 
@@ -313,14 +313,14 @@ export function gateFootwearDetections(
     category: 'shoes',
     subcategory: subtype,
     color: best.d.color,
-    name: formatGarmentDisplayName({
+    // Display from fine subtype — never from canonical family
+    name: buildFootwearDisplayLabel({
+      type: subtype,
       color: best.d.color,
-      category: 'shoes',
-      subcategory: subtype,
       fallbackName: subtype === 'boots'
         ? 'Boots'
         : subtype === 'flip_flops'
-          ? 'Flip flops'
+          ? 'Flip-flops'
           : subtype === 'slides'
             ? 'Slides'
             : subtype === 'sandals'
@@ -331,10 +331,11 @@ export function gateFootwearDetections(
     skinRatio: best.c.skinRatio ?? best.d.skinRatio,
   };
 
+  const family = toCanonicalFootwearFamily(subtype);
   appendDecision(decisions, {
     type: 'update',
     message: `Footwear detected: ${accepted.name}`,
-    reason: `zone+shape+skin ok · ${subtype}`,
+    reason: `zone+shape+skin ok · fine=${subtype} · canonical=${family}`,
     slot: 'footwear',
     time: now,
   });

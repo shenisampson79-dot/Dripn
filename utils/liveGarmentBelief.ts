@@ -21,6 +21,7 @@ import {
   appendDecision,
   type BeliefDecision,
 } from '@/utils/liveBeliefDecisions';
+import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
 import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
@@ -128,7 +129,9 @@ export function normalizeBeliefColor(raw?: string | null, kind?: BeliefKind): st
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
-  if (!c || c === 'other' || c === 'unknown' || c === 'dark') return c === 'dark' ? 'black' : null;
+  if (!c || c === 'other' || c === 'unknown') return null;
+  // "dark" without a real sample — bottoms may use black; footwear must not invent black
+  if (c === 'dark') return kind === 'shoes' ? null : 'black';
   const aliased = COLOR_ALIASES[c] || c;
   // Grey footwear must stay grey — collapsing to black made flip-flops read as "Black sandals"
   if (aliased === 'gray' || aliased === 'charcoal') {
@@ -652,11 +655,16 @@ export function updateBelief(
 }
 
 export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
-  const name = formatGarmentDisplayName({
-    color: belief.color,
-    category: belief.category,
-    subcategory: belief.subcategory,
-  });
+  const name = belief.kind === 'shoes' || String(belief.category).toLowerCase() === 'shoes'
+    ? buildFootwearDisplayLabel({
+      type: belief.subcategory,
+      color: belief.color,
+    })
+    : formatGarmentDisplayName({
+      color: belief.color,
+      category: belief.category,
+      subcategory: belief.subcategory,
+    });
   return {
     name,
     category: belief.category,

@@ -125,7 +125,7 @@ const gatedFlip = gateFootwearDetections([top, shorts, greyFlipFlops], {
 });
 assert.ok(gatedFlip.accepted);
 assert.equal(gatedFlip.accepted?.subcategory, 'flip_flops');
-assert.match(String(gatedFlip.accepted?.name), /grey flip flops/i);
+assert.match(String(gatedFlip.accepted?.name), /grey flip-flops/i);
 assert.doesNotMatch(String(gatedFlip.accepted?.name), /black sandal/i);
 
 assert.equal(classifyShoeSubtype({ bbox: realShoe.bbox, skinRatio: 0.08 }), 'sneakers');
@@ -141,11 +141,11 @@ assert.equal(
 );
 assert.equal(
   formatGarmentDisplayName({ color: 'gray', category: 'shoes', subcategory: 'flip_flops' }),
-  'Grey flip flops',
+  'Grey flip-flops',
 );
 assert.equal(
   formatGarmentDisplayName({ color: 'grey', category: 'shoes', subcategory: 'flip_flops' }),
-  'Grey flip flops',
+  'Grey flip-flops',
 );
 // Mid-calf Dr Martens-like shaft
 assert.equal(
