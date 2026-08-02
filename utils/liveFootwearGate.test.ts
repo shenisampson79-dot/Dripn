@@ -163,6 +163,25 @@ assert.equal(
 );
 assert.equal(stabilizeShoeSubtype('sneakers', 'sandals', 0.7), 'sneakers');
 assert.equal(stabilizeShoeSubtype('sneakers', 'sandals', 0.95), 'sandals');
+assert.equal(
+  classifyShoeSubtype({
+    bbox: [0.35, 0.78, 0.28, 0.18],
+    skinRatio: 0.06,
+    name: 'Red and White Boat Shoes',
+  }),
+  'boat_shoes',
+  'boat shoes win over tall-box boot heuristic',
+);
+assert.equal(
+  stabilizeShoeSubtype('boat_shoes', 'boots', 0.91),
+  'boat_shoes',
+  'locked boat shoes resist boots flicker',
+);
+assert.equal(
+  stabilizeShoeSubtype('boat_shoes', 'sneakers', 0.91),
+  'boat_shoes',
+  'locked boat shoes resist trainers flicker',
+);
 
 const score = scoreShoeStyle({
   subtype: 'sneakers',

@@ -252,8 +252,15 @@ const CLASSIFIER_RULES = [
       ),
   },
   {
+    subtype: 'boat_shoes',
+    test: (t, cat) =>
+      cat === 'footwear'
+      && /boat\s*shoe|deck\s*shoe|topsider|sperry/.test(t)
+      && !/\bboots?\b/.test(t),
+  },
+  {
     subtype: 'loafers',
-    test: (t, cat) => cat === 'footwear' && /loafer|penny loafer/.test(t),
+    test: (t, cat) => cat === 'footwear' && /loafer|penny loafer/.test(t) && !/boat\s*shoe|deck\s*shoe/.test(t),
   },
   {
     // Derby *shoes* only — derby boots fall through to ankle_boots
@@ -270,13 +277,14 @@ const CLASSIFIER_RULES = [
       cat === 'footwear' && /oxford|brogue|dress shoe|formal shoe/.test(t) && !/shirt/.test(t) && !/\bboots?\b/.test(t),
   },
   {
-    // Leather lace-ups, derby boots, ankle/riding boots — NOT combat/chunky trainers
+    // Leather lace-ups, derby boots, ankle/riding boots — NOT boat/deck shoes or combat/chunky trainers
     subtype: 'ankle_boots',
     test: (t, cat) =>
       cat === 'footwear'
       && (
         /ankle\s*boot|heeled\s*boot|leather\s*boot|riding\s*boot|derby\s*boot|dress\s*boot|lace[\s-]?up\s*boot|\bboots?\b/.test(t)
       )
+      && !/boat\s*shoe|deck\s*shoe|topsider|sperry/.test(t)
       && !/\bugg|shearling|trainer|sneaker|chelsea|combat|doc\b|dr\.?\s*marten|desert|chukka|hiking|work boot|timberland|army boot/.test(t),
   },
 
@@ -317,8 +325,9 @@ const CLASSIFIER_RULES = [
     test: (t, cat) => cat === 'bottom' && isShortsText(t) && /tailored|chino|wool|structured|pleat/.test(t),
   },
   {
-    subtype: 'athletic_shorts',
-    test: (t, cat) => cat === 'bottom' && isShortsText(t) && !/tailored|chino|linen|cargo|bermuda|dress\s*short|wool|smart/.test(t),
+    // Unspecified shorts → casual (not athletic). Athletic needs an explicit sport cue.
+    subtype: 'casual_shorts',
+    test: (t, cat) => cat === 'bottom' && isShortsText(t) && !/tailored|chino|linen|cargo|bermuda|dress\s*short|wool|smart|athletic|gym|sweat|jersey|sport|running/.test(t),
   },
 
   // Trousers

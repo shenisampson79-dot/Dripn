@@ -14,6 +14,7 @@ const SHOE_LABELS: Record<string, Record<LiveLocale, string>> = {
   trainers: { UK: 'trainers', US: 'sneakers' },
   shoes: { UK: 'trainers', US: 'shoes' },
   boots: { UK: 'boots', US: 'boots' },
+  boat_shoes: { UK: 'boat shoes', US: 'boat shoes' },
   sandals: { UK: 'sandals', US: 'sandals' },
   flip_flops: { UK: 'flip-flops', US: 'flip-flops' },
   slides: { UK: 'slides', US: 'slides' },

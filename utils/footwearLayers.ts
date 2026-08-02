@@ -24,6 +24,7 @@ const FINE_TO_CANONICAL: Record<string, CanonicalFootwearFamily> = {
   sandals: 'sandals',
   sneakers: 'casual_shoes',
   trainers: 'casual_shoes',
+  boat_shoes: 'casual_shoes',
   boots: 'boots',
   loafers: 'formal_shoes',
   oxfords: 'formal_shoes',
@@ -41,8 +42,9 @@ export function toCanonicalFootwearFamily(
   if (!key) return 'unknown';
   if (FINE_TO_CANONICAL[key]) return FINE_TO_CANONICAL[key];
   if (/flip|thong|slide|sandal/.test(key)) return 'sandals';
+  if (/boat|deck|topsider|sperry/.test(key)) return 'casual_shoes';
   if (/sneaker|trainer|runner/.test(key)) return 'casual_shoes';
-  if (/boot/.test(key)) return 'boots';
+  if (/\bboots?\b/.test(key) || key === 'boots') return 'boots';
   if (/loafer|oxford|derby|formal/.test(key)) return 'formal_shoes';
   return 'unknown';
 }

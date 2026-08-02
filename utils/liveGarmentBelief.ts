@@ -180,9 +180,15 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
     if (/flip.?flop|thong/.test(blob)) return { category: 'shoes', subcategory: 'flip_flops' };
     if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return { category: 'shoes', subcategory: 'slides' };
     if (/sandal/.test(blob)) return { category: 'shoes', subcategory: 'sandals' };
-    if (/boot/.test(blob)) return { category: 'shoes', subcategory: 'boots' };
+    if (/boat\s*shoe|deck\s*shoe|topsider|sperry|boat_shoes/.test(blob)) {
+      return { category: 'shoes', subcategory: 'boat_shoes' };
+    }
+    if (/\bboots?\b/.test(blob)) return { category: 'shoes', subcategory: 'boots' };
     if (/sneaker|trainer/.test(blob)) return { category: 'shoes', subcategory: 'sneakers' };
-    if (sub === 'flip_flops' || sub === 'slides' || sub === 'sandals' || sub === 'boots' || sub === 'sneakers') {
+    if (
+      sub === 'flip_flops' || sub === 'slides' || sub === 'sandals'
+      || sub === 'boots' || sub === 'sneakers' || sub === 'boat_shoes'
+    ) {
       return { category: 'shoes', subcategory: sub };
     }
     return { category: 'shoes', subcategory: 'sneakers' };
@@ -254,6 +260,7 @@ export type StabilizeColorResult = {
     | 'low_confidence'
     | 'dark_bottom_lock'
     | 'hard_flip'
+    | 'warm_neutral_lock'
     | 'hold'
     | 'init';
 };
@@ -299,6 +306,36 @@ export function stabilizeColorDetailed(
       changed: false,
       code: 'warm_neutral_lock',
       reason: 'beige/cream resists white flicker',
+    };
+  }
+
+  // Footwear: warm lamps often invent brown over red/white boat shoes.
+  if (
+    kind === 'shoes'
+    && p === 'brown'
+    && /^(red|burgundy|white)$/.test(c || '')
+    && currentConfidence >= 0.75
+  ) {
+    return {
+      color: c,
+      changed: true,
+      code: 'hard_flip',
+      reason: 'chromatic footwear beats warm-lamp brown',
+    };
+  }
+
+  // Shorts: overexposure often reads grey chino as white — allow grey upgrade.
+  if (
+    kind === 'shorts'
+    && p === 'white'
+    && /^(gray|grey|light_gray|light_grey)$/.test(c || '')
+    && currentConfidence >= 0.72
+  ) {
+    return {
+      color: c === 'light_grey' ? 'light_gray' : c,
+      changed: true,
+      code: 'hard_flip',
+      reason: 'grey shorts under bright light',
     };
   }
 

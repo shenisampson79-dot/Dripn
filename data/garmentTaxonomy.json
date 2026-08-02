@@ -76,6 +76,40 @@
       "isTailored": false
     },
     {
+      "subtype": "casual_shorts",
+      "category": "bottom",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "relaxed",
+      "fabric": "cotton",
+      "visualWeight": "light",
+      "worksWith": [
+        "oxford_shirt",
+        "linen_shirt",
+        "polo",
+        "basic_tee",
+        "oversized_tee",
+        "minimal_sneaker",
+        "loafers",
+        "boat_shoes",
+        "leather_sandals",
+        "espadrilles"
+      ],
+      "avoidWith": [
+        "tie",
+        "stilettos",
+        "oxfords",
+        "uggs"
+      ],
+      "isTailored": false,
+      "aliases": [
+        "shorts",
+        "chino_shorts",
+        "smart_shorts"
+      ]
+    },
+    {
       "subtype": "cargo_shorts",
       "category": "bottom",
       "gender": "unisex",
@@ -1132,6 +1166,40 @@
       "isTailored": true,
       "aliases": [
         "derby_shoe"
+      ]
+    },
+    {
+      "subtype": "boat_shoes",
+      "category": "footwear",
+      "gender": "unisex",
+      "formality": 2,
+      "lane": "casual",
+      "silhouette": "boat",
+      "fabric": "leather",
+      "visualWeight": "light",
+      "worksWith": [
+        "oxford_shirt",
+        "linen_shirt",
+        "polo",
+        "casual_shorts",
+        "linen_shorts",
+        "tailored_shorts",
+        "chinos",
+        "jeans"
+      ],
+      "avoidWith": [
+        "tie",
+        "stilettos",
+        "joggers",
+        "hoodie",
+        "uggs"
+      ],
+      "isTailored": false,
+      "aliases": [
+        "boat_shoe",
+        "deck_shoes",
+        "topsider",
+        "sperry"
       ]
     },
     {

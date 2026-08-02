@@ -16,9 +16,9 @@ import {
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
 import { buildFootwearDisplayLabel, toCanonicalFootwearFamily } from '@/utils/footwearLayers';
 
-export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides';
+export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides' | 'boat_shoes';
 
-const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel|flip.?flop|slide|thong/i;
+const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel|flip.?flop|slide|thong|boat|deck|topsider|sperry/i;
 
 export type FootwearRejectReason =
   | 'cropped_frame'
@@ -87,13 +87,14 @@ const SHOE_FORMALITY: Record<ShoeSubtype, number> = {
   sandals: 0.2,
   flip_flops: 0.15,
   slides: 0.18,
+  boat_shoes: 0.35,
   boots: 0.7,
 };
 
 const COMPATIBILITY: Record<string, Partial<Record<ShoeSubtype, number>>> = {
-  shorts: { sneakers: 0.9, sandals: 0.95, flip_flops: 0.97, slides: 0.96, boots: 0.3 },
-  trousers: { sneakers: 0.8, boots: 0.9, sandals: 0.4, flip_flops: 0.25, slides: 0.35 },
-  skirt: { sneakers: 0.75, sandals: 0.9, flip_flops: 0.7, slides: 0.8, boots: 0.55 },
+  shorts: { sneakers: 0.9, sandals: 0.95, flip_flops: 0.97, slides: 0.96, boat_shoes: 0.95, boots: 0.3 },
+  trousers: { sneakers: 0.8, boots: 0.9, sandals: 0.4, flip_flops: 0.25, slides: 0.35, boat_shoes: 0.85 },
+  skirt: { sneakers: 0.75, sandals: 0.9, flip_flops: 0.7, slides: 0.8, boots: 0.55, boat_shoes: 0.7 },
 };
 
 export function isInFootwearZone(bbox: BBoxTuple): boolean {
@@ -295,37 +296,57 @@ export function gateFootwearDetections(
   const best = candidates
     .map((c, i) => ({ c, d: shoeLike[i] }))
     .filter((x) => x.c.valid)
-    .sort((a, b) => b.c.confidence - a.c.confidence)[0];
+    .sort((a, b) => {
+      // Hierarchy: boat/deck labels beat coarse trainers/boots when both are valid.
+      const aBoat = /boat|deck|topsider|sperry/i.test(`${a.d.name || ''} ${a.d.subcategory || ''}`) ? 1 : 0;
+      const bBoat = /boat|deck|topsider|sperry/i.test(`${b.d.name || ''} ${b.d.subcategory || ''}`) ? 1 : 0;
+      if (aBoat !== bBoat) return bBoat - aBoat;
+      return b.c.confidence - a.c.confidence;
+    })[0];
 
   if (!best) {
     return { accepted: null, candidates, zone, decisions, barefootEvidence };
   }
 
+  // Prefer a boat label from any valid candidate when the winner was remapped coarse.
+  const boatPeer = candidates
+    .map((c, i) => ({ c, d: shoeLike[i] }))
+    .find((x) => x.c.valid && /boat|deck|topsider|sperry/i.test(`${x.d.name || ''} ${x.d.subcategory || ''}`));
+  const seedDet = boatPeer?.d && !/boat|deck|topsider|sperry/i.test(`${best.d.name || ''}`)
+    ? { ...best.d, name: boatPeer.d.name, subcategory: boatPeer.d.subcategory || best.d.subcategory }
+    : best.d;
+
   const subtype = classifyShoeSubtype({
-    bbox: best.d.bbox as BBoxTuple,
+    bbox: seedDet.bbox as BBoxTuple,
     skinRatio: best.c.skinRatio,
-    name: best.d.name,
-    subcategory: best.d.subcategory,
+    name: seedDet.name,
+    subcategory: seedDet.subcategory,
   });
 
+  const visionName = String(seedDet.name || best.d.name || '');
+  const keepVisionBoatLabel = subtype === 'boat_shoes' && /boat|deck|topsider|sperry/i.test(visionName);
   const accepted: OnDeviceDetection = {
     ...best.d,
     category: 'shoes',
     subcategory: subtype,
-    color: best.d.color,
+    color: seedDet.color || best.d.color,
     // Display from fine subtype — never from canonical family
-    name: buildFootwearDisplayLabel({
+    name: keepVisionBoatLabel
+      ? visionName
+      : buildFootwearDisplayLabel({
       type: subtype,
-      color: best.d.color,
+      color: seedDet.color || best.d.color,
       fallbackName: subtype === 'boots'
         ? 'Boots'
-        : subtype === 'flip_flops'
-          ? 'Flip-flops'
-          : subtype === 'slides'
-            ? 'Slides'
-            : subtype === 'sandals'
-              ? 'Sandals'
-              : 'Trainers',
+        : subtype === 'boat_shoes'
+          ? 'Boat shoes'
+          : subtype === 'flip_flops'
+            ? 'Flip-flops'
+            : subtype === 'slides'
+              ? 'Slides'
+              : subtype === 'sandals'
+                ? 'Sandals'
+                : 'Trainers',
     }),
     confidence: best.d.confidence,
     skinRatio: best.c.skinRatio ?? best.d.skinRatio,
@@ -374,6 +395,10 @@ export function scoreBootEvidence(bbox: BBoxTuple): number {
   return Math.min(1, score);
 }
 
+function looksLikeBoatShoe(blob: string): boolean {
+  return /boat\s*shoe|deck\s*shoe|topsider|sperry|boat_shoes/.test(blob);
+}
+
 export function classifyShoeSubtype(args: {
   bbox: BBoxTuple;
   skinRatio?: number | null;
@@ -385,7 +410,9 @@ export function classifyShoeSubtype(args: {
   if (/flip.?flop|thong/.test(blob)) return 'flip_flops';
   if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return 'slides';
   if (/sandal/.test(blob)) return 'sandals';
-  if (/boot/.test(blob)) return 'boots';
+  // Boat/deck shoes before boot heuristics — low shaft often misreads as boots in mirrors.
+  if (looksLikeBoatShoe(blob)) return 'boat_shoes';
+  if (/\bboots?\b/.test(blob)) return 'boots';
   if (/sneaker|trainer|runner/.test(blob) && scoreBootEvidence(args.bbox) < 0.5) {
     return 'sneakers';
   }
@@ -412,6 +439,12 @@ export function stabilizeShoeSubtype(
 ): ShoeSubtype {
   if (!prev) return next;
   if (prev === next) return prev;
+  // Hierarchy veto: locked boat shoes reject boots/trainers remaps.
+  if (prev === 'boat_shoes' && (next === 'boots' || next === 'sneakers') && confidence < 0.97) {
+    return prev;
+  }
+  // Low shaft + open silhouette must not become boots from tall mirror boxes.
+  if (next === 'boots' && confidence < SUBTYPE_CHANGE_THRESHOLD) return prev;
   if (confidence < SUBTYPE_CHANGE_THRESHOLD) return prev;
   return next;
 }
@@ -480,7 +513,7 @@ export function scoreShoeStyle(args: {
 
   const occasion = String(args.occasionType || 'casual').toLowerCase();
   let context = 0.75;
-  if (/casual|day|weekend|travel/.test(occasion) && (subtype === 'sneakers' || subtype === 'sandals' || subtype === 'flip_flops' || subtype === 'slides')) {
+  if (/casual|day|weekend|travel/.test(occasion) && (subtype === 'sneakers' || subtype === 'boat_shoes' || subtype === 'sandals' || subtype === 'flip_flops' || subtype === 'slides')) {
     context = 0.9;
   }
   if (/work|formal|office/.test(occasion) && subtype === 'boots') context = 0.85;
@@ -499,7 +532,9 @@ export function scoreShoeStyle(args: {
     explanations.push(
       subtype === 'sneakers' && bottomKey === 'shorts'
         ? 'Sneakers pair naturally with shorts'
-        : `${capitalize(subtype)} fit this bottom well`,
+        : subtype === 'boat_shoes' && bottomKey === 'shorts'
+          ? 'Boat shoes pair naturally with shorts'
+          : `${capitalize(subtype.replace(/_/g, ' '))} fit this bottom well`,
     );
   }
   if (structure < 0.45) {

@@ -363,9 +363,10 @@ export function formatGarmentDisplayName(args: {
   else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
   else if (/\bslides?\b/.test(sub)) kind = localizedShoeKind('slides');
   else if (/sandal/.test(sub)) kind = localizedShoeKind('sandals');
-  else if (/boot/.test(sub)) kind = localizedShoeKind('boots');
+  else if (/boat/.test(sub)) kind = 'boat shoes';
+  else if (/\bboots?\b/.test(sub)) kind = localizedShoeKind('boots');
   else if (/sneaker|trainer/.test(sub)) kind = localizedShoeKind('sneakers');
-  else if (/shoe|boot|sneaker|sandal|trainer|flip|slide/.test(sub) || cat === 'shoes') {
+  else if (/shoe|boot|sneaker|sandal|trainer|flip|slide|boat/.test(sub) || cat === 'shoes') {
     kind = localizedShoeKind(sub || 'sneakers');
   }
   else if (/outer|blazer|jacket|coat/.test(sub) || cat === 'outerwear') kind = 'jacket';

@@ -32,6 +32,11 @@ import {
   createOutfitBeliefState,
   type OutfitBeliefState,
 } from '@/utils/liveGarmentBelief';
+import {
+  stabilizeFootwearIdentity,
+  type LimSample,
+} from '@/utils/liveLayeringIntelligence';
+import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
 
 export type OutfitRole = 'top' | 'bottom' | 'footwear' | 'other';
 
@@ -51,6 +56,8 @@ export type DetectionMemory = {
   lastShoeScore: ShoeStyleScore | null;
   /** Barefoot veto — block footwear proposals until this timestamp. */
   footwearBlockedUntil: number;
+  /** Temporal footwear identity samples (LIM stability engine). */
+  footwearHistory: LimSample[];
 };
 
 export function createDetectionMemory(): DetectionMemory {
@@ -64,12 +71,15 @@ export function createDetectionMemory(): DetectionMemory {
     lastFootZone: null,
     lastShoeScore: null,
     footwearBlockedUntil: 0,
+    footwearHistory: [],
   };
 }
 
 export function roleOfCategory(category: string, subcategory?: string): OutfitRole {
   const blob = `${category || ''} ${subcategory || ''}`.toLowerCase();
-  if (/shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford/.test(blob)) return 'footwear';
+  if (/shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford|boat|deck|topsider/.test(blob)) {
+    return 'footwear';
+  }
   if (/bottom|trouser|jean|short|skirt|pant/.test(blob)) return 'bottom';
   if (/top|shirt|polo|blouse|knit|sweater|outer|blazer|jacket|coat|vest|gilet|dress/.test(blob)) {
     return 'top';
@@ -218,8 +228,39 @@ export function applyDetectionMemory(
     return prelabelBottom(d);
   });
 
-  if (gated.accepted && !blockedByBarefoot) {
-    prepared.push(gated.accepted);
+  let footwearHistory = memory.footwearHistory || [];
+  let acceptedShoe = gated.accepted && !blockedByBarefoot ? gated.accepted : null;
+
+  // LIM: temporal vote + hierarchy veto before belief commits.
+  if (acceptedShoe) {
+    const lim = stabilizeFootwearIdentity({
+      history: footwearHistory,
+      proposed: {
+        label: String(acceptedShoe.subcategory || 'sneakers'),
+        confidence: acceptedShoe.confidence,
+        color: acceptedShoe.color,
+      },
+      lockedSubtype: (memory.belief?.footwear?.subcategory as ShoeSubtype) || null,
+      lockedColor: memory.belief?.footwear?.color || null,
+    });
+    footwearHistory = lim.history;
+    if (lim.subtype) {
+      const keepBoatName = lim.subtype === 'boat_shoes'
+        && /boat|deck|topsider|sperry/i.test(String(acceptedShoe.name || ''));
+      acceptedShoe = {
+        ...acceptedShoe,
+        subcategory: lim.subtype,
+        color: lim.color || acceptedShoe.color,
+        name: keepBoatName
+          ? String(acceptedShoe.name)
+          : buildFootwearDisplayLabel({
+            type: lim.subtype,
+            color: lim.color || acceptedShoe.color,
+            fallbackName: lim.subtype === 'boat_shoes' ? 'Boat shoes' : acceptedShoe.name,
+          }),
+      };
+    }
+    prepared.push(acceptedShoe);
   }
 
   let beliefMem = memory.belief || createOutfitBeliefState();
@@ -242,6 +283,7 @@ export function applyDetectionMemory(
         time: now,
       });
       beliefMem = { ...beliefMem, footwear: null };
+      footwearHistory = [];
     }
     if (gated.barefootEvidence) {
       footwearBlockedUntil = Math.max(footwearBlockedUntil, now + BAREFOOT_BLOCK_MS);
@@ -272,6 +314,7 @@ export function applyDetectionMemory(
     lastFootZone: gated.zone,
     lastShoeScore: shoeScore.label === 'None' ? null : shoeScore,
     footwearBlockedUntil,
+    footwearHistory,
   };
 
   return {
