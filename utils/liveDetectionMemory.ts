@@ -32,6 +32,7 @@ import {
   createOutfitBeliefState,
   type OutfitBeliefState,
 } from '@/utils/liveGarmentBelief';
+import { preferVisionIdentityName } from '@/utils/visionTrust';
 import {
   stabilizeColorFromHistory,
   stabilizeFootwearIdentity,
@@ -239,14 +240,16 @@ export function applyDetectionMemory(
   let bottomColorHistory = memory.bottomColorHistory || [];
   const prepared = nonShoes.map((d) => {
     if (roleOfCategory(d.category, d.subcategory) === 'top') {
+      const locked = preferVisionIdentityName(d.name, d.confidence);
       return {
         ...d,
-        name: formatGarmentDisplayName({
-          color: d.color,
-          category: d.category,
-          subcategory: d.subcategory || 'top',
-          fallbackName: d.name,
-        }),
+        name: locked
+          || formatGarmentDisplayName({
+            color: d.color,
+            category: d.category,
+            subcategory: d.subcategory || 'top',
+            fallbackName: d.name,
+          }),
       };
     }
     const bottom = prelabelBottom(d);
@@ -262,16 +265,18 @@ export function applyDetectionMemory(
       lockedColor: memory.belief?.bottom?.color || null,
     });
     bottomColorHistory = colorLim.history;
+    const lockedBottom = preferVisionIdentityName(bottom.name, bottom.confidence);
     return {
       ...bottom,
-      name: bottom.name && /sweatpant|jogger|chino|trouser|jean|skirt|short/i.test(bottom.name)
-        ? bottom.name
-        : formatGarmentDisplayName({
-          color: bottom.color,
-          category: bottom.category,
-          subcategory: bottom.subcategory || 'shorts',
-          fallbackName: bottom.name,
-        }),
+      name: lockedBottom
+        || (bottom.name && /sweatpant|jogger|chino|trouser|jean|skirt|short/i.test(bottom.name)
+          ? bottom.name
+          : formatGarmentDisplayName({
+            color: bottom.color,
+            category: bottom.category,
+            subcategory: bottom.subcategory || 'shorts',
+            fallbackName: bottom.name,
+          })),
     };
   });
 

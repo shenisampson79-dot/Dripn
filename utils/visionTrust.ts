@@ -33,6 +33,27 @@ function labelKey(det: OnDeviceDetection | null | undefined): string {
   return `${det.category || '?'}/${det.subcategory || '?'}/${det.name || '?'}`;
 }
 
+/**
+ * Specific vision display names (e.g. "Gray Sweatpants", "Multicolor Boat Shoes").
+ * When present, never rebuild from color + category.
+ */
+export function isSpecificVisionName(name?: string | null): boolean {
+  const n = String(name || '').trim();
+  if (n.length < 4) return false;
+  if (/^(top|item|bottom|shoes?|garment)$/i.test(n)) return false;
+  return /[a-z]/i.test(n) && /\s/.test(n);
+}
+
+/** Prefer locked vision identity label over any color+subtype rebuild. */
+export function preferVisionIdentityName(
+  name?: string | null,
+  conf?: number | null,
+  minConf = 0.45,
+): string | null {
+  if (conf != null && conf < minConf) return null;
+  return isSpecificVisionName(name) ? String(name).trim() : null;
+}
+
 /** Strong garment families that must not be geometry-rewritten when confidence is high. */
 export function trustedGarmentFamily(
   det: OnDeviceDetection | null | undefined,
@@ -57,13 +78,19 @@ export function isTrustedVisionBottom(det: OnDeviceDetection | null | undefined)
   return f === 'trousers' || f === 'shorts' || f === 'skirt';
 }
 
-/** Sweatpants/joggers/chinos — never demote to shorts via hip/boot geometry. */
+/**
+ * Sweatpants/joggers — never demote to shorts via geometry, at any confidence.
+ * Chinos/jeans/slacks resist when confidence is at least VISION_TRUST_CONF.
+ */
 export function resistsShortsGeometryDemotion(
   det: OnDeviceDetection | null | undefined,
 ): boolean {
-  if (!det || (det.confidence ?? 0) < VISION_TRUST_CONF) return false;
+  if (!det) return false;
   const blob = blobOf(det);
-  return /sweatpant|jogger|chino|jean|slacks|track\s*pant/.test(blob);
+  // Hard identity lock — geometry must never rewrite these
+  if (/sweatpant|jogger|track\s*pant/.test(blob)) return true;
+  if ((det.confidence ?? 0) < VISION_TRUST_CONF) return false;
+  return /chino|jean|slacks/.test(blob);
 }
 
 export function isTrustedVisionBoots(det: OnDeviceDetection | null | undefined): boolean {
@@ -87,37 +114,50 @@ export function diffVisionToBelief(
         : /outer|blazer|jacket|coat/i.test(blobOf(d))
           ? 'layer'
           : 'top';
-    // Keep highest-conf per coarse role for comparison
     const prev = afterByRole.get(role);
     if (!prev || d.confidence > prev.confidence) afterByRole.set(role, d);
   }
 
   for (const d of before) {
     const trust = trustedGarmentFamily(d);
-    if (!trust) continue;
+    const specific = isSpecificVisionName(d.name);
+    if (!trust && !specific) continue;
     const role = trust === 'boots' ? 'footwear'
       : trust === 'trousers' || trust === 'shorts' || trust === 'skirt' ? 'bottom'
         : trust === 'blazer' ? 'layer'
-          : 'top';
+          : /shoe|boot|sneaker|trainer|loafer|sandal|boat|flip|slide/i.test(blobOf(d))
+            ? 'footwear'
+            : /bottom|trouser|short|skirt|pant|chino|jean|sweatpant|jogger/i.test(blobOf(d))
+              ? 'bottom'
+              : 'top';
     const out = afterByRole.get(role);
     const beforeKey = labelKey(d);
     const afterKey = labelKey(out);
     if (beforeKey === afterKey) continue;
 
-    // Category/subtype meaningfully changed?
     const beforeSub = String(d.subcategory || '').toLowerCase();
     const afterSub = String(out?.subcategory || '').toLowerCase();
     const beforeName = String(d.name || '').toLowerCase();
     const afterName = String(out?.name || '').toLowerCase();
     const lost = !out;
-    // Benign: chinos/pants → trousers display normalize is not corruption
+    const token = beforeName.split(/\s+/).find((w) => w.length > 3) || '';
     const benignTrouserCanon =
       trust === 'trousers'
-      && /trouser|chino|jean|pant|slacks/.test(`${afterSub} ${afterName}`)
-      && !/short/.test(`${afterSub} ${afterName}`);
+      && /trouser|chino|jean|pant|slacks|sweatpant|jogger/.test(`${afterSub} ${afterName}`)
+      && !/short/.test(`${afterSub} ${afterName}`)
+      && (!specific || !token || afterName.includes(token));
     const benignBootCanon =
       trust === 'boots'
       && /boot|chelsea/.test(`${afterSub} ${afterName}`);
+    const identityLost =
+      specific
+      && !!out
+      && beforeName !== afterName
+      && (
+        /dark\s*(trouser|short)/i.test(afterName)
+        || (/^((dark|black|grey|gray|red|blue|white|multicolou?r)\s+)?(top|trousers?|shorts?|boat shoes)$/i.test(afterName)
+          && (!token || !afterName.includes(token)))
+      );
     const flipped =
       (trust === 'trousers' && /short/.test(`${afterSub} ${afterName}`))
       || (trust === 'boots' && /sneaker|trainer/.test(`${afterSub} ${afterName}`))
@@ -127,14 +167,16 @@ export function diffVisionToBelief(
         && !benignTrouserCanon && !benignBootCanon
         && trust !== 'dress_shirt' && trust !== 'blazer' && trust !== 'tie');
 
-    if (lost || (flipped && !benignTrouserCanon && !benignBootCanon)) {
+    if (lost || identityLost || (flipped && !benignTrouserCanon && !benignBootCanon)) {
       diffs.push({
         stage,
         before: beforeKey,
         after: afterKey,
         reason: lost
-          ? `trusted ${trust} dropped`
-          : `trusted ${trust} rewritten`,
+          ? `trusted ${trust || 'label'} dropped`
+          : identityLost
+            ? 'vision identity rewritten'
+            : `trusted ${trust} rewritten`,
       });
     }
   }

@@ -21,7 +21,9 @@ import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 assert.equal(normalizeBeliefColor('grey'), 'gray');
 assert.equal(normalizeBeliefColor('grey', 'trousers'), 'gray');
-assert.equal(normalizeBeliefColor('dark grey'), 'black');
+assert.equal(normalizeBeliefColor('dark grey'), 'gray');
+assert.equal(normalizeBeliefColor('charcoal', 'trousers'), 'gray');
+assert.equal(normalizeBeliefColor('charcoal', 'top'), 'gray');
 assert.equal(normalizeBeliefColor('grey', 'shoes'), 'gray');
 assert.equal(normalizeBeliefColor('gray', 'shoes'), 'gray');
 assert.ok(colorDistance('gray', 'black') > 0.2, 'grey must not equal black');

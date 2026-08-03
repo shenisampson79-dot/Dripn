@@ -122,6 +122,20 @@ export function updateLiveBelief(
       time: opts?.now ?? Date.now(),
     });
   }
+  if (typeof __DEV__ !== 'undefined' && __DEV__ && mutations.length) {
+    // Identity trail: vision → belief → display
+    // eslint-disable-next-line no-console
+    console.log('[LiveID]', {
+      vision: detections.map((d) => d.name),
+      belief: [
+        result.memory.belief?.top?.name,
+        result.memory.belief?.bottom?.name,
+        result.memory.belief?.footwear?.name,
+      ],
+      display: result.detections.map((d) => d.name),
+      mutations,
+    });
+  }
   return {
     detections: result.detections,
     memory: result.memory,

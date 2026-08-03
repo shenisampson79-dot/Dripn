@@ -352,13 +352,24 @@ export function formatGarmentDisplayName(args: {
   subcategory?: string | null;
   fallbackName?: string | null;
 }): string {
+  const fallback = String(args.fallbackName || '').trim();
+  // Preserve specific vision labels — never rebuild "Gray Sweatpants" → "Dark trousers"
+  if (
+    fallback.length >= 4
+    && /\s/.test(fallback)
+    && /[a-z]/i.test(fallback)
+    && !/^(top|item|bottom|shoes?|garment)$/i.test(fallback)
+  ) {
+    return fallback;
+  }
+
   const color = String(args.color || '').trim().toLowerCase();
   const sub = String(args.subcategory || '').toLowerCase();
   const cat = String(args.category || '').toLowerCase();
   let kind = 'item';
   // Dress shirt before dress — "Light Pink dress shirt" must not become "Light Pink dress"
-  if (/dress[\s_-]*shirt|shirt[\s_-]*dress|oxford[\s_-]*shirt|button[\s_-]?down|button[\s_-]?up/.test(`${cat} ${sub} ${args.fallbackName || ''}`)
-    && !/\b(maxi|midi|mini)\s*dress\b/.test(`${sub} ${args.fallbackName || ''}`)) {
+  if (/dress[\s_-]*shirt|shirt[\s_-]*dress|oxford[\s_-]*shirt|button[\s_-]?down|button[\s_-]?up/.test(`${cat} ${sub} ${fallback}`)
+    && !/\b(maxi|midi|mini)\s*dress\b/.test(`${sub} ${fallback}`)) {
     kind = 'top';
   }
   else if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
@@ -376,7 +387,7 @@ export function formatGarmentDisplayName(args: {
   }
   else if (/outer|blazer|jacket|coat/.test(sub) || cat === 'outerwear') kind = 'jacket';
   else if (/top|shirt|tee|polo|knit|sweater|blouse/.test(`${cat} ${sub}`)) kind = 'top';
-  else if (args.fallbackName) return String(args.fallbackName);
+  else if (fallback) return fallback;
 
   const prettyColor = color && color !== 'other' && color !== 'unknown'
     ? color.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -617,6 +628,14 @@ export function isBareTorsoTopLike(args: {
   const isTopLike = /top|shirt|tee|polo|blouse|knit|sweater|outer|blazer|jacket|coat|vest|gilet|clothing|dress/.test(cat)
     && !/bottom|trouser|short|skirt|pant|shoe|boot|bag/.test(cat);
   if (!isTopLike) return false;
+  const named = String(args.name || '').trim();
+  const specificNamed =
+    named.length >= 4
+    && /\s/.test(named)
+    && /[a-z]/i.test(named)
+    && !/^(top|item|bottom|shoes?|garment)$/i.test(named);
+  // Named garment with a real fabric colour is never "bare chest"
+  if (specificNamed && hasReliableFabricColor(args.fabricColor)) return false;
   const skin = args.skinRatio;
   if (skin != null && skin >= BARE_TORSO_SKIN_RATIO) return true;
   // Missing fabric colour alone is not enough — blue tees often lose colour under

@@ -27,9 +27,10 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
-import { resistsShortsGeometryDemotion } from '@/utils/visionTrust';
+import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
+export { isSpecificVisionName } from '@/utils/visionTrust';
 
 export type BeliefKind =
   | 'top'
@@ -77,15 +78,8 @@ export function colorFromVisionName(name?: string | null): string | null {
 }
 
 /** Keep specific vision labels (e.g. "Gray Sweatpants") instead of "Dark trousers". */
-export function isSpecificVisionName(name?: string | null): boolean {
-  const n = String(name || '').trim();
-  if (n.length < 4) return false;
-  if (/^(top|item|bottom|shoes?|garment)$/i.test(n)) return false;
-  return /[a-z]/i.test(n) && /\s/.test(n);
-}
-
 /** Minimum confidence to adopt colour from a vision display name. */
-export const VISION_NAME_COLOR_CONF = 0.72;
+export const VISION_NAME_COLOR_CONF = 0.6;
 
 export type OutfitBeliefState = {
   /** Base upper (tee, tank, blouse). */
@@ -113,9 +107,10 @@ export const DRESS_PERSIST_IOU = 0.6;
 
 const COLOR_ALIASES: Record<string, string> = {
   grey: 'gray',
-  'dark_grey': 'black',
-  'dark_gray': 'black',
-  charcoal: 'black',
+  // Keep dark greys as grey — collapsing to black caused "Dark trousers"
+  'dark_grey': 'gray',
+  'dark_gray': 'gray',
+  charcoal: 'gray',
   burgundy: 'red',
   maroon: 'red',
   navy: 'navy',
@@ -611,9 +606,11 @@ export function observationFromDetection(
     color = null;
   }
 
-  // Tops: black is last resort unless vision named it black/grey
+  // Tops: black is last resort unless vision named it / gave a specific garment label
   const nameSaysDark = /black|grey|gray|charcoal/i.test(String(det.name || ''));
-  if (kind === 'top' && color && DARK_FAMILY.has(color) && conf < 0.98 && !nameSaysDark) {
+  const namedGarment = isSpecificVisionName(det.name);
+  const darkTopGate = (namedGarment || nameSaysDark) ? 0.6 : 0.98;
+  if (kind === 'top' && color && DARK_FAMILY.has(color) && conf < darkTopGate && !nameSaysDark && !namedGarment) {
     appendDecision(log, {
       type: 'reject',
       message: `Rejected black on top (${conf.toFixed(2)})`,
@@ -826,7 +823,31 @@ function resolveConflict(
   }
 
   // Locked trousers: only hold against shorts when this still looks like a pant column
+  // Trust Vision First: sweatpants/joggers never demote via geometry.
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
+    const resistDet = {
+      name: prev.name || current.name || '',
+      category: prev.category,
+      subcategory: prev.subcategory,
+      confidence: Math.max(prev.confidence, current.confidence),
+    };
+    if (resistsShortsGeometryDemotion(resistDet)) {
+      appendDecision(log, {
+        type: 'reject',
+        message: 'Blocked shorts downgrade',
+        reason: 'vision sweatpants/joggers lock',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...prev,
+        name: preferVisionIdentityName(prev.name) || preferVisionIdentityName(current.name) || prev.name,
+        lastSeenAt: now,
+        confidence: Math.min(1, prev.confidence + 0.02),
+        bbox: current.confidence >= prev.confidence ? current.bbox : prev.bbox,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom'),
+      };
+    }
     if (looksLikeShortsWithFootwearExtension(current.bbox) || !isFloorLengthTrousersEvidence(prev.bbox)) {
       appendDecision(log, {
         type: 'update',
@@ -837,6 +858,7 @@ function resolveConflict(
       });
       return {
         ...current,
+        name: preferVisionIdentityName(current.name) || current.name,
         color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
         stability: Math.max(0.45, prev.stability * 0.55),
         lastChangedAt: now,
@@ -852,6 +874,7 @@ function resolveConflict(
     });
     return {
       ...prev,
+      name: preferVisionIdentityName(prev.name) || prev.name,
       lastSeenAt: now,
       confidence: Math.min(1, prev.confidence + 0.02),
       bbox: isFloorLengthTrousersEvidence(current.bbox) ? current.bbox : prev.bbox,
@@ -1028,6 +1051,12 @@ export function updateBelief(
     // Never demote vision sweatpants/joggers/chinos via geometry.
     if (
       p.kind === 'trousers'
+      && !resistsShortsGeometryDemotion({
+        name: `${p.name || ''} ${c.name || ''}`,
+        category: p.category,
+        subcategory: p.subcategory,
+        confidence: Math.max(p.confidence, c.confidence),
+      })
       && !/sweatpant|jogger|chino|jean|slacks/i.test(`${p.name || ''} ${c.name || ''}`)
       && (
         looksLikeShortsWithFootwearExtension(c.bbox)
@@ -1046,6 +1075,7 @@ export function updateBelief(
         kind: 'shorts',
         subcategory: 'shorts',
         category: 'bottoms',
+        name: preferVisionIdentityName(c.name) || c.name,
         color: stabilizeColor(p.color, c.color, c.confidence, 'shorts') || c.color,
         stability: Math.max(0.45, p.stability * 0.6),
         lastChangedAt: now,
@@ -1084,9 +1114,11 @@ export function updateBelief(
       bbox: c.bbox,
       trackId: c.trackId || p.trackId,
       color,
-      name: (color === p.color)
-        ? (p.name || c.name || null)
-        : (isSpecificVisionName(c.name) ? c.name : (p.name || c.name || null)),
+      name: preferVisionIdentityName(p.name)
+        || preferVisionIdentityName(c.name)
+        || ((color === p.color)
+          ? (p.name || c.name || null)
+          : (isSpecificVisionName(c.name) ? c.name : (p.name || c.name || null))),
       lastSeenAt: now,
     };
   }
@@ -1233,11 +1265,13 @@ export function applyOutfitBelief(
       bottomObs = {
         ...bottomObs,
         subcategory: 'trousers',
-        name: formatGarmentDisplayName({
-          color: bottomObs.color,
-          category: 'bottoms',
-          subcategory: 'trousers',
-        }),
+        name: preferVisionIdentityName(bottomObs.name)
+          || formatGarmentDisplayName({
+            color: bottomObs.color,
+            category: 'bottoms',
+            subcategory: 'trousers',
+            fallbackName: bottomObs.name,
+          }),
       };
     }
   }
@@ -1252,11 +1286,13 @@ export function applyOutfitBelief(
       bottomObs = {
         ...bottomObs,
         subcategory: 'shorts',
-        name: formatGarmentDisplayName({
-          color: bottomObs.color,
-          category: 'bottoms',
-          subcategory: 'shorts',
-        }),
+        name: preferVisionIdentityName(bottomObs.name)
+          || formatGarmentDisplayName({
+            color: bottomObs.color,
+            category: 'bottoms',
+            subcategory: 'shorts',
+            fallbackName: bottomObs.name,
+          }),
       };
     }
   }
