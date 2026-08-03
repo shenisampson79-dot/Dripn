@@ -27,7 +27,7 @@ import { RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
 import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
-import { LiveAiBudgetModal, isAiBudgetError } from '@/components/live/LiveAiBudgetModal';
+import { LiveAiBudgetModal, isAiBudgetError, planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
@@ -61,6 +61,7 @@ import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { getNavigationRef } from '@/components/ErrorFallback';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -128,7 +129,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const occasionType = route.params?.occasionType || 'casual_day';
   const yoloStatus = getOnDeviceYoloStatus();
   const tier = normalizeSubscriptionTier(user?.subscriptionTier);
-  const onTopTier = isTopTier(tier);
 
   const [isLive, setIsLive] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -143,6 +143,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  /** Prefer server tier from the 429 usage snapshot over cached Auth. */
+  const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
 
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
@@ -206,22 +208,45 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     };
   }, []);
 
-  const handleAiBudgetHit = useCallback(() => {
+  const handleAiBudgetHit = useCallback((err?: unknown) => {
     if (!mountedRef.current) return;
+    const serverTier = planTierFromBudgetError(err);
+    const effective = serverTier || tier;
+    setBudgetPlanTier(effective);
     setIsLive(false);
     setShowBudgetModal(true);
-    setStatusNote(t('live.budgetModal.statusNote') || 'Monthly AI allowance used — upgrade or wait until next month');
-  }, [t]);
+    setStatusNote(
+      isTopTier(effective)
+        ? (t('live.budgetModal.statusNoteTop') || 'Monthly AI allowance used — resets next month')
+        : (t('live.budgetModal.statusNote') || 'Monthly AI allowance used — upgrade or wait until next month'),
+    );
+  }, [t, tier]);
 
   const openSubscription = useCallback(() => {
     setShowBudgetModal(false);
-    const highlightPlan = tier === 'free'
+    const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
+    const highlightPlan = plan === 'free'
       ? 'personal_stylist'
-      : tier === 'personal_stylist'
+      : plan === 'personal_stylist'
         ? 'stylist_unlimited'
         : undefined;
-    navigateToSubscription(navigation, highlightPlan);
-  }, [navigation, tier]);
+
+    // Live is presented as fullScreenModal — leave it first or Subscription
+    // opens underneath and it looks like we only closed the budget sheet.
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+
+    const go = () => {
+      const rootNav = getNavigationRef();
+      if (rootNav?.isReady()) {
+        navigateToSubscription(rootNav, highlightPlan);
+      } else {
+        navigateToSubscription(navigation, highlightPlan);
+      }
+    };
+    setTimeout(go, 80);
+  }, [navigation, budgetPlanTier, tier]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return;
@@ -452,7 +477,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const res = await apiService.liveScanFrame(payload);
       if (!res.success) {
         if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
-          handleAiBudgetHit();
+          handleAiBudgetHit(res);
           return;
         }
         setStatusNote(res.message || 'Scan failed');
@@ -468,7 +493,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       console.warn('[LiveStylist] frame error:', error);
       const msg = error instanceof Error ? error.message : 'Frame failed';
       if (isAiBudgetError(error)) {
-        handleAiBudgetHit();
+        handleAiBudgetHit(error);
       } else if (/rate limit|429/i.test(msg) && !/usage limit/i.test(msg)) {
         setStatusNote('Slowing down — rate limited');
       } else {
@@ -600,7 +625,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const res = await apiService.liveScanFrame(payload);
       if (!res.success) {
         if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
-          handleAiBudgetHit();
+          handleAiBudgetHit(res);
           return;
         }
         setStatusNote(res.message || 'Still scan failed');
@@ -619,7 +644,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
     } catch (err: unknown) {
       if (isAiBudgetError(err)) {
-        handleAiBudgetHit();
+        handleAiBudgetHit(err);
       } else {
         const msg = err instanceof Error ? err.message : 'Still scan failed';
         setStatusNote(msg);
@@ -764,7 +789,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         visible={showBudgetModal}
         onClose={() => setShowBudgetModal(false)}
         onUpgrade={openSubscription}
-        isTopTier={onTopTier}
+        planTier={budgetPlanTier || tier}
       />
 
       <Modal visible={!!selected} animationType="slide" transparent onRequestClose={() => setSelected(null)}>

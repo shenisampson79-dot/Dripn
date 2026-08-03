@@ -368,6 +368,7 @@ class ApiService {
         maxAllowed?: number;
         voiceCreditsExhausted?: boolean;
         limitCopy?: unknown;
+        usage?: { tier?: string; [key: string]: unknown };
         suggestions?: string[];
         missingPieces?: string[];
         stylistResponse?: string;
@@ -403,6 +404,9 @@ class ApiService {
       }
       if (error.limitCopy) {
         apiError.limitCopy = error.limitCopy;
+      }
+      if (error.usage && typeof error.usage === 'object') {
+        apiError.usage = error.usage as { tier?: string; [key: string]: unknown };
       }
       if (Array.isArray(error.suggestions)) {
         apiError.suggestions = error.suggestions.filter((s: unknown) => typeof s === 'string');

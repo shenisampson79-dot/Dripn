@@ -12,6 +12,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { isAiBudgetError } from '@/utils/aiBudgetError';
+import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import type { SubscriptionTier } from '@/contexts/AuthContext';
 
 export { isAiBudgetError };
 
@@ -26,29 +28,40 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onUpgrade: () => void;
-  /** Top-tier users already maxed — softer upgrade framing. */
-  isTopTier?: boolean;
+  /**
+   * Billing tier from the *server* budget response when available.
+   * Prefer this over cached local Auth — testing downgrades must show correctly.
+   */
+  planTier?: string | null;
 };
 
 export function LiveAiBudgetModal({
   visible,
   onClose,
   onUpgrade,
-  isTopTier = false,
+  planTier = null,
 }: Props) {
   const { t } = useTranslations();
+  const tier = normalizeSubscriptionTier(planTier);
+  const topTier = isTopTier(tier);
+  const canUpgrade = tier === 'free' || tier === 'personal_stylist';
 
   const title = t('live.budgetModal.title')
     || "That's your lot for this month";
-  const body = isTopTier
+
+  const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Even Stylist Unlimited has a monthly AI pot — and yours is empty. Give it until next month, or check your plan if something looks off.")
-    : (t('live.budgetModal.body')
-      || "Your AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger monthly pot, or swing back when it resets. The mirror will wait.");
-  const upgradeLabel = isTopTier
-    ? (t('live.budgetModal.seePlans') || 'See plans')
-    : (t('live.budgetModal.upgrade') || 'Upgrade');
-  const dismissLabel = t('live.budgetModal.dismiss') || "Ok, I'm fine";
+      || "Your monthly AI styling pot is empty. Keep going in Decisions or text chat — Live will be ready when your pot refills.")
+    : tier === 'personal_stylist'
+      ? (t('live.budgetModal.bodyPersonal')
+        || "Your AI styling allowance is spent. Upgrade for a bigger monthly pot, or keep going in Decisions / text chat.")
+      : (t('live.budgetModal.body')
+        || "Your AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or keep going in Decisions / text chat.");
+
+  const upgradeLabel = tier === 'personal_stylist'
+    ? (t('live.budgetModal.upgradeUnlimited') || 'See plans →')
+    : (t('live.budgetModal.upgrade') || 'See plans →');
+  const dismissLabel = t('live.budgetModal.dismiss') || 'Continue in Decisions';
 
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -67,8 +80,9 @@ export function LiveAiBudgetModal({
       animationType="slide"
       onRequestClose={handleDismiss}
     >
-      <Pressable style={styles.overlay} onPress={handleDismiss}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <View style={styles.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} accessibilityRole="button" />
+        <View style={styles.sheet}>
           <LinearGradient colors={[COLORS.midnight, COLORS.ink]} style={styles.gradient}>
             <View style={styles.iconWrap}>
               <LinearGradient
@@ -86,17 +100,19 @@ export function LiveAiBudgetModal({
               {body}
             </ThemedText>
 
-            <Pressable onPress={handleUpgrade} style={styles.upgradeBtn}>
-              <LinearGradient
-                colors={[COLORS.gold, COLORS.deepGold]}
-                style={styles.upgradeGradient}
-              >
-                <ThemedText type="body" style={styles.upgradeText}>
-                  {upgradeLabel}
-                </ThemedText>
-                <Feather name="arrow-right" size={16} color={COLORS.midnight} />
-              </LinearGradient>
-            </Pressable>
+            {canUpgrade ? (
+              <Pressable onPress={handleUpgrade} style={styles.upgradeBtn}>
+                <LinearGradient
+                  colors={[COLORS.gold, COLORS.deepGold]}
+                  style={styles.upgradeGradient}
+                >
+                  <ThemedText type="body" style={styles.upgradeText}>
+                    {upgradeLabel}
+                  </ThemedText>
+                  <Feather name="arrow-right" size={16} color={COLORS.midnight} />
+                </LinearGradient>
+              </Pressable>
+            ) : null}
 
             <Pressable onPress={handleDismiss} style={styles.dismissBtn} hitSlop={8}>
               <ThemedText type="body" style={styles.dismissText}>
@@ -104,10 +120,17 @@ export function LiveAiBudgetModal({
               </ThemedText>
             </Pressable>
           </LinearGradient>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
+}
+
+/** Extract plan tier from a thrown AI budget API error (server usage snapshot). */
+export function planTierFromBudgetError(err: unknown): SubscriptionTier | null {
+  const usage = (err as { usage?: { tier?: string } } | null)?.usage;
+  if (usage?.tier) return normalizeSubscriptionTier(usage.tier);
+  return null;
 }
 
 const styles = StyleSheet.create({

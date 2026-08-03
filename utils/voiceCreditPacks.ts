@@ -1,11 +1,11 @@
 /** Benefit-led labels for voice credit packs (matches ASC metadata tone). */
 export const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: string }> = {
-  boost: { label: 'Voice Boost', subtitle: 'For when you want more personalised advice' },
-  pro: { label: 'Pro Pack', subtitle: 'Perfect for daily outfit planning' },
-  weekend: { label: '2-Day Unlimited', subtitle: 'Unlimited voice for 48 hours — buy any day' },
+  boost: { label: 'Voice Boost', subtitle: '30 spoken replies — for when you want more personalised advice' },
+  pro: { label: 'Pro Pack', subtitle: '80 spoken replies — perfect for daily outfit planning' },
+  weekend: { label: 'Voice 50', subtitle: '50 spoken replies — the middle ground between Boost and Pro' },
 };
 
-/** Display order in the buy-credits modal: 2-Day Unlimited → Pro (most popular) → Boost */
+/** Display order in the buy-credits modal: Voice Pass → Pro (most popular) → Boost */
 export const VOICE_PACK_DISPLAY_ORDER = ['weekend', 'pro', 'boost'] as const;
 
 const VOICE_PACK_ORDER_RANK: Record<string, number> = Object.fromEntries(
@@ -22,8 +22,8 @@ export function sortVoiceCreditPacks<T extends { id: string }>(list: T[]): T[] {
 
 /** Pack prices in pence — matches server VOICE_CREDIT_PACKAGES / ASC UK tier */
 export const VOICE_PACK_PRICE_PENCE: Record<string, number> = {
-  boost: 299,
-  pro: 599,
+  boost: 699,
+  pro: 1499,
   weekend: 899,
 };
 
@@ -36,7 +36,7 @@ export function getVoicePackDisplay(
   const mapped = VOICE_PACK_DISPLAY[packageId];
   if (mapped) return mapped;
   if (weekendUnlimited) {
-    return { label: fallbackDescription, subtitle: 'Unlimited voice for 48 hours' };
+    return { label: fallbackDescription, subtitle: '50 spoken replies over 48 hours' };
   }
   return { label: fallbackDescription, subtitle: `${credits} spoken replies` };
 }

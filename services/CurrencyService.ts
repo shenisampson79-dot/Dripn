@@ -74,19 +74,19 @@ export const PRICE_CATALOG: Record<
     personal_stylist: { monthly: 9.99, yearly: 95.99 },
     stylist_unlimited: { monthly: 19.99, yearly: 191.99 },
     dfy: { outfit_setup: 19.99, wardrobe_setup: 39.99 },
-    voice: { boost: 2.99, pro: 5.99, weekend: 8.99 },
+    voice: { boost: 6.99, pro: 14.99, weekend: 8.99 },
   },
   USD: {
     personal_stylist: { monthly: 9.99, yearly: 95.99 },
     stylist_unlimited: { monthly: 19.99, yearly: 191.99 },
     dfy: { outfit_setup: 19.99, wardrobe_setup: 39.99 },
-    voice: { boost: 2.99, pro: 5.99, weekend: 8.99 },
+    voice: { boost: 6.99, pro: 14.99, weekend: 8.99 },
   },
   EUR: {
     personal_stylist: { monthly: 9.99, yearly: 95.99 },
     stylist_unlimited: { monthly: 19.99, yearly: 191.99 },
     dfy: { outfit_setup: 19.99, wardrobe_setup: 39.99 },
-    voice: { boost: 2.99, pro: 5.99, weekend: 8.99 },
+    voice: { boost: 6.99, pro: 14.99, weekend: 8.99 },
   },
 };
 

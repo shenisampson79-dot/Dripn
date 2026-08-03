@@ -51,31 +51,31 @@ const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
   ruby: {
     stylistId: 'ruby',
     stylistName: 'Ruby',
-    message: "Need more styling advice? 2-Day Unlimited gives you 48 hours of voice — or grab a credit pack anytime.",
+    message: "Need more styling advice? A 2-Day Voice Pass gives you 50 replies over 48 hours — or grab a credit pack anytime.",
     style: 'warm',
   },
   max: {
     stylistId: 'max',
     stylistName: 'Max',
-    message: "You've used your voice replies. 2-Day Unlimited or credit packs add more instantly — text chat stays unlimited.",
+    message: "You've used your voice replies. 2-Day Voice Pass or credit packs add more instantly — text chat stays available.",
     style: 'direct',
   },
   ace: {
     stylistId: 'ace',
     stylistName: 'Ace',
-    message: "Cap hit. 2-Day Unlimited or a credit pack fixes it. Text still unlimited.",
+    message: "Cap hit. 2-Day Voice Pass or a credit pack fixes it. Text still available.",
     style: 'brief',
   },
   ivy: {
     stylistId: 'ivy',
     stylistName: 'Ivy',
-    message: "Need more styling advice? 2-Day Unlimited unlocks 48 hours of voice — I'm still here for unlimited text.",
+    message: "Need more styling advice? A 2-Day Voice Pass unlocks 50 replies over 48 hours — I'm still here for text.",
     style: 'logical',
   },
 };
 const USAGE_NUDGES: Record<NonNullable<SoftCapWarning>, string> = {
-  usage_high: "Need more styling advice? You're making great use of voice — 2-Day Unlimited or credit packs are ready when you need them.",
-  approaching_limit: "You've used your included voice replies — grace replies still available, or try 2-Day Unlimited for 48 hours of voice.",
+  usage_high: "Need more styling advice? You're making great use of voice — a 2-Day Voice Pass or credit packs are ready when you need them.",
+  approaching_limit: "You've used your included voice replies — grace replies still available, or try a 2-Day Voice Pass for 50 replies over 48 hours.",
 };
 function formatPence(pricePence?: number): string {
   if (pricePence == null) return '';
@@ -150,7 +150,7 @@ export function getVoiceUsageNudge(
 ): string | null {
   if (!credits) return null;
   if (credits.remaining <= 0 && credits.monthlyAllowance > 0) {
-    return "Need more styling advice? 2-Day Unlimited gives 48 hours of voice — or add a credit pack right away.";
+    return "Need more styling advice? A 2-Day Voice Pass gives 50 replies over 48 hours — or add a credit pack right away.";
   }
   if (credits.softCapWarning && USAGE_NUDGES[credits.softCapWarning]) {
     return USAGE_NUDGES[credits.softCapWarning];
@@ -324,7 +324,7 @@ function useVoiceCreditsState() {
         id: pkg.id,
         credits: pkg.credits,
         name: pkg.name,
-        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? '2-Day Unlimited' : `${pkg.credits} voice credits`),
+        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? '2-Day Voice Pass' : `${pkg.credits} voice credits`),
         priceLabel: resolvePackagePriceLabel(pkg),
         priceGBP: pkg.priceGBP,
         discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
