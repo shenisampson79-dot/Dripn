@@ -240,6 +240,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     });
   }, [navigation, budgetPlanTier, tier]);
 
+  const openAiTopUp = useCallback(() => {
+    setShowBudgetModal(false);
+    setIsLive(false);
+    const destination: LiveExitDestination = {
+      kind: 'subscription',
+      scrollToAiTopUp: true,
+    };
+    requestAnimationFrame(() => {
+      leaveLiveAndNavigate(navigation, destination);
+    });
+  }, [navigation]);
+
   const openSanityCheck = useCallback(() => {
     setShowBudgetModal(false);
     setIsLive(false);
@@ -790,6 +802,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         visible={showBudgetModal}
         onClose={() => setShowBudgetModal(false)}
         onUpgrade={openSubscription}
+        onBuyCredit={openAiTopUp}
         onContinueSanityCheck={openSanityCheck}
         planTier={budgetPlanTier || tier}
       />

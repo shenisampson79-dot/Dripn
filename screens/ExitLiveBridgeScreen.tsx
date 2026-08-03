@@ -1,7 +1,7 @@
 /**
  * Blank stand-in that replaces Live so the camera screen unmounts cleanly.
- * Navigation to Subscription / Sanity Check runs only AFTER this bridge pops —
- * never during Live teardown.
+ * Root navigation runs WHILE the bridge still covers the screen (black),
+ * then the bridge pops in the background — no Stylist hub flash.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -35,7 +35,10 @@ function applyDestination(dest: LiveExitDestination): boolean {
   if (!root?.isReady()) return false;
 
   if (dest.kind === 'subscription') {
-    navigateToSubscription(root, dest.highlightPlan);
+    navigateToSubscription(root, {
+      highlightPlan: dest.highlightPlan,
+      scrollToAiTopUp: dest.scrollToAiTopUp,
+    });
     return true;
   }
 
@@ -46,23 +49,6 @@ function applyDestination(dest: LiveExitDestination): boolean {
     }),
   );
   return true;
-}
-
-function scheduleRootNavigate(dest: LiveExitDestination) {
-  let done = false;
-  const attempt = () => {
-    if (done) return;
-    if (applyDestination(dest)) {
-      done = true;
-    }
-  };
-
-  InteractionManager.runAfterInteractions(() => {
-    setTimeout(attempt, 80);
-  });
-  // Retry if root ref was not ready on first tick
-  setTimeout(attempt, 250);
-  setTimeout(attempt, 500);
 }
 
 export default function ExitLiveBridgeScreen({ navigation, route }: Props) {
@@ -81,33 +67,49 @@ export default function ExitLiveBridgeScreen({ navigation, route }: Props) {
     }
 
     let finished = false;
+    let popTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const dismissThenNavigate = () => {
+    const navigateThenPopBridge = () => {
       if (finished) return;
       finished = true;
-      try {
-        if (navigation.canGoBack()) navigation.goBack();
-      } catch {
-        /* ignore */
-      }
+
       const dest = takePendingLiveExit() || destination;
-      scheduleRootNavigate(dest);
+      const ok = applyDestination(dest);
+      if (!ok) {
+        // Root not ready — retry once, still while bridge covers the UI
+        setTimeout(() => {
+          applyDestination(dest);
+          popBridgeSoon();
+        }, 200);
+        return;
+      }
+      popBridgeSoon();
     };
 
-    // Live (camera) is already gone — InteractionManager is safe here.
+    const popBridgeSoon = () => {
+      // Pop after tab switch has committed so the user never sees Stylist hub.
+      popTimer = setTimeout(() => {
+        try {
+          if (navigation.canGoBack()) navigation.goBack();
+        } catch {
+          /* ignore */
+        }
+      }, 120);
+    };
+
     const handle = InteractionManager.runAfterInteractions(() => {
-      setTimeout(dismissThenNavigate, 80);
+      setTimeout(navigateThenPopBridge, 40);
     });
 
-    const hardFallback = setTimeout(dismissThenNavigate, 700);
+    const hardFallback = setTimeout(navigateThenPopBridge, 500);
 
     return () => {
       handle.cancel?.();
       clearTimeout(hardFallback);
+      if (popTimer) clearTimeout(popTimer);
     };
   }, [navigation, route.params?.destination]);
 
-  // Never intercept touches — blank pass-through while briefly on screen
   return <View style={styles.root} pointerEvents="none" />;
 }
 

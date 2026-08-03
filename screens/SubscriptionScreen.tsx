@@ -252,6 +252,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const { user, refreshSubscriptionFromBackend, applyLocalSubscriptionTier } = useAuth();
   const scrollViewRef = useRef<any>(null);
   const plansSectionY = useRef(0);
+  const aiTopUpSectionY = useRef(0);
   const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
@@ -393,6 +394,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
   const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
   const [highlightPlans, setHighlightPlans] = useState(false);
+  const [highlightAiTopUp, setHighlightAiTopUp] = useState(false);
 
   useEffect(() => {
     const params = route?.params ?? {};
@@ -538,6 +540,20 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       }, 300);
     }
   }, [route?.params?.scrollToDFY]);
+
+  // Personal Stylist overflow — land on AI Top-Up packs, not plan cards
+  useEffect(() => {
+    if (!route?.params?.scrollToAiTopUp) return;
+    setHighlightAiTopUp(true);
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, aiTopUpSectionY.current - 20),
+        animated: true,
+      });
+      setTimeout(() => setHighlightAiTopUp(false), 2800);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [route?.params?.scrollToAiTopUp]);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: t('subscription.screenTitle') });
@@ -1356,6 +1372,92 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         {PLANS.map(renderPlanCard)}
       </View>
 
+      {/* AI meter top-ups — stay on Personal Stylist without upgrading the plan */}
+      {normalizedTier === 'personal_stylist' || normalizedTier === 'stylist_unlimited' || route?.params?.scrollToAiTopUp ? (
+        <View
+          style={[
+            styles.aiTopUpSection,
+            highlightAiTopUp && {
+              borderWidth: 2,
+              borderColor: LUXURY_COLORS.gold,
+            },
+          ]}
+          onLayout={(event) => {
+            aiTopUpSectionY.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            {t('subscription.aiTopUp.title') || 'AI Top-Up'}
+          </ThemedText>
+          <ThemedText type="body" style={styles.aiTopUpSubtitle}>
+            {t('subscription.aiTopUp.subtitle')
+              || 'Need more Live and chat this month? Buy extra credit without changing your subscription.'}
+          </ThemedText>
+
+          {[
+            {
+              id: 'standard',
+              name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
+              price: '£5.99',
+              detail: t('subscription.aiTopUp.standardDetail') || '+$3 AI allowance this month',
+            },
+            {
+              id: 'plus',
+              name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
+              price: '£10.99',
+              detail: t('subscription.aiTopUp.plusDetail') || '+$6 AI allowance this month',
+              bestValue: true,
+            },
+          ].map((pack) => (
+            <Pressable
+              key={pack.id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                Alert.alert(
+                  pack.name,
+                  t('subscription.aiTopUp.comingSoon')
+                    || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.',
+                  [
+                    { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+                    {
+                      text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
+                      onPress: () => {
+                        setSelectedPlan('stylist_unlimited');
+                        scrollToPlans();
+                      },
+                    },
+                  ],
+                );
+              }}
+              style={[
+                styles.aiTopUpCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                  borderColor: pack.bestValue ? LUXURY_COLORS.gold : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
+                },
+              ]}
+            >
+              <View style={styles.aiTopUpCardText}>
+                <View style={styles.aiTopUpNameRow}>
+                  <ThemedText type="body" style={{ fontWeight: '700' }}>{pack.name}</ThemedText>
+                  {pack.bestValue ? (
+                    <View style={[styles.aiTopUpBadge, { backgroundColor: LUXURY_COLORS.gold }]}>
+                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
+                        {t('subscription.bestValue') || 'Best value'}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+                <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }}>
+                  {pack.detail}
+                </ThemedText>
+              </View>
+              <ThemedText type="h3" style={{ color: LUXURY_COLORS.gold }}>{pack.price}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
           {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
@@ -1747,6 +1849,42 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     marginBottom: Spacing.lg,
+  },
+  aiTopUpSection: {
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  aiTopUpSubtitle: {
+    opacity: 0.8,
+    marginBottom: Spacing.md,
+    lineHeight: 20,
+  },
+  aiTopUpCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    marginBottom: Spacing.sm,
+  },
+  aiTopUpCardText: {
+    flex: 1,
+    paddingRight: Spacing.md,
+  },
+  aiTopUpNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  aiTopUpBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
   },
   restorePurchasesButton: {
     flexDirection: 'row',

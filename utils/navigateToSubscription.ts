@@ -7,6 +7,8 @@ type DispatchableNavigation = {
 export type SubscriptionNavParams = {
   highlightPlan?: string;
   scrollToDFY?: boolean;
+  /** Scroll to AI meter top-up packs (extra Live/chat allowance). */
+  scrollToAiTopUp?: boolean;
   offer50?: boolean;
   pause?: boolean;
   winbackBanner?: string;

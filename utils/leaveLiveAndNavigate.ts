@@ -4,11 +4,17 @@
  * Flow:
  * 1. Live hard-unmounts the budget overlay and stops the camera.
  * 2. Live `replace`s itself with ExitLiveBridge (camera fully torn down).
- * 3. Bridge pops itself, then root-navigates after interactions settle.
+ * 3. Bridge root-navigates while still covering the screen, then pops itself
+ *    in the background (no Stylist hub flash).
  */
 
 export type LiveExitDestination =
-  | { kind: 'subscription'; highlightPlan?: string }
+  | {
+      kind: 'subscription';
+      highlightPlan?: string;
+      /** Scroll Subscription to AI Top-Up packs (Personal Stylist overflow). */
+      scrollToAiTopUp?: boolean;
+    }
   | { kind: 'sanity' };
 
 type ReplaceableNav = {

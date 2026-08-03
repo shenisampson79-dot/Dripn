@@ -56,6 +56,7 @@ export type ProfileStackParamList = {
   Subscription: {
     highlightPlan?: SubscriptionTier;
     scrollToDFY?: boolean;
+    scrollToAiTopUp?: boolean;
     offer50?: boolean;
     pause?: boolean;
     winbackBanner?: string;

@@ -32,6 +32,8 @@ type Props = {
   /** Backdrop — just close the sheet. */
   onClose: () => void;
   onUpgrade: () => void;
+  /** Personal Stylist overflow — buy AI meter top-up without changing plan. */
+  onBuyCredit?: () => void;
   /** Leave Live and open Quick Sanity Check. */
   onContinueSanityCheck: () => void;
   /**
@@ -45,13 +47,16 @@ export function LiveAiBudgetModal({
   visible,
   onClose,
   onUpgrade,
+  onBuyCredit,
   onContinueSanityCheck,
   planTier = null,
 }: Props) {
   const { t } = useTranslations();
   const tier = normalizeSubscriptionTier(planTier);
   const topTier = isTopTier(tier);
-  const canUpgrade = tier === 'free' || tier === 'personal_stylist';
+  const isPersonal = tier === 'personal_stylist';
+  const canUpgrade = tier === 'free' || isPersonal;
+  const showBuyCredit = isPersonal && typeof onBuyCredit === 'function';
 
   const title = t('live.budgetModal.title')
     || "That's your lot for this month";
@@ -59,13 +64,16 @@ export function LiveAiBudgetModal({
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
       || "Your live AI styling allowance is empty. Keep going with Quick sanity check or Stylist Chat — Live will be ready when your pot refills.")
-    : tier === 'personal_stylist'
+    : isPersonal
       ? (t('live.budgetModal.bodyPersonal')
-        || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot, or continue with Quick sanity check or Stylist Chat.")
+        || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot, or buy more credit to keep going on your current plan.")
       : (t('live.budgetModal.body')
         || "Your live AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or continue with Quick sanity check or Stylist Chat.");
 
-  const upgradeLabel = t('live.budgetModal.upgrade') || 'See plans';
+  const upgradeLabel = isPersonal
+    ? (t('live.budgetModal.upgradePlan') || 'Upgrade plan')
+    : (t('live.budgetModal.upgrade') || 'See plans');
+  const buyCreditLabel = t('live.budgetModal.buyCredit') || 'Buy more credit';
   const dismissLabel = t('live.budgetModal.dismiss') || 'Continue with Quick Sanity Check';
 
   // HARD unmount — never leave an invisible touch-blocking layer
@@ -74,6 +82,11 @@ export function LiveAiBudgetModal({
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onUpgrade();
+  };
+
+  const handleBuyCredit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onBuyCredit?.();
   };
 
   const handleContinueSanity = () => {
@@ -122,6 +135,14 @@ export function LiveAiBudgetModal({
                   {upgradeLabel}
                 </ThemedText>
               </LinearGradient>
+            </Pressable>
+          ) : null}
+
+          {showBuyCredit ? (
+            <Pressable onPress={handleBuyCredit} style={styles.secondaryBtn}>
+              <ThemedText type="body" style={styles.secondaryText}>
+                {buyCreditLabel}
+              </ThemedText>
             </Pressable>
           ) : null}
 
@@ -199,6 +220,20 @@ const styles = StyleSheet.create({
   },
   upgradeText: {
     color: COLORS.midnight,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,168,124,0.65)',
+    marginBottom: Spacing.sm,
+  },
+  secondaryText: {
+    color: COLORS.gold,
     fontWeight: '700',
   },
   dismissBtn: {
