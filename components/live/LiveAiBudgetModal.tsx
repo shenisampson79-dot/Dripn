@@ -1,12 +1,12 @@
 /**
  * Live AI monthly-usage limit — charming pause, not a cold error.
  *
- * In-screen overlay (not RN Modal). When hidden it returns null so nothing
- * remains in the tree to intercept touches.
+ * Absolute overlay only (never in layout flow). Parent should also hide the
+ * Live footer while this is visible so controls cannot sit above the sheet.
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -63,12 +63,12 @@ export function LiveAiBudgetModal({
 
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Your live AI styling allowance is empty. Keep going with Quick sanity check or Stylist Chat — Live will be ready when your pot refills.")
+      || "Your live AI styling allowance is empty. Keep going with Quick sanity check and Stylist Chat — Live will be ready when your pot refills.")
     : isPersonal
       ? (t('live.budgetModal.bodyPersonal')
-        || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot, or buy more credit to keep going on your current plan.")
+        || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot or buy more credit to keep going on your current plan.")
       : (t('live.budgetModal.body')
-        || "Your live AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or continue with Quick sanity check or Stylist Chat.");
+        || "Your live AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot or continue with Quick sanity check and Stylist Chat.");
 
   const upgradeLabel = isPersonal
     ? (t('live.budgetModal.upgradePlan') || 'Upgrade plan')
@@ -99,8 +99,14 @@ export function LiveAiBudgetModal({
     onClose();
   };
 
+  const { width, height } = Dimensions.get('window');
+
   return (
-    <View style={styles.overlay} pointerEvents="auto">
+    <View
+      style={[styles.overlay, { width, height }]}
+      pointerEvents="auto"
+      collapsable={false}
+    >
       <Pressable
         style={StyleSheet.absoluteFill}
         onPress={handleBackdrop}
@@ -166,9 +172,13 @@ export function planTierFromBudgetError(err: unknown): SubscriptionTier | null {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
-    elevation: 100,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    elevation: 1000,
     backgroundColor: 'rgba(0,0,0,0.72)',
     justifyContent: 'flex-end',
   },

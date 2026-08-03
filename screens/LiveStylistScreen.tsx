@@ -224,7 +224,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [t, tier]);
 
   const openSubscription = useCallback(() => {
-    // 1) Hard-unmount overlay + stop camera before any navigation
     setShowBudgetModal(false);
     setIsLive(false);
     const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
@@ -233,32 +232,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       : plan === 'personal_stylist'
         ? 'stylist_unlimited'
         : undefined;
-    const destination: LiveExitDestination = { kind: 'subscription', highlightPlan };
-    // 2) Let React commit overlay unmount, then replace Live (no navigate-during-pop)
-    requestAnimationFrame(() => {
-      leaveLiveAndNavigate(navigation, destination);
-    });
+    leaveLiveAndNavigate(navigation, { kind: 'subscription', highlightPlan });
   }, [navigation, budgetPlanTier, tier]);
 
   const openAiTopUp = useCallback(() => {
     setShowBudgetModal(false);
     setIsLive(false);
-    const destination: LiveExitDestination = {
+    leaveLiveAndNavigate(navigation, {
       kind: 'subscription',
       scrollToAiTopUp: true,
-    };
-    requestAnimationFrame(() => {
-      leaveLiveAndNavigate(navigation, destination);
     });
   }, [navigation]);
 
   const openSanityCheck = useCallback(() => {
     setShowBudgetModal(false);
     setIsLive(false);
-    const destination: LiveExitDestination = { kind: 'sanity' };
-    requestAnimationFrame(() => {
-      leaveLiveAndNavigate(navigation, destination);
-    });
+    leaveLiveAndNavigate(navigation, { kind: 'sanity' });
   }, [navigation]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
@@ -742,6 +731,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ) : null}
       </View>
 
+      {!showBudgetModal ? (
       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.metaRow}>
           <Pressable
@@ -797,6 +787,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           </Pressable>
         </View>
       </LinearGradient>
+      ) : null}
 
       <LiveAiBudgetModal
         visible={showBudgetModal}

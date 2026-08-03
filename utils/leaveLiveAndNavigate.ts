@@ -1,55 +1,92 @@
 /**
- * Leave Live without navigating during Live's unmount.
+ * Leave Live without flashing Stylist hub.
  *
- * Flow:
- * 1. Live hard-unmounts the budget overlay and stops the camera.
- * 2. Live `replace`s itself with ExitLiveBridge (camera fully torn down).
- * 3. Bridge root-navigates while still covering the screen, then pops itself
- *    in the background (no Stylist hub flash).
+ * Keep Live (fullScreenModal) mounted as a cover, navigate on the root
+ * navigator first, then dismiss Live. Never replace→pop (that reveals hub).
  */
+
+import { CommonActions } from '@react-navigation/native';
+import { getNavigationRef } from '@/components/ErrorFallback';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
 
 export type LiveExitDestination =
   | {
       kind: 'subscription';
       highlightPlan?: string;
-      /** Scroll Subscription to AI Top-Up packs (Personal Stylist overflow). */
       scrollToAiTopUp?: boolean;
     }
   | { kind: 'sanity' };
 
-type ReplaceableNav = {
-  replace: (name: 'ExitLiveBridge', params: { destination: LiveExitDestination }) => void;
+type LiveNav = {
+  canGoBack: () => boolean;
+  goBack: () => void;
+  replace?: (name: string, params?: object) => void;
 };
 
-let pendingAfterBridge: LiveExitDestination | null = null;
+function applyDestination(dest: LiveExitDestination): boolean {
+  const root = getNavigationRef();
+  if (!root?.isReady()) return false;
 
-export function setPendingLiveExit(destination: LiveExitDestination) {
-  pendingAfterBridge = destination;
+  if (dest.kind === 'subscription') {
+    navigateToSubscription(root, {
+      highlightPlan: dest.highlightPlan,
+      scrollToAiTopUp: dest.scrollToAiTopUp,
+    });
+    return true;
+  }
+
+  root.dispatch(
+    CommonActions.navigate({
+      name: 'StylistTab',
+      params: { screen: 'SanityCheck' },
+    }),
+  );
+  return true;
 }
 
-export function takePendingLiveExit(): LiveExitDestination | null {
-  const dest = pendingAfterBridge;
-  pendingAfterBridge = null;
-  return dest;
-}
-
-export function peekPendingLiveExit(): LiveExitDestination | null {
-  return pendingAfterBridge;
+function dismissLive(navigation: LiveNav) {
+  try {
+    if (navigation.canGoBack()) navigation.goBack();
+  } catch {
+    /* already leaving */
+  }
 }
 
 /**
- * Replace Live with the exit bridge. Do NOT call goBack + navigate from Live —
- * that races the fullScreenModal teardown and can leave a touch deadlock.
+ * Navigate to the destination while Live still covers the UI, then dismiss Live.
  */
 export function leaveLiveAndNavigate(
-  navigation: ReplaceableNav,
+  navigation: LiveNav,
   destination: LiveExitDestination,
 ) {
-  setPendingLiveExit(destination);
-  navigation.replace('ExitLiveBridge', { destination });
+  // Sanity Check on the same stack: replace Live directly (no hub flash).
+  if (destination.kind === 'sanity' && typeof navigation.replace === 'function') {
+    try {
+      navigation.replace('SanityCheck');
+      return;
+    } catch {
+      /* fall through to root navigate + dismiss */
+    }
+  }
+
+  const go = () => {
+    const ok = applyDestination(destination);
+    // Dismiss Live after the destination has had a moment to mount under us.
+    setTimeout(() => dismissLive(navigation), ok ? 220 : 400);
+    if (!ok) {
+      setTimeout(() => {
+        applyDestination(destination);
+      }, 120);
+    }
+  };
+
+  // Let the budget overlay unmount / camera stop commit first.
+  requestAnimationFrame(() => {
+    setTimeout(go, 32);
+  });
 }
 
-/** @deprecated Bridge owns navigation now. */
+/** @deprecated No pending bridge flush — kept for any leftover callers. */
 export function flushPendingLiveExit() {
-  /* no-op — ExitLiveBridgeScreen handles the hop */
+  /* no-op */
 }
