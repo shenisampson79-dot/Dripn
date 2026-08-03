@@ -8,6 +8,7 @@ import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import DigitizeWardrobeScreen from "@/screens/DigitizeWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
+import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
@@ -24,6 +25,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import { DFYTier } from "@/services/DFYService";
+import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
 
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
@@ -44,6 +46,7 @@ export type WardrobeStackParamList = {
   /** Wardrobe Creation layer — digitise rail/drawer photos into items. */
   DigitizeWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
+  ExitLiveBridge: { destination: LiveExitDestination };
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   OutfitBuilder: undefined;
@@ -128,6 +131,16 @@ export default function WardrobeStackNavigator() {
           title: "Live Stylist",
           headerShown: false,
           presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="ExitLiveBridge"
+        component={ExitLiveBridgeScreen}
+        options={{
+          headerShown: false,
+          animation: "none",
+          presentation: "fullScreenModal",
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen

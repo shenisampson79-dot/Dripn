@@ -15,6 +15,7 @@ import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
+import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
@@ -47,6 +48,7 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 import type { SubscriptionTier } from "@/contexts/AuthContext";
+import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
 
 export type ProfileStackParamList = {
   Profile: undefined;
@@ -70,6 +72,7 @@ export type ProfileStackParamList = {
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
+  ExitLiveBridge: { destination: LiveExitDestination };
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   Support: undefined;
@@ -227,6 +230,16 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Live Stylist",
           headerShown: false,
           presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="ExitLiveBridge"
+        component={ExitLiveBridgeScreen}
+        options={{
+          headerShown: false,
+          animation: "none",
+          presentation: "fullScreenModal",
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen

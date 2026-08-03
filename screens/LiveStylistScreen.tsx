@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  InteractionManager,
   Linking,
   Modal,
   Platform,
@@ -24,7 +23,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CommonActions, RouteProp } from '@react-navigation/native';
+import { RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
 import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
@@ -60,9 +59,9 @@ import {
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
-import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
+import type { LiveExitDestination } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
-import { getNavigationRef } from '@/components/ErrorFallback';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -112,6 +111,7 @@ type LiveParams = {
 type NavParamList = {
   LiveStylist: LiveParams | undefined;
   ScanWardrobe: undefined;
+  ExitLiveBridge: { destination: LiveExitDestination };
 };
 
 type Props = {
@@ -223,67 +223,31 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     );
   }, [t, tier]);
 
-  /**
-   * Live is a fullScreenModal — navigating while it is still focused is swallowed.
-   * Dismiss Live first, then dispatch on the root NavigationContainer ref.
-   */
-  const leaveLiveThen = useCallback((runOnRoot: (root: { dispatch: (action: unknown) => void }) => void) => {
+  const openSubscription = useCallback(() => {
+    // 1) Hard-unmount overlay + stop camera before any navigation
     setShowBudgetModal(false);
     setIsLive(false);
-
-    const dispatchOnRoot = () => {
-      const rootNav = getNavigationRef();
-      if (rootNav?.isReady()) {
-        runOnRoot(rootNav);
-        return;
-      }
-      // Walk up to the topmost parent if the global ref is not ready yet
-      let nav: { dispatch: (action: unknown) => void; getParent?: () => unknown } = navigation as never;
-      let parent = typeof (navigation as { getParent?: () => unknown }).getParent === 'function'
-        ? (navigation as { getParent: () => unknown }).getParent()
-        : null;
-      while (parent && typeof (parent as { getParent?: () => unknown }).getParent === 'function') {
-        nav = parent as typeof nav;
-        parent = (parent as { getParent: () => unknown }).getParent();
-      }
-      if (parent && typeof (parent as { dispatch?: unknown }).dispatch === 'function') {
-        nav = parent as typeof nav;
-      }
-      runOnRoot(nav);
-    };
-
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-    // After the modal pop commits, switch tabs/stacks on the root navigator
-    InteractionManager.runAfterInteractions(() => {
-      setTimeout(dispatchOnRoot, 80);
-    });
-  }, [navigation]);
-
-  const openSubscription = useCallback(() => {
     const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
     const highlightPlan = plan === 'free'
       ? 'personal_stylist'
       : plan === 'personal_stylist'
         ? 'stylist_unlimited'
         : undefined;
-
-    leaveLiveThen((root) => {
-      navigateToSubscription(root as Parameters<typeof navigateToSubscription>[0], highlightPlan);
+    const destination: LiveExitDestination = { kind: 'subscription', highlightPlan };
+    // 2) Let React commit overlay unmount, then replace Live (no navigate-during-pop)
+    requestAnimationFrame(() => {
+      leaveLiveAndNavigate(navigation, destination);
     });
-  }, [leaveLiveThen, budgetPlanTier, tier]);
+  }, [navigation, budgetPlanTier, tier]);
 
   const openSanityCheck = useCallback(() => {
-    leaveLiveThen((root) => {
-      root.dispatch(
-        CommonActions.navigate({
-          name: 'StylistTab',
-          params: { screen: 'SanityCheck' },
-        }),
-      );
+    setShowBudgetModal(false);
+    setIsLive(false);
+    const destination: LiveExitDestination = { kind: 'sanity' };
+    requestAnimationFrame(() => {
+      leaveLiveAndNavigate(navigation, destination);
     });
-  }, [leaveLiveThen]);
+  }, [navigation]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return;

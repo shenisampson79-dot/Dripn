@@ -1,9 +1,12 @@
 /**
  * Live AI monthly-usage limit — charming pause, not a cold error.
+ *
+ * In-screen overlay (not RN Modal). When hidden it returns null so nothing
+ * remains in the tree to intercept touches.
  */
 
 import React from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -26,7 +29,7 @@ const COLORS = {
 
 type Props = {
   visible: boolean;
-  /** Backdrop / Android back — just close the sheet. */
+  /** Backdrop — just close the sheet. */
   onClose: () => void;
   onUpgrade: () => void;
   /** Leave Live and open Quick Sanity Check. */
@@ -55,15 +58,18 @@ export function LiveAiBudgetModal({
 
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Your monthly AI styling pot is empty. Keep going with Quick sanity check or Stylist Chat — Live will be ready when your pot refills.")
+      || "Your live AI styling allowance is empty. Keep going with Quick sanity check or Stylist Chat — Live will be ready when your pot refills.")
     : tier === 'personal_stylist'
       ? (t('live.budgetModal.bodyPersonal')
-        || "Your AI styling allowance is spent. Upgrade for a bigger monthly pot, or continue with Quick sanity check or Stylist Chat.")
+        || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot, or continue with Quick sanity check or Stylist Chat.")
       : (t('live.budgetModal.body')
-        || "Your AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or continue with Quick sanity check or Stylist Chat.");
+        || "Your live AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or continue with Quick sanity check or Stylist Chat.");
 
   const upgradeLabel = t('live.budgetModal.upgrade') || 'See plans';
   const dismissLabel = t('live.budgetModal.dismiss') || 'Continue with Quick Sanity Check';
+
+  // HARD unmount — never leave an invisible touch-blocking layer
+  if (!visible) return null;
 
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -81,54 +87,52 @@ export function LiveAiBudgetModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleBackdrop}
-    >
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdrop} accessibilityRole="button" />
-        <View style={styles.sheet} pointerEvents="box-none">
-          <LinearGradient colors={[COLORS.midnight, COLORS.ink]} style={styles.gradient}>
-            <View style={styles.iconWrap}>
+    <View style={styles.overlay} pointerEvents="auto">
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={handleBackdrop}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss"
+      />
+      <View style={styles.sheet} pointerEvents="auto">
+        <LinearGradient colors={[COLORS.midnight, COLORS.ink]} style={styles.gradient}>
+          <View style={styles.iconWrap}>
+            <LinearGradient
+              colors={[COLORS.gold, COLORS.deepGold]}
+              style={styles.iconCircle}
+            >
+              <Feather name="coffee" size={22} color={COLORS.midnight} />
+            </LinearGradient>
+          </View>
+
+          <ThemedText type="h3" style={styles.title}>
+            {title}
+          </ThemedText>
+          <ThemedText type="body" style={styles.body}>
+            {body}
+          </ThemedText>
+
+          {canUpgrade ? (
+            <Pressable onPress={handleUpgrade} style={styles.upgradeBtn}>
               <LinearGradient
                 colors={[COLORS.gold, COLORS.deepGold]}
-                style={styles.iconCircle}
+                style={styles.upgradeGradient}
               >
-                <Feather name="coffee" size={22} color={COLORS.midnight} />
+                <ThemedText type="body" style={styles.upgradeText}>
+                  {upgradeLabel}
+                </ThemedText>
               </LinearGradient>
-            </View>
-
-            <ThemedText type="h3" style={styles.title}>
-              {title}
-            </ThemedText>
-            <ThemedText type="body" style={styles.body}>
-              {body}
-            </ThemedText>
-
-            {canUpgrade ? (
-              <Pressable onPress={handleUpgrade} style={styles.upgradeBtn}>
-                <LinearGradient
-                  colors={[COLORS.gold, COLORS.deepGold]}
-                  style={styles.upgradeGradient}
-                >
-                  <ThemedText type="body" style={styles.upgradeText}>
-                    {upgradeLabel}
-                  </ThemedText>
-                </LinearGradient>
-              </Pressable>
-            ) : null}
-
-            <Pressable onPress={handleContinueSanity} style={styles.dismissBtn} hitSlop={8}>
-              <ThemedText type="body" style={styles.dismissText}>
-                {dismissLabel}
-              </ThemedText>
             </Pressable>
-          </LinearGradient>
-        </View>
+          ) : null}
+
+          <Pressable onPress={handleContinueSanity} style={styles.dismissBtn} hitSlop={8}>
+            <ThemedText type="body" style={styles.dismissText}>
+              {dismissLabel}
+            </ThemedText>
+          </Pressable>
+        </LinearGradient>
       </View>
-    </Modal>
+    </View>
   );
 }
 
@@ -141,7 +145,9 @@ export function planTierFromBudgetError(err: unknown): SubscriptionTier | null {
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    elevation: 100,
     backgroundColor: 'rgba(0,0,0,0.72)',
     justifyContent: 'flex-end',
   },

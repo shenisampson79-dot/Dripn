@@ -11,6 +11,7 @@ import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
+import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
@@ -28,6 +29,7 @@ import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import type { DecisionType } from "@/services/DecisionService";
 import type { DecisionContinuityPayload } from "@/utils/decisionContinuity";
+import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
@@ -46,6 +48,7 @@ export type UserStylistStackParamList = {
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
+  ExitLiveBridge: { destination: LiveExitDestination };
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   WeatherOutfit: undefined;
@@ -141,6 +144,16 @@ export default function UserStylistStackNavigator() {
         name="LiveStylist"
         component={LiveStylistScreen}
         options={{ headerTitle: "Live Stylist", headerShown: false, presentation: "fullScreenModal" }}
+      />
+      <Stack.Screen
+        name="ExitLiveBridge"
+        component={ExitLiveBridgeScreen}
+        options={{
+          headerShown: false,
+          animation: "none",
+          presentation: "fullScreenModal",
+          gestureEnabled: false,
+        }}
       />
       <Stack.Screen
         name="BulkWardrobeUpload"
