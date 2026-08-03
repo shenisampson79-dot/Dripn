@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  InteractionManager,
   Linking,
   Modal,
   Platform,
@@ -23,7 +24,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { CommonActions, RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
 import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
@@ -222,8 +223,45 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     );
   }, [t, tier]);
 
-  const openSubscription = useCallback(() => {
+  /**
+   * Live is a fullScreenModal — navigating while it is still focused is swallowed.
+   * Dismiss Live first, then dispatch on the root NavigationContainer ref.
+   */
+  const leaveLiveThen = useCallback((runOnRoot: (root: { dispatch: (action: unknown) => void }) => void) => {
     setShowBudgetModal(false);
+    setIsLive(false);
+
+    const dispatchOnRoot = () => {
+      const rootNav = getNavigationRef();
+      if (rootNav?.isReady()) {
+        runOnRoot(rootNav);
+        return;
+      }
+      // Walk up to the topmost parent if the global ref is not ready yet
+      let nav: { dispatch: (action: unknown) => void; getParent?: () => unknown } = navigation as never;
+      let parent = typeof (navigation as { getParent?: () => unknown }).getParent === 'function'
+        ? (navigation as { getParent: () => unknown }).getParent()
+        : null;
+      while (parent && typeof (parent as { getParent?: () => unknown }).getParent === 'function') {
+        nav = parent as typeof nav;
+        parent = (parent as { getParent: () => unknown }).getParent();
+      }
+      if (parent && typeof (parent as { dispatch?: unknown }).dispatch === 'function') {
+        nav = parent as typeof nav;
+      }
+      runOnRoot(nav);
+    };
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+    // After the modal pop commits, switch tabs/stacks on the root navigator
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(dispatchOnRoot, 80);
+    });
+  }, [navigation]);
+
+  const openSubscription = useCallback(() => {
     const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
     const highlightPlan = plan === 'free'
       ? 'personal_stylist'
@@ -231,22 +269,21 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ? 'stylist_unlimited'
         : undefined;
 
-    // Live is presented as fullScreenModal — leave it first or Subscription
-    // opens underneath and it looks like we only closed the budget sheet.
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
+    leaveLiveThen((root) => {
+      navigateToSubscription(root as Parameters<typeof navigateToSubscription>[0], highlightPlan);
+    });
+  }, [leaveLiveThen, budgetPlanTier, tier]);
 
-    const go = () => {
-      const rootNav = getNavigationRef();
-      if (rootNav?.isReady()) {
-        navigateToSubscription(rootNav, highlightPlan);
-      } else {
-        navigateToSubscription(navigation, highlightPlan);
-      }
-    };
-    setTimeout(go, 80);
-  }, [navigation, budgetPlanTier, tier]);
+  const openSanityCheck = useCallback(() => {
+    leaveLiveThen((root) => {
+      root.dispatch(
+        CommonActions.navigate({
+          name: 'StylistTab',
+          params: { screen: 'SanityCheck' },
+        }),
+      );
+    });
+  }, [leaveLiveThen]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return;
@@ -789,6 +826,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         visible={showBudgetModal}
         onClose={() => setShowBudgetModal(false)}
         onUpgrade={openSubscription}
+        onContinueSanityCheck={openSanityCheck}
         planTier={budgetPlanTier || tier}
       />
 

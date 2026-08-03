@@ -26,8 +26,11 @@ const COLORS = {
 
 type Props = {
   visible: boolean;
+  /** Backdrop / Android back — just close the sheet. */
   onClose: () => void;
   onUpgrade: () => void;
+  /** Leave Live and open Quick Sanity Check. */
+  onContinueSanityCheck: () => void;
   /**
    * Billing tier from the *server* budget response when available.
    * Prefer this over cached local Auth — testing downgrades must show correctly.
@@ -39,6 +42,7 @@ export function LiveAiBudgetModal({
   visible,
   onClose,
   onUpgrade,
+  onContinueSanityCheck,
   planTier = null,
 }: Props) {
   const { t } = useTranslations();
@@ -51,24 +55,27 @@ export function LiveAiBudgetModal({
 
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Your monthly AI styling pot is empty. Keep going in Decisions or text chat — Live will be ready when your pot refills.")
+      || "Your monthly AI styling pot is empty. Keep going with Quick sanity check or Stylist Chat — Live will be ready when your pot refills.")
     : tier === 'personal_stylist'
       ? (t('live.budgetModal.bodyPersonal')
-        || "Your AI styling allowance is spent. Upgrade for a bigger monthly pot, or keep going in Decisions / text chat.")
+        || "Your AI styling allowance is spent. Upgrade for a bigger monthly pot, or continue with Quick sanity check or Stylist Chat.")
       : (t('live.budgetModal.body')
-        || "Your AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or keep going in Decisions / text chat.");
+        || "Your AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot, or continue with Quick sanity check or Stylist Chat.");
 
-  const upgradeLabel = tier === 'personal_stylist'
-    ? (t('live.budgetModal.upgradeUnlimited') || 'See plans →')
-    : (t('live.budgetModal.upgrade') || 'See plans →');
-  const dismissLabel = t('live.budgetModal.dismiss') || 'Continue in Decisions';
+  const upgradeLabel = t('live.budgetModal.upgrade') || 'See plans';
+  const dismissLabel = t('live.budgetModal.dismiss') || 'Continue with Quick Sanity Check';
 
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onUpgrade();
   };
 
-  const handleDismiss = () => {
+  const handleContinueSanity = () => {
+    Haptics.selectionAsync();
+    onContinueSanityCheck();
+  };
+
+  const handleBackdrop = () => {
     Haptics.selectionAsync();
     onClose();
   };
@@ -78,11 +85,11 @@ export function LiveAiBudgetModal({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={handleDismiss}
+      onRequestClose={handleBackdrop}
     >
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} accessibilityRole="button" />
-        <View style={styles.sheet}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdrop} accessibilityRole="button" />
+        <View style={styles.sheet} pointerEvents="box-none">
           <LinearGradient colors={[COLORS.midnight, COLORS.ink]} style={styles.gradient}>
             <View style={styles.iconWrap}>
               <LinearGradient
@@ -109,12 +116,11 @@ export function LiveAiBudgetModal({
                   <ThemedText type="body" style={styles.upgradeText}>
                     {upgradeLabel}
                   </ThemedText>
-                  <Feather name="arrow-right" size={16} color={COLORS.midnight} />
                 </LinearGradient>
               </Pressable>
             ) : null}
 
-            <Pressable onPress={handleDismiss} style={styles.dismissBtn} hitSlop={8}>
+            <Pressable onPress={handleContinueSanity} style={styles.dismissBtn} hitSlop={8}>
               <ThemedText type="body" style={styles.dismissText}>
                 {dismissLabel}
               </ThemedText>
