@@ -93,9 +93,13 @@ export function roleOfCategory(category: string, subcategory?: string): OutfitRo
 export function bottomSubtypeOf(det: OnDeviceDetection | null | undefined): BottomSubtype | null {
   if (!det) return null;
   const blob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
-  if (/short/.test(blob)) return 'shorts';
+  // Vision "chinos" / "trousers" / "pants" must win over hip-cropped bbox→shorts.
+  // Check trousers family BEFORE /short/ so we never mis-read labels.
+  if (/trouser|jean|chino|pant(?!y)|slacks/.test(blob) && !/\bshorts?\b/.test(blob)) {
+    return 'trousers';
+  }
+  if (/\bshorts?\b/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
-  if (/trouser|jean|pant/.test(blob)) return 'trousers';
   return classifyBottomSubtype(det.bbox as BBoxTuple);
 }
 
@@ -114,33 +118,49 @@ export function lockRoleTransition(
   return invalid ? previous : current;
 }
 
+function visionBottomLabelStrong(det: OnDeviceDetection): boolean {
+  const blob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  return /trouser|jean|chino|pant(?!y)|slacks|\bshorts?\b|skirt/.test(blob);
+}
+
 function prelabelBottom(det: OnDeviceDetection): OnDeviceDetection {
   if (roleOfCategory(det.category, det.subcategory) !== 'bottom') return det;
+  // Cloud/YOLO already named the piece — trust the label; geometry only fills blanks.
+  const labeled = visionBottomLabelStrong(det);
   let subtype = bottomSubtypeOf(det) || classifyBottomSubtype(det.bbox as BBoxTuple, {
     fabricColor: det.color,
   });
-  // Only promote shorts→trousers for true waist→floor columns
-  if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
+  if (!labeled) {
+    // Only promote shorts→trousers for true waist→floor columns
+    if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
+      subtype = 'trousers';
+    }
+    // Demote false trousers when the box is shorts+socks/boots
+    if (subtype === 'trousers' && looksLikeShortsWithFootwearExtension(det.bbox as BBoxTuple)) {
+      subtype = 'shorts';
+    }
+  } else if (subtype === 'trousers') {
+    // Never demote vision trousers/chinos to shorts on a short hip crop
+  } else if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
     subtype = 'trousers';
   }
-  // Demote false trousers when the box is shorts+socks/boots
-  if (subtype === 'trousers' && looksLikeShortsWithFootwearExtension(det.bbox as BBoxTuple)) {
-    subtype = 'shorts';
-  }
   const subcategory = subtype === 'shorts' ? 'shorts' : subtype === 'skirt' ? 'skirt' : 'trousers';
-  const bbox = subtype === 'shorts' ? clipShortsBbox(det.bbox as BBoxTuple) : det.bbox;
-  return {
-    ...det,
-    category: 'bottoms',
-    subcategory,
-    bbox,
-    name: formatGarmentDisplayName({
-      color: det.color,
+  const bbox = subtype === 'shorts' && !labeled ? clipShortsBbox(det.bbox as BBoxTuple) : det.bbox;
+    return {
+      ...det,
       category: 'bottoms',
       subcategory,
-    }),
+      bbox,
+      name: visionBottomLabelStrong(det) && det.name
+        ? det.name
+        : formatGarmentDisplayName({
+          color: det.color,
+          category: 'bottoms',
+          subcategory,
+          fallbackName: det.name,
+        }),
+    };
   };
-}
 
 function toSlot(det: OnDeviceDetection | null | undefined, role: OutfitRole, now: number): MemorySlot | null {
   if (!det) return null;
@@ -244,11 +264,14 @@ export function applyDetectionMemory(
     bottomColorHistory = colorLim.history;
     return {
       ...bottom,
-      name: formatGarmentDisplayName({
-        color: bottom.color,
-        category: bottom.category,
-        subcategory: bottom.subcategory || 'shorts',
-      }),
+      name: bottom.name && /sweatpant|jogger|chino|trouser|jean|skirt|short/i.test(bottom.name)
+        ? bottom.name
+        : formatGarmentDisplayName({
+          color: bottom.color,
+          category: bottom.category,
+          subcategory: bottom.subcategory || 'shorts',
+          fallbackName: bottom.name,
+        }),
     };
   });
 

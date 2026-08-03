@@ -33,6 +33,10 @@ import {
   syncCoachingToBelief,
   type BeliefPieceForCoach,
 } from '@/utils/liveLayeringIntelligence';
+import {
+  diffVisionToBelief,
+  type VisionMutationDiff,
+} from '@/utils/visionTrust';
 
 export type {
   BeliefDecision,
@@ -40,6 +44,7 @@ export type {
   GarmentBelief,
   OutfitBeliefState,
   BeliefPieceForCoach,
+  VisionMutationDiff,
 };
 
 export type BeliefSlots = {
@@ -97,6 +102,8 @@ export function updateLiveBelief(
   cropped: boolean;
   repairs: string[];
   decisions: BeliefDecision[];
+  /** Trusted vision labels that belief rewrote — empty when trust is honoured. */
+  mutations: VisionMutationDiff[];
 } {
   const decisions = opts?.decisions || [];
   const result = applyDetectionMemory(detections, memory, {
@@ -105,6 +112,16 @@ export function updateLiveBelief(
     occasionType: opts?.occasionType,
     decisions,
   });
+  const mutations = diffVisionToBelief(detections, result.detections, 'updateLiveBelief');
+  for (const m of mutations) {
+    appendDecision(decisions, {
+      type: 'reject',
+      message: `Vision override: ${m.before} → ${m.after}`,
+      reason: m.reason,
+      slot: 'frame',
+      time: opts?.now ?? Date.now(),
+    });
+  }
   return {
     detections: result.detections,
     memory: result.memory,
@@ -112,6 +129,7 @@ export function updateLiveBelief(
     cropped: result.cropped,
     repairs: result.repairs,
     decisions: result.decisions,
+    mutations,
   };
 }
 

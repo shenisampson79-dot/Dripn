@@ -27,11 +27,13 @@ import { RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
 import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
+import { LiveAiBudgetModal, isAiBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import {
   detectGarmentsOnDevice,
@@ -57,6 +59,8 @@ import {
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -116,12 +120,15 @@ type Props = {
 export default function LiveStylistScreen({ navigation, route }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
   const occasionType = route.params?.occasionType || 'casual_day';
   const yoloStatus = getOnDeviceYoloStatus();
+  const tier = normalizeSubscriptionTier(user?.subscriptionTier);
+  const onTopTier = isTopTier(tier);
 
   const [isLive, setIsLive] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -135,6 +142,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [showBeliefDebug, setShowBeliefDebug] = useState(true);
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
 
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
@@ -166,6 +174,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     frameDetections: OnDeviceDetection[];
     source: string;
     cropped: boolean;
+    mutations?: import('@/utils/visionTrust').VisionMutationDiff[];
   }) => {
     if (!mountedRef.current) return;
     const mem = detectionMemoryRef.current;
@@ -183,6 +192,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         footwearCandidates: mem.lastFootwearCandidates,
         footZone: mem.lastFootZone,
         shoeScore: mem.lastShoeScore,
+        mutations: args.mutations,
       }),
     );
   }, []);
@@ -195,6 +205,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setIsLive(false);
     };
   }, []);
+
+  const handleAiBudgetHit = useCallback(() => {
+    if (!mountedRef.current) return;
+    setIsLive(false);
+    setShowBudgetModal(true);
+    setStatusNote(t('live.budgetModal.statusNote') || 'Monthly AI allowance used — upgrade or wait until next month');
+  }, [t]);
+
+  const openSubscription = useCallback(() => {
+    setShowBudgetModal(false);
+    const highlightPlan = tier === 'free'
+      ? 'personal_stylist'
+      : tier === 'personal_stylist'
+        ? 'stylist_unlimited'
+        : undefined;
+    navigateToSubscription(navigation, highlightPlan);
+  }, [navigation, tier]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return;
@@ -218,6 +245,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         frameDetections: raw,
         source: String(res.source || 'cloud_vision'),
         cropped: stabilized.cropped,
+        mutations: stabilized.mutations,
       });
     } else if (
       detectionMemoryRef.current.belief?.top
@@ -401,6 +429,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           frameDetections: onDevice,
           source: 'on_device_yolo',
           cropped: stabilized.cropped,
+          mutations: stabilized.mutations,
         });
 
         const belief = stabilized.memory.belief;
@@ -422,6 +451,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       const res = await apiService.liveScanFrame(payload);
       if (!res.success) {
+        if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
+          handleAiBudgetHit();
+          return;
+        }
         setStatusNote(res.message || 'Scan failed');
         return;
       }
@@ -434,14 +467,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
       const msg = error instanceof Error ? error.message : 'Frame failed';
-      if (/rate limit|429/i.test(msg)) setStatusNote('Slowing down — rate limited');
-      else if (/budget|spend|limit/i.test(msg)) setStatusNote('AI budget reached for now');
-      else setStatusNote('Could not analyse frame');
+      if (isAiBudgetError(error)) {
+        handleAiBudgetHit();
+      } else if (/rate limit|429/i.test(msg) && !/usage limit/i.test(msg)) {
+        setStatusNote('Slowing down — rate limited');
+      } else {
+        setStatusNote('Could not analyse frame');
+      }
     } finally {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, occasionType, paintBeliefItems, publishDebug]);
+  }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, publishDebug]);
 
   useEffect(() => {
     if (!isLive) return undefined;
@@ -555,12 +592,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             frameDetections: onDevice,
             source: 'still_scan',
             cropped: stabilized.cropped,
+            mutations: stabilized.mutations,
           });
         }
       }
 
       const res = await apiService.liveScanFrame(payload);
       if (!res.success) {
+        if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
+          handleAiBudgetHit();
+          return;
+        }
         setStatusNote(res.message || 'Still scan failed');
         return;
       }
@@ -576,13 +618,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         /* optional */
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Still scan failed';
-      setStatusNote(msg);
+      if (isAiBudgetError(err)) {
+        handleAiBudgetHit();
+      } else {
+        const msg = err instanceof Error ? err.message : 'Still scan failed';
+        setStatusNote(msg);
+      }
     } finally {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, occasionType, publishDebug]);
+  }, [applyResponse, handleAiBudgetHit, occasionType, publishDebug]);
 
   if (!permission) {
     return (
@@ -713,6 +759,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           </Pressable>
         </View>
       </LinearGradient>
+
+      <LiveAiBudgetModal
+        visible={showBudgetModal}
+        onClose={() => setShowBudgetModal(false)}
+        onUpgrade={openSubscription}
+        isTopTier={onTopTier}
+      />
 
       <Modal visible={!!selected} animationType="slide" transparent onRequestClose={() => setSelected(null)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setSelected(null)}>

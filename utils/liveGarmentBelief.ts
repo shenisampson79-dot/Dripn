@@ -27,6 +27,7 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
+import { resistsShortsGeometryDemotion } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 
@@ -44,6 +45,8 @@ export type GarmentBelief = {
   kind: BeliefKind;
   category: string;
   subcategory: string;
+  /** Vision display name when specific — prefer over rebuilt color+subtype labels. */
+  name?: string | null;
   color: string | null;
   confidence: number;
   /** 0–1 resistance to change. Reinforced by agreeing frames. */
@@ -53,6 +56,36 @@ export type GarmentBelief = {
   lastChangedAt: number;
   lastSeenAt: number;
 };
+
+/** Prefer colour words stated in the vision label over noisy ROI sampling. */
+export function colorFromVisionName(name?: string | null): string | null {
+  const n = String(name || '').toLowerCase();
+  if (!n) return null;
+  if (/multicolou?r|multi[- ]?colou?r|multi[- ]?tone/.test(n)) return 'multicolor';
+  if (/\b(light\s*)?(grey|gray)\b/.test(n)) return 'gray';
+  if (/\b(black|charcoal)\b/.test(n)) return 'black';
+  if (/\bnavy\b/.test(n)) return 'navy';
+  if (/\b(white|cream|ivory)\b/.test(n)) return 'white';
+  if (/\b(beige|tan|khaki)\b/.test(n)) return 'beige';
+  if (/\bbrown\b/.test(n)) return 'brown';
+  if (/\b(red|burgundy|maroon)\b/.test(n)) return 'red';
+  if (/\blight\s*blue\b/.test(n)) return 'light_blue';
+  if (/\bblue\b/.test(n)) return 'blue';
+  if (/\bgreen\b/.test(n)) return 'green';
+  if (/\bpink\b/.test(n)) return 'pink';
+  return null;
+}
+
+/** Keep specific vision labels (e.g. "Gray Sweatpants") instead of "Dark trousers". */
+export function isSpecificVisionName(name?: string | null): boolean {
+  const n = String(name || '').trim();
+  if (n.length < 4) return false;
+  if (/^(top|item|bottom|shoes?|garment)$/i.test(n)) return false;
+  return /[a-z]/i.test(n) && /\s/.test(n);
+}
+
+/** Minimum confidence to adopt colour from a vision display name. */
+export const VISION_NAME_COLOR_CONF = 0.72;
 
 export type OutfitBeliefState = {
   /** Base upper (tee, tank, blouse). */
@@ -107,9 +140,20 @@ export function createOutfitBeliefState(): OutfitBeliefState {
 export function isUpperLayerCandidate(det: OnDeviceDetection): boolean {
   const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
   if (/outer|jacket|blazer|coat|gilet|vest|cardigan|hoodie|sweater|knit|overshirt/.test(blob)) return true;
-  // "shirt" but not t-shirt / tee
-  if (/\bshirt\b/.test(blob) && !/t-?shirt|\btee\b/.test(blob)) return true;
+  // Collared shirt only — athletic / sports / t-shirts are base tops, not layers
+  if (/\bshirt\b/.test(blob)
+    && !/t-?shirt|\btee\b|athletic|sport|jersey|polo|sweat/.test(blob)) {
+    return true;
+  }
   return false;
+}
+
+/** Collared shirt / button-up — base under a blazer, not a competing layer. */
+export function isCollaredShirtCandidate(det: OnDeviceDetection): boolean {
+  const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  if (/outer|jacket|blazer|coat|gilet|vest|hoodie|cardigan/.test(blob)) return false;
+  return /dress[\s_-]*shirt|oxford[\s_-]*shirt|button[\s_-]?down|button[\s_-]?up|\bshirt\b/.test(blob)
+    && !/t-?shirt|\btee\b/.test(blob);
 }
 
 /** Tee / tank / plain top — base under a layer. */
@@ -118,6 +162,12 @@ export function isBaseTopCandidate(det: OnDeviceDetection): boolean {
   if (isUpperLayerCandidate(det)) return false;
   return /tee|t-?shirt|tank|singlet|polo|blouse|^top$|\btop\b/.test(blob)
     || beliefKindFromDetection(det) === 'top';
+}
+
+function isOuterwearLayer(det: OnDeviceDetection): boolean {
+  const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  return beliefKindFromDetection(det) === 'outerwear'
+    || /outer|jacket|blazer|coat|gilet|vest|cardigan|hoodie/.test(blob);
 }
 
 function splitUpperDetections(uppers: OnDeviceDetection[]): {
@@ -132,6 +182,18 @@ function splitUpperDetections(uppers: OnDeviceDetection[]): {
     return { base: bases[0], layer: layers[0] };
   }
   if (layers.length && !bases.length) {
+    // Blazer + dress shirt both look like "layers" — keep shirt as base under outerwear.
+    const outers = layers.filter(isOuterwearLayer);
+    const shirts = layers.filter(isCollaredShirtCandidate);
+    if (outers.length && shirts.length) {
+      return { base: shirts[0], layer: outers[0] };
+    }
+    if (outers.length >= 2) {
+      return { base: null, layer: outers[0] };
+    }
+    if (shirts.length >= 2) {
+      return { base: shirts[0], layer: shirts[1] };
+    }
     // Jacket alone — show as layer; no phantom base tee
     return { base: null, layer: layers[0] };
   }
@@ -236,7 +298,7 @@ function preferUpperDetection(a: OnDeviceDetection, b: OnDeviceDetection): numbe
   return b.confidence - a.confidence;
 }
 
-/** Canonical belief color — dark family collapses to black for bottoms/tops, not footwear. */
+/** Canonical belief color — dark family collapses carefully; grey bottoms stay grey. */
 export function normalizeBeliefColor(raw?: string | null, kind?: BeliefKind): string | null {
   const c = String(raw || '')
     .trim()
@@ -246,13 +308,12 @@ export function normalizeBeliefColor(raw?: string | null, kind?: BeliefKind): st
   // "dark" without a real sample — bottoms may use black; footwear must not invent black
   if (c === 'dark') return kind === 'shoes' ? null : 'black';
   const aliased = COLOR_ALIASES[c] || c;
-  // Grey footwear / shorts must stay grey — collapsing shorts→black made white chinos "Dark".
+  // Grey must stay grey for bottoms + footwear — collapsing trousers→black made "Dark trousers"
   if (aliased === 'gray') {
-    if (kind === 'shoes' || kind === 'shorts') return 'gray';
-    return 'black';
+    return 'gray';
   }
   if (aliased === 'charcoal') {
-    if (kind === 'shoes') return 'gray';
+    if (kind === 'shoes' || kind === 'shorts' || kind === 'trousers' || kind === 'skirt') return 'gray';
     return 'black';
   }
   return aliased;
@@ -272,6 +333,13 @@ export function colorDistance(a?: string | null, b?: string | null, kind?: Belie
   const y = normalizeBeliefColor(b, kind);
   if (!x || !y) return 1;
   if (x === y) return 0;
+  // Grey bottoms/shoes are distinct from black — never treat as same family
+  if (
+    (x === 'gray' || y === 'gray')
+    && (x === 'black' || y === 'black')
+  ) {
+    return 0.45;
+  }
   if (kind === 'shoes' && (x === 'gray' || x === 'black') && (y === 'gray' || y === 'black')) {
     return x === y ? 0 : 0.35;
   }
@@ -371,18 +439,18 @@ export function stabilizeColorDetailed(
     };
   }
 
-  // False dark lock: dim ROI painted light shorts black — recover on light proposals.
+  // False dark lock: dim ROI painted light bottoms black — recover on light proposals.
   if (
-    kind === 'shorts'
+    (kind === 'shorts' || kind === 'trousers')
     && p === 'black'
     && /^(white|gray|grey|cream|beige|ivory|light_gray|light_grey)$/.test(c || '')
-    && currentConfidence >= 0.78
+    && currentConfidence >= 0.75
   ) {
     return {
-      color: c === 'grey' || c === 'light_grey' ? 'gray' : (c === 'light_gray' ? 'gray' : c),
+      color: c === 'grey' || c === 'light_grey' || c === 'light_gray' ? 'gray' : c,
       changed: true,
       code: 'hard_flip',
-      reason: 'light shorts recover from false black',
+      reason: 'light bottoms recover from false black',
     };
   }
 
@@ -452,6 +520,15 @@ export function stabilizeColorDetailed(
     && DARK_FAMILY.has(p)
     && DARK_FAMILY.has(c)
   ) {
+    // Grey sweatpants / joggers must not become "Dark" via black collapse
+    if (p === 'gray' || c === 'gray') {
+      return {
+        color: 'gray',
+        changed: p !== 'gray',
+        code: p === 'gray' ? 'same_family' : 'hard_flip',
+        reason: 'prefer grey over dark collapse',
+      };
+    }
     return {
       color: 'black',
       changed: false,
@@ -502,6 +579,7 @@ export function beliefBboxIou(a: BBoxTuple, b: BBoxTuple): number {
  * Build an observation — strip unreliable color proposals (black-on-top, very weak conf).
  * Colour at COLOR_ADOPT_THRESHOLD+ is kept so new outfits can seed "Blue top" /
  * "Dark shorts"; stabilizeColor still blocks weak flips once a colour is locked.
+ * High-conf vision names win over ROI colour noise.
  */
 export function observationFromDetection(
   det: OnDeviceDetection,
@@ -511,16 +589,21 @@ export function observationFromDetection(
   const kind = beliefKindFromDetection(det);
   const { category, subcategory } = kindToWardrobe(kind, det);
   const conf = Math.max(0, Math.min(1, det.confidence || 0.5));
+  const namedColor = colorFromVisionName(det.name);
   const rawColor = normalizeBeliefColor(det.color, kind);
-  let color = rawColor;
+  // Vision label colour beats sampled ROI when the name is specific (Grey Sweatpants, Multicolor…)
+  let color = (namedColor && conf >= VISION_NAME_COLOR_CONF)
+    ? normalizeBeliefColor(namedColor, kind)
+    : rawColor;
+  if (!color && namedColor) color = normalizeBeliefColor(namedColor, kind);
   const slot = kind === 'top' || kind === 'outerwear' ? 'top' as const
     : kind === 'shorts' || kind === 'trousers' || kind === 'skirt' || kind === 'dress' ? 'bottom' as const
       : undefined;
 
-  if (conf < COLOR_ADOPT_THRESHOLD && rawColor) {
+  if (conf < COLOR_ADOPT_THRESHOLD && color && !(namedColor && conf >= VISION_NAME_COLOR_CONF)) {
     appendDecision(log, {
       type: 'ignore',
-      message: `Ignored color: ${rawColor}`,
+      message: `Ignored color: ${color}`,
       reason: 'low confidence',
       slot,
       time: now,
@@ -528,8 +611,9 @@ export function observationFromDetection(
     color = null;
   }
 
-  // Tops: black is last resort — almost always phone/shadow; don't propose it
-  if (kind === 'top' && color && DARK_FAMILY.has(color) && conf < 0.98) {
+  // Tops: black is last resort unless vision named it black/grey
+  const nameSaysDark = /black|grey|gray|charcoal/i.test(String(det.name || ''));
+  if (kind === 'top' && color && DARK_FAMILY.has(color) && conf < 0.98 && !nameSaysDark) {
     appendDecision(log, {
       type: 'reject',
       message: `Rejected black on top (${conf.toFixed(2)})`,
@@ -552,10 +636,13 @@ export function observationFromDetection(
     color = null;
   }
 
+  const visionName = isSpecificVisionName(det.name) ? String(det.name).trim() : null;
+
   return {
     kind,
     category,
     subcategory,
+    name: visionName,
     color,
     confidence: conf,
     stability: 0.35,
@@ -938,8 +1025,10 @@ export function updateBelief(
     }
 
     // Locked trousers but clear shorts+socks/boots frame → recover shorts
+    // Never demote vision sweatpants/joggers/chinos via geometry.
     if (
       p.kind === 'trousers'
+      && !/sweatpant|jogger|chino|jean|slacks/i.test(`${p.name || ''} ${c.name || ''}`)
       && (
         looksLikeShortsWithFootwearExtension(c.bbox)
         || (c.kind === 'trousers' && c.bbox[1] >= 0.48 && c.bbox[3] < 0.40 && c.confidence >= 0.75)
@@ -995,6 +1084,9 @@ export function updateBelief(
       bbox: c.bbox,
       trackId: c.trackId || p.trackId,
       color,
+      name: (color === p.color)
+        ? (p.name || c.name || null)
+        : (isSpecificVisionName(c.name) ? c.name : (p.name || c.name || null)),
       lastSeenAt: now,
     };
   }
@@ -1003,16 +1095,21 @@ export function updateBelief(
 }
 
 export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
-  const name = belief.kind === 'shoes' || String(belief.category).toLowerCase() === 'shoes'
-    ? buildFootwearDisplayLabel({
-      type: belief.subcategory,
-      color: belief.color,
-    })
-    : formatGarmentDisplayName({
-      color: belief.color,
-      category: belief.category,
-      subcategory: belief.subcategory,
-    });
+  // Prefer stored vision name — never rebuild "Gray Sweatpants" into "Dark trousers"
+  const preserved = isSpecificVisionName(belief.name) ? String(belief.name).trim() : null;
+  const name = preserved
+    || (belief.kind === 'shoes' || String(belief.category).toLowerCase() === 'shoes'
+      ? buildFootwearDisplayLabel({
+        type: belief.subcategory,
+        color: belief.color,
+        fallbackName: belief.subcategory === 'boat_shoes' ? 'Boat shoes' : null,
+      })
+      : formatGarmentDisplayName({
+        color: belief.color,
+        category: belief.category,
+        subcategory: belief.subcategory,
+        fallbackName: belief.name,
+      }));
   return {
     name,
     category: belief.category,
@@ -1145,7 +1242,12 @@ export function applyOutfitBelief(
     }
   }
   // False trousers from shorts+socks/boots → shorts
-  if (bottomObs && /trouser|pant|jean/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)) {
+  // Trust Vision First: never demote sweatpants/joggers/chinos via geometry.
+  if (
+    bottomObs
+    && /trouser|pant|jean|chino/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)
+    && !resistsShortsGeometryDemotion(bottomObs)
+  ) {
     if (looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)) {
       bottomObs = {
         ...bottomObs,

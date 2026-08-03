@@ -199,6 +199,53 @@ assert.equal(
   'boat_shoes',
   'locked boat shoes resist trainers flicker',
 );
+assert.equal(
+  stabilizeShoeSubtype('sneakers', 'boots', 0.8),
+  'boots',
+  'vision boots unlock sticky trainers',
+);
+
+// Vision "Brown Leather Boots" must not become trainers via geometry rewrite
+{
+  const leatherBoots: OnDeviceDetection = {
+    name: 'Brown Leather Boots',
+    category: 'shoes',
+    subcategory: 'boots',
+    color: 'brown',
+    confidence: 0.9,
+    bbox: [0.38, 0.88, 0.26, 0.08], // short ankle crop — geometry alone → sneakers
+    trackId: 'lb1',
+  };
+  const gated = gateFootwearDetections([leatherBoots], { now: 3000 });
+  assert.ok(gated.accepted, 'boots accepted');
+  assert.equal(gated.accepted?.subcategory, 'boots');
+  assert.match(String(gated.accepted?.name || ''), /boot/i);
+}
+
+// Vision "White Chinos" must not become shorts via hip-crop geometry
+{
+  const chinos: OnDeviceDetection = {
+    name: 'White Chinos',
+    category: 'bottoms',
+    subcategory: 'chinos',
+    color: 'white',
+    confidence: 0.9,
+    bbox: [0.28, 0.48, 0.4, 0.22], // hip→thigh crop
+    trackId: 'wc1',
+  };
+  const blazer: OnDeviceDetection = {
+    name: 'Light Blue Blazer',
+    category: 'outerwear',
+    subcategory: 'blazer',
+    color: 'light_blue',
+    confidence: 0.92,
+    bbox: [0.2, 0.1, 0.5, 0.4],
+    trackId: 'bl2',
+  };
+  const memChino = applyDetectionMemory([blazer, chinos], createDetectionMemory(), { now: 4000 });
+  assert.equal(memChino.memory.bottom?.subcategory, 'trousers', 'chinos stay trousers');
+  assert.ok(!/short/i.test(memChino.memory.bottom?.name || ''), 'name must not say shorts');
+}
 
 const score = scoreShoeStyle({
   subtype: 'sneakers',

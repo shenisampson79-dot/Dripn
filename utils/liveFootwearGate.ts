@@ -319,22 +319,31 @@ export function gateFootwearDetections(
     ? { ...best.d, name: boatPeer.d.name, subcategory: boatPeer.d.subcategory || best.d.subcategory }
     : best.d;
 
-  const subtype = classifyShoeSubtype({
-    bbox: seedDet.bbox as BBoxTuple,
-    skinRatio: best.c.skinRatio,
-    name: seedDet.name,
-    subcategory: seedDet.subcategory,
-  });
-
   const visionName = String(seedDet.name || best.d.name || '');
-  const keepVisionBoatLabel = subtype === 'boat_shoes' && /boat|deck|topsider|sperry/i.test(visionName);
+  const visionBlob = `${visionName} ${seedDet.subcategory || ''}`.toLowerCase();
+  // Vision already named the shoe — keep it. Geometry must not turn "Leather Boots" into trainers.
+  const visionBoots = /\bboots?\b/.test(visionBlob) || /chelsea/.test(visionBlob);
+  const visionBoat = /boat|deck|topsider|sperry/.test(visionBlob);
+  const subtype = visionBoots
+    ? 'boots' as const
+    : visionBoat
+      ? 'boat_shoes' as const
+      : classifyShoeSubtype({
+        bbox: seedDet.bbox as BBoxTuple,
+        skinRatio: best.c.skinRatio,
+        name: seedDet.name,
+        subcategory: seedDet.subcategory,
+      });
+
+  const keepVisionLabel = visionBoots || visionBoat
+    || /chelsea|loafer|oxford|derby/i.test(visionName);
   const accepted: OnDeviceDetection = {
     ...best.d,
     category: 'shoes',
     subcategory: subtype,
     color: seedDet.color || best.d.color,
-    // Display from fine subtype — never from canonical family
-    name: keepVisionBoatLabel
+    // Display from vision when specific; else from fine subtype — never invent trainers over boots
+    name: keepVisionLabel
       ? visionName
       : buildFootwearDisplayLabel({
       type: subtype,
@@ -445,6 +454,10 @@ export function stabilizeShoeSubtype(
   // Hierarchy veto: locked boat shoes reject boots/trainers remaps.
   if (prev === 'boat_shoes' && (next === 'boots' || next === 'sneakers') && confidence < 0.97) {
     return prev;
+  }
+  // Vision boots must unlock sticky trainers (YOLO often locks sneakers first).
+  if (prev === 'sneakers' && next === 'boots' && confidence >= 0.75) {
+    return next;
   }
   // Low shaft + open silhouette must not become boots from tall mirror boxes.
   if (next === 'boots' && confidence < SUBTYPE_CHANGE_THRESHOLD) return prev;

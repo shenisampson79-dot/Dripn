@@ -27,6 +27,7 @@ import type {
   ShoeStyleScore,
 } from '@/utils/liveFootwearGate';
 import type { GarmentBelief, OutfitBeliefState } from '@/utils/liveGarmentBelief';
+import type { VisionMutationDiff } from '@/utils/visionTrust';
 
 export type {
   BeliefDecision,
@@ -84,6 +85,8 @@ export type LiveBeliefDebugSnapshot = {
     bottom: string | null;
   };
   frameDetections: DebugFrameDetection[];
+  /** Trusted vision → belief rewrites (should be empty when trust holds). */
+  mutations: VisionMutationDiff[];
   decisions: BeliefDecision[];
   inspect: BoxInspect | null;
   footwear: {
@@ -129,17 +132,22 @@ function slotFromBelief(b: GarmentBelief | null | undefined): DebugBeliefSlot | 
   if (!b) return null;
   const fashion = classifyFashionColor(b.color);
   const isShoes = b.kind === 'shoes' || String(b.category).toLowerCase() === 'shoes';
-  const label = isShoes
-    ? buildFootwearDisplayLabel({
-      type: b.subcategory,
-      color: b.color,
-      fallbackName: b.subcategory === 'boat_shoes' ? 'Boat shoes' : null,
-    })
-    : formatGarmentDisplayName({
-      color: b.color,
-      category: b.category,
-      subcategory: b.subcategory,
-    });
+  const preserved = b.name && String(b.name).trim().length > 3
+    && !/^(top|item|bottom|shoes?|garment)$/i.test(String(b.name).trim());
+  const label = preserved
+    ? String(b.name).trim()
+    : isShoes
+      ? buildFootwearDisplayLabel({
+        type: b.subcategory,
+        color: b.color,
+        fallbackName: b.subcategory === 'boat_shoes' ? 'Boat shoes' : null,
+      })
+      : formatGarmentDisplayName({
+        color: b.color,
+        category: b.category,
+        subcategory: b.subcategory,
+        fallbackName: b.name,
+      });
   return {
     label: label || b.kind,
     confidence: b.confidence,
@@ -209,6 +217,7 @@ export function buildDebugSnapshot(args: {
   footwearCandidates?: FootwearCandidateAnalysis[];
   footZone?: FootZoneDiagnostics | null;
   shoeScore?: ShoeStyleScore | null;
+  mutations?: VisionMutationDiff[];
 }): LiveBeliefDebugSnapshot {
   const candidates = args.footwearCandidates || [];
   const zone = args.footZone || null;
@@ -236,6 +245,7 @@ export function buildDebugSnapshot(args: {
       bottom: bottomSlot?.colorPipeline ?? null,
     },
     frameDetections: args.frameDetections,
+    mutations: args.mutations || [],
     decisions: args.decisions.slice(-MAX_DECISIONS),
     inspect: args.inspect ?? null,
     footwear: {
@@ -276,6 +286,7 @@ export function emptyDebugSnapshot(source = 'idle'): LiveBeliefDebugSnapshot {
     },
     colorPipeline: { top: null, bottom: null },
     frameDetections: [],
+    mutations: [],
     decisions: [],
     inspect: null,
     footwear: { candidates: [], zone: null, score: null },

@@ -108,6 +108,25 @@ export function LiveBeliefDebugOverlay({
             <SlotLine role="SHOES" slot={snapshot.belief.shoes} />
 
             <ThemedText type="caption" style={[styles.section, styles.sectionGap]}>
+              VISION→BELIEF DIFF
+            </ThemedText>
+            {(snapshot.mutations || []).length === 0 ? (
+              <ThemedText type="caption" style={styles.mono}>
+                (none — trust held)
+              </ThemedText>
+            ) : (
+              (snapshot.mutations || []).slice(0, 8).map((m, i) => (
+                <ThemedText
+                  key={`mut-${i}-${m.before}`}
+                  type="caption"
+                  style={[styles.mono, { color: '#FF6B6B' }]}
+                >
+                  ! {m.before} → {m.after}
+                </ThemedText>
+              ))
+            )}
+
+            <ThemedText type="caption" style={[styles.section, styles.sectionGap]}>
               COLOR PIPELINE
             </ThemedText>
             <ThemedText type="caption" style={styles.mono}>
