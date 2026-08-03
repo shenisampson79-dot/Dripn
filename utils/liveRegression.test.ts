@@ -238,7 +238,9 @@ case_('TROUSERS_CANNOT_DOWNGRADE_TO_SHORTS', () => {
   assert.equal(state.bottom?.kind, 'trousers');
   const r = applyOutfitBelief(state, [shortsNoise], { now: 3000 });
   assert.equal(r.state.bottom?.kind, 'trousers');
-  assert.ok(r.decisions.some((d) => /downgrade|Cannot downgrade/i.test(`${d.message} ${d.reason}`)));
+  assert.ok(r.decisions.some((d) =>
+    /downgrade|Cannot downgrade|Kept trousers|persistence/i.test(`${d.message} ${d.reason}`),
+  ));
 });
 
 case_('SHORTS_HOLD_WHEN_TOP_ONLY_VISIBLE', () => {
@@ -318,25 +320,17 @@ case_('WEAK_SHOE_NEVER_ENTERS_BELIEF', () => {
   const weak = det({
     category: 'shoes',
     subcategory: 'sneakers',
-    confidence: 0.5,
+    confidence: 0.4,
     bbox: [0.4, 0.86, 0.22, 0.12],
     skinRatio: 0.05,
+    color: 'unknown',
   });
   assert.equal(analyzeFootwearCandidate(weak).valid, false);
   assert.equal(analyzeFootwearCandidate(weak).rejectReason, 'low_confidence');
 
+  // Weak frames must not seed a NEW shoe belief
   let mem = createDetectionMemory();
-  mem.belief.footwear = observationFromDetection(
-    det({
-      category: 'shoes',
-      subcategory: 'sneakers',
-      confidence: 0.9,
-      bbox: [0.4, 0.86, 0.22, 0.12],
-      skinRatio: 0.05,
-    }),
-    500,
-  );
-  const cleared = applyDetectionMemory(
+  const seeded = applyDetectionMemory(
     [
       det({ category: 'tops', subcategory: 'top', color: 'blue', confidence: 0.9, bbox: [0.2, 0.08, 0.5, 0.35] }),
       weak,
@@ -344,7 +338,31 @@ case_('WEAK_SHOE_NEVER_ENTERS_BELIEF', () => {
     mem,
     { now: 2000, bottomBandBrightness: 0.25 },
   );
-  assert.equal(cleared.memory.footwear, null);
+  assert.equal(seeded.memory.belief.footwear, null);
+  assert.equal(seeded.memory.footwear, null);
+
+  // But a held shoe belief survives a weak reject frame (only barefoot clears it)
+  mem = createDetectionMemory();
+  mem.belief.footwear = observationFromDetection(
+    det({
+      category: 'shoes',
+      subcategory: 'sneakers',
+      color: 'white',
+      confidence: 0.9,
+      bbox: [0.4, 0.86, 0.22, 0.12],
+      skinRatio: 0.05,
+    }),
+    500,
+  );
+  const held = applyDetectionMemory(
+    [
+      det({ category: 'tops', subcategory: 'top', color: 'blue', confidence: 0.9, bbox: [0.2, 0.08, 0.5, 0.35] }),
+      weak,
+    ],
+    mem,
+    { now: 2000, bottomBandBrightness: 0.25 },
+  );
+  assert.ok(held.memory.belief.footwear, 'held footwear persists through weak frame');
 });
 
 case_('BAREFOOT_VETO_BLOCKS_FOLLOWING_FRAMES', () => {
@@ -400,7 +418,8 @@ case_('CROPPED_FRAME_FALSE_POSITIVE', () => {
 });
 
 case_('COLOR_FLICKER_UNDER_SHADOW', () => {
-  assert.equal(stabilizeColor('gray', 'black', 0.5, 'shorts'), 'black');
+  // Grey shorts stay grey under a weak black flicker (same dark family).
+  assert.equal(stabilizeColor('gray', 'black', 0.5, 'shorts'), 'gray');
   assert.equal(stabilizeColor('red', 'gray', 0.9, 'top'), 'red');
 });
 

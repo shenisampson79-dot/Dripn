@@ -140,12 +140,17 @@ export function LiveArOverlay({
 
           {coaching?.summary ? (
             <View style={styles.card}>
-              <ThemedText type="caption" style={styles.summaryText} numberOfLines={2}>
+              <ThemedText type="caption" style={styles.summaryText} numberOfLines={4}>
                 {coaching.summary}
               </ThemedText>
               {coaching.bullets?.[0] ? (
-                <ThemedText type="caption" style={styles.bulletText} numberOfLines={2}>
+                <ThemedText type="caption" style={styles.bulletText} numberOfLines={3}>
                   · {coaching.bullets[0]}
+                </ThemedText>
+              ) : null}
+              {coaching.bullets?.[1] ? (
+                <ThemedText type="caption" style={styles.bulletText} numberOfLines={2}>
+                  · {coaching.bullets[1]}
                 </ThemedText>
               ) : null}
             </View>

@@ -33,12 +33,10 @@ import {
   type OutfitBeliefState,
 } from '@/utils/liveGarmentBelief';
 import {
-  pickMoreSpecificSubtype,
   stabilizeColorFromHistory,
   stabilizeFootwearIdentity,
   type LimSample,
 } from '@/utils/liveLayeringIntelligence';
-import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
 
 export type OutfitRole = 'top' | 'bottom' | 'footwear' | 'other';
 
@@ -233,7 +231,7 @@ export function applyDetectionMemory(
     }
     const bottom = prelabelBottom(d);
     if (roleOfCategory(bottom.category, bottom.subcategory) !== 'bottom') return bottom;
-    // LIM: median colour over last frames — dim ROI must not paint light shorts black.
+    // Record colour samples for DBG — belief stabilizeColor owns the final colour.
     const colorLim = stabilizeColorFromHistory({
       history: bottomColorHistory,
       proposed: {
@@ -244,12 +242,10 @@ export function applyDetectionMemory(
       lockedColor: memory.belief?.bottom?.color || null,
     });
     bottomColorHistory = colorLim.history;
-    const color = colorLim.color || bottom.color;
     return {
       ...bottom,
-      color,
       name: formatGarmentDisplayName({
-        color,
+        color: bottom.color,
         category: bottom.category,
         subcategory: bottom.subcategory || 'shorts',
       }),
@@ -259,12 +255,13 @@ export function applyDetectionMemory(
   let footwearHistory = memory.footwearHistory || [];
   let acceptedShoe = gated.accepted && !blockedByBarefoot ? gated.accepted : null;
 
-  // LIM: temporal vote + hierarchy veto before belief commits.
+  // Record footwear samples for DBG — gate proposes subtype; belief locks it.
+  // Do not run a second LIM identity lock before belief (dual-lock thrash).
   if (acceptedShoe) {
     const lim = stabilizeFootwearIdentity({
       history: footwearHistory,
       proposed: {
-        label: String(acceptedShoe.subcategory || 'sneakers'),
+        label: String(acceptedShoe.subcategory || 'shoes'),
         confidence: acceptedShoe.confidence,
         color: acceptedShoe.color,
       },
@@ -272,26 +269,6 @@ export function applyDetectionMemory(
       lockedColor: memory.belief?.footwear?.color || null,
     });
     footwearHistory = lim.history;
-    if (lim.subtype) {
-      const specific = pickMoreSpecificSubtype(
-        memory.belief?.footwear?.subcategory,
-        lim.subtype,
-      ) || lim.subtype;
-      const keepBoatName = specific === 'boat_shoes'
-        && /boat|deck|topsider|sperry/i.test(String(acceptedShoe.name || ''));
-      acceptedShoe = {
-        ...acceptedShoe,
-        subcategory: specific,
-        color: lim.color || acceptedShoe.color,
-        name: keepBoatName
-          ? String(acceptedShoe.name)
-          : buildFootwearDisplayLabel({
-            type: specific,
-            color: lim.color || acceptedShoe.color,
-            fallbackName: specific === 'boat_shoes' ? 'Boat shoes' : acceptedShoe.name,
-          }),
-      };
-    }
     prepared.push(acceptedShoe);
   }
 
@@ -301,28 +278,19 @@ export function applyDetectionMemory(
   }
 
   let footwearBlockedUntil = memory.footwearBlockedUntil || 0;
+  const clearFootwear = Boolean(gated.barefootEvidence);
 
-  // Barefoot is a VETO — clear footwear and block for several frames
-  if (gated.barefootEvidence || (shoeProps.length > 0 && !gated.accepted)) {
-    if (beliefMem.footwear || gated.barefootEvidence) {
-      appendDecision(decisions, {
-        type: 'reject',
-        message: 'Footwear cleared',
-        reason: gated.barefootEvidence
-          ? 'barefoot detected (high confidence veto)'
-          : 'invalid shoe frame',
-        slot: 'footwear',
-        time: now,
-      });
-      beliefMem = { ...beliefMem, footwear: null };
-      footwearHistory = [];
-    }
-    if (gated.barefootEvidence) {
-      footwearBlockedUntil = Math.max(footwearBlockedUntil, now + BAREFOOT_BLOCK_MS);
-    }
+  // Barefoot veto window only — belief owns clearing the footwear slot.
+  if (gated.barefootEvidence) {
+    footwearBlockedUntil = Math.max(footwearBlockedUntil, now + BAREFOOT_BLOCK_MS);
+    footwearHistory = [];
   }
 
-  const believed = applyOutfitBelief(beliefMem, prepared, { now, decisions });
+  const believed = applyOutfitBelief(beliefMem, prepared, {
+    now,
+    decisions,
+    clearFootwear,
+  });
   repairs.push(...believed.repairs);
   if (!believed.state.bottom) bottomColorHistory = [];
 

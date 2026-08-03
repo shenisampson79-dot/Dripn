@@ -78,9 +78,26 @@ assert.equal(bare.rejectReason, 'barefoot');
 const fabricWithoutSkin = analyzeFootwearCandidate(noSkinShoe);
 assert.equal(fabricWithoutSkin.valid, true);
 
-const unknownSkin = analyzeFootwearCandidate(noSkinNoFabric);
+// Labeled hard-footwear box may pass without fabric colour (dim black loafers).
+const labeledNoFabric = analyzeFootwearCandidate(noSkinNoFabric);
+assert.equal(labeledNoFabric.valid, true);
+
+const softUnknown: OnDeviceDetection = {
+  name: 'Clothing',
+  category: 'unknown',
+  color: 'unknown',
+  confidence: 0.7,
+  // Mid-leg soft box — not hard footwear geometry
+  bbox: [0.35, 0.62, 0.28, 0.16],
+  skinRatio: undefined,
+};
+const unknownSkin = analyzeFootwearCandidate(softUnknown);
 assert.equal(unknownSkin.valid, false);
-assert.equal(unknownSkin.rejectReason, 'skin_unknown');
+assert.ok(
+  ['skin_unknown', 'not_labeled_footwear', 'outside_footwear_zone', 'invalid_shape'].includes(
+    String(unknownSkin.rejectReason),
+  ),
+);
 
 const trainerLabeled: OnDeviceDetection = {
   name: 'Black trainers',

@@ -144,12 +144,20 @@ function splitUpperDetections(uppers: OnDeviceDetection[]): {
 
 export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
   const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
-  if (/shoe|boot|sneaker|footwear|sandal|flip.?flop|slide|thong|mule|loafer/.test(blob)) return 'shoes';
-  if (/dress/.test(blob)) return 'dress';
+  if (/shoe|boot|sneaker|footwear|sandal|flip.?flop|slide|thong|mule|loafer|chelsea|oxford/.test(blob)
+    && !/oxford\s*shirt|dress\s*shirt/.test(blob)) {
+    return 'shoes';
+  }
+  // Dress shirt / button-up — never a one-piece dress (pink shirt was locking as Pink dress)
+  if (/dress[\s_-]*shirt|shirt[\s_-]*dress|oxford[\s_-]*shirt|button[\s_-]?down|button[\s_-]?up/.test(blob)
+    && !/\b(maxi|midi|mini)\s*dress\b/.test(blob)) {
+    return 'top';
+  }
+  if (/\bdress\b/.test(blob) && !/dress[\s_-]*shirt|dress[\s_-]*shoe/.test(blob)) return 'dress';
   if (/outer|jacket|blazer|coat|gilet|vest/.test(blob)) return 'outerwear';
   if (/short/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
-  if (/trouser|jean|pant|bottom/.test(blob)) return 'trousers';
+  if (/trouser|jean|pant|chino|bottom/.test(blob)) return 'trousers';
   if (/top|shirt|tee|polo|knit|sweater|blouse|jersey/.test(blob)) {
     return 'top';
   }
@@ -174,7 +182,7 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
     };
   }
   if (kind === 'shoes') {
-    const sub = String(det?.subcategory || '').toLowerCase();
+    const sub = String(det?.subcategory || '').toLowerCase().replace(/[\s-]+/g, '_');
     const name = String(det?.name || '').toLowerCase();
     const blob = `${sub} ${name}`;
     if (/flip.?flop|thong/.test(blob)) return { category: 'shoes', subcategory: 'flip_flops' };
@@ -183,17 +191,37 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
     if (/boat\s*shoe|deck\s*shoe|topsider|sperry|boat_shoes/.test(blob)) {
       return { category: 'shoes', subcategory: 'boat_shoes' };
     }
+    if (/chelsea/.test(blob)) return { category: 'shoes', subcategory: 'boots' };
     if (/\bboots?\b/.test(blob)) return { category: 'shoes', subcategory: 'boots' };
+    if (/loafer/.test(blob)) return { category: 'shoes', subcategory: 'loafers' };
+    if (/oxford|derby|dress\s*shoe/.test(blob)) return { category: 'shoes', subcategory: 'oxfords' };
     if (/sneaker|trainer/.test(blob)) return { category: 'shoes', subcategory: 'sneakers' };
     if (
       sub === 'flip_flops' || sub === 'slides' || sub === 'sandals'
       || sub === 'boots' || sub === 'sneakers' || sub === 'boat_shoes'
+      || sub === 'loafers' || sub === 'oxfords' || sub === 'chelsea_boots'
     ) {
-      return { category: 'shoes', subcategory: sub };
+      return { category: 'shoes', subcategory: sub === 'chelsea_boots' ? 'boots' : sub };
     }
-    return { category: 'shoes', subcategory: 'sneakers' };
+    // Unknown shoe → generic, never invent "sneakers"
+    return { category: 'shoes', subcategory: sub && sub !== 'shoes' ? sub : 'shoes' };
   }
-  if (kind === 'top') return { category: 'tops', subcategory: 'top' };
+  if (kind === 'top') {
+    const rawSub = String(det?.subcategory || '').trim();
+    const subNorm = rawSub.toLowerCase().replace(/[\s-]+/g, '_');
+    const blob = `${subNorm} ${det?.name || ''}`.toLowerCase();
+    if (rawSub && subNorm !== 'top' && subNorm !== 'tops') {
+      return { category: 'tops', subcategory: rawSub };
+    }
+    if (/polo/.test(blob)) return { category: 'tops', subcategory: 'polo' };
+    if (/t-?shirt|\btee\b/.test(blob)) return { category: 'tops', subcategory: 't-shirt' };
+    if (/oxford|button[\s_-]?up|button[\s_-]?down|dress[\s_-]?shirt/.test(blob)) {
+      return { category: 'tops', subcategory: 'shirt' };
+    }
+    if (/hoodie/.test(blob)) return { category: 'tops', subcategory: 'hoodie' };
+    if (/sweater|knit|jumper/.test(blob)) return { category: 'tops', subcategory: 'sweater' };
+    return { category: 'tops', subcategory: 'top' };
+  }
   return { category: 'tops', subcategory: 'top' };
 }
 
@@ -355,6 +383,58 @@ export function stabilizeColorDetailed(
       changed: true,
       code: 'hard_flip',
       reason: 'light shorts recover from false black',
+    };
+  }
+
+  // Shirt reflection: cool cast paints grey/cream chinos "blue" — recover on light proposals.
+  if (
+    (kind === 'shorts' || kind === 'trousers')
+    && p === 'blue'
+    && /^(white|gray|grey|cream|beige|ivory|black|light_gray|light_grey|light_blue)$/.test(c || '')
+    && currentConfidence >= 0.72
+  ) {
+    const next = c === 'grey' || c === 'light_grey' || c === 'light_gray' ? 'gray'
+      : c === 'light_blue' ? 'gray'
+      : c;
+    return {
+      color: next,
+      changed: true,
+      code: 'hard_flip',
+      reason: 'false blue bottom recovers to light/dark sample',
+    };
+  }
+
+  // Mint/green misread of light blue linen — allow light_blue upgrade on tops.
+  if (
+    kind === 'top'
+    && p === 'green'
+    && /^(light_blue|blue|white|cream)$/.test(c || '')
+    && currentConfidence >= 0.78
+  ) {
+    return {
+      color: c === 'blue' ? 'light_blue' : c,
+      changed: true,
+      code: 'hard_flip',
+      reason: 'light blue recovers from false green',
+    };
+  }
+
+  // Cool-confusion hysteresis: green ↔ blue flicker needs stronger evidence.
+  // (light_blue recovery above already ran; this blocks the reverse chaos.)
+  if (
+    kind === 'top'
+    && currentConfidence < 0.94
+    && (
+      (p === 'light_blue' && /^(green|blue)$/.test(c || ''))
+      || (p === 'blue' && c === 'green')
+      || (p === 'green' && c === 'blue')
+    )
+  ) {
+    return {
+      color: p,
+      changed: false,
+      code: 'low_confidence',
+      reason: 'cool-colour hysteresis — need stronger evidence',
     };
   }
 
@@ -563,8 +643,25 @@ function resolveConflict(
     }
   }
 
-  // Dress persistence: overlapping trousers/skirt/shorts must not reclassify the one-piece.
+  // Dress persistence: overlapping trousers/skirt/shorts must not reclassify a real one-piece.
+  // Fast override when the challenger is clearly stronger (fixes ~60s false dress-shirt lock).
   if (prev.kind === 'dress' && isBottomLikeKind(current.kind)) {
+    if (current.confidence >= prev.confidence + 0.2) {
+      appendDecision(log, {
+        type: 'update',
+        message: `dress → ${current.kind}`,
+        reason: 'fast override — stronger bottom evidence',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...current,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+        stability: Math.max(0.4, prev.stability * 0.55),
+        lastChangedAt: now,
+        lastSeenAt: now,
+      };
+    }
     if (beliefBboxIou(prev.bbox, current.bbox) >= DRESS_PERSIST_IOU) {
       appendDecision(log, {
         type: 'reject',
@@ -681,7 +778,7 @@ function resolveConflict(
     && current.kind === 'trousers'
     && isFloorLengthTrousersEvidence(current.bbox)
     && !looksLikeShortsWithFootwearExtension(current.bbox)
-    && current.confidence >= 0.75
+    && current.confidence >= 0.68
   ) {
     appendDecision(log, {
       type: 'update',
@@ -715,20 +812,23 @@ function resolveConflict(
   }
 
   if (prev.stability > BELIEF_STABILITY_RESIST && current.confidence < BELIEF_SWITCH_CONF) {
-    appendDecision(log, {
-      type: 'reject',
-      message: `Kept ${prev.kind} over ${current.kind}`,
-      reason: 'belief stability resists change',
-      slot,
-      time: now,
-    });
-    return {
-      ...prev,
-      confidence: Math.min(1, prev.confidence + 0.02),
-      lastSeenAt: now,
-      color: applyStabilizedColor(prev, current, log, now, slot),
-      bbox: current.confidence >= prev.confidence ? current.bbox : prev.bbox,
-    };
+    // Fast override: strong new evidence beats a soft lock (confidence +0.2)
+    if (current.confidence < prev.confidence + 0.2) {
+      appendDecision(log, {
+        type: 'reject',
+        message: `Kept ${prev.kind} over ${current.kind}`,
+        reason: 'belief stability resists change',
+        slot,
+        time: now,
+      });
+      return {
+        ...prev,
+        confidence: Math.min(1, prev.confidence + 0.02),
+        lastSeenAt: now,
+        color: applyStabilizedColor(prev, current, log, now, slot),
+        bbox: current.confidence >= prev.confidence ? current.bbox : prev.bbox,
+      };
+    }
   }
 
   if (current.confidence >= BELIEF_SWITCH_CONF && canChangeState(prev, now)) {
@@ -937,7 +1037,12 @@ export function bottomSubtypeFromBelief(kind: BeliefKind): BottomSubtype | null 
 export function applyOutfitBelief(
   state: OutfitBeliefState,
   detections: OnDeviceDetection[],
-  opts?: { now?: number; decisions?: BeliefDecision[] },
+  opts?: {
+    now?: number;
+    decisions?: BeliefDecision[];
+    /** Barefoot veto — clear footwear inside belief (single mutation owner). */
+    clearFootwear?: boolean;
+  },
 ): {
   state: OutfitBeliefState;
   detections: OnDeviceDetection[];
@@ -976,12 +1081,50 @@ export function applyOutfitBelief(
   // Jacket alone → top slot. Tee + jacket → top=tee, layer=jacket.
   const resolvedTopObs = split.base || split.layer;
   const layerObs = split.base && split.layer ? split.layer : null;
+  const hasShirtTop = Boolean(
+    (resolvedTopObs && beliefKindFromDetection(resolvedTopObs) === 'top')
+    || state.top?.kind === 'top',
+  );
+  const nonDressBottoms = bottoms.filter((d) => beliefKindFromDetection(d) !== 'dress');
   let bottomObs = bottoms.sort((a, b) => {
     const aDress = beliefKindFromDetection(a) === 'dress' ? 1 : 0;
     const bDress = beliefKindFromDetection(b) === 'dress' ? 1 : 0;
-    if (aDress !== bDress) return bDress - aDress;
+    // Shirt/top visible → prefer trousers/shorts over a false one-piece dress lock
+    if (hasShirtTop && aDress !== bDress) return aDress - bDress;
+    if (!hasShirtTop && aDress !== bDress) return bDress - aDress;
     return b.confidence - a.confidence;
   })[0] || null;
+
+  // Contradiction: dress-shirt misread as dress must yield when top + bottom both fire
+  if (
+    hasShirtTop
+    && nonDressBottoms.length
+    && bottomObs
+    && beliefKindFromDetection(bottomObs) === 'dress'
+  ) {
+    bottomObs = nonDressBottoms.sort((a, b) => b.confidence - a.confidence)[0] || bottomObs;
+    repairs.push('dress_contradicted_by_top+bottom');
+    appendDecision(decisions, {
+      type: 'update',
+      message: 'Cleared false dress',
+      reason: 'top + bottom contradict one-piece dress',
+      slot: 'bottom',
+      time: now,
+    });
+  }
+  // Locked dress + new top/trousers this frame → force trousers into the slot (fast unwind)
+  if (
+    state.bottom?.kind === 'dress'
+    && hasShirtTop
+    && nonDressBottoms.length
+  ) {
+    const preferred = nonDressBottoms.sort((a, b) => b.confidence - a.confidence)[0];
+    if (preferred) {
+      bottomObs = preferred;
+      repairs.push('dress_soft_unlock→bottom');
+    }
+  }
+
   let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
 
   // Floor-length bottoms labeled shorts → force trousers (true pant columns only)
@@ -1016,13 +1159,16 @@ export function applyOutfitBelief(
     }
   }
 
-  // Weak / barefoot shoes never enter belief — fabric-coloured trainers may
+  // Weak / barefoot shoes never enter belief — fabric-coloured / labeled shoes may
   if (shoeObs) {
     const skin = shoeObs.skinRatio;
     const fabricOk = hasReliableFabricColor(shoeObs.color);
+    const labeled = /shoe|boot|sneaker|trainer|loafer|sandal|boat|deck|footwear/i.test(
+      `${shoeObs.category || ''} ${shoeObs.subcategory || ''} ${shoeObs.name || ''}`,
+    );
     const skinOk = skin != null && skin < 0.22;
-    const confMin = fabricOk ? 0.62 : 0.75;
-    if ((!skinOk && !fabricOk) || shoeObs.confidence < confMin) {
+    const confMin = fabricOk || labeled ? 0.52 : 0.75;
+    if ((!skinOk && !fabricOk && !labeled) || shoeObs.confidence < confMin) {
       shoeObs = null;
     }
   }
@@ -1067,51 +1213,85 @@ export function applyOutfitBelief(
     now,
     decisions,
   );
-  let footwear = updateBelief(
-    state.footwear,
-    shoeObs ? observationFromDetection(shoeObs, now, decisions) : null,
-    now,
-    decisions,
-  );
-
-  // Subtype lock — slower than detection
-  if (footwear && shoeObs?.subcategory && state.footwear?.subcategory) {
-    const locked = stabilizeShoeSubtype(
-      state.footwear.subcategory as ShoeSubtype,
-      shoeObs.subcategory as ShoeSubtype,
-      shoeObs.confidence,
+  // Hard unlock: top + separate bottom contradict a one-piece dress lock (IoU persistence loses)
+  let bottomFinal = bottom;
+  if (
+    state.bottom?.kind === 'dress'
+    && bottom?.kind === 'dress'
+    && hasShirtTop
+    && bottomObs
+    && beliefKindFromDetection(bottomObs) !== 'dress'
+  ) {
+    bottomFinal = observationFromDetection(bottomObs, now, decisions);
+    repairs.push('dress_hard_unlock→bottom');
+    appendDecision(decisions, {
+      type: 'update',
+      message: `dress → ${bottomFinal.kind}`,
+      reason: 'hard unlock — top + bottom contradict dress',
+      slot: 'bottom',
+      time: now,
+    });
+  }
+  // Barefoot veto clears footwear here — not in detection memory.
+  let footwear: GarmentBelief | null = null;
+  if (opts?.clearFootwear) {
+    if (state.footwear) {
+      repairs.push('cleared_barefoot_footwear');
+      appendDecision(decisions, {
+        type: 'reject',
+        message: 'Footwear cleared',
+        reason: 'barefoot detected (high confidence veto)',
+        slot: 'footwear',
+        time: now,
+      });
+    }
+  } else {
+    footwear = updateBelief(
+      state.footwear,
+      shoeObs ? observationFromDetection(shoeObs, now, decisions) : null,
+      now,
+      decisions,
     );
-    if (locked !== footwear.subcategory) {
-      footwear = {
-        ...footwear,
-        subcategory: locked,
-      };
+
+    // Subtype lock — single owner (footwear gate proposes; belief locks).
+    if (footwear && shoeObs?.subcategory && state.footwear?.subcategory) {
+      const locked = stabilizeShoeSubtype(
+        state.footwear.subcategory as ShoeSubtype,
+        shoeObs.subcategory as ShoeSubtype,
+        shoeObs.confidence,
+      );
+      if (locked !== footwear.subcategory) {
+        footwear = {
+          ...footwear,
+          subcategory: locked,
+        };
+      }
     }
   }
 
   if (prevTopKind && top && prevTopKind !== top.kind) repairs.push(`belief_top→${top.kind}`);
-  if (prevBottomKind && bottom && prevBottomKind !== bottom.kind) {
-    repairs.push(`belief_bottom→${bottom.kind}`);
+  if (prevBottomKind && bottomFinal && prevBottomKind !== bottomFinal.kind) {
+    repairs.push(`belief_bottom→${bottomFinal.kind}`);
   }
   if (prevTopColor && top?.color && prevTopColor !== top.color) {
     repairs.push(`belief_top_color→${top.color}`);
   }
-  if (prevBottomColor && bottom?.color && prevBottomColor !== bottom.color) {
-    repairs.push(`belief_bottom_color→${bottom.color}`);
+  if (prevBottomColor && bottomFinal?.color && prevBottomColor !== bottomFinal.color) {
+    repairs.push(`belief_bottom_color→${bottomFinal.color}`);
   }
   if (state.top && !resolvedTopObs && top) repairs.push('belief_top_held');
   if (state.layer && !layerObs && layer) repairs.push('belief_layer_held');
-  if (state.bottom && !bottomObs && bottom) repairs.push('belief_bottom_held');
+  if (state.bottom && !bottomObs && bottomFinal) repairs.push('belief_bottom_held');
   if (state.footwear && !shoeObs && footwear) repairs.push('belief_footwear_held');
   if (prevShoeSub && footwear?.subcategory && prevShoeSub !== footwear.subcategory) {
     repairs.push(`belief_footwear→${footwear.subcategory}`);
   }
 
-  const next: OutfitBeliefState = { top, layer, bottom, footwear, torsoState };
+  const next: OutfitBeliefState = { top, layer, bottom: bottomFinal, footwear, torsoState };
   const out: OnDeviceDetection[] = [];
   if (top) out.push(beliefToDetection(top));
   if (layer) out.push(beliefToDetection(layer));
-  if (bottom) out.push(beliefToDetection(bottom));
+  if (bottomFinal) out.push(beliefToDetection(bottomFinal));
   if (footwear) out.push(beliefToDetection(footwear));
 
   return { state: next, detections: out, repairs, decisions };

@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {
   applyOutfitBelief,
+  beliefKindFromDetection,
   colorDistance,
   createOutfitBeliefState,
   normalizeBeliefColor,
@@ -29,9 +30,27 @@ assert.equal(stabilizeColor('red', 'gray', 0.9, 'top'), 'red');
 assert.equal(stabilizeColor('black', 'gray', 0.5, 'shorts'), 'black');
 assert.equal(stabilizeColor('red', 'blue', 0.5, 'top'), 'red'); // below threshold
 assert.equal(stabilizeColor('red', 'blue', 0.97, 'top'), 'blue');
+assert.equal(stabilizeColor('black', 'white', 0.85, 'shorts'), 'white');
+// Cool-confusion hysteresis: locked light_blue resists green flicker
+assert.equal(stabilizeColor('light_blue', 'green', 0.9, 'top'), 'light_blue');
+// Green may still recover to light_blue with enough confidence
+assert.equal(stabilizeColor('green', 'light_blue', 0.85, 'top'), 'light_blue');
 assert.equal(formatGarmentDisplayName({ color: 'gray', category: 'bottoms', subcategory: 'shorts' }), 'Grey shorts');
 assert.equal(formatGarmentDisplayName({ color: 'black', category: 'bottoms', subcategory: 'shorts' }), 'Dark shorts');
-assert.equal(stabilizeColor('black', 'white', 0.85, 'shorts'), 'white');
+assert.equal(
+  formatGarmentDisplayName({ color: 'light_pink', category: 'tops', subcategory: 'dress_shirt' }),
+  'Light Pink top',
+);
+assert.equal(
+  beliefKindFromDetection({
+    name: 'Light Pink Dress Shirt',
+    category: 'dresses',
+    subcategory: 'dress_shirt',
+    confidence: 0.9,
+    bbox: [0.2, 0.1, 0.5, 0.4],
+  }),
+  'top',
+);
 assert.equal(normalizeBeliefColor('gray', 'shorts'), 'gray');
 
 const topRed: OnDeviceDetection = {
@@ -161,6 +180,41 @@ assert.equal(dressState.bottom?.kind, 'dress');
 dressState = applyOutfitBelief(dressState, [trousersFlip], { now: 13000 }).state;
 assert.equal(dressState.bottom?.kind, 'dress', 'dress persists over overlapping trousers');
 
+// False dress lock: top + trousers must kill one-piece dress immediately
+const falseDressSeed: OnDeviceDetection = {
+  name: 'Pink dress',
+  category: 'dresses',
+  subcategory: 'dress',
+  color: 'pink',
+  confidence: 0.95,
+  bbox: [0.22, 0.12, 0.5, 0.55],
+  trackId: 'p1',
+};
+const whiteTrousers: OnDeviceDetection = {
+  name: 'White trousers',
+  category: 'bottoms',
+  subcategory: 'trousers',
+  color: 'white',
+  confidence: 0.9,
+  bbox: [0.28, 0.48, 0.4, 0.42],
+  trackId: 'p2',
+};
+const pinkShirtTop: OnDeviceDetection = {
+  name: 'Light Pink top',
+  category: 'tops',
+  subcategory: 'dress_shirt',
+  color: 'light_pink',
+  confidence: 0.92,
+  bbox: [0.22, 0.12, 0.5, 0.4],
+  trackId: 'p3',
+};
+let falseDress = createOutfitBeliefState();
+falseDress = applyOutfitBelief(falseDress, [falseDressSeed], { now: 20000 }).state;
+assert.equal(falseDress.bottom?.kind, 'dress');
+falseDress = applyOutfitBelief(falseDress, [pinkShirtTop, whiteTrousers], { now: 20500 }).state;
+assert.equal(falseDress.top?.kind, 'top', 'dress shirt becomes top');
+assert.equal(falseDress.bottom?.kind, 'trousers', 'dress unlocked by top+trousers');
+
 // Outerwear preferred over phantom tee in the top slot
 const jacketDet: OnDeviceDetection = {
   name: 'Blue jacket',
@@ -208,7 +262,38 @@ const teeBase: OnDeviceDetection = {
 };
 let shirtLayer = createOutfitBeliefState();
 shirtLayer = applyOutfitBelief(shirtLayer, [overshirt, teeBase], { now: 15000 }).state;
-assert.equal(shirtLayer.top?.subcategory, 'top');
+assert.equal(shirtLayer.top?.subcategory, 't-shirt', 'preserve tee subcategory');
 assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
+
+// kindToWardrobe: preserve fine labels; never invent sneakers
+{
+  const shirtObs = observationFromDetection({
+    name: 'Pink Oxford Shirt',
+    category: 'tops',
+    subcategory: 'oxford_shirt',
+    color: 'pink',
+    confidence: 0.9,
+    bbox: [0.2, 0.1, 0.5, 0.4],
+  });
+  assert.equal(shirtObs.subcategory, 'oxford_shirt');
+  const shoeObs = observationFromDetection({
+    name: 'Brown shoes',
+    category: 'shoes',
+    subcategory: 'shoes',
+    color: 'brown',
+    confidence: 0.9,
+    bbox: [0.4, 0.86, 0.22, 0.12],
+  });
+  assert.equal(shoeObs.subcategory, 'shoes', 'unknown shoe must not become sneakers');
+  const loaferObs = observationFromDetection({
+    name: 'Brown loafers',
+    category: 'shoes',
+    subcategory: 'loafers',
+    color: 'brown',
+    confidence: 0.9,
+    bbox: [0.4, 0.86, 0.22, 0.12],
+  });
+  assert.equal(loaferObs.subcategory, 'loafers');
+}
 
 console.log('liveGarmentBelief.test.ts: all passed');

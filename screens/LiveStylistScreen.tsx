@@ -42,10 +42,11 @@ import {
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
 import { framesLikelySame, hashBase64Frame, stripBase64Prefix } from '@/utils/liveFrameHash';
 import {
-  applyDetectionMemory,
-  createDetectionMemory,
+  createLiveBeliefMemory,
+  syncCoachingToBelief,
+  updateLiveBelief,
   type DetectionMemory,
-} from '@/utils/liveDetectionMemory';
+} from '@/utils/beliefState';
 import {
   buildDebugSnapshot,
   detectionsToDebugRows,
@@ -55,7 +56,6 @@ import {
   type LiveBeliefDebugSnapshot,
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
-import { syncCoachingToBelief } from '@/utils/liveLayeringIntelligence';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 const SAMPLE_INTERVAL_MS = 1100;
@@ -87,7 +87,8 @@ function detectionsToLiveItems(
       name: d.name || d.category,
       category: d.category,
       subcategory: d.subcategory || null,
-      color: d.color || prev?.color || 'other',
+      // Belief owns colour — never keep a stale prev colour when belief cleared it.
+      color: d.color || 'other',
       confidence: d.confidence,
       bbox: d.bbox,
       needsConfirm: false,
@@ -138,7 +139,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
   const previousFeedbackRef = useRef<LiveFeedback | null>(null);
-  const detectionMemoryRef = useRef<DetectionMemory>(createDetectionMemory());
+  const detectionMemoryRef = useRef<DetectionMemory>(createLiveBeliefMemory());
   const decisionLogRef = useRef<BeliefDecision[]>([]);
   const inspectRef = useRef<ReturnType<typeof inspectDetection> | null>(null);
   const inFlightRef = useRef(false);
@@ -200,10 +201,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
     const footZone = getLastOnDeviceFootZone();
 
-    // Always run server/cloud labels through belief — never paint raw frame truth
+    // Always run server/cloud labels through belief — never paint raw frame truth.
+    // Cloud path intentionally skips client hybrid; updateLiveBelief is the single mutation entry.
     if (res.items?.length) {
       const raw = liveItemsToDetections(res.items);
-      const stabilized = applyDetectionMemory(raw, detectionMemoryRef.current, {
+      const stabilized = updateLiveBelief(raw, detectionMemoryRef.current, {
         decisions: decisionLogRef.current,
         bottomBandBrightness: footZone?.brightness,
         occasionType,
@@ -222,7 +224,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       || detectionMemoryRef.current.belief?.bottom
       || detectionMemoryRef.current.belief?.footwear
     ) {
-      const held = applyDetectionMemory([], detectionMemoryRef.current, {
+      const held = updateLiveBelief([], detectionMemoryRef.current, {
         decisions: decisionLogRef.current,
         bottomBandBrightness: footZone?.brightness,
         occasionType,
@@ -372,7 +374,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
         // Temporal memory — hold top/bottom across flaky frames (no restart needed)
         const footZone = getLastOnDeviceFootZone();
-        const stabilized = applyDetectionMemory(corrected, detectionMemoryRef.current, {
+        const stabilized = updateLiveBelief(corrected, detectionMemoryRef.current, {
           decisions: decisionLogRef.current,
           bottomBandBrightness: footZone?.brightness,
           occasionType,
@@ -469,7 +471,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     setIsLive((v) => {
       const next = !v;
       if (next) {
-        detectionMemoryRef.current = createDetectionMemory();
+        detectionMemoryRef.current = createLiveBeliefMemory();
         decisionLogRef.current = [];
         inspectRef.current = null;
         lastHashRef.current = null;
@@ -537,7 +539,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         });
         if (!pipeline?.discarded) {
           const footZone = getLastOnDeviceFootZone();
-          const stabilized = applyDetectionMemory(corrected, detectionMemoryRef.current, {
+          const stabilized = updateLiveBelief(corrected, detectionMemoryRef.current, {
             decisions: decisionLogRef.current,
             bottomBandBrightness: footZone?.brightness,
             occasionType,

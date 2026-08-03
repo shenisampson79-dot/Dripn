@@ -356,17 +356,22 @@ export function formatGarmentDisplayName(args: {
   const sub = String(args.subcategory || '').toLowerCase();
   const cat = String(args.category || '').toLowerCase();
   let kind = 'item';
-  if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
-  else if (/dress/.test(sub) || cat === 'dresses' || cat === 'dress') kind = 'dress';
+  // Dress shirt before dress — "Light Pink dress shirt" must not become "Light Pink dress"
+  if (/dress[\s_-]*shirt|shirt[\s_-]*dress|oxford[\s_-]*shirt|button[\s_-]?down|button[\s_-]?up/.test(`${cat} ${sub} ${args.fallbackName || ''}`)
+    && !/\b(maxi|midi|mini)\s*dress\b/.test(`${sub} ${args.fallbackName || ''}`)) {
+    kind = 'top';
+  }
+  else if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
+  else if (/\bdress\b/.test(sub) || cat === 'dresses' || cat === 'dress') kind = 'dress';
   else if (/chino/.test(sub) || /trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
   else if (/skirt/.test(sub)) kind = 'skirt';
   else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
   else if (/\bslides?\b/.test(sub)) kind = localizedShoeKind('slides');
   else if (/sandal/.test(sub)) kind = localizedShoeKind('sandals');
   else if (/boat/.test(sub)) kind = 'boat shoes';
-  else if (/\bboots?\b/.test(sub)) kind = localizedShoeKind('boots');
+  else if (/\bboots?\b/.test(sub) || /chelsea/.test(sub)) kind = localizedShoeKind('boots');
   else if (/sneaker|trainer/.test(sub)) kind = localizedShoeKind('sneakers');
-  else if (/shoe|boot|sneaker|sandal|trainer|flip|slide|boat/.test(sub) || cat === 'shoes') {
+  else if (/shoe|boot|sneaker|sandal|trainer|flip|slide|boat|loafer|oxford|chelsea/.test(sub) || cat === 'shoes') {
     kind = localizedShoeKind(sub || 'sneakers');
   }
   else if (/outer|blazer|jacket|coat/.test(sub) || cat === 'outerwear') kind = 'jacket';

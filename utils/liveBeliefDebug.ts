@@ -55,6 +55,7 @@ export type BeliefSlotStatus =
   | 'NONE'
   | 'CROPPED FRAME'
   | 'BAREFOOT DETECTED'
+  | 'SEARCHING'
   | 'BLOCKED';
 
 export type DebugBeliefSlot = {
@@ -167,8 +168,9 @@ function shoesSlot(
   if (zone?.cropped) {
     return { status: 'CROPPED FRAME', label: 'None [CROPPED FRAME]' };
   }
-  if (candidates.some((c) => !c.valid)) {
-    return { status: 'BLOCKED', label: 'None [BLOCKED]' };
+  // Feet in frame / weak rejects → searching, not alarming BLOCKED (absence ≠ barefoot)
+  if (zone?.visible || zone?.detectionEnabled || candidates.length > 0) {
+    return { status: 'SEARCHING', label: 'Searching…' };
   }
   return { status: 'NONE', label: 'None' };
 }

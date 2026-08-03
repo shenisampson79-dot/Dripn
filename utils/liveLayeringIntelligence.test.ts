@@ -89,6 +89,36 @@ const synced = syncCoachingToBelief(
 assert.match(synced?.summary || '', /Grey shorts/i);
 assert.match(synced?.summary || '', /Light Green top/i);
 assert.match(synced?.summary || '', /Red And Brown boat shoes/i);
-assert.doesNotMatch(synced?.summary || '', /White Shorts|Light Blue Shirt/i);
+assert.match(synced?.summary || '', /work well together/i);
+assert.doesNotMatch(synced?.summary || '', /White Shorts|Light Blue Shirt|sit in the same lane/i);
+
+const noShoes = syncCoachingToBelief(
+  {
+    summary: 'Green top and Blue Shorts sit in the same lane, and Blue shorts ground the look — this pairing is commonly styled together.',
+  },
+  [
+    { name: 'Light Blue top', category: 'tops', subcategory: 'top' },
+    { name: 'Grey shorts', category: 'bottoms', subcategory: 'shorts' },
+  ],
+);
+assert.match(noShoes?.summary || '', /Light Blue top/i);
+assert.match(noShoes?.summary || '', /Grey shorts/i);
+assert.doesNotMatch(noShoes?.summary || '', /ground the look/i);
+
+const dualDress = syncCoachingToBelief(
+  {
+    summary: 'Pink Dress carries the look, and Brown Dress ground the look.',
+  },
+  [
+    { name: 'Light Pink top', category: 'tops', subcategory: 'dress_shirt' },
+    { name: 'White trousers', category: 'bottoms', subcategory: 'trousers' },
+    { name: 'Brown boots', category: 'shoes', subcategory: 'boots' },
+  ],
+);
+assert.match(dualDress?.summary || '', /Light Pink top/i);
+assert.match(dualDress?.summary || '', /White trousers/i);
+assert.match(dualDress?.summary || '', /Brown boots/i);
+assert.doesNotMatch(dualDress?.summary || '', /\bDress\b/);
+assert.doesNotMatch(dualDress?.summary || '', /, and /);
 
 console.log('liveLayeringIntelligence.test.ts: all passed');

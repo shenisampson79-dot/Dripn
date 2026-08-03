@@ -85,9 +85,10 @@ const trousers: OnDeviceDetection = {
   confidence: 0.85,
   bbox: [0.3, 0.55, 0.35, 0.38], // reaches near floor — feet in frame
 };
+// Soft invent disabled — never spawn phantom shoes from top+trousers alone
 const inferred = applyHybridDetection([top, trousers], { inferMissingFootwear: true });
-assert.equal(inferred.hasFootwear, true);
-assert.ok(inferred.repairs.includes('infer_missing_footwear'));
+assert.equal(inferred.hasFootwear, false);
+assert.ok(!inferred.repairs.includes('infer_missing_footwear'));
 
 const noInvent = applyHybridDetection([top, trousers]);
 assert.equal(noInvent.hasFootwear, false);

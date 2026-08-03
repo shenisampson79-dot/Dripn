@@ -161,34 +161,10 @@ export function recoverShoes(
     }
   }
 
+  // Soft invent disabled — 0.25–0.40 phantom shoes never survive the gate and
+  // polluted coaching ("Blue shorts ground the look") when server mirrored them.
   if (inferMissingFootwear) {
-    if (feetLikelyCropped(withRegions.map((d) => d.bbox as BBoxTuple))) {
-      return { detections: withRegions, repairs };
-    }
-    const hasTop = withRegions.some((d) => /top|outer|dress/.test(String(d.category).toLowerCase()));
-    const bottoms = withRegions.filter((d) =>
-      /bottom|jean|short|skirt|trouser/.test(String(d.category).toLowerCase()),
-    );
-    const longBottoms = bottoms.some((d) => {
-      const h = d.bbox[3];
-      const bottom = d.bbox[1] + h;
-      return h >= 0.36 && bottom >= 0.88 && !/short/i.test(`${d.subcategory || ''} ${d.name || ''}`);
-    });
-    if (hasTop && longBottoms) {
-      const inferred: HybridDetection = {
-        name: 'Shoes',
-        category: 'shoes',
-        subcategory: 'shoes',
-        confidence: 0.4,
-        bbox: [0.35, 0.82, 0.3, 0.14],
-        inferred: true,
-        region: 'footwear',
-        hybridRepairs: ['infer_missing_footwear'],
-        trackId: `inferred_shoe_${Date.now()}`,
-      };
-      repairs.push('infer_missing_footwear');
-      return { detections: [...withRegions, inferred], repairs };
-    }
+    return { detections: withRegions, repairs };
   }
 
   return { detections: withRegions, repairs };

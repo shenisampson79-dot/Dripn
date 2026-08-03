@@ -178,9 +178,39 @@ export type BeliefPieceForCoach = {
   color?: string | null;
 };
 
+function isDressPiece(p: BeliefPieceForCoach): boolean {
+  const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
+  if (/dress[\s_-]*shirt|shirt[\s_-]*dress/.test(blob)) return false;
+  return /\bdress\b/.test(blob) || /dresses/.test(blob);
+}
+
+function isTopPiece(p: BeliefPieceForCoach): boolean {
+  const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
+  if (isDressPiece(p)) return false;
+  return /top|shirt|outer|blouse|tee|polo|jacket|knit|coat|blazer/.test(blob);
+}
+
+function isBottomPiece(p: BeliefPieceForCoach): boolean {
+  const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
+  if (isDressPiece(p)) return false;
+  return /bottom|short|trouser|skirt|pant|chino/.test(blob);
+}
+
+function isShoePiece(p: BeliefPieceForCoach): boolean {
+  const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
+  return /shoe|footwear|boot|loafer|trainer|sneaker|sandal|oxford|chelsea/.test(blob)
+    && !/oxford\s*shirt|dress\s*shirt/.test(blob);
+}
+
+function footwearGroundVerb(name: string): string {
+  return /\b(shoes|boots|trainers|sneakers|loafers|oxfords|sandals|slides|flip-?flops)\b/i.test(name)
+    ? 'ground'
+    : 'grounds';
+}
+
 /**
  * Force coaching copy to use belief display names — single UI truth.
- * Server may still say White Shorts while boxes say Grey shorts.
+ * Rebuilds carry/ground clauses from belief so "Brown Dress" / loafers≠boots never stick.
  */
 export function syncCoachingToBelief<T extends {
   summary?: string;
@@ -192,41 +222,60 @@ export function syncCoachingToBelief<T extends {
   pieces: BeliefPieceForCoach[],
 ): T | null | undefined {
   if (!coaching?.summary || !pieces.length) return coaching;
-  const top = pieces.find((p) => /top|shirt|outer|dress/i.test(`${p.category} ${p.subcategory || ''}`));
-  const bottom = pieces.find((p) => /bottom|short|trouser|skirt|pant/i.test(`${p.category} ${p.subcategory || ''}`));
-  const shoes = pieces.find((p) => /shoe|footwear/i.test(`${p.category} ${p.subcategory || ''}`));
 
-  let summary = String(coaching.summary);
-  // Tokenize so multi-word belief labels never re-match colour+kind patterns.
-  const TOP_T = '\uE010TOP\uE011';
-  const BOT_T = '\uE010BOT\uE011';
-  const SHOE_T = '\uE010SHOE\uE011';
-  if (bottom?.name) {
-    summary = summary.replace(
-      /\b(?:Dark|White|Black|Grey|Gray|Light(?:\s+\w+)?)\s+Shorts\b/gi,
-      BOT_T,
-    );
-    summary = summary.replace(/\b[\w]+\s*Casual[_\s-]?shorts\b/gi, BOT_T);
+  const dress = pieces.find(isDressPiece);
+  const top = pieces.find(isTopPiece);
+  const bottom = pieces.find(isBottomPiece);
+  const shoes = pieces.find(isShoePiece);
+  const outer = pieces.find((p) =>
+    /outer|jacket|coat|blazer/i.test(`${p.category} ${p.subcategory || ''}`),
+  );
+
+  const parts: string[] = [];
+  if (dress && !bottom) {
+    parts.push(`${dress.name} carries the look`);
+    if (outer?.name) parts.push(`${outer.name} adds a relaxed layer`);
+  } else if (top?.name && bottom?.name) {
+    parts.push(`${top.name} and ${bottom.name} work well together`);
+    if (outer?.name && outer !== top) parts.push(`${outer.name} adds a relaxed layer`);
+  } else if (top?.name) {
+    parts.push(`${top.name} carries the look`);
+  } else if (bottom?.name) {
+    parts.push(`${bottom.name} carry the look`);
+  } else if (dress?.name) {
+    parts.push(`${dress.name} carries the look`);
   }
-  if (top?.name) {
-    summary = summary.replace(
-      /\b(?:Light(?:\s+\w+)?|Dark|White|Black|Grey|Gray|Blue|Green|Mint)\s+(?:Button-?Up\s+)?(?:Shirt|Top|T-?Shirt|Oxford_shirt|Oxford Shirt)\b/gi,
-      TOP_T,
-    );
-    summary = summary.replace(/\bLight_blue\s+Shirt\b/gi, TOP_T);
-    summary = summary.replace(/\b[\w]+\s+Oxford_shirt\b/gi, TOP_T);
+
+  if (shoes?.name && !/\bdress\b/i.test(shoes.name)) {
+    parts.push(`${shoes.name} ${footwearGroundVerb(shoes.name)} the look`);
   }
-  if (shoes?.name) {
+
+  let summary: string;
+  if (parts.length >= 1) {
+    summary = parts.length === 2
+      ? `${parts[0]} and ${parts[1]}`
+      : parts.length > 2
+        ? `${parts[0]}, and ${parts.slice(1).join(', ')}`
+        : parts[0];
+    summary = `${summary.charAt(0).toUpperCase()}${summary.slice(1)}.`;
+  } else {
+    summary = String(coaching.summary);
     summary = summary.replace(
-      /\b(?:Red|Brown|White|Black|Grey|Gray)(?:\s+And\s+\w+)?\s+(?:Boat\s+Shoes?|Trainers?|Sneakers?|Boots?)\b/gi,
-      SHOE_T,
+      /(?:,\s*)?(?:and\s+)?[^.,—]*?\bgrounds?\s+the\s+look\b/gi,
+      '',
     );
+    summary = summary.replace(/\b\w+\s+Dress\s+grounds?\s+the\s+look\b/gi, '');
   }
-  if (top?.name) summary = summary.split(TOP_T).join(top.name);
-  if (bottom?.name) summary = summary.split(BOT_T).join(bottom.name);
-  if (shoes?.name) summary = summary.split(SHOE_T).join(shoes.name);
-  // Kill underscore taxonomy leaks in user-facing copy
-  summary = summary.replace(/_/g, ' ');
+
+  summary = summary
+    .replace(/_/g, ' ')
+    .replace(/\s*,\s*,+/g, ', ')
+    .replace(/\s*,\s+and\s+/gi, ' and ')
+    .replace(/\s+and\s*\./gi, '.')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\./g, '.')
+    .trim();
+  if (summary && !/[.!?]$/.test(summary)) summary = `${summary}.`;
 
   const bullets = Array.isArray(coaching.bullets)
     ? coaching.bullets.map((b) => String(b).replace(/_/g, ' '))

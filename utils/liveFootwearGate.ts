@@ -98,7 +98,8 @@ const COMPATIBILITY: Record<string, Partial<Record<ShoeSubtype, number>>> = {
 };
 
 export function isInFootwearZone(bbox: BBoxTuple): boolean {
-  return bbox[1] + bbox[3] > 0.9;
+  // Mirror selfies often sit shoes just under 0.90 — labeled footwear still counts.
+  return bbox[1] + bbox[3] > 0.86;
 }
 
 export function isShoeShape(bbox: BBoxTuple): boolean {
@@ -206,17 +207,20 @@ export function analyzeFootwearCandidate(
   } else if (!shapeOk) {
     valid = false;
     rejectReason = 'invalid_shape';
-  } else if (skinRatio == null && !fabricOk) {
-    // No skin + no fabric colour → refuse to guess (barefoot / dark-skin miss)
-    valid = false;
-    rejectReason = 'skin_unknown';
   } else if (skinRatio != null && skinRatio >= BAREFOOT_SKIN_RATIO) {
     valid = false;
     rejectReason = 'barefoot';
-  } else if (!isValidShoe(bbox, skinRatio, det.color)) {
+  } else if (skinRatio == null && !fabricOk && !labeled && !isHardFootwear(bbox)) {
+    // No skin + no fabric + unlabeled soft geometry → refuse to guess
+    valid = false;
+    rejectReason = 'skin_unknown';
+  } else if (
+    !isValidShoe(bbox, skinRatio, det.color)
+    && !(labeled && zoneOk && (fabricOk || isHardFootwear(bbox)))
+  ) {
     valid = false;
     rejectReason = 'invalid_shape';
-  } else if (det.confidence < (fabricOk || labeled ? 0.62 : SHOE_MIN_CONFIDENCE)) {
+  } else if (det.confidence < (fabricOk || labeled || isHardFootwear(bbox) ? 0.52 : SHOE_MIN_CONFIDENCE)) {
     valid = false;
     rejectReason = 'low_confidence';
   }
@@ -277,9 +281,8 @@ export function gateFootwearDetections(
   }
 
   const candidates = shoeLike.map((d) => analyzeFootwearCandidate(d, { cropped: false }));
-  const barefootEvidence = candidates.some(
-    (c) => c.rejectReason === 'barefoot' || c.rejectReason === 'skin_unknown',
-  );
+  // Only true skin-dominant feet veto footwear. skin_unknown is "can't tell" — not barefoot.
+  const barefootEvidence = candidates.some((c) => c.rejectReason === 'barefoot');
 
   for (const c of candidates) {
     if (!c.valid && c.rejectReason) {
@@ -412,7 +415,7 @@ export function classifyShoeSubtype(args: {
   if (/sandal/.test(blob)) return 'sandals';
   // Boat/deck shoes before boot heuristics — low shaft often misreads as boots in mirrors.
   if (looksLikeBoatShoe(blob)) return 'boat_shoes';
-  if (/\bboots?\b/.test(blob)) return 'boots';
+  if (/\bboots?\b/.test(blob) || /chelsea/.test(blob)) return 'boots';
   if (/sneaker|trainer|runner/.test(blob) && scoreBootEvidence(args.bbox) < 0.5) {
     return 'sneakers';
   }
