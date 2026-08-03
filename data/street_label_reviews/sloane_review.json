@@ -1,7 +1,7 @@
 {
   "street": "sloane",
   "total": 42,
-  "reviewed_at": "2026-08-01",
+  "reviewed_at": "2026-08-03",
   "items": [
     {
       "id": "001",
@@ -20,8 +20,8 @@
     },
     {
       "id": "004",
-      "status": "fix",
-      "notes": "Remove footwear — sandals on pedestal not worn"
+      "status": "ok",
+      "notes": "Pedestal footwear policy: keep sandals/mules styled with this look (not only worn-on-feet)"
     },
     {
       "id": "005",
@@ -130,8 +130,8 @@
     },
     {
       "id": "026",
-      "status": "fix",
-      "notes": "Remove worn footwear — clogs on pedestal"
+      "status": "ok",
+      "notes": "Pedestal footwear policy: keep sandals/mules styled with this look (not only worn-on-feet)"
     },
     {
       "id": "027",
@@ -218,5 +218,6 @@
     "ok": 33,
     "fix": 4,
     "uncertain": 5
-  }
+  },
+  "note": "Pedestal/stand footwear is part of the outfit when styled with the mannequin look."
 }

@@ -15,11 +15,16 @@ When done: tell me and run `npm run build:sloane-signals` (or I’ll rebuild + i
 | `sloane_014` | Varley right mannequin: navy sleeveless knit, cream shoulder jumper, navy trousers |
 | `sloane_031` | Women's black suit; footwear stays `null` |
 
-### Footwear null (cropped feet — OK to leave null)
-Only fill if you can clearly see shoes in the photo:
-`001, 005–010, 012, 022–024, 036–038, 040–041`
+### Footwear (torso mannequins / pedestals)
+Shop windows often place shoes on the **stand base or a pedestal** next to a torso-only mannequin.  
+**Those shoes are part of the outfit** — label them under `footwear`.
 
-Leaving `footwear: null` is fine. Do **not** invent shoes.
+Only leave `footwear: null` when:
+- no shoes are styled with this look, or
+- shoes belong to a neighbour mannequin / separate product display
+
+IDs previously marked “cropped / null OK” — re-check for pedestal shoes before leaving null:  
+`001, 005–010, 012, 022–024, 036–038, 040–041`
 
 ### Normalize categories while you edit
 **top.category:** `shirt | blouse | sweater | polo | t-shirt | knit | dress | other`  
@@ -43,4 +48,4 @@ Use `valid: false` for non-outfits (eyewear, empty rails, product-only).
    - `npm run build:sloane-signals` (enrich brands + mine patterns)
 
 ## Tip
-Open image + JSON side by side. Fix one ID at a time. Skip null footwear unless shoes are obvious.
+Open image + JSON side by side. Fix one ID at a time. Include pedestal/stand footwear when it belongs to the look.

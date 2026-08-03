@@ -1,13 +1,34 @@
 [
   {
     "id": "002",
-    "status": "fix",
-    "notes": "Striped tee + brown striped handbag OK; sandals on floor correctly footwear null; trousers look charcoal/brown not black; missing gold bead necklace on hanger",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included white sandals with this look",
     "pieces": [
-      { "category": "tops", "subcategory": "striped_crew_neck", "color": "white" },
-      { "category": "bottoms", "subcategory": "wide_leg_trousers", "color": "charcoal" },
-      { "category": "bags", "subcategory": "structured_handbag", "color": "brown" },
-      { "category": "accessories", "subcategory": "bead_necklace", "color": "gold" }
+      {
+        "category": "tops",
+        "subcategory": "striped_crew_neck",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "charcoal"
+      },
+      {
+        "category": "bags",
+        "subcategory": "structured_handbag",
+        "color": "brown"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "bead_necklace",
+        "color": "gold"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "white"
+      }
     ]
   },
   {
@@ -15,9 +36,21 @@
     "status": "fix",
     "notes": "White WILDCAT tee + brown/white striped wide-legs OK; crossbody is charcoal/grey not olive; no footwear — correct",
     "pieces": [
-      { "category": "tops", "subcategory": "graphic_crew_neck", "color": "white" },
-      { "category": "bottoms", "subcategory": "striped_wide_leg", "color": "brown" },
-      { "category": "bags", "subcategory": "crossbody", "color": "charcoal" }
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew_neck",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "striped_wide_leg",
+        "color": "brown"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "charcoal"
+      }
     ]
   },
   {
@@ -33,12 +66,26 @@
   {
     "id": "006",
     "status": "ok",
-    "notes": "Light-blue lemon-embroidered pinstripe midi; gold Mary Janes on wooden pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included silver mary_janes with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "mary_janes",
+        "color": "silver"
+      }
+    ]
   },
   {
     "id": "007",
     "status": "ok",
-    "notes": "White ruffle-collar blouse + medium denim A-line skirt; woven clogs on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included tan clogs with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "clogs",
+        "color": "tan"
+      }
+    ]
   },
   {
     "id": "009",
@@ -55,11 +102,31 @@
     "status": "fix",
     "notes": "Olive SPIRIT tee, maroon shorts, maroon/pinkish cap, grey hiking sandals OK; missing pink sweatshirt tied at waist",
     "pieces": [
-      { "category": "tops", "subcategory": "graphic_crew_neck", "color": "olive" },
-      { "category": "tops", "subcategory": "sweatshirt_tied_waist", "color": "pink" },
-      { "category": "bottoms", "subcategory": "mid_thigh_shorts", "color": "maroon" },
-      { "category": "footwear", "subcategory": "hiking_sandals", "color": "grey" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "maroon" }
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew_neck",
+        "color": "olive"
+      },
+      {
+        "category": "tops",
+        "subcategory": "sweatshirt_tied_waist",
+        "color": "pink"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "mid_thigh_shorts",
+        "color": "maroon"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "hiking_sandals",
+        "color": "grey"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "maroon"
+      }
     ]
   },
   {
@@ -67,10 +134,26 @@
     "status": "fix",
     "notes": "Maroon EXPLORE tee, navy backpack, grey hiking sandals OK; shorts are slate/blue-grey not teal",
     "pieces": [
-      { "category": "tops", "subcategory": "graphic_crew_neck", "color": "maroon" },
-      { "category": "bottoms", "subcategory": "outdoor_shorts", "color": "slate" },
-      { "category": "footwear", "subcategory": "hiking_sandals", "color": "grey" },
-      { "category": "bags", "subcategory": "backpack", "color": "navy" }
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew_neck",
+        "color": "maroon"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "outdoor_shorts",
+        "color": "slate"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "hiking_sandals",
+        "color": "grey"
+      },
+      {
+        "category": "bags",
+        "subcategory": "backpack",
+        "color": "navy"
+      }
     ]
   },
   {
@@ -83,8 +166,16 @@
     "status": "fix",
     "notes": "Sale tag says ORCHID dress color RED not pink; dark ankle-strap sandals worn (charcoal/black OK as black)",
     "pieces": [
-      { "category": "dresses", "subcategory": "floral_knee", "color": "red" },
-      { "category": "footwear", "subcategory": "ankle_strap_sandals", "color": "black" }
+      {
+        "category": "dresses",
+        "subcategory": "floral_knee",
+        "color": "red"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "ankle_strap_sandals",
+        "color": "black"
+      }
     ]
   },
   {
@@ -95,17 +186,40 @@
   {
     "id": "017",
     "status": "ok",
-    "notes": "Lower-body: medium-blue slim jeans + navy braided belt; dress shoes on glass base correctly footwear null"
+    "notes": "Pedestal footwear policy: included gray oxfords with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "oxfords",
+        "color": "gray"
+      }
+    ]
   },
   {
     "id": "018",
     "status": "uncertain",
     "notes": "Lifestyle poster cutout (not a physical mannequin) — outfit description matches photo but keep or discard?",
     "pieces": [
-      { "category": "tops", "subcategory": "turtleneck", "color": "cream" },
-      { "category": "outerwear", "subcategory": "field_coat", "color": "black" },
-      { "category": "bottoms", "subcategory": "plaid_tapered", "color": "brown" },
-      { "category": "footwear", "subcategory": "leather_dress", "color": "burgundy" }
+      {
+        "category": "tops",
+        "subcategory": "turtleneck",
+        "color": "cream"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "field_coat",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "plaid_tapered",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "leather_dress",
+        "color": "burgundy"
+      }
     ]
   },
   {
@@ -118,12 +232,36 @@
     "status": "fix",
     "notes": "Beige open tech shirt, olive tee, black bucket hat OK; shorts are mustard/tan not olive; missing worn black backpack (chest strap)",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "olive" },
-      { "category": "outerwear", "subcategory": "technical_long_sleeve", "color": "beige" },
-      { "category": "bottoms", "subcategory": "hiking_cargo_shorts", "color": "tan" },
-      { "category": "footwear", "subcategory": "hiking_shoes", "color": "black" },
-      { "category": "accessories", "subcategory": "bucket_hat", "color": "black" },
-      { "category": "bags", "subcategory": "backpack", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "olive"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "technical_long_sleeve",
+        "color": "beige"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "hiking_cargo_shorts",
+        "color": "tan"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "hiking_shoes",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "bucket_hat",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "backpack",
+        "color": "black"
+      }
     ]
   },
   {
@@ -131,11 +269,31 @@
     "status": "fix",
     "notes": "White tech hoodie OK; tee is sage/olive not lime; shorts grey/olive-grey not beige; cap white/cream not beige",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "sage" },
-      { "category": "outerwear", "subcategory": "technical_windbreaker", "color": "white" },
-      { "category": "bottoms", "subcategory": "athletic_shorts", "color": "grey" },
-      { "category": "footwear", "subcategory": "trail_runners", "color": "grey" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "white" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "sage"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "technical_windbreaker",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "athletic_shorts",
+        "color": "grey"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "trail_runners",
+        "color": "grey"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "white"
+      }
     ]
   },
   {
@@ -143,10 +301,26 @@
     "status": "fix",
     "notes": "Mint windbreaker, orange shorts, orange trail runners OK; under-tee is navy/royal blue not purple (purple is secondary running mannequin)",
     "pieces": [
-      { "category": "tops", "subcategory": "logo_crew_neck", "color": "navy" },
-      { "category": "outerwear", "subcategory": "technical_windbreaker", "color": "mint" },
-      { "category": "bottoms", "subcategory": "athletic_shorts", "color": "orange" },
-      { "category": "footwear", "subcategory": "trail_runners", "color": "orange" }
+      {
+        "category": "tops",
+        "subcategory": "logo_crew_neck",
+        "color": "navy"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "technical_windbreaker",
+        "color": "mint"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "athletic_shorts",
+        "color": "orange"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "trail_runners",
+        "color": "orange"
+      }
     ]
   },
   {
@@ -169,12 +343,36 @@
     "status": "fix",
     "notes": "Yellow windbreaker, white/cream tee, olive shorts, cream tote, black trail sneakers OK; missing pale baseball cap (worn)",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "white" },
-      { "category": "outerwear", "subcategory": "windbreaker", "color": "yellow" },
-      { "category": "bottoms", "subcategory": "casual_shorts", "color": "olive" },
-      { "category": "footwear", "subcategory": "trail_sneakers", "color": "black" },
-      { "category": "bags", "subcategory": "tote", "color": "cream" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "cream" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "windbreaker",
+        "color": "yellow"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "casual_shorts",
+        "color": "olive"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "trail_sneakers",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "tote",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "cream"
+      }
     ]
   },
   {
@@ -194,8 +392,8 @@
   },
   {
     "id": "032",
-    "status": "ok",
-    "notes": "Navy single-breasted suit, white dress shirt, light pink striped tie; brogues on pedestals correctly footwear null"
+    "status": "uncertain",
+    "notes": "Pedestal footwear policy: multiple_shoe_types. Check photo and add the stand/pedestal shoes that belong with this look."
   },
   {
     "id": "033",
@@ -212,12 +410,36 @@
     "status": "fix",
     "notes": "Black tee, off-white trousers, cream cap, black slip-ons OK; missing worn black climbing harness + chalk bag",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "black" },
-      { "category": "bottoms", "subcategory": "straight_trousers", "color": "off_white" },
-      { "category": "footwear", "subcategory": "slip_ons", "color": "black" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "cream" },
-      { "category": "accessories", "subcategory": "climbing_harness", "color": "black" },
-      { "category": "bags", "subcategory": "chalk_bag", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_trousers",
+        "color": "off_white"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "slip_ons",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "climbing_harness",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "chalk_bag",
+        "color": "black"
+      }
     ]
   },
   {
@@ -227,21 +449,30 @@
   },
   {
     "id": "038",
-    "status": "fix",
-    "notes": "Cream teal-paisley print OK and gold sandals on stand correctly footwear null; length reads maxi not midi",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included gold sandals with this look",
     "pieces": [
-      { "category": "dresses", "subcategory": "paisley_maxi", "color": "cream" }
+      {
+        "category": "dresses",
+        "subcategory": "paisley_maxi",
+        "color": "cream"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "gold"
+      }
     ]
   },
   {
     "id": "039",
-    "status": "ok",
-    "notes": "Oversized light denim jacket (brown collar), green striped rib top, matching denim shorts, brown handbag; sneakers on pedestal correctly null"
+    "status": "uncertain",
+    "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
   },
   {
     "id": "040",
-    "status": "ok",
-    "notes": "Charcoal suit jacket + trousers, cream V-neck knit vest, white shirt; light shoes on pedestal correctly footwear null"
+    "status": "uncertain",
+    "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
   },
   {
     "id": "041",
@@ -253,10 +484,26 @@
     "status": "fix",
     "notes": "Cream embroidered short-sleeve + black slim trousers + charcoal sneakers OK; missing cream canvas tote held in hand",
     "pieces": [
-      { "category": "tops", "subcategory": "embroidered_short_sleeve", "color": "cream" },
-      { "category": "bottoms", "subcategory": "slim_trousers", "color": "black" },
-      { "category": "footwear", "subcategory": "sneakers", "color": "charcoal" },
-      { "category": "bags", "subcategory": "tote", "color": "cream" }
+      {
+        "category": "tops",
+        "subcategory": "embroidered_short_sleeve",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "slim_trousers",
+        "color": "black"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "charcoal"
+      },
+      {
+        "category": "bags",
+        "subcategory": "tote",
+        "color": "cream"
+      }
     ]
   },
   {
@@ -272,11 +519,25 @@
   {
     "id": "046",
     "status": "ok",
-    "notes": "Black sleeveless midi with white flower buttons; white heeled sandals on stand base correctly footwear null"
+    "notes": "Pedestal footwear policy: included white sandals with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "white"
+      }
+    ]
   },
   {
     "id": "047",
     "status": "ok",
-    "notes": "Black sleeveless top, light denim jacket tied at chest, black mini with white hem, navy backpack; cream sneakers on pedestal correctly null"
+    "notes": "Pedestal footwear policy: included cream sneakers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "cream"
+      }
+    ]
   }
 ]

@@ -1,13 +1,13 @@
 {
   "street": "oxford",
   "total": 423,
-  "reviewed_at": "2026-08-02",
+  "reviewed_at": "2026-08-03",
   "scope": "all_labelled_gold_expand_discarded",
-  "note": "Must fix = gold + expand corrections. Your call = ambiguous. OK = match or confirmed discard.",
+  "note": "Must fix = gold + expand label corrections. Your call = ambiguous. OK = match or confirmed discard. Pedestal/stand footwear included as outfit pieces (2026-08-03).",
   "counts": {
-    "ok": 278,
-    "fix": 120,
-    "uncertain": 25
+    "ok": 304,
+    "fix": 79,
+    "uncertain": 40
   },
   "chunk_files": [
     "oxford_review_chunk_01.json",
@@ -28,8 +28,8 @@
     },
     {
       "id": "002",
-      "status": "fix",
-      "notes": "Striped tee + brown striped handbag OK; sandals on floor correctly footwear null; trousers look charcoal/brown not black; missing gold bead necklace on hanger",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -50,6 +50,11 @@
           "category": "accessories",
           "subcategory": "bead_necklace",
           "color": "gold"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "white"
         }
       ]
     },
@@ -88,12 +93,26 @@
     {
       "id": "006",
       "status": "ok",
-      "notes": "Light-blue lemon-embroidered pinstripe midi; gold Mary Janes on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included silver mary_janes with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "mary_janes",
+          "color": "silver"
+        }
+      ]
     },
     {
       "id": "007",
       "status": "ok",
-      "notes": "White ruffle-collar blouse + medium denim A-line skirt; woven clogs on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included tan clogs with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "clogs",
+          "color": "tan"
+        }
+      ]
     },
     {
       "id": "008",
@@ -228,7 +247,14 @@
     {
       "id": "017",
       "status": "ok",
-      "notes": "Lower-body: medium-blue slim jeans + navy braided belt; dress shoes on glass base correctly footwear null"
+      "notes": "Pedestal footwear policy: included gray oxfords with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "oxfords",
+          "color": "gray"
+        }
+      ]
     },
     {
       "id": "018",
@@ -464,8 +490,8 @@
     },
     {
       "id": "032",
-      "status": "ok",
-      "notes": "Navy single-breasted suit, white dress shirt, light pink striped tie; brogues on pedestals correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: multiple_shoe_types. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "033",
@@ -553,25 +579,30 @@
     },
     {
       "id": "038",
-      "status": "fix",
-      "notes": "Cream teal-paisley print OK and gold sandals on stand correctly footwear null; length reads maxi not midi",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included gold sandals with this look",
       "pieces": [
         {
           "category": "dresses",
           "subcategory": "paisley_maxi",
           "color": "cream"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "gold"
         }
       ]
     },
     {
       "id": "039",
-      "status": "ok",
-      "notes": "Oversized light denim jacket (brown collar), green striped rib top, matching denim shorts, brown handbag; sneakers on pedestal correctly null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "040",
-      "status": "ok",
-      "notes": "Charcoal suit jacket + trousers, cream V-neck knit vest, white shirt; light shoes on pedestal correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "041",
@@ -623,12 +654,26 @@
     {
       "id": "046",
       "status": "ok",
-      "notes": "Black sleeveless midi with white flower buttons; white heeled sandals on stand base correctly footwear null"
+      "notes": "Pedestal footwear policy: included white sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "047",
       "status": "ok",
-      "notes": "Black sleeveless top, light denim jacket tied at chest, black mini with white hem, navy backpack; cream sneakers on pedestal correctly null"
+      "notes": "Pedestal footwear policy: included cream sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "048",
@@ -798,7 +843,14 @@
     {
       "id": "060",
       "status": "ok",
-      "notes": "Navy short-sleeve shirt over white tee, cream shorts; grey NB 991 on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included gray sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "gray"
+        }
+      ]
     },
     {
       "id": "061",
@@ -819,18 +871,25 @@
     },
     {
       "id": "062",
-      "status": "ok",
-      "notes": "Floral cowl top, embroidered denim shorts, brown crossbody; woven sandals on pedestal correctly null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "063",
       "status": "ok",
-      "notes": "Brown floral camp shirt, white tee, tan cuffed linen, beige tote; sneakers on base correctly null"
+      "notes": "Pedestal footwear policy: included cream sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "064",
-      "status": "fix",
-      "notes": "Periwinkle smocked midi OK and loafers on base correctly null; missing white GANNI graphic tee under dress",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black loafers with this look",
       "pieces": [
         {
           "category": "dresses",
@@ -841,6 +900,11 @@
           "category": "tops",
           "subcategory": "graphic_tee",
           "color": "white"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "black"
         }
       ]
     },
@@ -852,12 +916,26 @@
     {
       "id": "066",
       "status": "ok",
-      "notes": "Navy belted shirt dress + cream padded bag on pedestal; mules on floor correctly footwear null"
+      "notes": "Pedestal footwear policy: included cream mules with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "mules",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "067",
       "status": "ok",
-      "notes": "Navy crinkle overshirt, white tee, navy trousers, white APC tote on OSB; sneakers on floor correctly null"
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "068",
@@ -866,8 +944,8 @@
     },
     {
       "id": "069",
-      "status": "fix",
-      "notes": "Rust satin shirt, rust tee, indigo jeans, tan belt OK; black pointed pumps appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black pumps with this look",
       "pieces": [
         {
           "category": "tops",
@@ -891,7 +969,7 @@
         },
         {
           "category": "footwear",
-          "subcategory": "pointed_pumps",
+          "subcategory": "pumps",
           "color": "black"
         }
       ]
@@ -909,7 +987,14 @@
     {
       "id": "072",
       "status": "ok",
-      "notes": "Lime linen shirt, navy trousers, tan belt; charcoal loafers on metal baseplate correctly null"
+      "notes": "Pedestal footwear policy: included charcoal loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "charcoal"
+        }
+      ]
     },
     {
       "id": "073",
@@ -1099,7 +1184,14 @@
     {
       "id": "086",
       "status": "ok",
-      "notes": "Maroon lace-trim camisole + beige wide trousers; loafers on SALE pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "087",
@@ -1225,27 +1317,55 @@
     {
       "id": "096",
       "status": "ok",
-      "notes": "Black cropped zip jacket + light crossover distressed jeans; black pointed shoes on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black pumps with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "pumps",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "097",
       "status": "ok",
-      "notes": "Gold-tan animal-print spaghetti maxi slip; black strappy sandals on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "098",
-      "status": "ok",
-      "notes": "Open black biker over black fitted top, ochre ruched mini, gold pendant; multi-strap shoes on pedestal correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "099",
       "status": "ok",
-      "notes": "White lace blouse + white pleated mini + woven straw bag; black ankle boots on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black boots with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "100",
       "status": "ok",
-      "notes": "Dark animal-botanical sleeveless midi with waist knot + black structured handbag; pointed shoes on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black pumps with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "pumps",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "101",
@@ -1255,32 +1375,74 @@
     {
       "id": "102",
       "status": "ok",
-      "notes": "Denim chore over white tee, charcoal shorts, black sunglasses; boat shoes on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black boat_shoes with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boat_shoes",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "103",
       "status": "ok",
-      "notes": "Mustard suede bomber over white tee + light straight jeans; chukkas on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black boots with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "104",
       "status": "ok",
-      "notes": "Cream AllSaints graphic short-sleeve + medium-wash straight jeans; chunky lace-ups on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black derby with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "derby",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "105",
       "status": "ok",
-      "notes": "Champagne satin slip midi on hanger with sunglasses; black slides on base correctly footwear null"
+      "notes": "Pedestal footwear policy: included black slides with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "slides",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "106",
       "status": "ok",
-      "notes": "Sheer burgundy lace camisole over white wide-leg trousers + sunglasses on hanger; slides on base correctly footwear null"
+      "notes": "Pedestal footwear policy: included black slides with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "slides",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "107",
       "status": "ok",
-      "notes": "Open white military jacket over black cropped tank, black cropped trousers, gold hoops; cream sandals on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included cream sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "108",
@@ -1312,17 +1474,38 @@
     {
       "id": "110",
       "status": "ok",
-      "notes": "Dark brown/teal floral ruched asymmetrical dress + silver chain hip belt; black thongs on metal base correctly footwear null"
+      "notes": "Pedestal footwear policy: included black sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "111",
       "status": "ok",
-      "notes": "Champagne satin scoop slip midi + dark sunglasses; black mule heels on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black heels with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "heels",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "112",
       "status": "ok",
-      "notes": "Burgundy lace asymmetrical camisole over cream wide cropped trousers + silver pendant; strappy heels on base correctly footwear null"
+      "notes": "Pedestal footwear policy: included black heels with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "heels",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "113",
@@ -1332,7 +1515,14 @@
     {
       "id": "114",
       "status": "ok",
-      "notes": "Open cream utility jacket over red button-front maxi; tan flat on gold pedestal between mannequins correctly footwear null"
+      "notes": "Pedestal footwear policy: included tan flats with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "flats",
+          "color": "tan"
+        }
+      ]
     },
     {
       "id": "115",
@@ -1613,12 +1803,19 @@
     {
       "id": "142",
       "status": "ok",
-      "notes": "White ruffle-cuff polo, light denim Bermudas, mint quilted bag; black ankle boots on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black boots with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "143",
-      "status": "fix",
-      "notes": "Olive cropped tank, olive wide stripe trousers, white drawstring bag, flip-flops on pedestal correctly null; missing beige baseball cap (worn)",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white flip_flops with this look",
       "pieces": [
         {
           "category": "tops",
@@ -1639,6 +1836,11 @@
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "beige"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "flip_flops",
+          "color": "white"
         }
       ]
     },
@@ -1650,7 +1852,14 @@
     {
       "id": "145",
       "status": "ok",
-      "notes": "Black camp-collar shirt, cream tailored shorts, black crossbody; sneakers on raised wooden platform correctly footwear null"
+      "notes": "Pedestal footwear policy: included cream sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "146",
@@ -1795,8 +2004,8 @@
     },
     {
       "id": "161",
-      "status": "uncertain",
-      "notes": "White cap, beige crew knit, dusty-rose chino shorts OK; desert boots on raised silver pedestal correctly null; light-blue stripe oxford under sweater visible but omitted — keep or add?",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included tan boots with this look",
       "pieces": [
         {
           "category": "tops",
@@ -1817,6 +2026,11 @@
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "white"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "tan"
         }
       ]
     },
@@ -1881,8 +2095,8 @@
     },
     {
       "id": "165",
-      "status": "ok",
-      "notes": "Burgundy hooded utility parka, blue-grey merino polo cardigan, cream high-rise wide jeans; chunky shoes on metal pedestal correctly null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: vague_type. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "166",
@@ -1891,8 +2105,8 @@
     },
     {
       "id": "167",
-      "status": "fix",
-      "notes": "Beige cap, navy zip short jacket, pale yellow mini tee, grey smart trousers OK; sandals on clear pedestal correctly null; missing black crossbody bag (worn)",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -1918,13 +2132,18 @@
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "beige"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "black"
         }
       ]
     },
     {
       "id": "168",
-      "status": "fix",
-      "notes": "Blue crew tee, light-blue/white striped oxford tied on shoulders, charcoal barrel jeans OK; sandals on metal pedestal correctly null; missing thin black braided belt",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -1944,6 +2163,11 @@
         {
           "category": "accessories",
           "subcategory": "braided_belt",
+          "color": "black"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
           "color": "black"
         }
       ]
@@ -1987,8 +2211,8 @@
     },
     {
       "id": "171",
-      "status": "fix",
-      "notes": "Denim cap, cream zip short jacket with corduroy collar, burgundy mini tee, baggy barrel jeans OK; black chunky loafers worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2006,21 +2230,28 @@
           "color": "blue"
         },
         {
-          "category": "footwear",
-          "subcategory": "chunky_loafer",
-          "color": "black"
-        },
-        {
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "denim"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "black"
         }
       ]
     },
     {
       "id": "172",
       "status": "ok",
-      "notes": "Navy Harrington, charcoal AIRism polo, beige jersey easy-work trousers, burgundy crossbody sling; brown boat shoes on metal pedestal correctly null"
+      "notes": "Pedestal footwear policy: included brown boat_shoes with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boat_shoes",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "173",
@@ -2035,17 +2266,31 @@
     {
       "id": "175",
       "status": "ok",
-      "notes": "Left: black/grey tartan shirt, black leather-look wrap skirt; black pointed heels on marble pedestal correctly null"
+      "notes": "Pedestal footwear policy: included black heels with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "heels",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "176",
       "status": "ok",
-      "notes": "Matching burgundy ribbed short-sleeve button top + wide trousers; silver/white sneakers on stone pedestal correctly null"
+      "notes": "Pedestal footwear policy: included silver sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "silver"
+        }
+      ]
     },
     {
       "id": "177",
-      "status": "uncertain",
-      "notes": "Brown draped sweatshirt, brown wide lounge pants, white sneakers on pedestal correctly null; tee reads black/white thin stripe vs labelled navy; cap charcoal-vs-brown — keep navy tee?",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2066,6 +2311,11 @@
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "brown"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
         }
       ]
     },
@@ -2076,8 +2326,8 @@
     },
     {
       "id": "179",
-      "status": "fix",
-      "notes": "Black Nirvana In Utero tee, waist-tied dark shirt, khaki cargos OK; boots on pedestal correctly null; bucket hat is multicolor text print not red; missing silver sunglasses",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black boots with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2103,6 +2353,11 @@
           "category": "accessories",
           "subcategory": "sunglasses",
           "color": "silver"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "black"
         }
       ]
     },
@@ -2140,8 +2395,8 @@
     },
     {
       "id": "181",
-      "status": "fix",
-      "notes": "Black All Eyez On Me tee, terracotta wide trousers, tan waist pouch OK; boots on grey pedestal correctly null; missing sunglasses perched on head and gold chain",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black boots with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2167,6 +2422,11 @@
           "category": "accessories",
           "subcategory": "chain_necklace",
           "color": "gold"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "black"
         }
       ]
     },
@@ -2178,17 +2438,31 @@
     {
       "id": "183",
       "status": "ok",
-      "notes": "Beige double-breasted pinstripe suit, white dress shirt, patterned light tie; dark loafers on flat pedestal correctly null"
+      "notes": "Pedestal footwear policy: included brown flats with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "flats",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "184",
       "status": "ok",
-      "notes": "Navy single-breasted suit, white fine-stripe open-collar shirt, white pocket square; beige suede loafers on black pedestal correctly null"
+      "notes": "Pedestal footwear policy: included beige loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "beige"
+        }
+      ]
     },
     {
       "id": "185",
-      "status": "uncertain",
-      "notes": "White dress shirt + navy geometric tie OK; suit reads black/charcoal vs labelled navy; brown tassel loafers on thin base correctly null — navy or black?",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2209,13 +2483,18 @@
           "category": "accessories",
           "subcategory": "geometric_tie",
           "color": "navy"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
         }
       ]
     },
     {
       "id": "186",
-      "status": "fix",
-      "notes": "Tan suede bomber + charcoal ankle trousers OK; loafers on metal base correctly null; underlayer is white/cream crew not grey",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included beige loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2231,6 +2510,11 @@
           "category": "bottoms",
           "subcategory": "straight_ankle_trousers",
           "color": "charcoal"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "beige"
         }
       ]
     },
@@ -2368,7 +2652,14 @@
     {
       "id": "197",
       "status": "ok",
-      "notes": "White NY baseball cap, black zip track jacket with pink sleeve stripes, matching black track pants; white sneakers on floral CERNUCCI pedestal correctly null"
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "198",
@@ -2485,7 +2776,14 @@
     {
       "id": "215",
       "status": "ok",
-      "notes": "Brown ORIGINAL VINTAGE CO tee, light denim shorts, yellow/blue plaid tied at waist, light-frame sunglasses; brown boots on floor correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown boots with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "boots",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "216",
@@ -2506,8 +2804,8 @@
     },
     {
       "id": "217",
-      "status": "fix",
-      "notes": "Grey oversized tee over black mesh sleeves, light wide ripped jeans, burgundy ribbon OK; charcoal Mary Janes appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included taupe flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2531,8 +2829,8 @@
         },
         {
           "category": "footwear",
-          "subcategory": "mary_jane_flats",
-          "color": "charcoal"
+          "subcategory": "flats",
+          "color": "taupe"
         }
       ]
     },
@@ -2575,8 +2873,8 @@
     },
     {
       "id": "219",
-      "status": "fix",
-      "notes": "White wrap shawl-collar blazer + black wide-leg trousers OK; black pointed pumps appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black pumps with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2590,15 +2888,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "pointed_pumps",
+          "subcategory": "pumps",
           "color": "black"
         }
       ]
     },
     {
       "id": "220",
-      "status": "fix",
-      "notes": "White floral jacquard mandarin mini OK; black pointed flats appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black flats with this look",
       "pieces": [
         {
           "category": "dresses",
@@ -2607,7 +2905,7 @@
         },
         {
           "category": "footwear",
-          "subcategory": "pointed_flats",
+          "subcategory": "flats",
           "color": "black"
         }
       ]
@@ -2636,8 +2934,8 @@
     },
     {
       "id": "222",
-      "status": "fix",
-      "notes": "Yellow asymmetrical halter, white wide-leg cropped trousers, black woven bucket OK; dark slingback/pointed heels appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown heels with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2661,8 +2959,8 @@
         },
         {
           "category": "footwear",
-          "subcategory": "slingback_heels",
-          "color": "black"
+          "subcategory": "heels",
+          "color": "brown"
         }
       ]
     },
@@ -2727,8 +3025,8 @@
     },
     {
       "id": "227",
-      "status": "fix",
-      "notes": "Tan underlayer + light straight jeans OK; open shirt reads near-black not brown; maroon loafers are on feet (staff adjusting) but labelled null — add footwear",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: vague_type. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -2818,8 +3116,8 @@
     },
     {
       "id": "234",
-      "status": "fix",
-      "notes": "Black bob + sunglasses + brown/white strapless polka maxi OK; cream bag on side pedestal correctly ignored; woven sandals appear worn on feet but labelled null — add footwear",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "dresses",
@@ -2840,8 +3138,8 @@
     },
     {
       "id": "235",
-      "status": "fix",
-      "notes": "Blue/white/black stripe wrap mini OK; missing forest-green cape/coat draped on shoulders; black strappy sandals appear worn on feet but labelled null",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "dresses",
@@ -2862,8 +3160,8 @@
     },
     {
       "id": "236",
-      "status": "fix",
-      "notes": "Olive tank, cream wrap midi, shell pin OK; beige thong sandals appear worn on feet but labelled null — add footwear",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -2894,8 +3192,8 @@
     },
     {
       "id": "238",
-      "status": "fix",
-      "notes": "Pink pinstripe shirt + cream/white knee shorts OK; dark brown sneakers with white socks appear worn on feet but labelled null — add footwear",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -2916,8 +3214,8 @@
     },
     {
       "id": "239",
-      "status": "fix",
-      "notes": "Brown/light-blue striped polo + beige wide cropped trousers OK; white perforated flats appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2931,15 +3229,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "perforated_flats",
+          "subcategory": "flats",
           "color": "white"
         }
       ]
     },
     {
       "id": "240",
-      "status": "fix",
-      "notes": "Light-blue quarter-zip, black white-stripe wide trousers, cream crescent crossbody OK; white/gum sneakers appear worn on feet but labelled null — add footwear",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -2965,18 +3263,25 @@
     },
     {
       "id": "241",
-      "status": "ok",
-      "notes": "Pink lace/eyelet blouse + olive drawstring cargo shorts; bronze Mary Janes sit on pedestal with feet not inside — footwear null correct"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "242",
       "status": "ok",
-      "notes": "Left primary pink lace blouse + olive cargo shorts; bronze flats on pedestal correctly null; ignore green jacket + denim skirt neighbour — matches"
+      "notes": "Pedestal footwear policy: included bronze flats with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "flats",
+          "color": "bronze"
+        }
+      ]
     },
     {
       "id": "243",
-      "status": "fix",
-      "notes": "Cream floral ruffle blouse, brown joggers, cream woven crossbody OK; white woven slingback flats appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -2995,7 +3300,7 @@
         },
         {
           "category": "footwear",
-          "subcategory": "woven_flats",
+          "subcategory": "flats",
           "color": "white"
         }
       ]
@@ -3007,8 +3312,8 @@
     },
     {
       "id": "245",
-      "status": "fix",
-      "notes": "Blue/white/coral striped tee under coral scoop layer + dark denim cuffed shorts OK; light-blue perforated Mary Janes appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included light_blue mary_janes with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3027,20 +3332,20 @@
         },
         {
           "category": "footwear",
-          "subcategory": "mary_jane_flats",
+          "subcategory": "mary_janes",
           "color": "light_blue"
         }
       ]
     },
     {
       "id": "246",
-      "status": "ok",
-      "notes": "Navy pagoda graphic short-sleeve sweat + medium barrel-leg jeans with hangtag; light sneakers placed on pedestal at feet correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "247",
-      "status": "fix",
-      "notes": "Pink matcha graphic sweat + multicolor diagonal pleated mini OK; white woven flats appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3054,15 +3359,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "woven_flats",
+          "subcategory": "flats",
           "color": "white"
         }
       ]
     },
     {
       "id": "248",
-      "status": "fix",
-      "notes": "Mid-blue eyelet vest + matching eyelet-cuff trousers OK; burgundy strappy platform sandals appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included burgundy sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3076,15 +3381,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "strappy_sandals",
+          "subcategory": "sandals",
           "color": "burgundy"
         }
       ]
     },
     {
       "id": "249",
-      "status": "uncertain",
-      "notes": "Ornate orange/tan harem trousers + white sunglasses OK; bikini top reads dark brown vs labelled burgundy; white sandals appear worn but labelled null — confirm color + footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3103,15 +3408,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "slide_sandals",
+          "subcategory": "sandals",
           "color": "white"
         }
       ]
     },
     {
       "id": "250",
-      "status": "fix",
-      "notes": "Black bandeau, rust floral fringed sarong, black wide-brim hat OK; black T-strap sandals appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3130,7 +3435,7 @@
         },
         {
           "category": "footwear",
-          "subcategory": "tstrap_sandals",
+          "subcategory": "sandals",
           "color": "black"
         }
       ]
@@ -3142,8 +3447,8 @@
     },
     {
       "id": "252",
-      "status": "uncertain",
-      "notes": "Thick black/white stripe tee over thin stripe long-sleeve + wide black trousers OK; cream/beige flats at hem on pedestal — worn vs pedestal-null unclear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included beige flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3169,8 +3474,8 @@
     },
     {
       "id": "253",
-      "status": "fix",
-      "notes": "Coral tee, Fanta-print shorts, beige bucket OK; brown two-strap sandals appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3189,15 +3494,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "two_strap_sandals",
+          "subcategory": "sandals",
           "color": "brown"
         }
       ]
     },
     {
       "id": "254",
-      "status": "fix",
-      "notes": "White open shirt over blue/white stripe tee + charcoal trousers OK; bucket hat reads olive/khaki not grey; brown two-strap sandals over white socks appear worn but labelled null",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3221,15 +3526,15 @@
         },
         {
           "category": "footwear",
-          "subcategory": "two_strap_sandals",
+          "subcategory": "sandals",
           "color": "brown"
         }
       ]
     },
     {
       "id": "255",
-      "status": "fix",
-      "notes": "Sage check open shirt over white tee + navy relaxed trousers OK; brown two-strap sandals appear worn on feet but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3248,7 +3553,7 @@
         },
         {
           "category": "footwear",
-          "subcategory": "two_strap_sandals",
+          "subcategory": "sandals",
           "color": "brown"
         }
       ]
@@ -3256,12 +3561,26 @@
     {
       "id": "256",
       "status": "ok",
-      "notes": "Tan textured single-breasted suit, white shirt, red tie, dark pocket square; brown loafers on wooden pedestal correctly footwear null — matches"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "257",
       "status": "ok",
-      "notes": "Beige/cream linen suit over black crew tee; dark loafers on wood pedestal with stand poles — footwear null correct"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "258",
@@ -3270,8 +3589,8 @@
     },
     {
       "id": "259",
-      "status": "fix",
-      "notes": "Sage jacket/trousers, white shirt, pink tie OK and burgundy loafers on pedestal correctly null; waistcoat under jacket is charcoal/black not matching sage three-piece",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included burgundy loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3297,13 +3616,25 @@
           "category": "accessories",
           "subcategory": "necktie",
           "color": "pink"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "burgundy"
         }
       ]
     },
     {
       "id": "260",
       "status": "ok",
-      "notes": "Beige linen blazer + trousers over white crew tee; dark brown loafers on wooden pedestal correctly footwear null — matches"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "261",
@@ -3313,22 +3644,50 @@
     {
       "id": "262",
       "status": "ok",
-      "notes": "Tan single-breasted suit + light grey button-down; dark brown bit loafers on wooden pedestal correctly footwear null — matches"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "263",
       "status": "ok",
-      "notes": "Rust textured linen suit over white crew tee; dark brown tassel loafers on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "264",
       "status": "ok",
-      "notes": "Camel/mustard zip harrington over blue crew tee with beige pleated chinos; cream sneakers on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included cream sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "265",
       "status": "ok",
-      "notes": "Brown polo with thin white stripes + navy pleated trousers; tan tassel loafers on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included tan loafers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "loafers",
+          "color": "tan"
+        }
+      ]
     },
     {
       "id": "266",
@@ -3337,33 +3696,68 @@
     },
     {
       "id": "267",
-      "status": "ok",
-      "notes": "Olive crochet floral short-sleeve over white tee, beige drawstring shorts, white/brown baseball cap; sandals on pedestal correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "268",
       "status": "ok",
-      "notes": "Blue/white plaid rolled long-sleeve + tan chinos; black sneakers on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "269",
       "status": "ok",
-      "notes": "Open red/terracotta plaid short-sleeve over white tee + olive denim shorts; brown two-strap sandals on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "270",
       "status": "ok",
-      "notes": "Foreground green polo with white tipping + light grey shorts; sneakers on white pedestal block correctly footwear null"
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "271",
       "status": "ok",
-      "notes": "Olive Earth Rebellion graphic crew sweatshirt + light-wash baggy jeans; cream sneakers on white pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included cream sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "cream"
+        }
+      ]
     },
     {
       "id": "272",
       "status": "ok",
-      "notes": "Yellow graphic crew sweatshirt with olive sweatshirt tied at waist + medium-wash jeans; beige sneakers on wooden pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included beige sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "beige"
+        }
+      ]
     },
     {
       "id": "273",
@@ -3505,13 +3899,13 @@
     },
     {
       "id": "281",
-      "status": "ok",
-      "notes": "Beige double-breasted linen suit over white dress shirt + matching trousers; loafers on glass pedestal correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "282",
-      "status": "ok",
-      "notes": "Black shawl-lapel tuxedo, white wing-collar shirt, black bow tie, white pocket square; patent shoes on glass pedestal correctly footwear null"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "283",
@@ -3552,8 +3946,8 @@
     },
     {
       "id": "285",
-      "status": "fix",
-      "notes": "Olive quilted puffer vest, white tee, grey jersey shorts OK; sneakers on acrylic pedestal correctly footwear null; missing navy zip jacket worn under vest",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3574,6 +3968,11 @@
           "category": "outerwear",
           "subcategory": "quilted_puffer_vest",
           "color": "olive"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
         }
       ]
     },
@@ -3599,8 +3998,8 @@
     },
     {
       "id": "290",
-      "status": "uncertain",
-      "notes": "Cream tee, beige/cream smart culottes, navy zip short jacket OK; sandals on clear pedestal correctly footwear null; cap looks charcoal/black vs labelled grey",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included gray sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -3621,23 +4020,49 @@
           "category": "accessories",
           "subcategory": "baseball_cap",
           "color": "charcoal"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "gray"
         }
       ]
     },
     {
       "id": "291",
       "status": "ok",
-      "notes": "White polo with thin navy horizontal stripes + tan pleated wide trousers; black sandals on clear pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "292",
       "status": "ok",
-      "notes": "Medium-blue oversized crew tee with blue/white vertical stripe shirt draped on shoulders + dark brown barrel jeans; white sneakers on glass pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sneakers",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "293",
       "status": "ok",
-      "notes": "Dark forest-green short-sleeve knit polo + beige jersey barrel-leg trousers; black platform sandals on acrylic pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "294",
@@ -3646,8 +4071,8 @@
     },
     {
       "id": "295",
-      "status": "fix",
-      "notes": "Burgundy merino ribbed crew + charcoal wide culottes + quilted brown crossbody OK; loafers on floor base correctly footwear null; underlayer is red packable parka (sign) not hoodie",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -4226,12 +4651,26 @@
     {
       "id": "346",
       "status": "ok",
-      "notes": "Faded black Rolling Stones graphic tee, light-wash denim shorts, sunglasses at neckline; brown sandals on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown sandals with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "347",
       "status": "ok",
-      "notes": "Hanging olive double-breasted military jacket + cream cropped trousers; black slingback heels on floor pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included black heels with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "heels",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "348",
@@ -4262,8 +4701,8 @@
     },
     {
       "id": "349",
-      "status": "fix",
-      "notes": "Red Louisville Kentucky tee over white base + black wide-leg with white side piping OK; black loafers are worn on feet (standing on white block) — not pedestal-only; set footwear black loafers",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -4284,8 +4723,8 @@
     },
     {
       "id": "350",
-      "status": "fix",
-      "notes": "Light blue ruched blouse, black side-stripe bottoms, white handbag, footwear null for pedestal slides OK; dark oval glasses worn but accessory only bag — add glasses; bottoms could read as mini skirt vs shorts",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sandals with this look",
       "pieces": [
         {
           "category": "tops",
@@ -4306,6 +4745,11 @@
           "category": "accessories",
           "subcategory": "eyeglasses",
           "color": "dark"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "sandals",
+          "color": "white"
         }
       ]
     },
@@ -4338,8 +4782,8 @@
     },
     {
       "id": "352",
-      "status": "fix",
-      "notes": "White sleeveless ruffle blouse + beige floral wide-legs + gold bag OK; tan flats are worn on feet on pedestal — not display-only; set footwear tan flats",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown flats with this look",
       "pieces": [
         {
           "category": "tops",
@@ -4352,14 +4796,14 @@
           "color": "beige"
         },
         {
-          "category": "footwear",
-          "subcategory": "flats",
-          "color": "tan"
-        },
-        {
           "category": "bags",
           "subcategory": "shoulder_bag",
           "color": "gold"
+        },
+        {
+          "category": "footwear",
+          "subcategory": "flats",
+          "color": "brown"
         }
       ]
     },
@@ -4824,8 +5268,8 @@
     },
     {
       "id": "382",
-      "status": "fix",
-      "notes": "Brown suede trucker, navy tee, medium slim jeans, navy 7 cap OK; brown penny loafers worn on platform — not pedestal-only; beige 7-buckle belt worn but accessory only cap",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "tops",
@@ -4871,8 +5315,8 @@
     },
     {
       "id": "385",
-      "status": "fix",
-      "notes": "Cream fuzzy toggle cardigan, rust corduroy mini, rust baseball cap, cream ribbed socks OK; dark loafers with metal bit are worn on stand — not pedestal-only; set footwear brown loafers",
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look.",
       "pieces": [
         {
           "category": "bottoms",
@@ -4898,8 +5342,8 @@
     },
     {
       "id": "386",
-      "status": "fix",
-      "notes": "Terracotta long-sleeve, cream cuffed trousers, geometric neck scarf OK; black horsebit loafers with cream socks are worn on feet but labelled null — add footwear; missing small brown structured handbag held in hand",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included black loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -4957,8 +5401,8 @@
     },
     {
       "id": "388",
-      "status": "fix",
-      "notes": "Cream ribbed sweater with gold shoulder buttons, Longchamp stamp-print trousers, tan bucket bag with pom charm OK; brown loafers with cream socks are worn on cobblestone floor but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included brown loafers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -5009,8 +5453,8 @@
     },
     {
       "id": "393",
-      "status": "fix",
-      "notes": "Yellow quilted puffer vest, navy sweatshirt, brown cargos, black baseball cap OK; white sneakers are worn on thin black stand plate but labelled null — add footwear",
+      "status": "ok",
+      "notes": "Pedestal footwear policy: included white sneakers with this look",
       "pieces": [
         {
           "category": "tops",
@@ -5203,7 +5647,14 @@
     {
       "id": "409",
       "status": "ok",
-      "notes": "Gold label — no must-fix from review pass"
+      "notes": "Pedestal footwear policy: included black flats with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "flats",
+          "color": "black"
+        }
+      ]
     },
     {
       "id": "410",
@@ -5237,8 +5688,8 @@
     },
     {
       "id": "416",
-      "status": "ok",
-      "notes": "Gold label — no must-fix from review pass"
+      "status": "uncertain",
+      "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
     },
     {
       "id": "417",
@@ -5263,12 +5714,26 @@
     {
       "id": "421",
       "status": "ok",
-      "notes": "Cream single-breasted blazer over cream satin midi slip with lace hem layered over cream wide-leg trousers, dark sunglasses on head; brown pointed flats on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included brown pumps with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "pumps",
+          "color": "brown"
+        }
+      ]
     },
     {
       "id": "422",
       "status": "ok",
-      "notes": "Dusty-blue cropped suede jacket with matching mini skirt, small brown shoulder bag under arm; white strappy heels on pedestal correctly footwear null"
+      "notes": "Pedestal footwear policy: included white heels with this look",
+      "pieces": [
+        {
+          "category": "footwear",
+          "subcategory": "heels",
+          "color": "white"
+        }
+      ]
     },
     {
       "id": "423",

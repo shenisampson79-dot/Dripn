@@ -1,26 +1,66 @@
 [
   {
     "id": "386",
-    "status": "fix",
-    "notes": "Terracotta long-sleeve, cream cuffed trousers, geometric neck scarf OK; black horsebit loafers with cream socks are worn on feet but labelled null — add footwear; missing small brown structured handbag held in hand",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included black loafers with this look",
     "pieces": [
-      { "category": "tops", "subcategory": "long_sleeve_shirt", "color": "terracotta" },
-      { "category": "bottoms", "subcategory": "straight_cuffed_trousers", "color": "cream" },
-      { "category": "accessories", "subcategory": "geometric_silk_scarf", "color": "multicolor" },
-      { "category": "bags", "subcategory": "structured_handbag", "color": "brown" },
-      { "category": "footwear", "subcategory": "loafers", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "long_sleeve_shirt",
+        "color": "terracotta"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_cuffed_trousers",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "geometric_silk_scarf",
+        "color": "multicolor"
+      },
+      {
+        "category": "bags",
+        "subcategory": "structured_handbag",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "black"
+      }
     ]
   },
   {
     "id": "388",
-    "status": "fix",
-    "notes": "Cream ribbed sweater with gold shoulder buttons, Longchamp stamp-print trousers, tan bucket bag with pom charm OK; brown loafers with cream socks are worn on cobblestone floor but labelled null — add footwear",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included brown loafers with this look",
     "pieces": [
-      { "category": "tops", "subcategory": "ribbed_crew", "color": "cream" },
-      { "category": "bottoms", "subcategory": "print_straight_trousers", "color": "off_white" },
-      { "category": "bags", "subcategory": "bucket_bag", "color": "tan" },
-      { "category": "accessories", "subcategory": "pouch_necklace", "color": "brown" },
-      { "category": "footwear", "subcategory": "loafers", "color": "brown" }
+      {
+        "category": "tops",
+        "subcategory": "ribbed_crew",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "print_straight_trousers",
+        "color": "off_white"
+      },
+      {
+        "category": "bags",
+        "subcategory": "bucket_bag",
+        "color": "tan"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "pouch_necklace",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "brown"
+      }
     ]
   },
   {
@@ -45,14 +85,34 @@
   },
   {
     "id": "393",
-    "status": "fix",
-    "notes": "Yellow quilted puffer vest, navy sweatshirt, brown cargos, black baseball cap OK; white sneakers are worn on thin black stand plate but labelled null — add footwear",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included white sneakers with this look",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_sweatshirt", "color": "navy" },
-      { "category": "bottoms", "subcategory": "cargo_trousers", "color": "brown" },
-      { "category": "outerwear", "subcategory": "quilted_puffer_vest", "color": "yellow" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" },
-      { "category": "footwear", "subcategory": "sneakers", "color": "white" }
+      {
+        "category": "tops",
+        "subcategory": "crew_sweatshirt",
+        "color": "navy"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "cargo_trousers",
+        "color": "brown"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "quilted_puffer_vest",
+        "color": "yellow"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "white"
+      }
     ]
   },
   {
@@ -60,22 +120,60 @@
     "status": "fix",
     "notes": "Left primary grey hooded windbreaker over black/white striped shirt, black athletic shorts, orange-tint sport sunglasses OK; white high-tops are worn on thin black plate but labelled null — add footwear; notes mention cream crossbody but accessory only has sunglasses — add white/cream crossbody",
     "pieces": [
-      { "category": "tops", "subcategory": "striped_shirt", "color": "black_white" },
-      { "category": "bottoms", "subcategory": "athletic_shorts", "color": "black" },
-      { "category": "outerwear", "subcategory": "hooded_windbreaker", "color": "grey" },
-      { "category": "accessories", "subcategory": "sport_sunglasses", "color": "orange" },
-      { "category": "bags", "subcategory": "crossbody", "color": "cream" },
-      { "category": "footwear", "subcategory": "high_top_sneakers", "color": "white" }
+      {
+        "category": "tops",
+        "subcategory": "striped_shirt",
+        "color": "black_white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "athletic_shorts",
+        "color": "black"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "hooded_windbreaker",
+        "color": "grey"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "sport_sunglasses",
+        "color": "orange"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "cream"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "high_top_sneakers",
+        "color": "white"
+      }
     ]
   },
   {
     "id": "421",
     "status": "ok",
-    "notes": "Cream single-breasted blazer over cream satin midi slip with lace hem layered over cream wide-leg trousers, dark sunglasses on head; brown pointed flats on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included brown pumps with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "pumps",
+        "color": "brown"
+      }
+    ]
   },
   {
     "id": "422",
     "status": "ok",
-    "notes": "Dusty-blue cropped suede jacket with matching mini skirt, small brown shoulder bag under arm; white strappy heels on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included white heels with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "heels",
+        "color": "white"
+      }
+    ]
   }
 ]

@@ -1,0 +1,974 @@
+{
+  "dry": false,
+  "policy": "Include footwear placed on the mannequin stand base or a pedestal styled with that outfit. Do not require shoes to be on feet.",
+  "oxford": {
+    "applied": 93,
+    "uncertain": 21,
+    "skipped_null_rows": 59
+  },
+  "sloane": {
+    "applied": 0,
+    "uncertain": 0,
+    "skipped_null_rows": 23
+  },
+  "oxford_detail": {
+    "generated_at": "2026-08-03T09:18:54.424Z",
+    "policy": "Styled pedestal/stand footwear is part of the outfit (torso mannequins included).",
+    "applied_count": 93,
+    "uncertain_count": 21,
+    "applied": [
+      {
+        "id": "oxford_002",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "white"
+        },
+        "evidence": "white fisherman sandals on floor pedestal"
+      },
+      {
+        "id": "oxford_006",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "mary_janes",
+          "color": "silver"
+        },
+        "evidence": "silver Mary Janes on wooden pedestal"
+      },
+      {
+        "id": "oxford_007",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "clogs",
+          "color": "tan"
+        },
+        "evidence": "tan clogs on pedestal"
+      },
+      {
+        "id": "oxford_017",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "oxfords",
+          "color": "gray"
+        },
+        "evidence": "grey dress shoes on glass base"
+      },
+      {
+        "id": "oxford_038",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "gold"
+        },
+        "evidence": "gold strappy sandals on stand base"
+      },
+      {
+        "id": "oxford_046",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "white"
+        },
+        "evidence": "white heeled sandals on stand base"
+      },
+      {
+        "id": "oxford_047",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "cream"
+        },
+        "evidence": "cream sneakers on pedestal"
+      },
+      {
+        "id": "oxford_060",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "gray"
+        },
+        "evidence": "grey New Balance 991 on black pedestal"
+      },
+      {
+        "id": "oxford_063",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "cream"
+        },
+        "evidence": "cream canvas sneakers on stand base"
+      },
+      {
+        "id": "oxford_064",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "black"
+        },
+        "evidence": "black studded loafers on circular base"
+      },
+      {
+        "id": "oxford_066",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "mules",
+          "color": "cream"
+        },
+        "evidence": "cream mules on floor so footwear null"
+      },
+      {
+        "id": "oxford_067",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on floor so footwear null"
+      },
+      {
+        "id": "oxford_069",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "pumps",
+          "color": "black"
+        },
+        "evidence": "black pumps on clear base"
+      },
+      {
+        "id": "oxford_072",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "charcoal"
+        },
+        "evidence": "charcoal suede loafers on metal baseplate"
+      },
+      {
+        "id": "oxford_086",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "dark loafers on SALE pedestal"
+      },
+      {
+        "id": "oxford_096",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "pumps",
+          "color": "black"
+        },
+        "evidence": "black pointed shoes on metal pedestal"
+      },
+      {
+        "id": "oxford_097",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black strappy sandals on metal pedestal"
+      },
+      {
+        "id": "oxford_099",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "black"
+        },
+        "evidence": "black square-toe ankle boots on metal pedestal"
+      },
+      {
+        "id": "oxford_100",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "pumps",
+          "color": "black"
+        },
+        "evidence": "black pointed shoes on pedestal"
+      },
+      {
+        "id": "oxford_102",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boat_shoes",
+          "color": "black"
+        },
+        "evidence": "black boat shoes on metal pedestal"
+      },
+      {
+        "id": "oxford_103",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "black"
+        },
+        "evidence": "black chukka boots on metal pedestal"
+      },
+      {
+        "id": "oxford_104",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "derby",
+          "color": "black"
+        },
+        "evidence": "black chunky lace-ups on metal pedestal"
+      },
+      {
+        "id": "oxford_105",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "slides",
+          "color": "black"
+        },
+        "evidence": "black slides on pedestal"
+      },
+      {
+        "id": "oxford_106",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "slides",
+          "color": "black"
+        },
+        "evidence": "black slides on pedestal"
+      },
+      {
+        "id": "oxford_107",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "cream"
+        },
+        "evidence": "cream strappy sandals on white pedestal"
+      },
+      {
+        "id": "oxford_110",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black thong sandals on metal base"
+      },
+      {
+        "id": "oxford_111",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "black"
+        },
+        "evidence": "black open-toe mule heels on black pedestal"
+      },
+      {
+        "id": "oxford_112",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "black"
+        },
+        "evidence": "black strappy heels on metal base"
+      },
+      {
+        "id": "oxford_114",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "tan"
+        },
+        "evidence": "tan flat on gold pedestal only so footwear null"
+      },
+      {
+        "id": "oxford_142",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "black"
+        },
+        "evidence": "black ankle boots on wooden pedestal"
+      },
+      {
+        "id": "oxford_143",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flip_flops",
+          "color": "white"
+        },
+        "evidence": "white flip-flops on wooden pedestal"
+      },
+      {
+        "id": "oxford_145",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "cream"
+        },
+        "evidence": "cream/grey sneakers on raised wooden platform so footwear null"
+      },
+      {
+        "id": "oxford_161",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "tan"
+        },
+        "evidence": "tan desert boots on raised silver pedestal so footwear null"
+      },
+      {
+        "id": "oxford_167",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black strappy sandals on raised clear pedestal so footwear null"
+      },
+      {
+        "id": "oxford_168",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black strappy sandals on metal floor pedestal so footwear null"
+      },
+      {
+        "id": "oxford_171",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "black"
+        },
+        "evidence": "black chunky loafers on silver pedestal"
+      },
+      {
+        "id": "oxford_172",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boat_shoes",
+          "color": "brown"
+        },
+        "evidence": "brown boat shoes on metal pedestal"
+      },
+      {
+        "id": "oxford_175",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "black"
+        },
+        "evidence": "black pointed heels on marble pedestal"
+      },
+      {
+        "id": "oxford_176",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "silver"
+        },
+        "evidence": "silver/white sneakers on grey stone pedestal so footwear null"
+      },
+      {
+        "id": "oxford_177",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on marble pedestal"
+      },
+      {
+        "id": "oxford_179",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "black"
+        },
+        "evidence": "black chunky ankle boots on grey pedestal"
+      },
+      {
+        "id": "oxford_181",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "black"
+        },
+        "evidence": "black lug-sole ankle boots on grey pedestal"
+      },
+      {
+        "id": "oxford_183",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "brown"
+        },
+        "evidence": "dark loafers on flat dark pedestal so footwear null"
+      },
+      {
+        "id": "oxford_184",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "beige"
+        },
+        "evidence": "beige suede loafers on black pedestal"
+      },
+      {
+        "id": "oxford_185",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "brown tassel loafers on thin black pedestal so footwear null"
+      },
+      {
+        "id": "oxford_186",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "beige"
+        },
+        "evidence": "beige suede loafers on dark metal base plate so footwear null"
+      },
+      {
+        "id": "oxford_197",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on floral CERNUCCI pedestal so footwear null"
+      },
+      {
+        "id": "oxford_215",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "boots",
+          "color": "brown"
+        },
+        "evidence": "brown ankle boots on floor pedestal"
+      },
+      {
+        "id": "oxford_217",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "taupe"
+        },
+        "evidence": "taupe Mary Jane flats on white circular pedestal so footwear null"
+      },
+      {
+        "id": "oxford_219",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "pumps",
+          "color": "black"
+        },
+        "evidence": "black pointed pumps on wooden pedestal"
+      },
+      {
+        "id": "oxford_220",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "black"
+        },
+        "evidence": "black pointed flats on wood pedestal so footwear null"
+      },
+      {
+        "id": "oxford_222",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "brown"
+        },
+        "evidence": "dark slingback heels on white oval pedestal so footwear null"
+      },
+      {
+        "id": "oxford_239",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "white"
+        },
+        "evidence": "white flats on marble pedestal"
+      },
+      {
+        "id": "oxford_242",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "bronze"
+        },
+        "evidence": "bronze flats on pedestal"
+      },
+      {
+        "id": "oxford_243",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "white"
+        },
+        "evidence": "white woven flats on gold pedestal so footwear null"
+      },
+      {
+        "id": "oxford_245",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "mary_janes",
+          "color": "light_blue"
+        },
+        "evidence": "light blue Mary Janes on marble pedestal"
+      },
+      {
+        "id": "oxford_247",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "white"
+        },
+        "evidence": "white flats on marble pedestal"
+      },
+      {
+        "id": "oxford_248",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "burgundy"
+        },
+        "evidence": "burgundy sandals on marble pedestal"
+      },
+      {
+        "id": "oxford_249",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "white"
+        },
+        "evidence": "white sandals on marble pedestal"
+      },
+      {
+        "id": "oxford_250",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black thong sandals on marble pedestal"
+      },
+      {
+        "id": "oxford_252",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "beige"
+        },
+        "evidence": "beige flats on pedestal"
+      },
+      {
+        "id": "oxford_253",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "brown"
+        },
+        "evidence": "brown slide sandals on wooden platform"
+      },
+      {
+        "id": "oxford_254",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "brown"
+        },
+        "evidence": "brown two-strap sandals on wooden pedestal"
+      },
+      {
+        "id": "oxford_255",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "brown"
+        },
+        "evidence": "brown two-strap sandals on white pedestal"
+      },
+      {
+        "id": "oxford_256",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "brown loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_257",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "dark loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_259",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "burgundy"
+        },
+        "evidence": "burgundy loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_260",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "dark brown loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_262",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "dark brown bit loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_263",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "dark brown tassel loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_264",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "cream"
+        },
+        "evidence": "cream sneakers on wooden pedestal"
+      },
+      {
+        "id": "oxford_265",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "tan"
+        },
+        "evidence": "tan tassel loafers on wooden pedestal"
+      },
+      {
+        "id": "oxford_268",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "black"
+        },
+        "evidence": "black sneakers on wooden pedestal"
+      },
+      {
+        "id": "oxford_269",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "brown"
+        },
+        "evidence": "brown two-strap sandals on wooden pedestal"
+      },
+      {
+        "id": "oxford_270",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on white pedestal"
+      },
+      {
+        "id": "oxford_271",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "cream"
+        },
+        "evidence": "cream sneakers on white pedestal"
+      },
+      {
+        "id": "oxford_272",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "beige"
+        },
+        "evidence": "beige sneakers on wooden pedestal"
+      },
+      {
+        "id": "oxford_285",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white high-top sneakers on clear acrylic pedestal so footwear null"
+      },
+      {
+        "id": "oxford_290",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "gray"
+        },
+        "evidence": "grey multi-strap sandals on clear pedestal"
+      },
+      {
+        "id": "oxford_291",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black sandals on clear pedestal"
+      },
+      {
+        "id": "oxford_292",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on clear glass pedestal so footwear null"
+      },
+      {
+        "id": "oxford_293",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "black"
+        },
+        "evidence": "black platform sandals on clear acrylic pedestal so footwear null"
+      },
+      {
+        "id": "oxford_346",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "brown"
+        },
+        "evidence": "brown sandals on pedestal"
+      },
+      {
+        "id": "oxford_347",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "black"
+        },
+        "evidence": "black slingback heels on floor pedestal"
+      },
+      {
+        "id": "oxford_349",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "black"
+        },
+        "evidence": "black loafers on white pedestal"
+      },
+      {
+        "id": "oxford_350",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sandals",
+          "color": "white"
+        },
+        "evidence": "white slide sandals on pedestal"
+      },
+      {
+        "id": "oxford_352",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "brown"
+        },
+        "evidence": "dark brown flats on sculptural pedestal so footwear null"
+      },
+      {
+        "id": "oxford_386",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "black"
+        },
+        "evidence": "black loafers with cream socks on pedestal"
+      },
+      {
+        "id": "oxford_388",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "loafers",
+          "color": "brown"
+        },
+        "evidence": "brown loafers on glass platform"
+      },
+      {
+        "id": "oxford_393",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "sneakers",
+          "color": "white"
+        },
+        "evidence": "white sneakers on black pedestal"
+      },
+      {
+        "id": "oxford_409",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "flats",
+          "color": "black"
+        },
+        "evidence": "black flats placed on stand base"
+      },
+      {
+        "id": "oxford_421",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "pumps",
+          "color": "brown"
+        },
+        "evidence": "brown pointed flats on pedestal"
+      },
+      {
+        "id": "oxford_422",
+        "footwear": {
+          "category": "shoes",
+          "subcategory": "heels",
+          "color": "white"
+        },
+        "evidence": "white strappy heels on pedestal"
+      }
+    ],
+    "uncertain": [
+      {
+        "id": "oxford_032",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: multiple_shoe_types. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_039",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_040",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_062",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_098",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_165",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: vague_type. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_227",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: vague_type. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_234",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_235",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_236",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_238",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_240",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_241",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_246",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_267",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_281",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_282",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_295",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_382",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_385",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      },
+      {
+        "id": "oxford_416",
+        "status": "uncertain",
+        "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
+      }
+    ]
+  },
+  "sloane_detail": {
+    "generated_at": "2026-08-03T09:18:54.425Z",
+    "policy": "Styled pedestal/stand footwear is part of the outfit (torso mannequins included).",
+    "applied_count": 0,
+    "uncertain_count": 0,
+    "applied": [],
+    "uncertain": []
+  }
+}

@@ -71,7 +71,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "structured_handbag",
@@ -88,8 +92,7 @@
     "colour_palette": [
       "white",
       "black",
-      "brown",
-      "gold"
+      "brown"
     ],
     "features": {
       "layering": "none",
@@ -101,7 +104,7 @@
       "wide_leg",
       "summer"
     ],
-    "notes": "Flat hanger frame: cream/white black-stripe short-sleeve top with dark wide-leg trousers, chunky bead necklace and brown striped handbag; white fisherman sandals on floor pedestal not on feet",
+    "notes": "Flat hanger frame: cream/white black-stripe short-sleeve top with dark wide-leg trousers, chunky bead necklace and brown striped handbag; white fisherman sandals on floor pedestal; white sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -312,7 +315,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_janes",
+        "color": "silver"
+      },
       "accessory": null
     },
     "style": {
@@ -324,9 +331,7 @@
     },
     "colour_palette": [
       "light_blue",
-      "white",
-      "yellow",
-      "green"
+      "silver"
     ],
     "features": {
       "layering": "none",
@@ -338,7 +343,7 @@
       "embroidery",
       "midi"
     ],
-    "notes": "Headless form in light-blue pinstripe midi with lemon embroidery and scalloped V-neck; silver Mary Janes on wooden pedestal so footwear null",
+    "notes": "Headless form in light-blue pinstripe midi with lemon embroidery and scalloped V-neck; silver Mary Janes on wooden pedestal; silver mary janes included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 85,
@@ -370,7 +375,11 @@
         "color": "blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "clogs",
+        "color": "tan"
+      },
       "accessory": null
     },
     "style": {
@@ -395,7 +404,7 @@
       "denim",
       "midi"
     ],
-    "notes": "Headless form in white ruffle-collar blouse with lace yoke over medium-wash A-line denim skirt; woven tan clogs on pedestal so footwear null",
+    "notes": "Headless form in white ruffle-collar blouse with lace yoke over medium-wash A-line denim skirt; woven tan clogs on pedestal; tan clogs included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -990,7 +999,11 @@
         "color": "blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "oxfords",
+        "color": "gray"
+      },
       "accessory": {
         "category": "belt",
         "subcategory": "braided",
@@ -1006,6 +1019,7 @@
     },
     "colour_palette": [
       "blue",
+      "gray",
       "navy"
     ],
     "features": {
@@ -1017,7 +1031,7 @@
       "denim",
       "belted"
     ],
-    "notes": "Lower-body mannequin in medium-blue slim jeans with navy braided belt; grey dress shoes on glass base so footwear null",
+    "notes": "Lower-body mannequin in medium-blue slim jeans with navy braided belt; grey dress shoes on glass base; gray oxfords included as styled pedestal/stand footwear",
     "confidence": 0.85,
     "score_hint": {
       "base_score": 72,
@@ -2362,7 +2376,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "gold"
+      },
       "accessory": null
     },
     "style": {
@@ -2374,8 +2392,7 @@
     },
     "colour_palette": [
       "cream",
-      "teal",
-      "grey"
+      "gold"
     ],
     "features": {
       "layering": "none",
@@ -2387,7 +2404,7 @@
       "midi",
       "print"
     ],
-    "notes": "Headless mannequin in cream teal-paisley midi with flutter sleeves; gold strappy sandals on stand base so footwear null",
+    "notes": "Headless mannequin in cream teal-paisley midi with flutter sleeves; gold strappy sandals on stand base; gold sandals included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -2858,7 +2875,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -2882,7 +2903,7 @@
       "floral_buttons",
       "minimal"
     ],
-    "notes": "Headless mannequin in black sleeveless midi with vertical white flower-shaped buttons; white heeled sandals on stand base so footwear null",
+    "notes": "Headless mannequin in black sleeveless midi with vertical white flower-shaped buttons; white heeled sandals on stand base; white sandals included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 85,
@@ -2918,7 +2939,11 @@
         "subcategory": "denim_tied",
         "color": "light_blue"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "cream"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "backpack",
@@ -2935,8 +2960,8 @@
     "colour_palette": [
       "black",
       "light_blue",
-      "navy",
-      "cream"
+      "cream",
+      "navy"
     ],
     "features": {
       "layering": "light",
@@ -2948,7 +2973,7 @@
       "layered",
       "backpack"
     ],
-    "notes": "Torso mannequin in black sleeveless top with light-wash denim jacket tied at the chest, black mini skirt with white hem trim and navy backpack; cream sneakers on pedestal so footwear null",
+    "notes": "Torso mannequin in black sleeveless top with light-wash denim jacket tied at the chest, black mini skirt with white hem trim and navy backpack; cream sneakers on pedestal; cream sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -3717,7 +3742,11 @@
         "subcategory": "linen_short_sleeve",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "gray"
+      },
       "accessory": null
     },
     "style": {
@@ -3728,9 +3757,10 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "white",
-      "cream"
+      "cream",
+      "navy",
+      "gray"
     ],
     "features": {
       "layering": "light",
@@ -3742,7 +3772,7 @@
       "shorts",
       "summer"
     ],
-    "notes": "Rails centre mannequin in open navy short-sleeve shirt over white tee with cream shorts; grey New Balance 991 on black pedestal so footwear null",
+    "notes": "Rails centre mannequin in open navy short-sleeve shirt over white tee with cream shorts; grey New Balance 991 on black pedestal; gray sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -3901,7 +3931,11 @@
         "subcategory": "floral_camp_collar",
         "color": "brown"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "cream"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "canvas_tote",
@@ -3916,9 +3950,10 @@
       ]
     },
     "colour_palette": [
-      "brown",
       "white",
       "tan",
+      "brown",
+      "cream",
       "beige"
     ],
     "features": {
@@ -3931,7 +3966,7 @@
       "linen",
       "tote"
     ],
-    "notes": "Rails male mannequin in open brown floral short-sleeve shirt over white tee, tan cuffed linen trousers and beige tote; cream canvas sneakers on stand base so footwear null",
+    "notes": "Rails male mannequin in open brown floral short-sleeve shirt over white tee, tan cuffed linen trousers and beige tote; cream canvas sneakers on stand base; cream sneakers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -3959,7 +3994,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -3971,8 +4010,7 @@
     },
     "colour_palette": [
       "periwinkle",
-      "white",
-      "yellow"
+      "black"
     ],
     "features": {
       "layering": "light",
@@ -3984,7 +4022,7 @@
       "midi",
       "ganni"
     ],
-    "notes": "Ganni articulated mannequin in periwinkle smocked spaghetti-strap midi dress layered over white GANNI graphic tee; black studded loafers on circular base so footwear null",
+    "notes": "Ganni articulated mannequin in periwinkle smocked spaghetti-strap midi dress layered over white GANNI graphic tee; black studded loafers on circular base; black loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 84,
@@ -4074,7 +4112,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mules",
+        "color": "cream"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "padded_flap",
@@ -4102,7 +4144,7 @@
       "sale",
       "minimal"
     ],
-    "notes": "A.P.C. suspended torso in navy belted short-sleeve shirt dress with flap pockets; cream padded bag on OSB pedestal; cream mules on floor so footwear null",
+    "notes": "A.P.C. suspended torso in navy belted short-sleeve shirt dress with flap pockets; cream padded bag on OSB pedestal; cream mules on floor; cream mules included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -4138,7 +4180,11 @@
         "subcategory": "crinkle_overshirt",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "canvas_tote",
@@ -4153,8 +4199,8 @@
       ]
     },
     "colour_palette": [
-      "navy",
-      "white"
+      "white",
+      "navy"
     ],
     "features": {
       "layering": "light",
@@ -4166,7 +4212,7 @@
       "overshirt",
       "minimal"
     ],
-    "notes": "A.P.C. mannequin in open navy crinkle overshirt over white tee with matching navy straight trousers; white A.P.C. tote on OSB pedestal; white sneakers on floor so footwear null",
+    "notes": "A.P.C. mannequin in open navy crinkle overshirt over white tee with matching navy straight trousers; white A.P.C. tote on OSB pedestal; white sneakers on floor; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 84,
@@ -4253,7 +4299,11 @@
         "subcategory": "satin_button_down",
         "color": "rust"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "black"
+      },
       "accessory": {
         "category": "belt",
         "subcategory": "leather_square_buckle",
@@ -4270,8 +4320,8 @@
     "colour_palette": [
       "rust",
       "indigo",
-      "tan",
-      "black"
+      "black",
+      "tan"
     ],
     "features": {
       "layering": "light",
@@ -4283,7 +4333,7 @@
       "denim",
       "belt"
     ],
-    "notes": "Primary centre mannequin through diamond grille in open rust satin shirt over rust tee, indigo jeans and tan belt; black pumps on clear base so footwear null",
+    "notes": "Primary centre mannequin through diamond grille in open rust satin shirt over rust tee, indigo jeans and tan belt; black pumps on clear base; black pumps included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 82,
@@ -4434,7 +4484,11 @@
         "color": "navy"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "charcoal"
+      },
       "accessory": {
         "category": "belt",
         "subcategory": "leather",
@@ -4451,6 +4505,7 @@
     "colour_palette": [
       "lime",
       "navy",
+      "charcoal",
       "tan"
     ],
     "features": {
@@ -4463,7 +4518,7 @@
       "summer_essentials",
       "tailored"
     ],
-    "notes": "Male mannequin under Summer Essentials copy in tucked lime linen shirt, navy tailored trousers and tan belt; charcoal suede loafers on metal baseplate so footwear null",
+    "notes": "Male mannequin under Summer Essentials copy in tucked lime linen shirt, navy tailored trousers and tan belt; charcoal suede loafers on metal baseplate; charcoal loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 85,
@@ -5335,7 +5390,11 @@
         "color": "beige"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -5347,8 +5406,8 @@
     },
     "colour_palette": [
       "maroon",
-      "navy",
-      "beige"
+      "beige",
+      "brown"
     ],
     "features": {
       "layering": "none",
@@ -5360,7 +5419,7 @@
       "wide_leg",
       "sale"
     ],
-    "notes": "ARKET armless mannequin in maroon silky camisole with navy lace trim and beige wide-leg trousers; dark loafers on SALE pedestal so footwear null",
+    "notes": "ARKET armless mannequin in maroon silky camisole with navy lace trim and beige wide-leg trousers; dark loafers on SALE pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -5930,7 +5989,11 @@
         "color": "light_blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -5954,7 +6017,7 @@
       "crossover_waist",
       "cropped"
     ],
-    "notes": "Centre mannequin in black cropped zip jacket with light-wash crossover-waist distressed jeans; black pointed shoes on metal pedestal so footwear null",
+    "notes": "Centre mannequin in black cropped zip jacket with light-wash crossover-waist distressed jeans; black pointed shoes on metal pedestal; black pumps included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -5982,7 +6045,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -5994,8 +6061,6 @@
     },
     "colour_palette": [
       "gold",
-      "tan",
-      "brown",
       "black"
     ],
     "features": {
@@ -6008,7 +6073,7 @@
       "maxi",
       "slip"
     ],
-    "notes": "Centre-right mannequin in gold-tan animal-print spaghetti-strap maxi slip dress; black strappy sandals on metal pedestal so footwear null",
+    "notes": "Centre-right mannequin in gold-tan animal-print spaghetti-strap maxi slip dress; black strappy sandals on metal pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -6105,7 +6170,11 @@
         "color": "white"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "black"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "woven_round",
@@ -6134,7 +6203,7 @@
       "pleated",
       "lace"
     ],
-    "notes": "Centre mannequin in white lace-detail blouse and white pleated mini with small woven straw bag; black square-toe ankle boots on metal pedestal so footwear null",
+    "notes": "Centre mannequin in white lace-detail blouse and white pleated mini with small woven straw bag; black square-toe ankle boots on metal pedestal; black boots included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 84,
@@ -6162,7 +6231,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "black"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "structured_handbag",
@@ -6177,9 +6250,7 @@
       ]
     },
     "colour_palette": [
-      "black",
-      "bronze",
-      "ochre"
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -6191,7 +6262,7 @@
       "animal_print",
       "midi"
     ],
-    "notes": "AllSaints centre mannequin in dark animal-botanical sleeveless midi with waist knot and small black handbag; black pointed shoes on pedestal so footwear null",
+    "notes": "AllSaints centre mannequin in dark animal-botanical sleeveless midi with waist knot and small black handbag; black pointed shoes on pedestal; black pumps included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 86,
@@ -6286,7 +6357,11 @@
         "subcategory": "denim_chore",
         "color": "blue"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boat_shoes",
+        "color": "black"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -6301,9 +6376,9 @@
       ]
     },
     "colour_palette": [
-      "blue",
       "white",
       "charcoal",
+      "blue",
       "black"
     ],
     "features": {
@@ -6316,7 +6391,7 @@
       "summer",
       "sunglasses"
     ],
-    "notes": "Centre male mannequin in mid-wash denim chore jacket over white tee with charcoal shorts and black sunglasses; black boat shoes on metal pedestal so footwear null",
+    "notes": "Centre male mannequin in mid-wash denim chore jacket over white tee with charcoal shorts and black sunglasses; black boat shoes on metal pedestal; black boat shoes included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 84,
@@ -6352,7 +6427,11 @@
         "subcategory": "suede_bomber",
         "color": "mustard"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -6363,9 +6442,9 @@
       ]
     },
     "colour_palette": [
-      "mustard",
       "white",
       "light_grey",
+      "mustard",
       "black"
     ],
     "features": {
@@ -6378,7 +6457,7 @@
       "bomber",
       "allsaints"
     ],
-    "notes": "Left male mannequin in open mustard suede bomber over white tee with light-wash straight jeans; black chukka boots on metal pedestal so footwear null",
+    "notes": "Left male mannequin in open mustard suede bomber over white tee with light-wash straight jeans; black chukka boots on metal pedestal; black boots included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 85,
@@ -6410,7 +6489,11 @@
         "color": "blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "derby",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -6422,8 +6505,8 @@
     },
     "colour_palette": [
       "cream",
-      "black",
-      "blue"
+      "blue",
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -6435,7 +6518,7 @@
       "graphic_print",
       "denim"
     ],
-    "notes": "Centre male mannequin in cream AllSaints graphic short-sleeve shirt with medium-wash straight jeans; black chunky lace-ups on metal pedestal so footwear null",
+    "notes": "Centre male mannequin in cream AllSaints graphic short-sleeve shirt with medium-wash straight jeans; black chunky lace-ups on metal pedestal; black derby included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 86,
@@ -6463,7 +6546,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "slides",
+        "color": "black"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -6491,7 +6578,7 @@
       "slip",
       "mango"
     ],
-    "notes": "Centre hanger display of champagne satin spaghetti-strap slip midi with sunglasses on hanger; black slides on pedestal only so footwear null",
+    "notes": "Centre hanger display of champagne satin spaghetti-strap slip midi with sunglasses on hanger; black slides on pedestal only; black slides included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 76,
@@ -6523,7 +6610,11 @@
         "color": "white"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "slides",
+        "color": "black"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -6552,7 +6643,7 @@
       "wide_leg",
       "mango"
     ],
-    "notes": "Left Mango hanger look: sheer burgundy lace-trim camisole draped over white wide-leg trousers with sunglasses on hanger; black slides on pedestal only so footwear null",
+    "notes": "Left Mango hanger look: sheer burgundy lace-trim camisole draped over white wide-leg trousers with sunglasses on hanger; black slides on pedestal only; black slides included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 78,
@@ -6588,7 +6679,11 @@
         "subcategory": "military_button",
         "color": "white"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "cream"
+      },
       "accessory": {
         "category": "jewellery",
         "subcategory": "hoop_earrings",
@@ -6603,8 +6698,8 @@
       ]
     },
     "colour_palette": [
-      "white",
       "black",
+      "white",
       "cream",
       "gold"
     ],
@@ -6618,7 +6713,7 @@
       "cropped",
       "mango"
     ],
-    "notes": "Centre headless mannequin in open white military jacket over black cropped tank with black cropped trousers and gold hoops; cream strappy sandals on white pedestal so footwear null",
+    "notes": "Centre headless mannequin in open white military jacket over black cropped tank with black cropped trousers and gold hoops; cream strappy sandals on white pedestal; cream sandals included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -6773,7 +6868,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": {
         "category": "belt",
         "subcategory": "chain",
@@ -6789,7 +6888,6 @@
     },
     "colour_palette": [
       "brown",
-      "teal",
       "black",
       "silver"
     ],
@@ -6803,7 +6901,7 @@
       "asymmetrical",
       "ruched"
     ],
-    "notes": "Centre headless mannequin in dark brown teal-floral ruched asymmetrical dress with silver chain hip belt; black thong sandals on metal base so footwear null",
+    "notes": "Centre headless mannequin in dark brown teal-floral ruched asymmetrical dress with silver chain hip belt; black thong sandals on metal base; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 81,
@@ -6831,7 +6929,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "black"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -6859,7 +6961,7 @@
       "slip",
       "midi"
     ],
-    "notes": "Centre mannequin in champagne satin scoop-neck slip midi with dark sunglasses; black open-toe mule heels on black pedestal so footwear null",
+    "notes": "Centre mannequin in champagne satin scoop-neck slip midi with dark sunglasses; black open-toe mule heels on black pedestal; black heels included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -6891,7 +6993,11 @@
         "color": "cream"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "black"
+      },
       "accessory": {
         "category": "jewellery",
         "subcategory": "pendant_necklace",
@@ -6921,7 +7027,7 @@
       "culottes",
       "layered"
     ],
-    "notes": "Centre mannequin in burgundy lace-trim asymmetrical camisole over cream wide cropped trousers with silver pendant; black strappy heels on metal base so footwear null",
+    "notes": "Centre mannequin in burgundy lace-trim asymmetrical camisole over cream wide cropped trousers with silver pendant; black strappy heels on metal base; black heels included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -7010,7 +7116,11 @@
         "subcategory": "utility",
         "color": "cream"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "tan"
+      },
       "accessory": null
     },
     "style": {
@@ -7022,7 +7132,8 @@
     },
     "colour_palette": [
       "red",
-      "cream"
+      "cream",
+      "tan"
     ],
     "features": {
       "layering": "light",
@@ -7034,7 +7145,7 @@
       "utility",
       "summer_sale"
     ],
-    "notes": "Left fabric mannequin in open cream utility jacket over red button-front maxi; tan flat on gold pedestal only so footwear null",
+    "notes": "Left fabric mannequin in open cream utility jacket over red button-front maxi; tan flat on gold pedestal only; tan flats included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -8737,7 +8848,11 @@
         "color": "light_blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "black"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "quilted_handbag",
@@ -8754,7 +8869,7 @@
     "colour_palette": [
       "white",
       "light_blue",
-      "navy",
+      "black",
       "mint"
     ],
     "features": {
@@ -8767,7 +8882,7 @@
       "bermuda",
       "preppy"
     ],
-    "notes": "Centre female mannequin in white fine-knit polo with navy/burgundy striped collar and ruffle cuffs, light-wash denim Bermuda shorts and pale mint quilted handbag; black ankle boots on wooden pedestal so footwear null",
+    "notes": "Centre female mannequin in white fine-knit polo with navy/burgundy striped collar and ruffle cuffs, light-wash denim Bermuda shorts and pale mint quilted handbag; black ankle boots on wooden pedestal; black boots included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -8799,7 +8914,11 @@
         "color": "olive"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flip_flops",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "drawstring_tote",
@@ -8815,8 +8934,7 @@
     },
     "colour_palette": [
       "olive",
-      "white",
-      "beige"
+      "white"
     ],
     "features": {
       "layering": "light",
@@ -8828,7 +8946,7 @@
       "wide_leg",
       "cap"
     ],
-    "notes": "Uniqlo centre mannequin in beige baseball cap, olive cropped tank over white underlayer, dark olive wide-leg trousers with white side stripe and white slouchy drawstring bag; white flip-flops on wooden pedestal so footwear null",
+    "notes": "Uniqlo centre mannequin in beige baseball cap, olive cropped tank over white underlayer, dark olive wide-leg trousers with white side stripe and white slouchy drawstring bag; white flip-flops on wooden pedestal; white flip flops included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -8928,7 +9046,11 @@
         "color": "cream"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "cream"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "crossbody",
@@ -8944,8 +9066,7 @@
     },
     "colour_palette": [
       "black",
-      "cream",
-      "grey"
+      "cream"
     ],
     "features": {
       "layering": "none",
@@ -8957,7 +9078,7 @@
       "crossbody",
       "summer"
     ],
-    "notes": "Lululemon centre male mannequin in black short-sleeve camp-collar shirt, cream tailored shorts and black nylon crossbody; cream/grey sneakers on raised wooden platform so footwear null",
+    "notes": "Lululemon centre male mannequin in black short-sleeve camp-collar shirt, cream tailored shorts and black nylon crossbody; cream/grey sneakers on raised wooden platform; cream sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -9896,7 +10017,11 @@
         "color": "burgundy"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "tan"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -9912,8 +10037,8 @@
     },
     "colour_palette": [
       "beige",
-      "light_blue",
       "burgundy",
+      "tan",
       "white"
     ],
     "features": {
@@ -9926,7 +10051,7 @@
       "chino_shorts",
       "cap"
     ],
-    "notes": "Uniqlo centre male mannequin in white baseball cap, beige crew knit over light-blue vertical-stripe shirt and dusty-rose chino shorts; tan desert boots on raised silver pedestal so footwear null",
+    "notes": "Uniqlo centre male mannequin in white baseball cap, beige crew knit over light-blue vertical-stripe shirt and dusty-rose chino shorts; tan desert boots on raised silver pedestal; tan boots included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -10286,7 +10411,11 @@
         "subcategory": "zip_up_short",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -10301,9 +10430,10 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "yellow",
       "grey",
+      "navy",
+      "black",
       "beige"
     ],
     "features": {
@@ -10316,7 +10446,7 @@
       "smart_trousers",
       "cap"
     ],
-    "notes": "Uniqlo centre female mannequin in beige baseball cap, navy zip-up short jacket over pale yellow mini tee with grey smart easy trousers; black strappy sandals on raised clear pedestal so footwear null",
+    "notes": "Uniqlo centre female mannequin in beige baseball cap, navy zip-up short jacket over pale yellow mini tee with grey smart easy trousers; black strappy sandals on raised clear pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -10352,7 +10482,11 @@
         "subcategory": "striped_oxford_tied",
         "color": "light_blue"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -10364,9 +10498,9 @@
     },
     "colour_palette": [
       "blue",
-      "light_blue",
       "charcoal",
-      "white"
+      "light_blue",
+      "black"
     ],
     "features": {
       "layering": "light",
@@ -10378,7 +10512,7 @@
       "barrel_jeans",
       "tied"
     ],
-    "notes": "Uniqlo centre mannequin in medium-blue crew tee with light-blue/white striped oxford shirt tied across shoulders, charcoal barrel jeans and thin black braided belt; black strappy sandals on metal floor pedestal so footwear null",
+    "notes": "Uniqlo centre mannequin in medium-blue crew tee with light-blue/white striped oxford shirt tied across shoulders, charcoal barrel jeans and thin black braided belt; black strappy sandals on metal floor pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -10546,7 +10680,11 @@
         "subcategory": "zip_short_corduroy_collar",
         "color": "cream"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -10561,9 +10699,10 @@
       ]
     },
     "colour_palette": [
-      "cream",
       "burgundy",
       "blue",
+      "cream",
+      "black",
       "denim"
     ],
     "features": {
@@ -10576,7 +10715,7 @@
       "barrel_jeans",
       "cap"
     ],
-    "notes": "Uniqlo centre female mannequin in light denim baseball cap, cream zip-up short jacket with brown corduroy collar over burgundy mini tee and medium-wash baggy barrel jeans; black chunky loafers on silver pedestal so footwear null",
+    "notes": "Uniqlo centre female mannequin in light denim baseball cap, cream zip-up short jacket with brown corduroy collar over burgundy mini tee and medium-wash baggy barrel jeans; black chunky loafers on silver pedestal; black loafers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -10612,7 +10751,11 @@
         "subcategory": "harrington",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boat_shoes",
+        "color": "brown"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "crossbody_sling",
@@ -10627,9 +10770,10 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "charcoal",
       "beige",
+      "navy",
+      "brown",
       "burgundy"
     ],
     "features": {
@@ -10642,7 +10786,7 @@
       "work_trousers",
       "sling_bag"
     ],
-    "notes": "Uniqlo male mannequin in navy Harrington jacket over charcoal AIRism polo with beige jersey easy work trousers and burgundy crossbody sling; brown boat shoes on metal pedestal so footwear null",
+    "notes": "Uniqlo male mannequin in navy Harrington jacket over charcoal AIRism polo with beige jersey easy work trousers and burgundy crossbody sling; brown boat shoes on metal pedestal; brown boat shoes included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -10778,7 +10922,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -10789,8 +10937,7 @@
       ]
     },
     "colour_palette": [
-      "black",
-      "grey"
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -10802,7 +10949,7 @@
       "leather_look",
       "wrap_skirt"
     ],
-    "notes": "Primark By Coleen left mannequin in black/grey tartan long-sleeve button shirt with black leather-look knee wrap skirt; black pointed heels on marble pedestal so footwear null",
+    "notes": "Primark By Coleen left mannequin in black/grey tartan long-sleeve button shirt with black leather-look knee wrap skirt; black pointed heels on marble pedestal; black heels included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -10834,7 +10981,11 @@
         "color": "burgundy"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "silver"
+      },
       "accessory": null
     },
     "style": {
@@ -10845,7 +10996,8 @@
       ]
     },
     "colour_palette": [
-      "burgundy"
+      "burgundy",
+      "silver"
     ],
     "features": {
       "layering": "none",
@@ -10857,7 +11009,7 @@
       "ribbed",
       "wide_leg"
     ],
-    "notes": "Primark female mannequin in matching burgundy ribbed short-sleeve button top and wide-leg trousers; silver/white sneakers on grey stone pedestal so footwear null",
+    "notes": "Primark female mannequin in matching burgundy ribbed short-sleeve button top and wide-leg trousers; silver/white sneakers on grey stone pedestal; silver sneakers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 82,
@@ -10893,7 +11045,11 @@
         "subcategory": "draped_shoulders",
         "color": "brown"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -10909,8 +11065,8 @@
     },
     "colour_palette": [
       "navy",
-      "white",
-      "brown"
+      "brown",
+      "white"
     ],
     "features": {
       "layering": "light",
@@ -10922,7 +11078,7 @@
       "loungewear",
       "cap"
     ],
-    "notes": "Primark mannequin in charcoal baseball cap, navy/white thin-stripe crew tee with dark brown sweatshirt draped over shoulders and matching brown wide lounge pants; white sneakers on marble pedestal so footwear null",
+    "notes": "Primark mannequin in charcoal baseball cap, navy/white thin-stripe crew tee with dark brown sweatshirt draped over shoulders and matching brown wide lounge pants; white sneakers on marble pedestal; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 82,
@@ -10998,7 +11154,11 @@
         "subcategory": "waist_tied",
         "color": "black"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "black"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "bucket",
@@ -11014,7 +11174,6 @@
     },
     "colour_palette": [
       "black",
-      "pink",
       "khaki",
       "red"
     ],
@@ -11028,7 +11187,7 @@
       "nirvana",
       "bucket_hat"
     ],
-    "notes": "Primark centre mannequin in red/white text bucket hat, silver sunglasses, black Nirvana In Utero graphic tee with dark shirt tied at waist and khaki cargo shorts; black chunky ankle boots on grey pedestal so footwear null",
+    "notes": "Primark centre mannequin in red/white text bucket hat, silver sunglasses, black Nirvana In Utero graphic tee with dark shirt tied at waist and khaki cargo shorts; black chunky ankle boots on grey pedestal; black boots included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -11125,7 +11284,11 @@
         "color": "terracotta"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "black"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "waist_pouch",
@@ -11141,7 +11304,6 @@
     },
     "colour_palette": [
       "black",
-      "gold",
       "terracotta",
       "tan"
     ],
@@ -11155,7 +11317,7 @@
       "wide_leg",
       "waist_bag"
     ],
-    "notes": "Primark centre mannequin in black All Eyez On Me graphic tee with gold chain, terracotta high-waisted wide trousers and tan suede waist pouch; black lug-sole ankle boots on grey pedestal so footwear null",
+    "notes": "Primark centre mannequin in black All Eyez On Me graphic tee with gold chain, terracotta high-waisted wide trousers and tan suede waist pouch; black lug-sole ankle boots on grey pedestal; black boots included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 83,
@@ -11231,7 +11393,11 @@
         "subcategory": "double_breasted_pinstripe",
         "color": "beige"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "brown"
+      },
       "accessory": {
         "category": "tie",
         "subcategory": "patterned",
@@ -11246,9 +11412,9 @@
       ]
     },
     "colour_palette": [
-      "beige",
       "white",
-      "black"
+      "beige",
+      "brown"
     ],
     "features": {
       "layering": "structured",
@@ -11260,7 +11426,7 @@
       "double_breasted",
       "suit"
     ],
-    "notes": "Centre male mannequin in light beige double-breasted pinstripe suit with white dress shirt and patterned light tie; dark loafers on flat dark pedestal so footwear null",
+    "notes": "Centre male mannequin in light beige double-breasted pinstripe suit with white dress shirt and patterned light tie; dark loafers on flat dark pedestal; brown flats included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 85,
@@ -11296,7 +11462,11 @@
         "subcategory": "single_breasted",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "beige"
+      },
       "accessory": null
     },
     "style": {
@@ -11307,8 +11477,8 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "white",
+      "navy",
       "beige"
     ],
     "features": {
@@ -11321,7 +11491,7 @@
       "open_collar",
       "pocket_square"
     ],
-    "notes": "Centre male mannequin in dark navy single-breasted suit with white fine-stripe open-collar shirt, white pocket square and silver-buckle belt; beige suede loafers on black pedestal so footwear null",
+    "notes": "Centre male mannequin in dark navy single-breasted suit with white fine-stripe open-collar shirt, white pocket square and silver-buckle belt; beige suede loafers on black pedestal; beige loafers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 84,
@@ -11357,7 +11527,11 @@
         "subcategory": "single_breasted",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": {
         "category": "tie",
         "subcategory": "geometric",
@@ -11372,8 +11546,8 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "white",
+      "navy",
       "brown"
     ],
     "features": {
@@ -11386,7 +11560,7 @@
       "tie",
       "formal"
     ],
-    "notes": "Centre male mannequin in dark navy single-breasted suit with white dress shirt and navy geometric diamond tie; brown tassel loafers on thin black pedestal so footwear null",
+    "notes": "Centre male mannequin in dark navy single-breasted suit with white dress shirt and navy geometric diamond tie; brown tassel loafers on thin black pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 85,
@@ -11422,7 +11596,11 @@
         "subcategory": "suede_bomber",
         "color": "tan"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "beige"
+      },
       "accessory": null
     },
     "style": {
@@ -11433,9 +11611,9 @@
       ]
     },
     "colour_palette": [
-      "tan",
       "grey",
       "charcoal",
+      "tan",
       "beige"
     ],
     "features": {
@@ -11448,7 +11626,7 @@
       "suede",
       "summer"
     ],
-    "notes": "Summer window centre mannequin in tan suede bomber over light grey crew sweater with charcoal ankle-hem trousers; beige suede loafers on dark metal base plate so footwear null",
+    "notes": "Summer window centre mannequin in tan suede bomber over light grey crew sweater with charcoal ankle-hem trousers; beige suede loafers on dark metal base plate; beige loafers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 84,
@@ -12032,7 +12210,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -12048,7 +12230,6 @@
     },
     "colour_palette": [
       "black",
-      "pink",
       "white"
     ],
     "features": {
@@ -12061,7 +12242,7 @@
       "side_stripe",
       "cap"
     ],
-    "notes": "Cernucci window mannequin in white NY baseball cap, black zip track jacket with light-pink sleeve stripes and matching black track pants; white sneakers on floral CERNUCCI pedestal so footwear null",
+    "notes": "Cernucci window mannequin in white NY baseball cap, black zip track jacket with light-pink sleeve stripes and matching black track pants; white sneakers on floral CERNUCCI pedestal; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -12903,7 +13084,11 @@
         "subcategory": "tied_at_waist",
         "color": "yellow"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "boots",
+        "color": "brown"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -12933,7 +13118,7 @@
       "denim_shorts",
       "waist_tie"
     ],
-    "notes": "Reserved window torso mannequin in faded brown ORIGINAL VINTAGE CO graphic tee, light-wash denim shorts, yellow/blue plaid shirt tied at waist and white-frame sunglasses; brown ankle boots on floor pedestal so footwear null",
+    "notes": "Reserved window torso mannequin in faded brown ORIGINAL VINTAGE CO graphic tee, light-wash denim shorts, yellow/blue plaid shirt tied at waist and white-frame sunglasses; brown ankle boots on floor pedestal; brown boots included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -13025,7 +13210,11 @@
         "color": "light_blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "taupe"
+      },
       "accessory": {
         "category": "scarf",
         "subcategory": "thin_ribbon",
@@ -13041,8 +13230,8 @@
     },
     "colour_palette": [
       "grey",
-      "black",
       "light_blue",
+      "taupe",
       "burgundy"
     ],
     "features": {
@@ -13055,7 +13244,7 @@
       "distressed_denim",
       "wide_leg"
     ],
-    "notes": "Window mannequin in faded grey oversized tee over black sheer mesh long sleeves, light-wash wide-leg jeans with knee rips, burgundy neck ribbon and dark belt; taupe Mary Jane flats on white circular pedestal so footwear null",
+    "notes": "Window mannequin in faded grey oversized tee over black sheer mesh long sleeves, light-wash wide-leg jeans with knee rips, burgundy neck ribbon and dark belt; taupe Mary Jane flats on white circular pedestal; taupe flats included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -13153,7 +13342,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -13177,7 +13370,7 @@
       "wide_leg",
       "monochrome"
     ],
-    "notes": "Window mannequin in white long-sleeve wrap shawl-collar blazer with tie closure and solid black wide-leg trousers; black pointed pumps on wooden pedestal block so footwear null",
+    "notes": "Window mannequin in white long-sleeve wrap shawl-collar blazer with tie closure and solid black wide-leg trousers; black pointed pumps on wooden pedestal block; black pumps included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 86,
@@ -13205,7 +13398,11 @@
       },
       "bottom": null,
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -13229,7 +13426,7 @@
       "mandarin_collar",
       "jacquard"
     ],
-    "notes": "Window mannequin in white short-sleeve mandarin-collar mini dress with tonal floral jacquard and keyhole neckline; black pointed flats on wood pedestal so footwear null",
+    "notes": "Window mannequin in white short-sleeve mandarin-collar mini dress with tonal floral jacquard and keyhole neckline; black pointed flats on wood pedestal; black flats included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 85,
@@ -13317,7 +13514,11 @@
         "color": "white"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "brown"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "woven_bucket",
@@ -13334,6 +13535,7 @@
     "colour_palette": [
       "yellow",
       "white",
+      "brown",
       "black"
     ],
     "features": {
@@ -13346,7 +13548,7 @@
       "wide_leg",
       "sunglasses"
     ],
-    "notes": "Centre window mannequin in canary yellow sleeveless asymmetrical halter top, white wide-leg cropped trousers, dark woven bucket bag and geometric sunglasses; dark slingback heels on white oval pedestal so footwear null",
+    "notes": "Centre window mannequin in canary yellow sleeveless asymmetrical halter top, white wide-leg cropped trousers, dark woven bucket bag and geometric sunglasses; dark slingback heels on white oval pedestal; brown heels included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 84,
@@ -14264,7 +14466,11 @@
         "color": "beige"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -14275,8 +14481,8 @@
     },
     "colour_palette": [
       "brown",
-      "light_blue",
-      "beige"
+      "beige",
+      "white"
     ],
     "features": {
       "layering": "none",
@@ -14288,7 +14494,7 @@
       "striped_polo",
       "wide_leg"
     ],
-    "notes": "NEXT mannequin in brown-and-light-blue striped short-sleeve polo and beige wide-leg cropped trousers; white flats on marble pedestal so footwear null",
+    "notes": "NEXT mannequin in brown-and-light-blue striped short-sleeve polo and beige wide-leg cropped trousers; white flats on marble pedestal; white flats included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -14437,7 +14643,11 @@
         "color": "olive"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "bronze"
+      },
       "accessory": null
     },
     "style": {
@@ -14449,7 +14659,8 @@
     },
     "colour_palette": [
       "pink",
-      "olive"
+      "olive",
+      "bronze"
     ],
     "features": {
       "layering": "none",
@@ -14461,7 +14672,7 @@
       "lace",
       "cargo_shorts"
     ],
-    "notes": "Left primary mannequin on marble platform in pink lace floral blouse and olive cargo shorts; bronze flats on pedestal so footwear null; ignore adjacent green jacket and denim skirt mannequin",
+    "notes": "Left primary mannequin on marble platform in pink lace floral blouse and olive cargo shorts; bronze flats on pedestal; ignore adjacent green jacket and denim skirt mannequin; bronze flats included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -14493,7 +14704,11 @@
         "color": "brown"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "crossbody",
@@ -14508,9 +14723,8 @@
     },
     "colour_palette": [
       "cream",
-      "pink",
-      "green",
-      "brown"
+      "brown",
+      "white"
     ],
     "features": {
       "layering": "none",
@@ -14522,7 +14736,7 @@
       "floral",
       "ruffle"
     ],
-    "notes": "NEXT mannequin in cream floral ruffle blouse, taupe/brown jogger trousers and cream woven crossbody; white woven flats on gold pedestal so footwear null",
+    "notes": "NEXT mannequin in cream floral ruffle blouse, taupe/brown jogger trousers and cream woven crossbody; white woven flats on gold pedestal; white flats included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -14611,7 +14825,11 @@
         "subcategory": "scoop_neck",
         "color": "coral"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "mary_janes",
+        "color": "light_blue"
+      },
       "accessory": null
     },
     "style": {
@@ -14621,10 +14839,10 @@
       ]
     },
     "colour_palette": [
-      "light_blue",
-      "white",
+      "multicolor",
+      "blue",
       "coral",
-      "blue"
+      "light_blue"
     ],
     "features": {
       "layering": "light",
@@ -14636,7 +14854,7 @@
       "layered",
       "denim_shorts"
     ],
-    "notes": "NEXT mannequin in light blue/white/coral striped tee under coral scoop camisole with dark denim cuffed shorts; light blue Mary Janes on marble pedestal so footwear null",
+    "notes": "NEXT mannequin in light blue/white/coral striped tee under coral scoop camisole with dark denim cuffed shorts; light blue Mary Janes on marble pedestal; light blue mary janes included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -14724,7 +14942,11 @@
         "color": "multicolor"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -14736,8 +14958,7 @@
     },
     "colour_palette": [
       "pink",
-      "yellow",
-      "blue",
+      "multicolor",
       "white"
     ],
     "features": {
@@ -14750,7 +14971,7 @@
       "graphic",
       "pleated_skirt"
     ],
-    "notes": "NEXT mannequin in bright pink crew sweatshirt with matcha graphic and short multicolor diagonal-stripe pleated skirt; white flats on marble pedestal so footwear null",
+    "notes": "NEXT mannequin in bright pink crew sweatshirt with matcha graphic and short multicolor diagonal-stripe pleated skirt; white flats on marble pedestal; white flats included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -14782,7 +15003,11 @@
         "color": "blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "burgundy"
+      },
       "accessory": null
     },
     "style": {
@@ -14792,7 +15017,8 @@
       ]
     },
     "colour_palette": [
-      "blue"
+      "blue",
+      "burgundy"
     ],
     "features": {
       "layering": "none",
@@ -14804,7 +15030,7 @@
       "co_ord",
       "eyelet"
     ],
-    "notes": "NEXT mannequin in matching mid-blue sleeveless button vest with eyelet hem and blue trousers with eyelet ankle cuffs; burgundy sandals on marble pedestal so footwear null",
+    "notes": "NEXT mannequin in matching mid-blue sleeveless button vest with eyelet hem and blue trousers with eyelet ankle cuffs; burgundy sandals on marble pedestal; burgundy sandals included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -14836,7 +15062,11 @@
         "color": "orange"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "white"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -14853,7 +15083,6 @@
     "colour_palette": [
       "burgundy",
       "orange",
-      "tan",
       "white"
     ],
     "features": {
@@ -14866,7 +15095,7 @@
       "resort",
       "sunglasses"
     ],
-    "notes": "RESORT mannequin in burgundy bikini top, ornate orange/tan/brown harem trousers and thick white sunglasses; white sandals on marble pedestal so footwear null",
+    "notes": "RESORT mannequin in burgundy bikini top, ornate orange/tan/brown harem trousers and thick white sunglasses; white sandals on marble pedestal; white sandals included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 76,
@@ -14898,7 +15127,11 @@
         "color": "rust"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "wide_brim",
@@ -14913,8 +15146,7 @@
     },
     "colour_palette": [
       "black",
-      "rust",
-      "orange"
+      "rust"
     ],
     "features": {
       "layering": "none",
@@ -14926,7 +15158,7 @@
       "resort",
       "sarong"
     ],
-    "notes": "RESORT mannequin in black bandeau bikini top, rust floral wrap sarong with long black fringe and black wide-brim sun hat; black thong sandals on marble pedestal so footwear null",
+    "notes": "RESORT mannequin in black bandeau bikini top, rust floral wrap sarong with long black fringe and black wide-brim sun hat; black thong sandals on marble pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -15025,7 +15257,11 @@
         "subcategory": "thin_stripe_long_sleeve",
         "color": "white"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "beige"
+      },
       "accessory": null
     },
     "style": {
@@ -15036,7 +15272,8 @@
     },
     "colour_palette": [
       "black",
-      "white"
+      "white",
+      "beige"
     ],
     "features": {
       "layering": "light",
@@ -15048,7 +15285,7 @@
       "striped",
       "layered"
     ],
-    "notes": "Mannequin in thick black-and-white striped short-sleeve tee over thin black-and-white striped long sleeve with wide-leg black trousers; beige flats on pedestal so footwear null",
+    "notes": "Mannequin in thick black-and-white striped short-sleeve tee over thin black-and-white striped long sleeve with wide-leg black trousers; beige flats on pedestal; beige flats included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -15080,7 +15317,11 @@
         "color": "multicolor"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "bucket",
@@ -15096,9 +15337,8 @@
     },
     "colour_palette": [
       "coral",
-      "orange",
-      "blue",
-      "green",
+      "multicolor",
+      "brown",
       "beige"
     ],
     "features": {
@@ -15111,7 +15351,7 @@
       "print_shorts",
       "summer"
     ],
-    "notes": "Male mannequin in coral crew tee, multicolor Fanta-logo print shorts and beige bucket hat; brown slide sandals on wooden platform so footwear null",
+    "notes": "Male mannequin in coral crew tee, multicolor Fanta-logo print shorts and beige bucket hat; brown slide sandals on wooden platform; brown sandals included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 76,
@@ -15147,7 +15387,11 @@
         "subcategory": "short_sleeve_unbuttoned",
         "color": "white"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "bucket",
@@ -15161,11 +15405,11 @@
       ]
     },
     "colour_palette": [
-      "white",
       "blue",
       "charcoal",
-      "grey",
-      "brown"
+      "white",
+      "brown",
+      "grey"
     ],
     "features": {
       "layering": "light",
@@ -15177,7 +15421,7 @@
       "layered",
       "linen"
     ],
-    "notes": "Male mannequin in grey bucket hat, unbuttoned white short-sleeve shirt over blue-and-white striped tee and charcoal trousers; brown two-strap sandals on wooden pedestal so footwear null",
+    "notes": "Male mannequin in grey bucket hat, unbuttoned white short-sleeve shirt over blue-and-white striped tee and charcoal trousers; brown two-strap sandals on wooden pedestal; brown sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -15213,7 +15457,11 @@
         "subcategory": "short_sleeve_check",
         "color": "sage"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -15223,9 +15471,10 @@
       ]
     },
     "colour_palette": [
-      "sage",
       "white",
-      "navy"
+      "navy",
+      "sage",
+      "brown"
     ],
     "features": {
       "layering": "light",
@@ -15237,7 +15486,7 @@
       "linen",
       "summer"
     ],
-    "notes": "Male mannequin in sage green short-sleeve check shirt worn open over white crew tee with navy relaxed trousers; brown two-strap sandals on white pedestal so footwear null",
+    "notes": "Male mannequin in sage green short-sleeve check shirt worn open over white crew tee with navy relaxed trousers; brown two-strap sandals on white pedestal; brown sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -15273,7 +15522,11 @@
         "subcategory": "single_breasted",
         "color": "tan"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": {
         "category": "tie",
         "subcategory": "necktie",
@@ -15287,10 +15540,10 @@
       ]
     },
     "colour_palette": [
-      "tan",
       "white",
-      "red",
-      "brown"
+      "tan",
+      "brown",
+      "red"
     ],
     "features": {
       "layering": "light",
@@ -15302,7 +15555,7 @@
       "tie",
       "formal"
     ],
-    "notes": "Male mannequin in tan textured single-breasted suit with white dress shirt, solid red necktie and dark pocket square; brown loafers on wooden pedestal so footwear null",
+    "notes": "Male mannequin in tan textured single-breasted suit with white dress shirt, solid red necktie and dark pocket square; brown loafers on wooden pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -15338,7 +15591,11 @@
         "subcategory": "single_breasted_linen",
         "color": "beige"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -15348,8 +15605,8 @@
       ]
     },
     "colour_palette": [
-      "beige",
       "black",
+      "beige",
       "brown"
     ],
     "features": {
@@ -15362,7 +15619,7 @@
       "linen_suit",
       "smart_casual"
     ],
-    "notes": "Foreground NEXT mannequin in light beige linen suit over black crew tee; dark loafers on wooden pedestal so footwear null",
+    "notes": "Foreground NEXT mannequin in light beige linen suit over black crew tee; dark loafers on wooden pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -15463,7 +15720,11 @@
         "subcategory": "three_piece_single_breasted",
         "color": "sage"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "burgundy"
+      },
       "accessory": {
         "category": "tie",
         "subcategory": "necktie",
@@ -15477,8 +15738,9 @@
       ]
     },
     "colour_palette": [
-      "sage",
       "white",
+      "sage",
+      "burgundy",
       "pink"
     ],
     "features": {
@@ -15491,7 +15753,7 @@
       "three_piece",
       "suit"
     ],
-    "notes": "Centre mannequin in light sage three-piece suit with white dress shirt, pink necktie and white pocket square; burgundy loafers on wooden pedestal so footwear null",
+    "notes": "Centre mannequin in light sage three-piece suit with white dress shirt, pink necktie and white pocket square; burgundy loafers on wooden pedestal; burgundy loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -15527,7 +15789,11 @@
         "subcategory": "single_breasted_linen",
         "color": "beige"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -15537,8 +15803,8 @@
       ]
     },
     "colour_palette": [
-      "beige",
       "white",
+      "beige",
       "brown"
     ],
     "features": {
@@ -15551,7 +15817,7 @@
       "linen_suit",
       "smart_casual"
     ],
-    "notes": "Primary left mannequin in light beige linen blazer and matching trousers over white crew tee; dark brown loafers on wooden pedestal so footwear null",
+    "notes": "Primary left mannequin in light beige linen blazer and matching trousers over white crew tee; dark brown loafers on wooden pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -15627,7 +15893,11 @@
         "subcategory": "single_breasted",
         "color": "tan"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -15637,8 +15907,8 @@
       ]
     },
     "colour_palette": [
-      "tan",
       "light_grey",
+      "tan",
       "brown"
     ],
     "features": {
@@ -15651,7 +15921,7 @@
       "suit",
       "tan"
     ],
-    "notes": "Male mannequin in tan single-breasted suit with light grey button-down shirt; dark brown bit loafers on wooden pedestal so footwear null",
+    "notes": "Male mannequin in tan single-breasted suit with light grey button-down shirt; dark brown bit loafers on wooden pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -15687,7 +15957,11 @@
         "subcategory": "single_breasted_linen",
         "color": "rust"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -15697,8 +15971,8 @@
       ]
     },
     "colour_palette": [
-      "rust",
       "white",
+      "rust",
       "brown"
     ],
     "features": {
@@ -15711,7 +15985,7 @@
       "linen_suit",
       "rust"
     ],
-    "notes": "Male mannequin in rust/terracotta textured linen suit over white crew tee; dark brown tassel loafers on wooden pedestal so footwear null",
+    "notes": "Male mannequin in rust/terracotta textured linen suit over white crew tee; dark brown tassel loafers on wooden pedestal; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -15747,7 +16021,11 @@
         "subcategory": "harrington_zip",
         "color": "camel"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "cream"
+      },
       "accessory": null
     },
     "style": {
@@ -15757,9 +16035,10 @@
       ]
     },
     "colour_palette": [
-      "camel",
       "blue",
-      "beige"
+      "beige",
+      "camel",
+      "cream"
     ],
     "features": {
       "layering": "light",
@@ -15771,7 +16050,7 @@
       "harrington",
       "premium"
     ],
-    "notes": "NEXT N. PREMIUM mannequin in open camel zip harrington over blue crew tee with beige pleated chinos; cream sneakers on wooden pedestal so footwear null",
+    "notes": "NEXT N. PREMIUM mannequin in open camel zip harrington over blue crew tee with beige pleated chinos; cream sneakers on wooden pedestal; cream sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -15803,7 +16082,11 @@
         "color": "navy"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "tan"
+      },
       "accessory": null
     },
     "style": {
@@ -15814,9 +16097,8 @@
     },
     "colour_palette": [
       "brown",
-      "white",
       "navy",
-      "beige"
+      "tan"
     ],
     "features": {
       "layering": "none",
@@ -15828,7 +16110,7 @@
       "striped_polo",
       "pleated"
     ],
-    "notes": "Male mannequin in brown polo with thin white horizontal stripes and navy pleated trousers; tan tassel loafers on wooden pedestal so footwear null",
+    "notes": "Male mannequin in brown polo with thin white horizontal stripes and navy pleated trousers; tan tassel loafers on wooden pedestal; tan loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -15987,7 +16269,11 @@
         "color": "beige"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -15998,8 +16284,6 @@
     },
     "colour_palette": [
       "blue",
-      "white",
-      "yellow",
       "beige",
       "black"
     ],
@@ -16012,7 +16296,7 @@
       "plaid",
       "chino"
     ],
-    "notes": "Male mannequin in blue/white/yellow plaid long-sleeve button-down with sleeves rolled and tan chino trousers; black sneakers on wooden pedestal so footwear null",
+    "notes": "Male mannequin in blue/white/yellow plaid long-sleeve button-down with sleeves rolled and tan chino trousers; black sneakers on wooden pedestal; black sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -16048,7 +16332,11 @@
         "subcategory": "plaid_short_sleeve",
         "color": "red"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
       "accessory": null
     },
     "style": {
@@ -16058,9 +16346,9 @@
       ]
     },
     "colour_palette": [
-      "red",
       "white",
       "olive",
+      "red",
       "brown"
     ],
     "features": {
@@ -16073,7 +16361,7 @@
       "denim_shorts",
       "summer"
     ],
-    "notes": "Male mannequin in open red-and-white plaid short-sleeve shirt over white crew tee with faded olive denim shorts; brown two-strap sandals on wooden pedestal so footwear null",
+    "notes": "Male mannequin in open red-and-white plaid short-sleeve shirt over white crew tee with faded olive denim shorts; brown two-strap sandals on wooden pedestal; brown sandals included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -16105,7 +16393,11 @@
         "color": "light_grey"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -16118,8 +16410,7 @@
     "colour_palette": [
       "green",
       "light_grey",
-      "white",
-      "tan"
+      "white"
     ],
     "features": {
       "layering": "none",
@@ -16131,7 +16422,7 @@
       "shorts",
       "summer"
     ],
-    "notes": "Foreground mannequin in solid green polo with white collar tipping and light grey shorts; tan-and-white sneakers on white pedestal block so footwear null",
+    "notes": "Foreground mannequin in solid green polo with white collar tipping and light grey shorts; tan-and-white sneakers on white pedestal block; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -16163,7 +16454,11 @@
         "color": "blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "cream"
+      },
       "accessory": null
     },
     "style": {
@@ -16186,7 +16481,7 @@
       "graphic",
       "baggy_jeans"
     ],
-    "notes": "Male mannequin in light olive Earth Rebellion graphic crew sweatshirt and light-wash baggy jeans; cream sneakers on white pedestal so footwear null",
+    "notes": "Male mannequin in light olive Earth Rebellion graphic crew sweatshirt and light-wash baggy jeans; cream sneakers on white pedestal; cream sneakers included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 78,
@@ -16222,7 +16517,11 @@
         "subcategory": "waist_tied",
         "color": "olive"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "beige"
+      },
       "accessory": null
     },
     "style": {
@@ -16233,8 +16532,8 @@
     },
     "colour_palette": [
       "yellow",
-      "olive",
       "blue",
+      "olive",
       "beige"
     ],
     "features": {
@@ -16247,7 +16546,7 @@
       "waist_tied",
       "jeans"
     ],
-    "notes": "Centre mannequin in bright yellow graphic crew sweatshirt with olive sweatshirt tied at waist and medium-wash jeans; beige sneakers on wooden pedestal so footwear null",
+    "notes": "Centre mannequin in bright yellow graphic crew sweatshirt with olive sweatshirt tied at waist and medium-wash jeans; beige sneakers on wooden pedestal; beige sneakers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 80,
@@ -17007,7 +17306,11 @@
         "subcategory": "quilted_puffer",
         "color": "olive"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -17018,10 +17321,9 @@
       ]
     },
     "colour_palette": [
-      "olive",
-      "navy",
       "white",
-      "grey"
+      "grey",
+      "olive"
     ],
     "features": {
       "layering": "heavy",
@@ -17033,7 +17335,7 @@
       "shorts",
       "layered"
     ],
-    "notes": "Centre mannequin in olive quilted puffer vest over navy zip jacket and white crew tee with light grey jersey shorts; white high-top sneakers on clear acrylic pedestal so footwear null",
+    "notes": "Centre mannequin in olive quilted puffer vest over navy zip jacket and white crew tee with light grey jersey shorts; white high-top sneakers on clear acrylic pedestal; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 78,
@@ -17320,7 +17622,11 @@
         "subcategory": "zip_short",
         "color": "navy"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "gray"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -17335,9 +17641,10 @@
       ]
     },
     "colour_palette": [
-      "navy",
       "cream",
       "beige",
+      "navy",
+      "gray",
       "grey"
     ],
     "features": {
@@ -17350,7 +17657,7 @@
       "cap",
       "zip_jacket"
     ],
-    "notes": "Centre mannequin in dark grey baseball cap, navy zip short jacket over cream crew tee with beige smart culottes; grey multi-strap sandals on clear pedestal so footwear null",
+    "notes": "Centre mannequin in dark grey baseball cap, navy zip short jacket over cream crew tee with beige smart culottes; grey multi-strap sandals on clear pedestal; gray sandals included as styled pedestal/stand footwear",
     "confidence": 0.91,
     "score_hint": {
       "base_score": 80,
@@ -17382,7 +17689,11 @@
         "color": "tan"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -17394,8 +17705,8 @@
     },
     "colour_palette": [
       "white",
-      "navy",
-      "tan"
+      "tan",
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -17407,7 +17718,7 @@
       "pleated",
       "wide_leg"
     ],
-    "notes": "Centre male mannequin in white short-sleeve polo with thin navy horizontal stripes and tan pleated wide trousers; black sandals on clear pedestal so footwear null",
+    "notes": "Centre male mannequin in white short-sleeve polo with thin navy horizontal stripes and tan pleated wide trousers; black sandals on clear pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 82,
@@ -17443,7 +17754,11 @@
         "subcategory": "shoulder_draped_stripe",
         "color": "blue"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": null
     },
     "style": {
@@ -17454,8 +17769,8 @@
     },
     "colour_palette": [
       "blue",
-      "white",
-      "brown"
+      "brown",
+      "white"
     ],
     "features": {
       "layering": "light",
@@ -17467,7 +17782,7 @@
       "stripes",
       "layered"
     ],
-    "notes": "Centre mannequin in medium-blue oversized crew tee with light blue-and-white vertical stripe shirt draped over shoulders and dark brown barrel-leg jeans; white sneakers on clear glass pedestal so footwear null",
+    "notes": "Centre mannequin in medium-blue oversized crew tee with light blue-and-white vertical stripe shirt draped over shoulders and dark brown barrel-leg jeans; white sneakers on clear glass pedestal; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 80,
@@ -17499,7 +17814,11 @@
         "color": "beige"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -17511,7 +17830,8 @@
     },
     "colour_palette": [
       "green",
-      "beige"
+      "beige",
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -17523,7 +17843,7 @@
       "barrel_leg",
       "knit"
     ],
-    "notes": "Left primary mannequin in dark forest-green short-sleeve knit polo jumper with beige jersey barrel-leg trousers; black platform sandals on clear acrylic pedestal so footwear null",
+    "notes": "Left primary mannequin in dark forest-green short-sleeve knit polo jumper with beige jersey barrel-leg trousers; black platform sandals on clear acrylic pedestal; black sandals included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 80,
@@ -20344,7 +20664,11 @@
         "color": "light_blue"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "brown"
+      },
       "accessory": {
         "category": "sunglasses",
         "subcategory": "rectangular",
@@ -20359,7 +20683,8 @@
     },
     "colour_palette": [
       "black",
-      "light_blue"
+      "light_blue",
+      "brown"
     ],
     "features": {
       "layering": "none",
@@ -20370,7 +20695,7 @@
       "graphic_tee",
       "jorts"
     ],
-    "notes": "Partial mannequin in faded black Rolling Stones American Tour graphic tee and light-wash denim shorts with sunglasses tucked at neckline; brown sandals on pedestal base so footwear null",
+    "notes": "Partial mannequin in faded black Rolling Stones American Tour graphic tee and light-wash denim shorts with sunglasses tucked at neckline; brown sandals on pedestal base; brown sandals included as styled pedestal/stand footwear",
     "confidence": 0.86,
     "score_hint": {
       "base_score": 72,
@@ -20402,7 +20727,11 @@
         "subcategory": "military_jacket",
         "color": "olive"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -20412,8 +20741,9 @@
       ]
     },
     "colour_palette": [
+      "cream",
       "olive",
-      "cream"
+      "black"
     ],
     "features": {
       "layering": "structured",
@@ -20424,7 +20754,7 @@
       "military",
       "hanging_display"
     ],
-    "notes": "Central hanging co-ord of olive double-breasted military jacket with silver buttons and cream cropped trousers with button hems; black slingback heels on floor pedestal so footwear null",
+    "notes": "Central hanging co-ord of olive double-breasted military jacket with silver buttons and cream cropped trousers with button hems; black slingback heels on floor pedestal; black heels included as styled pedestal/stand footwear",
     "confidence": 0.84,
     "score_hint": {
       "base_score": 70,
@@ -20521,7 +20851,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -20532,8 +20866,7 @@
     },
     "colour_palette": [
       "red",
-      "black",
-      "white"
+      "black"
     ],
     "features": {
       "layering": "none",
@@ -20544,7 +20877,7 @@
       "bershka",
       "graphic_tee"
     ],
-    "notes": "Centre Bershka mannequin in red Louisville Kentucky graphic V-neck tee over white base layer and black wide-leg trousers with white side piping; black loafers on white pedestal so footwear null",
+    "notes": "Centre Bershka mannequin in red Louisville Kentucky graphic V-neck tee over white base layer and black wide-leg trousers with white side piping; black loafers on white pedestal; black loafers included as styled pedestal/stand footwear",
     "confidence": 0.88,
     "score_hint": {
       "base_score": 76,
@@ -20576,7 +20909,11 @@
         "color": "black"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sandals",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "handbag",
@@ -20603,7 +20940,7 @@
       "bershka",
       "eyeglasses"
     ],
-    "notes": "Primary Bershka mannequin in light blue ruched collared blouse, black bottoms with white side stripes, white fringed handbag and dark oval glasses; white slide sandals on pedestal so footwear null",
+    "notes": "Primary Bershka mannequin in light blue ruched collared blouse, black bottoms with white side stripes, white fringed handbag and dark oval glasses; white slide sandals on pedestal; white sandals included as styled pedestal/stand footwear",
     "confidence": 0.87,
     "score_hint": {
       "base_score": 75,
@@ -20700,7 +21037,11 @@
         "color": "beige"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "brown"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "shoulder_bag",
@@ -20716,6 +21057,7 @@
     "colour_palette": [
       "white",
       "beige",
+      "brown",
       "gold"
     ],
     "features": {
@@ -20728,7 +21070,7 @@
       "floral",
       "sale_window"
     ],
-    "notes": "Primary adult mannequin in white sleeveless ruffle blouse and beige wide-leg trousers with dark floral print; dark brown flats on sculptural pedestal so footwear null; thin gold bag strap across shoulder",
+    "notes": "Primary adult mannequin in white sleeveless ruffle blouse and beige wide-leg trousers with dark floral print; dark brown flats on sculptural pedestal; thin gold bag strap across shoulder; brown flats included as styled pedestal/stand footwear",
     "confidence": 0.86,
     "score_hint": {
       "base_score": 74,
@@ -22828,7 +23170,11 @@
         "color": "cream"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "black"
+      },
       "accessory": {
         "category": "scarf",
         "subcategory": "geometric_silk",
@@ -22844,8 +23190,8 @@
     "colour_palette": [
       "terracotta",
       "cream",
-      "olive",
-      "brown"
+      "black",
+      "multicolor"
     ],
     "features": {
       "layering": "none",
@@ -22857,7 +23203,7 @@
       "cuffed_trousers",
       "loafers"
     ],
-    "notes": "Centre mannequin in terracotta long-sleeve top, cream cuffed straight trousers, olive/cream/brown geometric neck scarf and small brown handbag; black loafers with cream socks on pedestal so footwear null",
+    "notes": "Centre mannequin in terracotta long-sleeve top, cream cuffed straight trousers, olive/cream/brown geometric neck scarf and small brown handbag; black loafers with cream socks on pedestal; black loafers included as styled pedestal/stand footwear",
     "confidence": 0.9,
     "score_hint": {
       "base_score": 82,
@@ -22954,7 +23300,11 @@
         "color": "off_white"
       },
       "outerwear": null,
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "loafers",
+        "color": "brown"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "bucket_bag",
@@ -22970,8 +23320,8 @@
     "colour_palette": [
       "cream",
       "off_white",
-      "tan",
-      "brown"
+      "brown",
+      "tan"
     ],
     "features": {
       "layering": "none",
@@ -22983,7 +23333,7 @@
       "logo_print",
       "bucket_bag"
     ],
-    "notes": "Centre Longchamp mannequin in cream ribbed sweater with gold shoulder buttons, off-white Longchamp stamp-print straight trousers, tan bucket bag with pom charm and brown pouch necklace; brown loafers on glass platform so footwear null",
+    "notes": "Centre Longchamp mannequin in cream ribbed sweater with gold shoulder buttons, off-white Longchamp stamp-print straight trousers, tan bucket bag with pom charm and brown pouch necklace; brown loafers on glass platform; brown loafers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -23281,7 +23631,11 @@
         "subcategory": "quilted_puffer",
         "color": "yellow"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "sneakers",
+        "color": "white"
+      },
       "accessory": {
         "category": "hat",
         "subcategory": "baseball_cap",
@@ -23296,9 +23650,10 @@
       ]
     },
     "colour_palette": [
-      "yellow",
       "navy",
       "brown",
+      "yellow",
+      "white",
       "black"
     ],
     "features": {
@@ -23311,7 +23666,7 @@
       "puffer_vest",
       "cargo"
     ],
-    "notes": "Centre Canada Goose mannequin in bright yellow quilted puffer vest with logo patch over navy sweatshirt, brown cargo trousers and black baseball cap; white sneakers on black pedestal so footwear null",
+    "notes": "Centre Canada Goose mannequin in bright yellow quilted puffer vest with logo patch over navy sweatshirt, brown cargo trousers and black baseball cap; white sneakers on black pedestal; white sneakers included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -24024,7 +24379,11 @@
         "subcategory": "checkered_belted",
         "color": "black"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "flats",
+        "color": "black"
+      },
       "accessory": null
     },
     "style": {
@@ -24035,9 +24394,8 @@
       ]
     },
     "colour_palette": [
-      "black",
-      "cream",
-      "navy"
+      "navy",
+      "black"
     ],
     "features": {
       "layering": "light",
@@ -24049,7 +24407,7 @@
       "check",
       "belted_jacket"
     ],
-    "notes": "Jaeger mannequin in black-and-cream check belted hooded jacket over navy midi skirt; black flats placed on stand base only",
+    "notes": "Jaeger mannequin in black-and-cream check belted hooded jacket over navy midi skirt; black flats placed on stand base only; black flats included as styled pedestal/stand footwear",
     "confidence": 0.89,
     "score_hint": {
       "base_score": 84,
@@ -24546,7 +24904,11 @@
         "subcategory": "single_breasted",
         "color": "cream"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "pumps",
+        "color": "brown"
+      },
       "accessory": {
         "category": "eyewear",
         "subcategory": "sunglasses",
@@ -24562,8 +24924,8 @@
     },
     "colour_palette": [
       "cream",
-      "black",
-      "brown"
+      "brown",
+      "black"
     ],
     "features": {
       "layering": "structured",
@@ -24575,7 +24937,7 @@
       "satin_slip",
       "blazer"
     ],
-    "notes": "M&S window mannequin in cream single-breasted blazer over cream satin midi slip dress with lace handkerchief hem layered over matching cream wide-leg trousers, dark sunglasses on head; brown pointed flats on pedestal so footwear null",
+    "notes": "M&S window mannequin in cream single-breasted blazer over cream satin midi slip dress with lace handkerchief hem layered over matching cream wide-leg trousers, dark sunglasses on head; brown pointed flats on pedestal; brown pumps included as styled pedestal/stand footwear",
     "confidence": 0.92,
     "score_hint": {
       "base_score": 84,
@@ -24607,7 +24969,11 @@
         "subcategory": "cropped_suede",
         "color": "dusty_blue"
       },
-      "footwear": null,
+      "footwear": {
+        "category": "shoes",
+        "subcategory": "heels",
+        "color": "white"
+      },
       "accessory": {
         "category": "bag",
         "subcategory": "shoulder_bag",
@@ -24623,8 +24989,8 @@
     },
     "colour_palette": [
       "dusty_blue",
-      "brown",
-      "white"
+      "white",
+      "brown"
     ],
     "features": {
       "layering": "none",
@@ -24636,7 +25002,7 @@
       "suede_co_ord",
       "mini_skirt"
     ],
-    "notes": "Centre M&S window mannequin in dusty-blue cropped suede jacket with matching mini skirt and small brown shoulder bag under arm; white strappy heels on pedestal so footwear null; ignore right cream blazer/slip mannequin",
+    "notes": "Centre M&S window mannequin in dusty-blue cropped suede jacket with matching mini skirt and small brown shoulder bag under arm; white strappy heels on pedestal; ignore right cream blazer/slip mannequin; white heels included as styled pedestal/stand footwear",
     "confidence": 0.93,
     "score_hint": {
       "base_score": 85,

@@ -14,11 +14,31 @@
     "status": "fix",
     "notes": "Black tee, charcoal shorts, yellow belt, white runners OK; missing black HOKA baseball cap (notes/tags mention it)",
     "pieces": [
-      { "category": "tops", "subcategory": "athletic_crew", "color": "black" },
-      { "category": "bottoms", "subcategory": "running_print_shorts", "color": "charcoal" },
-      { "category": "footwear", "subcategory": "running_sneakers", "color": "white" },
-      { "category": "bags", "subcategory": "running_belt", "color": "yellow" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "athletic_crew",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "running_print_shorts",
+        "color": "charcoal"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "running_sneakers",
+        "color": "white"
+      },
+      {
+        "category": "bags",
+        "subcategory": "running_belt",
+        "color": "yellow"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
     ]
   },
   {
@@ -46,9 +66,21 @@
     "status": "uncertain",
     "notes": "Abstract print shirt + black trousers OK; long beige underlayer visible but omitted from outfit — keep or add?",
     "pieces": [
-      { "category": "tops", "subcategory": "abstract_print_short_sleeve", "color": "multicolor" },
-      { "category": "tops", "subcategory": "longline_underlayer", "color": "beige" },
-      { "category": "bottoms", "subcategory": "straight_trousers", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "abstract_print_short_sleeve",
+        "color": "multicolor"
+      },
+      {
+        "category": "tops",
+        "subcategory": "longline_underlayer",
+        "color": "beige"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_trousers",
+        "color": "black"
+      }
     ]
   },
   {
@@ -61,54 +93,119 @@
     "status": "uncertain",
     "notes": "Brown pinstripe shirt, white tank, light wide jeans, brown woven flats OK; tan canvas tote in label not clearly on mannequin — keep or drop?",
     "pieces": [
-      { "category": "tops", "subcategory": "ribbed_tank", "color": "white" },
-      { "category": "outerwear", "subcategory": "pinstripe_button_down", "color": "brown" },
-      { "category": "bottoms", "subcategory": "wide_leg_jeans", "color": "blue" },
-      { "category": "footwear", "subcategory": "woven_flats", "color": "brown" }
+      {
+        "category": "tops",
+        "subcategory": "ribbed_tank",
+        "color": "white"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "pinstripe_button_down",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_jeans",
+        "color": "blue"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "woven_flats",
+        "color": "brown"
+      }
     ]
   },
   {
     "id": "060",
     "status": "ok",
-    "notes": "Navy short-sleeve shirt over white tee, cream shorts; grey NB 991 on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included gray sneakers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "gray"
+      }
+    ]
   },
   {
     "id": "061",
     "status": "fix",
     "notes": "Brown tie-front top + matching wide trousers OK; black thong sandals sit on pedestal/base — remove footwear",
     "pieces": [
-      { "category": "tops", "subcategory": "tie_front_sleeveless", "color": "brown" },
-      { "category": "bottoms", "subcategory": "wide_leg_trousers", "color": "brown" }
+      {
+        "category": "tops",
+        "subcategory": "tie_front_sleeveless",
+        "color": "brown"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "brown"
+      }
     ]
   },
   {
     "id": "062",
-    "status": "ok",
-    "notes": "Floral cowl top, embroidered denim shorts, brown crossbody; woven sandals on pedestal correctly null"
+    "status": "uncertain",
+    "notes": "Pedestal footwear policy: missing_color. Check photo and add the stand/pedestal shoes that belong with this look."
   },
   {
     "id": "063",
     "status": "ok",
-    "notes": "Brown floral camp shirt, white tee, tan cuffed linen, beige tote; sneakers on base correctly null"
+    "notes": "Pedestal footwear policy: included cream sneakers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "cream"
+      }
+    ]
   },
   {
     "id": "064",
-    "status": "fix",
-    "notes": "Periwinkle smocked midi OK and loafers on base correctly null; missing white GANNI graphic tee under dress",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included black loafers with this look",
     "pieces": [
-      { "category": "dresses", "subcategory": "smocked_midi_spaghetti", "color": "periwinkle" },
-      { "category": "tops", "subcategory": "graphic_tee", "color": "white" }
+      {
+        "category": "dresses",
+        "subcategory": "smocked_midi_spaghetti",
+        "color": "periwinkle"
+      },
+      {
+        "category": "tops",
+        "subcategory": "graphic_tee",
+        "color": "white"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "black"
+      }
     ]
   },
   {
     "id": "066",
     "status": "ok",
-    "notes": "Navy belted shirt dress + cream padded bag on pedestal; mules on floor correctly footwear null"
+    "notes": "Pedestal footwear policy: included cream mules with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "mules",
+        "color": "cream"
+      }
+    ]
   },
   {
     "id": "067",
     "status": "ok",
-    "notes": "Navy crinkle overshirt, white tee, navy trousers, white APC tote on OSB; sneakers on floor correctly null"
+    "notes": "Pedestal footwear policy: included white sneakers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sneakers",
+        "color": "white"
+      }
+    ]
   },
   {
     "id": "068",
@@ -117,14 +214,34 @@
   },
   {
     "id": "069",
-    "status": "fix",
-    "notes": "Rust satin shirt, rust tee, indigo jeans, tan belt OK; black pointed pumps appear worn on feet but labelled null — add footwear",
+    "status": "ok",
+    "notes": "Pedestal footwear policy: included black pumps with this look",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "rust" },
-      { "category": "outerwear", "subcategory": "satin_button_down", "color": "rust" },
-      { "category": "bottoms", "subcategory": "straight_jeans", "color": "indigo" },
-      { "category": "accessories", "subcategory": "leather_square_buckle_belt", "color": "tan" },
-      { "category": "footwear", "subcategory": "pointed_pumps", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "rust"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "satin_button_down",
+        "color": "rust"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "straight_jeans",
+        "color": "indigo"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "leather_square_buckle_belt",
+        "color": "tan"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "pumps",
+        "color": "black"
+      }
     ]
   },
   {
@@ -140,7 +257,14 @@
   {
     "id": "072",
     "status": "ok",
-    "notes": "Lime linen shirt, navy trousers, tan belt; charcoal loafers on metal baseplate correctly null"
+    "notes": "Pedestal footwear policy: included charcoal loafers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "charcoal"
+      }
+    ]
   },
   {
     "id": "074",
@@ -167,11 +291,31 @@
     "status": "fix",
     "notes": "Beige sweater, burgundy crossbody, black chunky shoes OK; missing light check shirt under sweater; shorts look burgundy/maroon not mauve",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_knit", "color": "beige" },
-      { "category": "tops", "subcategory": "check_button_down", "color": "light_check" },
-      { "category": "bottoms", "subcategory": "chino_shorts", "color": "burgundy" },
-      { "category": "bags", "subcategory": "crossbody", "color": "burgundy" },
-      { "category": "footwear", "subcategory": "chunky_derby", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_knit",
+        "color": "beige"
+      },
+      {
+        "category": "tops",
+        "subcategory": "check_button_down",
+        "color": "light_check"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "chino_shorts",
+        "color": "burgundy"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "burgundy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "chunky_derby",
+        "color": "black"
+      }
     ]
   },
   {
@@ -189,10 +333,26 @@
     "status": "uncertain",
     "notes": "Olive polo, beige barrel trousers, navy crossbody, black platform sandals OK; separate olive mesh harness unclear vs textured polo — keep or drop harness?",
     "pieces": [
-      { "category": "tops", "subcategory": "short_sleeve_knit_polo", "color": "olive" },
-      { "category": "bottoms", "subcategory": "barrel_leg_trousers", "color": "beige" },
-      { "category": "bags", "subcategory": "crossbody", "color": "navy" },
-      { "category": "footwear", "subcategory": "platform_strappy_sandals", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "short_sleeve_knit_polo",
+        "color": "olive"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "barrel_leg_trousers",
+        "color": "beige"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "platform_strappy_sandals",
+        "color": "black"
+      }
     ]
   },
   {
@@ -200,11 +360,31 @@
     "status": "uncertain",
     "notes": "Khaki mesh visor, open denim shirt, beige wide cropped trousers, black sandals OK; under-tee reads pale yellow/lime vs labelled cream",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "pale_yellow" },
-      { "category": "outerwear", "subcategory": "denim_button_down", "color": "indigo" },
-      { "category": "bottoms", "subcategory": "wide_cropped_trousers", "color": "beige" },
-      { "category": "accessories", "subcategory": "mesh_visor", "color": "khaki" },
-      { "category": "footwear", "subcategory": "chunky_strappy_sandals", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "pale_yellow"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "denim_button_down",
+        "color": "indigo"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_cropped_trousers",
+        "color": "beige"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "mesh_visor",
+        "color": "khaki"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "chunky_strappy_sandals",
+        "color": "black"
+      }
     ]
   },
   {
@@ -215,7 +395,14 @@
   {
     "id": "086",
     "status": "ok",
-    "notes": "Maroon lace-trim camisole + beige wide trousers; loafers on SALE pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included brown loafers with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "loafers",
+        "color": "brown"
+      }
+    ]
   },
   {
     "id": "088",
@@ -227,9 +414,21 @@
     "status": "fix",
     "notes": "Indigo snap denim jacket + matching wide trousers OK; missing light V-neck base layer visible at neckline",
     "pieces": [
-      { "category": "tops", "subcategory": "v_neck_base", "color": "cream" },
-      { "category": "outerwear", "subcategory": "snap_denim_shirt", "color": "indigo" },
-      { "category": "bottoms", "subcategory": "wide_leg_trousers", "color": "indigo" }
+      {
+        "category": "tops",
+        "subcategory": "v_neck_base",
+        "color": "cream"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "snap_denim_shirt",
+        "color": "indigo"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "wide_leg_trousers",
+        "color": "indigo"
+      }
     ]
   },
   {
@@ -242,11 +441,31 @@
     "status": "fix",
     "notes": "Black tee, navy pleated maxi, white sneakers, cream tote OK; missing small cream/white crossbody also worn",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "black" },
-      { "category": "bottoms", "subcategory": "pleated_maxi_skirt", "color": "navy" },
-      { "category": "footwear", "subcategory": "low_top_sneakers", "color": "white" },
-      { "category": "bags", "subcategory": "canvas_tote", "color": "cream" },
-      { "category": "bags", "subcategory": "crossbody", "color": "cream" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "black"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "pleated_maxi_skirt",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "low_top_sneakers",
+        "color": "white"
+      },
+      {
+        "category": "bags",
+        "subcategory": "canvas_tote",
+        "color": "cream"
+      },
+      {
+        "category": "bags",
+        "subcategory": "crossbody",
+        "color": "cream"
+      }
     ]
   },
   {
@@ -254,12 +473,36 @@
     "status": "fix",
     "notes": "Beige cap, lavender windbreaker, white tee, beige shorts, white sneakers OK; missing yellow compression shorts under running shorts",
     "pieces": [
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "beige" },
-      { "category": "outerwear", "subcategory": "zip_hooded_windbreaker", "color": "lavender" },
-      { "category": "tops", "subcategory": "athletic_tee", "color": "white" },
-      { "category": "bottoms", "subcategory": "running_shorts", "color": "beige" },
-      { "category": "bottoms", "subcategory": "compression_shorts", "color": "yellow" },
-      { "category": "footwear", "subcategory": "chunky_athletic_sneakers", "color": "white" }
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "beige"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "zip_hooded_windbreaker",
+        "color": "lavender"
+      },
+      {
+        "category": "tops",
+        "subcategory": "athletic_tee",
+        "color": "white"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "running_shorts",
+        "color": "beige"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "compression_shorts",
+        "color": "yellow"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "chunky_athletic_sneakers",
+        "color": "white"
+      }
     ]
   },
   {

@@ -258,6 +258,9 @@
     <span id="decisionStats">Decisions: 0</span>
     <button type="button" class="primary" id="downloadBtn">Download decisions.json</button>
     <button type="button" id="copyBtn">Copy summary for chat</button>
+    <span style="flex:1"></span>
+    <strong style="color:#f5f0e8">Policy:</strong>
+    <span>Shoes on the stand/pedestal with a torso mannequin <em>are</em> outfit footwear — include them.</span>
   </div>
   <div class="strip" id="strip"></div>
   <div class="layout">
@@ -433,6 +436,7 @@
           <h2>Current dataset.json outfit</h2>
           <pre class="outfit">${escapeHtml(formatOutfit(row.currentOutfit))}</pre>
         </div>
+        <p class="hint"><strong>Footwear rule:</strong> If stylists placed shoes under/beside this mannequin (stand base or pedestal), label them as <code>footwear</code> — do not require worn-on-feet. Ignore only clearly separate product piles / neighbour looks.</p>
         <p class="hint">When finished: Download decisions.json, then tell me in chat “apply my decisions” (or paste the copied summary).</p>
       `;
 

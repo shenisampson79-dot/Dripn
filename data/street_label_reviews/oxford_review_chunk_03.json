@@ -2,82 +2,185 @@
   {
     "id": "096",
     "status": "ok",
-    "notes": "Black cropped zip jacket + light crossover distressed jeans; black pointed shoes on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black pumps with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "pumps",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "097",
     "status": "ok",
-    "notes": "Gold-tan animal-print spaghetti maxi slip; black strappy sandals on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black sandals with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "098",
-    "status": "ok",
-    "notes": "Open black biker over black fitted top, ochre ruched mini, gold pendant; multi-strap shoes on pedestal correctly footwear null"
+    "status": "uncertain",
+    "notes": "Pedestal footwear policy: generic_shoes. Check photo and add the stand/pedestal shoes that belong with this look."
   },
   {
     "id": "099",
     "status": "ok",
-    "notes": "White lace blouse + white pleated mini + woven straw bag; black ankle boots on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black boots with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "boots",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "100",
     "status": "ok",
-    "notes": "Dark animal-botanical sleeveless midi with waist knot + black structured handbag; pointed shoes on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black pumps with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "pumps",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "102",
     "status": "ok",
-    "notes": "Denim chore over white tee, charcoal shorts, black sunglasses; boat shoes on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black boat_shoes with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "boat_shoes",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "103",
     "status": "ok",
-    "notes": "Mustard suede bomber over white tee + light straight jeans; chukkas on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black boots with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "boots",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "104",
     "status": "ok",
-    "notes": "Cream AllSaints graphic short-sleeve + medium-wash straight jeans; chunky lace-ups on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black derby with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "derby",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "105",
     "status": "ok",
-    "notes": "Champagne satin slip midi on hanger with sunglasses; black slides on base correctly footwear null"
+    "notes": "Pedestal footwear policy: included black slides with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "slides",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "106",
     "status": "ok",
-    "notes": "Sheer burgundy lace camisole over white wide-leg trousers + sunglasses on hanger; slides on base correctly footwear null"
+    "notes": "Pedestal footwear policy: included black slides with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "slides",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "107",
     "status": "ok",
-    "notes": "Open white military jacket over black cropped tank, black cropped trousers, gold hoops; cream sandals on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included cream sandals with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "cream"
+      }
+    ]
   },
   {
     "id": "109",
     "status": "fix",
     "notes": "Cream halter ruffle mini + brown thin belt OK; brown sandals are flat strappy (not heeled)",
     "pieces": [
-      { "category": "dresses", "subcategory": "halter_ruffle_mini", "color": "cream" },
-      { "category": "accessories", "subcategory": "thin_leather_belt", "color": "brown" },
-      { "category": "footwear", "subcategory": "strappy_flat", "color": "brown" }
+      {
+        "category": "dresses",
+        "subcategory": "halter_ruffle_mini",
+        "color": "cream"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "thin_leather_belt",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "strappy_flat",
+        "color": "brown"
+      }
     ]
   },
   {
     "id": "110",
     "status": "ok",
-    "notes": "Dark brown/teal floral ruched asymmetrical dress + silver chain hip belt; black thongs on metal base correctly footwear null"
+    "notes": "Pedestal footwear policy: included black sandals with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "sandals",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "111",
     "status": "ok",
-    "notes": "Champagne satin scoop slip midi + dark sunglasses; black mule heels on pedestal correctly footwear null"
+    "notes": "Pedestal footwear policy: included black heels with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "heels",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "112",
     "status": "ok",
-    "notes": "Burgundy lace asymmetrical camisole over cream wide cropped trousers + silver pendant; strappy heels on base correctly footwear null"
+    "notes": "Pedestal footwear policy: included black heels with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "heels",
+        "color": "black"
+      }
+    ]
   },
   {
     "id": "113",
@@ -87,15 +190,30 @@
   {
     "id": "114",
     "status": "ok",
-    "notes": "Open cream utility jacket over red button-front maxi; tan flat on gold pedestal between mannequins correctly footwear null"
+    "notes": "Pedestal footwear policy: included tan flats with this look",
+    "pieces": [
+      {
+        "category": "footwear",
+        "subcategory": "flats",
+        "color": "tan"
+      }
+    ]
   },
   {
     "id": "116",
     "status": "fix",
     "notes": "Sheer navy polka shirt midi over navy slip + navy slingback kittens OK; grey canvas tote is window reflection — drop bag",
     "pieces": [
-      { "category": "dresses", "subcategory": "sheer_polka_shirt_midi", "color": "navy" },
-      { "category": "footwear", "subcategory": "slingback_kitten", "color": "navy" }
+      {
+        "category": "dresses",
+        "subcategory": "sheer_polka_shirt_midi",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "slingback_kitten",
+        "color": "navy"
+      }
     ]
   },
   {
@@ -103,8 +221,16 @@
     "status": "fix",
     "notes": "Navy mesh midi with magenta floral embroidery + magenta pumps OK; dress color should be navy not magenta; pedestal fascinators/clutch correctly omitted",
     "pieces": [
-      { "category": "dresses", "subcategory": "floral_embroidered_midi", "color": "navy" },
-      { "category": "footwear", "subcategory": "pointed_pump", "color": "magenta" }
+      {
+        "category": "dresses",
+        "subcategory": "floral_embroidered_midi",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "pointed_pump",
+        "color": "magenta"
+      }
     ]
   },
   {
@@ -132,8 +258,16 @@
     "status": "fix",
     "notes": "Navy floral belted midi with keyhole + ruffle hem OK; footwear are pointed heels/pumps not flats",
     "pieces": [
-      { "category": "dresses", "subcategory": "floral_midi", "color": "navy" },
-      { "category": "footwear", "subcategory": "pointed_heel", "color": "black" }
+      {
+        "category": "dresses",
+        "subcategory": "floral_midi",
+        "color": "navy"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "pointed_heel",
+        "color": "black"
+      }
     ]
   },
   {
@@ -176,11 +310,31 @@
     "status": "fix",
     "notes": "Cream overshirt, white tee, black shorts, black baseball cap OK; sneakers are laced low-tops not slip-ons",
     "pieces": [
-      { "category": "tops", "subcategory": "crew_neck", "color": "white" },
-      { "category": "outerwear", "subcategory": "overshirt", "color": "cream" },
-      { "category": "bottoms", "subcategory": "tailored_shorts", "color": "black" },
-      { "category": "footwear", "subcategory": "low_top", "color": "white" },
-      { "category": "accessories", "subcategory": "baseball_cap", "color": "black" }
+      {
+        "category": "tops",
+        "subcategory": "crew_neck",
+        "color": "white"
+      },
+      {
+        "category": "outerwear",
+        "subcategory": "overshirt",
+        "color": "cream"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "tailored_shorts",
+        "color": "black"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "low_top",
+        "color": "white"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "baseball_cap",
+        "color": "black"
+      }
     ]
   },
   {
@@ -188,9 +342,21 @@
     "status": "fix",
     "notes": "Black white-diamond short-sleeve jumpsuit + brown gold-buckle belt OK; footwear are nude square-toe thong flats not pointed strap sandals",
     "pieces": [
-      { "category": "dresses", "subcategory": "diamond_print_jumpsuit", "color": "black" },
-      { "category": "accessories", "subcategory": "leather_belt", "color": "brown" },
-      { "category": "footwear", "subcategory": "thong_flat", "color": "nude" }
+      {
+        "category": "dresses",
+        "subcategory": "diamond_print_jumpsuit",
+        "color": "black"
+      },
+      {
+        "category": "accessories",
+        "subcategory": "leather_belt",
+        "color": "brown"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "thong_flat",
+        "color": "nude"
+      }
     ]
   },
   {
@@ -223,10 +389,26 @@
     "status": "fix",
     "notes": "Grey Beat Cafe tee, charcoal plaid shorts, tan tote OK; mannequin wears black high-top sneakers with striped socks — tan moccasins sit on pedestal only",
     "pieces": [
-      { "category": "tops", "subcategory": "graphic_crew", "color": "grey" },
-      { "category": "bottoms", "subcategory": "plaid_shorts", "color": "charcoal" },
-      { "category": "footwear", "subcategory": "high_top", "color": "black" },
-      { "category": "bags", "subcategory": "tote", "color": "tan" }
+      {
+        "category": "tops",
+        "subcategory": "graphic_crew",
+        "color": "grey"
+      },
+      {
+        "category": "bottoms",
+        "subcategory": "plaid_shorts",
+        "color": "charcoal"
+      },
+      {
+        "category": "footwear",
+        "subcategory": "high_top",
+        "color": "black"
+      },
+      {
+        "category": "bags",
+        "subcategory": "tote",
+        "color": "tan"
+      }
     ]
   },
   {

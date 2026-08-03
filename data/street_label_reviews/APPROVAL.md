@@ -2,38 +2,56 @@
 
 Visual review of shop-window labels against photos.
 
+## Labeling policy (updated 2026-08-03)
+
+**Pedestal / stand footwear counts as outfit footwear.**
+
+High-street windows often put a look on a torso-only mannequin and place the shoes on the stand base or a pedestal beside it. That is how shops present a complete outfit.
+
+| Include | Exclude |
+|--------|---------|
+| Shoes on **this** mannequin’s stand base | Neighbour mannequin’s shoes |
+| Shoes on a pedestal clearly styled with this look | Loose product piles / mixed shoe walls |
+| Sandals, loafers, sneakers, boots under the hem pole | Truly bare / no shoes in frame |
+
+Do **not** null footwear just because it isn’t on feet.
+
+Oxford auto-pass (2026-08-03): **93** rows got pedestal footwear filled from notes; **21** left as Your call (ambiguous colour/type). Report: `pedestal_footwear_report.json`.
+
 | Street | Total | OK | Must fix | Your call | Status |
 |--------|------:|---:|---------:|----------:|--------|
 | Croydon | 22 | 5 | 12 | 5 | Applied |
 | Brixton | 29 | 20 | 4 | 5 | Applied |
-| Sloane | 42 | 33* | 4 | 5 | Applied |
-| **Oxford (all)** | **423** | **28** | **24** | **371*** | **Ready — Must fix = gold fixes** |
-| Croydon+Brixton+Sloane | 93 | — | — | — | Applied earlier |
+| Sloane | 42 | — | — | — | Applied + pedestal policy |
+| **Oxford (all)** | **423** | **304** | **79** | **40** | Pedestal footwear pass merged |
 
-\*Your call includes ~363 not-yet-labelled windows + gold edge cases. **Must fix** is still the 24 gold corrections.
-
-**Reviewer (same as smaller streets — open this in your browser):**  
+**Reviewer:**  
 http://localhost:5177/street_label_reviews/reviewer.html  
 
 ```bash
 npx --yes serve "C:\Users\sheni\Downloads\dripn\StyleWise\data" -l 5177
 ```
 
-Oxford machine JSON: `oxford_review.json` (**all 423** images). Gold fixes → **Must fix**; unlabelled → **Your call / unlabelled**.
+Oxford machine JSON: `oxford_review.json` (chunks **01–08**).
 
 ---
 
-## OXFORD — MUST FIX (please approve)
+## OXFORD — YOUR CALL (pedestal footwear still ambiguous)
+
+Open these in the reviewer and pick the stand/pedestal shoes:
+
+032, 039, 040, 062, 098, 165, 227, 234–236, 238, 240–241, 246, 267, 281–282, 295, 382, 385, 416
+
+---
+
+## OXFORD — MUST FIX (older gold list — still useful)
 
 | ID | Issue | Proposed |
 |----|--------|----------|
 | **008** | Shoulder bag brown | → **black** |
-| **015** | Olive sandals labelled worn | **Remove footwear** — on floor |
 | **022** | Missing cap | Add **white baseball_cap** |
 | **037** | Missing navy layer | Add **navy overshirt** |
 | **051** | Missing carried bag | Add **tan tote** |
-| **058** | Loafers on floor | **Remove footwear** |
-| **073** | Deck shoes on stand | **Remove footwear** |
 | **080** | Check shirt under polo missing | Add **grey check shirt**; shoes → **derby** |
 | **115** | Footwear flats | → **navy pumps** |
 | **123** | Phantom camel vest; bag grey; jeans blue | **Drop vest**; bag → **black**; jeans → **denim** |
@@ -46,15 +64,15 @@ Oxford machine JSON: `oxford_review.json` (**all 423** images). Gold fixes → *
 | **330** | Missing backpack | Add **cream backpack** |
 | **337** | Missing bag | Add **tan Adidas quilted crossbody** |
 | **344** | Missing backpack/harness | Add **black backpack** |
-| **351** | Sandals on pedestal; gloves worn | **Remove sandals**; add **brown gloves** |
 | **380** | Co-ord light_blue; sandals olive | Co-ord → **cream**; sandals → **white** |
 | **387** | Boat shoes | → **pink loafers** |
 | **394** | Missing vest + bag | Add **charcoal zip vest** + **black crossbody** |
-| **402** | Loafers on base; peak lapel | **Remove footwear**; → **shawl_lapel** tuxedo |
+
+~~Remove footwear~~ for pedestal cases (**015, 058, 073, 351, 402**) is **obsolete** — keep/include those shoes.
 
 ---
 
-## OXFORD — YOUR CALL
+## OXFORD — YOUR CALL (older)
 
 | ID | Question |
 |----|----------|
@@ -69,25 +87,9 @@ Oxford machine JSON: `oxford_review.json` (**all 423** images). Gold fixes → *
 
 ---
 
-## OXFORD — OK as-is
-
-001, 030, 044, 065, 094, 101, 108, 130, 137, 144, 158, 166, 201, 208, 230, 237, 244, 251, 266, 280, 301, 309, 359, 373
-
----
-
-## Suggested Oxford reply
-
-```text
-Oxford: apply all MUST FIX.
-173 discard digital; 187 discard poster; 258 blue; 273 discard kids;
-287 white bag + denim; 294 drop tote; 316 add cream base; 366 heels + wide-leg.
-```
-
----
-
 ## Prior streets (already applied)
 
-See below for Croydon / Brixton / Sloane history (unchanged).
+See below for Croydon / Brixton / Sloane history.
 
 ---
 
@@ -125,10 +127,10 @@ See `apply_report.json` for the patch list.
 ### Sloane
 | ID | Issue | Proposed |
 |----|--------|----------|
-| **004** | Sandals on label | **Remove footwear** — sandals on pedestal, not worn |
-| **014** | Label is women’s Varley knit | **Photo is three mens mannequins** — re-label (e.g. navy polo + beige trousers) or re-shoot |
+| **004** | ~~Remove footwear~~ | **KEEP** cream sandals — styled with the look on pedestal |
+| **014** | Label is women’s Varley knit | **Photo is three mens mannequins** — re-label or re-shoot |
 | **020** | Labelled as dress | → **two-piece** top + skirt (midriff cutout), multicolor |
-| **026** | Mules on label | **Remove worn footwear** — clogs on pedestal |
+| **026** | ~~Remove mules~~ | **KEEP** brown mules — styled with the white mini |
 
 ---
 
@@ -182,6 +184,6 @@ Approve all OK rows.
 
 Croydon: apply all MUST FIX; for 007 use loafers; 010 sandals beige; 011 orange; 021 beige; 022 navy no side-stripe.
 Brixton: apply all MUST FIX; 002 add bikini; 016 blue; keep 027–029 valid.
-Sloane: apply all MUST FIX; 001 pink; 003 keep current; 024 pink; 029 discard kids; 036 keep cream polo.
+Sloane: keep pedestal footwear (004, 026); 001 pink; 003 keep current; 024 pink; 029 discard kids; 036 keep cream polo.
 Approve remaining Sloane multi-mannequin as OK.
 ```

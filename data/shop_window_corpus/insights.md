@@ -1,13 +1,13 @@
 # Shop-window corpus insights
 
-Generated: 2026-08-01T22:16:14.244Z
+Generated: 2026-08-03T09:22:09.907Z
 
 ## Corpus
 - Sloane Street: 42 rows (38 valid)
 - Croydon mall: 22 rows (20 valid)
 - Brixton High Street: 29 rows (25 valid)
-- Oxford Street: 423 rows (59 valid)
-- Combined valid: 142
+- Oxford Street: 423 rows (349 valid)
+- Combined valid: 432
 
 ## Dual-style lanes (preferred for scoring)
 - Luxury lane: `sloane_street_dataset/signals.luxury.json`
@@ -26,13 +26,13 @@ Croydon mall: 20/22 valid wearable looks. Top colour combos: beige+white (8), gr
 Brixton High Street (JD / H&M / Morleys): 25/29 valid wearable looks. Top colour combos: beige+white (9), black+white (7), beige+black (4), blue+white (4), grey+white (4). Top garment pairings: t-shirt×shorts (5), t-shirt×trousers (4), blouse×trousers (3), shirt×trousers (2), bikini_top×shorts (1). Footwear leaders: sneakers×9, loafers×3, heels×2, flats×1, sandals×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
 
 ## Oxford Street patterns
-Oxford Street: 59/423 valid wearable looks. Top colour combos: black+white (24), blue+white (15), beige+white (11), grey+white (10), navy+white (9). Top garment pairings: shirt×trousers (8), t-shirt×shorts (8), polo×trousers (5), t-shirt×skirt (3), blouse×trousers (2). Footwear leaders: sneakers×14, sandals×9, loafers×8, flats×3, athletic×1. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
+Oxford Street: 349/423 valid wearable looks. Top colour combos: black+white (90), beige+white (59), blue+white (57), beige+black (46), brown+white (46). Top garment pairings: t-shirt×shorts (54), t-shirt×trousers (33), shirt×trousers (32), polo×trousers (15), top×trousers (14). Footwear leaders: sneakers×69, sandals×40, loafers×39, flats×17, heels×11. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
 
 ## Casual lane (Croydon + Brixton + Oxford)
-Casual lane (Croydon + Brixton + Oxford): 104/474 valid wearable looks. Top colour combos: black+white (35), beige+white (28), blue+white (24), grey+white (20), beige+black (14). Top garment pairings: t-shirt×shorts (18), shirt×trousers (15), polo×trousers (8), blouse×trousers (5), shirt×shorts (5). Footwear leaders: sneakers×32, loafers×12, sandals×12, flats×4, heels×3. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
+Casual lane (Croydon + Brixton + Oxford): 394/474 valid wearable looks. Top colour combos: black+white (101), beige+white (76), blue+white (66), beige+black (53), brown+white (51). Top garment pairings: t-shirt×shorts (64), shirt×trousers (39), t-shirt×trousers (38), polo×trousers (18), top×trousers (14). Footwear leaders: sneakers×87, loafers×43, sandals×43, flats×18, heels×14. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
 
 ## Combined patterns (insights only)
-Shop-window corpus (Sloane + Croydon + Brixton + Oxford): 142/516 valid wearable looks. Top colour combos: black+white (36), beige+white (35), blue+white (26), grey+white (22), beige+black (17). Top garment pairings: shirt×trousers (21), t-shirt×shorts (19), polo×trousers (9), other×trousers (7), shirt×shorts (7). Footwear leaders: sneakers×37, loafers×15, sandals×15, flats×5, mules×4. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
+Shop-window corpus (Sloane + Croydon + Brixton + Oxford): 432/516 valid wearable looks. Top colour combos: black+white (102), beige+white (83), blue+white (68), beige+black (56), brown+white (55). Top garment pairings: t-shirt×shorts (65), shirt×trousers (45), t-shirt×trousers (38), polo×trousers (19), shirt×shorts (14). Footwear leaders: sneakers×92, loafers×46, sandals×46, flats×19, heels×14. Sloane leans luxury neutrals + loafers; Croydon adds high-street casual + sneakers/athleisure.
 
 ## How this feeds the app
 Soft boosts only via `utils/dualStyleSignals.ts` (colour / pairing / footwear × context weights).
