@@ -60,7 +60,6 @@ import {
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
-import type { LiveExitDestination } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 const SAMPLE_INTERVAL_MS = 1100;
@@ -111,7 +110,11 @@ type LiveParams = {
 type NavParamList = {
   LiveStylist: LiveParams | undefined;
   ScanWardrobe: undefined;
-  ExitLiveBridge: { destination: LiveExitDestination };
+  Subscription: {
+    highlightPlan?: string;
+    scrollToAiTopUp?: boolean;
+  } | undefined;
+  SanityCheck: undefined;
 };
 
 type Props = {

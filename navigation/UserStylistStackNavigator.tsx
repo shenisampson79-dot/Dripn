@@ -11,7 +11,7 @@ import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
-import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
+import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
@@ -29,7 +29,7 @@ import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import type { DecisionType } from "@/services/DecisionService";
 import type { DecisionContinuityPayload } from "@/utils/decisionContinuity";
-import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
+import type { SubscriptionTier } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
@@ -48,7 +48,12 @@ export type UserStylistStackParamList = {
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
-  ExitLiveBridge: { destination: LiveExitDestination };
+  /** Same-stack replace target from Live — avoids modal dismiss / black slide. */
+  Subscription: {
+    highlightPlan?: SubscriptionTier;
+    scrollToDFY?: boolean;
+    scrollToAiTopUp?: boolean;
+  } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   WeatherOutfit: undefined;
@@ -143,16 +148,20 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="LiveStylist"
         component={LiveStylistScreen}
-        options={{ headerTitle: "Live Stylist", headerShown: false, presentation: "fullScreenModal" }}
+        options={{
+          headerTitle: "Live Stylist",
+          headerShown: false,
+          // Card (not fullScreenModal) so See plans can StackActions.replace without a dismiss slide
+          animation: "slide_from_bottom",
+        }}
       />
       <Stack.Screen
-        name="ExitLiveBridge"
-        component={ExitLiveBridgeScreen}
+        name="Subscription"
+        component={SubscriptionScreen}
         options={{
-          headerShown: false,
+          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
+          // Instant replace from Live — no slide-in / modal dismiss
           animation: "none",
-          presentation: "fullScreenModal",
-          gestureEnabled: false,
         }}
       />
       <Stack.Screen
@@ -258,12 +267,15 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="SanityCheck"
         component={SanityCheckScreen}
-        options={getSettingsChildScreenOptions({
-          theme,
-          isDark,
-          transparent: false,
-          title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
-        })}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            transparent: false,
+            title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+          }),
+          animation: "none",
+        }}
       />
       <Stack.Screen
         name="AskStylist"

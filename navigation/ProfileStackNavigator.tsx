@@ -15,7 +15,6 @@ import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
-import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
@@ -36,6 +35,7 @@ import DFYTravelPlanScreen from "@/screens/DFYTravelPlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
+import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import type { DecisionType } from "@/services/DecisionService";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import SubscriptionSuccessScreen from "@/screens/SubscriptionSuccessScreen";
@@ -48,7 +48,6 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 import type { SubscriptionTier } from "@/contexts/AuthContext";
-import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
 
 export type ProfileStackParamList = {
   Profile: undefined;
@@ -73,7 +72,6 @@ export type ProfileStackParamList = {
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
-  ExitLiveBridge: { destination: LiveExitDestination };
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   Support: undefined;
@@ -95,6 +93,7 @@ export type ProfileStackParamList = {
   DFYExpiry: undefined;
   DFYUpload: { type: "outfit" | "core" };
   AskStylist: { initialDecisionType?: DecisionType } | undefined;
+  SanityCheck: undefined;
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
   AdminDashboard: undefined;
@@ -136,7 +135,10 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') })}
+        options={{
+          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
+          animation: "none",
+        }}
       />
       <Stack.Screen
         name="SubscriptionSuccess"
@@ -230,17 +232,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Live Stylist",
           headerShown: false,
-          presentation: "fullScreenModal",
-        }}
-      />
-      <Stack.Screen
-        name="ExitLiveBridge"
-        component={ExitLiveBridgeScreen}
-        options={{
-          headerShown: false,
-          animation: "none",
-          presentation: "fullScreenModal",
-          gestureEnabled: false,
+          animation: "slide_from_bottom",
         }}
       />
       <Stack.Screen
@@ -412,6 +404,18 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: t('aiStylist.askStylistTitle'),
           headerShown: false,
           presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="SanityCheck"
+        component={SanityCheckScreen}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+          }),
+          animation: "none",
         }}
       />
       <Stack.Screen

@@ -8,7 +8,8 @@ import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import ScanWardrobeScreen from "@/screens/ScanWardrobeScreen";
 import DigitizeWardrobeScreen from "@/screens/DigitizeWardrobeScreen";
 import LiveStylistScreen from "@/screens/LiveStylistScreen";
-import ExitLiveBridgeScreen from "@/screens/ExitLiveBridgeScreen";
+import SubscriptionScreen from "@/screens/SubscriptionScreen";
+import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
@@ -23,9 +24,9 @@ import DFYModularWardrobeScreen from "@/screens/DFYModularWardrobeScreen";
 import DFYCalendarScreen from "@/screens/DFYCalendarScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
-import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { DFYTier } from "@/services/DFYService";
-import type { LiveExitDestination } from "@/utils/leaveLiveAndNavigate";
+import type { SubscriptionTier } from "@/contexts/AuthContext";
 
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
@@ -46,7 +47,13 @@ export type WardrobeStackParamList = {
   /** Wardrobe Creation layer — digitise rail/drawer photos into items. */
   DigitizeWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
-  ExitLiveBridge: { destination: LiveExitDestination };
+  /** Same-stack replace target from Live — avoids modal dismiss / black slide. */
+  Subscription: {
+    highlightPlan?: SubscriptionTier;
+    scrollToDFY?: boolean;
+    scrollToAiTopUp?: boolean;
+  } | undefined;
+  SanityCheck: undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   OutfitBuilder: undefined;
@@ -130,17 +137,27 @@ export default function WardrobeStackNavigator() {
         options={{
           title: "Live Stylist",
           headerShown: false,
-          presentation: "fullScreenModal",
+          animation: "slide_from_bottom",
         }}
       />
       <Stack.Screen
-        name="ExitLiveBridge"
-        component={ExitLiveBridgeScreen}
+        name="Subscription"
+        component={SubscriptionScreen}
         options={{
-          headerShown: false,
+          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
           animation: "none",
-          presentation: "fullScreenModal",
-          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="SanityCheck"
+        component={SanityCheckScreen}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+          }),
+          animation: "none",
         }}
       />
       <Stack.Screen
