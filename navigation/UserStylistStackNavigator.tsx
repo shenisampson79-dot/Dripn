@@ -94,9 +94,8 @@ export default function UserStylistStackNavigator() {
         options={getSettingsChildScreenOptions({
           theme,
           isDark,
-          // Must stay transparent: AIStylistScreen pads its content by headerHeight,
-          // so an opaque header doubles the gap above the chat.
-          transparent: true,
+          // Opaque header: transparent bar let StylistHub flash through during the push animation.
+          transparent: false,
           title: t('navTitles.stylistChat'),
         })}
       />
@@ -143,7 +142,12 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="ScanWardrobe"
         component={ScanWardrobeScreen}
-        options={{ headerTitle: "Scan Wardrobe", headerShown: false, presentation: "modal" }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('wardrobe.getOutfitsNow') || 'Get outfits now',
+        })}
       />
       <Stack.Screen
         name="LiveStylist"

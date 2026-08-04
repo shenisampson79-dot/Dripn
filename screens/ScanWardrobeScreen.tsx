@@ -17,7 +17,6 @@ import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -821,27 +820,6 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.backgroundDefault }}>
-      <LinearGradient
-        colors={['#C9A87C', '#A88B5C', LuxuryColors.obsidian] as const}
-        locations={[0, 0.35, 1]}
-        style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
-      >
-        <Pressable
-          onPress={() => {
-            // Leaving without Done keeps the session so looks return when you reopen.
-            navigation.goBack();
-          }}
-          style={styles.closeBtn}
-          hitSlop={8}
-        >
-          <Feather name="x" size={24} color="#FFF" />
-        </Pressable>
-        <ThemedText type="h3" style={{ color: '#FFF' }}>
-          {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
-        </ThemedText>
-        <View style={{ width: 32 }} />
-      </LinearGradient>
-
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
         keyboardShouldPersistTaps="handled"
@@ -902,19 +880,6 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollContent: {
     padding: Spacing.lg,
   },

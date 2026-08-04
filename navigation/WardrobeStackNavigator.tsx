@@ -125,11 +125,12 @@ export default function WardrobeStackNavigator() {
       <Stack.Screen
         name="ScanWardrobe"
         component={ScanWardrobeScreen}
-        options={{
-          title: "Scan Wardrobe",
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('wardrobe.getOutfitsNow') || 'Get outfits now',
+        })}
       />
       <Stack.Screen
         name="LiveStylist"

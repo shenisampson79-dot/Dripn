@@ -72,7 +72,6 @@ import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { useNavigation, CommonActions, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
-import { HeaderHeightContext } from '@react-navigation/elements';
 import { apiService } from '@/services/ApiService';
 import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsContext';
 import { useVoiceCredits } from '@/hooks/useVoiceCredits';
@@ -1497,8 +1496,8 @@ export default function AIStylistScreen() {
     typeof tabBarHeightContext === 'number' && tabBarHeightContext > 0
       ? tabBarHeightContext
       : TAB_BAR_HEIGHT + insets.bottom;
-  const headerHeightContext = useContext(HeaderHeightContext);
-  const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
+  // Opaque stack header already offsets the scene — only pad a small gap under the bar.
+  const contentTopPad = Spacing.md;
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const keyboardHeightPx = useKeyboardState((state) => state.height);
@@ -4182,7 +4181,7 @@ export default function AIStylistScreen() {
     <>
       {chatMode === 'voice' ? (
         <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={{ paddingTop: headerHeight + Spacing.md, paddingHorizontal: Spacing.lg }}>
+          <View style={{ paddingTop: contentTopPad, paddingHorizontal: Spacing.lg }}>
             {renderHeader()}
           </View>
           <PersonalStylistVoicePanel
@@ -4220,7 +4219,7 @@ export default function AIStylistScreen() {
           contentContainerStyle={[
             styles.listContent,
             {
-              paddingTop: headerHeight + Spacing.md,
+              paddingTop: contentTopPad,
               paddingBottom: listBottomInset,
             },
           ]}
