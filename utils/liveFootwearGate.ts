@@ -324,19 +324,23 @@ export function gateFootwearDetections(
   // Vision already named the shoe — keep it. Geometry must not turn "Leather Boots" into trainers.
   const visionBoots = /\bboots?\b/.test(visionBlob) || /chelsea/.test(visionBlob);
   const visionBoat = /boat|deck|topsider|sperry/.test(visionBlob);
+  const visionSneakers = /sneaker|trainer/.test(visionBlob);
   const subtype = visionBoots
     ? 'boots' as const
     : visionBoat
       ? 'boat_shoes' as const
-      : classifyShoeSubtype({
-        bbox: seedDet.bbox as BBoxTuple,
-        skinRatio: best.c.skinRatio,
-        name: seedDet.name,
-        subcategory: seedDet.subcategory,
-      });
+      : visionSneakers
+        ? 'sneakers' as const
+        : classifyShoeSubtype({
+          bbox: seedDet.bbox as BBoxTuple,
+          skinRatio: best.c.skinRatio,
+          name: seedDet.name,
+          subcategory: seedDet.subcategory,
+        });
 
-  const keepVisionLabel = visionBoots || visionBoat
-    || /chelsea|loafer|oxford|derby/i.test(visionName);
+  const keepVisionLabel = visionBoots || visionBoat || visionSneakers
+    || /chelsea|loafer|oxford|derby/i.test(visionName)
+    || (/\s/.test(visionName.trim()) && visionName.trim().length >= 4);
   const accepted: OnDeviceDetection = {
     ...best.d,
     category: 'shoes',
@@ -451,8 +455,9 @@ export function stabilizeShoeSubtype(
 ): ShoeSubtype {
   if (!prev) return next;
   if (prev === next) return prev;
-  // Hierarchy veto: locked boat shoes reject boots/trainers remaps.
-  if (prev === 'boat_shoes' && (next === 'boots' || next === 'sneakers') && confidence < 0.97) {
+  // Hierarchy soft-lock: boat shoes resist weak boots/trainers remaps.
+  // Vision sneakers at ≥0.85 unlock — YOLO boat lock must not beat cloud identity.
+  if (prev === 'boat_shoes' && (next === 'boots' || next === 'sneakers') && confidence < 0.85) {
     return prev;
   }
   // Vision boots must unlock sticky trainers (YOLO often locks sneakers first).

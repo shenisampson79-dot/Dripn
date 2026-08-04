@@ -121,7 +121,7 @@ export function lockRoleTransition(
 
 function visionBottomLabelStrong(det: OnDeviceDetection): boolean {
   const blob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
-  return /trouser|jean|chino|pant(?!y)|slacks|\bshorts?\b|skirt/.test(blob);
+  return /trouser|jean|chino|pant(?!y)|slacks|sweatpant|jogger|track\s*pant|\bshorts?\b|skirt/.test(blob);
 }
 
 function prelabelBottom(det: OnDeviceDetection): OnDeviceDetection {
@@ -145,7 +145,16 @@ function prelabelBottom(det: OnDeviceDetection): OnDeviceDetection {
   } else if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
     subtype = 'trousers';
   }
-  const subcategory = subtype === 'shorts' ? 'shorts' : subtype === 'skirt' ? 'skirt' : 'trousers';
+  const semanticBlob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  const subcategory = subtype === 'shorts'
+    ? 'shorts'
+    : subtype === 'skirt'
+      ? 'skirt'
+      : /sweatpant/.test(semanticBlob)
+        ? 'sweatpants'
+        : /jogger|track\s*pant/.test(semanticBlob)
+          ? 'joggers'
+          : 'trousers';
   const bbox = subtype === 'shorts' && !labeled ? clipShortsBbox(det.bbox as BBoxTuple) : det.bbox;
     return {
       ...det,

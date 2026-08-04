@@ -116,7 +116,8 @@ export function updateLiveBelief(
   for (const m of mutations) {
     appendDecision(decisions, {
       type: 'reject',
-      message: `Vision override: ${m.before} → ${m.after}`,
+      // Belief rewrote a trusted Vision label — not "Vision overriding belief".
+      message: `Belief overrode Vision: ${m.before} → ${m.after}`,
       reason: m.reason,
       slot: 'frame',
       time: opts?.now ?? Date.now(),

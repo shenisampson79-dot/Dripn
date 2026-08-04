@@ -54,6 +54,168 @@ export function preferVisionIdentityName(
   return isSpecificVisionName(name) ? String(name).trim() : null;
 }
 
+/**
+ * Semantic specificity — finer labels beat coarse YOLO remaps.
+ * Peers (sneakers vs boat shoes) share a band so confidence/recency decide.
+ */
+export function garmentSpecificityRank(
+  args: { name?: string | null; subcategory?: string | null; category?: string | null },
+): number {
+  const blob = `${args.category || ''} ${args.subcategory || ''} ${args.name || ''}`.toLowerCase();
+  if (!blob.trim()) return 0;
+  // Bottoms
+  if (/sweatpant|jogger|track\s*pant/.test(blob)) return 45;
+  if (/chino|jean|slacks/.test(blob)) return 35;
+  if (/trouser|\bpants?\b/.test(blob) && !/\bshorts?\b/.test(blob)) return 25;
+  if (/\bshorts?\b/.test(blob)) return 30;
+  if (/skirt/.test(blob)) return 30;
+  // Footwear — peer band so Vision can flip YOLO boat↔sneaker mistakes
+  if (/boat\s*shoe|deck\s*shoe|topsider/.test(blob)) return 28;
+  if (/sneaker|trainer/.test(blob)) return 28;
+  if (/chelsea|boot/.test(blob) && !/boat/.test(blob)) return 30;
+  if (/loafer|oxford|derby/.test(blob)) return 27;
+  if (/sandal|flip.?flop|slide/.test(blob)) return 26;
+  if (/\bshoes?\b/.test(blob)) return 12;
+  // Uppers / accessories
+  if (/\btie\b|necktie|bow\s*tie/.test(blob)) return 40;
+  if (/blazer|suit\s*jacket/.test(blob)) return 38;
+  if (/dress[\s_-]*shirt|oxford[\s_-]*shirt|button[\s_-]?down/.test(blob)) return 36;
+  if (/t-?shirt|\btee\b/.test(blob)) return 22;
+  if (/top|shirt|clothing|garment/.test(blob)) return 10;
+  return isSpecificVisionName(args.name) ? 18 : 5;
+}
+
+export type FusedIdentity = {
+  name: string | null;
+  subcategory?: string | null;
+  adopted: 'prev' | 'next';
+  reason: string;
+};
+
+/** Core garment type token — ignores colour words so Grey shorts ≠ Black shorts isn't a "type flip". */
+export function coreGarmentToken(
+  args: { name?: string | null; subcategory?: string | null },
+): string {
+  let blob = `${args.subcategory || ''} ${args.name || ''}`.toLowerCase();
+  blob = blob
+    .replace(/\b(light|dark|bright|deep|pale)\b/g, ' ')
+    .replace(
+      /\b(black|white|grey|gray|charcoal|navy|blue|red|green|brown|beige|cream|ivory|pink|purple|yellow|orange|multicolou?r|multi)\b/g,
+      ' ',
+    )
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/sweatpant/.test(blob)) return 'sweatpants';
+  if (/jogger|track\s*pant/.test(blob)) return 'joggers';
+  if (/chino/.test(blob)) return 'chinos';
+  if (/jean/.test(blob)) return 'jeans';
+  if (/trouser|slacks|\bpants?\b/.test(blob)) return 'trousers';
+  if (/\bshorts?\b/.test(blob)) return 'shorts';
+  if (/skirt/.test(blob)) return 'skirt';
+  if (/boat|deck|topsider/.test(blob)) return 'boat_shoes';
+  if (/sneaker|trainer/.test(blob)) return 'sneakers';
+  if (/chelsea|boot/.test(blob)) return 'boots';
+  if (/loafer/.test(blob)) return 'loafers';
+  if (/sandal|flip.?flop|slide/.test(blob)) return 'sandals';
+  if (/\btie\b|necktie/.test(blob)) return 'tie';
+  if (/blazer/.test(blob)) return 'blazer';
+  if (/t-?shirt|\btee\b/.test(blob)) return 'tshirt';
+  if (/shirt/.test(blob)) return 'shirt';
+  if (/top/.test(blob)) return 'top';
+  return blob || 'unknown';
+}
+
+/**
+ * Fusion: specificity wins; else Vision/next when type token changes with good conf.
+ * Prevents stable "Gray Trousers" from blocking "Gray Sweatpants".
+ */
+export function resolveFusedIdentity(
+  prev: { name?: string | null; subcategory?: string | null; confidence?: number | null },
+  next: { name?: string | null; subcategory?: string | null; confidence?: number | null },
+): FusedIdentity {
+  const prevName = preferVisionIdentityName(prev.name, prev.confidence ?? null, 0.4);
+  const nextName = preferVisionIdentityName(next.name, next.confidence ?? null, 0.4);
+  const prevConf = Number(prev.confidence ?? 0);
+  const nextConf = Number(next.confidence ?? 0);
+  const prevRank = garmentSpecificityRank({
+    name: prev.name,
+    subcategory: prev.subcategory,
+  });
+  const nextRank = garmentSpecificityRank({
+    name: next.name,
+    subcategory: next.subcategory,
+  });
+  const prevToken = coreGarmentToken(prev);
+  const nextToken = coreGarmentToken(next);
+
+  const pickNext = (reason: string): FusedIdentity => ({
+    name: nextName || (next.name ? String(next.name).trim() : null),
+    subcategory: next.subcategory ?? null,
+    adopted: 'next',
+    reason,
+  });
+  const pickPrev = (reason: string): FusedIdentity => ({
+    name: prevName || (prev.name ? String(prev.name).trim() : null),
+    subcategory: prev.subcategory ?? null,
+    adopted: 'prev',
+    reason,
+  });
+
+  if (!prevName && nextName) return pickNext('vision identity fill');
+  if (prevName && !nextName) return pickPrev('hold specific identity');
+  if (!prevName && !nextName) {
+    return nextConf >= prevConf ? pickNext('confidence') : pickPrev('hold');
+  }
+
+  // Same display name
+  if (String(prevName).toLowerCase() === String(nextName).toLowerCase()) {
+    return pickPrev('agree');
+  }
+
+  // Specificity wins (sweatpants > trousers, tie > clothing, …)
+  if (nextRank > prevRank + 2) return pickNext('specificity wins');
+  if (prevRank > nextRank + 2 && prevToken === nextToken) return pickPrev('specificity holds');
+  if (prevRank > nextRank + 2 && prevToken !== nextToken && nextConf < 0.75) {
+    return pickPrev('specificity holds');
+  }
+
+  // Type-token flip (boat→sneaker, trousers→sweatpants already handled by rank):
+  // Vision peer at ≥0.75 wins even against a 0.99 YOLO lock.
+  if (prevToken !== nextToken && nextName && nextConf >= 0.75) {
+    return pickNext('vision peer override');
+  }
+
+  if (nextConf >= prevConf + 0.15) return pickNext('confidence wins');
+
+  return pickPrev('stability');
+}
+
+/** Canonical bottom subcategory when Vision names sweatpants/joggers. */
+export function semanticBottomSubcategory(
+  name?: string | null,
+  subcategory?: string | null,
+): string | null {
+  const blob = `${subcategory || ''} ${name || ''}`.toLowerCase();
+  if (/sweatpant/.test(blob)) return 'sweatpants';
+  if (/jogger|track\s*pant/.test(blob)) return 'joggers';
+  if (/chino/.test(blob)) return 'chinos';
+  if (/jean/.test(blob)) return 'jeans';
+  if (/\bshorts?\b/.test(blob)) return 'shorts';
+  if (/skirt/.test(blob)) return 'skirt';
+  if (/trouser|slacks|\bpants?\b/.test(blob)) return 'trousers';
+  return subcategory ? String(subcategory) : null;
+}
+
+/** Accessory / tie detections Vision can inject when YOLO has no box. */
+export function isVisionAccessoryDet(
+  det: Pick<OnDeviceDetection, 'name' | 'subcategory' | 'category'>,
+): boolean {
+  const blob = blobOf(det);
+  return /\btie\b|necktie|bow\s*tie|scarf|belt|watch|hat|cap\b/.test(blob)
+    || /accessor/.test(blob);
+}
+
 /** Strong garment families that must not be geometry-rewritten when confidence is high. */
 export function trustedGarmentFamily(
   det: OnDeviceDetection | null | undefined,

@@ -15,11 +15,12 @@ export type LimSample = {
 export const SUBTYPE_SPECIFICITY: Record<string, number> = {
   flip_flops: 12,
   slides: 11,
-  boat_shoes: 10,
+  // Peer band — Vision may flip boat↔sneakers; specificity alone must not lock YOLO mistakes
+  boat_shoes: 8,
   sandals: 6,
-  sneakers: 5,
-  trainers: 5,
-  boots: 5,
+  sneakers: 8,
+  trainers: 8,
+  boots: 7,
   oxford_shirt: 9,
   linen_shirt: 9,
   button_up: 8,
@@ -28,6 +29,9 @@ export const SUBTYPE_SPECIFICITY: Record<string, number> = {
   linen_shorts: 7,
   athletic_shorts: 6,
   shorts: 3,
+  sweatpants: 9,
+  joggers: 9,
+  trousers: 5,
   top: 1,
   shoes: 1,
 };
@@ -193,13 +197,18 @@ function isTopPiece(p: BeliefPieceForCoach): boolean {
 function isBottomPiece(p: BeliefPieceForCoach): boolean {
   const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
   if (isDressPiece(p)) return false;
-  return /bottom|short|trouser|skirt|pant|chino/.test(blob);
+  return /bottom|short|trouser|skirt|pant|chino|sweatpant|jogger/.test(blob);
 }
 
 function isShoePiece(p: BeliefPieceForCoach): boolean {
   const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
   return /shoe|footwear|boot|loafer|trainer|sneaker|sandal|oxford|chelsea/.test(blob)
     && !/oxford\s*shirt|dress\s*shirt/.test(blob);
+}
+
+function isAccessoryPiece(p: BeliefPieceForCoach): boolean {
+  const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
+  return /\btie\b|necktie|bow\s*tie|scarf|belt|accessor/.test(blob);
 }
 
 function footwearGroundVerb(name: string): string {
@@ -210,7 +219,7 @@ function footwearGroundVerb(name: string): string {
 
 /**
  * Force coaching copy to use belief display names — single UI truth.
- * Rebuilds carry/ground clauses from belief so "Brown Dress" / loafers≠boots never stick.
+ * Belief must already carry Vision-fused labels (specificity wins).
  */
 export function syncCoachingToBelief<T extends {
   summary?: string;
@@ -228,8 +237,9 @@ export function syncCoachingToBelief<T extends {
   const bottom = pieces.find(isBottomPiece);
   const shoes = pieces.find(isShoePiece);
   const outer = pieces.find((p) =>
-    /outer|jacket|coat|blazer/i.test(`${p.category} ${p.subcategory || ''}`),
+    /outer|jacket|coat|blazer/i.test(`${p.category} ${p.subcategory || ''} ${p.name || ''}`),
   );
+  const accessory = pieces.find(isAccessoryPiece);
 
   const parts: string[] = [];
   if (dress && !bottom) {
@@ -244,6 +254,10 @@ export function syncCoachingToBelief<T extends {
     parts.push(`${bottom.name} carry the look`);
   } else if (dress?.name) {
     parts.push(`${dress.name} carries the look`);
+  }
+
+  if (accessory?.name) {
+    parts.push(`${accessory.name} finishes the look`);
   }
 
   if (shoes?.name && !/\bdress\b/i.test(shoes.name)) {
@@ -321,7 +335,15 @@ export function stabilizeFootwearIdentity(args: {
 
   let subtype = (voteLabel || args.proposed?.label || args.lockedSubtype || null) as ShoeSubtype | null;
   if (subtype && args.lockedSubtype) {
-    subtype = applyFootwearVeto(args.lockedSubtype, subtype);
+    const proposedConf = args.proposed?.confidence ?? 0;
+    const peerFlip =
+      (args.lockedSubtype === 'boat_shoes' && (subtype === 'sneakers' || subtype === 'trainers'))
+      || (args.lockedSubtype === 'sneakers' && subtype === 'boat_shoes')
+      || (args.lockedSubtype === 'trainers' && subtype === 'boat_shoes');
+    // High-confidence Vision peer (sneakers ↔ boat) may unlock — don't hard-veto.
+    if (!(peerFlip && proposedConf >= 0.85)) {
+      subtype = applyFootwearVeto(args.lockedSubtype, subtype);
+    }
   }
 
   // Confidence lock: hold identity until stronger or sustained disagreement.
@@ -333,10 +355,15 @@ export function stabilizeFootwearIdentity(args: {
       0,
     );
     const disagree = recent.filter((h) => h.label === subtype);
-    const disagreeStrong = disagree.filter((h) => h.confidence >= LIM_UNLOCK_CONFIDENCE);
+    const peerFlip =
+      (args.lockedSubtype === 'boat_shoes' && (subtype === 'sneakers' || subtype === 'trainers'))
+      || ((args.lockedSubtype === 'sneakers' || args.lockedSubtype === 'trainers')
+        && subtype === 'boat_shoes');
+    const disagreeStrong = disagree.filter((h) => h.confidence >= (peerFlip ? 0.85 : LIM_UNLOCK_CONFIDENCE));
     const canUnlock = lockConf < LIM_LOCK_CONFIDENCE
       || disagreeStrong.length >= 1
-      || disagree.length >= LIM_SUSTAINED_CHANGE;
+      || disagree.length >= LIM_SUSTAINED_CHANGE
+      || (peerFlip && (args.proposed?.confidence ?? 0) >= 0.85);
     if (!canUnlock) subtype = args.lockedSubtype;
   }
 

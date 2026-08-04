@@ -58,9 +58,11 @@ assert.equal(
 );
 assert.equal(resolveShortsWithContext(null, {}), 'casual_shorts');
 
-assert.equal(pickMoreSpecificSubtype('sneakers', 'boat_shoes'), 'boat_shoes');
-assert.equal(pickMoreSpecificSubtype('boat_shoes', 'sneakers'), 'boat_shoes');
 assert.equal(pickMoreSpecificSubtype('sandals', 'flip_flops'), 'flip_flops');
+// boat ↔ sneakers are peers — next wins on tie
+assert.equal(pickMoreSpecificSubtype('sneakers', 'boat_shoes'), 'boat_shoes');
+assert.equal(pickMoreSpecificSubtype('boat_shoes', 'sneakers'), 'sneakers');
+assert.equal(pickMoreSpecificSubtype('trousers', 'sweatpants'), 'sweatpants');
 assert.ok(shouldLockBelief({ confidence: 0.9, seenFrames: 4, agreeRatio: 0.8 }));
 
 const colorHold = stabilizeColorFromHistory({

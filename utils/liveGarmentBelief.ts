@@ -27,7 +27,7 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
-import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion } from '@/utils/visionTrust';
+import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 export { isSpecificVisionName } from '@/utils/visionTrust';
@@ -88,6 +88,8 @@ export type OutfitBeliefState = {
   layer: GarmentBelief | null;
   bottom: GarmentBelief | null;
   footwear: GarmentBelief | null;
+  /** Vision-only extras (tie, scarf) — no YOLO box required. */
+  accessories?: GarmentBelief[];
   /** Upstream body truth — bare kills ghost tops even if belief wants to hold. */
   torsoState?: TorsoState;
 };
@@ -104,6 +106,8 @@ export const BELIEF_DECAY = 0.985;
 export const BELIEF_FLOOR = 0.15;
 /** Overlap needed to keep a dress locked against trousers/skirt/shorts flips. */
 export const DRESS_PERSIST_IOU = 0.6;
+/** Inject Vision-only accessories (tie) at this confidence. */
+export const ACCESSORY_INJECT_CONF = 0.7;
 
 const COLOR_ALIASES: Record<string, string> = {
   grey: 'gray',
@@ -128,7 +132,7 @@ const DARK_FAMILY = new Set(['black', 'charcoal', 'gray', 'navy']);
 const LIGHT_FAMILY = new Set(['white', 'cream', 'beige', 'ivory']);
 
 export function createOutfitBeliefState(): OutfitBeliefState {
-  return { top: null, layer: null, bottom: null, footwear: null, torsoState: 'uncertain' };
+  return { top: null, layer: null, bottom: null, footwear: null, accessories: [], torsoState: 'uncertain' };
 }
 
 /** Jacket / overshirt / button-up — sits over a base tee when both are seen. */
@@ -223,7 +227,15 @@ export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
 
 function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: string; subcategory: string } {
   if (kind === 'shorts') return { category: 'bottoms', subcategory: 'shorts' };
-  if (kind === 'trousers') return { category: 'bottoms', subcategory: 'trousers' };
+  if (kind === 'trousers') {
+    const semantic = semanticBottomSubcategory(det?.name, det?.subcategory);
+    return {
+      category: 'bottoms',
+      subcategory: semantic && semantic !== 'shorts' && semantic !== 'skirt'
+        ? semantic
+        : 'trousers',
+    };
+  }
   if (kind === 'skirt') return { category: 'bottoms', subcategory: 'skirt' };
   if (kind === 'dress') {
     const sub = String(det?.subcategory || '').toLowerCase();
@@ -1107,19 +1119,39 @@ export function updateBelief(
       slot,
       time: now,
     });
+    const fused = resolveFusedIdentity(
+      { name: p.name, subcategory: p.subcategory, confidence: p.confidence },
+      { name: c.name, subcategory: c.subcategory, confidence: c.confidence },
+    );
+    if (fused.adopted === 'next' && fused.reason !== 'agree') {
+      appendDecision(log, {
+        type: 'update',
+        message: `Vision adopted: ${p.name || p.subcategory} → ${fused.name || fused.subcategory}`,
+        reason: fused.reason,
+        slot,
+        time: now,
+      });
+    }
+    const nextSub = fused.adopted === 'next'
+      ? (semanticBottomSubcategory(fused.name, fused.subcategory)
+        || fused.subcategory
+        || c.subcategory
+        || p.subcategory)
+      : p.subcategory;
     return {
       ...p,
       confidence: Math.min(1, p.confidence + 0.06),
-      stability: Math.min(1, p.stability + 0.12),
+      stability: Math.min(1, p.stability + (fused.adopted === 'next' ? 0.04 : 0.12)),
       bbox: c.bbox,
       trackId: c.trackId || p.trackId,
       color,
-      name: preferVisionIdentityName(p.name)
-        || preferVisionIdentityName(c.name)
+      name: fused.name
         || ((color === p.color)
           ? (p.name || c.name || null)
           : (isSpecificVisionName(c.name) ? c.name : (p.name || c.name || null))),
+      subcategory: String(nextSub || p.subcategory),
       lastSeenAt: now,
+      ...(fused.adopted === 'next' ? { lastChangedAt: now } : {}),
     };
   }
 
@@ -1198,6 +1230,9 @@ export function applyOutfitBelief(
     return k === 'shorts' || k === 'trousers' || k === 'skirt' || k === 'dress';
   });
   const shoes = detections.filter((d) => beliefKindFromDetection(d) === 'shoes');
+  const accessoryDets = detections.filter(
+    (d) => isVisionAccessoryDet(d) && (d.confidence ?? 0) >= ACCESSORY_INJECT_CONF,
+  );
 
   const torsoState = detectTorsoState({
     topDetections: topsRaw,
@@ -1392,17 +1427,43 @@ export function applyOutfitBelief(
     );
 
     // Subtype lock — single owner (footwear gate proposes; belief locks).
+    // Soft enough that Vision sneakers (≥0.85) can unlock a YOLO boat-shoe lock.
     if (footwear && shoeObs?.subcategory && state.footwear?.subcategory) {
       const locked = stabilizeShoeSubtype(
         state.footwear.subcategory as ShoeSubtype,
         shoeObs.subcategory as ShoeSubtype,
         shoeObs.confidence,
       );
-      if (locked !== footwear.subcategory) {
+      const shoeFused = resolveFusedIdentity(
+        {
+          name: footwear.name,
+          subcategory: footwear.subcategory,
+          confidence: footwear.confidence,
+        },
+        {
+          name: shoeObs.name,
+          subcategory: shoeObs.subcategory,
+          confidence: shoeObs.confidence,
+        },
+      );
+      if (locked !== footwear.subcategory || shoeFused.adopted === 'next') {
         footwear = {
           ...footwear,
-          subcategory: locked,
+          subcategory: shoeFused.adopted === 'next'
+            ? String(shoeFused.subcategory || locked || footwear.subcategory)
+            : locked,
+          name: shoeFused.name || footwear.name,
+          ...(shoeFused.adopted === 'next' ? { lastChangedAt: now } : {}),
         };
+        if (shoeFused.adopted === 'next') {
+          appendDecision(decisions, {
+            type: 'update',
+            message: `Vision adopted: ${state.footwear?.name || state.footwear?.subcategory} → ${shoeFused.name}`,
+            reason: shoeFused.reason,
+            slot: 'footwear',
+            time: now,
+          });
+        }
       }
     }
   }
@@ -1425,12 +1486,46 @@ export function applyOutfitBelief(
     repairs.push(`belief_footwear→${footwear.subcategory}`);
   }
 
-  const next: OutfitBeliefState = { top, layer, bottom: bottomFinal, footwear, torsoState };
+  // Vision-only accessories (tie) — inject when YOLO has no structural box.
+  const accessories: GarmentBelief[] = accessoryDets
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 3)
+    .map((d) => {
+      const obs = observationFromDetection(d, now, decisions);
+      return {
+        ...obs,
+        kind: 'other' as const,
+        category: d.category || 'accessories',
+        subcategory: d.subcategory || (/tie/i.test(`${d.name}`) ? 'tie' : 'accessory'),
+        name: preferVisionIdentityName(d.name, d.confidence) || d.name || 'Accessory',
+      };
+    });
+  if (accessories.length) {
+    for (const acc of accessories) {
+      appendDecision(decisions, {
+        type: 'update',
+        message: `Injected ${acc.name}`,
+        reason: 'vision accessory',
+        slot: 'frame',
+        time: now,
+      });
+    }
+  }
+
+  const next: OutfitBeliefState = {
+    top,
+    layer,
+    bottom: bottomFinal,
+    footwear,
+    accessories,
+    torsoState,
+  };
   const out: OnDeviceDetection[] = [];
   if (top) out.push(beliefToDetection(top));
   if (layer) out.push(beliefToDetection(layer));
   if (bottomFinal) out.push(beliefToDetection(bottomFinal));
   if (footwear) out.push(beliefToDetection(footwear));
+  for (const acc of accessories) out.push(beliefToDetection(acc));
 
   return { state: next, detections: out, repairs, decisions };
 }
