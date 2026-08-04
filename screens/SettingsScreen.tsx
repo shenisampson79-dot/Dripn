@@ -1251,7 +1251,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   Testing Mode
                 </ThemedText>
                 <ThemedText type="small" style={styles.settingSubtitle}>
-                  {testingModeEnabled ? 'Full access enabled (Stylist Unlimited)' : 'Unlock all app features locally'}
+                  {testingModeEnabled ? 'Full access enabled (Stylist Pro)' : 'Unlock all app features locally'}
                 </ThemedText>
               </View>
               <Switch

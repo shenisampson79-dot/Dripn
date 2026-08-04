@@ -56,14 +56,15 @@ export function LiveAiBudgetModal({
   const topTier = isTopTier(tier);
   const isPersonal = tier === 'personal_stylist';
   const canUpgrade = tier === 'free' || isPersonal;
-  const showBuyCredit = isPersonal && typeof onBuyCredit === 'function';
+  // Personal + Pro can buy meter credit; Free upgrades instead
+  const showBuyCredit = (isPersonal || topTier) && typeof onBuyCredit === 'function';
 
   const title = t('live.budgetModal.title')
     || "That's your lot for this month";
 
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Your live AI styling allowance is empty. Keep going with Quick sanity check and Stylist Chat — Live will be ready when your pot refills.")
+      || "Your live AI styling allowance is empty. Buy more credit to keep going on Stylist Pro, or continue with Quick sanity check and Stylist Chat.")
     : isPersonal
       ? (t('live.budgetModal.bodyPersonal')
         || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot or buy more credit to keep going on your current plan.")
@@ -145,11 +146,24 @@ export function LiveAiBudgetModal({
           ) : null}
 
           {showBuyCredit ? (
-            <Pressable onPress={handleBuyCredit} style={styles.secondaryBtn}>
-              <ThemedText type="body" style={styles.secondaryText}>
-                {buyCreditLabel}
-              </ThemedText>
-            </Pressable>
+            topTier ? (
+              <Pressable onPress={handleBuyCredit} style={styles.upgradeBtn}>
+                <LinearGradient
+                  colors={[COLORS.gold, COLORS.deepGold]}
+                  style={styles.upgradeGradient}
+                >
+                  <ThemedText type="body" style={styles.upgradeText}>
+                    {buyCreditLabel}
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+            ) : (
+              <Pressable onPress={handleBuyCredit} style={styles.secondaryBtn}>
+                <ThemedText type="body" style={styles.secondaryText}>
+                  {buyCreditLabel}
+                </ThemedText>
+              </Pressable>
+            )
           ) : null}
 
           <Pressable onPress={handleContinueSanity} style={styles.dismissBtn} hitSlop={8}>

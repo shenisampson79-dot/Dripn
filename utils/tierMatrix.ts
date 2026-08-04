@@ -1,6 +1,6 @@
 /**
  * Single source of truth for the 3-tier product ladder:
- * Free → Personal Stylist → Stylist Unlimited
+ * Free → Personal Stylist → Stylist Pro (internal id: stylist_unlimited)
  */
 import type { SubscriptionTier } from '@/contexts/AuthContext';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -118,7 +118,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
   },
 
   stylist_unlimited: {
-    displayName: 'Stylist Unlimited',
+    displayName: 'Stylist Pro',
     tagline: 'Your entire wardrobe — organised, planned, handled.',
     jobToBeDone: 'Never think about outfits again',
     billingPlanId: 'stylist_unlimited',

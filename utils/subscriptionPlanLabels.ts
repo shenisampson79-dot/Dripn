@@ -18,7 +18,7 @@ export function getLocalizedSubscriptionSubtitle(
     (normalized === 'personal_stylist'
       ? 'Personal Stylist'
       : normalized === 'stylist_unlimited'
-        ? 'Stylist Unlimited'
+        ? 'Stylist Pro'
         : 'Free');
   const planWord = t('settings.plan') || 'Plan';
   return `${planName} ${planWord}`.trim();

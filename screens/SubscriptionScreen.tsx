@@ -1413,20 +1413,26 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               key={pack.id}
               onPress={() => {
                 Haptics.selectionAsync();
+                const onPro = normalizedTier === 'stylist_unlimited';
                 Alert.alert(
                   pack.name,
-                  t('subscription.aiTopUp.comingSoon')
-                    || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.',
-                  [
-                    { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-                    {
-                      text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
-                      onPress: () => {
-                        setSelectedPlan('stylist_unlimited');
-                        scrollToPlans();
-                      },
-                    },
-                  ],
+                  onPro
+                    ? (t('subscription.aiTopUp.comingSoonPro')
+                      || 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit on Stylist Pro.')
+                    : (t('subscription.aiTopUp.comingSoon')
+                      || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
+                  onPro
+                    ? [{ text: t('common.ok') || 'OK' }]
+                    : [
+                        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+                        {
+                          text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
+                          onPress: () => {
+                            setSelectedPlan('stylist_unlimited');
+                            scrollToPlans();
+                          },
+                        },
+                      ],
                 );
               }}
               style={[

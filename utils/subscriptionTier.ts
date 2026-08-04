@@ -46,7 +46,7 @@ export const TIER_TO_BILLING_PLAN: Record<SubscriptionTier, BillingPlanId> = {
 export const BILLING_PLAN_DISPLAY: Record<BillingPlanId, string> = {
   free: 'Free',
   style_chat: 'Personal Stylist',
-  stylist_unlimited: 'Stylist Unlimited',
+  stylist_unlimited: 'Stylist Pro',
 };
 
 export function normalizeSubscriptionTier(tier?: string | null): SubscriptionTier {
