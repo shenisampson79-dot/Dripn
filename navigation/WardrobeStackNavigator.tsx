@@ -137,6 +137,8 @@ export default function WardrobeStackNavigator() {
         options={{
           title: "Live Stylist",
           headerShown: false,
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen
@@ -144,7 +146,8 @@ export default function WardrobeStackNavigator() {
         component={SubscriptionScreen}
         options={{
           ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          animation: "none",
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen

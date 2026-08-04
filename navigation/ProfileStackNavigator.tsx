@@ -137,7 +137,8 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={SubscriptionScreen}
         options={{
           ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          animation: "none",
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen
@@ -232,6 +233,8 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Live Stylist",
           headerShown: false,
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen

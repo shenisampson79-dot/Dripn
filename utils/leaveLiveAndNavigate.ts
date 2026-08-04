@@ -1,8 +1,9 @@
 /**
- * Leave Live in ONE stack action — never goBack, never bridge.
+ * Leave Live in ONE stack action — never goBack, never bridge/modal dismiss.
  *
- * Live is a normal stack card (tab bar hidden). StackActions.replace swaps it
- * for Subscription/SanityCheck with no modal dismiss animation.
+ * Live is a normal card (presentation: card, slide_from_right). Tab bar is
+ * hidden via layout while Live is focused. replace() swaps Live for
+ * Subscription/SanityCheck on the same stack.
  */
 
 import { StackActions } from '@react-navigation/native';

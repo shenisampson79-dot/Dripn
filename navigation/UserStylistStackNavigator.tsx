@@ -151,7 +151,8 @@ export default function UserStylistStackNavigator() {
         options={{
           headerTitle: "Live Stylist",
           headerShown: false,
-          // Same push-from-right as other hub cards (not bottom sheet / modal)
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen
@@ -159,8 +160,8 @@ export default function UserStylistStackNavigator() {
         component={SubscriptionScreen}
         options={{
           ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          // Silent StackActions.replace from Live See plans
-          animation: "none",
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
       <Stack.Screen

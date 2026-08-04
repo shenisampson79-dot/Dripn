@@ -3,14 +3,14 @@
  * Proprietary and confidential.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { View, StyleSheet, Pressable, Platform, Keyboard } from "react-native";
 import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
+import { StackActions, type NavigatorScreenParams } from "@react-navigation/native";
 
-import type { NavigatorScreenParams } from "@react-navigation/native";
 import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
 import UserStylistStackNavigator, {
   type UserStylistStackParamList,
@@ -23,6 +23,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import type { PortalMode } from "@/App";
 
 export type MainTabParamList = {
   StylistTab: NavigatorScreenParams<UserStylistStackParamList> | undefined;
@@ -33,20 +34,26 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+type PortalOpener = ((mode: PortalMode) => void) | undefined;
+const PortalOpenContext = createContext<PortalOpener>(undefined);
+
+/** Stable tab screens — inline `{() => <Stack />}` remounts the whole stack (hub shake). */
+function ProfileTabScreen() {
+  const onOpenPortal = useContext(PortalOpenContext);
+  return <ProfileStackNavigator onOpenPortal={onOpenPortal} />;
+}
+
+function SettingsTabScreen() {
+  const onOpenPortal = useContext(PortalOpenContext);
+  return <SettingsStackNavigator onOpenPortal={onOpenPortal} />;
+}
+
 const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[] = [
   { name: "StylistTab", icon: "scissors", label: "Stylist" },
   { name: "WardrobeTab", icon: "box", label: "Wardrobe" },
   { name: "ProfileTab", icon: "user", label: "Profile" },
   { name: "SettingsTab", icon: "settings", label: "Settings" },
 ];
-
-/** Root screen per tab stack — tab press always returns here (pop-to-top behavior). */
-const TAB_ROOT_SCREENS: Record<keyof MainTabParamList, string> = {
-  StylistTab: "StylistHub",
-  WardrobeTab: "Wardrobe",
-  ProfileTab: "Profile",
-  SettingsTab: "Settings",
-};
 
 interface CustomTabBarProps extends BottomTabBarProps {
   onCreatePost?: () => void;
@@ -68,13 +75,26 @@ function getFocusedRouteName(route: BottomTabBarProps['state']['routes'][number]
   return current?.name;
 }
 
-/** Screens that own the full viewport — hide the floating tab bar. */
+/**
+ * Full-viewport stack screens — hide the floating tab bar via layout
+ * (Live is a normal card, not a modal).
+ */
 const HIDE_TAB_BAR_SCREENS = new Set([
   'LiveStylist',
   'ScanWardrobe',
   'QuickAdd',
   'ImproveRecognition',
 ]);
+
+/** Pop nested stack to root without remounting the root screen. */
+function popNestedStackToTop(navigation: CustomTabBarProps['navigation'], route: BottomTabBarProps['state']['routes'][number]) {
+  const nested = route.state as { key?: string; index?: number } | undefined;
+  if (!nested?.key || (nested.index ?? 0) <= 0) return;
+  navigation.dispatch({
+    ...StackActions.popToTop(),
+    target: nested.key,
+  });
+}
 
 function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
@@ -118,26 +138,15 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 
       if (event.defaultPrevented) return;
 
-      const nested = route.state as { index?: number; routes?: { name: string }[] } | undefined;
-      const nestedIndex = nested?.index ?? 0;
-      const isNestedDeep = nestedIndex > 0;
-      const rootScreen = TAB_ROOT_SCREENS[tabConfig.name];
-
       if (!isFocused) {
-        // Only reset to root when the destination stack is deep (e.g. stuck on Subscription).
-        // Remounting root every switch shakes StylistHub.
-        if (rootScreen && isNestedDeep) {
-          navigation.navigate(tabConfig.name, { screen: rootScreen });
-        } else {
-          navigation.navigate(tabConfig.name);
-        }
+        // Switch tab first, then pop that stack to root if deep (Subscription leak, etc.).
+        navigation.navigate(tabConfig.name);
+        popNestedStackToTop(navigation, route);
         return;
       }
 
-      // Re-tap focused tab → pop to root if needed
-      if (rootScreen && isNestedDeep) {
-        navigation.navigate(tabConfig.name, { screen: rootScreen });
-      }
+      // Re-tap focused tab → pop to root (no navigate-to-root remount).
+      popNestedStackToTop(navigation, route);
     };
 
     const onLongPress = () => {
@@ -229,8 +238,6 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
   );
 }
 
-import type { PortalMode } from "@/App";
-
 interface MainTabNavigatorProps {
   onCreatePost?: () => void;
   onOpenPortal?: (mode: PortalMode) => void;
@@ -238,22 +245,23 @@ interface MainTabNavigatorProps {
 
 export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
   return (
-    <Tab.Navigator
-      initialRouteName="StylistTab"
-      tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
-      <Tab.Screen name="WardrobeTab" component={WardrobeStackNavigator} />
-      <Tab.Screen name="ProfileTab">
-        {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
-      </Tab.Screen>
-      <Tab.Screen name="SettingsTab">
-        {() => <SettingsStackNavigator onOpenPortal={onOpenPortal} />}
-      </Tab.Screen>
-    </Tab.Navigator>
+    <PortalOpenContext.Provider value={onOpenPortal}>
+      <Tab.Navigator
+        initialRouteName="StylistTab"
+        tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
+        screenOptions={{
+          headerShown: false,
+          lazy: true,
+          // Keep inactive tab stacks mounted — remounting StylistHub causes the "shake"
+          freezeOnBlur: false,
+        }}
+      >
+        <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
+        <Tab.Screen name="WardrobeTab" component={WardrobeStackNavigator} />
+        <Tab.Screen name="ProfileTab" component={ProfileTabScreen} />
+        <Tab.Screen name="SettingsTab" component={SettingsTabScreen} />
+      </Tab.Navigator>
+    </PortalOpenContext.Provider>
   );
 }
 
