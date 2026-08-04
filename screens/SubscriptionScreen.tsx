@@ -588,13 +588,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               id: 'standard',
               name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
               price: '£5.99',
-              detail: t('subscription.aiTopUp.standardDetail') || '+300 AI credits this month',
+              detail: t('subscription.aiTopUp.standardDetail') || '300 AI credits',
             },
             {
               id: 'plus',
               name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
               price: '£10.99',
-              detail: t('subscription.aiTopUp.plusDetail') || '+600 AI credits this month',
+              detail: t('subscription.aiTopUp.plusDetail') || '600 AI credits',
               bestValue: true,
             },
           ].map((pack) => (
@@ -1469,28 +1469,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       {/* AI meter top-ups — after plans unless buy-credit landed them at the top */}
       {!landOnAiTopUp ? aiTopUpSection : null}
 
-      <View style={styles.finePrint}>
-        <ThemedText type="small" style={styles.finePrintText}>
-          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
-          <ThemedText
-            type="small"
-            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
-            onPress={() => navigation.navigate('TermsOfService')}
-          >
-            {t('subscription.termsOfService')}
-          </ThemedText>
-          {' '}{t('subscription.finePrintAnd')}{' '}
-          <ThemedText
-            type="small"
-            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
-            onPress={() => navigation.navigate('PrivacyPolicy')}
-          >
-            {t('subscription.privacyPolicy')}
-          </ThemedText>
-          .
-        </ThemedText>
-      </View>
-
       {SHOW_DFY_PURCHASE_UI ? (
         <>
           <View style={styles.dfySection}>
@@ -1727,6 +1705,28 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           </ThemedText>
         </Pressable>
       ) : null}
+
+      <View style={styles.finePrint}>
+        <ThemedText type="small" style={styles.finePrintText}>
+          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('TermsOfService')}
+          >
+            {t('subscription.termsOfService')}
+          </ThemedText>
+          {' '}{t('subscription.finePrintAnd')}{' '}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            {t('subscription.privacyPolicy')}
+          </ThemedText>
+          .
+        </ThemedText>
+      </View>
     </ScreenScrollView>
   );
 }

@@ -62,9 +62,15 @@ export function LiveAiBudgetModal({
   const title = t('live.budgetModal.title')
     || "That's your lot for this month";
 
+  // Canonical English — also replaces stale OTA/AsyncStorage copy ("empty" / "going, or").
+  const BODY_TOP_TIER =
+    'Your live AI styling allowance is finished. Buy more credit to keep going or continue with Quick sanity check and Stylist Chat.';
+  const rawTopTier = t('live.budgetModal.bodyTopTier');
+  const bodyTopTier =
+    !rawTopTier || /is empty|going,\s*or/i.test(rawTopTier) ? BODY_TOP_TIER : rawTopTier;
+
   const body = topTier
-    ? (t('live.budgetModal.bodyTopTier')
-      || "Your live AI styling allowance is empty. Buy more credit to keep going, or continue with Quick sanity check and Stylist Chat.")
+    ? bodyTopTier
     : isPersonal
       ? (t('live.budgetModal.bodyPersonal')
         || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot or buy more credit to keep going on your current plan.")
