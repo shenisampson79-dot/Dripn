@@ -137,7 +137,6 @@ export default function WardrobeStackNavigator() {
         options={{
           title: "Live Stylist",
           headerShown: false,
-          animation: "slide_from_bottom",
         }}
       />
       <Stack.Screen
@@ -151,14 +150,11 @@ export default function WardrobeStackNavigator() {
       <Stack.Screen
         name="SanityCheck"
         component={SanityCheckScreen}
-        options={{
-          ...getSettingsChildScreenOptions({
-            theme,
-            isDark,
-            title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
-          }),
-          animation: "none",
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+        })}
       />
       <Stack.Screen
         name="BulkWardrobeUpload"

@@ -1,8 +1,8 @@
 /**
  * Leave Live in ONE stack action — never goBack, never bridge.
  *
- * Live is a fullScreenModal; goBack() always slides it away.
- * StackActions.replace swaps Live for Subscription/SanityCheck in place.
+ * Live is a normal stack card (tab bar hidden). StackActions.replace swaps it
+ * for Subscription/SanityCheck with no modal dismiss animation.
  */
 
 import { StackActions } from '@react-navigation/native';

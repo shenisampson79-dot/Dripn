@@ -151,8 +151,7 @@ export default function UserStylistStackNavigator() {
         options={{
           headerTitle: "Live Stylist",
           headerShown: false,
-          // Card (not fullScreenModal) so See plans can StackActions.replace without a dismiss slide
-          animation: "slide_from_bottom",
+          // Same push-from-right as other hub cards (not bottom sheet / modal)
         }}
       />
       <Stack.Screen
@@ -160,7 +159,7 @@ export default function UserStylistStackNavigator() {
         component={SubscriptionScreen}
         options={{
           ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          // Instant replace from Live — no slide-in / modal dismiss
+          // Silent StackActions.replace from Live See plans
           animation: "none",
         }}
       />
@@ -267,15 +266,12 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="SanityCheck"
         component={SanityCheckScreen}
-        options={{
-          ...getSettingsChildScreenOptions({
-            theme,
-            isDark,
-            transparent: false,
-            title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
-          }),
-          animation: "none",
-        }}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          transparent: false,
+          title: t('navTitles.sanityCheck') || t('stylistHub.quickSanityCheck'),
+        })}
       />
       <Stack.Screen
         name="AskStylist"

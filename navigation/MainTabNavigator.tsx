@@ -59,6 +59,23 @@ const TAB_TRANSLATION_KEYS: Record<string, string> = {
   SettingsTab: 'nav.settings',
 };
 
+/** Deepest focused route name in a nested navigation state. */
+function getFocusedRouteName(route: BottomTabBarProps['state']['routes'][number]): string | undefined {
+  let current: { name: string; state?: any } | undefined = route;
+  while (current?.state?.routes?.length) {
+    current = current.state.routes[current.state.index ?? 0];
+  }
+  return current?.name;
+}
+
+/** Screens that own the full viewport — hide the floating tab bar. */
+const HIDE_TAB_BAR_SCREENS = new Set([
+  'LiveStylist',
+  'ScanWardrobe',
+  'QuickAdd',
+  'ImproveRecognition',
+]);
+
 function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -77,7 +94,9 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
     };
   }, []);
 
-  if (keyboardVisible) {
+  const focusedRoute = state.routes[state.index];
+  const focusedScreen = getFocusedRouteName(focusedRoute);
+  if (keyboardVisible || (focusedScreen && HIDE_TAB_BAR_SCREENS.has(focusedScreen))) {
     return null;
   }
 
@@ -99,15 +118,25 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 
       if (event.defaultPrevented) return;
 
-      // Always land on each tab's root — prevents stack leakage (e.g. See plans → Subscription).
+      const nested = route.state as { index?: number; routes?: { name: string }[] } | undefined;
+      const nestedIndex = nested?.index ?? 0;
+      const isNestedDeep = nestedIndex > 0;
       const rootScreen = TAB_ROOT_SCREENS[tabConfig.name];
-      if (rootScreen) {
-        navigation.navigate(tabConfig.name, { screen: rootScreen });
+
+      if (!isFocused) {
+        // Only reset to root when the destination stack is deep (e.g. stuck on Subscription).
+        // Remounting root every switch shakes StylistHub.
+        if (rootScreen && isNestedDeep) {
+          navigation.navigate(tabConfig.name, { screen: rootScreen });
+        } else {
+          navigation.navigate(tabConfig.name);
+        }
         return;
       }
 
-      if (!isFocused) {
-        navigation.navigate(route.name);
+      // Re-tap focused tab → pop to root if needed
+      if (rootScreen && isNestedDeep) {
+        navigation.navigate(tabConfig.name, { screen: rootScreen });
       }
     };
 
@@ -216,42 +245,12 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
         headerShown: false,
       }}
     >
-      <Tab.Screen
-        name="StylistTab"
-        component={UserStylistStackNavigator}
-        listeners={({ navigation }) => ({
-          tabPress: () => {
-            navigation.navigate("StylistTab", { screen: "StylistHub" });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="WardrobeTab"
-        component={WardrobeStackNavigator}
-        listeners={({ navigation }) => ({
-          tabPress: () => {
-            navigation.navigate("WardrobeTab", { screen: "Wardrobe" });
-          },
-        })}
-      />
-      <Tab.Screen name="ProfileTab"
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate("ProfileTab", { screen: "Profile" });
-          },
-        })}
-      >
+      <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
+      <Tab.Screen name="WardrobeTab" component={WardrobeStackNavigator} />
+      <Tab.Screen name="ProfileTab">
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
-      <Tab.Screen name="SettingsTab"
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate("SettingsTab", { screen: "Settings" });
-          },
-        })}
-      >
+      <Tab.Screen name="SettingsTab">
         {() => <SettingsStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
     </Tab.Navigator>
