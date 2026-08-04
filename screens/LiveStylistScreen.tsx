@@ -35,6 +35,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
+import { isStaffUser } from '@/utils/staffAccess';
 import {
   detectGarmentsOnDevice,
   getLastOnDeviceFootZone,
@@ -145,12 +146,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [selected, setSelected] = useState<LiveTrackedItem | null>(null);
   const [shopHints, setShopHints] = useState<FallbackMissingItem[]>([]);
   const [statusNote, setStatusNote] = useState('Tap Start for live styling');
-  const [showBeliefDebug, setShowBeliefDebug] = useState(true);
+  // Belief debug is staff/__DEV__ only — App Store subscribers never see the overlay or DBG chip.
+  const beliefDebugAllowed = __DEV__ || isStaffUser(user);
+  const [showBeliefDebug, setShowBeliefDebug] = useState(() => __DEV__);
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   /** Prefer server tier from the 429 usage snapshot over cached Auth. */
   const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!beliefDebugAllowed && showBeliefDebug) setShowBeliefDebug(false);
+  }, [beliefDebugAllowed, showBeliefDebug]);
 
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
@@ -719,11 +726,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           items={items}
           feedback={feedback}
           selectedTrackId={selected?.trackId}
-          showRegionGuides={showBeliefDebug}
+          showRegionGuides={beliefDebugAllowed && showBeliefDebug}
           onSelectItem={(item) => {
             Haptics.selectionAsync();
             setSelected(item);
-            if (item.bbox) {
+            if (beliefDebugAllowed && item.bbox) {
               inspectRef.current = inspectDetection({
                 name: item.name,
                 category: item.category,
@@ -741,7 +748,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             }
           }}
         />
-        {showBeliefDebug ? (
+        {beliefDebugAllowed && showBeliefDebug ? (
           <LiveBeliefDebugOverlay
             snapshot={debugSnapshot}
             collapsed={debugCollapsed}
@@ -755,10 +762,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.metaRow}>
           <Pressable
-            onLongPress={() => {
+            onLongPress={beliefDebugAllowed ? () => {
               Haptics.selectionAsync();
               setShowBeliefDebug((v) => !v);
-            }}
+            } : undefined}
             delayLongPress={450}
             style={{ flex: 1 }}
           >
@@ -766,18 +773,20 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               {sourceLabel} · {statusNote}
             </ThemedText>
           </Pressable>
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              setShowBeliefDebug((v) => !v);
-            }}
-            style={[styles.debugChip, showBeliefDebug ? styles.debugChipOn : null]}
-            hitSlop={8}
-          >
-            <ThemedText type="caption" style={{ color: showBeliefDebug ? '#0B0B0F' : 'rgba(255,255,255,0.8)', fontWeight: '700' }}>
-              DBG
-            </ThemedText>
-          </Pressable>
+          {beliefDebugAllowed ? (
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setShowBeliefDebug((v) => !v);
+              }}
+              style={[styles.debugChip, showBeliefDebug ? styles.debugChipOn : null]}
+              hitSlop={8}
+            >
+              <ThemedText type="caption" style={{ color: showBeliefDebug ? '#0B0B0F' : 'rgba(255,255,255,0.8)', fontWeight: '700' }}>
+                DBG
+              </ThemedText>
+            </Pressable>
+          ) : null}
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
         <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>

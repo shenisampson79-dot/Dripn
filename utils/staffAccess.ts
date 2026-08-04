@@ -7,6 +7,7 @@
 
 const BUILTIN_STAFF_EMAILS = new Set([
   'sheni_sampson@yahoo.co.uk',
+  'phil@yahoo.com',
 ]);
 
 function envStaffEmails(): Set<string> {

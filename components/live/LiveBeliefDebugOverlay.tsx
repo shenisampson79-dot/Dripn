@@ -1,6 +1,6 @@
 /**
  * Live belief debug overlay — shows what the system sees, believes, and rejects.
- * Toggle from Live Stylist; safe for preview OTA builds.
+ * Staff / __DEV__ only — never shown to App Store subscribers.
  */
 
 import React, { useMemo } from 'react';
