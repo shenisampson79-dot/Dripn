@@ -1,7 +1,7 @@
 /**
  * Blank stand-in that replaces Live so the camera screen unmounts cleanly.
  * Root navigation runs WHILE the bridge still covers the screen (black),
- * then the bridge pops in the background — no Stylist hub flash.
+ * then the bridge pops with animation: 'none' — no Live modal slide, no hub flash.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -11,11 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { getNavigationRef } from '@/components/ErrorFallback';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
-import {
-  peekPendingLiveExit,
-  takePendingLiveExit,
-  type LiveExitDestination,
-} from '@/utils/leaveLiveAndNavigate';
+import type { LiveExitDestination } from '@/utils/leaveLiveAndNavigate';
 
 export type ExitLiveBridgeParams = {
   destination: LiveExitDestination;
@@ -58,8 +54,7 @@ export default function ExitLiveBridgeScreen({ navigation, route }: Props) {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    const destination =
-      route.params?.destination || peekPendingLiveExit() || null;
+    const destination = route.params?.destination || null;
 
     if (!destination) {
       if (navigation.canGoBack()) navigation.goBack();
@@ -69,25 +64,9 @@ export default function ExitLiveBridgeScreen({ navigation, route }: Props) {
     let finished = false;
     let popTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const navigateThenPopBridge = () => {
-      if (finished) return;
-      finished = true;
-
-      const dest = takePendingLiveExit() || destination;
-      const ok = applyDestination(dest);
-      if (!ok) {
-        // Root not ready — retry once, still while bridge covers the UI
-        setTimeout(() => {
-          applyDestination(dest);
-          popBridgeSoon();
-        }, 200);
-        return;
-      }
-      popBridgeSoon();
-    };
-
     const popBridgeSoon = () => {
       // Pop after tab switch has committed so the user never sees Stylist hub.
+      // ExitLiveBridge is registered with animation: 'none', so this is silent.
       popTimer = setTimeout(() => {
         try {
           if (navigation.canGoBack()) navigation.goBack();
@@ -95,6 +74,21 @@ export default function ExitLiveBridgeScreen({ navigation, route }: Props) {
           /* ignore */
         }
       }, 120);
+    };
+
+    const navigateThenPopBridge = () => {
+      if (finished) return;
+      finished = true;
+
+      const ok = applyDestination(destination);
+      if (!ok) {
+        setTimeout(() => {
+          applyDestination(destination);
+          popBridgeSoon();
+        }, 200);
+        return;
+      }
+      popBridgeSoon();
     };
 
     const handle = InteractionManager.runAfterInteractions(() => {
