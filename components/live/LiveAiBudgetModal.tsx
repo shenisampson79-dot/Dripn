@@ -64,7 +64,7 @@ export function LiveAiBudgetModal({
 
   const body = topTier
     ? (t('live.budgetModal.bodyTopTier')
-      || "Your live AI styling allowance is empty. Buy more credit to keep going on Stylist Pro, or continue with Quick sanity check and Stylist Chat.")
+      || "Your live AI styling allowance is empty. Buy more credit to keep going, or continue with Quick sanity check and Stylist Chat.")
     : isPersonal
       ? (t('live.budgetModal.bodyPersonal')
         || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot or buy more credit to keep going on your current plan.")

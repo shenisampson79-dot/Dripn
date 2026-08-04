@@ -12,9 +12,8 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
-import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
 import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
-import { STYLIST_PRO_PLAN_NAME } from "@/utils/planDisplayNames";
+import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
 import {
   getDfyBenefitForSubscription,
   subscriptionTierDisplayName,
@@ -543,18 +542,12 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     }
   }, [route?.params?.scrollToDFY]);
 
-  // Personal Stylist overflow — land on AI Top-Up packs, not plan cards
+  // Personal / Pro buy-credit — AI Top-Up is rendered first (no scroll flash from page top)
   useEffect(() => {
     if (!route?.params?.scrollToAiTopUp) return;
     setHighlightAiTopUp(true);
-    const timer = setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: Math.max(0, aiTopUpSectionY.current - 20),
-        animated: true,
-      });
-      setTimeout(() => setHighlightAiTopUp(false), 2800);
-    }, 350);
-    return () => clearTimeout(timer);
+    const clear = setTimeout(() => setHighlightAiTopUp(false), 2800);
+    return () => clearTimeout(clear);
   }, [route?.params?.scrollToAiTopUp]);
 
   useLayoutEffect(() => {
@@ -562,6 +555,103 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   }, [navigation, t]);
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
+  const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;
+  const showAiTopUpSection =
+    landOnAiTopUp
+    || normalizedTier === 'personal_stylist'
+    || normalizedTier === 'stylist_unlimited';
+
+  const aiTopUpSection = showAiTopUpSection ? (
+        <View
+          style={[
+            styles.aiTopUpSection,
+            highlightAiTopUp && {
+              borderWidth: 2,
+              borderColor: LUXURY_COLORS.gold,
+            },
+            landOnAiTopUp && { marginTop: Spacing.md },
+          ]}
+          onLayout={(event) => {
+            aiTopUpSectionY.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            {t('subscription.aiTopUp.title') || 'AI Top-Up'}
+          </ThemedText>
+          <ThemedText type="body" style={styles.aiTopUpSubtitle}>
+            {t('subscription.aiTopUp.subtitle')
+              || 'Need more Live and chat this month? Buy extra credit without changing your subscription.'}
+          </ThemedText>
+
+          {[
+            {
+              id: 'standard',
+              name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
+              price: '£5.99',
+              detail: t('subscription.aiTopUp.standardDetail') || '+300 AI credits this month',
+            },
+            {
+              id: 'plus',
+              name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
+              price: '£10.99',
+              detail: t('subscription.aiTopUp.plusDetail') || '+600 AI credits this month',
+              bestValue: true,
+            },
+          ].map((pack) => (
+            <Pressable
+              key={pack.id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                const onPro = normalizedTier === 'stylist_unlimited';
+                Alert.alert(
+                  pack.name,
+                  onPro
+                    ? (t('subscription.aiTopUp.comingSoonPro')
+                      || 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit.')
+                    : (t('subscription.aiTopUp.comingSoon')
+                      || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
+                  onPro
+                    ? [{ text: t('common.ok') || 'OK' }]
+                    : [
+                        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+                        {
+                          text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
+                          onPress: () => {
+                            setSelectedPlan('stylist_unlimited');
+                            scrollToPlans();
+                          },
+                        },
+                      ],
+                );
+              }}
+              style={[
+                styles.aiTopUpCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                  borderColor: pack.bestValue ? LUXURY_COLORS.gold : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
+                },
+              ]}
+            >
+              <View style={styles.aiTopUpCardText}>
+                <View style={styles.aiTopUpNameRow}>
+                  <ThemedText type="body" style={{ fontWeight: '700' }}>{pack.name}</ThemedText>
+                  {pack.bestValue ? (
+                    <View style={[styles.aiTopUpBadge, { backgroundColor: LUXURY_COLORS.gold }]}>
+                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
+                        {t('subscription.bestValue') || 'Best value'}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+                <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }}>
+                  {pack.detail}
+                </ThemedText>
+              </View>
+              <ThemedText type="h3" style={{ color: LUXURY_COLORS.gold }}>{pack.price}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
+  ) : null;
 
   const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
     const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
@@ -1234,6 +1324,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         </View>
       ) : null}
 
+      {landOnAiTopUp ? aiTopUpSection : null}
+
       <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.currentTierRow}>
           <View style={[styles.currentTierIcon, { backgroundColor: currentTierAccent + '20' }]}>
@@ -1374,97 +1466,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         {PLANS.map(renderPlanCard)}
       </View>
 
-      {/* AI meter top-ups — stay on Personal Stylist without upgrading the plan */}
-      {normalizedTier === 'personal_stylist' || normalizedTier === 'stylist_unlimited' || route?.params?.scrollToAiTopUp ? (
-        <View
-          style={[
-            styles.aiTopUpSection,
-            highlightAiTopUp && {
-              borderWidth: 2,
-              borderColor: LUXURY_COLORS.gold,
-            },
-          ]}
-          onLayout={(event) => {
-            aiTopUpSectionY.current = event.nativeEvent.layout.y;
-          }}
-        >
-          <ThemedText type="h2" style={styles.sectionTitle}>
-            {t('subscription.aiTopUp.title') || 'AI Top-Up'}
-          </ThemedText>
-          <ThemedText type="body" style={styles.aiTopUpSubtitle}>
-            {t('subscription.aiTopUp.subtitle')
-              || 'Need more Live and chat this month? Buy extra credit without changing your subscription.'}
-          </ThemedText>
-
-          {[
-            {
-              id: 'standard',
-              name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
-              price: '£5.99',
-              detail: t('subscription.aiTopUp.standardDetail') || 'Includes AI credits',
-            },
-            {
-              id: 'plus',
-              name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
-              price: '£10.99',
-              detail: t('subscription.aiTopUp.plusDetail') || 'Includes more AI credits',
-              bestValue: true,
-            },
-          ].map((pack) => (
-            <Pressable
-              key={pack.id}
-              onPress={() => {
-                Haptics.selectionAsync();
-                const onPro = normalizedTier === 'stylist_unlimited';
-                Alert.alert(
-                  pack.name,
-                  onPro
-                    ? (t('subscription.aiTopUp.comingSoonPro')
-                      || `AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit on ${STYLIST_PRO_PLAN_NAME}.`)
-                    : (t('subscription.aiTopUp.comingSoon')
-                      || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
-                  onPro
-                    ? [{ text: t('common.ok') || 'OK' }]
-                    : [
-                        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-                        {
-                          text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
-                          onPress: () => {
-                            setSelectedPlan('stylist_unlimited');
-                            scrollToPlans();
-                          },
-                        },
-                      ],
-                );
-              }}
-              style={[
-                styles.aiTopUpCard,
-                {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
-                  borderColor: pack.bestValue ? LUXURY_COLORS.gold : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
-                },
-              ]}
-            >
-              <View style={styles.aiTopUpCardText}>
-                <View style={styles.aiTopUpNameRow}>
-                  <ThemedText type="body" style={{ fontWeight: '700' }}>{pack.name}</ThemedText>
-                  {pack.bestValue ? (
-                    <View style={[styles.aiTopUpBadge, { backgroundColor: LUXURY_COLORS.gold }]}>
-                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
-                        {t('subscription.bestValue') || 'Best value'}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-                <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }}>
-                  {pack.detail}
-                </ThemedText>
-              </View>
-              <ThemedText type="h3" style={{ color: LUXURY_COLORS.gold }}>{pack.price}</ThemedText>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      {/* AI meter top-ups — after plans unless buy-credit landed them at the top */}
+      {!landOnAiTopUp ? aiTopUpSection : null}
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
