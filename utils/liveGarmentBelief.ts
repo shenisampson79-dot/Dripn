@@ -28,7 +28,7 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
-import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet } from '@/utils/visionTrust';
+import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 export { isSpecificVisionName } from '@/utils/visionTrust';
@@ -217,9 +217,10 @@ export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
   }
   if (/\bdress\b/.test(blob) && !/dress[\s_-]*shirt|dress[\s_-]*shoe/.test(blob)) return 'dress';
   if (/outer|jacket|blazer|coat|gilet|vest/.test(blob)) return 'outerwear';
+  if (/\bboxers?\b|\bbriefs?\b/.test(blob)) return 'shorts';
   if (/short/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
-  if (/trouser|jean|pant|chino|bottom/.test(blob)) return 'trousers';
+  if (/trouser|jean|pant|chino|bottom|sweatpant|jogger/.test(blob)) return 'trousers';
   if (/top|shirt|tee|polo|knit|sweater|blouse|jersey/.test(blob)) {
     return 'top';
   }
@@ -721,7 +722,25 @@ function resolveConflict(
   const slot = slotOfKind(prev.kind);
 
   // Trousers persistence: truncated mid-thigh YOLO boxes must not flip long pants to shorts.
+  // Strong Vision shorts (checkered / boxers / specific name) unlock — user changed clothes.
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
+    if (isVisionShortsUnlock(current)) {
+      appendDecision(log, {
+        type: 'update',
+        message: 'trousers → shorts',
+        reason: 'vision shorts unlock',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...current,
+        name: preferVisionIdentityName(current.name) || current.name,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+        stability: Math.max(0.45, prev.stability * 0.55),
+        lastChangedAt: now,
+        lastSeenAt: now,
+      };
+    }
     if (beliefBboxIou(prev.bbox, current.bbox) >= 0.45 || isFloorLengthTrousersEvidence(prev.bbox)) {
       appendDecision(log, {
         type: 'reject',
@@ -836,7 +855,7 @@ function resolveConflict(
   }
 
   // Locked trousers: only hold against shorts when this still looks like a pant column
-  // Trust Vision First: sweatpants/joggers never demote via geometry.
+  // Trust Vision First: sweatpants/joggers never demote via geometry — but Vision shorts unlock.
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
     const resistDet = {
       name: prev.name || current.name || '',
@@ -844,7 +863,7 @@ function resolveConflict(
       subcategory: prev.subcategory,
       confidence: Math.max(prev.confidence, current.confidence),
     };
-    if (resistsShortsGeometryDemotion(resistDet)) {
+    if (resistsShortsGeometryDemotion(resistDet, current)) {
       appendDecision(log, {
         type: 'reject',
         message: 'Blocked shorts downgrade',
@@ -861,11 +880,17 @@ function resolveConflict(
         color: applyStabilizedColor(prev, current, log, now, 'bottom'),
       };
     }
-    if (looksLikeShortsWithFootwearExtension(current.bbox) || !isFloorLengthTrousersEvidence(prev.bbox)) {
+    if (
+      isVisionShortsUnlock(current)
+      || looksLikeShortsWithFootwearExtension(current.bbox)
+      || !isFloorLengthTrousersEvidence(prev.bbox)
+    ) {
       appendDecision(log, {
         type: 'update',
         message: 'trousers → shorts',
-        reason: 'shorts geometry overrides false trousers lock',
+        reason: isVisionShortsUnlock(current)
+          ? 'vision shorts unlock'
+          : 'shorts geometry overrides false trousers lock',
         slot: 'bottom',
         time: now,
       });
@@ -1069,7 +1094,7 @@ export function updateBelief(
         category: p.category,
         subcategory: p.subcategory,
         confidence: Math.max(p.confidence, c.confidence),
-      })
+      }, c)
       && !/sweatpant|jogger|chino|jean|slacks/i.test(`${p.name || ''} ${c.name || ''}`)
       && (
         looksLikeShortsWithFootwearExtension(c.bbox)
@@ -1293,8 +1318,13 @@ export function applyOutfitBelief(
 
   let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
 
-  // Floor-length bottoms labeled shorts → force trousers (true pant columns only)
-  if (bottomObs && /short/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)) {
+  // Floor-length bottoms labeled shorts → force trousers (true pant columns only).
+  // Never rewrite a strong Vision shorts unlock (checkered / swim / boxers, etc.).
+  if (
+    bottomObs
+    && /short|boxer|brief/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)
+    && !isVisionShortsUnlock(bottomObs)
+  ) {
     if (
       isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
       && !looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)

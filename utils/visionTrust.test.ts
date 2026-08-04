@@ -182,4 +182,55 @@ assert.ok(
   assert.match(diffs[0].reason, /trousers/);
 }
 
+{
+  // QA: Vision checkered shorts must unlock locked grey sweatpants (not "trusted shorts rewritten")
+  const mem = createLiveBeliefMemory();
+  const sweats = updateLiveBelief(
+    [{
+      name: 'Black Sports T-shirt',
+      category: 'tops',
+      subcategory: 't-shirt',
+      color: 'black',
+      confidence: 0.95,
+      bbox: [0.25, 0.15, 0.4, 0.3],
+    }, {
+      name: 'Grey Sweatpants',
+      category: 'bottoms',
+      subcategory: 'sweatpants',
+      color: 'gray',
+      confidence: 0.99,
+      bbox: [0.28, 0.42, 0.38, 0.42],
+    }],
+    mem,
+    { now: 1000 },
+  );
+  assert.match(String(sweats.slots.bottom?.name), /sweatpant/i);
+
+  const shorts = updateLiveBelief(
+    [{
+      name: 'Black and Grey T-Shirt',
+      category: 'tops',
+      subcategory: 't-shirt',
+      color: 'black',
+      confidence: 0.95,
+      bbox: [0.25, 0.15, 0.4, 0.3],
+    }, {
+      name: 'Black Checkered Shorts',
+      category: 'bottoms',
+      subcategory: 'shorts',
+      color: 'black',
+      confidence: 0.92,
+      bbox: [0.3, 0.5, 0.35, 0.22],
+    }],
+    sweats.memory,
+    { now: 3000 },
+  );
+  assert.match(
+    String(shorts.slots.bottom?.name),
+    /checkered\s+shorts|shorts/i,
+    'Vision checkered shorts must unlock sweatpants lock',
+  );
+  assert.match(String(shorts.slots.bottom?.subcategory), /short/i);
+}
+
 console.log('visionTrust.test.ts: all passed');

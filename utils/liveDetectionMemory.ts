@@ -32,7 +32,7 @@ import {
   createOutfitBeliefState,
   type OutfitBeliefState,
 } from '@/utils/liveGarmentBelief';
-import { preferVisionIdentityName } from '@/utils/visionTrust';
+import { isVisionShortsUnlock, preferVisionIdentityName } from '@/utils/visionTrust';
 import {
   stabilizeColorFromHistory,
   stabilizeFootwearIdentity,
@@ -142,7 +142,12 @@ function prelabelBottom(det: OnDeviceDetection): OnDeviceDetection {
     }
   } else if (subtype === 'trousers') {
     // Never demote vision trousers/chinos to shorts on a short hip crop
-  } else if (subtype === 'shorts' && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)) {
+  } else if (
+    subtype === 'shorts'
+    && isFloorLengthTrousersEvidence(det.bbox as BBoxTuple)
+    && !isVisionShortsUnlock(det)
+  ) {
+    // Geometry may promote unlabeled/weak shorts → trousers; never rewrite strong Vision shorts.
     subtype = 'trousers';
   }
   const semanticBlob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
@@ -241,7 +246,7 @@ export function applyDetectionMemory(
     gated = { ...gated, accepted: null, barefootEvidence: true };
   }
 
-  if (opts?.forceClearFootwear && !gated.accepted) {
+  if (opts?.forceClearFootwear) {
     gated = { ...gated, accepted: null, barefootEvidence: true };
     appendDecision(decisions, {
       type: 'reject',

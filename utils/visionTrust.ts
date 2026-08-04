@@ -201,10 +201,33 @@ export function semanticBottomSubcategory(
   if (/jogger|track\s*pant/.test(blob)) return 'joggers';
   if (/chino/.test(blob)) return 'chinos';
   if (/jean/.test(blob)) return 'jeans';
-  if (/\bshorts?\b/.test(blob)) return 'shorts';
+  if (/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return 'shorts';
   if (/skirt/.test(blob)) return 'skirt';
   if (/trouser|slacks|\bpants?\b/.test(blob)) return 'trousers';
   return subcategory ? String(subcategory) : null;
+}
+
+/**
+ * Strong Vision shorts signal — unlocks sweatpants/trousers locks.
+ * Geometry-only YOLO "Shorts" boxes must NOT use this (persistence stays).
+ */
+export function isVisionShortsUnlock(
+  next: { name?: string | null; subcategory?: string | null; confidence?: number | null },
+): boolean {
+  const conf = Number(next.confidence ?? 0);
+  if (conf < 0.75) return false;
+  const name = String(next.name || '').trim();
+  const blob = `${next.subcategory || ''} ${name}`.toLowerCase();
+  if (!/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return false;
+  if (/check|plaid|stripe|pattern|cargo|athletic|bermuda|board|boxer|brief|swim|running|gym|chino\s*short|denim\s*short/.test(blob)) {
+    return true;
+  }
+  if (!isSpecificVisionName(name)) return false;
+  // Generic "Grey Shorts" / "Dark Shorts" — require very high conf
+  if (/^((dark|light|bright)\s+)?(black|white|grey|gray|navy|blue|red|green|brown|beige|cream)\s+shorts?$/i.test(name)) {
+    return conf >= 0.92;
+  }
+  return conf >= 0.85;
 }
 
 /** Accessory / tie detections Vision can inject when YOLO has no box. */
@@ -243,11 +266,14 @@ export function isTrustedVisionBottom(det: OnDeviceDetection | null | undefined)
 /**
  * Sweatpants/joggers — never demote to shorts via geometry, at any confidence.
  * Chinos/jeans/slacks resist when confidence is at least VISION_TRUST_CONF.
+ * Does NOT block a strong Vision shorts unlock (checkered shorts, boxers, etc.).
  */
 export function resistsShortsGeometryDemotion(
   det: OnDeviceDetection | null | undefined,
+  challenger?: { name?: string | null; subcategory?: string | null; confidence?: number | null },
 ): boolean {
   if (!det) return false;
+  if (challenger && isVisionShortsUnlock(challenger)) return false;
   const blob = blobOf(det);
   // Hard identity lock — geometry must never rewrite these
   if (/sweatpant|jogger|track\s*pant/.test(blob)) return true;
