@@ -4,6 +4,7 @@
  */
 
 import type { ShoeSubtype } from '@/utils/liveFootwearGate';
+import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
 export type LimSample = {
   label: string;
@@ -295,14 +296,14 @@ export function syncCoachingToBelief<T extends {
     ? coaching.bullets.map((b) => String(b).replace(/_/g, ' '))
     : coaching.bullets;
 
-  return {
+  return polishUkCoaching({
     ...coaching,
-    summary,
+    summary: polishUkLiveLabel(summary),
     bullets,
     ...(coaching.outfitSignature
-      ? { outfitSignature: String(coaching.outfitSignature).replace(/_/g, ' ') }
+      ? { outfitSignature: polishUkLiveLabel(String(coaching.outfitSignature).replace(/_/g, ' ')) }
       : {}),
-  };
+  }) as T;
 }
 
 /**

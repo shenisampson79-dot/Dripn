@@ -189,6 +189,7 @@ export function applyDetectionMemory(
     decisions?: BeliefDecision[];
     bottomBandBrightness?: number | null;
     occasionType?: string | null;
+    forceClearFootwear?: boolean;
   },
 ): {
   detections: OnDeviceDetection[];
@@ -238,6 +239,17 @@ export function applyDetectionMemory(
       time: now,
     });
     gated = { ...gated, accepted: null, barefootEvidence: true };
+  }
+
+  if (opts?.forceClearFootwear && !gated.accepted) {
+    gated = { ...gated, accepted: null, barefootEvidence: true };
+    appendDecision(decisions, {
+      type: 'reject',
+      message: 'Footwear cleared',
+      reason: 'vision frame has no shoes (feet visible)',
+      slot: 'footwear',
+      time: now,
+    });
   }
 
   if (gated.zone.cropped && shoeProps.length) {

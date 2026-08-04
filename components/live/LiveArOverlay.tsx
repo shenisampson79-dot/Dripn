@@ -24,6 +24,17 @@ function scoreColor(score: number): string {
   return '#C45C4A';
 }
 
+/** Truncate at a word boundary — never mid-word ("Casual S"). */
+export function fitLiveBoxLabel(raw: string, max = 34): string {
+  const t = String(raw || '').trim();
+  if (!t) return 'Item';
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const sp = cut.lastIndexOf(' ');
+  const base = (sp >= 10 ? cut.slice(0, sp) : cut).trimEnd();
+  return `${base}…`;
+}
+
 export function LiveArOverlay({
   width,
   height,
@@ -92,7 +103,7 @@ export function LiveArOverlay({
                 fontSize="11"
                 fontWeight="600"
               >
-                {(item.name || item.category || 'Item').slice(0, 22)}
+                {fitLiveBoxLabel(item.name || item.category || 'Item')}
               </SvgText>
             </React.Fragment>
           );

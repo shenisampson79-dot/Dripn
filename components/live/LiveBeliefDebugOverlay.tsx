@@ -106,6 +106,9 @@ export function LiveBeliefDebugOverlay({
             {snapshot.belief.layer ? <SlotLine role="LAYER" slot={snapshot.belief.layer} /> : null}
             <SlotLine role="BOTTOM" slot={snapshot.belief.bottom} />
             <SlotLine role="SHOES" slot={snapshot.belief.shoes} />
+            {(snapshot.belief.accessories || []).map((acc, i) => (
+              <SlotLine key={`acc_${i}`} role="ACC" slot={acc} />
+            ))}
 
             <ThemedText type="caption" style={[styles.section, styles.sectionGap]}>
               VISION→BELIEF DIFF

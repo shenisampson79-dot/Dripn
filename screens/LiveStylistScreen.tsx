@@ -58,9 +58,11 @@ import {
   type LiveBeliefDebugSnapshot,
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
+import { polishUkCoaching } from '@/utils/liveLocaleLabels';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { roleOfCategory } from '@/utils/liveDetectionMemory';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -262,10 +264,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // Cloud path intentionally skips client hybrid; updateLiveBelief is the single mutation entry.
     if (res.items?.length) {
       const raw = liveItemsToDetections(res.items);
+      const hasShoe = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'footwear');
+      const hasTop = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'top');
+      const hasBottom = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'bottom');
+      // Vision frame with outfit but no shoes + feet in frame → clear ghost footwear now
+      const visionExplicitBarefoot = Boolean(
+        (String(res.source || '').includes('cloud') || String(res.source || '').includes('vision'))
+        && hasTop
+        && hasBottom
+        && !hasShoe
+        && footZone
+        && !footZone.cropped,
+      );
       const stabilized = updateLiveBelief(raw, detectionMemoryRef.current, {
         decisions: decisionLogRef.current,
         bottomBandBrightness: footZone?.brightness,
         occasionType,
+        forceClearFootwear: visionExplicitBarefoot,
       });
       detectionMemoryRef.current = stabilized.memory;
       const painted = detectionsToLiveItems(stabilized.detections, res.items);
@@ -312,8 +327,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         next.score = Math.max(0, Math.min(100, Math.round((next.score || 0) + delta)));
       }
     }
-    // Single UI truth: coaching piece names must match boxes / DBG belief labels
-    if (next.coaching && previousItemsRef.current.length) {
+    // Belief-synced summary when Vision returned items; else keep Vision verdict (UK-polished).
+    if (next.coaching && res.items?.length && previousItemsRef.current.length) {
       next.coaching = syncCoachingToBelief(
         next.coaching,
         previousItemsRef.current.map((it) => ({
@@ -323,6 +338,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           color: it.color,
         })),
       ) || next.coaching;
+    } else if (next.coaching) {
+      next.coaching = polishUkCoaching(next.coaching) || next.coaching;
     }
 
     const holdMs = next.ui?.holdMs ?? 1000;

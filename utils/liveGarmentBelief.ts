@@ -23,6 +23,7 @@ import {
   type BeliefDecision,
 } from '@/utils/liveBeliefDecisions';
 import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
+import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
@@ -1161,7 +1162,7 @@ export function updateBelief(
 export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
   // Prefer stored vision name — never rebuild "Gray Sweatpants" into "Dark trousers"
   const preserved = isSpecificVisionName(belief.name) ? String(belief.name).trim() : null;
-  const name = preserved
+  const rawName = preserved
     || (belief.kind === 'shoes' || String(belief.category).toLowerCase() === 'shoes'
       ? buildFootwearDisplayLabel({
         type: belief.subcategory,
@@ -1174,6 +1175,7 @@ export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
         subcategory: belief.subcategory,
         fallbackName: belief.name,
       }));
+  const name = polishUkLiveLabel(rawName);
   return {
     name,
     category: belief.category,

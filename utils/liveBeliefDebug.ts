@@ -28,6 +28,7 @@ import type {
 } from '@/utils/liveFootwearGate';
 import type { GarmentBelief, OutfitBeliefState } from '@/utils/liveGarmentBelief';
 import type { VisionMutationDiff } from '@/utils/visionTrust';
+import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
 export type {
   BeliefDecision,
@@ -79,6 +80,7 @@ export type LiveBeliefDebugSnapshot = {
     layer?: DebugBeliefSlot | null;
     bottom: DebugBeliefSlot | null;
     shoes: DebugBeliefSlot | { status: BeliefSlotStatus; label: string };
+    accessories?: DebugBeliefSlot[];
   };
   colorPipeline: {
     top: string | null;
@@ -149,7 +151,7 @@ function slotFromBelief(b: GarmentBelief | null | undefined): DebugBeliefSlot | 
         fallbackName: b.name,
       });
   return {
-    label: label || b.kind,
+    label: polishUkLiveLabel(label || b.kind),
     confidence: b.confidence,
     stability: b.stability,
     status: slotStatus(b),
@@ -226,10 +228,14 @@ export function buildDebugSnapshot(args: {
     layer: args.belief.layer ?? null,
     bottom: args.belief.bottom,
     footwear: args.belief.footwear ?? null,
+    accessories: args.belief.accessories ?? [],
   };
   const topSlot = slotFromBelief(belief.top);
   const layerSlot = slotFromBelief(belief.layer);
   const bottomSlot = slotFromBelief(belief.bottom);
+  const accessorySlots = (belief.accessories || [])
+    .map((a) => slotFromBelief(a))
+    .filter(Boolean) as DebugBeliefSlot[];
   return {
     updatedAt: args.now ?? Date.now(),
     source: args.source,
@@ -239,6 +245,7 @@ export function buildDebugSnapshot(args: {
       layer: layerSlot,
       bottom: bottomSlot,
       shoes: shoesSlot(belief, zone, candidates),
+      accessories: accessorySlots,
     },
     colorPipeline: {
       top: topSlot?.colorPipeline ?? null,

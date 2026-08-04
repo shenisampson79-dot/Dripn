@@ -94,6 +94,8 @@ export function updateLiveBelief(
     bottomBandBrightness?: number | null;
     occasionType?: string | null;
     decisions?: BeliefDecision[];
+    /** Vision frame with outfit but no shoes — clear ghost footwear immediately. */
+    forceClearFootwear?: boolean;
   },
 ): {
   detections: OnDeviceDetection[];
@@ -111,6 +113,7 @@ export function updateLiveBelief(
     bottomBandBrightness: opts?.bottomBandBrightness,
     occasionType: opts?.occasionType,
     decisions,
+    forceClearFootwear: opts?.forceClearFootwear,
   });
   const mutations = diffVisionToBelief(detections, result.detections, 'updateLiveBelief');
   for (const m of mutations) {

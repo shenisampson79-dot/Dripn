@@ -5,7 +5,7 @@
  * Soft heuristics alone caused tops↔trousers↔shoes cascades.
  */
 
-import { localizedShoeKind } from '@/utils/liveLocaleLabels';
+import { localizedShoeKind, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
 export const REGION = {
   TOP_MAX: 0.42,
@@ -360,7 +360,7 @@ export function formatGarmentDisplayName(args: {
     && /[a-z]/i.test(fallback)
     && !/^(top|item|bottom|shoes?|garment)$/i.test(fallback)
   ) {
-    return fallback;
+    return polishUkLiveLabel(fallback);
   }
 
   const color = String(args.color || '').trim().toLowerCase();
@@ -374,6 +374,8 @@ export function formatGarmentDisplayName(args: {
   }
   else if (/short/.test(sub) || /short/.test(cat)) kind = 'shorts';
   else if (/\bdress\b/.test(sub) || cat === 'dresses' || cat === 'dress') kind = 'dress';
+  else if (/sweatpant/.test(sub)) kind = 'sweatpants';
+  else if (/jogger|track\s*pant/.test(sub)) kind = 'joggers';
   else if (/chino/.test(sub) || /trouser|jean|pant/.test(sub) || /trouser|jean|pant/.test(cat)) kind = 'trousers';
   else if (/skirt/.test(sub)) kind = 'skirt';
   else if (/flip.?flop|thong/.test(sub)) kind = localizedShoeKind('flip_flops');
