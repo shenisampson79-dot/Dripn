@@ -5,6 +5,7 @@
 
 import type { ShoeSubtype } from '@/utils/liveFootwearGate';
 import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
+import { LIVE_SUMMARY_MAX, packSummary } from '@/utils/packSummary';
 
 export type LimSample = {
   label: string;
@@ -267,12 +268,11 @@ export function syncCoachingToBelief<T extends {
 
   let summary: string;
   if (parts.length >= 1) {
-    summary = parts.length === 2
-      ? `${parts[0]} and ${parts[1]}`
-      : parts.length > 2
-        ? `${parts[0]}, and ${parts.slice(1).join(', ')}`
-        : parts[0];
-    summary = `${summary.charAt(0).toUpperCase()}${summary.slice(1)}.`;
+    summary = packSummary(parts, LIVE_SUMMARY_MAX);
+    if (summary) {
+      summary = `${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
+      if (!/[.!?]$/.test(summary)) summary = `${summary}.`;
+    }
   } else {
     summary = String(coaching.summary);
     summary = summary.replace(
