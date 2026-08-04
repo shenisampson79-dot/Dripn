@@ -755,7 +755,7 @@ class DecisionService {
       };
     }
     return {
-      title: 'Stylist Unlimited',
+      title: 'Stylist Pro',
       subtitle: 'Unlimited decisions with full wardrobe and planning tools.',
     };
   }

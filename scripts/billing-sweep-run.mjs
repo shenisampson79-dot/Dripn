@@ -14,7 +14,7 @@ const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'billing-
 const TESTS = [
   { id: 1, plan: 'style_chat', type: 'sub', expected: 'style_chat', note: 'Style Chat £9.99/mo' },
   { id: 2, plan: 'personal_stylist', type: 'sub', expected: 'personal_stylist', note: 'Personal Stylist £14.99/mo' },
-  { id: 3, plan: 'stylist_unlimited', type: 'sub', expected: 'stylist_unlimited', note: 'Stylist Unlimited £19.99/mo' },
+  { id: 3, plan: 'stylist_unlimited', type: 'sub', expected: 'stylist_unlimited', note: 'Stylist Pro £19.99/mo' },
   { id: 4, plan: 'core_wardrobe', type: 'dfy', expected: 'core_wardrobe', note: 'Core Wardrobe £39.99' },
   { id: 5, plan: 'outfit_setup', type: 'dfy', expected: 'outfit_setup', note: 'Outfit Setup £19.99' },
 ];

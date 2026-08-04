@@ -436,7 +436,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         {benefit === 'styling_sprint' && !isStandalonePurchase ? (
           <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
             {t('dfy.start.fullSetupIncludedNote') ||
-              'Full Setup is included with Stylist Unlimited, or buy it here anytime.'}
+              'Full Setup is included with Stylist Pro, or buy it here anytime.'}
           </ThemedText>
         ) : null}
         {isStandalonePurchase ? (
@@ -548,11 +548,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
                 {t('dfy.start.oneSetupNote') ||
-                  'Your plan includes one setup. Ready for the full wardrobe experience? Stylist Unlimited has you.'}
+                  'Your plan includes one setup. Ready for the full wardrobe experience? Stylist Pro has you.'}
               </ThemedText>
               <Pressable onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}>
                 <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
-                  {t('dfy.start.compareStylistUnlimited') || 'Compare Stylist Unlimited'}
+                  {t('dfy.start.compareStylistUnlimited') || 'Compare Stylist Pro'}
                 </ThemedText>
               </Pressable>
             </>

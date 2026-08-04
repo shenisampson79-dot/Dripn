@@ -1,4 +1,8 @@
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import {
+  getCanonicalPlanDisplayName,
+  sanitizePlanDisplayName,
+} from '@/utils/planDisplayNames';
 
 const TIER_I18N_KEYS: Record<string, string> = {
   free: 'subscription.plan.free.name',
@@ -6,20 +10,27 @@ const TIER_I18N_KEYS: Record<string, string> = {
   stylist_unlimited: 'subscription.plan.stylistUnlimited.name',
 };
 
+/** Localized plan name; never surfaces legacy "Stylist Unlimited". */
+export function resolvePlanDisplayName(
+  tier: string | null | undefined,
+  t?: (key: string) => string,
+): string {
+  const normalized = normalizeSubscriptionTier(tier);
+  const canonical = getCanonicalPlanDisplayName(normalized);
+  if (!t) return canonical;
+  const fromT =
+    t(`subscription.tier.${normalized}`) ||
+    t(TIER_I18N_KEYS[normalized]) ||
+    '';
+  return sanitizePlanDisplayName(fromT) || canonical;
+}
+
 /** Localized plan name + optional "Plan" suffix for Settings subtitle. */
 export function getLocalizedSubscriptionSubtitle(
   tier: string | null | undefined,
   t: (key: string) => string,
 ): string {
-  const normalized = normalizeSubscriptionTier(tier);
-  const planName =
-    t(`subscription.tier.${normalized}`) ||
-    t(TIER_I18N_KEYS[normalized]) ||
-    (normalized === 'personal_stylist'
-      ? 'Personal Stylist'
-      : normalized === 'stylist_unlimited'
-        ? 'Stylist Pro'
-        : 'Free');
+  const planName = resolvePlanDisplayName(tier, t);
   const planWord = t('settings.plan') || 'Plan';
   return `${planName} ${planWord}`.trim();
 }

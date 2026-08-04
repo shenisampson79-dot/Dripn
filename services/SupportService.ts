@@ -275,11 +275,11 @@ class SupportService {
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Dripn has three tiers:\n\n- Free: Try the stylist — limited daily decisions and wardrobe items\n- Personal Stylist (~$9.99/mo): Unlimited daily decisions, outfit calendar, more wardrobe space, AI chat, voice comments\n- Stylist Unlimited (~$19.99/mo): Everything in Personal Stylist plus unlimited wardrobe, event planning, sustainability tools, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
+      return `Dripn has three tiers:\n\n- Free: Try the stylist — limited daily decisions and wardrobe items\n- Personal Stylist (~$9.99/mo): Unlimited daily decisions, outfit calendar, more wardrobe space, AI chat, voice comments\n- Stylist Pro (~$19.99/mo): Everything in Personal Stylist plus unlimited wardrobe, event planning, sustainability tools, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
-      return `Stylist Unlimited members can start peer video calls with other members from the VIP Members screen when the feature is available in your region.\n\nUpgrade to Stylist Unlimited in Settings > Subscription to unlock member video calling. ${signOff}`;
+      return `Stylist Pro members can start peer video calls with other members from the VIP Members screen when the feature is available in your region.\n\nUpgrade to Stylist Pro in Settings > Subscription to unlock member video calling. ${signOff}`;
     }
 
     if (lowerMessage.includes('wardrobe') || lowerMessage.includes('closet')) {

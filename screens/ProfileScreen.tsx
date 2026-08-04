@@ -19,6 +19,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
@@ -527,13 +528,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const subscriptionTierNormalized = normalizeSubscriptionTier(user?.subscriptionTier);
-  const subscriptionTierLabel =
-    t(`subscription.tier.${subscriptionTierNormalized}`)
-    || (subscriptionTierNormalized === 'free'
-      ? (t('subscription.plan.free.name') || 'Free')
-      : subscriptionTierNormalized === 'personal_stylist'
-        ? (t('subscription.plan.personalStylist.name') || 'Personal Stylist')
-        : (t('subscription.plan.stylistUnlimited.name') || 'Stylist Unlimited'));
+  const subscriptionTierLabel = resolvePlanDisplayName(subscriptionTierNormalized, t);
 
   const tabConfig = [
     { key: 'outfits', label: t('profile.savedOutfits') || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },

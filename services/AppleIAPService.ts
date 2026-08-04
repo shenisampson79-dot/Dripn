@@ -27,7 +27,7 @@ export const IAP_UNAVAILABLE_MESSAGE =
 
 /**
  * App Store Connect product IDs — must match RevenueCat offerings exactly.
- * Personal Stylist uses the canonical `.yearly` suffix. Stylist Unlimited
+ * Personal Stylist uses the canonical `.yearly` suffix. Stylist Pro
  * retains its existing `.annual` suffix.
  */
 export const APPLE_SUBSCRIPTION_PRODUCT_IDS = {

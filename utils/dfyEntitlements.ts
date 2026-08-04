@@ -1,5 +1,6 @@
 import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
+import { PLAN_DISPLAY_NAME } from '@/utils/planDisplayNames';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 /** What the subscription markets as one included DFY benefit (not two SKUs). */
@@ -30,7 +31,7 @@ export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
     case 'full_wardrobe_setup':
       return "Your plan includes one setup — choose Travel Capsule for a trip, or Full Setup to digitise your whole closet.";
     default:
-      return 'Your stylist can set up your wardrobe for you — included with Personal Stylist or Stylist Unlimited.';
+      return 'Your stylist can set up your wardrobe for you — included with Personal Stylist or Stylist Pro.';
   }
 }
 
@@ -138,8 +139,5 @@ export function getDfyPathDescription(
 }
 
 export function subscriptionTierDisplayName(tier?: SubscriptionTier | string | null): string {
-  const normalized = normalizeSubscriptionTier(tier);
-  if (normalized === 'personal_stylist') return 'Personal Stylist';
-  if (normalized === 'stylist_unlimited') return 'Stylist Unlimited';
-  return 'Free';
+  return PLAN_DISPLAY_NAME[normalizeSubscriptionTier(tier)];
 }

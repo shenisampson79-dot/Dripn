@@ -229,10 +229,10 @@ async function main() {
     results.push(row);
   }
 
-  // --- T3 Stylist Unlimited ---
+  // --- T3 Stylist Pro ---
   {
     const id = 'T3';
-    const row = { id, label: 'Stylist Unlimited £19.99/mo', baseline: 'FAIL', checkout: 'FAIL', payment: 'FAIL', redirect: 'FAIL', tier: 'FAIL', ui: 'SKIP', notes: '' };
+    const row = { id, label: 'Stylist Pro £19.99/mo', baseline: 'FAIL', checkout: 'FAIL', payment: 'FAIL', redirect: 'FAIL', tier: 'FAIL', ui: 'SKIP', notes: '' };
     try {
       const { email, token } = await register(id);
       await skipOnboarding(token);

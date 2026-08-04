@@ -62,7 +62,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
 
   const handleCall = async (member: VIPMember) => {
     if (!limits.canMakeVideoCalls) {
-      Alert.alert(t('subscription.stylistUnlimitedFeature') || "Stylist Unlimited Feature", t('subscription.memberVideoCallingIsAvailableOnTheStylis') || "Member video calling is available on the Stylist Unlimited plan. Upgrade to connect with other members through video calls.",
+      Alert.alert(t('subscription.stylistUnlimitedFeature') || "Stylist Pro Feature", t('subscription.memberVideoCallingIsAvailableOnTheStylis') || "Member video calling is available on the Stylist Pro plan. Upgrade to connect with other members through video calls.",
         [
           { text: t('common.cancel'), style: 'cancel' },
           { text: 'View Plans', onPress: () => navigateToSubscription(navigation, 'stylist_unlimited') },
@@ -110,7 +110,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
       <View style={[styles.infoCard, { backgroundColor: theme.link + '15' }]}>
         <Feather name="info" size={16} color={theme.link} />
         <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.8 }}>
-          Start a video call with another Stylist Unlimited member. Calls are hosted on Dripn.
+          Start a video call with another Stylist Pro member. Calls are hosted on Dripn.
         </ThemedText>
       </View>
     </>
@@ -236,13 +236,13 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
                 type="body"
                 style={{ textAlign: 'center', opacity: 0.7, marginTop: Spacing.sm }}
               >
-                Stylist Unlimited members can connect with other members through video calls — share style tips, get outfit feedback, and build your fashion network.
+                Stylist Pro members can connect with other members through video calls — share style tips, get outfit feedback, and build your fashion network.
               </ThemedText>
               <Button
                 onPress={() => navigateToSubscription(navigation, 'stylist_unlimited')}
                 style={[styles.upgradeButton, { backgroundColor: theme.link }]}
               >
-                Upgrade to Stylist Unlimited
+                Upgrade to Stylist Pro
               </Button>
             </View>
           </>

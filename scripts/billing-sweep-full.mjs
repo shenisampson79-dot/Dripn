@@ -9,7 +9,7 @@ const PASSWORD = 'SweepTest123!';
 const SUB_TESTS = [
   { id: 'T1', plan: 'style_chat', expected: 'style_chat', label: 'Style Chat £9.99/mo' },
   { id: 'T2', plan: 'personal_stylist', expected: 'personal_stylist', label: 'Personal Stylist £14.99/mo' },
-  { id: 'T3', plan: 'stylist_unlimited', expected: 'stylist_unlimited', label: 'Stylist Unlimited £19.99/mo' },
+  { id: 'T3', plan: 'stylist_unlimited', expected: 'stylist_unlimited', label: 'Stylist Pro £19.99/mo' },
   { id: 'T4', plan: 'core_wardrobe', expected: 'core_wardrobe', label: 'Core Wardrobe £39.99', type: 'dfy' },
   { id: 'T5', plan: 'outfit_setup', expected: 'outfit_setup', label: 'Outfit Setup £19.99', type: 'dfy' },
 ];

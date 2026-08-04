@@ -8,7 +8,7 @@ import {
   resolveLocaleNativeName,
 } from './localeBundles';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v10';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v12';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {
@@ -1168,9 +1168,9 @@ const DEFAULT_TRANSLATIONS: Translations = {
       chooseSetup: 'Choose your setup',
       chooseSetupDesc:
         'One-time stylist setup — Travel Capsule for a quick win, or Full Setup to digitise your wardrobe.',
-      compareStylistUnlimited: 'Compare Stylist Unlimited',
+      compareStylistUnlimited: 'Compare Stylist Pro',
       dressBetterPurchase: 'Dress better — purchase',
-      fullSetupIncludedNote: 'Full Setup is included with Stylist Unlimited, or buy it here anytime.',
+      fullSetupIncludedNote: 'Full Setup is included with Stylist Pro, or buy it here anytime.',
       headerDefault: 'Done-For-You Setup',
       heroIncluded: 'Included with {plan}',
       heroUnlock: 'Unlock your stylist setup',
@@ -1178,7 +1178,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       lookReadyPurchase: 'Look ready — purchase',
       noBenefitSubtitle:
         'Buy a one-time stylist setup — Travel Capsule for your next trip, or Full Setup to digitise your wardrobe.',
-      oneSetupNote: 'Your plan includes one setup. Ready for the full wardrobe experience? Stylist Unlimited has you.',
+      oneSetupNote: 'Your plan includes one setup. Ready for the full wardrobe experience? Stylist Pro has you.',
       oneTime: 'one-time',
       orUnlockWithPlan: 'Or unlock a setup free with a membership',
       personalStylist: 'Personal Stylist',
@@ -1189,7 +1189,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       quickVsFullNote: 'Travel Capsule is a fast win when you’re short on time. Full Setup is for when you want your whole closet digitised.',
       recommended: 'Recommended',
       startPath: 'Start {path}',
-      stylistUnlimited: 'Stylist Unlimited',
+      stylistUnlimited: 'Stylist Pro',
       stylistUnlimitedIncludes: 'Includes Full Wardrobe Setup · Quick or Full path',
       tryAgain: 'Please try again.',
     },
@@ -1356,7 +1356,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'Can I download my data?',
       },
       s1: {
-        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, outfit calendar, decision history), and Stylist Unlimited at £19.99 per month (unlimited wardrobe, event planning, and full planning tools).',
+        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, outfit calendar, decision history), and Stylist Pro at £19.99 per month (unlimited wardrobe, event planning, and full planning tools).',
         question: 'What subscription plans are available?',
       },
       s2: {
@@ -1598,7 +1598,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       lossUnlimitedEverything: 'Unlimited wardrobe & outfit suggestions',
       lossUnlimitedVoice: 'Higher voice & virtual try-on limits',
       lossVideoCalls: 'Priority background removal',
-      lossVipAccess: 'Stylist Unlimited planning tools',
+      lossVipAccess: 'Stylist Pro planning tools',
       lossVoiceConversations: 'Voice conversations with your stylist',
       lossWhiteGlove: 'Priority stylist support',
       basedOnUsage: 'Based on how you use Dripn',
@@ -1639,7 +1639,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         featureFull3: 'Remix and plan ahead with ease',
         featureFull4: 'Wardrobe saved and ready anytime',
         featureNone1: 'Travel Capsule wardrobe digitisation on Personal Stylist',
-        featureNone2: 'Full Setup option on Stylist Unlimited',
+        featureNone2: 'Full Setup option on Stylist Pro',
         featureNone3: 'Occasion-ready looks from your outfit photos',
         featureNone4: 'Organised wardrobe you can remix anytime',
         featureSprint1: '14 destination-ready looks for your trip',
@@ -1727,7 +1727,17 @@ const DEFAULT_TRANSLATIONS: Translations = {
     inviteFriendsSubtitle: 'Share your code — 10% off per friend, up to 50% each month',
     manageBilling: 'Manage Billing',
     manageSubscription: 'Manage Subscription',
-    memberVideoCallingIsAvailableOnTheStylis: 'Member video calling is available on the Stylist Unlimited plan.',
+    aiTopUp: {
+      title: 'AI Top-Up',
+      subtitle: 'Need more Live and chat this month? Buy extra credit without changing your subscription.',
+      standardName: 'AI Top-Up',
+      standardDetail: 'Includes AI credits',
+      plusName: 'AI Top-Up Plus',
+      plusDetail: 'Includes more AI credits',
+      comingSoon: 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.',
+      comingSoonPro: 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit on Stylist Pro.',
+    },
+    memberVideoCallingIsAvailableOnTheStylis: 'Member video calling is available on the Stylist Pro plan.',
     mostPopular: 'Most Popular',
     noBillingAccountMessage: 'Subscribe first to set up billing.',
     noBillingAccountTitle: 'No billing account',
@@ -1762,7 +1772,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       stylistUnlimited: {
         description: 'Never think about outfits again.',
         footerLine: 'For people who are done guessing and want full control',
-        name: 'Stylist Unlimited',
+        name: 'Stylist Pro',
         tagline: 'Your entire wardrobe — organised, planned, handled.',
       },
     },
@@ -1790,7 +1800,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     signInToSubscribe: 'Sign in to subscribe',
     startPlan: 'Start Plan',
     starter: 'Starter',
-    stylistUnlimitedFeature: 'Stylist Unlimited Feature',
+    stylistUnlimitedFeature: 'Stylist Pro Feature',
     subscribeFirstMessage: 'You need an active subscription to access this feature.',
     subscribeFirstTitle: 'Subscribe first',
     subscriptionActiveMessage: 'Your subscription is active and all features are unlocked.',
@@ -1803,7 +1813,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         check3: 'Personalised wardrobe blueprint',
         check4: 'Shoppable recommendations',
         headline: 'Full access unlocked — no limits',
-        subtext: 'Plan, pack, and prioritise with Stylist Unlimited',
+        subtext: 'Plan, pack, and prioritise with Stylist Pro',
       },
       goUnlimited: 'Go Unlimited',
       goUnlimitedBody: 'Unlimited wardrobe, event planning, and VIP member access',
@@ -1843,7 +1853,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         check2: 'Event planning & sustainability tools',
         check3: 'Unlimited wardrobe & try-on',
         check4: 'Priority support',
-        headline: 'You\'re on Stylist Unlimited',
+        headline: 'You\'re on Stylist Pro',
         subtext: 'Unlimited wardrobe, voice, and planning tools — ready when you are',
       },
       tryThisFirst: 'Try this first',
@@ -1945,7 +1955,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       sub01: {
         bullet1: 'Free: Limited stylist decisions, wardrobe items, and AI chat.',
         bullet2: 'Personal Stylist: Unlimited decisions, wardrobe-aware advice, outfit calendar, and extended AI chat.',
-        bullet3: 'Stylist Unlimited: Everything in Personal Stylist plus unlimited wardrobe and planning tools.',
+        bullet3: 'Stylist Pro: Everything in Personal Stylist plus unlimited wardrobe and planning tools.',
         intro: 'Dripn offers the following subscription tiers with varying features:',
         title: '4.1 Subscription Tiers',
       },

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { I18nManager } from 'react-native';
 import { TranslationService, Translations } from '@/services/TranslationService';
 import { LOCAL_TRANSLATION_BUNDLES } from '@/services/localeBundles';
+import { sanitizePlanDisplayName } from '@/utils/planDisplayNames';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -166,7 +167,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     } else if (!value && key.startsWith('fashionBlog.')) {
       value = lookup(translations, `blog.${key.slice('fashionBlog.'.length)}`);
     }
-    if (value) return value;
+    if (value) return sanitizePlanDisplayName(value) || value;
 
     // Fall back to current English bundle (covers incomplete backend/cache merges)
     const english = TranslationService.getTranslations();
@@ -177,12 +178,14 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       } else if (!value && key.startsWith('fashionBlog.')) {
         value = lookup(english, `blog.${key.slice('fashionBlog.'.length)}`);
       }
-      if (value) return value;
+      if (value) return sanitizePlanDisplayName(value) || value;
     }
 
     // Last resort: offline English flat keys (never show blank copy for known strings)
     const flatEn = LOCAL_TRANSLATION_BUNDLES.en?.[key];
-    if (typeof flatEn === 'string' && flatEn.trim()) return flatEn;
+    if (typeof flatEn === 'string' && flatEn.trim()) {
+      return sanitizePlanDisplayName(flatEn) || flatEn;
+    }
 
     return '';
   }, [translations]);
@@ -226,7 +229,8 @@ export function useTranslations() {
       syncFromAccent: async () => {},
       t: (key: string) => {
         const flat = LOCAL_TRANSLATION_BUNDLES.en?.[key];
-        return typeof flat === 'string' && flat.trim() ? flat : '';
+        const raw = typeof flat === 'string' && flat.trim() ? flat : '';
+        return sanitizePlanDisplayName(raw) || raw;
       },
     };
   }

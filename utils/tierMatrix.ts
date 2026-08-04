@@ -3,6 +3,7 @@
  * Free → Personal Stylist → Stylist Pro (internal id: stylist_unlimited)
  */
 import type { SubscriptionTier } from '@/contexts/AuthContext';
+import { PLAN_DISPLAY_NAME } from '@/utils/planDisplayNames';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 export type BillingPlanId = 'free' | 'style_chat' | 'stylist_unlimited';
@@ -46,7 +47,7 @@ export interface TierFeatureMatrix {
 
 export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
   free: {
-    displayName: 'Free',
+    displayName: PLAN_DISPLAY_NAME.free,
     tagline: 'Try the stylist once',
     jobToBeDone: 'Does this work?',
     billingPlanId: 'free',
@@ -82,7 +83,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
   },
 
   personal_stylist: {
-    displayName: 'Personal Stylist',
+    displayName: PLAN_DISPLAY_NAME.personal_stylist,
     tagline: 'Look good in 30 seconds — every single day.',
     jobToBeDone: 'Stop wasting time deciding what to wear',
     billingPlanId: 'style_chat',
@@ -118,7 +119,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
   },
 
   stylist_unlimited: {
-    displayName: 'Stylist Pro',
+    displayName: PLAN_DISPLAY_NAME.stylist_unlimited,
     tagline: 'Your entire wardrobe — organised, planned, handled.',
     jobToBeDone: 'Never think about outfits again',
     billingPlanId: 'stylist_unlimited',

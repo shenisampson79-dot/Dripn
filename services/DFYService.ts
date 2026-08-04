@@ -686,7 +686,7 @@ class DFYService {
       return {
         allowed: false,
         blockCode: 'no_benefit',
-        reason: 'Upgrade to Personal Stylist or Stylist Unlimited to unlock your included setup.',
+        reason: 'Upgrade to Personal Stylist or Stylist Pro to unlock your included setup.',
       };
     }
 
@@ -735,7 +735,7 @@ class DFYService {
         success: false,
         error:
           tier === 'core'
-            ? 'Full Setup is included with Stylist Unlimited. Upgrade to unlock it.'
+            ? 'Full Setup is included with Stylist Pro. Upgrade to unlock it.'
             : 'This setup path is not included on your current plan.',
       };
     }

@@ -13,6 +13,8 @@ import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradient
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
+import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
+import { STYLIST_PRO_PLAN_NAME } from "@/utils/planDisplayNames";
 import {
   getDfyBenefitForSubscription,
   subscriptionTierDisplayName,
@@ -129,15 +131,15 @@ const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFe
 };
 
 const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description?: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
-  free: { name: t('subscription.plan.free.name'), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },
+  free: { name: resolvePlanDisplayName('free', t), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },
   personal_stylist: {
-    name: t('subscription.plan.personalStylist.name'),
+    name: resolvePlanDisplayName('personal_stylist', t),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
     footerLine: t('subscription.plan.personalStylist.footerLine'),
     popular: true,
   },
   stylist_unlimited: {
-    name: t('subscription.plan.stylistUnlimited.name'),
+    name: resolvePlanDisplayName('stylist_unlimited', t),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
     bestValue: true,
     footerLine: t('subscription.plan.stylistUnlimited.footerLine'),
@@ -1399,13 +1401,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               id: 'standard',
               name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
               price: '£5.99',
-              detail: t('subscription.aiTopUp.standardDetail') || '+$3 AI allowance this month',
+              detail: t('subscription.aiTopUp.standardDetail') || 'Includes AI credits',
             },
             {
               id: 'plus',
               name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
               price: '£10.99',
-              detail: t('subscription.aiTopUp.plusDetail') || '+$6 AI allowance this month',
+              detail: t('subscription.aiTopUp.plusDetail') || 'Includes more AI credits',
               bestValue: true,
             },
           ].map((pack) => (
@@ -1418,7 +1420,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                   pack.name,
                   onPro
                     ? (t('subscription.aiTopUp.comingSoonPro')
-                      || 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit on Stylist Pro.')
+                      || `AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit on ${STYLIST_PRO_PLAN_NAME}.`)
                     : (t('subscription.aiTopUp.comingSoon')
                       || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
                   onPro

@@ -40,6 +40,14 @@ const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[
   { name: "SettingsTab", icon: "settings", label: "Settings" },
 ];
 
+/** Root screen per tab stack — tab press always returns here (pop-to-top behavior). */
+const TAB_ROOT_SCREENS: Record<keyof MainTabParamList, string> = {
+  StylistTab: "StylistHub",
+  WardrobeTab: "Wardrobe",
+  ProfileTab: "Profile",
+  SettingsTab: "Settings",
+};
+
 interface CustomTabBarProps extends BottomTabBarProps {
   onCreatePost?: () => void;
 }
@@ -89,7 +97,16 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
         canPreventDefault: true,
       });
 
-      if (!isFocused && !event.defaultPrevented) {
+      if (event.defaultPrevented) return;
+
+      // Always land on each tab's root — prevents stack leakage (e.g. See plans → Subscription).
+      const rootScreen = TAB_ROOT_SCREENS[tabConfig.name];
+      if (rootScreen) {
+        navigation.navigate(tabConfig.name, { screen: rootScreen });
+        return;
+      }
+
+      if (!isFocused) {
         navigation.navigate(route.name);
       }
     };
@@ -199,12 +216,42 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
         headerShown: false,
       }}
     >
-      <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
-      <Tab.Screen name="WardrobeTab" component={WardrobeStackNavigator} />
-      <Tab.Screen name="ProfileTab">
+      <Tab.Screen
+        name="StylistTab"
+        component={UserStylistStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("StylistTab", { screen: "StylistHub" });
+          },
+        })}
+      />
+      <Tab.Screen
+        name="WardrobeTab"
+        component={WardrobeStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("WardrobeTab", { screen: "Wardrobe" });
+          },
+        })}
+      />
+      <Tab.Screen name="ProfileTab"
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("ProfileTab", { screen: "Profile" });
+          },
+        })}
+      >
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
-      <Tab.Screen name="SettingsTab">
+      <Tab.Screen name="SettingsTab"
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("SettingsTab", { screen: "Settings" });
+          },
+        })}
+      >
         {() => <SettingsStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
     </Tab.Navigator>

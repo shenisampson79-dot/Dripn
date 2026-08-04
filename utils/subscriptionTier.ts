@@ -1,7 +1,9 @@
 import type { SubscriptionTier } from '@/contexts/AuthContext';
-import { TIER_MATRIX, type BillingPlanId } from '@/utils/tierMatrix';
+import { PLAN_DISPLAY_NAME, STYLIST_PRO_PLAN_NAME } from '@/utils/planDisplayNames';
+import type { BillingPlanId } from '@/utils/tierMatrix';
 
 export type { BillingPlanId };
+export { PLAN_DISPLAY_NAME, STYLIST_PRO_PLAN_NAME };
 
 /** Map any plan/tier string to the 3 canonical feature tiers */
 const TIER_ALIASES: Record<string, SubscriptionTier> = {
@@ -17,7 +19,7 @@ const TIER_ALIASES: Record<string, SubscriptionTier> = {
   styleChatMonthly: 'personal_stylist',
   styleChatYearly: 'personal_stylist',
 
-  // Top tier — merged Personal Stylist ($14.99) + Stylist Unlimited ($19.99)
+  // Top tier — internal id stylist_unlimited; display name is Stylist Pro
   stylist_unlimited: 'stylist_unlimited',
   premium: 'stylist_unlimited',
   pro: 'stylist_unlimited',
@@ -44,9 +46,9 @@ export const TIER_TO_BILLING_PLAN: Record<SubscriptionTier, BillingPlanId> = {
 };
 
 export const BILLING_PLAN_DISPLAY: Record<BillingPlanId, string> = {
-  free: 'Free',
-  style_chat: 'Personal Stylist',
-  stylist_unlimited: 'Stylist Pro',
+  free: PLAN_DISPLAY_NAME.free,
+  style_chat: PLAN_DISPLAY_NAME.personal_stylist,
+  stylist_unlimited: PLAN_DISPLAY_NAME.stylist_unlimited,
 };
 
 export function normalizeSubscriptionTier(tier?: string | null): SubscriptionTier {
@@ -60,7 +62,7 @@ export function tierToBillingPlan(tier: SubscriptionTier): BillingPlanId {
 }
 
 export function getBillingPlanDisplayName(planOrTier?: string | null): string {
-  if (!planOrTier) return TIER_MATRIX.free.displayName;
+  if (!planOrTier) return PLAN_DISPLAY_NAME.free;
   if (planOrTier in BILLING_PLAN_DISPLAY) {
     return BILLING_PLAN_DISPLAY[planOrTier as BillingPlanId];
   }
@@ -68,7 +70,7 @@ export function getBillingPlanDisplayName(planOrTier?: string | null): string {
 }
 
 export function getTierFeaturesDisplayName(tier?: string | null): string {
-  return TIER_MATRIX[normalizeSubscriptionTier(tier)].displayName;
+  return PLAN_DISPLAY_NAME[normalizeSubscriptionTier(tier)];
 }
 
 export function isPaidTier(tier?: string | null): boolean {

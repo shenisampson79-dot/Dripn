@@ -599,7 +599,7 @@ export default function AdminDashboardScreen({ navigation, embedded }: Props) {
                 </ThemedText>
               </View>
               <View style={styles.planRow}>
-                <ThemedText type="body">Stylist Unlimited</ThemedText>
+                <ThemedText type="body">Stylist Pro</ThemedText>
                 <ThemedText type="body" style={{ fontWeight: "600" }}>
                   {subscriptionsData.stats.planDistribution.stylist_unlimited}
                 </ThemedText>

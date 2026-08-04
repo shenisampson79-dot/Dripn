@@ -1140,7 +1140,7 @@ async function generateAdvice(
       }
 
       if (trendLimits.includeEarlyAccessTip) {
-        suggestions.push(`Stylist Unlimited early access: Get tomorrow's trends today — insights are weeks ahead of mainstream coverage.`);
+        suggestions.push(`Stylist Pro early access: Get tomorrow's trends today — insights are weeks ahead of mainstream coverage.`);
       }
     } catch (error) {
       console.warn('Failed to fetch trend insights:', error);

@@ -21,7 +21,7 @@
     },
     {
       "id": "T3",
-      "label": "Stylist Unlimited £19.99/mo",
+      "label": "Stylist Pro £19.99/mo",
       "checkout": "PASS",
       "payment": "FAIL",
       "redirect": "FAIL",
