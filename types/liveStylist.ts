@@ -21,6 +21,8 @@ export type LiveCoaching = {
   summary: string;
   /** Server-authored sentence with garment role tokens; client fills names only. */
   summaryTemplate?: string;
+  summaryArchetype?: string;
+  summaryTopics?: string[];
   bullets: string[];
   outfitSignature?: string;
   styleLane?: string | null;

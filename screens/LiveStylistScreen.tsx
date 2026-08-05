@@ -43,7 +43,12 @@ import {
   warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
-import { framesLikelySame, hashBase64Frame, stripBase64Prefix } from '@/utils/liveFrameHash';
+import {
+  framesLikelySame,
+  hasMeaningfulLiveSceneChange,
+  hashBase64Frame,
+  stripBase64Prefix,
+} from '@/utils/liveFrameHash';
 import {
   createLiveBeliefMemory,
   syncCoachingToBelief,
@@ -73,6 +78,9 @@ const FRAME_WIDTH = 640;
  * cadence so a new layer is caught without paying per frame.
  */
 const CLOUD_LAYER_VERIFY_MS = 12000;
+/** Event-triggered cloud checks are throttled even when the scene keeps moving. */
+const CLOUD_SCENE_EVENT_COOLDOWN_MS = 4500;
+const CLOUD_SCENE_EVENT_FRAMES = 2;
 
 function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
   return items.map((item, i) => ({
@@ -184,6 +192,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const mountedRef = useRef(true);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
+  const cloudSceneBaselineRef = useRef<{
+    detections: OnDeviceDetection[];
+    frameHash: string | null;
+  }>({ detections: [], frameHash: null });
+  const sceneChangeStreakRef = useRef(0);
   const lastBeliefSignatureRef = useRef('');
 
   const paintBeliefItems = useCallback((detections: OnDeviceDetection[]) => {
@@ -507,14 +520,44 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         const missingShoes = !belief?.footwear && Boolean(footZone?.visible);
         const sparse = stabilized.detections.length < 2;
         const incomplete = missingTop || missingShoes || sparse;
+        const baseline = cloudSceneBaselineRef.current;
+        if (!baseline.detections.length) {
+          cloudSceneBaselineRef.current = {
+            detections: corrected,
+            frameHash,
+          };
+        }
+        const sceneChanged = hasMeaningfulLiveSceneChange(
+          baseline.detections,
+          corrected,
+          baseline.frameHash,
+          frameHash,
+        );
+        sceneChangeStreakRef.current = sceneChanged
+          ? sceneChangeStreakRef.current + 1
+          : 0;
         // Missing top/shoes → fill after 2s; otherwise sparse frames after 4s
         const fillMs = (missingTop || missingShoes) ? 2000 : 4000;
         const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= fillMs;
+        const sceneEventReady =
+          Date.now() - lastCloudFillAtRef.current >= CLOUD_SCENE_EVENT_COOLDOWN_MS;
+        const sceneEventDue =
+          sceneChangeStreakRef.current >= CLOUD_SCENE_EVENT_FRAMES && sceneEventReady;
         const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= CLOUD_LAYER_VERIFY_MS;
-        if ((incomplete && cloudFillReady) || layerVerifyDue) {
+        if ((incomplete && cloudFillReady) || sceneEventDue || layerVerifyDue) {
           payload.imageBase64 = stripBase64Prefix(base64);
           payload.cloudFill = true;
+          payload.cloudFillReason = incomplete
+            ? 'missing_slots'
+            : sceneEventDue
+              ? 'scene_change'
+              : 'layer_verify';
           lastCloudFillAtRef.current = Date.now();
+          sceneChangeStreakRef.current = 0;
+          cloudSceneBaselineRef.current = {
+            detections: corrected,
+            frameHash,
+          };
         }
       } else {
         payload.imageBase64 = stripBase64Prefix(base64);
@@ -583,6 +626,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         decisionLogRef.current = [];
         inspectRef.current = null;
         lastHashRef.current = null;
+        lastCloudFillAtRef.current = 0;
+        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+        sceneChangeStreakRef.current = 0;
         previousItemsRef.current = [];
         previousFeedbackRef.current = null;
         setItems([]);
