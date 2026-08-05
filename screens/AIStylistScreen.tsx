@@ -19,6 +19,7 @@ import {
   Linking,
   ScrollView,
   Modal,
+  InteractionManager,
 } from 'react-native';
 import { KeyboardStickyView, useKeyboardState, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1754,11 +1755,17 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     isMountedRef.current = true;
-    loadChatHistory();
-    loadDailyMessageCount();
-    checkAudioPermission();
+    // Defer storage + permission work until the push animation finishes so the first
+    // transition frames aren't competing with AsyncStorage / history hydration.
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (!isMountedRef.current) return;
+      void loadChatHistory();
+      void loadDailyMessageCount();
+      void checkAudioPermission();
+    });
     return () => {
       isMountedRef.current = false;
+      task.cancel?.();
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -4178,7 +4185,7 @@ export default function AIStylistScreen() {
   }, [updateVoiceCreditsBalance]);
 
   return (
-    <>
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       {chatMode === 'voice' ? (
         <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
           <View style={{ paddingTop: contentTopPad, paddingHorizontal: Spacing.lg }}>
@@ -4258,7 +4265,7 @@ export default function AIStylistScreen() {
           refreshVoiceCredits();
         }}
       />
-    </>
+    </View>
   );
 }
 

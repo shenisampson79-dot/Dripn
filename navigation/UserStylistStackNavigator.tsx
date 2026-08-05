@@ -91,13 +91,20 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={getSettingsChildScreenOptions({
-          theme,
-          isDark,
-          // Opaque header: transparent bar let StylistHub flash through during the push animation.
-          transparent: false,
-          title: t('navTitles.stylistChat'),
-        })}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            // Opaque header: transparent bar let StylistHub flash through during the push animation.
+            transparent: false,
+            title: t('navTitles.stylistChat'),
+          }),
+          // Detach Hub while Chat is focused so the previous screen cannot re-paint mid-push
+          // (fixes Hub flash when Chat's first frame is late). Scoped to this screen only.
+          detachPreviousScreen: true,
+          animation: "slide_from_right",
+          animationTypeForReplace: "push",
+        }}
       />
       <Stack.Screen
         name="StyleShuffle"
