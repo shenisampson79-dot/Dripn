@@ -99,9 +99,9 @@ export default function UserStylistStackNavigator() {
             transparent: false,
             title: t('navTitles.stylistChat'),
           }),
-          // Keep Hub attached for the whole slide. Detaching at transition-end was causing a
-          // late Hub flash as Chat's heavy hydrate competed with the last animation frames.
-          detachPreviousScreen: false,
+          // Detach Hub after the push so it cannot composite through a 1-frame Chat stall.
+          // Hydration must NOT run synchronously in transitionEnd (see AIStylistScreen).
+          detachPreviousScreen: true,
           animation: "slide_from_right",
           animationTypeForReplace: "push",
         }}

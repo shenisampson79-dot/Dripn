@@ -1574,7 +1574,14 @@ export default function AIStylistScreen() {
     return getStylistGreeting(stylist, userName, speakT, greetingWardrobe);
   }, [stylist, user?.name, effectiveLanguage, greetingWardrobe]);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    {
+      id: 'msg_seed_init',
+      role: 'assistant',
+      content: buildSeedGreeting(),
+      timestamp: new Date().toISOString(),
+    },
+  ]);
   const [inputText, setInputText] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -1595,7 +1602,7 @@ export default function AIStylistScreen() {
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [chatMode, setChatMode] = useState<'text' | 'voice'>('text');
-  /** Solid cover until push animation ends — hides Hub peek-through during Chat hydrate. */
+  /** Solid cover until push is fully committed — lifted only on a post-transition frame. */
   const [transitionCoverVisible, setTransitionCoverVisible] = useState(true);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const ttsPlayerRef = useRef<AudioPlayer | null>(null);
@@ -1757,26 +1764,31 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     isMountedRef.current = true;
-    // Hydrate only after the push finishes. InteractionManager alone still races the
-    // last slide frames and was shifting the Hub flash later — wait for transitionEnd.
-    const startHydrate = () => {
+
+    // CRITICAL: transitionEnd must not call setState synchronously. A commit in that
+    // callback races the last native transition frame and can flash Hub for 1 frame.
+    // Schedule hydrate + cover lift on the following frames only.
+    const schedulePostTransitionWork = () => {
       if (hydrateStartedRef.current || !isMountedRef.current) return;
       hydrateStartedRef.current = true;
-      // Lift cover as soon as the push is done — history can settle underneath Chat
-      // without racing the last slide frames (that race moved the Hub flash later).
-      setTransitionCoverVisible(false);
-      void loadChatHistory();
-      void loadDailyMessageCount();
-      void checkAudioPermission();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!isMountedRef.current) return;
+          setTransitionCoverVisible(false);
+          void loadChatHistory();
+          void loadDailyMessageCount();
+          void checkAudioPermission();
+        });
+      });
     };
 
     const unsub = navigation.addListener('transitionEnd' as never, ((e: { data?: { closing?: boolean } }) => {
       if (e?.data?.closing) return;
-      startHydrate();
+      schedulePostTransitionWork();
     }) as never);
 
     // Fallback when transitionEnd doesn't fire (gesture cancel, no animation, etc.)
-    const fallback = setTimeout(startHydrate, 500);
+    const fallback = setTimeout(schedulePostTransitionWork, 500);
 
     return () => {
       isMountedRef.current = false;
@@ -1796,19 +1808,8 @@ export default function AIStylistScreen() {
     };
   }, [navigation]);
   
-  useEffect(() => {
-    if (messages.length === 0) {
-      const greetingMessage: ChatMessage = {
-        id: `msg_${Date.now()}`,
-        role: 'assistant',
-        content: buildSeedGreeting(),
-        timestamp: new Date().toISOString(),
-      };
-      setMessages([greetingMessage]);
-    }
-  }, [stylist, buildSeedGreeting, messages.length]);
-
-  // Refresh seed welcome when stylist speak language or wardrobe counts change (only if chat is still just the greeting).
+  // Seed is initialized in useState — only refresh greeting text when language/stylist changes
+  // and the thread is still a single assistant welcome (no mount setState during the push).
   useEffect(() => {
     const nextGreeting = buildSeedGreeting();
     setMessages((prev) => {
@@ -1816,7 +1817,7 @@ export default function AIStylistScreen() {
       if (prev[0].content === nextGreeting) return prev;
       return [{ ...prev[0], content: nextGreeting }];
     });
-  }, [effectiveLanguage, buildSeedGreeting]);
+  }, [stylist, buildSeedGreeting]);
 
   useEffect(() => {
     if (isRecording) {
