@@ -44,6 +44,34 @@ export function isSpecificVisionName(name?: string | null): boolean {
   return /[a-z]/i.test(n) && /\s/.test(n);
 }
 
+/** Colour words Vision uses inside display names. */
+const VISION_COLOR_WORD =
+  'multicolou?r|black|charcoal|white|cream|ivory|grey|gray|navy|blue|red|burgundy|maroon|brown|tan|khaki|beige|green|pink|purple|yellow|orange|silver|gold';
+
+/**
+ * Explicit two-tone naming ("Brown and White Sneakers", "Black/White Trainers").
+ * Compound single colours ("Light Blue", "Charcoal Grey") are not multi-colour.
+ */
+export function isMultiColorVisionName(name?: string | null): boolean {
+  const n = String(name || '').toLowerCase();
+  if (!n) return false;
+  if (/multicolou?r|multi[-\s]?colou?r|multi[-\s]?tone|two[-\s]?tone/.test(n)) return true;
+  const pair = new RegExp(
+    `\\b(${VISION_COLOR_WORD})\\b\\s*(?:and|&|\\/|\\+)\\s*\\b(${VISION_COLOR_WORD})\\b`,
+  );
+  const m = n.match(pair);
+  if (!m) return false;
+  return m[1] !== m[2];
+}
+
+/** Distinct colour words in a Vision name — more words = richer identity. */
+export function countVisionColorWords(name?: string | null): number {
+  const n = String(name || '').toLowerCase();
+  if (!n) return 0;
+  const found = n.match(new RegExp(`\\b(${VISION_COLOR_WORD})\\b`, 'g')) || [];
+  return new Set(found).size;
+}
+
 /** Prefer locked vision identity label over any color+subtype rebuild. */
 export function preferVisionIdentityName(
   name?: string | null,
@@ -186,6 +214,16 @@ export function resolveFusedIdentity(
     return pickNext('vision peer override');
   }
 
+  // Same garment, richer colour identity ("White Trainers" → "Brown and White Sneakers").
+  // Confidence alone never breaks this tie, so multi-tone reads used to be discarded.
+  if (
+    prevToken === nextToken
+    && nextConf >= 0.75
+    && countVisionColorWords(nextName) > countVisionColorWords(prevName)
+  ) {
+    return pickNext('richer colour identity');
+  }
+
   if (nextConf >= prevConf + 0.15) return pickNext('confidence wins');
 
   return pickPrev('stability');
@@ -219,13 +257,14 @@ export function isVisionShortsUnlock(
   const name = String(next.name || '').trim();
   const blob = `${next.subcategory || ''} ${name}`.toLowerCase();
   if (!/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return false;
-  if (/check|plaid|stripe|pattern|cargo|athletic|bermuda|board|boxer|brief|swim|running|gym|chino\s*short|denim\s*short/.test(blob)) {
+  if (/check|plaid|stripe|pattern|cargo|athletic|sports?|training|active|mesh|jersey|bermuda|board|boxer|brief|swim|running|gym|chino\s*short|denim\s*short/.test(blob)) {
     return true;
   }
   if (!isSpecificVisionName(name)) return false;
-  // Generic "Grey Shorts" / "Dark Shorts" — require very high conf
+  // Generic "Grey Shorts" / "Dark Shorts" — still needs strong evidence, but 0.92 kept
+  // bare legs reading as sweatpants for seconds after a change.
   if (/^((dark|light|bright)\s+)?(black|white|grey|gray|navy|blue|red|green|brown|beige|cream)\s+shorts?$/i.test(name)) {
-    return conf >= 0.92;
+    return conf >= 0.85;
   }
   return conf >= 0.85;
 }

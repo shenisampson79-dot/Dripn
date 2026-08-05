@@ -7,6 +7,7 @@ import {
   applyOutfitBelief,
   beliefKindFromDetection,
   colorDistance,
+  colorFromVisionName,
   createOutfitBeliefState,
   normalizeBeliefColor,
   observationFromDetection,
@@ -373,6 +374,46 @@ assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
     bbox: [0.4, 0.86, 0.22, 0.12],
   });
   assert.equal(loaferObs.subcategory, 'loafers');
+}
+
+// Two-tone footwear names must not collapse to whichever colour ranks higher
+{
+  assert.equal(colorFromVisionName('Brown and White Sneakers'), 'multicolor');
+  assert.equal(colorFromVisionName('Black/White Trainers'), 'multicolor');
+  assert.equal(colorFromVisionName('Multicolor Boat Shoes'), 'multicolor');
+  // Compound single colours stay single
+  assert.equal(colorFromVisionName('Light Blue Shirt'), 'light_blue');
+  assert.equal(colorFromVisionName('Charcoal Grey Sweatpants'), 'gray');
+  assert.equal(colorFromVisionName('White Trainers'), 'white');
+
+  // Belief adopts the richer read instead of reinforcing the older single colour
+  const white: OnDeviceDetection = {
+    name: 'White Trainers',
+    category: 'shoes',
+    subcategory: 'sneakers',
+    color: 'white',
+    confidence: 0.9,
+    bbox: [0.4, 0.86, 0.22, 0.12],
+    trackId: 'sh1',
+  };
+  const twoTone: OnDeviceDetection = {
+    name: 'Brown and White Sneakers',
+    category: 'shoes',
+    subcategory: 'sneakers',
+    color: 'white',
+    confidence: 0.9,
+    bbox: [0.4, 0.86, 0.22, 0.12],
+    trackId: 'sh1',
+  };
+  let shoes = createOutfitBeliefState();
+  shoes = applyOutfitBelief(shoes, [white], { now: 1000 }).state;
+  assert.equal(shoes.footwear?.color, 'white');
+  shoes = applyOutfitBelief(shoes, [twoTone], { now: 2200 }).state;
+  assert.equal(shoes.footwear?.color, 'multicolor', 'two-tone vision name wins');
+  assert.match(shoes.footwear?.name || '', /brown and white/i, 'richer identity adopted');
+  // ...and a later single-colour frame must not flatten it back
+  shoes = applyOutfitBelief(shoes, [white], { now: 3400 }).state;
+  assert.equal(shoes.footwear?.color, 'multicolor', 'two-tone resists single-colour flatten');
 }
 
 console.log('liveGarmentBelief.test.ts: all passed');

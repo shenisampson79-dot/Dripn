@@ -28,7 +28,7 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
-import { isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
+import { isMultiColorVisionName, isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 export { isSpecificVisionName } from '@/utils/visionTrust';
@@ -63,7 +63,9 @@ export type GarmentBelief = {
 export function colorFromVisionName(name?: string | null): string | null {
   const n = String(name || '').toLowerCase();
   if (!n) return null;
-  if (/multicolou?r|multi[- ]?colou?r|multi[- ]?tone/.test(n)) return 'multicolor';
+  // Two-tone names first — the ladder below returns whichever colour ranks
+  // higher, so "Brown and White Sneakers" used to collapse to plain white.
+  if (isMultiColorVisionName(n)) return 'multicolor';
   if (/\b(light\s*)?(grey|gray)\b/.test(n)) return 'gray';
   if (/\b(black|charcoal)\b/.test(n)) return 'black';
   if (/\bnavy\b/.test(n)) return 'navy';
@@ -415,6 +417,25 @@ export function stabilizeColorDetailed(
       changed: false,
       code: 'warm_neutral_lock',
       reason: 'beige/cream resists white flicker',
+    };
+  }
+
+  // Two-tone footwear is strictly more information than a single-colour ROI sample.
+  if (kind === 'shoes' && c === 'multicolor' && p !== 'multicolor' && currentConfidence >= 0.75) {
+    return {
+      color: c,
+      changed: true,
+      code: 'hard_flip',
+      reason: 'two-tone footwear beats single-colour read',
+    };
+  }
+  // ...and must not be flattened back by the next single-colour frame.
+  if (kind === 'shoes' && p === 'multicolor' && c !== 'multicolor' && currentConfidence < 0.96) {
+    return {
+      color: p,
+      changed: false,
+      code: 'hold',
+      reason: 'two-tone footwear resists single-colour flatten',
     };
   }
 
