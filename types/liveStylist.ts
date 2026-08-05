@@ -20,6 +20,10 @@ export type LiveCoaching = {
   headline: string;
   summary: string;
   bullets: string[];
+  outfitSignature?: string;
+  styleLane?: string | null;
+  /** False when the server found a formality / style-lane conflict. */
+  sameLane?: boolean;
 };
 
 export type LiveFeedbackUi = {

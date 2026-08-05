@@ -49,6 +49,10 @@ export function polishUkLiveLabel(raw?: string | null, locale: LiveLocale = LIVE
     .replace(/\bSneaker\b/g, 'Trainer')
     .replace(/\bsneaker\b/g, 'trainer');
 
+  // Vision spells this three ways ("Flip Flops", "Flipflops", "Flip-Flop").
+  // The taxonomy label is flip-flops, and boxes must not drift between spellings.
+  out = out.replace(/\bflip[\s-]?flops?\b/gi, 'flip-flops');
+
   // Bottoms: "pants" → "trousers" but never sweatpants / track pants / yoga pants
   out = out.replace(/\bPants\b/g, (match, offset, full) => {
     const before = String(full).slice(Math.max(0, offset - 12), offset).toLowerCase();

@@ -4,6 +4,7 @@
  */
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
+import { isFloorLengthTrousersEvidence, type BBoxTuple } from '@/utils/bodyGeometryGuardrails';
 
 export const VISION_TRUST_CONF = 0.6;
 
@@ -146,12 +147,33 @@ export function coreGarmentToken(
   if (/chelsea|boot/.test(blob)) return 'boots';
   if (/loafer/.test(blob)) return 'loafers';
   if (/sandal|flip.?flop|slide/.test(blob)) return 'sandals';
+  // Generic fallback — must sit below every specific shoe type above.
+  if (/\bshoes?\b/.test(blob)) return 'shoes';
   if (/\btie\b|necktie/.test(blob)) return 'tie';
   if (/blazer/.test(blob)) return 'blazer';
   if (/t-?shirt|\btee\b/.test(blob)) return 'tshirt';
   if (/shirt/.test(blob)) return 'shirt';
   if (/top/.test(blob)) return 'top';
   return blob || 'unknown';
+}
+
+const SPECIFIC_LEG_TOKENS = new Set(['sweatpants', 'joggers', 'chinos', 'jeans']);
+const SPECIFIC_SHOE_TOKENS = new Set(['boat_shoes', 'sneakers', 'boots', 'loafers', 'sandals']);
+const SPECIFIC_UPPER_TOKENS = new Set(['tshirt', 'shirt', 'blazer']);
+
+/**
+ * True when `next` is only the generic name for what `prev` already identified
+ * ("Grey Sweatpants" → "Grey Trousers", "Orange T-Shirt" → "Charcoal top").
+ * Vision reports these coarse labels confidently, so without this the peer
+ * override below throws away the more specific read every few frames.
+ * A different garment (sweatpants → shorts) is not coarsening and still flips.
+ */
+export function isGenericLabelCoarsening(prevToken: string, nextToken: string): boolean {
+  if (prevToken === nextToken) return false;
+  if (nextToken === 'trousers') return SPECIFIC_LEG_TOKENS.has(prevToken);
+  if (nextToken === 'shoes') return SPECIFIC_SHOE_TOKENS.has(prevToken);
+  if (nextToken === 'top') return SPECIFIC_UPPER_TOKENS.has(prevToken);
+  return false;
 }
 
 /**
@@ -207,6 +229,9 @@ export function resolveFusedIdentity(
   if (prevRank > nextRank + 2 && prevToken !== nextToken && nextConf < 0.75) {
     return pickPrev('specificity holds');
   }
+  if (isGenericLabelCoarsening(prevToken, nextToken)) {
+    return pickPrev('generic label never replaces a specific one');
+  }
 
   // Type-token flip (boat→sneaker, trousers→sweatpants already handled by rank):
   // Vision peer at ≥0.75 wins even against a 0.99 YOLO lock.
@@ -250,10 +275,18 @@ export function semanticBottomSubcategory(
  * Geometry-only YOLO "Shorts" boxes must NOT use this (persistence stays).
  */
 export function isVisionShortsUnlock(
-  next: { name?: string | null; subcategory?: string | null; confidence?: number | null },
+  next: {
+    name?: string | null;
+    subcategory?: string | null;
+    confidence?: number | null;
+    bbox?: BBoxTuple | number[] | null;
+  },
 ): boolean {
   const conf = Number(next.confidence ?? 0);
   if (conf < 0.75) return false;
+  // Shorts do not reach the floor. A waist→floor box outranks the label at any
+  // confidence, otherwise a mislabelled trouser frame unlocks itself.
+  if (next.bbox && isFloorLengthTrousersEvidence(next.bbox as BBoxTuple)) return false;
   const name = String(next.name || '').trim();
   const blob = `${next.subcategory || ''} ${name}`.toLowerCase();
   if (!/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return false;

@@ -172,6 +172,38 @@ function isOuterwearLayer(det: OnDeviceDetection): boolean {
     || /outer|jacket|blazer|coat|gilet|vest|cardigan|hoodie/.test(blob);
 }
 
+/** Boxes this coincident are one garment, not a base under a layer. */
+export const UPPER_DUPLICATE_IOU = 0.7;
+
+function colorFamilyKey(raw?: string | null): string | null {
+  const c = String(raw || '').toLowerCase().trim().replace(/\s+/g, '_');
+  if (!c) return null;
+  const norm = COLOR_ALIASES[c] || c;
+  if (DARK_FAMILY.has(norm)) return 'dark';
+  if (LIGHT_FAMILY.has(norm)) return 'light';
+  return CHROMATIC.has(norm) ? norm : null;
+}
+
+/**
+ * Vision reports one garment twice when a hoodie lands as both a generic
+ * "Charcoal top" and a "Black Hoodie". A real tee under an open jacket sits
+ * inside a much larger box, so only near-coincident boxes in the same colour
+ * family qualify. Counting both inflates the piece count and describes the
+ * same garment twice in the summary.
+ */
+export function isDuplicateUpperRead(
+  base: OnDeviceDetection | null | undefined,
+  layer: OnDeviceDetection | null | undefined,
+): boolean {
+  if (!base?.bbox || !layer?.bbox) return false;
+  const iou = beliefBboxIou(base.bbox as BBoxTuple, layer.bbox as BBoxTuple);
+  if (iou < UPPER_DUPLICATE_IOU) return false;
+  const baseFamily = colorFamilyKey(base.color);
+  const layerFamily = colorFamilyKey(layer.color);
+  if (!baseFamily || !layerFamily) return false;
+  return baseFamily === layerFamily;
+}
+
 function splitUpperDetections(uppers: OnDeviceDetection[]): {
   base: OnDeviceDetection | null;
   layer: OnDeviceDetection | null;
@@ -181,6 +213,10 @@ function splitUpperDetections(uppers: OnDeviceDetection[]): {
   const layers = sorted.filter(isUpperLayerCandidate);
   const bases = sorted.filter(isBaseTopCandidate);
   if (layers.length && bases.length) {
+    // One garment read twice → keep the named layer, drop the generic base.
+    if (isDuplicateUpperRead(bases[0], layers[0])) {
+      return { base: null, layer: layers[0] };
+    }
     return { base: bases[0], layer: layers[0] };
   }
   if (layers.length && !bases.length) {
@@ -1350,16 +1386,16 @@ export function applyOutfitBelief(
       isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
       && !looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)
     ) {
+      // The old name says "shorts" and kind is read back off the name, so
+      // keeping it would undo the override we just made.
       bottomObs = {
         ...bottomObs,
         subcategory: 'trousers',
-        name: preferVisionIdentityName(bottomObs.name)
-          || formatGarmentDisplayName({
-            color: bottomObs.color,
-            category: 'bottoms',
-            subcategory: 'trousers',
-            fallbackName: bottomObs.name,
-          }),
+        name: formatGarmentDisplayName({
+          color: bottomObs.color,
+          category: 'bottoms',
+          subcategory: 'trousers',
+        }),
       };
     }
   }
@@ -1374,13 +1410,11 @@ export function applyOutfitBelief(
       bottomObs = {
         ...bottomObs,
         subcategory: 'shorts',
-        name: preferVisionIdentityName(bottomObs.name)
-          || formatGarmentDisplayName({
-            color: bottomObs.color,
-            category: 'bottoms',
-            subcategory: 'shorts',
-            fallbackName: bottomObs.name,
-          }),
+        name: formatGarmentDisplayName({
+          color: bottomObs.color,
+          category: 'bottoms',
+          subcategory: 'shorts',
+        }),
       };
     }
   }

@@ -195,9 +195,26 @@ assert.equal(
   'locked boat shoes resist boots flicker',
 );
 assert.equal(
+  stabilizeShoeSubtype('boat_shoes', 'boots', 0.99),
+  'boots',
+  'near-certain boots still unlock a boat lock',
+);
+// Boat ↔ trainers is a plausible swap, but a single frame must not make the
+// label alternate on camera; sustained frames unlock it in stabilizeFootwearIdentity.
+assert.equal(
   stabilizeShoeSubtype('boat_shoes', 'sneakers', 0.91),
   'boat_shoes',
   'locked boat shoes resist trainers flicker',
+);
+assert.equal(
+  stabilizeShoeSubtype('flip_flops', 'sandals', 0.91),
+  'flip_flops',
+  'other known confusions hold on a single confident frame too',
+);
+assert.equal(
+  stabilizeShoeSubtype('sneakers', 'sandals', 0.95),
+  'sandals',
+  'a swap the detectors do not confuse is a real change',
 );
 assert.equal(
   stabilizeShoeSubtype('sneakers', 'boots', 0.8),
@@ -243,7 +260,13 @@ assert.equal(
     trackId: 'bl2',
   };
   const memChino = applyDetectionMemory([blazer, chinos], createDetectionMemory(), { now: 4000 });
-  assert.equal(memChino.memory.bottom?.subcategory, 'trousers', 'chinos stay trousers');
+  // Chinos are kept as chinos — specificity beats the coarse trousers label —
+  // but a hip-to-thigh crop must never demote them to shorts.
+  assert.match(
+    String(memChino.memory.bottom?.subcategory),
+    /^(chinos|trousers)$/,
+    'chinos stay in the trousers family',
+  );
   assert.ok(!/short/i.test(memChino.memory.bottom?.name || ''), 'name must not say shorts');
 }
 

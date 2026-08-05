@@ -278,21 +278,50 @@ const jacketDet: OnDeviceDetection = {
   bbox: [0.22, 0.14, 0.48, 0.36],
   trackId: 'j1',
 };
-const phantomTee: OnDeviceDetection = {
+// Visible strip of tee showing through an open jacket — a real second piece.
+const baseTee: OnDeviceDetection = {
   name: 'Blue top',
   category: 'tops',
   subcategory: 'top',
   color: 'blue',
   confidence: 0.95,
-  bbox: [0.24, 0.16, 0.46, 0.34],
+  bbox: [0.34, 0.18, 0.2, 0.3],
   trackId: 't2',
 };
 let layerState = createOutfitBeliefState();
-layerState = applyOutfitBelief(layerState, [jacketDet, dressDet, phantomTee], { now: 14000 }).state;
+layerState = applyOutfitBelief(layerState, [jacketDet, dressDet, baseTee], { now: 14000 }).state;
 assert.equal(layerState.top?.kind, 'top', 'tee stays as base under jacket');
 assert.equal(layerState.layer?.kind, 'outerwear', 'jacket occupies layer slot');
 assert.equal(layerState.bottom?.kind, 'dress');
 assert.equal(layerState.layer?.category, 'outerwear');
+
+// One hoodie read twice ("Charcoal top" + "Black Hoodie") must not become two
+// pieces — same box, same colour family, so there is nothing else to see.
+{
+  const hoodie: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'outerwear',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.9,
+    bbox: [0.22, 0.14, 0.48, 0.36],
+    trackId: 'h1',
+  };
+  const ghostCharcoal: OnDeviceDetection = {
+    name: 'Charcoal top',
+    category: 'tops',
+    subcategory: 'top',
+    color: 'charcoal',
+    confidence: 0.93,
+    bbox: [0.23, 0.15, 0.47, 0.35],
+    trackId: 'h2',
+  };
+  let dupe = createOutfitBeliefState();
+  dupe = applyOutfitBelief(dupe, [hoodie, ghostCharcoal, shorts], { now: 15000 }).state;
+  assert.ok(dupe.top, 'the hoodie still occupies a slot');
+  assert.equal(dupe.layer, null, 'duplicate read does not create a second upper');
+  assert.match(dupe.top?.name || '', /hoodie/i, 'the named garment survives, not the generic read');
+}
 
 // Tee + overshirt (no outerwear category) still layers
 const overshirt: OnDeviceDetection = {

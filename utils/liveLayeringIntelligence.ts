@@ -3,7 +3,7 @@
  * Sits between raw detections and UI; boxes/DBG/coaching read belief after LIM.
  */
 
-import type { ShoeSubtype } from '@/utils/liveFootwearGate';
+import { CONFUSABLE_SHOE_FLIPS, type ShoeSubtype } from '@/utils/liveFootwearGate';
 import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import { LIVE_SUMMARY_MAX, packSummary } from '@/utils/packSummary';
 
@@ -48,17 +48,16 @@ export const FOOTWEAR_PRIORITY: ShoeSubtype[] = [
   'boots',
 ];
 
-const FOOTWEAR_VETO: Partial<Record<ShoeSubtype, ShoeSubtype[]>> = {
-  boat_shoes: ['boots', 'sneakers'],
-  flip_flops: ['sandals', 'sneakers'],
-  slides: ['sandals', 'sneakers'],
-};
+/** Single source for known detector confusions — see liveFootwearGate. */
+const FOOTWEAR_VETO = CONFUSABLE_SHOE_FLIPS;
 
 export const LIM_HISTORY_LEN = 5;
 export const LIM_LOCK_CONFIDENCE = 0.85;
 export const LIM_UNLOCK_CONFIDENCE = 0.97;
 /** Sustained disagreeing frames required to break a lock. */
 export const LIM_SUSTAINED_CHANGE = 3;
+/** Peer swaps (boat ↔ trainers) are plausible but must not flip on one frame. */
+export const LIM_PEER_SUSTAINED_CHANGE = 2;
 
 export function weightedVote(
   samples: Array<{ value: string; confidence: number }>,
@@ -219,6 +218,27 @@ function footwearGroundVerb(name: string): string {
     : 'grounds';
 }
 
+/** Clash / low-score wording the rebuilt summary must never contradict. */
+const COACHING_TENSION_RE =
+  /pull in different directions|different wardrobes|mixed direction|needs a tweak|style lane|formality|neckwear|not sportswear|inconsistenc|clash/i;
+
+/**
+ * True when the server verdict is negative. Rebuilding the summary from belief
+ * names must stay descriptive here — praise would contradict the score and the
+ * bullets shown directly beneath it.
+ */
+export function coachingHasTension(
+  coaching: { headline?: string; summary?: string; bullets?: string[]; sameLane?: boolean } | null | undefined,
+  score?: number | null,
+): boolean {
+  if (!coaching) return false;
+  if (coaching.sameLane === false) return true;
+  if (typeof score === 'number' && Number.isFinite(score) && score < 60) return true;
+  if (COACHING_TENSION_RE.test(String(coaching.headline || ''))) return true;
+  if (COACHING_TENSION_RE.test(String(coaching.summary || ''))) return true;
+  return (coaching.bullets || []).some((b) => COACHING_TENSION_RE.test(String(b || '')));
+}
+
 /**
  * Force coaching copy to use belief display names — single UI truth.
  * Belief must already carry Vision-fused labels (specificity wins).
@@ -228,11 +248,14 @@ export function syncCoachingToBelief<T extends {
   headline?: string;
   bullets?: string[];
   outfitSignature?: string;
+  sameLane?: boolean;
 }>(
   coaching: T | null | undefined,
   pieces: BeliefPieceForCoach[],
+  opts: { score?: number | null } = {},
 ): T | null | undefined {
   if (!coaching?.summary || !pieces.length) return coaching;
+  const tension = coachingHasTension(coaching, opts.score);
 
   const dress = pieces.find(isDressPiece);
   const top = pieces.find(isTopPiece);
@@ -244,12 +267,17 @@ export function syncCoachingToBelief<T extends {
   const accessory = pieces.find(isAccessoryPiece);
 
   const parts: string[] = [];
+  const layerClause = (name: string) =>
+    tension ? `${name} sits over the top` : `${name} adds a relaxed layer`;
+
   if (dress && !bottom) {
     parts.push(`${dress.name} carries the look`);
-    if (outer?.name) parts.push(`${outer.name} adds a relaxed layer`);
+    if (outer?.name) parts.push(layerClause(outer.name));
   } else if (top?.name && bottom?.name) {
-    parts.push(`${top.name} and ${bottom.name} work well together`);
-    if (outer?.name && outer !== top) parts.push(`${outer.name} adds a relaxed layer`);
+    parts.push(tension
+      ? `${top.name} and ${bottom.name} pull in different directions`
+      : `${top.name} and ${bottom.name} work well together`);
+    if (outer?.name && outer !== top) parts.push(layerClause(outer.name));
   } else if (top?.name) {
     parts.push(`${top.name} carries the look`);
   } else if (bottom?.name) {
@@ -259,7 +287,9 @@ export function syncCoachingToBelief<T extends {
   }
 
   if (accessory?.name) {
-    parts.push(`${accessory.name} finishes the look`);
+    // "Finishes the look" reads as approval — a tie over sportswear is the
+    // reason the score dropped, so name it without endorsing it.
+    parts.push(tension ? `${accessory.name} is added on top` : `${accessory.name} finishes the look`);
   }
 
   if (shoes?.name && !/\bdress\b/i.test(shoes.name)) {
@@ -336,13 +366,16 @@ export function stabilizeFootwearIdentity(args: {
 
   let subtype = (voteLabel || args.proposed?.label || args.lockedSubtype || null) as ShoeSubtype | null;
   if (subtype && args.lockedSubtype) {
-    const proposedConf = args.proposed?.confidence ?? 0;
     const peerFlip =
       (args.lockedSubtype === 'boat_shoes' && (subtype === 'sneakers' || subtype === 'trainers'))
       || (args.lockedSubtype === 'sneakers' && subtype === 'boat_shoes')
       || (args.lockedSubtype === 'trainers' && subtype === 'boat_shoes');
-    // High-confidence Vision peer (sneakers ↔ boat) may unlock — don't hard-veto.
-    if (!(peerFlip && proposedConf >= 0.85)) {
+    // A Vision peer (boat ↔ trainers) may unlock the veto, but it has to hold
+    // across frames — one confident frame made the label alternate on camera.
+    const peerFrames = recent.filter(
+      (h) => h.label === subtype && h.confidence >= 0.85,
+    ).length;
+    if (!(peerFlip && peerFrames >= LIM_PEER_SUSTAINED_CHANGE)) {
       subtype = applyFootwearVeto(args.lockedSubtype, subtype);
     }
   }
@@ -361,10 +394,13 @@ export function stabilizeFootwearIdentity(args: {
       || ((args.lockedSubtype === 'sneakers' || args.lockedSubtype === 'trainers')
         && subtype === 'boat_shoes');
     const disagreeStrong = disagree.filter((h) => h.confidence >= (peerFlip ? 0.85 : LIM_UNLOCK_CONFIDENCE));
+    // A peer flip is plausible enough that one confident frame used to be
+    // enough — which made boat shoes and trainers alternate frame to frame.
+    // Two agreeing frames still corrects a wrong lock within a second or two.
+    const requiredStrong = peerFlip ? LIM_PEER_SUSTAINED_CHANGE : 1;
     const canUnlock = lockConf < LIM_LOCK_CONFIDENCE
-      || disagreeStrong.length >= 1
-      || disagree.length >= LIM_SUSTAINED_CHANGE
-      || (peerFlip && (args.proposed?.confidence ?? 0) >= 0.85);
+      || disagreeStrong.length >= requiredStrong
+      || disagree.length >= LIM_SUSTAINED_CHANGE;
     if (!canUnlock) subtype = args.lockedSubtype;
   }
 

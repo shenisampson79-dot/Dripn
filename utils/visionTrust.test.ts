@@ -80,6 +80,41 @@ assert.ok(
   assert.match(String(fused.name), /sneaker/i);
 }
 
+// A confident but generic Vision label must not undo a specific read.
+{
+  const fused = resolveFusedIdentity(
+    { name: 'Grey Sweatpants', subcategory: 'sweatpants', confidence: 0.9 },
+    { name: 'Grey Trousers', subcategory: 'trousers', confidence: 0.95 },
+  );
+  assert.equal(fused.adopted, 'prev', 'sweatpants must not coarsen to trousers');
+  assert.match(String(fused.name), /sweatpant/i);
+}
+
+{
+  const fused = resolveFusedIdentity(
+    { name: 'Orange T-Shirt', subcategory: 't-shirt', confidence: 0.9 },
+    { name: 'Charcoal top', subcategory: 'top', confidence: 0.95 },
+  );
+  assert.equal(fused.adopted, 'prev', 't-shirt must not coarsen to a bare "top"');
+}
+
+{
+  const fused = resolveFusedIdentity(
+    { name: 'Multicolor Boat Shoes', subcategory: 'boat_shoes', confidence: 0.9 },
+    { name: 'Brown and White Shoes', subcategory: 'shoes', confidence: 0.95 },
+  );
+  assert.equal(fused.adopted, 'prev', 'boat shoes must not coarsen to plain "shoes"');
+}
+
+// Changing garment is not coarsening — a real swap still flips immediately.
+{
+  const fused = resolveFusedIdentity(
+    { name: 'Grey Sweatpants', subcategory: 'sweatpants', confidence: 0.9 },
+    { name: 'Black Sports Shorts', subcategory: 'athletic_shorts', confidence: 0.9 },
+  );
+  assert.equal(fused.adopted, 'next', 'sweatpants → shorts is a real change');
+}
+
 {
   const mem = createLiveBeliefMemory();
   const yolo = updateLiveBelief(

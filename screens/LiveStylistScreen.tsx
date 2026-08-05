@@ -155,8 +155,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   /** Prefer server tier from the 429 usage snapshot over cached Auth. */
   const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
 
+  // Staff status resolves after the first render, so the overlay cannot be
+  // seeded from initial state — open it once, then leave the toggle to the user.
+  const staffDebugPrimed = useRef(false);
   useEffect(() => {
-    if (!beliefDebugAllowed && showBeliefDebug) setShowBeliefDebug(false);
+    if (!beliefDebugAllowed) {
+      if (showBeliefDebug) setShowBeliefDebug(false);
+      return;
+    }
+    if (staffDebugPrimed.current) return;
+    staffDebugPrimed.current = true;
+    setShowBeliefDebug(true);
   }, [beliefDebugAllowed, showBeliefDebug]);
 
   const lastHashRef = useRef<string | null>(null);
@@ -344,6 +353,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           subcategory: it.subcategory,
           color: it.color,
         })),
+        { score: next.score },
       ) || next.coaching;
     } else if (next.coaching) {
       next.coaching = polishUkCoaching(next.coaching) || next.coaching;

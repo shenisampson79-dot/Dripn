@@ -15,6 +15,7 @@ import {
 } from '@/utils/bodyGeometryGuardrails';
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
 import { buildFootwearDisplayLabel, toCanonicalFootwearFamily } from '@/utils/footwearLayers';
+import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
 export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides' | 'boat_shoes';
 
@@ -76,6 +77,24 @@ export type ShoeStyleScore = {
 
 export const SHOE_MIN_CONFIDENCE = 0.75;
 export const SUBTYPE_CHANGE_THRESHOLD = 0.9;
+/**
+ * Pairs the detectors genuinely confuse, keyed by the locked subtype. These are
+ * the labels seen alternating on camera between frames rather than real garment
+ * changes: boat shoes read as boots from a tall mirror box and as trainers from
+ * the cloud. A swap the detectors do not confuse (trainers → sandals) is a real
+ * change and keeps the ordinary threshold.
+ */
+export const CONFUSABLE_SHOE_FLIPS: Partial<Record<ShoeSubtype, ShoeSubtype[]>> = {
+  boat_shoes: ['boots', 'sneakers'],
+  flip_flops: ['sandals', 'sneakers'],
+  slides: ['sandals', 'sneakers'],
+};
+/** Matches LIM_UNLOCK_CONFIDENCE — one frame must not win a known confusion. */
+export const CONFUSABLE_FLIP_UNLOCK = 0.97;
+
+export function isConfusableShoeFlip(prev: ShoeSubtype, next: ShoeSubtype): boolean {
+  return Boolean(CONFUSABLE_SHOE_FLIPS[prev]?.includes(next));
+}
 /** Lowered slightly — darker skin samples often read lower after luma. */
 export const BAREFOOT_SKIN_RATIO = 0.22;
 export const FOOT_ZONE_BRIGHTNESS_MIN = 0.1;
@@ -348,7 +367,7 @@ export function gateFootwearDetections(
     color: seedDet.color || best.d.color,
     // Display from vision when specific; else from fine subtype — never invent trainers over boots
     name: keepVisionLabel
-      ? visionName
+      ? polishUkLiveLabel(visionName)
       : buildFootwearDisplayLabel({
       type: subtype,
       color: seedDet.color || best.d.color,
@@ -455,9 +474,9 @@ export function stabilizeShoeSubtype(
 ): ShoeSubtype {
   if (!prev) return next;
   if (prev === next) return prev;
-  // Hierarchy soft-lock: boat shoes resist weak boots/trainers remaps.
-  // Vision sneakers at ≥0.85 unlock — YOLO boat lock must not beat cloud identity.
-  if (prev === 'boat_shoes' && (next === 'boots' || next === 'sneakers') && confidence < 0.85) {
+  // Known detector confusion — hold unless near-certain. Sustained disagreement
+  // across frames in liveLayeringIntelligence still switches the belief.
+  if (isConfusableShoeFlip(prev, next) && confidence < CONFUSABLE_FLIP_UNLOCK) {
     return prev;
   }
   // Vision boots must unlock sticky trainers (YOLO often locks sneakers first).

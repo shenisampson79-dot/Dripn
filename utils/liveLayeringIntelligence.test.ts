@@ -80,19 +80,55 @@ const synced = syncCoachingToBelief(
   {
     headline: 'Smart casual',
     summary: 'Light Blue Shirt and White Shorts sit in the same lane, and Brown Boat Shoes ground the look.',
-    bullets: ['Keep pieces in one style lane'],
+    bullets: ['Colour read: warm neutrals'],
   },
   [
     { name: 'Light Green top', category: 'tops', subcategory: 'top' },
     { name: 'Grey shorts', category: 'bottoms', subcategory: 'shorts' },
     { name: 'Red And Brown boat shoes', category: 'shoes', subcategory: 'boat_shoes' },
   ],
+  { score: 82 },
 );
 assert.match(synced?.summary || '', /Grey shorts/i);
 assert.match(synced?.summary || '', /Light Green top/i);
 assert.match(synced?.summary || '', /Red And Brown boat shoes/i);
 assert.match(synced?.summary || '', /work well together/i);
 assert.doesNotMatch(synced?.summary || '', /White Shorts|Light Blue Shirt|sit in the same lane/i);
+
+// A rebuilt summary must never praise an outfit the score and bullets condemn.
+const clashSynced = syncCoachingToBelief(
+  {
+    headline: 'Needs a tweak',
+    summary: 'Orange T-Shirt and Grey Sweatpants pull in different directions.',
+    bullets: ['Formal neckwear needs a shirt or smarter top — not sportswear.'],
+    sameLane: false,
+  },
+  [
+    { name: 'Orange T-Shirt', category: 'tops', subcategory: 't-shirt' },
+    { name: 'Light Blue Blazer', category: 'outerwear', subcategory: 'blazer' },
+    { name: 'Grey Sweatpants', category: 'bottoms', subcategory: 'sweatpants' },
+    { name: 'Blue Polka Dot Tie', category: 'accessories', subcategory: 'tie' },
+  ],
+  { score: 43 },
+);
+assert.doesNotMatch(clashSynced?.summary || '', /work well together|finishes the look|relaxed layer/i);
+assert.match(clashSynced?.summary || '', /pull in different directions/i);
+assert.match(clashSynced?.summary || '', /Grey Sweatpants/i);
+
+// Score alone is enough — a low score must not be dressed up as harmony.
+const lowScore = syncCoachingToBelief(
+  {
+    headline: 'Mixed directions',
+    summary: 'Something neutral.',
+    bullets: [],
+  },
+  [
+    { name: 'Orange T-Shirt', category: 'tops', subcategory: 't-shirt' },
+    { name: 'Grey Sweatpants', category: 'bottoms', subcategory: 'sweatpants' },
+  ],
+  { score: 44 },
+);
+assert.doesNotMatch(lowScore?.summary || '', /work well together/i);
 
 const noShoes = syncCoachingToBelief(
   {
