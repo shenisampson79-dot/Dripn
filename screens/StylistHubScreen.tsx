@@ -22,6 +22,7 @@ import {
 import { consumePendingCameraWow } from "@/services/CameraWowIntentService";
 
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import { prefetchAIStylistChatHistory } from "@/screens/AIStylistScreen";
 
 type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
@@ -229,6 +230,10 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
       : 56 + insets.bottom;
 
   React.useEffect(() => {
+    void prefetchAIStylistChatHistory();
+  }, []);
+
+  React.useEffect(() => {
     let cancelled = false;
     (async () => {
       const pending = await consumePendingCameraWow();
@@ -287,6 +292,12 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
       return;
     }
     if (feature.screen) {
+      if (feature.screen === "AIStylist") {
+        void prefetchAIStylistChatHistory().finally(() => {
+          navigation.navigate("AIStylist");
+        });
+        return;
+      }
       navigation.navigate(feature.screen);
     }
   };
@@ -396,7 +407,11 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
       {/* Overlay — does not affect Style Tools layout */}
       <TodaysOutfitCard
         openToday={Boolean(route.params?.openToday)}
-        onOpenStylist={(prompt) => navigation.navigate("AIStylist", { initialPrompt: prompt })}
+        onOpenStylist={(prompt) => {
+          void prefetchAIStylistChatHistory().finally(() => {
+            navigation.navigate("AIStylist", { initialPrompt: prompt });
+          });
+        }}
       />
     </View>
   );

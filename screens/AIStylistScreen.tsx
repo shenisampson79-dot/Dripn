@@ -163,6 +163,8 @@ const TAB_BAR_HEIGHT = 56;
 
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
+/** Stable FlatList row id for the welcome bubble — never swap this id on hydrate. */
+const SEED_MESSAGE_ID = 'msg_seed_init';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -343,6 +345,107 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
   }
 
   return normalized;
+}
+
+/** In-memory chat snapshot so remounts paint with real history (no seed→history swap). */
+let chatMessagesMemoryCache: ChatMessage[] | null = null;
+let chatQuickPromptsMemoryCache: boolean | null = null;
+
+function rememberChatMessages(msgs: ChatMessage[], showQuickPrompts?: boolean) {
+  chatMessagesMemoryCache = msgs.slice(-50);
+  if (typeof showQuickPrompts === 'boolean') {
+    chatQuickPromptsMemoryCache = showQuickPrompts;
+  }
+}
+
+function getCachedMessagesSync(): ChatMessage[] | null {
+  return chatMessagesMemoryCache;
+}
+
+function isSeedOnlyThread(msgs: ChatMessage[]): boolean {
+  if (msgs.length === 0) return true;
+  return (
+    msgs.length === 1 &&
+    msgs[0]?.role === 'assistant' &&
+    (msgs[0].id === SEED_MESSAGE_ID || !msgs.some((m) => m.role === 'user'))
+  );
+}
+
+function threadHasUserMessage(msgs: ChatMessage[]): boolean {
+  return msgs.some((m) => m.role === 'user');
+}
+
+/**
+ * Progressive hydrate — never blind-replace the rendered list.
+ * Seed-only → real thread keeps the first row id so FlatList does not remount cell 0.
+ */
+function mergeChatMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
+  if (!incoming.length) return prev;
+
+  if (isSeedOnlyThread(prev) && (threadHasUserMessage(incoming) || incoming.length > 1)) {
+    return incoming.map((m, i) =>
+      i === 0 && prev[0] && m.role === 'assistant' ? { ...m, id: prev[0].id } : m,
+    );
+  }
+
+  if (isSeedOnlyThread(prev) && incoming.length === 1 && incoming[0]?.role === 'assistant') {
+    if (!prev[0]) return [{ ...incoming[0], id: SEED_MESSAGE_ID }];
+    if (prev[0].content === incoming[0].content) return prev;
+    return [{
+      ...prev[0],
+      content: incoming[0].content,
+      timestamp: incoming[0].timestamp || prev[0].timestamp,
+    }];
+  }
+
+  const byId = new Map(prev.map((m) => [m.id, m]));
+  let changed = false;
+  const next = [...prev];
+  for (const m of incoming) {
+    const existing = byId.get(m.id);
+    if (!existing) {
+      next.push(m);
+      byId.set(m.id, m);
+      changed = true;
+      continue;
+    }
+    if (
+      existing.content !== m.content ||
+      existing.imageUri !== m.imageUri ||
+      existing.isVisualizingOutfit !== m.isVisualizingOutfit ||
+      existing.wardrobeVisual !== m.wardrobeVisual
+    ) {
+      const idx = next.findIndex((x) => x.id === m.id);
+      if (idx >= 0) {
+        next[idx] = { ...existing, ...m, id: existing.id };
+        changed = true;
+      }
+    }
+  }
+  return changed ? next : prev;
+}
+
+function readTodayMessagesFromParsed(parsed: unknown): ChatMessage[] {
+  if (!Array.isArray(parsed)) return [];
+  const today = new Date().toDateString();
+  return parsed
+    .map(normalizeChatMessage)
+    .filter((msg): msg is ChatMessage => msg !== null)
+    .filter((msg) => new Date(msg.timestamp).toDateString() === today)
+    .slice(-20);
+}
+
+/** Warm sync cache before Hub → Chat so first paint already has today's thread. */
+export async function prefetchAIStylistChatHistory(): Promise<void> {
+  try {
+    const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+    if (!data) return;
+    const recent = readTodayMessagesFromParsed(JSON.parse(data));
+    if (!recent.length) return;
+    rememberChatMessages(recent, !threadHasUserMessage(recent));
+  } catch {
+    /* optional warm */
+  }
 }
 
 function attachWardrobeVisualToMessage(
@@ -1574,20 +1677,26 @@ export default function AIStylistScreen() {
     return getStylistGreeting(stylist, userName, speakT, greetingWardrobe);
   }, [stylist, user?.name, effectiveLanguage, greetingWardrobe]);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: 'msg_seed_init',
-      role: 'assistant',
-      content: buildSeedGreeting(),
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const cached = getCachedMessagesSync();
+    if (cached?.length) return cached;
+    return [
+      {
+        id: SEED_MESSAGE_ID,
+        role: 'assistant',
+        content: buildSeedGreeting(),
+        timestamp: new Date().toISOString(),
+      },
+    ];
+  });
   const [inputText, setInputText] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
-  const [showQuickPrompts, setShowQuickPrompts] = useState(true);
+  const [showQuickPrompts, setShowQuickPrompts] = useState(
+    () => chatQuickPromptsMemoryCache ?? !threadHasUserMessage(getCachedMessagesSync() || []),
+  );
   const [generatingOccasionId, setGeneratingOccasionId] = useState<string | null>(null);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'helpful' | 'not_helpful' | null>>({});
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -1602,14 +1711,11 @@ export default function AIStylistScreen() {
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [chatMode, setChatMode] = useState<'text' | 'voice'>('text');
-  /** Solid cover until push is fully committed — lifted only on a post-transition frame. */
-  const [transitionCoverVisible, setTransitionCoverVisible] = useState(true);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const ttsPlayerRef = useRef<AudioPlayer | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isRecordingActiveRef = useRef(false);
   const isMountedRef = useRef(true);
-  const hydrateStartedRef = useRef(false);
 
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
     if (!force && !isNearBottomRef.current && !stickToLatestRef.current) return;
@@ -1764,51 +1870,18 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     isMountedRef.current = true;
-
-    // transitionEnd must not setState synchronously (races last native frame).
-    // Keep the opaque cover up until history hydrate commits — lifting the cover first,
-    // then setMessages ~1s later (AsyncStorage/server) was the post-slide flash.
-    const schedulePostTransitionWork = () => {
-      if (hydrateStartedRef.current || !isMountedRef.current) return;
-      hydrateStartedRef.current = true;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!isMountedRef.current) return;
-          void (async () => {
-            try {
-              // Hydrate under cover. Local is fast; if missing, await server too so a late
-              // setMessages cannot flash Hub ~1s after the slide completes.
-              const localFound = await loadChatHistory({ phase: 'local' });
-              await loadDailyMessageCount();
-              if (!localFound) {
-                await loadChatHistory({ phase: 'server' });
-              }
-              void checkAudioPermission();
-            } finally {
-              if (!isMountedRef.current) return;
-              requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  if (isMountedRef.current) setTransitionCoverVisible(false);
-                });
-              });
-            }
-          })();
-        });
-      });
-    };
-
-    const unsub = navigation.addListener('transitionEnd' as never, ((e: { data?: { closing?: boolean } }) => {
-      if (e?.data?.closing) return;
-      schedulePostTransitionWork();
-    }) as never);
-
-    // Fallback when transitionEnd doesn't fire (gesture cancel, no animation, etc.)
-    const fallback = setTimeout(schedulePostTransitionWork, 500);
-
+    // Progressive hydrate — no transition coupling, no cover. Sync cache (prefetched from Hub)
+    // means first paint usually already has today's thread; merge is a no-op then.
+    void (async () => {
+      const localFound = await loadChatHistory({ phase: 'local' });
+      await loadDailyMessageCount();
+      if (!localFound) {
+        await loadChatHistory({ phase: 'server' });
+      }
+      void checkAudioPermission();
+    })();
     return () => {
       isMountedRef.current = false;
-      unsub();
-      clearTimeout(fallback);
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -1821,16 +1894,17 @@ export default function AIStylistScreen() {
       }
       stopTTSPlayback();
     };
-  }, [navigation]);
+  }, []);
   
-  // Seed is initialized in useState — only refresh greeting text when language/stylist changes
-  // and the thread is still a single assistant welcome (no mount setState during the push).
+  // Patch seed greeting text in place (same row id) when language/stylist changes.
   useEffect(() => {
     const nextGreeting = buildSeedGreeting();
     setMessages((prev) => {
-      if (prev.length !== 1 || prev[0]?.role !== 'assistant') return prev;
+      if (!isSeedOnlyThread(prev) || !prev[0]) return prev;
       if (prev[0].content === nextGreeting) return prev;
-      return [{ ...prev[0], content: nextGreeting }];
+      const next = [{ ...prev[0], id: SEED_MESSAGE_ID, content: nextGreeting }];
+      rememberChatMessages(next, true);
+      return next;
     });
   }, [stylist, buildSeedGreeting]);
 
@@ -2330,39 +2404,30 @@ export default function AIStylistScreen() {
           if (!Array.isArray(parsed)) {
             await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
           } else {
-            const today = new Date().toDateString();
-            const recentMessages = parsed
-              .map(normalizeChatMessage)
-              .filter((msg): msg is ChatMessage => msg !== null)
-              .filter((msg) => new Date(msg.timestamp).toDateString() === today)
-              .slice(-20);
+            let recentMessages = readTodayMessagesFromParsed(parsed);
 
             if (recentMessages.length > 0) {
-              // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
               stickToLatestRef.current = true;
               isNearBottomRef.current = true;
               chatMachineRef.current = transitionPhase(chatMachineRef.current, 'LOADING_HISTORY');
               chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
+
               if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
-                const nextContent = buildSeedGreeting();
-                setMessages((prev) => {
-                  if (
-                    prev.length === 1 &&
-                    prev[0]?.role === 'assistant' &&
-                    prev[0].content === nextContent
-                  ) {
-                    return prev;
-                  }
-                  return [{ ...recentMessages[0], content: nextContent }];
-                });
+                recentMessages = [{ ...recentMessages[0], id: SEED_MESSAGE_ID, content: buildSeedGreeting() }];
                 setShowQuickPrompts(true);
               } else {
-                setMessages(recentMessages);
                 setShowQuickPrompts(false);
               }
+
+              setMessages((prev) => {
+                const merged = mergeChatMessages(prev, recentMessages);
+                if (merged !== prev) {
+                  rememberChatMessages(merged, !threadHasUserMessage(merged));
+                }
+                return merged;
+              });
               setTimeout(() => scrollChatToEnd(true, false), 50);
               setTimeout(() => scrollChatToEnd(true, false), 400);
-              setTimeout(() => scrollChatToEnd(true, false), 1000);
               return true;
             }
           }
@@ -2370,9 +2435,9 @@ export default function AIStylistScreen() {
         return false;
       }
 
-      // Server fallback only when local had nothing (caller checks). Skip if user already has a thread.
-      const hasUserThread = messagesLenRef.current > 1;
-      if (hasUserThread) return false;
+      if (threadHasUserMessage(getCachedMessagesSync() || []) || messagesLenRef.current > 1) {
+        return false;
+      }
 
       try {
         const serverHistory = await apiService.getChatHistory(stylist.id, 40);
@@ -2390,9 +2455,15 @@ export default function AIStylistScreen() {
             .filter((m) => m.content.trim().length > 0)
             .slice(-20);
           if (mapped.some((m) => m.role === 'user')) {
-            setMessages(mapped);
             setShowQuickPrompts(false);
-            await saveChatHistory(mapped);
+            setMessages((prev) => {
+              const merged = mergeChatMessages(prev, mapped);
+              if (merged !== prev) {
+                rememberChatMessages(merged, false);
+                void saveChatHistory(merged);
+              }
+              return merged;
+            });
             return true;
           }
         }
@@ -2429,7 +2500,9 @@ export default function AIStylistScreen() {
   
   const saveChatHistory = async (newMessages: ChatMessage[]) => {
     try {
-      await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(newMessages.slice(-50)));
+      const trimmed = newMessages.slice(-50);
+      rememberChatMessages(trimmed, !threadHasUserMessage(trimmed));
+      await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(trimmed));
     } catch (error) {
       console.error('Failed to save chat history:', error);
     }
@@ -3049,7 +3122,7 @@ export default function AIStylistScreen() {
     
     const greeting = buildSeedGreeting();
     const greetingMessage: ChatMessage = {
-      id: `msg_${Date.now()}`,
+      id: SEED_MESSAGE_ID,
       role: 'assistant',
       content: greeting,
       timestamp: new Date().toISOString(),
@@ -3057,6 +3130,7 @@ export default function AIStylistScreen() {
     
     setMessages([greetingMessage]);
     setShowQuickPrompts(true);
+    rememberChatMessages([greetingMessage], true);
     await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
   };
   
@@ -4317,12 +4391,6 @@ export default function AIStylistScreen() {
           refreshVoiceCredits();
         }}
       />
-      {transitionCoverVisible ? (
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.backgroundRoot, zIndex: 100 }]}
-        />
-      ) : null}
     </View>
   );
 }

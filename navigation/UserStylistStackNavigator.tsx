@@ -99,8 +99,8 @@ export default function UserStylistStackNavigator() {
             transparent: false,
             title: t('navTitles.stylistChat'),
           }),
-          // Detach Hub after the push so it cannot composite through a 1-frame Chat stall.
-          // Hydration must NOT run synchronously in transitionEnd (see AIStylistScreen).
+          // Defensive: detach Hub after push so a rare Chat stall cannot composite Hub.
+          // Flash fix is progressive message hydrate (merge + sync cache), not this flag alone.
           detachPreviousScreen: true,
           animation: "slide_from_right",
           animationTypeForReplace: "push",
