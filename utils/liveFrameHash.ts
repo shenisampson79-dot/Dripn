@@ -126,10 +126,12 @@ export function hasMeaningfulLiveSceneChange(
   const previousBox = bboxMetric(previous);
   const currentBox = bboxMetric(current);
   if (previousBox && currentBox) {
-    if (relativeDelta(previousBox.width, currentBox.width) >= 0.12) return true;
-    if (relativeDelta(previousBox.area, currentBox.area) >= 0.18) return true;
+    // Silhouette / region occupancy — lower than hash noise, high enough to
+    // ignore arm sway. Prefer this over waiting for a colour flip.
+    if (relativeDelta(previousBox.width, currentBox.width) >= 0.1) return true;
+    if (relativeDelta(previousBox.area, currentBox.area) >= 0.14) return true;
   }
 
   // JPEG length is not semantic by itself, so require a large cumulative shift.
-  return encodedFrameLengthDelta(baselineFrameHash, currentFrameHash) >= 0.18;
+  return encodedFrameLengthDelta(baselineFrameHash, currentFrameHash) >= 0.16;
 }

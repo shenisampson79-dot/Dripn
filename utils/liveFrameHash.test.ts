@@ -44,7 +44,7 @@ assert.equal(
 );
 
 assert.equal(
-  hasMeaningfulLiveSceneChange([baseTop], [{ ...baseTop, bbox: [0.25, 0.18, 0.46, 0.5] }]),
+  hasMeaningfulLiveSceneChange([baseTop], [{ ...baseTop, bbox: [0.25, 0.18, 0.42, 0.48] }]),
   true,
   'silhouette expansion triggers cloud',
 );

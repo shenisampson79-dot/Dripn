@@ -79,7 +79,8 @@ const FRAME_WIDTH = 640;
  */
 const CLOUD_LAYER_VERIFY_MS = 12000;
 /** Event-triggered cloud checks are throttled even when the scene keeps moving. */
-const CLOUD_SCENE_EVENT_COOLDOWN_MS = 4500;
+/** ~3s keeps jacket put-on responsive without cloud-per-frame spend. */
+const CLOUD_SCENE_EVENT_COOLDOWN_MS = 3000;
 const CLOUD_SCENE_EVENT_FRAMES = 2;
 
 function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
