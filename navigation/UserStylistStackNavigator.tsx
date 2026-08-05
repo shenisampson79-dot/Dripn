@@ -99,9 +99,9 @@ export default function UserStylistStackNavigator() {
             transparent: false,
             title: t('navTitles.stylistChat'),
           }),
-          // Detach Hub while Chat is focused so the previous screen cannot re-paint mid-push
-          // (fixes Hub flash when Chat's first frame is late). Scoped to this screen only.
-          detachPreviousScreen: true,
+          // Keep Hub attached for the whole slide. Detaching at transition-end was causing a
+          // late Hub flash as Chat's heavy hydrate competed with the last animation frames.
+          detachPreviousScreen: false,
           animation: "slide_from_right",
           animationTypeForReplace: "push",
         }}

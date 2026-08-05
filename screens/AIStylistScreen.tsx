@@ -19,7 +19,6 @@ import {
   Linking,
   ScrollView,
   Modal,
-  InteractionManager,
 } from 'react-native';
 import { KeyboardStickyView, useKeyboardState, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1596,11 +1595,14 @@ export default function AIStylistScreen() {
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [chatMode, setChatMode] = useState<'text' | 'voice'>('text');
+  /** Solid cover until push animation ends — hides Hub peek-through during Chat hydrate. */
+  const [transitionCoverVisible, setTransitionCoverVisible] = useState(true);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const ttsPlayerRef = useRef<AudioPlayer | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isRecordingActiveRef = useRef(false);
   const isMountedRef = useRef(true);
+  const hydrateStartedRef = useRef(false);
 
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
     if (!force && !isNearBottomRef.current && !stickToLatestRef.current) return;
@@ -1755,17 +1757,31 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     isMountedRef.current = true;
-    // Defer storage + permission work until the push animation finishes so the first
-    // transition frames aren't competing with AsyncStorage / history hydration.
-    const task = InteractionManager.runAfterInteractions(() => {
-      if (!isMountedRef.current) return;
+    // Hydrate only after the push finishes. InteractionManager alone still races the
+    // last slide frames and was shifting the Hub flash later — wait for transitionEnd.
+    const startHydrate = () => {
+      if (hydrateStartedRef.current || !isMountedRef.current) return;
+      hydrateStartedRef.current = true;
+      // Lift cover as soon as the push is done — history can settle underneath Chat
+      // without racing the last slide frames (that race moved the Hub flash later).
+      setTransitionCoverVisible(false);
       void loadChatHistory();
       void loadDailyMessageCount();
       void checkAudioPermission();
-    });
+    };
+
+    const unsub = navigation.addListener('transitionEnd' as never, ((e: { data?: { closing?: boolean } }) => {
+      if (e?.data?.closing) return;
+      startHydrate();
+    }) as never);
+
+    // Fallback when transitionEnd doesn't fire (gesture cancel, no animation, etc.)
+    const fallback = setTimeout(startHydrate, 500);
+
     return () => {
       isMountedRef.current = false;
-      task.cancel?.();
+      unsub();
+      clearTimeout(fallback);
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -1778,7 +1794,7 @@ export default function AIStylistScreen() {
       }
       stopTTSPlayback();
     };
-  }, []);
+  }, [navigation]);
   
   useEffect(() => {
     if (messages.length === 0) {
@@ -4265,6 +4281,12 @@ export default function AIStylistScreen() {
           refreshVoiceCredits();
         }}
       />
+      {transitionCoverVisible ? (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.backgroundRoot, zIndex: 100 }]}
+        />
+      ) : null}
     </View>
   );
 }
