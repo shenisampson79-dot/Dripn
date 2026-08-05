@@ -390,6 +390,43 @@ function computeFitBreakdown(
   };
 }
 
+const PLAIN_STYLE_WORD: Record<string, string> = {
+  athleisure: 'sportswear',
+  sportswear: 'sportswear',
+  streetwear: 'streetwear',
+  smart_casual: 'smart-casual',
+  business: 'tailored',
+  formal: 'formal',
+  minimal: 'pared-back',
+  boho: 'boho',
+  edgy: 'edgy',
+  casual: 'casual',
+  luxury: 'dressy',
+};
+
+/**
+ * Mirrors the server: name the evidence behind an unclear style identity rather
+ * than emitting one catch-all line that reads as boilerplate on second sight.
+ */
+function styleIdentityLine(
+  style: UnifiedStyleBreakdown,
+  color: UnifiedColorBreakdown,
+  fit: UnifiedFitBreakdown,
+  aesthetic: ReturnType<typeof analyzeOutfitAesthetic>,
+): string {
+  const clashing = (Array.isArray(aesthetic.conflictingStyles) ? aesthetic.conflictingStyles : [])
+    .map((name) => PLAIN_STYLE_WORD[String(name).toLowerCase()])
+    .filter(Boolean);
+  const distinct = [...new Set(clashing)];
+  if (distinct.length >= 2) {
+    return `${distinct[0][0].toUpperCase()}${distinct[0].slice(1)} and ${distinct[1]} pieces are mixed here`;
+  }
+  if (Number(style?.formality_match) < 0.6) return 'Dressy and casual pieces are mixed here';
+  if (Number(color?.clash_penalty) >= 0.3) return 'The colours are pulling in different directions';
+  if (Number(fit?.silhouette_balance) < 0.55) return 'The shapes of these pieces do not line up';
+  return 'The pieces do not read as one outfit yet';
+}
+
 function buildFeedback(
   style: UnifiedStyleBreakdown,
   color: UnifiedColorBreakdown,
@@ -405,7 +442,7 @@ function buildFeedback(
     lines.push('Footwear breaks the outfit\'s style intent');
   }
   if (aesthetic.unclearIdentity) {
-    lines.push('Style inconsistency — pieces read like different wardrobes');
+    lines.push(styleIdentityLine(style, color, fit, aesthetic));
   }
   if (color.clash_penalty >= 0.4) {
     lines.push(`Color ${color.harmony_type.replace(/_/g, ' ')} — simplify palette or add a neutral anchor`);

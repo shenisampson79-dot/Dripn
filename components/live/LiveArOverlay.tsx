@@ -132,9 +132,18 @@ export function LiveArOverlay({
       {feedback ? (
         <View style={styles.hud} pointerEvents="box-none">
           <View style={styles.topRow}>
-            <View style={[styles.scoreBadge, { borderColor: scoreColor(feedback.score) }]}>
+            <View
+              style={[
+                styles.scoreBadge,
+                {
+                  borderColor: Number.isFinite(feedback.score)
+                    ? scoreColor(Number(feedback.score))
+                    : 'rgba(255,255,255,0.35)',
+                },
+              ]}
+            >
               <ThemedText type="h3" style={{ color: '#FFF', fontWeight: '700' }}>
-                {feedback.score}
+                {Number.isFinite(feedback.score) ? feedback.score : '—'}
               </ThemedText>
               <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 score

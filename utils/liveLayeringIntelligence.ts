@@ -213,6 +213,21 @@ function isAccessoryPiece(p: BeliefPieceForCoach): boolean {
 }
 
 /**
+ * Mirror of the server's sentence-case rule: garment names stay Title Case on
+ * overlay labels but read as sentence case inside a summary clause.
+ */
+export function sentenceCaseGarmentName(name: string, atSentenceStart = false): string {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  const lowered = words.map((word) => (
+    /^[A-Z][a-z'’]*(-[A-Za-z][a-z'’]*)*$/.test(word) ? word.toLowerCase() : word
+  ));
+  const out = lowered.join(' ');
+  if (!atSentenceStart) return out;
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+
+/**
  * Render server-owned summary copy with current belief display names.
  * Belief supplies nouns only; it never writes or changes the sentence meaning.
  */
@@ -255,13 +270,13 @@ export function syncCoachingToBelief<T extends {
     let unresolved = false;
     const rendered = template.replace(
       /\{(onePiece|layer|top|bottom|shoes|accessory)\}/g,
-      (_match, role: string) => {
+      (_match, role: string, offset: number) => {
         const name = names[role];
         if (!name) {
           unresolved = true;
           return '';
         }
-        return name;
+        return sentenceCaseGarmentName(name, offset === 0);
       },
     );
     if (!unresolved) summary = rendered;

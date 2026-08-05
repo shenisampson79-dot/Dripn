@@ -37,7 +37,8 @@ export type LiveFeedbackUi = {
 };
 
 export type LiveFeedback = {
-  score: number;
+  /** null while the score is still being corroborated — HUD shows a dash. */
+  score: number | null;
   colourHarmony?: string | null;
   issues: string[];
   hints: string[];

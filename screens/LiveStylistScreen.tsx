@@ -69,6 +69,12 @@ import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { roleOfCategory } from '@/utils/liveDetectionMemory';
+import { detectSuspectLiveRead } from '@/utils/liveSuspectRead';
+import {
+  createLiveScoreGate,
+  gateLiveScore,
+  liveScoreSignature,
+} from '@/utils/liveScoreStability';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -82,6 +88,11 @@ const CLOUD_LAYER_VERIFY_MS = 12000;
 /** ~3s keeps jacket put-on responsive without cloud-per-frame spend. */
 const CLOUD_SCENE_EVENT_COOLDOWN_MS = 3000;
 const CLOUD_SCENE_EVENT_FRAMES = 2;
+/**
+ * Self-contradicting reads escalate on the next frame. This is bounded by asking
+ * once per suspect belief, so it costs one call per mistake, not one per second.
+ */
+const CLOUD_SUSPECT_COOLDOWN_MS = 1200;
 
 function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
   return items.map((item, i) => ({
@@ -202,6 +213,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }>({ detections: [], frameHash: null });
   const sceneChangeStreakRef = useRef(0);
   const lastBeliefSignatureRef = useRef('');
+  const scoreGateRef = useRef(createLiveScoreGate());
+  /** Suspect signatures already escalated — ask Vision once, not every frame. */
+  const suspectAskedRef = useRef(new Set<string>());
 
   const paintBeliefItems = useCallback((detections: OnDeviceDetection[]) => {
     if (!mountedRef.current || !detections.length) return;
@@ -366,6 +380,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         next.score = Math.max(0, Math.min(100, Math.round((next.score || 0) + delta)));
       }
     }
+    // Hold the score until the same outfit scores twice. A score computed while
+    // labels are still settling is what produced the 76 → 100 jump.
+    const gated = gateLiveScore(
+      scoreGateRef.current,
+      next.score,
+      {
+        signature: liveScoreSignature(previousItemsRef.current.map((it) => ({
+          category: String(it.category || ''),
+          subcategory: it.subcategory,
+          color: it.color,
+        }))),
+        now: Date.now(),
+      },
+    );
+    scoreGateRef.current = gated.gate;
+    next.score = gated.score;
+
     // Belief-synced summary when Vision returned items; else keep Vision verdict (UK-polished).
     if (next.coaching && res.items?.length && previousItemsRef.current.length) {
       next.coaching = syncCoachingToBelief(
@@ -386,7 +417,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const withinHold = Date.now() - lastCoachShownAtRef.current < holdMs;
     const serverStable = Boolean(next.ui?.stable);
     const hadFeedback = Boolean(previousFeedbackRef.current);
-    const scoreJump = Math.abs((previousFeedbackRef.current?.score || 0) - (next.score || 0)) >= 8;
+    const scoreJump = Math.abs(
+      Number(previousFeedbackRef.current?.score || 0) - Number(next.score || 0),
+    ) >= 8;
     const prevCoach = previousFeedbackRef.current?.coaching;
     const nextCoach = next.coaching;
     const coachChanged = Boolean(
@@ -548,14 +581,28 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         const sceneEventDue =
           sceneChangeStreakRef.current >= CLOUD_SCENE_EVENT_FRAMES && sceneEventReady;
         const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= CLOUD_LAYER_VERIFY_MS;
-        if ((incomplete && cloudFillReady) || sceneEventDue || layerVerifyDue) {
+        // A read that contradicts itself (shorts label on a full-leg box, no
+        // defensible colour) escalates now instead of waiting for a verify pass.
+        const suspect = detectSuspectLiveRead(stabilized.detections);
+        const suspectDue = Boolean(
+          suspect
+          && !suspectAskedRef.current.has(suspect.signature)
+          && Date.now() - lastCloudFillAtRef.current >= CLOUD_SUSPECT_COOLDOWN_MS,
+        );
+        if ((incomplete && cloudFillReady) || suspectDue || sceneEventDue || layerVerifyDue) {
           payload.imageBase64 = stripBase64Prefix(base64);
           payload.cloudFill = true;
           payload.cloudFillReason = incomplete
             ? 'missing_slots'
-            : sceneEventDue
-              ? 'scene_change'
-              : 'layer_verify';
+            : suspectDue
+              ? 'suspect_read'
+              : sceneEventDue
+                ? 'scene_change'
+                : 'layer_verify';
+          if (suspectDue && suspect) {
+            payload.suspectReason = suspect.reason;
+            suspectAskedRef.current.add(suspect.signature);
+          }
           lastCloudFillAtRef.current = Date.now();
           sceneChangeStreakRef.current = 0;
           cloudSceneBaselineRef.current = {
@@ -633,6 +680,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         lastCloudFillAtRef.current = 0;
         cloudSceneBaselineRef.current = { detections: [], frameHash: null };
         sceneChangeStreakRef.current = 0;
+        scoreGateRef.current = createLiveScoreGate();
+        suspectAskedRef.current = new Set<string>();
         previousItemsRef.current = [];
         previousFeedbackRef.current = null;
         setItems([]);
