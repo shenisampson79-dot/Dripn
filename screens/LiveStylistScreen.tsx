@@ -94,6 +94,9 @@ function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
       ? item.bbox
       : [0.2, 0.1, 0.5, 0.35]) as [number, number, number, number],
     trackId: item.trackId || item.tempId || `live_${i}`,
+    // Belief needs to know a read came from a Vision correction: the geometry
+    // that would normally gate the change is the same geometry that was wrong.
+    source: item.source ? String(item.source) : undefined,
   }));
 }
 

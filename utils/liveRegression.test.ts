@@ -214,6 +214,57 @@ case_('TROUSERS_MISCLASSIFIED_AS_SHORTS', () => {
   assert.equal(state.bottom?.kind, 'trousers');
 });
 
+// Field case: floral trousers held as "Blue shorts" because YOLO's box stopped
+// mid-calf. Vision was asked to re-check the length, so its answer must land
+// even though the truncated box still fails the floor-length geometry test.
+case_('CLOUD_VISION_CORRECTS_SHORTS_TO_TROUSERS', () => {
+  const truncatedBox: [number, number, number, number] = [0.31, 0.42, 0.3, 0.24];
+  assert.equal(isFloorLengthTrousersEvidence(truncatedBox), false);
+
+  let state = createOutfitBeliefState();
+  state = applyOutfitBelief(state, [det({
+    name: 'Blue Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'blue',
+    confidence: 0.95,
+    bbox: truncatedBox,
+  })], { now: 1000 }).state;
+  assert.equal(state.bottom?.kind, 'shorts', 'seed the wrong read first');
+
+  state = applyOutfitBelief(state, [det({
+    name: 'Blue Floral Trousers',
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'blue',
+    confidence: 0.86,
+    bbox: truncatedBox,
+    source: 'cloud_vision_correction',
+  })], { now: 3000 }).state;
+  assert.equal(state.bottom?.kind, 'trousers', 'Vision correction overrides geometry gate');
+  assert.match(state.bottom?.name || '', /trouser/i);
+
+  // Same label without the correction flag must still be refused.
+  let plain = createOutfitBeliefState();
+  plain = applyOutfitBelief(plain, [det({
+    name: 'Blue Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'blue',
+    confidence: 0.95,
+    bbox: truncatedBox,
+  })], { now: 1000 }).state;
+  plain = applyOutfitBelief(plain, [det({
+    name: 'Blue Trousers',
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'blue',
+    confidence: 0.86,
+    bbox: truncatedBox,
+  })], { now: 3000 }).state;
+  assert.equal(plain.bottom?.kind, 'shorts', 'on-device flicker still cannot flip the length');
+});
+
 case_('TROUSERS_CANNOT_DOWNGRADE_TO_SHORTS', () => {
   let state = createOutfitBeliefState();
   const trousers = det({

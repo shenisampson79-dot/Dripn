@@ -302,6 +302,20 @@ export function isVisionShortsUnlock(
   return conf >= 0.85;
 }
 
+/**
+ * A read the server explicitly flagged as a cloud-Vision correction of an
+ * on-device mistake. Geometry gates must yield to these: a truncated bottom box
+ * is exactly what makes YOLO call full-length trousers "shorts", so requiring
+ * floor-length evidence would reject the very fix we asked Vision for.
+ */
+export function isCloudVisionCorrection(
+  det: { source?: string | null; confidence?: number | null } | null | undefined,
+): boolean {
+  if (!det) return false;
+  if (Number(det.confidence ?? 0) < 0.7) return false;
+  return /cloud_vision_correction/i.test(String(det.source || ''));
+}
+
 /** Accessory / tie detections Vision can inject when YOLO has no box. */
 export function isVisionAccessoryDet(
   det: Pick<OnDeviceDetection, 'name' | 'subcategory' | 'category'>,

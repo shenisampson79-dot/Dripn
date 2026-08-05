@@ -28,7 +28,7 @@ import {
   stabilizeShoeSubtype,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
-import { isMultiColorVisionName, isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
+import { isCloudVisionCorrection, isMultiColorVisionName, isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 export { isSpecificVisionName } from '@/utils/visionTrust';
@@ -55,6 +55,8 @@ export type GarmentBelief = {
   stability: number;
   bbox: BBoxTuple;
   trackId?: string;
+  /** Server flagged this read as a cloud-Vision correction of an on-device miss. */
+  corrected?: boolean;
   lastChangedAt: number;
   lastSeenAt: number;
 };
@@ -716,6 +718,7 @@ export function observationFromDetection(
     stability: 0.35,
     bbox: det.bbox as BBoxTuple,
     trackId: det.trackId,
+    corrected: isCloudVisionCorrection(det),
     lastChangedAt: now,
     lastSeenAt: now,
   };
@@ -977,18 +980,22 @@ function resolveConflict(
     };
   }
 
-  // Locked shorts must yield to true waist→floor trousers (not socks/boots fuse)
+  // Locked shorts must yield to true waist→floor trousers (not socks/boots fuse),
+  // or to an explicit Vision correction — a truncated box is why YOLO said shorts.
   if (
     prev.kind === 'shorts'
     && current.kind === 'trousers'
-    && isFloorLengthTrousersEvidence(current.bbox)
-    && !looksLikeShortsWithFootwearExtension(current.bbox)
-    && current.confidence >= 0.68
+    && (current.corrected
+      || (isFloorLengthTrousersEvidence(current.bbox)
+        && !looksLikeShortsWithFootwearExtension(current.bbox)
+        && current.confidence >= 0.68))
   ) {
     appendDecision(log, {
       type: 'update',
       message: 'shorts → trousers',
-      reason: 'floor-length geometry override',
+      reason: current.corrected
+        ? 'cloud vision correction'
+        : 'floor-length geometry override',
       slot: 'bottom',
       time: now,
     });
@@ -1400,11 +1407,13 @@ export function applyOutfitBelief(
     }
   }
   // False trousers from shorts+socks/boots → shorts
-  // Trust Vision First: never demote sweatpants/joggers/chinos via geometry.
+  // Trust Vision First: never demote sweatpants/joggers/chinos via geometry, and
+  // never undo a correction Vision was explicitly asked to make.
   if (
     bottomObs
     && /trouser|pant|jean|chino/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)
     && !resistsShortsGeometryDemotion(bottomObs)
+    && !isCloudVisionCorrection(bottomObs)
   ) {
     if (looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)) {
       bottomObs = {

@@ -55,6 +55,8 @@ export type OnDeviceDetection = {
   trackId?: string;
   /** Skin fraction in ROI — used by footwear barefoot gate. */
   skinRatio?: number;
+  /** Detector that produced this read (e.g. on_device_yolo, cloud_vision_correction). */
+  source?: string;
 };
 
 export type OnDeviceFootZoneMeta = {
