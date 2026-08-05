@@ -79,6 +79,21 @@ assert.equal(
   assert.equal(out.score, 80, 'new outfit needs its own corroboration');
 }
 
+// A signature that churns every frame must not withhold the score forever.
+{
+  let gate = createLiveScoreGate();
+  let shown: number | null = null;
+  for (let i = 0; i < 6; i += 1) {
+    const out = gateLiveScore(gate, 90 + i, {
+      signature: `churn-${i}`,
+      now: 1000 + i * 1100,
+    });
+    gate = out.gate;
+    shown = out.score;
+  }
+  assert.notEqual(shown, null, 'jittering labels must still publish a score');
+}
+
 // Never withhold indefinitely — a held number beats a permanent dash.
 {
   let gate = createLiveScoreGate();

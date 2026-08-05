@@ -50,7 +50,9 @@ export function gateLiveScore(
   }
 
   const sameOutfit = gate.signature === opts.signature;
-  const heldSince = sameOutfit ? (gate.heldSince ?? opts.now) : opts.now;
+  // The hold clock runs from when withholding began, not from the last stable
+  // signature. Labels that jitter every frame must still surface a number.
+  const heldSince = gate.heldSince ?? opts.now;
   const forceAdopt = opts.now - heldSince >= LIVE_SCORE_MAX_HOLD_MS;
 
   const adopt = (): { gate: LiveScoreGate; score: number | null } => ({

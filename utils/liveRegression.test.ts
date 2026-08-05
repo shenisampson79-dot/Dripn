@@ -265,6 +265,69 @@ case_('CLOUD_VISION_CORRECTS_SHORTS_TO_TROUSERS', () => {
   assert.equal(plain.bottom?.kind, 'shorts', 'on-device flicker still cannot flip the length');
 });
 
+// Field case: a clothes rail behind the wearer. One frame returned a rainbow
+// tutu skirt (0.93) alongside the blue striped shorts (0.75) already believed,
+// and raw confidence painted the tutu. Clothes do not change between frames.
+case_('BACKGROUND_GARMENT_CANNOT_OUTBID_HELD_BOTTOM', () => {
+  const shortsBox: [number, number, number, number] = [0.33, 0.47, 0.35, 0.15];
+  let state = createOutfitBeliefState();
+  const shorts = det({
+    name: 'Blue Striped Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'blue',
+    confidence: 0.75,
+    bbox: shortsBox,
+  });
+  state = applyOutfitBelief(state, [shorts], { now: 1000 }).state;
+  assert.equal(state.bottom?.kind, 'shorts');
+
+  const railSkirt = det({
+    name: 'Rainbow Tutu Skirt',
+    category: 'bottoms',
+    subcategory: 'skirt',
+    color: 'multicolour',
+    confidence: 0.93,
+    bbox: [0.19, 0.53, 0.29, 0.17],
+  });
+  state = applyOutfitBelief(state, [railSkirt, shorts], { now: 2100 }).state;
+  assert.equal(state.bottom?.kind, 'shorts', 'the held garment wins the slot');
+  assert.match(state.bottom?.name || '', /shorts/i);
+
+  // A real change of clothes still lands: no competing held candidate present.
+  state = applyOutfitBelief(state, [railSkirt], { now: 3200 }).state;
+  state = applyOutfitBelief(state, [railSkirt], { now: 4300 }).state;
+  assert.notEqual(state.bottom?.kind, undefined);
+});
+
+// Field case: a hoodie over one shoulder came back as "Blue and Red Towel".
+case_('NON_APPAREL_READS_ARE_DROPPED', () => {
+  let state = createOutfitBeliefState();
+  const out = applyOutfitBelief(state, [
+    det({
+      name: 'White Graphic Tank Top',
+      category: 'tops',
+      subcategory: 'tank top',
+      color: 'white',
+      confidence: 0.95,
+      bbox: [0.32, 0.2, 0.3, 0.22],
+    }),
+    det({
+      name: 'Blue and Red Towel',
+      category: 'accessories',
+      subcategory: 'towel',
+      color: 'blue',
+      confidence: 0.9,
+      bbox: [0.3, 0.18, 0.34, 0.3],
+    }),
+  ], { now: 1000 });
+  assert.ok(out.repairs.includes('dropped_non_apparel'));
+  const painted = out.detections.map((d) => d.name || '').join(' ');
+  assert.doesNotMatch(painted, /towel/i);
+  const accessories = out.state.accessories || [];
+  assert.equal(accessories.some((a) => /towel/i.test(a.name || '')), false);
+});
+
 case_('TROUSERS_CANNOT_DOWNGRADE_TO_SHORTS', () => {
   let state = createOutfitBeliefState();
   const trousers = det({

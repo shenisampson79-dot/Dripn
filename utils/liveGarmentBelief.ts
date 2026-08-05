@@ -297,6 +297,10 @@ function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: 
     const name = String(det?.name || '').toLowerCase();
     const blob = `${sub} ${name}`;
     if (/flip.?flop|thong/.test(blob)) return { category: 'shoes', subcategory: 'flip_flops' };
+    // Backless slip-ons — never let geometry promote these to boots.
+    if (/\bclogs?\b|\bcrocs?\b|slipper|\bmules?\b|espadrille/.test(blob)) {
+      return { category: 'shoes', subcategory: 'slides' };
+    }
     if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return { category: 'shoes', subcategory: 'slides' };
     if (/sandal/.test(blob)) return { category: 'shoes', subcategory: 'sandals' };
     if (/boat\s*shoe|deck\s*shoe|topsider|sperry|boat_shoes/.test(blob)) {
@@ -1284,6 +1288,54 @@ export function bottomSubtypeFromBelief(kind: BeliefKind): BottomSubtype | null 
 }
 
 /**
+ * Household textiles Vision sometimes names when a garment is bunched or draped
+ * — a hoodie over one shoulder came back as "Blue and Red Towel". Nothing here
+ * is wearable, so it must never occupy a slot or reach the scorer.
+ */
+const NON_APPAREL_RE =
+  /\b(towel|blanket|duvet|quilt|curtain|cushion|pillow|bedding|bed\s*sheet|rug|door\s*mat|hanger)s?\b/i;
+
+export function isNonApparelDetection(det: OnDeviceDetection | null | undefined): boolean {
+  if (!det) return false;
+  return NON_APPAREL_RE.test(`${det.subcategory || ''} ${det.name || ''} ${det.category || ''}`);
+}
+
+/**
+ * Confidence gap inside which continuity beats a louder stranger. A frame that
+ * offers both the garment we already believe in and a different one is almost
+ * always the background wardrobe rail, not a costume change.
+ */
+const CONTINUITY_CONF_GAP = 0.25;
+
+/**
+ * Which of this frame's slot candidates agree with what we already believe.
+ * Vision returned a rainbow tutu skirt (0.93) beside the blue striped shorts
+ * (0.75) it had already agreed with, and raw confidence picked the tutu — a
+ * garment on the wardrobe rail behind the wearer. Clothes do not change between
+ * frames, so continuity outranks a marginally louder stranger.
+ */
+export function slotContinuityMatches<T extends OnDeviceDetection>(
+  candidates: T[],
+  current: GarmentBelief | null | undefined,
+): Set<T> {
+  const matched = new Set<T>();
+  if (!current || candidates.length < 2) return matched;
+  const best = candidates.reduce(
+    (max, det) => Math.max(max, Number(det.confidence) || 0),
+    0,
+  );
+  const currentFamily = colorFamilyKey(current.color);
+  if (!currentFamily) return matched;
+  for (const det of candidates) {
+    if ((best - (Number(det.confidence) || 0)) > CONTINUITY_CONF_GAP) continue;
+    if (beliefKindFromDetection(det) !== current.kind) continue;
+    if (colorFamilyKey(det.color) !== currentFamily) continue;
+    matched.add(det);
+  }
+  return matched;
+}
+
+/**
  * Apply belief updates — belief is authoritative output for the UI.
  */
 export function applyOutfitBelief(
@@ -1305,7 +1357,18 @@ export function applyOutfitBelief(
   const repairs: string[] = [];
   const decisions = opts?.decisions || [];
 
-  const topsRaw = detections.filter((d) => {
+  const wearable = detections.filter((d) => !isNonApparelDetection(d));
+  if (wearable.length !== detections.length) {
+    repairs.push('dropped_non_apparel');
+    appendDecision(decisions, {
+      type: 'reject',
+      message: 'Dropped a non-garment read',
+      reason: 'towels and bedding cannot occupy a wardrobe slot',
+      time: now,
+    });
+  }
+
+  const topsRaw = wearable.filter((d) => {
     const k = beliefKindFromDetection(d);
     return k === 'top' || k === 'outerwear';
   });
@@ -1316,12 +1379,14 @@ export function applyOutfitBelief(
     skinRatio: d.skinRatio,
     fabricColor: d.color,
   }));
-  const bottoms = detections.filter((d) => {
+  const bottoms = wearable.filter((d) => {
     const k = beliefKindFromDetection(d);
     return k === 'shorts' || k === 'trousers' || k === 'skirt' || k === 'dress';
   });
-  const shoes = detections.filter((d) => beliefKindFromDetection(d) === 'shoes');
-  const accessoryDets = detections.filter(
+  const shoes = wearable.filter((d) => beliefKindFromDetection(d) === 'shoes');
+  const bottomContinuity = slotContinuityMatches(bottoms, state.bottom);
+  const shoeContinuity = slotContinuityMatches(shoes, state.footwear);
+  const accessoryDets = wearable.filter(
     (d) => isVisionAccessoryDet(d) && (d.confidence ?? 0) >= ACCESSORY_INJECT_CONF,
   );
 
@@ -1347,6 +1412,9 @@ export function applyOutfitBelief(
     // Shirt/top visible → prefer trousers/shorts over a false one-piece dress lock
     if (hasShirtTop && aDress !== bDress) return aDress - bDress;
     if (!hasShirtTop && aDress !== bDress) return bDress - aDress;
+    const aHeld = bottomContinuity.has(a) ? 1 : 0;
+    const bHeld = bottomContinuity.has(b) ? 1 : 0;
+    if (aHeld !== bHeld) return bHeld - aHeld;
     return b.confidence - a.confidence;
   })[0] || null;
 
@@ -1380,7 +1448,12 @@ export function applyOutfitBelief(
     }
   }
 
-  let shoeObs = shoes.sort((a, b) => b.confidence - a.confidence)[0] || null;
+  let shoeObs = shoes.sort((a, b) => {
+    const aHeld = shoeContinuity.has(a) ? 1 : 0;
+    const bHeld = shoeContinuity.has(b) ? 1 : 0;
+    if (aHeld !== bHeld) return bHeld - aHeld;
+    return b.confidence - a.confidence;
+  })[0] || null;
 
   // Floor-length bottoms labeled shorts → force trousers (true pant columns only).
   // Never rewrite a strong Vision shorts unlock (checkered / swim / boxers, etc.).

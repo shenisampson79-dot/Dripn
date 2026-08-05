@@ -34,9 +34,12 @@ function SlotLine({
   slot: LiveBeliefDebugSnapshot['belief']['top'] | LiveBeliefDebugSnapshot['belief']['shoes'];
 }) {
   if (!slot) {
+    // An empty slot means we have not read it yet, not that the wearer has
+    // nothing there. "None" followed by a garment a second later reads as a
+    // wrong answer being corrected.
     return (
       <ThemedText type="caption" style={styles.mono}>
-        {role}: None
+        {role}: Searching…
       </ThemedText>
     );
   }

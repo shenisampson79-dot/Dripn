@@ -443,12 +443,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     })));
     const beliefChanged = Boolean(paintedSig && paintedSig !== lastBeliefSignatureRef.current);
     if (paintedSig) lastBeliefSignatureRef.current = paintedSig;
+    // A settled outfit changes nothing else, so the frame that finally releases
+    // the held score must repaint on its own or the badge keeps showing a dash.
+    const scoreRevealed = previousFeedbackRef.current?.score == null && next.score != null;
 
-    if (res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged || beliefChanged) {
+    if (
+      res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged
+      || beliefChanged || scoreRevealed
+    ) {
       previousFeedbackRef.current = next;
       // Flush coaching when belief labels change — boxes and copy must stay in sync
       const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold
-        || coachChanged || piecesChanged || beliefChanged || Boolean(res.feedbackChanged);
+        || coachChanged || piecesChanged || beliefChanged || scoreRevealed
+        || Boolean(res.feedbackChanged);
       if (shouldPaint) {
         setFeedback(next);
         lastCoachShownAtRef.current = Date.now();

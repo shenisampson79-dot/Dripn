@@ -443,6 +443,10 @@ export function classifyShoeSubtype(args: {
   const blob = `${args.name || ''} ${args.subcategory || ''}`.toLowerCase();
   // Keep flip-flops / slides distinct — do not collapse to generic "sandals"
   if (/flip.?flop|thong/.test(blob)) return 'flip_flops';
+  // Clogs, crocs, slippers and mules are backless slip-ons. Without an entry
+  // here they fell through to geometry and scored as boots, which then read as
+  // a formality clash against shorts.
+  if (/\bclogs?\b|\bcrocs?\b|slipper|\bmules?\b|espadrille/.test(blob)) return 'slides';
   if (/\bslides?\b/.test(blob) && !/sandal/.test(blob)) return 'slides';
   if (/sandal/.test(blob)) return 'sandals';
   // Boat/deck shoes before boot heuristics — low shaft often misreads as boots in mirrors.
