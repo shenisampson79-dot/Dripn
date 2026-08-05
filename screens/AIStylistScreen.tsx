@@ -1765,19 +1765,34 @@ export default function AIStylistScreen() {
   useEffect(() => {
     isMountedRef.current = true;
 
-    // CRITICAL: transitionEnd must not call setState synchronously. A commit in that
-    // callback races the last native transition frame and can flash Hub for 1 frame.
-    // Schedule hydrate + cover lift on the following frames only.
+    // transitionEnd must not setState synchronously (races last native frame).
+    // Keep the opaque cover up until history hydrate commits — lifting the cover first,
+    // then setMessages ~1s later (AsyncStorage/server) was the post-slide flash.
     const schedulePostTransitionWork = () => {
       if (hydrateStartedRef.current || !isMountedRef.current) return;
       hydrateStartedRef.current = true;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!isMountedRef.current) return;
-          setTransitionCoverVisible(false);
-          void loadChatHistory();
-          void loadDailyMessageCount();
-          void checkAudioPermission();
+          void (async () => {
+            try {
+              // Hydrate under cover. Local is fast; if missing, await server too so a late
+              // setMessages cannot flash Hub ~1s after the slide completes.
+              const localFound = await loadChatHistory({ phase: 'local' });
+              await loadDailyMessageCount();
+              if (!localFound) {
+                await loadChatHistory({ phase: 'server' });
+              }
+              void checkAudioPermission();
+            } finally {
+              if (!isMountedRef.current) return;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  if (isMountedRef.current) setTransitionCoverVisible(false);
+                });
+              });
+            }
+          })();
         });
       });
     };
@@ -2305,43 +2320,60 @@ export default function AIStylistScreen() {
     }
   };
 
-  const loadChatHistory = async () => {
+  const loadChatHistory = async (options?: { phase?: 'local' | 'server' }) => {
+    const phase = options?.phase ?? 'local';
     try {
-      const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (!Array.isArray(parsed)) {
-          await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
-        } else {
-          const today = new Date().toDateString();
-          const recentMessages = parsed
-            .map(normalizeChatMessage)
-            .filter((msg): msg is ChatMessage => msg !== null)
-            .filter((msg) => new Date(msg.timestamp).toDateString() === today)
-            .slice(-20);
+      if (phase === 'local') {
+        const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (!Array.isArray(parsed)) {
+            await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+          } else {
+            const today = new Date().toDateString();
+            const recentMessages = parsed
+              .map(normalizeChatMessage)
+              .filter((msg): msg is ChatMessage => msg !== null)
+              .filter((msg) => new Date(msg.timestamp).toDateString() === today)
+              .slice(-20);
 
-          if (recentMessages.length > 0) {
-            // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
-            stickToLatestRef.current = true;
-            isNearBottomRef.current = true;
-            chatMachineRef.current = transitionPhase(chatMachineRef.current, 'LOADING_HISTORY');
-            chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
-            if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
-              setMessages([{ ...recentMessages[0], content: buildSeedGreeting() }]);
-              setShowQuickPrompts(true);
-            } else {
-              setMessages(recentMessages);
-              setShowQuickPrompts(false);
+            if (recentMessages.length > 0) {
+              // Re-localize seed greeting so a prior English intro can't stick when stylist language is ES/etc.
+              stickToLatestRef.current = true;
+              isNearBottomRef.current = true;
+              chatMachineRef.current = transitionPhase(chatMachineRef.current, 'LOADING_HISTORY');
+              chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
+              if (recentMessages.length === 1 && recentMessages[0]?.role === 'assistant') {
+                const nextContent = buildSeedGreeting();
+                setMessages((prev) => {
+                  if (
+                    prev.length === 1 &&
+                    prev[0]?.role === 'assistant' &&
+                    prev[0].content === nextContent
+                  ) {
+                    return prev;
+                  }
+                  return [{ ...recentMessages[0], content: nextContent }];
+                });
+                setShowQuickPrompts(true);
+              } else {
+                setMessages(recentMessages);
+                setShowQuickPrompts(false);
+              }
+              setTimeout(() => scrollChatToEnd(true, false), 50);
+              setTimeout(() => scrollChatToEnd(true, false), 400);
+              setTimeout(() => scrollChatToEnd(true, false), 1000);
+              return true;
             }
-            setTimeout(() => scrollChatToEnd(true, false), 50);
-            setTimeout(() => scrollChatToEnd(true, false), 400);
-            setTimeout(() => scrollChatToEnd(true, false), 1000);
-            return;
           }
         }
+        return false;
       }
 
-      // Fall back to server history (e.g. conversations claimed from guest signup)
+      // Server fallback only when local had nothing (caller checks). Skip if user already has a thread.
+      const hasUserThread = messagesLenRef.current > 1;
+      if (hasUserThread) return false;
+
       try {
         const serverHistory = await apiService.getChatHistory(stylist.id, 40);
         if (Array.isArray(serverHistory) && serverHistory.length > 0) {
@@ -2361,14 +2393,17 @@ export default function AIStylistScreen() {
             setMessages(mapped);
             setShowQuickPrompts(false);
             await saveChatHistory(mapped);
+            return true;
           }
         }
       } catch {
         /* server history optional */
       }
+      return false;
     } catch (error) {
       console.error('Failed to load chat history:', error);
       await AsyncStorage.removeItem(CHAT_STORAGE_KEY).catch(() => {});
+      return false;
     }
   };
   
