@@ -62,6 +62,7 @@ assert.ok(slots.shoes);
 const coach = syncCoachingToBelief(
   {
     summary: 'Brown Dress and Loafers look great.',
+    summaryTemplate: '{top} and {bottom} work well together and {shoes} ground the look.',
     tips: ['Ground the look with shoes.'],
     score: 70,
   },

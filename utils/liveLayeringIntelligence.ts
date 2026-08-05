@@ -212,39 +212,13 @@ function isAccessoryPiece(p: BeliefPieceForCoach): boolean {
   return /\btie\b|necktie|bow\s*tie|scarf|belt|accessor/.test(blob);
 }
 
-function footwearGroundVerb(name: string): string {
-  return /\b(shoes|boots|trainers|sneakers|loafers|oxfords|sandals|slides|flip-?flops)\b/i.test(name)
-    ? 'ground'
-    : 'grounds';
-}
-
-/** Clash / low-score wording the rebuilt summary must never contradict. */
-const COACHING_TENSION_RE =
-  /pull in different directions|different wardrobes|mixed direction|needs a tweak|style lane|formality|neckwear|not sportswear|inconsistenc|clash/i;
-
 /**
- * True when the server verdict is negative. Rebuilding the summary from belief
- * names must stay descriptive here — praise would contradict the score and the
- * bullets shown directly beneath it.
- */
-export function coachingHasTension(
-  coaching: { headline?: string; summary?: string; bullets?: string[]; sameLane?: boolean } | null | undefined,
-  score?: number | null,
-): boolean {
-  if (!coaching) return false;
-  if (coaching.sameLane === false) return true;
-  if (typeof score === 'number' && Number.isFinite(score) && score < 60) return true;
-  if (COACHING_TENSION_RE.test(String(coaching.headline || ''))) return true;
-  if (COACHING_TENSION_RE.test(String(coaching.summary || ''))) return true;
-  return (coaching.bullets || []).some((b) => COACHING_TENSION_RE.test(String(b || '')));
-}
-
-/**
- * Force coaching copy to use belief display names — single UI truth.
- * Belief must already carry Vision-fused labels (specificity wins).
+ * Render server-owned summary copy with current belief display names.
+ * Belief supplies nouns only; it never writes or changes the sentence meaning.
  */
 export function syncCoachingToBelief<T extends {
   summary?: string;
+  summaryTemplate?: string;
   headline?: string;
   bullets?: string[];
   outfitSignature?: string;
@@ -252,64 +226,45 @@ export function syncCoachingToBelief<T extends {
 }>(
   coaching: T | null | undefined,
   pieces: BeliefPieceForCoach[],
-  opts: { score?: number | null } = {},
+  _opts: { score?: number | null } = {},
 ): T | null | undefined {
-  if (!coaching?.summary || !pieces.length) return coaching;
-  const tension = coachingHasTension(coaching, opts.score);
-
+  if (!coaching?.summary) return coaching;
   const dress = pieces.find(isDressPiece);
-  const top = pieces.find(isTopPiece);
-  const bottom = pieces.find(isBottomPiece);
-  const shoes = pieces.find(isShoePiece);
   const outer = pieces.find((p) =>
     /outer|jacket|coat|blazer/i.test(`${p.category} ${p.subcategory || ''} ${p.name || ''}`),
   );
+  const top = pieces.find((p) => p !== outer && isTopPiece(p));
+  const bottom = pieces.find(isBottomPiece);
+  const shoes = pieces.find(isShoePiece);
   const accessory = pieces.find(isAccessoryPiece);
 
-  const parts: string[] = [];
-  const layerClause = (name: string) =>
-    tension ? `${name} sits over the top` : `${name} adds a relaxed layer`;
-
-  if (dress && !bottom) {
-    parts.push(`${dress.name} carries the look`);
-    if (outer?.name) parts.push(layerClause(outer.name));
-  } else if (top?.name && bottom?.name) {
-    parts.push(tension
-      ? `${top.name} and ${bottom.name} pull in different directions`
-      : `${top.name} and ${bottom.name} work well together`);
-    if (outer?.name && outer !== top) parts.push(layerClause(outer.name));
-  } else if (top?.name) {
-    parts.push(`${top.name} carries the look`);
-  } else if (bottom?.name) {
-    parts.push(`${bottom.name} carry the look`);
-  } else if (dress?.name) {
-    parts.push(`${dress.name} carries the look`);
-  }
-
-  if (accessory?.name) {
-    // "Finishes the look" reads as approval — a tie over sportswear is the
-    // reason the score dropped, so name it without endorsing it.
-    parts.push(tension ? `${accessory.name} is added on top` : `${accessory.name} finishes the look`);
-  }
-
-  if (shoes?.name && !/\bdress\b/i.test(shoes.name)) {
-    parts.push(`${shoes.name} ${footwearGroundVerb(shoes.name)} the look`);
-  }
-
-  let summary: string;
-  if (parts.length >= 1) {
-    summary = packSummary(parts, LIVE_SUMMARY_MAX);
-    if (summary) {
-      summary = `${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
-      if (!/[.!?]$/.test(summary)) summary = `${summary}.`;
-    }
-  } else {
-    summary = String(coaching.summary);
-    summary = summary.replace(
-      /(?:,\s*)?(?:and\s+)?[^.,—]*?\bgrounds?\s+the\s+look\b/gi,
-      '',
+  // The server owns the complete sentence. The client only injects current
+  // belief names into explicit role slots, so stale frame labels are corrected
+  // without inventing praise, tension, or footwear meaning on-device.
+  let summary = String(coaching.summary);
+  const template = String(coaching.summaryTemplate || '').trim();
+  if (template) {
+    const names: Record<string, string | undefined> = {
+      onePiece: dress?.name,
+      layer: outer?.name,
+      top: top?.name,
+      bottom: bottom?.name,
+      shoes: shoes?.name,
+      accessory: accessory?.name,
+    };
+    let unresolved = false;
+    const rendered = template.replace(
+      /\{(onePiece|layer|top|bottom|shoes|accessory)\}/g,
+      (_match, role: string) => {
+        const name = names[role];
+        if (!name) {
+          unresolved = true;
+          return '';
+        }
+        return name;
+      },
     );
-    summary = summary.replace(/\b\w+\s+Dress\s+grounds?\s+the\s+look\b/gi, '');
+    if (!unresolved) summary = rendered;
   }
 
   summary = summary
@@ -320,6 +275,7 @@ export function syncCoachingToBelief<T extends {
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+\./g, '.')
     .trim();
+  summary = packSummary([summary], LIVE_SUMMARY_MAX);
   if (summary && !/[.!?]$/.test(summary)) summary = `${summary}.`;
 
   const bullets = Array.isArray(coaching.bullets)

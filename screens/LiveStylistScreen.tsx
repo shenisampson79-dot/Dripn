@@ -67,6 +67,12 @@ import { roleOfCategory } from '@/utils/liveDetectionMemory';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
+/**
+ * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
+ * a filled belief looks complete indefinitely. Re-ask cloud Vision on this slow
+ * cadence so a new layer is caught without paying per frame.
+ */
+const CLOUD_LAYER_VERIFY_MS = 12000;
 
 function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
   return items.map((item, i) => ({
@@ -504,7 +510,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         // Missing top/shoes → fill after 2s; otherwise sparse frames after 4s
         const fillMs = (missingTop || missingShoes) ? 2000 : 4000;
         const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= fillMs;
-        if (incomplete && cloudFillReady) {
+        const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= CLOUD_LAYER_VERIFY_MS;
+        if ((incomplete && cloudFillReady) || layerVerifyDue) {
           payload.imageBase64 = stripBase64Prefix(base64);
           payload.cloudFill = true;
           lastCloudFillAtRef.current = Date.now();

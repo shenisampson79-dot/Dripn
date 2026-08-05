@@ -80,6 +80,7 @@ const synced = syncCoachingToBelief(
   {
     headline: 'Smart casual',
     summary: 'Light Blue Shirt and White Shorts sit in the same lane, and Brown Boat Shoes ground the look.',
+    summaryTemplate: '{top} and {bottom} work well together and {shoes} lift the look.',
     bullets: ['Colour read: warm neutrals'],
   },
   [
@@ -93,13 +94,15 @@ assert.match(synced?.summary || '', /Grey shorts/i);
 assert.match(synced?.summary || '', /Light Green top/i);
 assert.match(synced?.summary || '', /Red And Brown boat shoes/i);
 assert.match(synced?.summary || '', /work well together/i);
+assert.match(synced?.summary || '', /lift the look/i);
 assert.doesNotMatch(synced?.summary || '', /White Shorts|Light Blue Shirt|sit in the same lane/i);
 
-// A rebuilt summary must never praise an outfit the score and bullets condemn.
+// The server's template owns the judgement; the client only replaces nouns.
 const clashSynced = syncCoachingToBelief(
   {
     headline: 'Needs a tweak',
     summary: 'Orange T-Shirt and Grey Sweatpants pull in different directions.',
+    summaryTemplate: '{top} and {bottom} pull in different directions. {layer} sits over the top.',
     bullets: ['Formal neckwear needs a shirt or smarter top — not sportswear.'],
     sameLane: false,
   },
@@ -114,12 +117,14 @@ const clashSynced = syncCoachingToBelief(
 assert.doesNotMatch(clashSynced?.summary || '', /work well together|finishes the look|relaxed layer/i);
 assert.match(clashSynced?.summary || '', /pull in different directions/i);
 assert.match(clashSynced?.summary || '', /Grey Sweatpants/i);
+assert.match(clashSynced?.summary || '', /Light Blue Blazer sits over the top/i);
 
-// Score alone is enough — a low score must not be dressed up as harmony.
-const lowScore = syncCoachingToBelief(
+// Legacy responses without a template are displayed verbatim. They are never
+// reinterpreted into praise or tension by score heuristics on the client.
+const legacy = syncCoachingToBelief(
   {
     headline: 'Mixed directions',
-    summary: 'Something neutral.',
+    summary: 'Server wording stays exactly as authored.',
     bullets: [],
   },
   [
@@ -128,35 +133,33 @@ const lowScore = syncCoachingToBelief(
   ],
   { score: 44 },
 );
-assert.doesNotMatch(lowScore?.summary || '', /work well together/i);
+assert.equal(legacy?.summary, 'Server wording stays exactly as authored.');
 
-const noShoes = syncCoachingToBelief(
+// Image 1: the server decides that pink clogs lift rather than ground the look.
+const clogs = syncCoachingToBelief(
   {
-    summary: 'Green top and Blue Shorts sit in the same lane, and Blue shorts ground the look — this pairing is commonly styled together.',
+    summary: 'Black and White Striped Dress carries the look and Pink Clogs lift the look.',
+    summaryTemplate: '{onePiece} carries the look and {shoes} lift the look.',
   },
   [
-    { name: 'Light Blue top', category: 'tops', subcategory: 'top' },
-    { name: 'Grey shorts', category: 'bottoms', subcategory: 'shorts' },
+    { name: 'Black and White Striped Dress', category: 'dresses', subcategory: 'dress' },
+    { name: 'Pink Clogs', category: 'shoes', subcategory: 'clogs' },
   ],
 );
-assert.match(noShoes?.summary || '', /Light Blue top/i);
-assert.match(noShoes?.summary || '', /Grey shorts/i);
-assert.doesNotMatch(noShoes?.summary || '', /ground the look/i);
+assert.match(clogs?.summary || '', /Pink Clogs lift the look/i);
+assert.doesNotMatch(clogs?.summary || '', /ground the look/i);
 
-const dualDress = syncCoachingToBelief(
+// If a server-required slot is not in belief yet, use the complete server
+// summary rather than emitting a broken or partly stale sentence.
+const unresolved = syncCoachingToBelief(
   {
-    summary: 'Pink Dress carries the look, and Brown Dress ground the look.',
+    summary: 'Black Dress carries the look and Brown Boots ground the look.',
+    summaryTemplate: '{onePiece} carries the look and {shoes} ground the look.',
   },
   [
-    { name: 'Light Pink top', category: 'tops', subcategory: 'dress_shirt' },
-    { name: 'White trousers', category: 'bottoms', subcategory: 'trousers' },
-    { name: 'Brown boots', category: 'shoes', subcategory: 'boots' },
+    { name: 'Black Dress', category: 'dresses', subcategory: 'dress' },
   ],
 );
-assert.match(dualDress?.summary || '', /Light Pink top/i);
-assert.match(dualDress?.summary || '', /White trousers/i);
-assert.match(dualDress?.summary || '', /Brown boots/i);
-assert.doesNotMatch(dualDress?.summary || '', /\bDress\b/);
-assert.doesNotMatch(dualDress?.summary || '', /, and /);
+assert.equal(unresolved?.summary, 'Black Dress carries the look and Brown Boots ground the look.');
 
 console.log('liveLayeringIntelligence.test.ts: all passed');

@@ -19,6 +19,8 @@ export type LiveTrackedItem = ScanSessionItem & {
 export type LiveCoaching = {
   headline: string;
   summary: string;
+  /** Server-authored sentence with garment role tokens; client fills names only. */
+  summaryTemplate?: string;
   bullets: string[];
   outfitSignature?: string;
   styleLane?: string | null;
