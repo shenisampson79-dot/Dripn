@@ -29,17 +29,20 @@ function fmtConf(n: number): string {
 function SlotLine({
   role,
   slot,
+  filledOnce,
 }: {
   role: string;
   slot: LiveBeliefDebugSnapshot['belief']['top'] | LiveBeliefDebugSnapshot['belief']['shoes'];
+  filledOnce?: boolean;
 }) {
   if (!slot) {
     // An empty slot means we have not read it yet, not that the wearer has
     // nothing there. "None" followed by a garment a second later reads as a
-    // wrong answer being corrected.
+    // wrong answer being corrected. Once a slot has been read, an empty slot
+    // is a different fact: we had it and lost it.
     return (
       <ThemedText type="caption" style={styles.mono}>
-        {role}: Searching…
+        {role}: {filledOnce ? 'Lost' : 'Searching…'}
       </ThemedText>
     );
   }
@@ -105,9 +108,17 @@ export function LiveBeliefDebugOverlay({
             <ThemedText type="caption" style={[styles.section, styles.sectionGap]}>
               FINAL BELIEF
             </ThemedText>
-            <SlotLine role="TOP" slot={snapshot.belief.top} />
+            <SlotLine
+              role="TOP"
+              slot={snapshot.belief.top}
+              filledOnce={snapshot.filledOnce?.top}
+            />
             {snapshot.belief.layer ? <SlotLine role="LAYER" slot={snapshot.belief.layer} /> : null}
-            <SlotLine role="BOTTOM" slot={snapshot.belief.bottom} />
+            <SlotLine
+              role="BOTTOM"
+              slot={snapshot.belief.bottom}
+              filledOnce={snapshot.filledOnce?.bottom}
+            />
             <SlotLine role="SHOES" slot={snapshot.belief.shoes} />
             {(snapshot.belief.accessories || []).map((acc, i) => (
               <SlotLine key={`acc_${i}`} role="ACC" slot={acc} />

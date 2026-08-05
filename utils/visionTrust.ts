@@ -4,7 +4,11 @@
  */
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
-import { isFloorLengthTrousersEvidence, type BBoxTuple } from '@/utils/bodyGeometryGuardrails';
+import {
+  coversKneeAndCalf,
+  isFloorLengthTrousersEvidence,
+  type BBoxTuple,
+} from '@/utils/bodyGeometryGuardrails';
 
 export const VISION_TRUST_CONF = 0.6;
 
@@ -284,9 +288,17 @@ export function isVisionShortsUnlock(
 ): boolean {
   const conf = Number(next.confidence ?? 0);
   if (conf < 0.75) return false;
-  // Shorts do not reach the floor. A waist→floor box outranks the label at any
-  // confidence, otherwise a mislabelled trouser frame unlocks itself.
-  if (next.bbox && isFloorLengthTrousersEvidence(next.bbox as BBoxTuple)) return false;
+  // Shorts do not reach the floor, and they end above the knee. A waist-start
+  // panel covering knee and calf outranks the label at any confidence —
+  // otherwise a confident "Dark Shorts" on black sweatpants unlocks itself and
+  // no amount of geometry can take it back.
+  if (
+    next.bbox
+    && (isFloorLengthTrousersEvidence(next.bbox as BBoxTuple)
+      || coversKneeAndCalf(next.bbox as BBoxTuple))
+  ) {
+    return false;
+  }
   const name = String(next.name || '').trim();
   const blob = `${next.subcategory || ''} ${name}`.toLowerCase();
   if (!/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return false;

@@ -82,6 +82,8 @@ export type LiveBeliefDebugSnapshot = {
     shoes: DebugBeliefSlot | { status: BeliefSlotStatus; label: string };
     accessories?: DebugBeliefSlot[];
   };
+  /** Slots read at least once this session — separates "not yet" from "lost". */
+  filledOnce?: { top?: boolean; layer?: boolean; bottom?: boolean };
   colorPipeline: {
     top: string | null;
     bottom: string | null;
@@ -220,6 +222,8 @@ export function buildDebugSnapshot(args: {
   footZone?: FootZoneDiagnostics | null;
   shoeScore?: ShoeStyleScore | null;
   mutations?: VisionMutationDiff[];
+  /** Slots read at least once this session — separates "not yet" from "lost". */
+  filledOnce?: { top?: boolean; layer?: boolean; bottom?: boolean };
 }): LiveBeliefDebugSnapshot {
   const candidates = args.footwearCandidates || [];
   const zone = args.footZone || null;
@@ -251,6 +255,7 @@ export function buildDebugSnapshot(args: {
       top: topSlot?.colorPipeline ?? null,
       bottom: bottomSlot?.colorPipeline ?? null,
     },
+    filledOnce: args.filledOnce || {},
     frameDetections: args.frameDetections,
     mutations: args.mutations || [],
     decisions: args.decisions.slice(-MAX_DECISIONS),

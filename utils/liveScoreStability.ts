@@ -39,10 +39,29 @@ export function liveScoreSignature(
     .join('|');
 }
 
+/** Stability at which a belief slot is treated as settled, matching the HUD's LOCKED. */
+export const LIVE_SLOT_SETTLED_STABILITY = 0.85;
+
+/**
+ * Corroboration exists to avoid publishing a score computed from labels that are
+ * still moving. When the belief is already locked there is nothing to wait for —
+ * withholding then just shows a dash over a settled outfit, which is what
+ * happened after stopping and restarting a scan.
+ */
+export function liveBeliefIsSettled(
+  slots: ({ stability?: number | null } | null | undefined)[],
+): boolean {
+  const present = slots.filter(Boolean) as { stability?: number | null }[];
+  if (!present.length) return false;
+  return present.every(
+    (slot) => Number(slot.stability) >= LIVE_SLOT_SETTLED_STABILITY,
+  );
+}
+
 export function gateLiveScore(
   gate: LiveScoreGate,
   next: number | null | undefined,
-  opts: { signature: string; now: number },
+  opts: { signature: string; now: number; settled?: boolean },
 ): { gate: LiveScoreGate; score: number | null } {
   const value = Number(next);
   if (!Number.isFinite(value)) {
@@ -68,6 +87,7 @@ export function gateLiveScore(
 
   // Nothing shown yet: one corroborating sample on the same outfit first.
   if (gate.shown === null) {
+    if (opts.settled) return adopt();
     const corroborated = sameOutfit
       && gate.pending !== null
       && Math.abs(gate.pending - value) <= LIVE_SCORE_AGREEMENT;

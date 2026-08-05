@@ -73,6 +73,7 @@ import { detectSuspectLiveRead } from '@/utils/liveSuspectRead';
 import {
   createLiveScoreGate,
   gateLiveScore,
+  liveBeliefIsSettled,
   liveScoreSignature,
 } from '@/utils/liveScoreStability';
 
@@ -214,6 +215,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const sceneChangeStreakRef = useRef(0);
   const lastBeliefSignatureRef = useRef('');
   const scoreGateRef = useRef(createLiveScoreGate());
+  const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
   /** Suspect signatures already escalated — ask Vision once, not every frame. */
   const suspectAskedRef = useRef(new Set<string>());
 
@@ -239,9 +241,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }) => {
     if (!mountedRef.current) return;
     const mem = detectionMemoryRef.current;
+    if (mem.belief?.top) filledOnceRef.current.top = true;
+    if (mem.belief?.layer) filledOnceRef.current.layer = true;
+    if (mem.belief?.bottom) filledOnceRef.current.bottom = true;
     setDebugSnapshot(
       buildDebugSnapshot({
         belief: mem.belief,
+        filledOnce: { ...filledOnceRef.current },
         frameDetections: detectionsToDebugRows(
           args.frameDetections,
           args.source.includes('cloud') || args.source.includes('vision') ? 'vision' : 'yolo',
@@ -382,6 +388,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
     // Hold the score until the same outfit scores twice. A score computed while
     // labels are still settling is what produced the 76 → 100 jump.
+    const beliefSlots = detectionMemoryRef.current.belief;
     const gated = gateLiveScore(
       scoreGateRef.current,
       next.score,
@@ -392,6 +399,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           color: it.color,
         }))),
         now: Date.now(),
+        settled: liveBeliefIsSettled([
+          beliefSlots?.top,
+          beliefSlots?.layer,
+          beliefSlots?.bottom,
+          beliefSlots?.footwear,
+        ]),
       },
     );
     scoreGateRef.current = gated.gate;
@@ -689,6 +702,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         sceneChangeStreakRef.current = 0;
         scoreGateRef.current = createLiveScoreGate();
         suspectAskedRef.current = new Set<string>();
+        filledOnceRef.current = {};
         previousItemsRef.current = [];
         previousFeedbackRef.current = null;
         setItems([]);

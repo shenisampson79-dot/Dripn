@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createLiveScoreGate,
   gateLiveScore,
+  liveBeliefIsSettled,
   liveScoreSignature,
   LIVE_SCORE_MAX_HOLD_MS,
 } from '@/utils/liveScoreStability';
@@ -77,6 +78,25 @@ assert.equal(
   ]);
   const out = gateLiveScore(gate, 40, { signature: changed, now: 2500 });
   assert.equal(out.score, 80, 'new outfit needs its own corroboration');
+}
+
+// A settled belief has nothing to corroborate — publish on the first sample.
+{
+  const gate = createLiveScoreGate();
+  const out = gateLiveScore(gate, 90, { signature: OUTFIT, now: 1000, settled: true });
+  assert.equal(out.score, 90, 'a locked belief must not sit behind a dash');
+}
+
+assert.equal(liveBeliefIsSettled([{ stability: 0.9 }, { stability: 0.88 }, null]), true);
+assert.equal(liveBeliefIsSettled([{ stability: 0.9 }, { stability: 0.4 }]), false);
+assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
+
+// A settled belief still holds a later jump until a second sample agrees.
+{
+  let gate = createLiveScoreGate();
+  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
+  const jump = gateLiveScore(gate, 55, { signature: OUTFIT, now: 2100, settled: true });
+  assert.equal(jump.score, 80);
 }
 
 // A signature that churns every frame must not withhold the score forever.

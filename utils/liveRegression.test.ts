@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import {
   classifyBottomSubtype,
+  coversKneeAndCalf,
   formatGarmentDisplayName,
   isCroppedFrame,
   isFloorLengthTrousersEvidence,
@@ -326,6 +327,45 @@ case_('NON_APPAREL_READS_ARE_DROPPED', () => {
   assert.doesNotMatch(painted, /towel/i);
   const accessories = out.state.accessories || [];
   assert.equal(accessories.some((a) => /towel/i.test(a.name || '')), false);
+});
+
+// Field case: black sweatpants read as "Dark Shorts" because the box stopped at
+// mid-calf. Geometry alone must settle this — no cloud round trip, and no
+// flipping back to shorts on the next frame.
+case_('TRUNCATED_SWEATPANTS_ARE_NOT_SHORTS', () => {
+  const midCalfBox: [number, number, number, number] = [0.32, 0.44, 0.3, 0.32]; // bottom 0.76
+  assert.equal(isFloorLengthTrousersEvidence(midCalfBox), false, 'never reaches the floor');
+  assert.equal(coversKneeAndCalf(midCalfBox), true);
+  assert.equal(classifyBottomSubtype(midCalfBox, { fabricColor: 'black' }), 'trousers');
+
+  let state = createOutfitBeliefState();
+  state = applyOutfitBelief(state, [det({
+    name: 'Dark Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'dark',
+    confidence: 0.9,
+    bbox: midCalfBox,
+  })], { now: 1000 }).state;
+  assert.equal(state.bottom?.kind, 'trousers', 'first read already reads full-length');
+
+  // A later shorts read on the same geometry must not undo it.
+  state = applyOutfitBelief(state, [det({
+    name: 'Dark Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'dark',
+    confidence: 0.95,
+    bbox: midCalfBox,
+  })], { now: 2100 }).state;
+  assert.equal(state.bottom?.kind, 'trousers', 'no flip-flop back to shorts');
+
+  // Real above-knee shorts keep their identity.
+  assert.equal(coversKneeAndCalf([0.33, 0.47, 0.3, 0.15]), false);
+  assert.equal(
+    classifyBottomSubtype([0.33, 0.47, 0.3, 0.15], { fabricColor: 'blue' }),
+    'shorts',
+  );
 });
 
 case_('TROUSERS_CANNOT_DOWNGRADE_TO_SHORTS', () => {

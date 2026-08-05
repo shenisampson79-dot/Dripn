@@ -7,6 +7,7 @@
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import {
+  coversKneeAndCalf,
   detectTorsoState,
   formatGarmentDisplayName,
   hasReliableFabricColor,
@@ -947,7 +948,7 @@ function resolveConflict(
     if (
       isVisionShortsUnlock(current)
       || looksLikeShortsWithFootwearExtension(current.bbox)
-      || !isFloorLengthTrousersEvidence(prev.bbox)
+      || (!isFloorLengthTrousersEvidence(prev.bbox) && !coversKneeAndCalf(prev.bbox))
     ) {
       appendDecision(log, {
         type: 'update',
@@ -990,7 +991,7 @@ function resolveConflict(
     prev.kind === 'shorts'
     && current.kind === 'trousers'
     && (current.corrected
-      || (isFloorLengthTrousersEvidence(current.bbox)
+      || ((isFloorLengthTrousersEvidence(current.bbox) || coversKneeAndCalf(current.bbox))
         && !looksLikeShortsWithFootwearExtension(current.bbox)
         && current.confidence >= 0.68))
   ) {
@@ -1463,7 +1464,10 @@ export function applyOutfitBelief(
     && !isVisionShortsUnlock(bottomObs)
   ) {
     if (
-      isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
+      (isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
+        || coversKneeAndCalf(bottomObs.bbox as BBoxTuple, {
+          lowerSkinRatio: bottomObs.lowerSkinRatio,
+        }))
       && !looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)
     ) {
       // The old name says "shorts" and kind is read back off the name, so

@@ -229,6 +229,29 @@ export function isFloorLengthTrousersEvidence(
 }
 
 /**
+ * Fabric spanning thigh *and* calf, even when the box never reaches the floor.
+ *
+ * Detectors routinely stop a dark trouser box at mid-calf, and the floor-contact
+ * tests then fail, so black sweatpants kept landing as "Dark Shorts" until a
+ * cloud round trip corrected them. Shorts end above the knee: a hip-start box
+ * whose hem sits well below the knee line is not a pair of shorts, whatever the
+ * label says. The shorts+socks fuse and visible-leg cases are checked first, so
+ * this only speaks when nothing suggests a bare leg under a hem.
+ */
+export function coversKneeAndCalf(
+  bbox: BBoxTuple,
+  opts?: { lowerSkinRatio?: number | null },
+): boolean {
+  const [, y, , h] = bbox;
+  const bottom = y + h;
+  if (looksLikeShortsWithFootwearExtension(bbox, opts)) return false;
+  if (hasKneeBreakEvidence(bbox)) return false;
+  if (hasLegBleedBelowHem(bbox, opts?.lowerSkinRatio)) return false;
+  // Waist start (not a thigh-start shorts hem), hem past the knee line, tall panel.
+  return y <= 0.46 && bottom >= 0.72 && h >= 0.26;
+}
+
+/**
  * Structural bottoms classifier.
  * Floor-length trousers with visible ankles must NOT become shorts —
  * but shorts + socks/boots must NOT become trousers.
@@ -284,6 +307,9 @@ export function classifyBottomSubtype(
   }
 
   if (legBleed && h < 0.42) return 'shorts';
+
+  // Truncated box that still covers knee and calf → full-length, not shorts.
+  if (coversKneeAndCalf(bbox, opts)) return 'trousers';
 
   // Clear mid-thigh ending → shorts
   if (bottom < 0.82 && h < 0.36) return 'shorts';
