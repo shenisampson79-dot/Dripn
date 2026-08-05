@@ -40,11 +40,13 @@ assert.equal(stabilizeColor('black', 'white', 0.85, 'shorts'), 'white');
 assert.equal(stabilizeColor('light_blue', 'green', 0.9, 'top'), 'light_blue');
 // Green may still recover to light_blue with enough confidence
 assert.equal(stabilizeColor('green', 'light_blue', 0.85, 'top'), 'light_blue');
-assert.equal(formatGarmentDisplayName({ color: 'gray', category: 'bottoms', subcategory: 'shorts' }), 'Grey shorts');
-assert.equal(formatGarmentDisplayName({ color: 'black', category: 'bottoms', subcategory: 'shorts' }), 'Dark shorts');
+// Title Case matches Vision-authored names ("Pink Flower Sandals") so one card
+// never mixes "Blue shorts" with "Pink Flower Sandals".
+assert.equal(formatGarmentDisplayName({ color: 'gray', category: 'bottoms', subcategory: 'shorts' }), 'Grey Shorts');
+assert.equal(formatGarmentDisplayName({ color: 'black', category: 'bottoms', subcategory: 'shorts' }), 'Dark Shorts');
 assert.equal(
   formatGarmentDisplayName({ color: 'light_pink', category: 'tops', subcategory: 'dress_shirt' }),
-  'Light Pink top',
+  'Light Pink Top',
 );
 assert.equal(
   beliefKindFromDetection({

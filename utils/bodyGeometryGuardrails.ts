@@ -394,6 +394,9 @@ export function formatGarmentDisplayName(args: {
   const prettyColor = color && color !== 'other' && color !== 'unknown'
     ? color.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
+  // Vision names arrive title-cased ("Pink Flower Sandals"), so rebuilt names
+  // must match or the same card shows "Blue shorts" beside "Pink Flower Sandals".
+  const prettyKind = kind.replace(/\b\w/g, (c) => c.toUpperCase());
   if (prettyColor) {
     // True black bottoms → "Dark". Mid grey chinos stay "Grey" (not Dark).
     // Footwear keeps Grey distinct (flip-flops must not become "Black …")
@@ -403,9 +406,9 @@ export function formatGarmentDisplayName(args: {
         : /^(gray|grey)$/.test(color)
           ? 'Grey'
           : prettyColor;
-    return `${tone} ${kind}`;
+    return `${tone} ${prettyKind}`;
   }
-  return kind[0].toUpperCase() + kind.slice(1);
+  return prettyKind;
 }
 
 /**

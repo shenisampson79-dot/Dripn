@@ -158,11 +158,11 @@ assert.equal(
 );
 assert.equal(
   formatGarmentDisplayName({ color: 'gray', category: 'shoes', subcategory: 'flip_flops' }),
-  'Grey flip-flops',
+  'Grey Flip-Flops',
 );
 assert.equal(
   formatGarmentDisplayName({ color: 'grey', category: 'shoes', subcategory: 'flip_flops' }),
-  'Grey flip-flops',
+  'Grey Flip-Flops',
 );
 // Mid-calf Dr Martens-like shaft
 assert.equal(
