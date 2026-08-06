@@ -325,7 +325,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [navigation]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current) return null;
 
     const footZone = getLastOnDeviceFootZone();
 
@@ -385,7 +385,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
 
     const baseFeedback = res.feedback;
-    if (!baseFeedback) return;
+    if (!baseFeedback) return null;
 
     // Soft shoe-style nudge only when real shoes already in belief (never invent)
     const next = { ...baseFeedback };
@@ -502,6 +502,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setSourceLabel(String(res.source || '').includes('hybrid') ? 'Cloud fill' : 'Cloud vision');
     } else if (String(res.source || '').includes('on_device')) setSourceLabel('On-device');
     else setSourceLabel(String(res.source || 'Live'));
+    // Footer must show the same gated number as the score badge — never the
+    // raw server score that is still being corroborated.
+    return { score: next.score, itemCount: res.itemCount };
   }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
@@ -665,10 +668,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         setStatusNote(res.message || 'Scan failed');
         return;
       }
-      applyResponse(res);
+      const painted = applyResponse(res);
+      const shownScore = painted?.score ?? scoreGateRef.current.shown ?? res.feedback?.score;
       setStatusNote(
         res.itemCount
-          ? `${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${res.feedback?.score ?? '—'}`
+          ? `${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${shownScore ?? '—'}`
           : 'No garments yet — hold steadier',
       );
     } catch (error) {

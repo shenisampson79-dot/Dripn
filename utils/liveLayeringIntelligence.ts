@@ -192,7 +192,15 @@ function isDressPiece(p: BeliefPieceForCoach): boolean {
 function isTopPiece(p: BeliefPieceForCoach): boolean {
   const blob = `${p.category} ${p.subcategory || ''} ${p.name || ''}`.toLowerCase();
   if (isDressPiece(p)) return false;
-  return /top|shirt|outer|blouse|tee|polo|jacket|knit|coat|blazer/.test(blob);
+  // Outerwear is the layer slot — never also fill {top} or layering copy
+  // becomes "Worn over light blue blazer, light blue blazer…".
+  if (/outerwear/.test(blob) || (
+    /\b(jacket|coat|blazer|parka|gilet|anorak|overshirt)\b/.test(blob)
+    && !/\b(t-?shirt|tee|polo|blouse|shirt)\b/.test(blob)
+  )) {
+    return false;
+  }
+  return /top|shirt|blouse|tee|polo|knit/.test(blob);
 }
 
 function isBottomPiece(p: BeliefPieceForCoach): boolean {
@@ -246,7 +254,8 @@ export function syncCoachingToBelief<T extends {
   if (!coaching?.summary) return coaching;
   const dress = pieces.find(isDressPiece);
   const outer = pieces.find((p) =>
-    /outer|jacket|coat|blazer/i.test(`${p.category} ${p.subcategory || ''} ${p.name || ''}`),
+    /outerwear/i.test(String(p.category || ''))
+    || /outer|jacket|coat|blazer|parka|gilet/i.test(`${p.subcategory || ''} ${p.name || ''}`),
   );
   const top = pieces.find((p) => p !== outer && isTopPiece(p));
   const bottom = pieces.find(isBottomPiece);
@@ -267,6 +276,14 @@ export function syncCoachingToBelief<T extends {
       shoes: shoes?.name,
       accessory: accessory?.name,
     };
+    // Same garment in both slots is a merge bug — leave the server sentence.
+    if (
+      names.layer
+      && names.top
+      && String(names.layer).toLowerCase() === String(names.top).toLowerCase()
+    ) {
+      names.top = undefined;
+    }
     let unresolved = false;
     const rendered = template.replace(
       /\{(onePiece|layer|top|bottom|shoes|accessory)\}/g,

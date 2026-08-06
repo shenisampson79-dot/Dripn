@@ -119,6 +119,35 @@ assert.match(clashSynced?.summary || '', /pull in different directions/i);
 assert.match(clashSynced?.summary || '', /Grey Sweatpants/i);
 assert.match(clashSynced?.summary || '', /Light Blue Blazer sits over the top/i);
 
+// Blazer must never fill both {top} and {layer}.
+const blazerDup = syncCoachingToBelief(
+  {
+    summary: 'Worn over white t-shirt, light blue blazer adds depth to the outfit.',
+    summaryTemplate: 'Worn over {top}, {layer} adds depth to the outfit.',
+  },
+  [
+    { name: 'Light Blue Blazer', category: 'outerwear', subcategory: 'blazer' },
+    { name: 'White Trousers', category: 'bottoms', subcategory: 'trousers' },
+  ],
+);
+assert.doesNotMatch(blazerDup?.summary || '', /worn over light blue blazer,\s*light blue blazer/i);
+// Tee missing → leave the complete server sentence rather than inventing a noun.
+assert.match(blazerDup?.summary || '', /Worn over white t-shirt/i);
+
+const blazerWithTee = syncCoachingToBelief(
+  {
+    summary: 'Worn over white t-shirt, light blue blazer adds depth to the outfit.',
+    summaryTemplate: 'Worn over {top}, {layer} adds depth to the outfit.',
+  },
+  [
+    { name: 'White T-Shirt', category: 'tops', subcategory: 't-shirt' },
+    { name: 'Light Blue Blazer', category: 'outerwear', subcategory: 'blazer' },
+    { name: 'White Trousers', category: 'bottoms', subcategory: 'trousers' },
+  ],
+);
+assert.match(blazerWithTee?.summary || '', /Worn over white t-shirt,\s*light blue blazer/i);
+assert.doesNotMatch(blazerWithTee?.summary || '', /worn over light blue blazer,\s*light blue blazer/i);
+
 // Legacy responses without a template are displayed verbatim. They are never
 // reinterpreted into praise or tension by score heuristics on the client.
 const legacy = syncCoachingToBelief(

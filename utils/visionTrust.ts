@@ -316,16 +316,28 @@ export function isVisionShortsUnlock(
 
 /**
  * A read the server explicitly flagged as a cloud-Vision correction of an
- * on-device mistake. Geometry gates must yield to these: a truncated bottom box
- * is exactly what makes YOLO call full-length trousers "shorts", so requiring
- * floor-length evidence would reject the very fix we asked Vision for.
+ * on-device mistake — or any confident cloud Vision length read that disagrees
+ * with a held shorts/trousers label. Geometry gates must yield: a truncated
+ * bottom box is exactly what makes YOLO (and sometimes an earlier cloud fill)
+ * call full-length trousers "shorts".
  */
 export function isCloudVisionCorrection(
-  det: { source?: string | null; confidence?: number | null } | null | undefined,
+  det: {
+    source?: string | null;
+    confidence?: number | null;
+    name?: string | null;
+    subcategory?: string | null;
+  } | null | undefined,
 ): boolean {
   if (!det) return false;
   if (Number(det.confidence ?? 0) < 0.7) return false;
-  return /cloud_vision_correction/i.test(String(det.source || ''));
+  if (/cloud_vision_correction/i.test(String(det.source || ''))) return true;
+  // Full cloud / hybrid frames often omit the _correction suffix but still name
+  // full-length trousers while belief holds shorts — treat that as a correction.
+  if (!/cloud_vision|hybrid/i.test(String(det.source || ''))) return false;
+  const blob = `${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+  return /trouser|sweatpant|jogger|chino|full[\s-]?length/.test(blob)
+    && !/\bshorts?\b/.test(blob);
 }
 
 /** Accessory / tie detections Vision can inject when YOLO has no box. */

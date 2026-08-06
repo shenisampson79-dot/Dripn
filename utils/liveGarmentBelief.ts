@@ -1413,6 +1413,13 @@ export function applyOutfitBelief(
     // Shirt/top visible → prefer trousers/shorts over a false one-piece dress lock
     if (hasShirtTop && aDress !== bDress) return aDress - bDress;
     if (!hasShirtTop && aDress !== bDress) return bDress - aDress;
+    // Continuity must not protect locked shorts against a trousers challenger —
+    // that is exactly how "White Full-Length Trousers" lost to "White Shorts".
+    const aTrouserUnlock = state.bottom?.kind === 'shorts'
+      && beliefKindFromDetection(a) === 'trousers' ? 1 : 0;
+    const bTrouserUnlock = state.bottom?.kind === 'shorts'
+      && beliefKindFromDetection(b) === 'trousers' ? 1 : 0;
+    if (aTrouserUnlock !== bTrouserUnlock) return bTrouserUnlock - aTrouserUnlock;
     const aHeld = bottomContinuity.has(a) ? 1 : 0;
     const bHeld = bottomContinuity.has(b) ? 1 : 0;
     if (aHeld !== bHeld) return bHeld - aHeld;

@@ -447,4 +447,47 @@ assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
   assert.equal(shoes.footwear?.color, 'multicolor', 'two-tone resists single-colour flatten');
 }
 
+// Locked shorts must yield to a cloud Vision trousers correction even when a
+// continuity shorts box is still louder in the same frame.
+{
+  const lockedShorts: OnDeviceDetection = {
+    name: 'White Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'white',
+    confidence: 0.92,
+    bbox: [0.3, 0.48, 0.35, 0.28],
+    trackId: 'b1',
+    source: 'cloud_vision_fill',
+  };
+  const cloudTrousers: OnDeviceDetection = {
+    name: 'White Full-Length Trousers',
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'white',
+    confidence: 0.88,
+    bbox: [0.3, 0.42, 0.35, 0.48],
+    trackId: 'b2',
+    source: 'cloud_vision',
+  };
+  const tee: OnDeviceDetection = {
+    name: 'White T-Shirt',
+    category: 'tops',
+    subcategory: 't-shirt',
+    color: 'white',
+    confidence: 0.9,
+    bbox: [0.28, 0.18, 0.4, 0.28],
+    trackId: 't1',
+  };
+  let st = createOutfitBeliefState();
+  st = applyOutfitBelief(st, [tee, lockedShorts], { now: 1000 }).state;
+  // Stabilize lock
+  st = applyOutfitBelief(st, [tee, lockedShorts], { now: 2000 }).state;
+  st = applyOutfitBelief(st, [tee, lockedShorts], { now: 3000 }).state;
+  assert.equal(st.bottom?.kind, 'shorts');
+  st = applyOutfitBelief(st, [tee, lockedShorts, cloudTrousers], { now: 5000 }).state;
+  assert.equal(st.bottom?.kind, 'trousers', 'cloud trousers unlock beat continuity shorts');
+  assert.match(st.bottom?.name || '', /trouser/i);
+}
+
 console.log('liveGarmentBelief.test.ts: all passed');
