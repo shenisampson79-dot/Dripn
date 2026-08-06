@@ -76,6 +76,14 @@ import {
   liveBeliefIsSettled,
   liveScoreSignature,
 } from '@/utils/liveScoreStability';
+import {
+  alignCoachingToTruth,
+  buildOutfitTruth,
+  canWarmStartTruth,
+  stashWarmTruth,
+  type LiveOutfitTruth,
+  type WarmTruthStash,
+} from '@/utils/liveOutfitTruth';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -215,6 +223,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const sceneChangeStreakRef = useRef(0);
   const lastBeliefSignatureRef = useRef('');
   const scoreGateRef = useRef(createLiveScoreGate());
+  const outfitTruthRef = useRef<LiveOutfitTruth | null>(null);
+  const warmTruthRef = useRef<WarmTruthStash | null>(null);
   const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
   /** Suspect signatures already escalated — ask Vision once, not every frame. */
   const suspectAskedRef = useRef(new Set<string>());
@@ -410,6 +420,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     scoreGateRef.current = gated.gate;
     next.score = gated.score;
 
+    // Freeze the arbitrated outfit into one truth object. Score is already
+    // gated; coaching only injects names — neither recomputes meaning here.
+    const truth = buildOutfitTruth({
+      belief: detectionMemoryRef.current.belief,
+      feedback: next,
+    });
+    outfitTruthRef.current = truth;
+
     // Belief-synced summary when Vision returned items; else keep Vision verdict (UK-polished).
     if (next.coaching && res.items?.length && previousItemsRef.current.length) {
       next.coaching = syncCoachingToBelief(
@@ -424,6 +442,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       ) || next.coaching;
     } else if (next.coaching) {
       next.coaching = polishUkCoaching(next.coaching) || next.coaching;
+    }
+    if (next.coaching) {
+      next.coaching = alignCoachingToTruth(next.coaching, truth) || next.coaching;
     }
 
     const holdMs = next.ui?.holdMs ?? 1000;
@@ -692,22 +713,100 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLive((v) => {
       const next = !v;
-      if (next) {
-        detectionMemoryRef.current = createLiveBeliefMemory();
-        decisionLogRef.current = [];
-        inspectRef.current = null;
-        lastHashRef.current = null;
-        lastCloudFillAtRef.current = 0;
-        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
-        sceneChangeStreakRef.current = 0;
-        scoreGateRef.current = createLiveScoreGate();
-        suspectAskedRef.current = new Set<string>();
-        filledOnceRef.current = {};
-        previousItemsRef.current = [];
-        previousFeedbackRef.current = null;
-        setItems([]);
-        setFeedback(null);
-        setDebugSnapshot(emptyDebugSnapshot('live'));
+      if (!next) {
+        // Pausing — stash a warm truth so a quick restart does not cold-boot.
+        warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
+      } else {
+        const warm = warmTruthRef.current;
+        const now = Date.now();
+        if (canWarmStartTruth(warm, now) && warm) {
+          // Warm start: re-seed belief from the last resolved outfit instead of
+          // wiping to empty and re-learning shorts from a truncated box.
+          detectionMemoryRef.current = createLiveBeliefMemory();
+          const seeded = updateLiveBelief(warm.truth.seedDetections, detectionMemoryRef.current, {
+            now,
+            decisions: [],
+          });
+          detectionMemoryRef.current = seeded.memory;
+          decisionLogRef.current = [];
+          inspectRef.current = null;
+          lastHashRef.current = null;
+          lastCloudFillAtRef.current = 0;
+          cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+          sceneChangeStreakRef.current = 0;
+          scoreGateRef.current = createLiveScoreGate();
+          if (warm.truth.score != null) {
+            // Publish the last settled score immediately — no dash over a known outfit.
+            scoreGateRef.current = {
+              shown: warm.truth.score,
+              pending: null,
+              signature: liveScoreSignature(warm.truth.seedDetections.map((d) => ({
+                category: d.category,
+                subcategory: d.subcategory,
+                color: d.color,
+              }))),
+              heldSince: null,
+            };
+          }
+          suspectAskedRef.current = new Set<string>();
+          filledOnceRef.current = {
+            top: Boolean(warm.truth.top),
+            layer: Boolean(warm.truth.layer),
+            bottom: Boolean(warm.truth.bottom),
+          };
+          previousItemsRef.current = warm.truth.seedDetections.map((d, i) => ({
+            name: d.name,
+            category: d.category,
+            subcategory: d.subcategory,
+            color: d.color,
+            confidence: d.confidence,
+            bbox: d.bbox,
+            trackId: d.trackId || `warm_${i}`,
+          })) as LiveTrackedItem[];
+          outfitTruthRef.current = warm.truth;
+          previousFeedbackRef.current = warm.truth.score != null
+            ? {
+              score: warm.truth.score,
+              issues: [],
+              hints: [],
+              suggestions: [],
+              coaching: {
+                headline: '',
+                summary: '',
+                bullets: [],
+                styleLane: warm.truth.lane,
+                hasConflict: warm.truth.hasConflict,
+                sameLane: !warm.truth.hasConflict,
+              },
+            }
+            : null;
+          if (warm.truth.score != null) {
+            setFeedback(previousFeedbackRef.current);
+          } else {
+            setFeedback(null);
+          }
+          paintBeliefItems(warm.truth.seedDetections);
+          setDebugSnapshot(emptyDebugSnapshot('live_warm'));
+          warmTruthRef.current = null;
+        } else {
+          detectionMemoryRef.current = createLiveBeliefMemory();
+          decisionLogRef.current = [];
+          inspectRef.current = null;
+          lastHashRef.current = null;
+          lastCloudFillAtRef.current = 0;
+          cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+          sceneChangeStreakRef.current = 0;
+          scoreGateRef.current = createLiveScoreGate();
+          suspectAskedRef.current = new Set<string>();
+          filledOnceRef.current = {};
+          outfitTruthRef.current = null;
+          previousItemsRef.current = [];
+          previousFeedbackRef.current = null;
+          setItems([]);
+          setFeedback(null);
+          setDebugSnapshot(emptyDebugSnapshot('live'));
+          warmTruthRef.current = null;
+        }
       }
       setStatusNote(next ? 'Live — sampling…' : 'Paused');
       return next;

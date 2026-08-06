@@ -28,6 +28,11 @@ export type LiveCoaching = {
   styleLane?: string | null;
   /** False when the server found a formality / style-lane conflict. */
   sameLane?: boolean;
+  /**
+   * Single conflict flag from the critique builder. Summary, bullets, and
+   * suggestions must all honour this — no second interpretation on the client.
+   */
+  hasConflict?: boolean;
 };
 
 export type LiveFeedbackUi = {
