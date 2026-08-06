@@ -149,10 +149,16 @@ export function LiveArOverlay({
                 score
               </ThemedText>
             </View>
-            {coaching?.headline ? (
+            {Number.isFinite(feedback.score) && coaching?.headline ? (
               <View style={styles.headlinePill}>
                 <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
                   {coaching.headline}
+                </ThemedText>
+              </View>
+            ) : !Number.isFinite(feedback.score) ? (
+              <View style={styles.headlinePill}>
+                <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
+                  —
                 </ThemedText>
               </View>
             ) : null}

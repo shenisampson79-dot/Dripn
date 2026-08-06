@@ -253,6 +253,12 @@ export function isDuplicateUpperRead(
 ): boolean {
   if (!base?.bbox || !layer?.bbox) return false;
   const iou = beliefBboxIou(base.bbox as BBoxTuple, layer.bbox as BBoxTuple);
+  const baseBlob = `${base.category || ''} ${base.subcategory || ''} ${base.name || ''}`.toLowerCase();
+  const layerBlob = `${layer.category || ''} ${layer.subcategory || ''} ${layer.name || ''}`.toLowerCase();
+  const bothOuter = /jacket|blazer|coat|trench|parka|overcoat/.test(baseBlob)
+    && /jacket|blazer|coat|trench|parka|overcoat/.test(layerBlob);
+  // Same coat/blazer reported twice with only partial box overlap.
+  if (bothOuter && iou >= 0.35) return true;
   if (iou < UPPER_DUPLICATE_IOU) return false;
   const baseFamily = colorFamilyKey(base.color);
   const layerFamily = colorFamilyKey(layer.color);
@@ -1690,6 +1696,29 @@ export function applyOutfitBelief(
       now,
       decisions,
     );
+    // Jacket/trench alone must not keep a stale duplicate in layer while top
+    // already holds the same outerwear (Top + Layer both "Beige trench").
+    if (layer && top && !layerObs) {
+      const topBlob = `${top.category || ''} ${top.subcategory || ''} ${top.name || ''}`.toLowerCase();
+      const layerBlob = `${layer.category || ''} ${layer.subcategory || ''} ${layer.name || ''}`.toLowerCase();
+      const bothOuter = /jacket|blazer|coat|trench|parka|overcoat/.test(topBlob)
+        && /jacket|blazer|coat|trench|parka|overcoat/.test(layerBlob);
+      const sameFamily = Boolean(
+        top.name && layer.name
+        && top.name.toLowerCase().replace(/\s+/g, ' ') === layer.name.toLowerCase().replace(/\s+/g, ' '),
+      );
+      if (bothOuter || sameFamily) {
+        layer = null;
+        repairs.push('cleared_duplicate_layer');
+        appendDecision(decisions, {
+          type: 'update',
+          message: 'Cleared duplicate layer',
+          reason: 'outerwear already in top slot',
+          slot: 'layer',
+          time: now,
+        });
+      }
+    }
   }
   const bottom = updateBelief(
     state.bottom,
