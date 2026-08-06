@@ -57,7 +57,29 @@ assert.equal(
   'athletic_shorts',
 );
 assert.equal(resolveShortsWithContext(null, {}), 'casual_shorts');
-
+assert.equal(
+  resolveShortsWithContext('shorts', {
+    topName: 'White T-Shirt',
+    topSubtype: 't-shirt',
+    footwearName: 'Grey Flip Flops',
+    footwearSubtype: 'flip_flops',
+  }),
+  'athletic_shorts',
+);
+assert.equal(
+  resolveShortsWithContext('chino shorts', {
+    topName: 'White T-Shirt',
+    topSubtype: 't-shirt',
+  }),
+  'tailored_shorts',
+);
+assert.equal(
+  resolveShortsWithContext('shorts', {
+    topName: 'Blue Oxford Shirt',
+    topSubtype: 'oxford_shirt',
+  }),
+  'casual_shorts',
+);
 assert.equal(pickMoreSpecificSubtype('sandals', 'flip_flops'), 'flip_flops');
 // boat ↔ sneakers are peers — next wins on tie
 assert.equal(pickMoreSpecificSubtype('sneakers', 'boat_shoes'), 'boat_shoes');

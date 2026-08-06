@@ -428,28 +428,42 @@ export function normalizeWarmLightingColor(
 export type ShortsResolveContext = {
   topName?: string | null;
   topSubtype?: string | null;
+  footwearName?: string | null;
+  footwearSubtype?: string | null;
   hasDrawstring?: boolean;
   meshTexture?: boolean;
 };
 
-/** Neutral default for plain shorts; athletic only with sport cues. */
+/**
+ * Disambiguate bare Vision "shorts" using outfit context.
+ * Tee + trainers/flip-flops → athletic; chino cues or shirt/loafers → casual/tailored.
+ */
 export function resolveShortsWithContext(
   currentSubtype: string | null | undefined,
   context: ShortsResolveContext = {},
-): 'athletic_shorts' | 'casual_shorts' | 'tailored_shorts' | 'linen_shorts' | string {
+): 'athletic_shorts' | 'casual_shorts' | 'tailored_shorts' | 'linen_shorts' | 'cargo_shorts' | string {
   const sub = String(currentSubtype || '').toLowerCase();
   const topBlob = `${context.topName || ''} ${context.topSubtype || ''}`.toLowerCase();
-  const structuredTop = /oxford_shirt|linen_shirt|button[\s-]?up|button[\s-]?down|linen/.test(topBlob)
+  const shoeBlob = `${context.footwearName || ''} ${context.footwearSubtype || ''}`.toLowerCase();
+  const structuredTop = /oxford_shirt|linen_shirt|button[\s-]?up|button[\s-]?down|dress[\s_-]*shirt|linen/.test(topBlob)
     || (/\bshirt\b/.test(topBlob) && !/t-?shirt|\btee\b/.test(topBlob));
+  const teeLike = !structuredTop && (/\b(t-?shirt|tee|jersey)\b/.test(topBlob) || /basic_tee|oversized_tee/.test(topBlob));
+  const athleticShoes = /\b(trainers?|sneakers?|runners?|flip[-\s]?flops?|slides?|sliders?|sandals?|wellington|wellies|gumboot)\b/.test(shoeBlob);
+  const dressyShoes = /\b(loafers?|oxfords?|brogues?|derbies?|boat\s*shoes?|deck\s*shoes?|dress\s*shoes?|chelsea|monk)\b/.test(shoeBlob);
 
-  if (context.hasDrawstring || context.meshTexture) return 'athletic_shorts';
-  if (/athletic_shorts|gym|sweat|jersey|running|sport/.test(sub) && !structuredTop) {
+  if (/tailored|chino|smart|bermuda|pleat/.test(sub)) return 'tailored_shorts';
+  if (/linen/.test(sub)) return 'linen_shorts';
+  if (/cargo/.test(sub)) return 'cargo_shorts';
+  if (context.hasDrawstring || context.meshTexture) {
+    if (!structuredTop) return 'athletic_shorts';
+  }
+  if (/athletic_shorts|gym|sweat|jersey|running|sport|basketball|training|terry/.test(sub) && !structuredTop) {
     return 'athletic_shorts';
   }
-  if (/tailored|chino|smart|bermuda/.test(sub)) return 'tailored_shorts';
-  if (/linen/.test(sub)) return 'linen_shorts';
-  if (structuredTop) return 'casual_shorts';
-  if (/athletic/.test(sub)) return 'casual_shorts';
+  if (structuredTop || dressyShoes || /\bpolo\b/.test(topBlob)) return 'casual_shorts';
+  if (teeLike && athleticShoes && !dressyShoes) return 'athletic_shorts';
+  if (teeLike && !dressyShoes && (!sub || sub === 'shorts')) return 'athletic_shorts';
+  if (structuredTop && /athletic/.test(sub)) return 'casual_shorts';
   return sub || 'casual_shorts';
 }
 
