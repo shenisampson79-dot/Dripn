@@ -58,9 +58,62 @@ export type GarmentBelief = {
   trackId?: string;
   /** Server flagged this read as a cloud-Vision correction of an on-device miss. */
   corrected?: boolean;
+  /**
+   * Bottom length (shorts ↔ trousers) is protected. Only an explicit Vision
+   * length correction / shorts unlock may break this — not YOLO geometry flicker.
+   */
+  lengthAuthority?: boolean;
+  /** Honest DBG phase while length authority is being rewritten. */
+  lengthUi?: 'correcting' | 'updated' | null;
+  lengthUiUntil?: number;
   lastChangedAt: number;
   lastSeenAt: number;
 };
+
+/** Stability at which shorts/trousers length becomes authoritative. */
+export const LENGTH_AUTHORITY_STABILITY = 0.85;
+/** How long DBG shows CORRECTING / UPDATED after a protected length rewrite. */
+export const LENGTH_UI_CORRECTING_MS = 1200;
+export const LENGTH_UI_UPDATED_MS = 1500;
+
+export function isBottomLengthKind(kind: BeliefKind | string | null | undefined): boolean {
+  return kind === 'shorts' || kind === 'trousers';
+}
+
+export function hasBottomLengthAuthority(belief: GarmentBelief | null | undefined): boolean {
+  if (!belief || !isBottomLengthKind(belief.kind)) return false;
+  return Boolean(belief.lengthAuthority) || belief.stability >= LENGTH_AUTHORITY_STABILITY;
+}
+
+/** Advance CORRECTING → UPDATED → clear, and re-earn length authority on the new kind. */
+export function advanceLengthUiPhase(belief: GarmentBelief, now: number): GarmentBelief {
+  if (!belief.lengthUi) {
+    if (
+      isBottomLengthKind(belief.kind)
+      && !belief.lengthAuthority
+      && belief.stability >= LENGTH_AUTHORITY_STABILITY
+    ) {
+      return { ...belief, lengthAuthority: true };
+    }
+    return belief;
+  }
+  const until = belief.lengthUiUntil ?? 0;
+  if (now < until) return belief;
+  if (belief.lengthUi === 'correcting') {
+    return {
+      ...belief,
+      lengthUi: 'updated',
+      lengthUiUntil: now + LENGTH_UI_UPDATED_MS,
+      lengthAuthority: isBottomLengthKind(belief.kind) ? true : belief.lengthAuthority,
+    };
+  }
+  return {
+    ...belief,
+    lengthUi: null,
+    lengthUiUntil: undefined,
+    lengthAuthority: isBottomLengthKind(belief.kind) ? true : belief.lengthAuthority,
+  };
+}
 
 /** Prefer colour words stated in the vision label over noisy ROI sampling. */
 export function colorFromVisionName(name?: string | null): string | null {
@@ -786,6 +839,60 @@ function resolveConflict(
 ): GarmentBelief {
   const slot = slotOfKind(prev.kind);
 
+  // Length authority: once shorts/trousers are LOCKED, YOLO geometry must not
+  // flip them. Only an explicit Vision correction (or Vision shorts unlock when
+  // the wearer changed clothes) may rewrite length — and DBG must show CORRECTING.
+  const lengthProtected = hasBottomLengthAuthority(prev)
+    && isBottomLengthKind(prev.kind)
+    && isBottomLengthKind(current.kind)
+    && prev.kind !== current.kind;
+
+  if (lengthProtected) {
+    const allowTrousersToShorts = prev.kind === 'trousers'
+      && current.kind === 'shorts'
+      && isVisionShortsUnlock(current);
+    const allowShortsToTrousers = prev.kind === 'shorts'
+      && current.kind === 'trousers'
+      && Boolean(current.corrected);
+    if (!allowTrousersToShorts && !allowShortsToTrousers) {
+      appendDecision(log, {
+        type: 'reject',
+        message: `Kept ${prev.kind} over ${current.kind}`,
+        reason: 'length authority — waiting for Vision length correction',
+        slot: 'bottom',
+        time: now,
+      });
+      return {
+        ...prev,
+        lengthAuthority: true,
+        lastSeenAt: now,
+        confidence: Math.min(1, prev.confidence + 0.02),
+        bbox: current.confidence >= prev.confidence ? current.bbox : prev.bbox,
+        color: applyStabilizedColor(prev, current, log, now, 'bottom'),
+      };
+    }
+    appendDecision(log, {
+      type: 'update',
+      message: `${prev.kind} → ${current.kind}`,
+      reason: allowShortsToTrousers
+        ? 'Vision length correction (authority unlock)'
+        : 'Vision shorts unlock (authority unlock)',
+      slot: 'bottom',
+      time: now,
+    });
+    return {
+      ...current,
+      name: preferVisionIdentityName(current.name) || current.name,
+      color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+      lengthAuthority: false,
+      lengthUi: 'correcting',
+      lengthUiUntil: now + LENGTH_UI_CORRECTING_MS,
+      stability: Math.max(0.45, prev.stability * 0.5),
+      lastChangedAt: now,
+      lastSeenAt: now,
+    };
+  }
+
   // Trousers persistence: truncated mid-thigh YOLO boxes must not flip long pants to shorts.
   // Strong Vision shorts (checkered / boxers / specific name) unlock — user changed clothes.
   if (prev.kind === 'trousers' && current.kind === 'shorts') {
@@ -801,6 +908,11 @@ function resolveConflict(
         ...current,
         name: preferVisionIdentityName(current.name) || current.name,
         color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+        lengthAuthority: false,
+        lengthUi: current.corrected || prev.lengthAuthority ? 'correcting' : null,
+        lengthUiUntil: current.corrected || prev.lengthAuthority
+          ? now + LENGTH_UI_CORRECTING_MS
+          : undefined,
         stability: Math.max(0.45, prev.stability * 0.55),
         lastChangedAt: now,
         lastSeenAt: now,
@@ -987,9 +1099,11 @@ function resolveConflict(
 
   // Locked shorts must yield to true waist→floor trousers (not socks/boots fuse),
   // or to an explicit Vision correction — a truncated box is why YOLO said shorts.
+  // When length authority is already earned, geometry alone is not enough (handled above).
   if (
     prev.kind === 'shorts'
     && current.kind === 'trousers'
+    && !hasBottomLengthAuthority(prev)
     && (current.corrected
       || ((isFloorLengthTrousersEvidence(current.bbox) || coversKneeAndCalf(current.bbox))
         && !looksLikeShortsWithFootwearExtension(current.bbox)
@@ -1007,6 +1121,9 @@ function resolveConflict(
     return {
       ...current,
       color: applyStabilizedColor(prev, current, log, now, 'bottom') || current.color,
+      lengthAuthority: Boolean(current.corrected) ? false : undefined,
+      lengthUi: current.corrected ? 'correcting' : null,
+      lengthUiUntil: current.corrected ? now + LENGTH_UI_CORRECTING_MS : undefined,
       stability: Math.max(0.45, prev.stability * 0.6),
       lastChangedAt: now,
       lastSeenAt: now,
@@ -1086,28 +1203,29 @@ export function updateBelief(
   if (!prev && !current) return null;
 
   if (!current && prev) {
-    const age = now - prev.lastSeenAt;
+    const held = advanceLengthUiPhase(prev, now);
+    const age = now - held.lastSeenAt;
     if (age > BELIEF_MISS_TTL_MS) {
       appendDecision(log, {
         type: 'update',
-        message: `Cleared ${prev.kind}`,
+        message: `Cleared ${held.kind}`,
         reason: 'miss TTL expired',
-        slot: slotOfKind(prev.kind),
+        slot: slotOfKind(held.kind),
         time: now,
       });
       return null;
     }
     appendDecision(log, {
       type: 'hold',
-      message: `Held ${prev.kind}`,
+      message: `Held ${held.kind}`,
       reason: 'memory persistence',
-      slot: slotOfKind(prev.kind),
+      slot: slotOfKind(held.kind),
       time: now,
     });
     return {
-      ...prev,
-      confidence: Math.max(BELIEF_FLOOR, prev.confidence * BELIEF_DECAY),
-      stability: Math.max(0.4, prev.stability * 0.99),
+      ...held,
+      confidence: Math.max(BELIEF_FLOOR, held.confidence * BELIEF_DECAY),
+      stability: Math.max(0.4, held.stability * 0.99),
     };
   }
 
@@ -1122,14 +1240,16 @@ export function updateBelief(
     return { ...current, stability: 0.45, lastChangedAt: now, lastSeenAt: now };
   }
 
-  const p = prev!;
+  const p = advanceLengthUiPhase(prev!, now);
   const c = current!;
   const slot = slotOfKind(p.kind);
 
   if (p.kind === c.kind) {
-    // Locked shorts with a true waist→floor pant box → promote to trousers
+    // Locked shorts with a true waist→floor pant box → promote to trousers.
+    // Length authority blocks YOLO geometry — Vision correction only.
     if (
       p.kind === 'shorts'
+      && !hasBottomLengthAuthority(p)
       && isFloorLengthTrousersEvidence(c.bbox)
       && !looksLikeShortsWithFootwearExtension(c.bbox)
     ) {
@@ -1146,6 +1266,7 @@ export function updateBelief(
         subcategory: 'trousers',
         confidence: Math.min(1, p.confidence + 0.06),
         stability: Math.min(1, Math.max(0.5, p.stability * 0.85)),
+        lengthAuthority: false,
         bbox: c.bbox,
         trackId: c.trackId || p.trackId,
         color: stabilizeColor(p.color, c.color, c.confidence, 'trousers'),
@@ -1156,8 +1277,10 @@ export function updateBelief(
 
     // Locked trousers but clear shorts+socks/boots frame → recover shorts
     // Never demote vision sweatpants/joggers/chinos via geometry.
+    // Length authority: geometry alone cannot unlock — Vision shorts unlock only.
     if (
       p.kind === 'trousers'
+      && !hasBottomLengthAuthority(p)
       && !resistsShortsGeometryDemotion({
         name: `${p.name || ''} ${c.name || ''}`,
         category: p.category,
@@ -1184,6 +1307,7 @@ export function updateBelief(
         category: 'bottoms',
         name: preferVisionIdentityName(c.name) || c.name,
         color: stabilizeColor(p.color, c.color, c.confidence, 'shorts') || c.color,
+        lengthAuthority: false,
         stability: Math.max(0.45, p.stability * 0.6),
         lastChangedAt: now,
         lastSeenAt: now,
@@ -1233,10 +1357,14 @@ export function updateBelief(
         || c.subcategory
         || p.subcategory)
       : p.subcategory;
-    return {
+    const nextStability = Math.min(1, p.stability + (fused.adopted === 'next' ? 0.04 : 0.12));
+    const earnAuthority = isBottomLengthKind(p.kind)
+      && (Boolean(p.lengthAuthority) || nextStability >= LENGTH_AUTHORITY_STABILITY);
+    return advanceLengthUiPhase({
       ...p,
       confidence: Math.min(1, p.confidence + 0.06),
-      stability: Math.min(1, p.stability + (fused.adopted === 'next' ? 0.04 : 0.12)),
+      stability: nextStability,
+      lengthAuthority: earnAuthority || undefined,
       bbox: c.bbox,
       trackId: c.trackId || p.trackId,
       color,
@@ -1247,7 +1375,7 @@ export function updateBelief(
       subcategory: String(nextSub || p.subcategory),
       lastSeenAt: now,
       ...(fused.adopted === 'next' ? { lastChangedAt: now } : {}),
-    };
+    }, now);
   }
 
   return resolveConflict(p, c, now, log);
@@ -1465,10 +1593,12 @@ export function applyOutfitBelief(
 
   // Floor-length bottoms labeled shorts → force trousers (true pant columns only).
   // Never rewrite a strong Vision shorts unlock (checkered / swim / boxers, etc.).
+  // Length authority: don't pre-mutate the observation — conflict resolution owns unlocks.
   if (
     bottomObs
     && /short|boxer|brief/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)
     && !isVisionShortsUnlock(bottomObs)
+    && !(hasBottomLengthAuthority(state.bottom) && state.bottom?.kind === 'shorts')
   ) {
     if (
       (isFloorLengthTrousersEvidence(bottomObs.bbox as BBoxTuple)
@@ -1498,6 +1628,7 @@ export function applyOutfitBelief(
     && /trouser|pant|jean|chino/i.test(`${bottomObs.subcategory} ${bottomObs.name}`)
     && !resistsShortsGeometryDemotion(bottomObs)
     && !isCloudVisionCorrection(bottomObs)
+    && !(hasBottomLengthAuthority(state.bottom) && state.bottom?.kind === 'trousers')
   ) {
     if (looksLikeShortsWithFootwearExtension(bottomObs.bbox as BBoxTuple)) {
       bottomObs = {

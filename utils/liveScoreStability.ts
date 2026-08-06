@@ -4,8 +4,8 @@
  * The scorer reacts to whatever the belief holds this instant, so an outfit read
  * on half-settled labels scored 76 and then jumped to 100 a second later. The
  * number was never wrong — it was published too early. Withhold the first score
- * until the garment signature repeats, and require a second agreeing sample
- * before adopting a large jump.
+ * until the garment belief is settled (or the max-hold safety valve trips), and
+ * require a second agreeing sample before adopting a large jump.
  */
 
 /** Points of movement treated as "the system changed its mind", not drift. */
@@ -85,13 +85,11 @@ export function gateLiveScore(
 
   if (forceAdopt) return adopt();
 
-  // Nothing shown yet: one corroborating sample on the same outfit first.
+  // Nothing shown yet: never publish from unsettled truth. Corroboration alone
+  // used to flash a score while shorts↔trousers still flipped — user anchors wrong.
   if (gate.shown === null) {
     if (opts.settled) return adopt();
-    const corroborated = sameOutfit
-      && gate.pending !== null
-      && Math.abs(gate.pending - value) <= LIVE_SCORE_AGREEMENT;
-    return corroborated ? adopt() : hold();
+    return hold();
   }
 
   // Drift within the band is normal movement — show it immediately.

@@ -26,7 +26,14 @@ import type {
   FootZoneDiagnostics,
   ShoeStyleScore,
 } from '@/utils/liveFootwearGate';
-import type { GarmentBelief, OutfitBeliefState } from '@/utils/liveGarmentBelief';
+import type {
+  GarmentBelief,
+  OutfitBeliefState,
+} from '@/utils/liveGarmentBelief';
+import {
+  hasBottomLengthAuthority,
+  isBottomLengthKind,
+} from '@/utils/liveGarmentBelief';
 import type { VisionMutationDiff } from '@/utils/visionTrust';
 import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
@@ -51,6 +58,8 @@ export type DebugFrameDetection = {
 
 export type BeliefSlotStatus =
   | 'LOCKED'
+  | 'CORRECTING'
+  | 'UPDATED'
   | 'STABLE'
   | 'WARM'
   | 'HOLD'
@@ -125,14 +134,27 @@ export function decisionColor(type: BeliefDecisionType): string {
   return '#B0B0B0';
 }
 
-function slotStatus(b: GarmentBelief | null | undefined): BeliefSlotStatus {
+function slotStatus(b: GarmentBelief | null | undefined, now = Date.now()): BeliefSlotStatus {
   if (!b) return 'NONE';
+  // Honest length transitions — never show LOCKED while rewriting.
+  if (b.lengthUi === 'correcting' && (b.lengthUiUntil == null || now < b.lengthUiUntil)) {
+    return 'CORRECTING';
+  }
+  if (b.lengthUi === 'updated' && (b.lengthUiUntil == null || now < b.lengthUiUntil)) {
+    return 'UPDATED';
+  }
+  // Bottoms: LOCKED means length authority (immutable to YOLO), not merely high stability.
+  if (isBottomLengthKind(b.kind)) {
+    if (hasBottomLengthAuthority(b)) return 'LOCKED';
+    if (b.stability >= 0.55) return 'STABLE';
+    return 'WARM';
+  }
   if (b.stability >= 0.85) return 'LOCKED';
   if (b.stability >= 0.55) return 'STABLE';
   return 'WARM';
 }
 
-function slotFromBelief(b: GarmentBelief | null | undefined): DebugBeliefSlot | null {
+function slotFromBelief(b: GarmentBelief | null | undefined, now = Date.now()): DebugBeliefSlot | null {
   if (!b) return null;
   const fashion = classifyFashionColor(b.color);
   const isShoes = b.kind === 'shoes' || String(b.category).toLowerCase() === 'shoes';
@@ -156,7 +178,7 @@ function slotFromBelief(b: GarmentBelief | null | undefined): DebugBeliefSlot | 
     label: polishUkLiveLabel(label || b.kind),
     confidence: b.confidence,
     stability: b.stability,
-    status: slotStatus(b),
+    status: slotStatus(b, now),
     color: b.color,
     kind: b.kind,
     fashion,
@@ -168,8 +190,9 @@ function shoesSlot(
   belief: OutfitBeliefState,
   zone: FootZoneDiagnostics | null,
   candidates: FootwearCandidateAnalysis[],
+  now = Date.now(),
 ): DebugBeliefSlot | { status: BeliefSlotStatus; label: string } {
-  const shoe = slotFromBelief(belief.footwear);
+  const shoe = slotFromBelief(belief.footwear, now);
   if (shoe) {
     return shoe;
   }
@@ -225,6 +248,7 @@ export function buildDebugSnapshot(args: {
   /** Slots read at least once this session — separates "not yet" from "lost". */
   filledOnce?: { top?: boolean; layer?: boolean; bottom?: boolean };
 }): LiveBeliefDebugSnapshot {
+  const now = args.now ?? Date.now();
   const candidates = args.footwearCandidates || [];
   const zone = args.footZone || null;
   const belief: OutfitBeliefState = {
@@ -234,21 +258,21 @@ export function buildDebugSnapshot(args: {
     footwear: args.belief.footwear ?? null,
     accessories: args.belief.accessories ?? [],
   };
-  const topSlot = slotFromBelief(belief.top);
-  const layerSlot = slotFromBelief(belief.layer);
-  const bottomSlot = slotFromBelief(belief.bottom);
+  const topSlot = slotFromBelief(belief.top, now);
+  const layerSlot = slotFromBelief(belief.layer, now);
+  const bottomSlot = slotFromBelief(belief.bottom, now);
   const accessorySlots = (belief.accessories || [])
-    .map((a) => slotFromBelief(a))
+    .map((a) => slotFromBelief(a, now))
     .filter(Boolean) as DebugBeliefSlot[];
   return {
-    updatedAt: args.now ?? Date.now(),
+    updatedAt: now,
     source: args.source,
     cropped: args.cropped,
     belief: {
       top: topSlot,
       layer: layerSlot,
       bottom: bottomSlot,
-      shoes: shoesSlot(belief, zone, candidates),
+      shoes: shoesSlot(belief, zone, candidates, now),
       accessories: accessorySlots,
     },
     colorPipeline: {

@@ -490,4 +490,60 @@ assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
   assert.match(st.bottom?.name || '', /trouser/i);
 }
 
+// Length authority: once shorts lock, YOLO floor-length geometry cannot flip to trousers.
+// Only an explicit Vision correction unlocks — and DBG shows CORRECTING.
+{
+  const tee: OnDeviceDetection = {
+    name: 'White T-Shirt',
+    category: 'tops',
+    subcategory: 't-shirt',
+    color: 'white',
+    confidence: 0.9,
+    bbox: [0.28, 0.18, 0.4, 0.28],
+    trackId: 't1',
+  };
+  const shortsBox: OnDeviceDetection = {
+    name: 'Beige Shorts',
+    category: 'bottoms',
+    subcategory: 'shorts',
+    color: 'beige',
+    confidence: 0.9,
+    bbox: [0.3, 0.48, 0.35, 0.28],
+    trackId: 'b1',
+  };
+  let st = createOutfitBeliefState();
+  for (let t = 1000; t <= 7000; t += 1000) {
+    st = applyOutfitBelief(st, [tee, shortsBox], { now: t }).state;
+  }
+  assert.equal(st.bottom?.kind, 'shorts');
+  assert.equal(st.bottom?.lengthAuthority, true, 'earned length authority');
+
+  const yoloTrousers: OnDeviceDetection = {
+    name: 'Beige Trousers',
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'beige',
+    confidence: 0.88,
+    bbox: [0.3, 0.42, 0.35, 0.50],
+    trackId: 'b2',
+  };
+  st = applyOutfitBelief(st, [tee, yoloTrousers], { now: 8000 }).state;
+  assert.equal(st.bottom?.kind, 'shorts', 'YOLO trousers rejected under length authority');
+
+  const visionTrousers: OnDeviceDetection = {
+    name: 'Beige Full-Length Trousers',
+    category: 'bottoms',
+    subcategory: 'trousers',
+    color: 'beige',
+    confidence: 0.9,
+    bbox: [0.3, 0.42, 0.35, 0.50],
+    trackId: 'b3',
+    source: 'cloud_vision',
+  };
+  st = applyOutfitBelief(st, [tee, visionTrousers], { now: 9000 }).state;
+  assert.equal(st.bottom?.kind, 'trousers', 'Vision correction unlocks length');
+  assert.equal(st.bottom?.lengthUi, 'correcting');
+  assert.equal(st.bottom?.lengthAuthority, false);
+}
+
 console.log('liveGarmentBelief.test.ts: all passed');

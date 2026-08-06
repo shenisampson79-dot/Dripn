@@ -87,4 +87,37 @@ assert.equal(decisionGlyph('reject'), '!');
 assert.equal(stabilityBar(1, 4), '████');
 assert.equal(stabilityBar(0, 4), '░░░░');
 
+// Bottom DBG: high stability without authority → STABLE; length rewrite → CORRECTING.
+{
+  const correctingSnap = buildDebugSnapshot({
+    belief: {
+      top: null,
+      layer: null,
+      bottom: {
+        kind: 'trousers',
+        category: 'bottoms',
+        subcategory: 'trousers',
+        name: 'Beige Trousers',
+        color: 'beige',
+        confidence: 0.9,
+        bbox: [0.3, 0.42, 0.35, 0.5],
+        trackId: 'b1',
+        stability: 0.5,
+        lengthAuthority: false,
+        lengthUi: 'correcting',
+        lengthUiUntil: Date.now() + 5000,
+        lastChangedAt: Date.now(),
+        lastSeenAt: Date.now(),
+      },
+      footwear: null,
+      accessories: [],
+    },
+    frameDetections: [],
+    decisions: [],
+    cropped: false,
+    source: 'test',
+  });
+  assert.equal(correctingSnap.belief.bottom?.status, 'CORRECTING');
+}
+
 console.log('liveBeliefDebug.test.ts: all passed');
