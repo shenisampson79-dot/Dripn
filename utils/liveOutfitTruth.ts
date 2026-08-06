@@ -258,8 +258,9 @@ export function buildOutfitTruth(args: {
 }
 
 /**
- * Final coaching alignment against the single conflict flag.
- * Server should already agree; this catches any residual drift before paint.
+ * Safety net only. Server composeLiveCritique now generates bullets already
+ * aligned to hasConflict; this strips any residual drift before paint without
+ * being the primary author of meaning.
  */
 export function alignCoachingToTruth<T extends LiveCoaching>(
   coaching: T | null | undefined,
