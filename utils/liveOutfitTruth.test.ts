@@ -51,8 +51,36 @@ assert.equal(
     score: 90,
     coaching: { headline: '', summary: 'ok', bullets: [], hasConflict: true, sameLane: true },
   }),
+  false,
+  'orphaned hasConflict must not override cohesive score + lane',
+);
+assert.equal(
+  deriveOutfitConflict({
+    score: 90,
+    coaching: {
+      headline: '',
+      summary: 'ok',
+      bullets: ['Formality mismatch across items'],
+      hasConflict: true,
+      sameLane: true,
+    },
+  }),
   true,
-  'server hasConflict wins',
+  'hasConflict stays when tension evidence exists',
+);
+assert.equal(
+  deriveOutfitConflict({
+    score: 82,
+    coaching: {
+      headline: '',
+      summary: 'ok',
+      bullets: [],
+      sameLane: true,
+      summaryArchetype: 'tension',
+    },
+  }),
+  false,
+  'tension archetype alone cannot force conflict on a cohesive score',
 );
 assert.equal(
   deriveOutfitConflict({
@@ -74,6 +102,91 @@ assert.equal(
   }),
   false,
 );
+
+{
+  const truth = buildOutfitTruth({
+    belief: belief({
+      layer: {
+        name: 'Blue and Red Towel',
+        category: 'accessories',
+        subcategory: 'towel',
+        color: 'blue',
+        confidence: 0.95,
+        stability: 0.9,
+        kind: 'top',
+        bbox: [0.3, 0.15, 0.35, 0.35],
+        lastSeenAt: 1000,
+        lastChangedAt: 1000,
+      } as never,
+    }),
+    feedback: {
+      score: 72,
+      issues: [],
+      hints: [],
+      suggestions: [],
+      coaching: {
+        headline: 'Sport-ready',
+        summary: 'ok',
+        bullets: [],
+        sameLane: true,
+        hasConflict: false,
+      },
+    },
+  });
+  assert.equal(truth.layer, null, 'towel must never enter truth');
+}
+
+{
+  const prev = buildOutfitTruth({
+    belief: belief(),
+    feedback: {
+      score: 90,
+      issues: [],
+      hints: [],
+      suggestions: [],
+      coaching: {
+        headline: 'Sport-ready',
+        summary: 'ok',
+        bullets: [],
+        sameLane: true,
+        hasConflict: false,
+      },
+    },
+    now: 1000,
+  });
+  const flickered = buildOutfitTruth({
+    belief: belief({
+      bottom: {
+        name: 'Rainbow Tutu Skirt',
+        category: 'bottoms',
+        subcategory: 'skirt',
+        color: 'multicolour',
+        confidence: 0.93,
+        stability: 0.5,
+        kind: 'skirt',
+        bbox: [0.2, 0.5, 0.3, 0.2],
+        lastSeenAt: 2000,
+        lastChangedAt: 2000,
+      } as never,
+    }),
+    feedback: {
+      score: 78,
+      issues: [],
+      hints: [],
+      suggestions: [],
+      coaching: {
+        headline: 'Trying it on',
+        summary: 'ok',
+        bullets: [],
+        sameLane: true,
+        hasConflict: false,
+      },
+    },
+    prev,
+    now: 2000,
+  });
+  assert.match(flickered.bottom?.name || '', /legging/i, 'continuity keeps the held bottom');
+}
 
 {
   const truth = buildOutfitTruth({

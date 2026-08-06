@@ -425,6 +425,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const truth = buildOutfitTruth({
       belief: detectionMemoryRef.current.belief,
       feedback: next,
+      prev: outfitTruthRef.current,
     });
     outfitTruthRef.current = truth;
 

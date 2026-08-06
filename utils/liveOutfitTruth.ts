@@ -2,13 +2,15 @@
  * Final Outfit Truth — thin snapshot after arbitration.
  *
  * Position in the pipeline:
- *   YOLO + Vision → belief arbitration → buildOutfitTruth → UI / score / coaching
+ *   YOLO + Vision → belief arbitration → sanitize → buildOutfitTruth → UI
  *
  * This module does NOT recompute score, rewrite summaries, or re-run geometry.
  * Those already live in the scorer and belief engines. It only:
- *   1. freezes the current resolved outfit into one object
- *   2. derives a single hasConflict flag everyone must honour
- *   3. carries seed detections so a live restart within ~2s can warm-start
+ *   1. strips invalid labels that must never enter truth (defense in depth)
+ *   2. clamps identity flicker against the previous truth
+ *   3. freezes the resolved outfit into one object
+ *   4. derives a single hasConflict flag reconciled with score + lane
+ *   5. carries seed detections so a live restart within ~2s can warm-start
  *
  * Downstream systems read this. They do not reinterpret the outfit.
  */
@@ -20,6 +22,15 @@ import { liveBeliefIsSettled } from '@/utils/liveScoreStability';
 
 /** Keep last stable truth this long after Stop so restart does not cold-boot. */
 export const LIVE_TRUTH_WARM_MS = 2000;
+
+/**
+ * Confidence gap required to accept a new label over the previous truth.
+ * Matches the belief continuity rule — clothes do not change between frames.
+ */
+export const TRUTH_CONTINUITY_CONF_GAP = 0.25;
+
+/** Cohesive scores at or above this cannot be forced into conflict by archetype alone. */
+export const TRUTH_COHESIVE_SCORE = 65;
 
 export type LiveTruthItem = {
   name: string;
@@ -58,6 +69,13 @@ const COHESION_PRAISE_RE =
 const TENSION_BULLET_RE =
   /inconsistenc|different wardrobes|different directions|formality|pieces are mixed|read as one outfit|do not (fully )?come together|shapes of these pieces/i;
 
+/**
+ * Household textiles and hangers that have slipped past belief before.
+ * Belief already drops these; this is the last gate before freeze.
+ */
+const BLOCKED_LABEL_RE =
+  /\b(towel|blanket|duvet|quilt|curtain|cushion|pillow|bedding|bed\s*sheet|rug|door\s*mat|hanger|fabric)s?\b/i;
+
 function itemFromBelief(b: GarmentBelief | null | undefined): LiveTruthItem | null {
   if (!b) return null;
   return {
@@ -71,6 +89,35 @@ function itemFromBelief(b: GarmentBelief | null | undefined): LiveTruthItem | nu
       ? (b.bbox as [number, number, number, number])
       : undefined,
   };
+}
+
+/**
+ * Nothing invalid enters truth. A towel that somehow survived arbitration is
+ * dropped here rather than frozen and scored.
+ */
+export function sanitizeTruthItem(item: LiveTruthItem | null): LiveTruthItem | null {
+  if (!item) return null;
+  const blob = `${item.name} ${item.subcategory || ''} ${item.category || ''}`;
+  if (BLOCKED_LABEL_RE.test(blob)) return null;
+  if (!item.name.trim()) return null;
+  return item;
+}
+
+/**
+ * Continuity clamp: a louder stranger on one slot does not replace the held
+ * garment unless confidence clears the gap. Per-slot — a real top change must
+ * not freeze the whole previous outfit.
+ */
+export function clampTruthContinuity(
+  next: LiveTruthItem | null,
+  prev: LiveTruthItem | null | undefined,
+): LiveTruthItem | null {
+  if (!next) return null;
+  if (!prev?.name) return next;
+  if (next.name.toLowerCase() === prev.name.toLowerCase()) return next;
+  const delta = Number(next.confidence) - Number(prev.confidence);
+  if (delta < TRUTH_CONTINUITY_CONF_GAP) return prev;
+  return next;
 }
 
 function detectionFromTruthItem(
@@ -89,10 +136,22 @@ function detectionFromTruthItem(
   };
 }
 
+function hasTensionEvidence(args: {
+  coaching?: LiveCoaching | null;
+  issues?: string[] | null;
+}): boolean {
+  const coaching = args.coaching;
+  if (coaching?.sameLane === false) return true;
+  const issues = Array.isArray(args.issues) ? args.issues : [];
+  const bullets = Array.isArray(coaching?.bullets) ? coaching.bullets : [];
+  return [...issues, ...bullets, String(coaching?.summary || '')]
+    .some((line) => TENSION_BULLET_RE.test(String(line)));
+}
+
 /**
- * Conflict is true when the server already said so, the lane disagrees, the
- * score is in the tension band with a tension bullet, or the summary archetype
- * is tension. One boolean — no second opinion downstream.
+ * Conflict is one boolean. A high cohesive score + agreeing lane outranks an
+ * orphaned tension archetype so the UI cannot be forced into conflict mode
+ * when the number already says the look holds together.
  */
 export function deriveOutfitConflict(args: {
   score?: number | null;
@@ -100,16 +159,23 @@ export function deriveOutfitConflict(args: {
   issues?: string[] | null;
 }): boolean {
   const coaching = args.coaching;
-  if (coaching && typeof (coaching as { hasConflict?: boolean }).hasConflict === 'boolean') {
-    return Boolean((coaching as { hasConflict?: boolean }).hasConflict);
+  const score = Number(args.score);
+  const cohesive = Number.isFinite(score)
+    && score >= TRUTH_COHESIVE_SCORE
+    && coaching?.sameLane !== false;
+  const tensionEvidence = hasTensionEvidence(args);
+
+  if (coaching && typeof coaching.hasConflict === 'boolean') {
+    if (coaching.hasConflict && cohesive && !tensionEvidence) return false;
+    return coaching.hasConflict;
   }
   if (coaching?.sameLane === false) return true;
-  if (String(coaching?.summaryArchetype || '') === 'tension') return true;
-  const score = Number(args.score);
-  const issues = Array.isArray(args.issues) ? args.issues : [];
-  const coachingBullets = Array.isArray(coaching?.bullets) ? coaching.bullets : [];
-  const tensionText = [...issues, ...coachingBullets].some((line) => TENSION_BULLET_RE.test(String(line)));
-  if (Number.isFinite(score) && score < 65 && tensionText) return true;
+  if (String(coaching?.summaryArchetype || '') === 'tension') {
+    // Archetype alone is not enough when score + lane already say cohesive.
+    if (cohesive && !tensionEvidence) return false;
+    return true;
+  }
+  if (Number.isFinite(score) && score < TRUTH_COHESIVE_SCORE && tensionEvidence) return true;
   if (TENSION_BULLET_RE.test(String(coaching?.summary || ''))) return true;
   return false;
 }
@@ -128,20 +194,32 @@ export function truthSignature(truth: Pick<LiveOutfitTruth, 'top' | 'layer' | 'b
 
 /**
  * Snapshot the arbitrated belief + already-gated score into one immutable truth.
+ * Sanitize and continuity-clamp first so garbage never freezes.
  */
 export function buildOutfitTruth(args: {
   belief: OutfitBeliefState | null | undefined;
   feedback?: LiveFeedback | null;
+  prev?: LiveOutfitTruth | null;
   now?: number;
 }): LiveOutfitTruth {
   const belief = args.belief;
   const feedback = args.feedback;
-  const top = itemFromBelief(belief?.top);
-  const layer = itemFromBelief(belief?.layer);
-  const bottom = belief?.bottom?.kind === 'dress'
-    ? itemFromBelief(belief.bottom)
-    : itemFromBelief(belief?.bottom);
-  const footwear = itemFromBelief(belief?.footwear);
+  const prev = args.prev;
+
+  let top = sanitizeTruthItem(itemFromBelief(belief?.top));
+  let layer = sanitizeTruthItem(itemFromBelief(belief?.layer));
+  let bottom = sanitizeTruthItem(
+    belief?.bottom?.kind === 'dress'
+      ? itemFromBelief(belief.bottom)
+      : itemFromBelief(belief?.bottom),
+  );
+  let footwear = sanitizeTruthItem(itemFromBelief(belief?.footwear));
+
+  top = clampTruthContinuity(top, prev?.top);
+  layer = clampTruthContinuity(layer, prev?.layer);
+  bottom = clampTruthContinuity(bottom, prev?.bottom);
+  footwear = clampTruthContinuity(footwear, prev?.footwear);
+
   const score = feedback?.score ?? null;
   const coaching = feedback?.coaching;
   const hasConflict = deriveOutfitConflict({
