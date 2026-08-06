@@ -1288,6 +1288,12 @@ class ApiService {
     sceneType?: string;
     lightingQuality?: string;
     overallSuggestion?: string;
+    /** Recent seasonal layer tip ids (newest first) — soft anti-repeat. */
+    recentLayerTipIds?: string[];
+    temperatureC?: number | null;
+    weatherTempC?: number | null;
+    month?: number | null;
+    season?: 'ss' | 'aw' | 'spring' | 'summer' | 'autumn' | 'fall' | 'winter' | string | null;
   }) {
     return this.request<{
       success: boolean;

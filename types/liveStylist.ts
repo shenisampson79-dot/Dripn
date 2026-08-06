@@ -33,6 +33,8 @@ export type LiveCoaching = {
    * suggestions must all honour this — no second interpretation on the client.
    */
   hasConflict?: boolean;
+  /** Seasonal layer tip id from the library — used to avoid recent repeats. */
+  layerTipId?: string | null;
 };
 
 export type LiveFeedbackUi = {

@@ -209,6 +209,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
   const previousFeedbackRef = useRef<LiveFeedback | null>(null);
+  /** Newest-first seasonal layer tip ids — soft anti-repeat across the session. */
+  const recentLayerTipIdsRef = useRef<string[]>([]);
   const detectionMemoryRef = useRef<DetectionMemory>(createLiveBeliefMemory());
   const decisionLogRef = useRef<BeliefDecision[]>([]);
   const inspectRef = useRef<ReturnType<typeof inspectDetection> | null>(null);
@@ -541,6 +543,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         frameHash,
         previousItems: previousItemsRef.current,
         previousFeedback: previousFeedbackRef.current,
+        recentLayerTipIds: recentLayerTipIdsRef.current.slice(0, 8),
+        month: new Date().getMonth() + 1,
       };
 
       if (onDevice?.length) {
@@ -669,6 +673,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
       const painted = applyResponse(res);
+      const tipId = res.feedback?.coaching?.layerTipId;
+      if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
+        recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
+      }
       const shownScore = painted?.score ?? scoreGateRef.current.shown ?? res.feedback?.score;
       setStatusNote(
         res.itemCount
@@ -807,6 +815,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           outfitTruthRef.current = null;
           previousItemsRef.current = [];
           previousFeedbackRef.current = null;
+          recentLayerTipIdsRef.current = [];
           setItems([]);
           setFeedback(null);
           setDebugSnapshot(emptyDebugSnapshot('live'));
@@ -856,6 +865,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         frameHash,
         previousItems: previousItemsRef.current,
         previousFeedback: previousFeedbackRef.current,
+        recentLayerTipIds: recentLayerTipIdsRef.current.slice(0, 8),
+        month: new Date().getMonth() + 1,
         richCritique: true,
         mode: 'still',
         sceneType: 'worn',
@@ -902,6 +913,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
       applyResponse(res);
+      const tipId = res.feedback?.coaching?.layerTipId;
+      if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
+        recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
+      }
       setStatusNote(
         res.itemCount
           ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${res.feedback?.score ?? '—'}`
