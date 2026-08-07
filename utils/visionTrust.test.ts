@@ -9,6 +9,7 @@ import {
   isTrustedVisionBoots,
   isTrustedVisionBottom,
   resolveFusedIdentity,
+  semanticBottomSubcategory,
   trustedGarmentFamily,
 } from './visionTrust';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
@@ -267,5 +268,15 @@ assert.ok(
   );
   assert.match(String(shorts.slots.bottom?.subcategory), /short/i);
 }
+
+assert.equal(
+  semanticBottomSubcategory('White Chino Shorts', 'chino_shorts'),
+  'chino_shorts',
+  'chino shorts must not collapse to chinos',
+);
+assert.equal(
+  semanticBottomSubcategory('Beige Chinos', 'chinos'),
+  'chinos',
+);
 
 console.log('visionTrust.test.ts: all passed');

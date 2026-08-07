@@ -87,7 +87,7 @@ const TIER_RANK: Record<SubscriptionTier, number> = {
   stylist_unlimited: 2,
 };
 
-/** Prefer the higher feature tier (never let a stale free backend wipe a paid local unlock). */
+/** Prefer the higher feature tier (optimistic local upgrades during purchase). */
 export function preferHigherSubscriptionTier(
   a?: string | null,
   b?: string | null,
@@ -95,4 +95,24 @@ export function preferHigherSubscriptionTier(
   const left = normalizeSubscriptionTier(a);
   const right = normalizeSubscriptionTier(b);
   return TIER_RANK[left] >= TIER_RANK[right] ? left : right;
+}
+
+/**
+ * Billing truth wins — including free/expired.
+ * Only keep a higher local tier when explicitly unlocked (staff Testing Mode).
+ */
+export function reconcileSubscriptionTier(opts: {
+  local?: string | null;
+  remote?: string | null;
+  /** Staff / __DEV__ Testing Mode — local Pro unlock may stick. */
+  allowLocalUnlock?: boolean;
+}): SubscriptionTier {
+  const local = normalizeSubscriptionTier(opts.local);
+  if (opts.allowLocalUnlock) {
+    return preferHigherSubscriptionTier(local, opts.remote);
+  }
+  if (opts.remote != null && String(opts.remote).trim() !== '') {
+    return normalizeSubscriptionTier(opts.remote);
+  }
+  return local;
 }

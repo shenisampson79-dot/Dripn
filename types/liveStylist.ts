@@ -46,6 +46,11 @@ export type LiveFeedbackUi = {
 export type LiveFeedback = {
   /** null while the score is still being corroborated — HUD shows a dash. */
   score: number | null;
+  /**
+   * high = exact number OK; medium = show soft expression (~84) so the badge
+   * does not overclaim while top/layer still settles.
+   */
+  confidenceLevel?: 'high' | 'medium';
   colourHarmony?: string | null;
   issues: string[];
   hints: string[];

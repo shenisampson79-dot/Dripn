@@ -72,9 +72,19 @@ import { roleOfCategory } from '@/utils/liveDetectionMemory';
 import { detectSuspectLiveRead } from '@/utils/liveSuspectRead';
 import {
   createLiveScoreGate,
+  gateLiveJudgment,
   gateLiveScore,
-  liveBeliefIsSettled,
+  liveIdentityIsConsistent,
+  liveIdentityKey,
+  liveJudgmentCertainty,
+  liveOutfitReadyToScore,
   liveScoreSignature,
+  presentLiveScore,
+  pushLiveIdentitySample,
+  smoothLiveCertainty,
+  createCertaintySmoothState,
+  LIVE_CERTAINTY_UPGRADE_STREAK,
+  type LiveIdentitySample,
 } from '@/utils/liveScoreStability';
 import {
   alignCoachingToTruth,
@@ -84,6 +94,7 @@ import {
   type LiveOutfitTruth,
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
+import { enforceLiveOutcomeContract } from '@/utils/liveOutcomeContract';
 
 const SAMPLE_INTERVAL_MS = 1100;
 const FRAME_WIDTH = 640;
@@ -180,6 +191,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [layout, setLayout] = useState({ width: Dimensions.get('window').width, height: 480 });
   const [items, setItems] = useState<LiveTrackedItem[]>([]);
   const [feedback, setFeedback] = useState<LiveFeedback | null>(null);
+  /** Hide garment name labels until identity locks — boxes may still paint. */
+  const [labelsReady, setLabelsReady] = useState(false);
+  const labelsReadyRef = useRef(false);
   const [sourceLabel, setSourceLabel] = useState('Cloud vision');
   const [selected, setSelected] = useState<LiveTrackedItem | null>(null);
   const [shopHints, setShopHints] = useState<FallbackMissingItem[]>([]);
@@ -225,6 +239,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const sceneChangeStreakRef = useRef(0);
   const lastBeliefSignatureRef = useRef('');
   const scoreGateRef = useRef(createLiveScoreGate());
+  const identityBufRef = useRef<LiveIdentitySample[]>([]);
+  /** Last identity key that successfully locked — changes need extra inertia. */
+  const identityLockedKeyRef = useRef<string | null>(null);
+  const certaintySmoothRef = useRef(createCertaintySmoothState());
   const outfitTruthRef = useRef<LiveOutfitTruth | null>(null);
   const warmTruthRef = useRef<WarmTruthStash | null>(null);
   const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
@@ -398,9 +416,56 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         next.score = Math.max(0, Math.min(100, Math.round((next.score || 0) + delta)));
       }
     }
-    // Hold the score until the same outfit scores twice. A score computed while
-    // labels are still settling is what produced the 76 → 100 jump.
+    // Hold the score until identity is stable. Force-adopting warmup scores
+    // (dark shorts → 40 Mixed weights) is worse than a longer dash.
     const beliefSlots = detectionMemoryRef.current.belief;
+    identityBufRef.current = pushLiveIdentitySample(identityBufRef.current, {
+      bottomKind: beliefSlots?.bottom?.kind || null,
+      shoeSubtype: beliefSlots?.footwear?.subcategory || null,
+      topKind: beliefSlots?.top?.kind || beliefSlots?.layer?.kind || null,
+      bottomConfidence: beliefSlots?.bottom?.confidence ?? beliefSlots?.bottom?.stability ?? null,
+      shoeConfidence: beliefSlots?.footwear?.confidence ?? beliefSlots?.footwear?.stability ?? null,
+      topConfidence: (beliefSlots?.top || beliefSlots?.layer)?.confidence
+        ?? (beliefSlots?.top || beliefSlots?.layer)?.stability
+        ?? null,
+    });
+    const tipKey = liveIdentityKey(identityBufRef.current[identityBufRef.current.length - 1]);
+    const prevLockedKey = identityLockedKeyRef.current;
+    const identityLocked = liveIdentityIsConsistent(identityBufRef.current, {
+      prevLockedKey,
+    });
+    // Core only — top/layer drift must not block scoring (partial truth).
+    const settled = liveOutfitReadyToScore({
+      slots: [
+        beliefSlots?.bottom,
+        beliefSlots?.footwear,
+      ],
+      identityBuf: identityBufRef.current,
+      prevLockedKey,
+    });
+    if (identityLocked && tipKey) {
+      identityLockedKeyRef.current = tipKey;
+      if (!labelsReadyRef.current) {
+        labelsReadyRef.current = true;
+        if (mountedRef.current) setLabelsReady(true);
+      }
+    } else if (!identityLocked && labelsReadyRef.current) {
+      labelsReadyRef.current = false;
+      if (mountedRef.current) setLabelsReady(false);
+    }
+    const certaintyRaw = liveJudgmentCertainty({
+      identityBuf: identityBufRef.current,
+      prevLockedKey,
+      coreReady: settled,
+    });
+    const smoothed = smoothLiveCertainty(certaintySmoothRef.current, certaintyRaw);
+    certaintySmoothRef.current = smoothed.state;
+    const certainty = smoothed.certainty;
+    const coreFilled = Boolean(
+      (beliefSlots?.top || beliefSlots?.layer)
+      && beliefSlots?.bottom
+      && beliefSlots?.footwear,
+    );
     const gated = gateLiveScore(
       scoreGateRef.current,
       next.score,
@@ -411,16 +476,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           color: it.color,
         }))),
         now: Date.now(),
-        settled: liveBeliefIsSettled([
-          beliefSlots?.top,
-          beliefSlots?.layer,
-          beliefSlots?.bottom,
-          beliefSlots?.footwear,
-        ]),
+        settled,
+        identityLocked,
+        coreFilled,
+        identityKey: identityLocked ? tipKey : null,
+        certainty,
       },
     );
     scoreGateRef.current = gated.gate;
     next.score = gated.score;
+    next.confidenceLevel = certainty === 'high' ? 'high' : 'medium';
 
     // Freeze the arbitrated outfit into one truth object. Score is already
     // gated; coaching only injects names — neither recomputes meaning here.
@@ -428,6 +493,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       belief: detectionMemoryRef.current.belief,
       feedback: next,
       prev: outfitTruthRef.current,
+      confidenceLevel: next.confidenceLevel,
     });
     outfitTruthRef.current = truth;
 
@@ -448,6 +514,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
     if (next.coaching) {
       next.coaching = alignCoachingToTruth(next.coaching, truth) || next.coaching;
+      next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
+        certainty: certainty === 'none' ? 'medium' : certainty,
+      }) || next.coaching;
+    }
+    // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
+    if (gated.score == null) {
+      next.coaching = gateLiveJudgment(next.coaching, null) || next.coaching;
+      next.hints = [];
+      next.suggestions = [];
+      next.confidenceLevel = undefined;
     }
 
     const holdMs = next.ui?.holdMs ?? 1000;
@@ -506,7 +582,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     else setSourceLabel(String(res.source || 'Live'));
     // Footer must show the same gated number as the score badge — never the
     // raw server score that is still being corroborated.
-    return { score: next.score, itemCount: res.itemCount };
+    return {
+      score: next.score,
+      itemCount: res.itemCount,
+      confidenceLevel: next.confidenceLevel,
+    };
   }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
@@ -678,9 +758,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
       }
       const shownScore = painted?.score ?? scoreGateRef.current.shown ?? res.feedback?.score;
+      const scoreLabel = presentLiveScore(
+        shownScore,
+        painted?.confidenceLevel
+          || previousFeedbackRef.current?.confidenceLevel
+          || 'high',
+      ).display;
       setStatusNote(
         res.itemCount
-          ? `${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${shownScore ?? '—'}`
+          ? `${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${scoreLabel}`
           : 'No garments yet — hold steadier',
       );
     } catch (error) {
@@ -748,8 +834,40 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           cloudSceneBaselineRef.current = { detections: [], frameHash: null };
           sceneChangeStreakRef.current = 0;
           scoreGateRef.current = createLiveScoreGate();
+          {
+            // Only seed identity when the previous truth was stable (warm path
+            // already requires isStable). Unstable last session must cold-start.
+            const b = detectionMemoryRef.current.belief;
+            const sample = warm.truth.isStable
+              && b?.bottom?.kind
+              && b?.footwear?.subcategory
+              ? {
+                bottomKind: String(b.bottom.kind),
+                shoeSubtype: String(b.footwear.subcategory),
+                topKind: String(b.top?.kind || b.layer?.kind || ''),
+                bottomConfidence: Number(b.bottom.confidence || b.bottom.stability || 0.9),
+                shoeConfidence: Number(b.footwear.confidence || b.footwear.stability || 0.9),
+                topConfidence: Number(
+                  (b.top || b.layer)?.confidence
+                  || (b.top || b.layer)?.stability
+                  || 0.9,
+                ),
+              }
+              : null;
+            identityBufRef.current = sample
+              ? [sample, sample, sample]
+              : [];
+            identityLockedKeyRef.current = sample ? liveIdentityKey(sample) : null;
+            labelsReadyRef.current = Boolean(sample);
+            setLabelsReady(Boolean(sample));
+            const warmConf = warm.truth.confidenceLevel || 'high';
+            certaintySmoothRef.current = warmConf === 'high'
+              ? { lastRaw: 'high', streak: LIVE_CERTAINTY_UPGRADE_STREAK, displayed: 'high' }
+              : { lastRaw: 'medium', streak: 1, displayed: 'medium' };
+          }
           if (warm.truth.score != null) {
             // Publish the last settled score immediately — no dash over a known outfit.
+            const warmIdentity = identityLockedKeyRef.current;
             scoreGateRef.current = {
               shown: warm.truth.score,
               pending: null,
@@ -759,6 +877,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
                 color: d.color,
               }))),
               heldSince: null,
+              scoredIdentityKey: warmIdentity,
             };
           }
           suspectAskedRef.current = new Set<string>();
@@ -780,6 +899,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           previousFeedbackRef.current = warm.truth.score != null
             ? {
               score: warm.truth.score,
+              confidenceLevel: warm.truth.confidenceLevel || 'high',
               issues: [],
               hints: [],
               suggestions: [],
@@ -788,8 +908,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
                 summary: '',
                 bullets: [],
                 styleLane: warm.truth.lane,
-                hasConflict: warm.truth.hasConflict,
-                sameLane: !warm.truth.hasConflict,
+                // Never warm-start Mixed directions — wait for a fresh critique.
+                hasConflict: false,
+                sameLane: true,
               },
             }
             : null;
@@ -810,6 +931,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           cloudSceneBaselineRef.current = { detections: [], frameHash: null };
           sceneChangeStreakRef.current = 0;
           scoreGateRef.current = createLiveScoreGate();
+          identityBufRef.current = [];
+          identityLockedKeyRef.current = null;
+          labelsReadyRef.current = false;
+          setLabelsReady(false);
+          certaintySmoothRef.current = createCertaintySmoothState();
           suspectAskedRef.current = new Set<string>();
           filledOnceRef.current = {};
           outfitTruthRef.current = null;
@@ -983,6 +1109,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           feedback={feedback}
           selectedTrackId={selected?.trackId}
           showRegionGuides={beliefDebugAllowed && showBeliefDebug}
+          showLabels={labelsReady}
           onSelectItem={(item) => {
             Haptics.selectionAsync();
             setSelected(item);

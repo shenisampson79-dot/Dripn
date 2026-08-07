@@ -2,9 +2,23 @@ import assert from 'node:assert/strict';
 
 import {
   createLiveScoreGate,
+  gateLiveJudgment,
   gateLiveScore,
   liveBeliefIsSettled,
+  liveIdentityIsConsistent,
+  liveIdentityKey,
+  liveJudgmentCertainty,
+  liveOutfitReadyToScore,
   liveScoreSignature,
+  liveSlotWeightedStability,
+  liveTopIsConsistent,
+  presentLiveScore,
+  pushLiveIdentitySample,
+  createCertaintySmoothState,
+  smoothLiveCertainty,
+  LIVE_FIRST_SCORE_MAX_HOLD_MS,
+  LIVE_IDENTITY_CHANGE_FRAMES,
+  LIVE_PARTIAL_SCORE_CAP,
   LIVE_SCORE_MAX_HOLD_MS,
 } from '@/utils/liveScoreStability';
 
@@ -13,6 +27,13 @@ const OUTFIT = liveScoreSignature([
   { category: 'bottoms', subcategory: 'shorts', color: 'beige' },
   { category: 'shoes', subcategory: 'sneakers', color: 'white' },
 ]);
+
+const confident = (bottom: string, shoe: string, conf = 0.92) => ({
+  bottomKind: bottom,
+  shoeSubtype: shoe,
+  bottomConfidence: conf,
+  shoeConfidence: conf,
+});
 
 // Signature ignores ordering so a reshuffled detection list still corroborates.
 assert.equal(
@@ -35,81 +56,161 @@ assert.equal(
   gate = second.gate;
   assert.equal(second.score, null, 'agreeing samples still withhold without settled belief');
 
-  const third = gateLiveScore(gate, 100, { signature: OUTFIT, now: 3200 });
+  // Old bug: forceAdopt at 3s published warmup Mixed weights. Must still withhold.
+  const third = gateLiveScore(gate, 40, { signature: OUTFIT, now: 1000 + LIVE_SCORE_MAX_HOLD_MS });
   gate = third.gate;
-  assert.equal(third.score, null, 'still no score until belief settles or max-hold');
+  assert.equal(third.score, null, '3s force-adopt must NOT publish first unsettled score');
 
   const settled = gateLiveScore(gate, 100, {
     signature: OUTFIT,
     now: 3300,
     settled: true,
+    identityKey: 'shorts|sneakers',
   });
   assert.equal(settled.score, 100, 'settled belief is the first number the user sees');
+  assert.equal(settled.gate.scoredIdentityKey, 'shorts|sneakers');
 }
 
 // A settled outfit publishes on the first sample — nothing to wait for.
 {
   const gate = createLiveScoreGate();
-  const out = gateLiveScore(gate, 84, { signature: OUTFIT, now: 1000, settled: true });
+  const out = gateLiveScore(gate, 84, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(out.score, 84, 'settled belief publishes immediately');
 }
 
 // Once shown, ordinary drift updates immediately.
 {
   let gate = createLiveScoreGate();
-  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
-  const drift = gateLiveScore(gate, 85, { signature: OUTFIT, now: 3000 });
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  const drift = gateLiveScore(gate, 85, {
+    signature: OUTFIT,
+    now: 3000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(drift.score, 85);
 }
 
 // A later jump holds the previous number rather than flashing a new one.
 {
   let gate = createLiveScoreGate();
-  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
-  const jump = gateLiveScore(gate, 55, { signature: OUTFIT, now: 3000 });
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  const jump = gateLiveScore(gate, 55, {
+    signature: OUTFIT,
+    now: 3000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(jump.score, 80, 'unconfirmed jump keeps the shown score');
-  const confirmed = gateLiveScore(jump.gate, 55, { signature: OUTFIT, now: 4000 });
+  const confirmed = gateLiveScore(jump.gate, 55, {
+    signature: OUTFIT,
+    now: 4000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(confirmed.score, 55);
 }
 
 // Changing clothes must not be corroborated by the previous outfit's sample.
 {
   let gate = createLiveScoreGate();
-  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
   const changed = liveScoreSignature([
     { category: 'dresses', subcategory: 'maxi_dress', color: 'black' },
   ]);
-  const out = gateLiveScore(gate, 40, { signature: changed, now: 2500 });
-  assert.equal(out.score, 80, 'new outfit needs its own corroboration');
+  const out = gateLiveScore(gate, 40, {
+    signature: changed,
+    now: 2500,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
+  assert.equal(out.score, 80, 'different outfit keeps previous score pending');
 }
 
-// A settled belief has nothing to corroborate — publish on the first sample.
+// Identity version change: wrong early score must yield to the corrected lock.
 {
-  const gate = createLiveScoreGate();
-  const out = gateLiveScore(gate, 90, { signature: OUTFIT, now: 1000, settled: true });
-  assert.equal(out.score, 90, 'a locked belief must not sit behind a dash');
+  let gate = createLiveScoreGate();
+  gate = gateLiveScore(gate, 40, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'trousers|boots',
+  }).gate;
+  const corrected = gateLiveScore(gate, 88, {
+    signature: OUTFIT,
+    now: 2500,
+    settled: true,
+    identityKey: 'shorts|loafers',
+  });
+  assert.equal(corrected.score, 88, 'new stable identity invalidates frozen score');
+  assert.equal(corrected.gate.scoredIdentityKey, 'shorts|loafers');
 }
 
 assert.equal(liveBeliefIsSettled([{ stability: 0.9 }, { stability: 0.88 }, null]), true);
 assert.equal(liveBeliefIsSettled([{ stability: 0.9 }, { stability: 0.4 }]), false);
 assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
 
-// A settled belief still holds a later jump until a second sample agrees.
+// Already-shown jump can force-adopt after short hold.
 {
   let gate = createLiveScoreGate();
-  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
-  const jump = gateLiveScore(gate, 55, { signature: OUTFIT, now: 2100, settled: true });
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  const jump = gateLiveScore(gate, 55, {
+    signature: OUTFIT,
+    now: 2100,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(jump.score, 80);
+  const forced = gateLiveScore(jump.gate, 55, {
+    signature: OUTFIT,
+    now: 2100 + LIVE_SCORE_MAX_HOLD_MS,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
+  assert.equal(forced.score, 55);
 }
 
-// A signature that churns every frame must not withhold the score forever.
+// Jittering labels after a score is shown must still update.
 {
   let gate = createLiveScoreGate();
-  let shown: number | null = null;
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  let shown: number | null = 80;
   for (let i = 0; i < 6; i += 1) {
     const out = gateLiveScore(gate, 90 + i, {
       signature: `churn-${i}`,
       now: 1000 + i * 1100,
+      settled: true,
+      identityKey: 'shorts|sneakers',
     });
     gate = out.gate;
     shown = out.score;
@@ -117,23 +218,214 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
   assert.notEqual(shown, null, 'jittering labels must still publish a score');
 }
 
-// Never withhold indefinitely — a held number beats a permanent dash.
+// First score safety valve: long hold + core + identity lock.
 {
   let gate = createLiveScoreGate();
   gate = gateLiveScore(gate, 70, { signature: OUTFIT, now: 1000 }).gate;
-  const forced = gateLiveScore(gate, 95, {
+  const stillHeld = gateLiveScore(gate, 95, {
     signature: OUTFIT,
     now: 1000 + LIVE_SCORE_MAX_HOLD_MS,
+    coreFilled: true,
+    identityLocked: true,
   });
-  assert.equal(forced.score, 95);
+  assert.equal(stillHeld.score, null, '3s is not enough for first unsettled publish');
+  const noIdentity = gateLiveScore(stillHeld.gate, 95, {
+    signature: OUTFIT,
+    now: 1000 + LIVE_FIRST_SCORE_MAX_HOLD_MS,
+    coreFilled: true,
+    identityLocked: false,
+  });
+  assert.equal(noIdentity.score, null, '7s without identity lock still withholds');
+  const forced = gateLiveScore(noIdentity.gate, 95, {
+    signature: OUTFIT,
+    now: 1000 + LIVE_FIRST_SCORE_MAX_HOLD_MS,
+    coreFilled: true,
+    identityLocked: true,
+    identityKey: 'shorts|sneakers',
+  });
+  assert.equal(forced.score, 95, '7s + core + identity may publish first score');
+}
+
+// Once shown, unsettled identity must not adopt a new score.
+{
+  let gate = createLiveScoreGate();
+  gate = gateLiveScore(gate, 88, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  const held = gateLiveScore(gate, 40, {
+    signature: OUTFIT,
+    now: 2500,
+    settled: false,
+  });
+  assert.equal(held.score, 88, 'unstable frame must not overwrite a published score');
 }
 
 // A missing score never clears a number already on screen.
 {
   let gate = createLiveScoreGate();
-  gate = gateLiveScore(gate, 80, { signature: OUTFIT, now: 1000, settled: true }).gate;
-  const missing = gateLiveScore(gate, null, { signature: OUTFIT, now: 3000 });
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  }).gate;
+  const missing = gateLiveScore(gate, null, {
+    signature: OUTFIT,
+    now: 3000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+  });
   assert.equal(missing.score, 80);
+}
+
+// Confidence-weighted 3-frame identity lock.
+{
+  let buf = pushLiveIdentitySample([], confident('shorts', 'loafers', 0.7));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.7));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.7));
+  assert.equal(
+    liveIdentityIsConsistent(buf),
+    false,
+    'consistent but low-confidence must not lock',
+  );
+
+  buf = [];
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'boots'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers'));
+  assert.equal(liveIdentityIsConsistent(buf), false, 'shoe flip blocks consistency');
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers'));
+  assert.equal(liveIdentityIsConsistent(buf), true);
+  assert.equal(
+    liveOutfitReadyToScore({
+      slots: [{ stability: 0.9 }, { stability: 0.9 }],
+      identityBuf: buf,
+    }),
+    true,
+  );
+}
+
+// Identity inertia: a change vs last lock needs 4 agreeing frames.
+{
+  let buf: ReturnType<typeof pushLiveIdentitySample> = [];
+  for (let i = 0; i < 3; i += 1) {
+    buf = pushLiveIdentitySample(buf, confident('trousers', 'loafers'));
+  }
+  assert.equal(
+    liveIdentityIsConsistent(buf, { prevLockedKey: 'shorts|loafers' }),
+    false,
+    '3 frames is not enough after an identity change',
+  );
+  buf = pushLiveIdentitySample(buf, confident('trousers', 'loafers'));
+  assert.equal(buf.slice(-LIVE_IDENTITY_CHANGE_FRAMES).length, 4);
+  assert.equal(
+    liveIdentityIsConsistent(buf, { prevLockedKey: 'shorts|loafers' }),
+    true,
+    '4 frames unlocks the new identity',
+  );
+  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'trousers|loafers');
+}
+
+// Partial truth: top drift softens certainty but does not block core lock.
+{
+  let buf: ReturnType<typeof pushLiveIdentitySample> = [];
+  for (let i = 0; i < 3; i += 1) {
+    buf = pushLiveIdentitySample(buf, {
+      ...confident('shorts', 'loafers'),
+      topKind: i === 1 ? 'shirt' : 'tshirt',
+      topConfidence: 0.92,
+    });
+  }
+  assert.equal(liveIdentityIsConsistent(buf), true, 'core still locks while top flips');
+  assert.equal(liveTopIsConsistent(buf), false, 'top flicker is detected');
+  assert.equal(
+    liveJudgmentCertainty({ identityBuf: buf, coreReady: true }),
+    'medium',
+  );
+  assert.ok(liveSlotWeightedStability(buf) < 0.85, 'weighted stability soft-fails on top drift');
+
+  buf = [];
+  for (let i = 0; i < 3; i += 1) {
+    buf = pushLiveIdentitySample(buf, {
+      ...confident('shorts', 'loafers'),
+      topKind: 'tshirt',
+      topConfidence: 0.92,
+    });
+  }
+  assert.equal(liveJudgmentCertainty({ identityBuf: buf, coreReady: true }), 'high');
+  assert.ok(liveSlotWeightedStability(buf) >= 0.85);
+}
+
+// Medium certainty caps score movement once a number is shown.
+{
+  let gate = createLiveScoreGate();
+  gate = gateLiveScore(gate, 80, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+    certainty: 'high',
+  }).gate;
+  const jumped = gateLiveScore(gate, 95, {
+    signature: OUTFIT,
+    now: 2000,
+    settled: true,
+    identityKey: 'shorts|sneakers',
+    certainty: 'medium',
+  });
+  assert.equal(jumped.score, 80 + LIVE_PARTIAL_SCORE_CAP, 'partial truth caps ±3');
+}
+
+// Soft expression — number stays exact for logic; HUD shows approximation.
+{
+  assert.deepEqual(presentLiveScore(84, 'high'), {
+    display: '84',
+    numeric: 84,
+    soft: false,
+  });
+  assert.deepEqual(presentLiveScore(84, 'medium'), {
+    display: '~84',
+    numeric: 84,
+    soft: true,
+  });
+  assert.equal(presentLiveScore(null, 'medium').display, '—');
+}
+
+// Confidence upgrade must not snap medium → high on the first high frame.
+{
+  let state = createCertaintySmoothState();
+  let out = smoothLiveCertainty(state, 'medium');
+  state = out.state;
+  assert.equal(out.certainty, 'medium');
+  out = smoothLiveCertainty(state, 'high');
+  state = out.state;
+  assert.equal(out.certainty, 'medium', 'first high after medium stays soft');
+  out = smoothLiveCertainty(state, 'high');
+  assert.equal(out.certainty, 'high', 'second consecutive high upgrades');
+  // Downgrade is immediate.
+  out = smoothLiveCertainty(out.state, 'medium');
+  assert.equal(out.certainty, 'medium');
+}
+
+// Unscored HUD must not paint judgment copy.
+{
+  const coaching = {
+    headline: 'Mixed direction',
+    summary: 'Sportswear under a tie.',
+    bullets: ['Swap trainers for loafers'],
+  };
+  const gated = gateLiveJudgment(coaching, null);
+  assert.equal(gated?.headline, '');
+  assert.equal(gated?.summary, '');
+  assert.deepEqual(gated?.bullets, []);
+  const open = gateLiveJudgment(coaching, 82);
+  assert.equal(open?.headline, 'Mixed direction');
+  assert.equal(open?.summary, 'Sportswear under a tie.');
 }
 
 console.log('liveScoreStability.test.ts: all passed');

@@ -19,7 +19,7 @@ import {
   seedAiStylistChatFromGuest,
 } from '@/services/GuestChatStorage';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
-import { normalizeSubscriptionTier, preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
+import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import {
@@ -480,10 +480,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const updatedUser = {
               ...hydrated,
               hasSeenTour,
-              subscriptionTier: preferHigherSubscriptionTier(
-                localUser.subscriptionTier,
-                hydrated.subscriptionTier,
-              ),
+              subscriptionTier: reconcileSubscriptionTier({
+                local: localUser.subscriptionTier,
+                remote: hydrated.subscriptionTier,
+                allowLocalUnlock: await shouldApplyTestingUnlock(hydrated),
+              }),
             };
             if (await shouldApplyTestingUnlock(updatedUser)) {
               updatedUser.subscriptionTier = 'stylist_unlimited';
@@ -1027,9 +1028,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return apiService.getSubscriptionStatus();
       });
       
-      if (subStatus?.plan && subStatus.plan !== 'free') {
+      if (subStatus?.plan != null) {
         const mappedTier = normalizeSubscriptionTier(subStatus.plan);
-        const nextTier = preferHigherSubscriptionTier(user.subscriptionTier, mappedTier);
+        const nextTier = reconcileSubscriptionTier({
+          local: user.subscriptionTier,
+          remote: mappedTier,
+          allowLocalUnlock: await shouldApplyTestingUnlock(user),
+        });
         if (nextTier !== normalizeSubscriptionTier(user.subscriptionTier)) {
           const updatedUser = { ...user, subscriptionTier: nextTier };
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));

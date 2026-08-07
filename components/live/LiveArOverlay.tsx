@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import type { LiveFeedback, LiveTrackedItem } from '@/types/liveStylist';
 import { REGION } from '@/utils/bodyGeometryGuardrails';
+import { presentLiveScore } from '@/utils/liveScoreStability';
 
 type Props = {
   width: number;
@@ -16,6 +17,8 @@ type Props = {
   selectedTrackId?: string | null;
   /** Dev: draw top / transition / bottom / footwear guide lines */
   showRegionGuides?: boolean;
+  /** When false, box labels stay blank until identity locks (avoids first-frame lies). */
+  showLabels?: boolean;
 };
 
 function scoreColor(score: number): string {
@@ -43,6 +46,7 @@ export function LiveArOverlay({
   onSelectItem,
   selectedTrackId,
   showRegionGuides = false,
+  showLabels = true,
 }: Props) {
   const boxes = useMemo(
     () =>
@@ -53,6 +57,10 @@ export function LiveArOverlay({
   );
 
   const coaching = feedback?.coaching;
+  const scorePresentation = presentLiveScore(
+    feedback?.score,
+    feedback?.confidenceLevel || 'high',
+  );
 
   if (width <= 0 || height <= 0) return null;
 
@@ -103,7 +111,9 @@ export function LiveArOverlay({
                 fontSize="11"
                 fontWeight="600"
               >
-                {fitLiveBoxLabel(item.name || item.category || 'Item')}
+                {showLabels
+                  ? fitLiveBoxLabel(item.name || item.category || 'Item')
+                  : '…'}
               </SvgText>
             </React.Fragment>
           );
@@ -143,10 +153,10 @@ export function LiveArOverlay({
               ]}
             >
               <ThemedText type="h3" style={{ color: '#FFF', fontWeight: '700' }}>
-                {Number.isFinite(feedback.score) ? feedback.score : '—'}
+                {scorePresentation.display}
               </ThemedText>
               <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                score
+                {scorePresentation.soft ? 'approx' : 'score'}
               </ThemedText>
             </View>
             {Number.isFinite(feedback.score) && coaching?.headline ? (
@@ -164,7 +174,7 @@ export function LiveArOverlay({
             ) : null}
           </View>
 
-          {coaching?.summary ? (
+          {Number.isFinite(feedback.score) && coaching?.summary ? (
             <View style={styles.card}>
               <ThemedText type="caption" style={styles.summaryText} numberOfLines={4}>
                 {coaching.summary}
@@ -180,7 +190,7 @@ export function LiveArOverlay({
                 </ThemedText>
               ) : null}
             </View>
-          ) : (feedback.hints?.[0] || feedback.suggestions?.[0]) ? (
+          ) : Number.isFinite(feedback.score) && (feedback.hints?.[0] || feedback.suggestions?.[0]) ? (
             <View style={styles.chipRow}>
               {feedback.hints?.[0] ? (
                 <View style={styles.chip}>

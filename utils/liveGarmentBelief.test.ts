@@ -374,6 +374,18 @@ assert.ok(shirtLayer.layer, 'shirt becomes layer over tee');
   assert.equal(underBlazer.top?.kind, 'top', 'dress shirt is base under blazer');
   assert.ok(/shirt/i.test(underBlazer.top?.name || underBlazer.top?.subcategory || ''), 'shirt name/sub kept');
   assert.equal(underBlazer.layer?.kind, 'outerwear', 'blazer is layer');
+
+  // Blazer-only re-fire must not erase a stable shirt (tie/shirt false conflict).
+  underBlazer = applyOutfitBelief(underBlazer, [blazer, dressShirt], { now: 16100 }).state;
+  underBlazer = applyOutfitBelief(underBlazer, [blazer, dressShirt], { now: 16200 }).state;
+  underBlazer = applyOutfitBelief(underBlazer, [blazer, dressShirt], { now: 16300 }).state;
+  assert.ok(
+    Number(underBlazer.top?.stability) >= 0.55,
+    'shirt must be stable enough to retain',
+  );
+  underBlazer = applyOutfitBelief(underBlazer, [blazer], { now: 16400 }).state;
+  assert.ok(/shirt/i.test(underBlazer.top?.name || underBlazer.top?.subcategory || ''), 'shirt held on blazer-only frame');
+  assert.equal(underBlazer.layer?.kind, 'outerwear', 'blazer stays in layer, not promoted over shirt');
 }
 
 // kindToWardrobe: preserve fine labels; never invent sneakers

@@ -5,7 +5,8 @@ import {
   onboardingProfileService,
   type OnboardingProfile,
 } from '@/services/OnboardingProfileService';
-import { preferHigherSubscriptionTier } from '@/utils/subscriptionTier';
+import { reconcileSubscriptionTier } from '@/utils/subscriptionTier';
+import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 
 const TOUR_SEEN_KEY = '@dripn_tour_seen';
 
@@ -210,11 +211,14 @@ export async function hydrateUserProfileAfterAuth(
     merged.hasCompletedOnboarding = !!options.backendLoginUser.hasCompletedOnboarding;
   }
   if (options.backendLoginUser?.subscriptionTier) {
-    // Never let a stale free backend wipe a local paid unlock (e.g. Apple IAP before sync).
-    merged.subscriptionTier = preferHigherSubscriptionTier(
-      baseProfile.subscriptionTier,
-      options.backendLoginUser.subscriptionTier,
-    );
+    // Stripe/RC truth wins — sticky local paid must not mask expired/free.
+    // Testing Mode unlock may still prefer the higher local tier.
+    const allowLocalUnlock = await shouldApplyTestingUnlock(baseProfile);
+    merged.subscriptionTier = reconcileSubscriptionTier({
+      local: baseProfile.subscriptionTier,
+      remote: options.backendLoginUser.subscriptionTier,
+      allowLocalUnlock,
+    });
   }
   if (options.backendLoginUser?.isAdmin !== undefined) {
     merged.isAdmin = Boolean(options.backendLoginUser.isAdmin);
@@ -272,11 +276,13 @@ export async function hydrateUserProfileAfterAuth(
     || backendTourSeen
     || merged.hasSeenTour === true;
 
-  // Keep the higher of local vs merged tier so Apple unlocks survive hydrate.
-  merged.subscriptionTier = preferHigherSubscriptionTier(
-    baseProfile.subscriptionTier,
-    merged.subscriptionTier,
-  );
+  // Billing truth wins over sticky local paid; Testing Mode may keep local unlock.
+  const allowLocalUnlock = await shouldApplyTestingUnlock(baseProfile);
+  merged.subscriptionTier = reconcileSubscriptionTier({
+    local: baseProfile.subscriptionTier,
+    remote: merged.subscriptionTier,
+    allowLocalUnlock,
+  });
 
   if (merged.hasSeenTour) {
     await persistTourSeenLocally(merged.id);

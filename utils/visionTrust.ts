@@ -141,6 +141,7 @@ export function coreGarmentToken(
     .trim();
   if (/sweatpant/.test(blob)) return 'sweatpants';
   if (/jogger|track\s*pant/.test(blob)) return 'joggers';
+  if (/chino/.test(blob) && /\bshorts?\b/.test(blob)) return 'chino_shorts';
   if (/chino/.test(blob)) return 'chinos';
   if (/jean/.test(blob)) return 'jeans';
   if (/trouser|slacks|\bpants?\b/.test(blob)) return 'trousers';
@@ -266,6 +267,8 @@ export function semanticBottomSubcategory(
   const blob = `${subcategory || ''} ${name || ''}`.toLowerCase();
   if (/sweatpant/.test(blob)) return 'sweatpants';
   if (/jogger|track\s*pant/.test(blob)) return 'joggers';
+  // Chino shorts must stay shorts — never collapse to full-length chinos.
+  if (/chino/.test(blob) && /\bshorts?\b/.test(blob)) return 'chino_shorts';
   if (/chino/.test(blob)) return 'chinos';
   if (/jean/.test(blob)) return 'jeans';
   if (/\bshorts?\b|\bboxers?\b|\bbriefs?\b/.test(blob)) return 'shorts';
