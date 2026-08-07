@@ -181,6 +181,22 @@ assert(
     && !/Currently allowed for any account/.test(devTestingSrc),
 );
 
+const apiSrcAgain = read('services/ApiService.ts');
+assert(
+  'session backup uses SecureStore, not AsyncStorage',
+  /SESSION_BACKUP_KEY/.test(apiSrcAgain)
+    && /setSecureToken\(SESSION_BACKUP_KEY/.test(apiSrcAgain)
+    && !/AsyncStorage\.setItem\(\s*SESSION_BACKUP_KEY|AsyncStorage\.setItem\(\s*['"]@dripn_session_backup['"]/.test(apiSrcAgain),
+);
+assert(
+  'general API requests do not send X-Session-Backup as a bearer',
+  /Session backup is only for \/api\/auth\/refresh/.test(apiSrcAgain),
+);
+assert(
+  'secureTokenStore exports SESSION_BACKUP_KEY',
+  /SESSION_BACKUP_KEY/.test(storeSrc),
+);
+
 console.log('\nSecurity smoke check');
 console.log('====================');
 for (const p of passes) console.log(`  PASS  ${p}`);

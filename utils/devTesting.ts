@@ -25,10 +25,19 @@ export async function setDevTestingModeEnabled(enabled: boolean): Promise<void> 
 
 /**
  * When Testing Mode is on, unlock premium features for QA / staff / local dev.
- * Regular production users cannot unlock via Settings or a leftover AsyncStorage flag.
+ * Regular production subscribers never see the Settings toggle and never unlock via a leftover flag.
  */
 export async function shouldApplyTestingUnlock(user?: StaffUserLike): Promise<boolean> {
   const allowed = Boolean(__DEV__) || isStaffUser(user);
-  if (!allowed) return false;
+  if (!allowed) {
+    try {
+      if (await isDevTestingModeEnabled()) {
+        await setDevTestingModeEnabled(false);
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
   return isDevTestingModeEnabled().catch(() => false);
 }

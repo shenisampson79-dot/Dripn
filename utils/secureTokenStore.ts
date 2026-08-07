@@ -17,6 +17,12 @@ export const STYLIST_TOKEN_KEY = {
   legacy: '@dripn_stylist_token',
 } as const;
 
+/** Short-lived refresh aid — never a general API bearer; store with JWT, not AsyncStorage. */
+export const SESSION_BACKUP_KEY = {
+  secure: 'dripn_session_backup',
+  legacy: '@dripn_session_backup',
+} as const;
+
 export type TokenKeyPair = { secure: string; legacy: string };
 
 async function assertSecureStoreAvailable(): Promise<void> {

@@ -8,13 +8,13 @@ import { API_URL, ADMIN_API_URL } from '@/config/api';
 import {
   USER_TOKEN_KEY,
   ADMIN_TOKEN_KEY,
+  SESSION_BACKUP_KEY,
   getSecureToken,
   setSecureToken,
   clearSecureToken,
 } from '@/utils/secureTokenStore';
 
 const DEVICE_ID_KEY = 'dripn_device_id';
-const SESSION_BACKUP_KEY = '@dripn_session_backup';
 const PENDING_APPLE_SUB_SYNC_KEY = '@dripn_pending_apple_sub_sync';
 
 const DEFAULT_TIMEOUT = 30000;
@@ -26,24 +26,30 @@ class ApiService {
 
   async init() {
     this.token = await getSecureToken(USER_TOKEN_KEY);
-    try {
-      this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
-    } catch {
-      this.sessionBackup = null;
-    }
+    this.sessionBackup = await getSecureToken(SESSION_BACKUP_KEY).catch(() => null);
   }
 
   private async persistSessionBackup(sessionId: string | null) {
     this.sessionBackup = sessionId;
     try {
       if (sessionId) {
-        await AsyncStorage.setItem(SESSION_BACKUP_KEY, sessionId);
+        await setSecureToken(SESSION_BACKUP_KEY, sessionId);
       } else {
-        await AsyncStorage.removeItem(SESSION_BACKUP_KEY);
+        await clearSecureToken(SESSION_BACKUP_KEY);
       }
     } catch {
       // Non-fatal
     }
+  }
+
+  private async loadSessionBackup(): Promise<string | null> {
+    if (this.sessionBackup) return this.sessionBackup;
+    try {
+      this.sessionBackup = await getSecureToken(SESSION_BACKUP_KEY);
+    } catch {
+      this.sessionBackup = null;
+    }
+    return this.sessionBackup;
   }
 
   private captureSessionBackupFromResponse(response: Response) {
@@ -142,11 +148,7 @@ class ApiService {
         headers.Authorization = `Bearer ${this.token}`;
       }
       if (!this.sessionBackup) {
-        try {
-          this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
-        } catch {
-          // ignore
-        }
+        await this.loadSessionBackup();
       }
       if (this.sessionBackup) {
         headers['X-Session-Backup'] = this.sessionBackup;
@@ -176,31 +178,24 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit & { timeout?: number } = {}
+    options: RequestInit & { timeout?: number; _authRetried?: boolean } = {}
   ): Promise<T> {
     if (!API_URL) {
       throw new Error('Backend API URL not configured. Set EXPO_PUBLIC_API_URL environment variable.');
     }
 
+    const { _authRetried, ...fetchOptions } = options;
     const token = await this.getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...(fetchOptions.headers || {}),
     };
 
     if (token) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
-    if (!this.sessionBackup) {
-      try {
-        this.sessionBackup = await AsyncStorage.getItem(SESSION_BACKUP_KEY);
-      } catch {
-        // ignore
-      }
-    }
-    if (this.sessionBackup) {
-      (headers as Record<string, string>)['X-Session-Backup'] = this.sessionBackup;
-    }
+    // Session backup is only for /api/auth/refresh — never as a general API bearer.
+    // (Server rejects X-Session-Backup alone on protected routes.)
 
     try {
       const deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
@@ -214,7 +209,7 @@ class ApiService {
     let response: Response;
     try {
       response = await this.fetchWithTimeout(`${API_URL}${endpoint}`, {
-        ...options,
+        ...fetchOptions,
         headers,
       });
     } catch (error: any) {
@@ -240,6 +235,25 @@ class ApiService {
     }
 
     this.captureSessionBackupFromResponse(response);
+
+    if (
+      !response.ok
+      && response.status === 401
+      && !_authRetried
+      && !endpoint.includes('/api/auth/refresh')
+      && !endpoint.includes('/api/auth/login')
+      && !endpoint.includes('/api/auth/register')
+    ) {
+      const preview = await response.clone().json().catch(() => null);
+      const action = preview?.action;
+      const code = String(preview?.errorCode || preview?.error || '');
+      if (action === 'refresh' || code === 'AUTH_TOKEN_EXPIRED' || code === 'TOKEN_EXPIRED') {
+        const refreshed = await this.refreshAuthSession();
+        if (refreshed) {
+          return this.request<T>(endpoint, { ...fetchOptions, _authRetried: true });
+        }
+      }
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -952,11 +966,7 @@ class ApiService {
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
-    // Build headers with session backup for resilient auth
     const headers: Record<string, string> = {};
-    if (this.sessionBackup) {
-      headers['X-Session-Backup'] = this.sessionBackup;
-    }
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
     }
@@ -1023,7 +1033,9 @@ class ApiService {
     
     // Store tokens for future requests
     if (result.guestToken) this.guestToken = result.guestToken;
-    if (result.sessionBackup) this.sessionBackup = result.sessionBackup;
+    if (result.sessionBackup) {
+      await this.persistSessionBackup(String(result.sessionBackup));
+    }
     
     return result;
   }
@@ -1038,9 +1050,6 @@ class ApiService {
     }
 
     const headers: Record<string, string> = {};
-    if (this.sessionBackup) {
-      headers['X-Session-Backup'] = this.sessionBackup;
-    }
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
     }
@@ -2075,15 +2084,10 @@ class ApiService {
     console.log('API URL:', API_URL);
     console.log('Has auth token:', !!token);
     console.log('Has guest token:', !!this.guestToken);
-    console.log('Has session backup:', !!this.sessionBackup);
     console.log('Stylist:', stylistId);
     console.log('Message:', data.userMessage);
     
-    // Build headers with session backup for resilient auth
     const headers: Record<string, string> = {};
-    if (this.sessionBackup) {
-      headers['X-Session-Backup'] = this.sessionBackup;
-    }
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
     }
@@ -2197,8 +2201,8 @@ class ApiService {
     
     // Store session backup and guest token for future requests
     if (result.sessionBackup) {
-      this.sessionBackup = result.sessionBackup;
-      console.log('Session backup stored');
+      await this.persistSessionBackup(String(result.sessionBackup));
+      console.log('Session backup stored (SecureStore)');
     }
     if (result.guestToken) {
       this.guestToken = result.guestToken;
