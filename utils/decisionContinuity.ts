@@ -40,6 +40,13 @@ export type DecisionContinuityPayload = {
    * Soft TTL discard + session id prefix check reject corrupted/stale payloads.
    */
   truthVersion?: string | null;
+  /** Shopping ownership lock — chat must not overturn DO_NOT_BUY. */
+  purchaseDecision?: {
+    decision?: string;
+    reason?: string;
+    hardBlock?: boolean;
+  } | null;
+  alreadyOwnedOverride?: boolean;
 };
 
 const LAST_CONTINUITY_PREFIX = '@dripn_decision_continuity:v1:';
@@ -121,6 +128,21 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
     ).trim();
   }
 
+  const buyLock = payload.flow === 'shopping'
+    && (
+      payload.alreadyOwnedOverride
+      || payload.purchaseDecision?.decision === 'DO_NOT_BUY'
+      || payload.purchaseDecision?.hardBlock
+    );
+  if (buyLock) {
+    return (
+      `Following on from my ${label}.${verdictBit}${score}${goal} `
+      + `You told me not to buy because I already own something too similar. `
+      + `Please keep that do-not-buy lock — do not recommend buying the blocked option(s). `
+      + `Help me with wardrobe alternatives or different products instead.`
+    ).trim();
+  }
+
   return (
     `Following on from my ${label}.${verdictBit}${score}${goal} `
     + `Please keep working this decision with me — same options and context.`
@@ -136,6 +158,21 @@ export function buildDecisionContinuity(args: {
   if (!session?.id || !response) return null;
 
   const stylistId = clip(args.stylistId || response.stylistId || 'ruby', 20).toLowerCase() || 'ruby';
+  const purchaseDecision = session.flow === 'shopping' && response.purchaseDecision
+    ? {
+        decision: clip(response.purchaseDecision.decision, 40) || undefined,
+        reason: clip(
+          response.purchaseDecision.reason
+          || (response.ownershipDecision as { message?: string } | undefined)?.message
+          || '',
+          1200,
+        ) || undefined,
+        hardBlock: Boolean(
+          response.alreadyOwnedOverride
+          || response.purchaseDecision.decision === 'DO_NOT_BUY',
+        ),
+      }
+    : null;
   const base: Omit<DecisionContinuityPayload, 'followUpPrompt'> = {
     decisionSessionId: session.id,
     flow: session.flow,
@@ -162,6 +199,11 @@ export function buildDecisionContinuity(args: {
       outfitPieces: sanitizePieces(response.outfitPieces),
       recommendedIndex: response.recommendedIndex ?? null,
     },
+    purchaseDecision,
+    alreadyOwnedOverride: Boolean(
+      response.alreadyOwnedOverride
+      || purchaseDecision?.decision === 'DO_NOT_BUY',
+    ),
     // Bind chat follow-ups to this decision snapshot (stale → soft TTL discard / resync).
     truthVersion: `${session.id}#${response.timestamp || new Date().toISOString()}`,
   };
