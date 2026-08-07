@@ -113,6 +113,7 @@ import {
 } from '@/utils/chatStateMachine';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
+  clearLastDecisionContinuity,
   loadLastDecisionContinuity,
   toApiDecisionContinuity,
   type DecisionContinuityPayload,
@@ -1602,11 +1603,14 @@ export default function AIStylistScreen() {
   const decisionContinuityRef = useRef<DecisionContinuityPayload | null>(
     route.params?.decisionContinuity || null,
   );
+  /** Soft-loaded Decide continuity — shown in banner but not sent until user confirms. */
+  const pendingSoftContinuityRef = useRef<DecisionContinuityPayload | null>(null);
   const [continuityBanner, setContinuityBanner] = useState<string | null>(
     route.params?.decisionContinuity
       ? route.params.decisionContinuity.flow
       : null,
   );
+  const [continuityNeedsConfirm, setContinuityNeedsConfirm] = useState(false);
   const tabBarHeightContext = useContext(BottomTabBarHeightContext);
   const insets = useSafeAreaInsets();
   const tabBarHeight: number =
@@ -1642,11 +1646,32 @@ export default function AIStylistScreen() {
     };
   }, []);
 
+  const releaseDecisionContinuity = useCallback(async () => {
+    decisionContinuityRef.current = null;
+    pendingSoftContinuityRef.current = null;
+    setContinuityBanner(null);
+    setContinuityNeedsConfirm(false);
+    if (user?.id) {
+      await clearLastDecisionContinuity(user.id);
+    }
+  }, [user?.id]);
+
+  const confirmSoftContinuity = useCallback(() => {
+    const pending = pendingSoftContinuityRef.current;
+    if (!pending) return;
+    decisionContinuityRef.current = pending;
+    pendingSoftContinuityRef.current = null;
+    setContinuityNeedsConfirm(false);
+    setContinuityBanner(pending.flow);
+  }, []);
+
   useEffect(() => {
     const fromRoute = route.params?.decisionContinuity;
     if (fromRoute) {
       decisionContinuityRef.current = fromRoute;
+      pendingSoftContinuityRef.current = null;
       setContinuityBanner(fromRoute.flow);
+      setContinuityNeedsConfirm(false);
       return;
     }
     let cancelled = false;
@@ -1654,10 +1679,11 @@ export default function AIStylistScreen() {
       if (!user?.id) return;
       const recent = await loadLastDecisionContinuity(user.id);
       if (cancelled || !recent) return;
-      // Soft attach only — do not auto-send; user opening chat soon after a decision
-      if (!decisionContinuityRef.current) {
-        decisionContinuityRef.current = recent;
+      // Soft attach: banner only — do not inject into API until user confirms.
+      if (!decisionContinuityRef.current && !pendingSoftContinuityRef.current) {
+        pendingSoftContinuityRef.current = recent;
         setContinuityBanner(recent.flow);
+        setContinuityNeedsConfirm(true);
       }
     })();
     return () => {
@@ -2831,7 +2857,9 @@ export default function AIStylistScreen() {
     }
     if (route.params?.decisionContinuity) {
       decisionContinuityRef.current = route.params.decisionContinuity;
+      pendingSoftContinuityRef.current = null;
       setContinuityBanner(route.params.decisionContinuity.flow);
+      setContinuityNeedsConfirm(false);
     }
   }, [route.params?.initialPrompt, route.params?.decisionContinuity]);
 
@@ -3146,6 +3174,7 @@ export default function AIStylistScreen() {
     setShowQuickPrompts(true);
     rememberChatMessages([greetingMessage], true);
     await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+    await releaseDecisionContinuity();
   };
   
   // Helper function to parse markdown and render bold text
@@ -3976,19 +4005,42 @@ export default function AIStylistScreen() {
           ]}
         >
           <Feather name="git-branch" size={14} color={LUXURY_COLORS.gold} />
-          <ThemedText style={{ color: theme.tabIconDefault, flex: 1, fontSize: 12 }}>
-            {(t('stylistFlow.continuityBanner') || 'Continuing from {flow}').replace(
-              '{flow}',
-              continuityBanner === 'sanity-check'
-                ? 'Quick Sanity Check'
-                : continuityBanner === 'event-outfit'
-                  ? 'Outfit for Event'
-                  : continuityBanner === 'shopping'
-                    ? 'Choosing What to Buy'
-                    : continuityBanner,
-            )}
-          </ThemedText>
-          <Pressable onPress={() => setContinuityBanner(null)} hitSlop={8}>
+          <Pressable
+            style={{ flex: 1 }}
+            onPress={continuityNeedsConfirm ? confirmSoftContinuity : undefined}
+            disabled={!continuityNeedsConfirm}
+          >
+            <ThemedText style={{ color: theme.tabIconDefault, fontSize: 12 }}>
+              {continuityNeedsConfirm
+                ? (
+                  (t('stylistFlow.continuitySoftBanner')
+                    || 'Recent {flow} — tap to continue in this chat')
+                    .replace(
+                      '{flow}',
+                      continuityBanner === 'sanity-check'
+                        ? 'Quick Sanity Check'
+                        : continuityBanner === 'event-outfit'
+                          ? 'Outfit for Event'
+                          : continuityBanner === 'shopping'
+                            ? 'Choosing What to Buy'
+                            : continuityBanner,
+                    )
+                )
+                : (
+                  (t('stylistFlow.continuityBanner') || 'Continuing from {flow}').replace(
+                    '{flow}',
+                    continuityBanner === 'sanity-check'
+                      ? 'Quick Sanity Check'
+                      : continuityBanner === 'event-outfit'
+                        ? 'Outfit for Event'
+                        : continuityBanner === 'shopping'
+                          ? 'Choosing What to Buy'
+                          : continuityBanner,
+                  )
+                )}
+            </ThemedText>
+          </Pressable>
+          <Pressable onPress={() => { void releaseDecisionContinuity(); }} hitSlop={8}>
             <Feather name="x" size={14} color={theme.tabIconDefault} />
           </Pressable>
         </View>

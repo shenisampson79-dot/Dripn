@@ -367,6 +367,39 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }
     return initial;
   });
+  const mixSelectionHydratedRef = useRef(
+    Object.values(selection).some((id) => id != null),
+  );
+
+  // Cold open: wardrobe often loads after first paint — seed selection once items arrive.
+  useEffect(() => {
+    if (mixSelectionHydratedRef.current) return;
+    if (!items.length) return;
+    const hasPick = Object.entries(selection).some(
+      ([cat, id]) => cat !== 'outerwear' && id != null,
+    );
+    if (hasPick) {
+      mixSelectionHydratedRef.current = true;
+      return;
+    }
+    const seeded: Partial<Record<ClothingCategory, string | null>> = { ...selection };
+    for (const { key } of REEL_ORDER) {
+      if (key === 'outerwear') {
+        seeded[key] = seeded[key] ?? null;
+        continue;
+      }
+      if (seeded[key]) continue;
+      const cats = key === 'tops'
+        ? (['tops', 'activewear_tops'] as const)
+        : key === 'bottoms'
+          ? (['bottoms', 'activewear_bottoms'] as const)
+          : [key] as const;
+      const first = items.find((i) => (cats as readonly string[]).includes(i.category));
+      if (first) seeded[key] = first.id;
+    }
+    mixSelectionHydratedRef.current = true;
+    setSelection(seeded);
+  }, [items, selection]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [outfitName, setOutfitName] = useState('');
