@@ -165,6 +165,22 @@ assert(
   exists('docs/security/README.md'),
 );
 
+// --- 4) Testing Mode must not unlock Pro for every account ---
+const settingsSrc = read('screens/SettingsScreen.tsx');
+assert(
+  'Settings Testing tools gated to __DEV__ or staff',
+  /showTestingTools\s*=\s*(?:Boolean\()?__DEV__/.test(settingsSrc)
+    && /isStaff/.test(settingsSrc)
+    && !/showTestingTools\s*=\s*true\s*;/.test(settingsSrc),
+);
+const devTestingSrc = read('utils/devTesting.ts');
+assert(
+  'shouldApplyTestingUnlock requires staff or __DEV__',
+  /isStaffUser/.test(devTestingSrc)
+    && /__DEV__/.test(devTestingSrc)
+    && !/Currently allowed for any account/.test(devTestingSrc),
+);
+
 console.log('\nSecurity smoke check');
 console.log('====================');
 for (const p of passes) console.log(`  PASS  ${p}`);

@@ -149,11 +149,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { t, translations, currentLanguage, availableLanguages } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
-  // Staff-only — never shown to regular users (Admin Portal / Development)
+  // Staff-only — never shown to regular users (Admin Portal / Development / Testing)
   const isStaff = isStaffUser(user);
   const showStaffTools = isStaff;
-  // Testing Mode: keep visible for App Store review (remove / re-gate after Apple approval)
-  const showTestingTools = true;
+  const showTestingTools = Boolean(__DEV__) || isStaff;
   
   // Dynamic colors from palette
   const LUXURY_COLORS = {

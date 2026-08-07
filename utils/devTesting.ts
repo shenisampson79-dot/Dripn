@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { StaffUserLike } from '@/utils/staffAccess';
+import { isStaffUser, type StaffUserLike } from '@/utils/staffAccess';
 
 export const DEV_TESTING_MODE_KEY = '@dripn_dev_testing_mode';
 
@@ -24,10 +24,11 @@ export async function setDevTestingModeEnabled(enabled: boolean): Promise<void> 
 }
 
 /**
- * When Testing Mode is on, unlock premium features for review / QA.
- * Currently allowed for any account (needed for App Store review).
- * Re-gate to staff / __DEV__ after Apple approval.
+ * When Testing Mode is on, unlock premium features for QA / staff / local dev.
+ * Regular production users cannot unlock via Settings or a leftover AsyncStorage flag.
  */
-export async function shouldApplyTestingUnlock(_user?: StaffUserLike): Promise<boolean> {
+export async function shouldApplyTestingUnlock(user?: StaffUserLike): Promise<boolean> {
+  const allowed = Boolean(__DEV__) || isStaffUser(user);
+  if (!allowed) return false;
   return isDevTestingModeEnabled().catch(() => false);
 }

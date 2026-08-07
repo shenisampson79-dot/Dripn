@@ -218,6 +218,9 @@ interface ChatMessage {
     itemIds?: Array<string | number>;
   }>;
   isFallback?: boolean;
+  isShopRequired?: boolean;
+  status?: string;
+  displayState?: string;
   missing?: FallbackMissingItem[];
   stylistNote?: string;
   /** Frozen wear/plan date from generation — actions must reuse this */
@@ -465,8 +468,10 @@ function attachWardrobeVisualToMessage(
     hasOutfitRecommendation?: boolean;
     isVisualizingOutfit?: boolean;
     isFallback?: boolean;
+    isShopRequired?: boolean;
     type?: string;
     status?: string;
+    displayState?: string;
     missing?: FallbackMissingItem[];
     stylistNote?: string;
     responseType?: 'single' | 'multi' | string;
@@ -496,6 +501,12 @@ function attachWardrobeVisualToMessage(
     || response.status === 'fallback_outfit'
     || response.type === 'fallback_outfit',
   );
+  const isShopRequired = Boolean(
+    response.isShopRequired
+    || response.status === 'SHOP_REQUIRED'
+    || response.displayState === 'SHOP_REQUIRED'
+    || response.type === 'shop_required',
+  );
   const strippedContent = stripStructuredOutfitMarkers(message.content);
   const styleSession = buildStyleSession({
     userMessage,
@@ -508,6 +519,9 @@ function attachWardrobeVisualToMessage(
     visualAuthority: 'server',
     hasOutfitRecommendation: response.hasOutfitRecommendation,
     isFallback: isFallback || undefined,
+    isShopRequired: isShopRequired || undefined,
+    status: response.status,
+    displayState: response.displayState,
     missing: Array.isArray(response.missing) ? response.missing : undefined,
     stylistNote: response.stylistNote,
     responseType: response.responseType,
@@ -3564,7 +3578,7 @@ export default function AIStylistScreen() {
           ) : (
             <>
               {renderAssistantContent(item, index)}
-              {item.isFallback && item.missing?.length ? (
+              {((item.isFallback || item.isShopRequired) && item.missing?.length) ? (
                 <View style={{ marginTop: Spacing.sm }}>
                   {item.missing.map((gap, gapIdx) => (
                     <ThemedText
@@ -3576,7 +3590,7 @@ export default function AIStylistScreen() {
                   ))}
                   <FallbackShopSection
                     missing={item.missing}
-                    headline="Get the missing piece"
+                    headline={item.isShopRequired ? 'Shop this look' : 'Get the missing piece'}
                   />
                 </View>
               ) : null}

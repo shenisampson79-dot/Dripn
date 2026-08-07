@@ -2030,8 +2030,10 @@ class ApiService {
     hasOutfitRecommendation?: boolean;
     visualAuthority?: 'server' | null;
     isFallback?: boolean;
+    isShopRequired?: boolean;
     type?: string;
     status?: string;
+    displayState?: string;
     missing?: Array<{
       role?: string;
       label?: string;
@@ -2041,6 +2043,15 @@ class ApiService {
       retail?: Record<string, unknown>;
     }>;
     outfitPieces?: Array<Record<string, unknown>>;
+    products?: Array<{
+      id?: string;
+      title?: string;
+      role?: string;
+      retailerId?: string;
+      retailer?: string;
+      url?: string;
+      searchUrl?: string;
+    }>;
     suggestions?: string[];
     missingPieces?: string[];
     stylistNote?: string;
@@ -2211,6 +2222,13 @@ class ApiService {
       || result.status === 'fallback_outfit'
       || result.type === 'fallback_outfit',
     );
+    const isShopRequired = Boolean(
+      result.isShopRequired
+      || result.status === 'SHOP_REQUIRED'
+      || result.displayState === 'SHOP_REQUIRED'
+      || result.type === 'shop_required'
+      || result.path === 'curated_shop',
+    );
     
     return {
       content: mappedContent,
@@ -2223,10 +2241,13 @@ class ApiService {
       hasOutfitRecommendation: result.hasOutfitRecommendation,
       visualAuthority: result.visualAuthority ?? null,
       isFallback: isFallback || undefined,
-      type: isFallback ? 'fallback_outfit' : result.type,
-      status: isFallback ? 'fallback_outfit' : result.status,
+      isShopRequired: isShopRequired || undefined,
+      type: isFallback ? 'fallback_outfit' : (isShopRequired ? 'shop_required' : result.type),
+      status: isFallback ? 'fallback_outfit' : (isShopRequired ? 'SHOP_REQUIRED' : result.status),
+      displayState: isShopRequired ? 'SHOP_REQUIRED' : result.displayState,
       missing: result.missing,
       outfitPieces: result.outfitPieces,
+      products: result.products,
       suggestions: result.suggestions,
       missingPieces: result.missingPieces,
       stylistNote: result.stylistNote,
