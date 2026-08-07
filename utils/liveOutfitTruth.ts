@@ -53,7 +53,17 @@ export type LiveOutfitTruth = {
   /** Single conflict flag: summary, bullets, and suggestions must agree. */
   hasConflict: boolean;
   isStable: boolean;
+  /**
+   * high = core + top locked; medium = core locked, top still drifting.
+   * Downstream softens strong labels on medium — scoring is not blocked.
+   */
+  confidenceLevel: 'high' | 'medium';
   signature: string;
+  /**
+   * Monotonic bind key for cross-surface sync (Live → chat continuity).
+   * Format: `${signature}#${timestamp}` — consumers reject stale versions.
+   */
+  truthVersion: string;
   timestamp: number;
   /** Detections that can re-seed belief on a warm restart. */
   seedDetections: OnDeviceDetection[];
@@ -141,7 +151,8 @@ function hasTensionEvidence(args: {
   issues?: string[] | null;
 }): boolean {
   const coaching = args.coaching;
-  if (coaching?.sameLane === false) return true;
+  // sameLane=false alone is soft disagreement — not hard tension evidence.
+  // Treating it as tension made high scores keep Mixed directions forever.
   const issues = Array.isArray(args.issues) ? args.issues : [];
   const bullets = Array.isArray(coaching?.bullets) ? coaching.bullets : [];
   return [...issues, ...bullets, String(coaching?.summary || '')]
@@ -160,19 +171,31 @@ export function deriveOutfitConflict(args: {
 }): boolean {
   const coaching = args.coaching;
   const score = Number(args.score);
+  const cohesiveHigh = Number.isFinite(score) && score >= 80;
   const cohesive = Number.isFinite(score)
     && score >= TRUTH_COHESIVE_SCORE
     && coaching?.sameLane !== false;
   const tensionEvidence = hasTensionEvidence(args);
 
+  // High scores must not keep Mixed directions from a soft sameLane=false.
+  if (cohesiveHigh && !tensionEvidence) {
+    if (coaching?.hasConflict && coaching?.sameLane === false) return false;
+    if (coaching?.sameLane === false && !coaching?.hasConflict) return false;
+  }
+
   if (coaching && typeof coaching.hasConflict === 'boolean') {
     if (coaching.hasConflict && cohesive && !tensionEvidence) return false;
+    if (coaching.hasConflict && cohesiveHigh && !tensionEvidence) return false;
     return coaching.hasConflict;
   }
-  if (coaching?.sameLane === false) return true;
+  if (coaching?.sameLane === false) {
+    if (cohesiveHigh && !tensionEvidence) return false;
+    return true;
+  }
   if (String(coaching?.summaryArchetype || '') === 'tension') {
     // Archetype alone is not enough when score + lane already say cohesive.
     if (cohesive && !tensionEvidence) return false;
+    if (cohesiveHigh && !tensionEvidence) return false;
     return true;
   }
   if (Number.isFinite(score) && score < TRUTH_COHESIVE_SCORE && tensionEvidence) return true;
@@ -201,6 +224,7 @@ export function buildOutfitTruth(args: {
   feedback?: LiveFeedback | null;
   prev?: LiveOutfitTruth | null;
   now?: number;
+  confidenceLevel?: 'high' | 'medium';
 }): LiveOutfitTruth {
   const belief = args.belief;
   const feedback = args.feedback;
@@ -219,6 +243,17 @@ export function buildOutfitTruth(args: {
   layer = clampTruthContinuity(layer, prev?.layer);
   bottom = clampTruthContinuity(bottom, prev?.bottom);
   footwear = clampTruthContinuity(footwear, prev?.footwear);
+
+  // Top and layer must never hold the same garment (blazer/trench duplicate).
+  if (top?.name && layer?.name) {
+    const same =
+      top.name.toLowerCase().replace(/\s+/g, ' ')
+      === layer.name.toLowerCase().replace(/\s+/g, ' ');
+    if (same) {
+      if (Number(top.confidence) >= Number(layer.confidence)) layer = null;
+      else top = null;
+    }
+  }
 
   const score = feedback?.score ?? null;
   const coaching = feedback?.coaching;
@@ -249,12 +284,25 @@ export function buildOutfitTruth(args: {
     score: score == null ? null : Number(score),
     hasConflict,
     isStable,
+    confidenceLevel: args.confidenceLevel
+      || (isStable ? 'high' : 'medium'),
     signature: '',
+    truthVersion: '',
     timestamp: args.now ?? Date.now(),
     seedDetections,
   };
   truth.signature = truthSignature(truth);
+  truth.truthVersion = `${truth.signature}#${truth.timestamp}`;
   return truth;
+}
+
+/** Reject chat/live continuity when the snapshot no longer matches current truth. */
+export function isLiveTruthVersionCurrent(
+  truth: Pick<LiveOutfitTruth, 'truthVersion'> | null | undefined,
+  boundVersion: string | null | undefined,
+): boolean {
+  if (!truth?.truthVersion || !boundVersion) return false;
+  return String(truth.truthVersion) === String(boundVersion);
 }
 
 /**
@@ -274,9 +322,21 @@ export function alignCoachingToTruth<T extends LiveCoaching>(
   } else {
     nextBullets = bullets.filter((b) => !TENSION_BULLET_RE.test(String(b)));
   }
+  let headline = coaching.headline;
+  // Sticky Mixed directions after conflict clears — rewrite to lane/band tone.
+  if (!truth.hasConflict && /mixed directions?/i.test(String(headline || ''))) {
+    const score = Number(truth.score);
+    if (Number.isFinite(score) && score >= 90) headline = 'Polished';
+    else if (Number.isFinite(score) && score >= 80) headline = 'Looking good';
+    else if (truth.lane === 'athleisure') headline = 'Sport-ready';
+    else if (truth.lane === 'smart_casual') headline = 'Smart casual';
+    else headline = 'Looking good';
+  }
   return {
     ...coaching,
+    headline,
     hasConflict: truth.hasConflict,
+    sameLane: truth.hasConflict ? coaching.sameLane : true,
     bullets: nextBullets,
   };
 }
@@ -287,7 +347,8 @@ export function canWarmStartTruth(
 ): boolean {
   if (!stash?.truth?.seedDetections?.length) return false;
   if (now - stash.stoppedAt > LIVE_TRUTH_WARM_MS) return false;
-  return stash.truth.isStable || stash.truth.seedDetections.length >= 2;
+  // Unstable last session must not seed the identity buffer into an instant lock.
+  return Boolean(stash.truth.isStable);
 }
 
 export function stashWarmTruth(
@@ -295,6 +356,6 @@ export function stashWarmTruth(
   now = Date.now(),
 ): WarmTruthStash | null {
   if (!truth?.seedDetections?.length) return null;
-  if (!truth.isStable && truth.seedDetections.length < 2) return null;
+  if (!truth.isStable) return null;
   return { truth, stoppedAt: now };
 }

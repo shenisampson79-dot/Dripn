@@ -17,7 +17,7 @@ import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions
 import { buildFootwearDisplayLabel, toCanonicalFootwearFamily } from '@/utils/footwearLayers';
 import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
-export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides' | 'boat_shoes';
+export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides' | 'boat_shoes' | 'loafers';
 
 const FOOTWEAR_LABEL_RE = /shoe|boot|sneaker|trainer|sandal|loafer|footwear|mule|heel|flip.?flop|slide|thong|boat|deck|topsider|sperry/i;
 
@@ -86,11 +86,15 @@ export const SUBTYPE_CHANGE_THRESHOLD = 0.9;
  */
 export const CONFUSABLE_SHOE_FLIPS: Partial<Record<ShoeSubtype, ShoeSubtype[]>> = {
   boat_shoes: ['boots', 'sneakers'],
+  loafers: ['boots', 'sneakers'],
+  boots: ['loafers', 'boat_shoes', 'sneakers'],
   flip_flops: ['sandals', 'sneakers'],
   slides: ['sandals', 'sneakers'],
 };
 /** Matches LIM_UNLOCK_CONFIDENCE — one frame must not win a known confusion. */
 export const CONFUSABLE_FLIP_UNLOCK = 0.97;
+/** Challenger must beat a near-certain lock by this margin (directional hysteresis). */
+export const FOOTWEAR_HYSTERESIS = 0.05;
 
 export function isConfusableShoeFlip(prev: ShoeSubtype, next: ShoeSubtype): boolean {
   return Boolean(CONFUSABLE_SHOE_FLIPS[prev]?.includes(next));
@@ -107,13 +111,23 @@ const SHOE_FORMALITY: Record<ShoeSubtype, number> = {
   flip_flops: 0.15,
   slides: 0.18,
   boat_shoes: 0.35,
+  loafers: 0.55,
   boots: 0.7,
 };
 
 const COMPATIBILITY: Record<string, Partial<Record<ShoeSubtype, number>>> = {
-  shorts: { sneakers: 0.9, sandals: 0.95, flip_flops: 0.97, slides: 0.96, boat_shoes: 0.95, boots: 0.3 },
-  trousers: { sneakers: 0.8, boots: 0.9, sandals: 0.4, flip_flops: 0.25, slides: 0.35, boat_shoes: 0.85 },
-  skirt: { sneakers: 0.75, sandals: 0.9, flip_flops: 0.7, slides: 0.8, boots: 0.55, boat_shoes: 0.7 },
+  shorts: {
+    sneakers: 0.9, sandals: 0.95, flip_flops: 0.97, slides: 0.96,
+    boat_shoes: 0.95, loafers: 0.7, boots: 0.3,
+  },
+  trousers: {
+    sneakers: 0.8, boots: 0.9, sandals: 0.4, flip_flops: 0.25,
+    slides: 0.35, boat_shoes: 0.85, loafers: 0.95,
+  },
+  skirt: {
+    sneakers: 0.75, sandals: 0.9, flip_flops: 0.7, slides: 0.8,
+    boots: 0.55, boat_shoes: 0.7, loafers: 0.9,
+  },
 };
 
 export function isInFootwearZone(bbox: BBoxTuple): boolean {
@@ -451,6 +465,8 @@ export function classifyShoeSubtype(args: {
   if (/sandal/.test(blob)) return 'sandals';
   // Boat/deck shoes before boot heuristics — low shaft often misreads as boots in mirrors.
   if (looksLikeBoatShoe(blob)) return 'boat_shoes';
+  // Loafers before geometry — tall mirror boxes otherwise promote them to boots.
+  if (/\bloafers?\b/.test(blob)) return 'loafers';
   if (/\bboots?\b/.test(blob) || /chelsea/.test(blob)) return 'boots';
   if (/sneaker|trainer|runner/.test(blob) && scoreBootEvidence(args.bbox) < 0.5) {
     return 'sneakers';
@@ -468,6 +484,11 @@ export function classifyShoeSubtype(args: {
   const bulk = args.bbox[2] / Math.max(0.01, args.bbox[3]);
   if (height >= 0.11 && shaftTop < 0.84) return 'boots';
   if (height > 0.12 && bulk > 1.05) return 'boots';
+  // Named dress shoes → loafers class. Bare "shoes" stays sneakers (default).
+  if (/\b(oxford|derby|brogue|dress\s*shoe|leather\s*shoe)\b/.test(blob)
+    && !/trainer|sneaker|boot/.test(blob)) {
+    return 'loafers';
+  }
   return 'sneakers';
 }
 
@@ -475,6 +496,7 @@ export function stabilizeShoeSubtype(
   prev: ShoeSubtype | null | undefined,
   next: ShoeSubtype,
   confidence: number,
+  prevConfidence?: number | null,
 ): ShoeSubtype {
   if (!prev) return next;
   if (prev === next) return prev;
@@ -483,7 +505,37 @@ export function stabilizeShoeSubtype(
   if (isConfusableShoeFlip(prev, next) && confidence < CONFUSABLE_FLIP_UNLOCK) {
     return prev;
   }
+  // Loafers ↔ boots: absolute unlock + directional hysteresis. Absolute 0.97
+  // alone still oscillates (0.96 → 0.98 → 0.95); a near-certain lock must be
+  // beaten by clear dominance, not a threshold crossing.
+  if (
+    (prev === 'loafers' && next === 'boots')
+    || (prev === 'boots' && next === 'loafers')
+  ) {
+    if (confidence < CONFUSABLE_FLIP_UNLOCK) return prev;
+    const prevConf = Number(prevConfidence);
+    if (
+      Number.isFinite(prevConf)
+      && prevConf >= CONFUSABLE_FLIP_UNLOCK
+      && confidence < prevConf + FOOTWEAR_HYSTERESIS
+    ) {
+      return prev;
+    }
+    return next;
+  }
+  // Other confusable pairs: same hysteresis once the lock itself is near-certain.
+  if (isConfusableShoeFlip(prev, next)) {
+    const prevConf = Number(prevConfidence);
+    if (
+      Number.isFinite(prevConf)
+      && prevConf >= CONFUSABLE_FLIP_UNLOCK
+      && confidence < prevConf + FOOTWEAR_HYSTERESIS
+    ) {
+      return prev;
+    }
+  }
   // Vision boots must unlock sticky trainers (YOLO often locks sneakers first).
+  // Do NOT use this path to smash loafers.
   if (prev === 'sneakers' && next === 'boots' && confidence >= 0.75) {
     return next;
   }
@@ -491,6 +543,52 @@ export function stabilizeShoeSubtype(
   if (next === 'boots' && confidence < SUBTYPE_CHANGE_THRESHOLD) return prev;
   if (confidence < SUBTYPE_CHANGE_THRESHOLD) return prev;
   return next;
+}
+
+export type ShoeIdentitySlice = {
+  name?: string | null;
+  subcategory?: string | null;
+  confidence?: number | null;
+};
+
+/**
+ * Ordering invariant: gated subtype always wins over fusion.
+ * Fusion may enrich display name only when it agrees with the gated subtype
+ * (or leaves subtype empty). Never re-adopt boots/loafers/etc after the gate held.
+ */
+export function applyGatedShoeFusion(args: {
+  lockedSubtype: ShoeSubtype;
+  belief: ShoeIdentitySlice;
+  observation: ShoeIdentitySlice;
+  fused: {
+    name?: string | null;
+    subcategory?: string | null;
+    adopted: 'next' | 'prev';
+    reason?: string;
+  };
+}): {
+  subcategory: ShoeSubtype;
+  name: string | null;
+  fusionOverrodeGate: boolean;
+  nameEnriched: boolean;
+} {
+  const locked = args.lockedSubtype;
+  const fusedSub = args.fused.subcategory ? String(args.fused.subcategory) : null;
+  const fusionTriedOverride =
+    args.fused.adopted === 'next'
+    && Boolean(fusedSub)
+    && fusedSub !== locked;
+  const nameEnriched =
+    args.fused.adopted === 'next'
+    && !fusionTriedOverride
+    && Boolean(args.fused.name);
+  const beliefName = args.belief.name ? String(args.belief.name) : null;
+  return {
+    subcategory: locked,
+    name: nameEnriched ? String(args.fused.name) : beliefName,
+    fusionOverrodeGate: fusionTriedOverride,
+    nameEnriched,
+  };
 }
 
 /** Outfit formality heuristic from top/bottom kinds. */
@@ -537,7 +635,7 @@ export function scoreShoeStyle(args: {
       : 'trousers';
   const structure = COMPATIBILITY[bottomKey]?.[subtype] ?? 0.5;
 
-  const styleType = subtype === 'boots'
+  const styleType = subtype === 'boots' || subtype === 'loafers'
     ? 'structured'
     : (subtype === 'sandals' || subtype === 'flip_flops' || subtype === 'slides')
       ? 'relaxed'

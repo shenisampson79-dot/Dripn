@@ -9,6 +9,7 @@ import {
   canWarmStartTruth,
   deriveOutfitConflict,
   stashWarmTruth,
+  isLiveTruthVersionCurrent,
   LIVE_TRUTH_WARM_MS,
 } from '@/utils/liveOutfitTruth';
 import type { OutfitBeliefState } from '@/utils/liveGarmentBelief';
@@ -87,7 +88,16 @@ assert.equal(
     score: 90,
     coaching: { headline: '', summary: 'ok', bullets: [], sameLane: false },
   }),
+  false,
+  'high score alone must not keep Mixed directions from soft sameLane=false',
+);
+assert.equal(
+  deriveOutfitConflict({
+    score: 52,
+    coaching: { headline: 'Mixed directions', summary: 'ok', bullets: [], sameLane: false, hasConflict: true },
+  }),
   true,
+  'mid score with sameLane=false stays conflict',
 );
 assert.equal(
   deriveOutfitConflict({
@@ -302,6 +312,54 @@ assert.equal(
   assert.equal(canWarmStartTruth(stash, 1000 + 500), true);
   assert.equal(canWarmStartTruth(stash, 1000 + LIVE_TRUTH_WARM_MS + 1), false);
   assert.equal(canWarmStartTruth(null), false);
+  assert.equal(
+    stashWarmTruth({ ...truth, isStable: false }, 1000),
+    null,
+    'unstable truth must not warm-seed',
+  );
+}
+
+// Same garment must not occupy top and layer.
+{
+  const trench = {
+    name: 'Beige Trench Coat',
+    category: 'outerwear',
+    subcategory: 'trench',
+    color: 'beige',
+    confidence: 0.92,
+    stability: 0.9,
+    kind: 'outerwear' as const,
+    bbox: [0.2, 0.1, 0.5, 0.5] as [number, number, number, number],
+    lastSeenAt: 1000,
+    lastChangedAt: 1000,
+  };
+  const truth = buildOutfitTruth({
+    belief: belief({
+      top: { ...trench, confidence: 0.95 },
+      layer: { ...trench, confidence: 0.8 },
+    }),
+    feedback: { score: 70, issues: [], hints: [], suggestions: [] },
+    now: 1000,
+  });
+  assert.ok(truth.top, 'keeps higher-confidence trench in top');
+  assert.equal(truth.layer, null, 'clears duplicate layer');
+  assert.ok(truth.truthVersion, 'truthVersion bound');
+  assert.ok(truth.truthVersion.includes('#'), 'truthVersion is signature#timestamp');
+}
+
+{
+  const a = buildOutfitTruth({
+    belief: belief({}),
+    feedback: { score: 70, issues: [], hints: [], suggestions: [] },
+    now: 1000,
+  });
+  const b = buildOutfitTruth({
+    belief: belief({}),
+    feedback: { score: 70, issues: [], hints: [], suggestions: [] },
+    now: 2000,
+  });
+  assert.equal(isLiveTruthVersionCurrent(a, a.truthVersion), true);
+  assert.equal(isLiveTruthVersionCurrent(a, b.truthVersion), false, 'stale bind rejected');
 }
 
 console.log('liveOutfitTruth.test.ts: all passed');

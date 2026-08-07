@@ -11,9 +11,11 @@ import {
   scoreShoeStyle,
   shoeStyleScoreDelta,
   stabilizeShoeSubtype,
+  applyGatedShoeFusion,
 } from './liveFootwearGate';
 import { applyDetectionMemory, createDetectionMemory } from './liveDetectionMemory';
 import { isCroppedFrame, formatGarmentDisplayName } from './bodyGeometryGuardrails';
+import { resolveFusedIdentity } from './visionTrust';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 
 const top: OnDeviceDetection = {
@@ -125,7 +127,18 @@ const gatedOk = gateFootwearDetections([top, shorts, realShoe], {
 });
 assert.ok(gatedOk.accepted);
 assert.match(String(gatedOk.accepted?.name), /trainer/i, 'UK label: trainers');
-assert.match(String(gatedOk.accepted?.subcategory), /sneaker|boot|sandal/);
+assert.match(String(gatedOk.accepted?.subcategory), /sneaker|boot|sandal|loafer/);
+
+// Named loafers must not become boots from tall mirror geometry.
+assert.equal(
+  classifyShoeSubtype({
+    bbox: [0.4, 0.82, 0.22, 0.14],
+    name: 'Black Loafers',
+    subcategory: 'loafers',
+    skinRatio: 0.05,
+  }),
+  'loafers',
+);
 
 const greyFlipFlops: OnDeviceDetection = {
   name: 'Grey Flip Flops',
@@ -198,6 +211,36 @@ assert.equal(
   stabilizeShoeSubtype('boat_shoes', 'boots', 0.99),
   'boots',
   'near-certain boots still unlock a boat lock',
+);
+assert.equal(
+  stabilizeShoeSubtype('loafers', 'boots', 0.91),
+  'loafers',
+  'loafers must not become boots below 0.97',
+);
+assert.equal(
+  stabilizeShoeSubtype('loafers', 'boots', 0.99),
+  'boots',
+  'near-certain Vision may unlock loafers → boots when prior lock was weak',
+);
+assert.equal(
+  stabilizeShoeSubtype('loafers', 'boots', 0.99, 0.98),
+  'loafers',
+  'boots must clearly dominate a near-certain loafers lock',
+);
+assert.equal(
+  stabilizeShoeSubtype('boots', 'loafers', 0.99, 0.98),
+  'boots',
+  'loafers must clearly dominate a near-certain boots lock',
+);
+assert.equal(
+  stabilizeShoeSubtype('boots', 'loafers', 0.91),
+  'boots',
+  'boots must not flip to loafers below 0.97',
+);
+assert.equal(
+  stabilizeShoeSubtype('sneakers', 'boots', 0.8),
+  'boots',
+  'trainers→boots still unlocks; must not smash loafers via this path',
 );
 // Boat ↔ trainers is a plausible swap, but a single frame must not make the
 // label alternate on camera; sustained frames unlock it in stabilizeFootwearIdentity.
@@ -318,5 +361,36 @@ const m2 = applyDetectionMemory([top, shorts, realShoe], mem, {
 });
 assert.ok(m2.memory.footwear, 'real shoe accepted');
 assert.ok(m2.memory.lastShoeScore && m2.memory.lastShoeScore.score > 0);
+
+// Ordering invariant: gated loafers must not become boots via fusion peer override
+const lockedLoafers = stabilizeShoeSubtype('loafers', 'boots', 0.96, 0.98);
+assert.equal(lockedLoafers, 'loafers', 'hysteresis holds loafers against 0.96 boots');
+const fusedBoots = resolveFusedIdentity(
+  { name: 'Brown Loafers', subcategory: 'loafers', confidence: 0.98 },
+  { name: 'Brown Boots', subcategory: 'boots', confidence: 0.96 },
+);
+assert.equal(fusedBoots.adopted, 'next', 'fusion alone would adopt boots at ≥0.75');
+const gated = applyGatedShoeFusion({
+  lockedSubtype: lockedLoafers,
+  belief: { name: 'Brown Loafers', subcategory: 'loafers', confidence: 0.98 },
+  observation: { name: 'Brown Boots', subcategory: 'boots', confidence: 0.96 },
+  fused: fusedBoots,
+});
+assert.equal(gated.subcategory, 'loafers', 'gate wins over fusion subcategory');
+assert.equal(gated.fusionOverrodeGate, true, 'detect blocked fusion override');
+assert.equal(gated.nameEnriched, false, 'do not take boots name when subtype disagreed');
+
+const fusedAgree = resolveFusedIdentity(
+  { name: 'White Trainers', subcategory: 'sneakers', confidence: 0.9 },
+  { name: 'White and Brown Sneakers', subcategory: 'sneakers', confidence: 0.92 },
+);
+const gatedName = applyGatedShoeFusion({
+  lockedSubtype: 'sneakers',
+  belief: { name: 'White Trainers', subcategory: 'sneakers', confidence: 0.9 },
+  observation: { name: 'White and Brown Sneakers', subcategory: 'sneakers', confidence: 0.92 },
+  fused: fusedAgree,
+});
+assert.equal(gatedName.subcategory, 'sneakers');
+assert.ok(gatedName.nameEnriched || gatedName.name?.includes('Brown'), 'same-subtype name enrich allowed');
 
 console.log('liveFootwearGate.test.ts: all passed');

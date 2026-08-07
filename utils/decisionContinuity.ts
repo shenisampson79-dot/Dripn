@@ -35,6 +35,11 @@ export type DecisionContinuityPayload = {
   uploadedImageCount: number;
   verdict: DecisionContinuityVerdict;
   followUpPrompt: string;
+  /**
+   * Optional Live / Decide truth bind. Chat should refuse or resync when the
+   * active surface truthVersion no longer matches this snapshot.
+   */
+  truthVersion?: string | null;
 };
 
 const LAST_CONTINUITY_PREFIX = '@dripn_decision_continuity:v1:';
@@ -157,6 +162,8 @@ export function buildDecisionContinuity(args: {
       outfitPieces: sanitizePieces(response.outfitPieces),
       recommendedIndex: response.recommendedIndex ?? null,
     },
+    // Bind chat follow-ups to this decision snapshot (stale → soft TTL discard / resync).
+    truthVersion: `${session.id}#${response.timestamp || new Date().toISOString()}`,
   };
 
   return {
@@ -200,6 +207,12 @@ export async function loadLastDecisionContinuity(
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DecisionContinuityPayload;
     if (!parsed?.decisionSessionId || !parsed?.verdict) return null;
+    if (
+      parsed.truthVersion
+      && !String(parsed.truthVersion).startsWith(`${parsed.decisionSessionId}#`)
+    ) {
+      return null;
+    }
     const ts = Date.parse(parsed.completedAt || '');
     if (Number.isFinite(ts) && Date.now() - ts > maxAgeMs) return null;
     if (Number.isFinite(ts) && Date.now() - ts > CLIENT_CONTINUITY_HARD_TTL_MS) return null;

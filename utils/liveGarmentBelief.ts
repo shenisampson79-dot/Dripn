@@ -27,8 +27,10 @@ import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
 import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import {
   stabilizeShoeSubtype,
+  applyGatedShoeFusion,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
+
 import { isCloudVisionCorrection, isMultiColorVisionName, isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
@@ -328,7 +330,11 @@ export function beliefKindFromDetection(det: OnDeviceDetection): BeliefKind {
 }
 
 function kindToWardrobe(kind: BeliefKind, det?: OnDeviceDetection): { category: string; subcategory: string } {
-  if (kind === 'shorts') return { category: 'bottoms', subcategory: 'shorts' };
+  if (kind === 'shorts') {
+    const semantic = semanticBottomSubcategory(det?.name, det?.subcategory);
+    const sub = semantic && /short/.test(semantic) ? semantic : 'shorts';
+    return { category: 'bottoms', subcategory: sub };
+  }
   if (kind === 'trousers') {
     const semantic = semanticBottomSubcategory(det?.name, det?.subcategory);
     return {
@@ -1534,8 +1540,20 @@ export function applyOutfitBelief(
   // When tee + shirt/jacket both fire, keep both (base + layer).
   const split = torsoState === 'bare' ? { base: null, layer: null } : splitUpperDetections(tops);
   // Jacket alone → top slot. Tee + jacket → top=tee, layer=jacket.
-  const resolvedTopObs = split.base || split.layer;
-  const layerObs = split.base && split.layer ? split.layer : null;
+  let resolvedTopObs = split.base || split.layer;
+  let layerObs = split.base && split.layer ? split.layer : null;
+  // Stable base top (shirt/tee) must not vanish when only the blazer re-fires —
+  // otherwise tie/shirt dependency logic invents a "no shirt" conflict.
+  if (
+    !split.base
+    && split.layer
+    && isOuterwearLayer(split.layer)
+    && state.top?.kind === 'top'
+    && Number(state.top.stability) >= BELIEF_STABILITY_RESIST
+  ) {
+    resolvedTopObs = null;
+    layerObs = split.layer;
+  }
   const hasShirtTop = Boolean(
     (resolvedTopObs && beliefKindFromDetection(resolvedTopObs) === 'top')
     || state.top?.kind === 'top',
@@ -1766,13 +1784,14 @@ export function applyOutfitBelief(
       decisions,
     );
 
-    // Subtype lock — single owner (footwear gate proposes; belief locks).
-    // Soft enough that Vision sneakers (≥0.85) can unlock a YOLO boat-shoe lock.
+    // Subtype lock — gate owns subcategory; fusion may enrich name only.
+    // Never let resolveFusedIdentity re-adopt boots/loafers after the gate held.
     if (footwear && shoeObs?.subcategory && state.footwear?.subcategory) {
       const locked = stabilizeShoeSubtype(
         state.footwear.subcategory as ShoeSubtype,
         shoeObs.subcategory as ShoeSubtype,
         shoeObs.confidence,
+        state.footwear.confidence,
       );
       const shoeFused = resolveFusedIdentity(
         {
@@ -1786,19 +1805,33 @@ export function applyOutfitBelief(
           confidence: shoeObs.confidence,
         },
       );
-      if (locked !== footwear.subcategory || shoeFused.adopted === 'next') {
+      const gated = applyGatedShoeFusion({
+        lockedSubtype: locked,
+        belief: footwear,
+        observation: shoeObs,
+        fused: shoeFused,
+      });
+      if (gated.subcategory !== footwear.subcategory || gated.nameEnriched) {
         footwear = {
           ...footwear,
-          subcategory: shoeFused.adopted === 'next'
-            ? String(shoeFused.subcategory || locked || footwear.subcategory)
-            : locked,
-          name: shoeFused.name || footwear.name,
-          ...(shoeFused.adopted === 'next' ? { lastChangedAt: now } : {}),
+          subcategory: gated.subcategory,
+          name: gated.name || footwear.name,
+          ...(gated.nameEnriched || gated.subcategory !== state.footwear.subcategory
+            ? { lastChangedAt: now }
+            : {}),
         };
-        if (shoeFused.adopted === 'next') {
+        if (gated.fusionOverrodeGate) {
           appendDecision(decisions, {
             type: 'update',
-            message: `Vision adopted: ${state.footwear?.name || state.footwear?.subcategory} → ${shoeFused.name}`,
+            message: `Gate held ${locked} (blocked fusion → ${shoeFused.subcategory})`,
+            reason: shoeFused.reason || 'gated_shoe_wins',
+            slot: 'footwear',
+            time: now,
+          });
+        } else if (gated.nameEnriched) {
+          appendDecision(decisions, {
+            type: 'update',
+            message: `Vision name enriched: ${state.footwear?.name || state.footwear?.subcategory} → ${gated.name}`,
             reason: shoeFused.reason,
             slot: 'footwear',
             time: now,
