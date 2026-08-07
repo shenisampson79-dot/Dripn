@@ -9,7 +9,6 @@ import {
   canWarmStartTruth,
   deriveOutfitConflict,
   stashWarmTruth,
-  isLiveTruthVersionCurrent,
   LIVE_TRUTH_WARM_MS,
 } from '@/utils/liveOutfitTruth';
 import type { OutfitBeliefState } from '@/utils/liveGarmentBelief';
@@ -343,23 +342,6 @@ assert.equal(
   });
   assert.ok(truth.top, 'keeps higher-confidence trench in top');
   assert.equal(truth.layer, null, 'clears duplicate layer');
-  assert.ok(truth.truthVersion, 'truthVersion bound');
-  assert.ok(truth.truthVersion.includes('#'), 'truthVersion is signature#timestamp');
-}
-
-{
-  const a = buildOutfitTruth({
-    belief: belief({}),
-    feedback: { score: 70, issues: [], hints: [], suggestions: [] },
-    now: 1000,
-  });
-  const b = buildOutfitTruth({
-    belief: belief({}),
-    feedback: { score: 70, issues: [], hints: [], suggestions: [] },
-    now: 2000,
-  });
-  assert.equal(isLiveTruthVersionCurrent(a, a.truthVersion), true);
-  assert.equal(isLiveTruthVersionCurrent(a, b.truthVersion), false, 'stale bind rejected');
 }
 
 console.log('liveOutfitTruth.test.ts: all passed');

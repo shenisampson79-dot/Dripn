@@ -36,8 +36,8 @@ export type DecisionContinuityPayload = {
   verdict: DecisionContinuityVerdict;
   followUpPrompt: string;
   /**
-   * Optional Live / Decide truth bind. Chat should refuse or resync when the
-   * active surface truthVersion no longer matches this snapshot.
+   * Decide-for-me → Stylist Chat snapshot bind only (not Live).
+   * Soft TTL discard + session id prefix check reject corrupted/stale payloads.
    */
   truthVersion?: string | null;
 };

@@ -59,11 +59,6 @@ export type LiveOutfitTruth = {
    */
   confidenceLevel: 'high' | 'medium';
   signature: string;
-  /**
-   * Monotonic bind key for cross-surface sync (Live → chat continuity).
-   * Format: `${signature}#${timestamp}` — consumers reject stale versions.
-   */
-  truthVersion: string;
   timestamp: number;
   /** Detections that can re-seed belief on a warm restart. */
   seedDetections: OnDeviceDetection[];
@@ -287,22 +282,11 @@ export function buildOutfitTruth(args: {
     confidenceLevel: args.confidenceLevel
       || (isStable ? 'high' : 'medium'),
     signature: '',
-    truthVersion: '',
     timestamp: args.now ?? Date.now(),
     seedDetections,
   };
   truth.signature = truthSignature(truth);
-  truth.truthVersion = `${truth.signature}#${truth.timestamp}`;
   return truth;
-}
-
-/** Reject chat/live continuity when the snapshot no longer matches current truth. */
-export function isLiveTruthVersionCurrent(
-  truth: Pick<LiveOutfitTruth, 'truthVersion'> | null | undefined,
-  boundVersion: string | null | undefined,
-): boolean {
-  if (!truth?.truthVersion || !boundVersion) return false;
-  return String(truth.truthVersion) === String(boundVersion);
 }
 
 /**
