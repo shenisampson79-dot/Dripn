@@ -2640,6 +2640,12 @@ export default function AIStylistScreen() {
   
   const sendMessage = async (text: string) => {
     if (!text.trim() || !canSendMessage()) return;
+
+    // Soft-attach without Continue must not ghost: chatting without confirming
+    // drops the pending Decide context entirely (not just the banner).
+    if (pendingSoftContinuityRef.current && !decisionContinuityRef.current) {
+      await releaseDecisionContinuity();
+    }
     
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

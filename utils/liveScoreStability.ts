@@ -232,6 +232,12 @@ export function liveJudgmentCertainty(args: {
 
 /** Consecutive high samples required before ~84 becomes 84. */
 export const LIVE_CERTAINTY_UPGRADE_STREAK = 2;
+/**
+ * Medium must not be a permanent escape hatch. After this many consecutive
+ * medium frames with a locked core (~1 fps → ~10s), commit the displayed score
+ * so Live still feels decisive while labels wait on top lock.
+ */
+export const LIVE_MEDIUM_MAX_STREAK = 10;
 
 export type CertaintySmoothState = {
   lastRaw: LiveJudgmentCertainty | null;
@@ -248,6 +254,7 @@ export function createCertaintySmoothState(): CertaintySmoothState {
 /**
  * Delay medium→high visual upgrades so certainty feels earned, not snapped.
  * Downgrades to medium apply immediately.
+ * Long medium streaks converge to high display (score commits; labels still use identity lock).
  */
 export function smoothLiveCertainty(
   state: CertaintySmoothState,
@@ -264,6 +271,13 @@ export function smoothLiveCertainty(
 
   // Softness arrives immediately — users should see ~N the moment the top drifts.
   if (current === 'medium') {
+    // Convergence pressure: core has been ready long enough — stop eternal hedging.
+    if (streak >= LIVE_MEDIUM_MAX_STREAK) {
+      return {
+        state: { lastRaw: 'medium', streak, displayed: 'high' },
+        certainty: 'high',
+      };
+    }
     return {
       state: { lastRaw: 'medium', streak, displayed: 'medium' },
       certainty: 'medium',

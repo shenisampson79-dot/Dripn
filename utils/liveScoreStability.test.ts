@@ -18,6 +18,7 @@ import {
   smoothLiveCertainty,
   LIVE_FIRST_SCORE_MAX_HOLD_MS,
   LIVE_IDENTITY_CHANGE_FRAMES,
+  LIVE_MEDIUM_MAX_STREAK,
   LIVE_PARTIAL_SCORE_CAP,
   LIVE_SCORE_MAX_HOLD_MS,
 } from '@/utils/liveScoreStability';
@@ -410,6 +411,18 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
   // Downgrade is immediate.
   out = smoothLiveCertainty(out.state, 'medium');
   assert.equal(out.certainty, 'medium');
+}
+
+// Medium must converge — perpetual ~ is a silent trust killer.
+{
+  let state = createCertaintySmoothState();
+  let out = smoothLiveCertainty(state, 'medium');
+  for (let i = 1; i < LIVE_MEDIUM_MAX_STREAK - 1; i += 1) {
+    out = smoothLiveCertainty(out.state, 'medium');
+    assert.equal(out.certainty, 'medium', `frame ${i + 1} still soft`);
+  }
+  out = smoothLiveCertainty(out.state, 'medium');
+  assert.equal(out.certainty, 'high', 'long medium streak commits displayed score');
 }
 
 // Unscored HUD must not paint judgment copy.
