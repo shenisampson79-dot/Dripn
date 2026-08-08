@@ -54,6 +54,11 @@ export type LiveIdentitySample = {
   shoeSubtype?: string | null;
   /** Top or layer kind — styling signal, not a score gate. */
   topKind?: string | null;
+  /**
+   * Stable piece-set fingerprint (e.g. "t:hoodie" or "t:top+l:hoodie").
+   * Phantom add/remove must change this so score cannot stay on a stale outfit.
+   */
+  pieceSet?: string | null;
   bottomConfidence?: number | null;
   shoeConfidence?: number | null;
   topConfidence?: number | null;
@@ -80,6 +85,23 @@ export function liveScoreSignature(
     .map((item) => `${item.category || '?'}/${item.subcategory || '?'}/${item.color || '?'}`)
     .sort()
     .join('|');
+}
+
+/** Build a piece-set key from belief slots — order-normalized. */
+export function livePieceSetKey(args: {
+  topSub?: string | null;
+  topKind?: string | null;
+  layerSub?: string | null;
+  layerKind?: string | null;
+}): string {
+  const parts: string[] = [];
+  if (args.topSub || args.topKind) {
+    parts.push(`t:${String(args.topSub || args.topKind || '').toLowerCase()}`);
+  }
+  if (args.layerSub || args.layerKind) {
+    parts.push(`l:${String(args.layerSub || args.layerKind || '').toLowerCase()}`);
+  }
+  return parts.length ? parts.join('+') : 'none';
 }
 
 /** Stability at which a belief slot is treated as settled, matching the HUD's LOCKED. */
@@ -110,7 +132,27 @@ export function pushLiveIdentitySample(
   return [...buf, sample].slice(-Math.max(LIVE_IDENTITY_CHANGE_FRAMES, max));
 }
 
+/** Bare feet / explicit none — valid identity, not "waiting on shoes". */
+export function isBarefootShoeIdentity(shoeSubtype?: string | null): boolean {
+  const shoe = String(shoeSubtype || '').toLowerCase();
+  return shoe === 'barefoot' || shoe === 'none' || shoe === 'bare';
+}
+
+/**
+ * Full outfit identity for score *versioning*: bottom + shoe + piece-set.
+ * Piece-set changes after a score is shown must invalidate the frozen number
+ * (phantom charcoal top under hoodie). First publish uses {@link liveCoreIdentityKey}.
+ */
 export function liveIdentityKey(sample: LiveIdentitySample | null | undefined): string {
+  if (!sample) return '';
+  const core = liveCoreIdentityKey(sample);
+  if (!core) return '';
+  const pieces = String(sample.pieceSet || sample.topKind || 'none').toLowerCase();
+  return `${core}|${pieces}`;
+}
+
+/** Core identity for first-score settle — bottom + shoe only (tolerate upper flicker). */
+export function liveCoreIdentityKey(sample: LiveIdentitySample | null | undefined): string {
   if (!sample) return '';
   const bottom = String(sample.bottomKind || '').toLowerCase();
   const shoe = String(sample.shoeSubtype || '').toLowerCase();
@@ -128,21 +170,24 @@ function sampleSlotConfidence(sample: LiveIdentitySample): number {
 
 /**
  * Bottom + shoes must agree for N frames with enough mean confidence.
- * Consistency alone can lock a confidently-wrong early guess; confidence
- * weighting blocks that. Identity changes need one extra frame of inertia.
+ * Piece-set / top flicker must NOT block the first score — that left the badge
+ * on "—" while Vision already scored 45–96 (hoodie ↔ ghost charcoal top).
  */
 export function liveIdentityIsConsistent(
   buf: LiveIdentitySample[],
   opts?: {
     need?: number;
-    /** Last identity key that successfully locked — changes require more frames. */
+    /** Last *core* identity key that successfully locked — changes require more frames. */
     prevLockedKey?: string | null;
   },
 ): boolean {
   const tip = buf[buf.length - 1];
-  const tipKey = liveIdentityKey(tip);
+  const tipKey = liveCoreIdentityKey(tip);
   if (!tipKey) return false;
-  const changing = Boolean(opts?.prevLockedKey && tipKey !== opts.prevLockedKey);
+  const prevCore = opts?.prevLockedKey
+    ? String(opts.prevLockedKey).split('|').slice(0, 2).join('|')
+    : '';
+  const changing = Boolean(prevCore && tipKey !== prevCore);
   const need = opts?.need
     ?? (changing ? LIVE_IDENTITY_CHANGE_FRAMES : LIVE_IDENTITY_STABLE_FRAMES);
   const last = buf.slice(-need);
@@ -160,12 +205,8 @@ export function liveIdentityIsConsistent(
 }
 
 /**
- * Belief slot stability AND identity consistency. Either alone still lets a
- * confident-but-wrong "dark shorts" frame score.
- *
- * Only core slots (bottom + footwear) gate publish. Top/layer drift must not
- * block scoring — that is split-brain: stable core, unstable styling signal.
- * Callers downgrade certainty via liveJudgmentCertainty instead.
+ * Belief slot stability AND core identity consistency (bottom + shoe).
+ * Upper-body / piece-set flicker softens certainty — it must not withhold the badge.
  */
 export function liveOutfitReadyToScore(args: {
   slots: ({ stability?: number | null } | null | undefined)[];

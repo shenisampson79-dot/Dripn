@@ -74,10 +74,12 @@ import {
   createLiveScoreGate,
   gateLiveJudgment,
   gateLiveScore,
+  liveCoreIdentityKey,
   liveIdentityIsConsistent,
   liveIdentityKey,
   liveJudgmentCertainty,
   liveOutfitReadyToScore,
+  livePieceSetKey,
   liveScoreSignature,
   presentLiveScore,
   pushLiveIdentitySample,
@@ -113,6 +115,11 @@ const CLOUD_SCENE_EVENT_FRAMES = 2;
  * once per suspect belief, so it costs one call per mistake, not one per second.
  */
 const CLOUD_SUSPECT_COOLDOWN_MS = 1200;
+/**
+ * Feet searchable but no shoe belief — unlock barefoot scoring so the badge
+ * does not sit on "—" while DBG shows Searching…
+ */
+const SEARCHING_BAREFOOT_MS = 2500;
 
 function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
   return items.map((item, i) => ({
@@ -240,8 +247,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const lastBeliefSignatureRef = useRef('');
   const scoreGateRef = useRef(createLiveScoreGate());
   const identityBufRef = useRef<LiveIdentitySample[]>([]);
-  /** Last identity key that successfully locked — changes need extra inertia. */
+  /** Last *core* identity (bottom|shoe) that locked — piece-set flicker must not reset this. */
   const identityLockedKeyRef = useRef<string | null>(null);
+  /** Wall clock when footwear belief went empty while feet look searchable. */
+  const noFootwearSinceRef = useRef<number>(0);
   const certaintySmoothRef = useRef(createCertaintySmoothState());
   const outfitTruthRef = useRef<LiveOutfitTruth | null>(null);
   const warmTruthRef = useRef<WarmTruthStash | null>(null);
@@ -419,39 +428,91 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // Hold the score until identity is stable. Force-adopting warmup scores
     // (dark shorts → 40 Mixed weights) is worse than a longer dash.
     const beliefSlots = detectionMemoryRef.current.belief;
+    const memNow = Date.now();
+    const footZoneMem = detectionMemoryRef.current.lastFootZone;
+    if (beliefSlots?.footwear) {
+      noFootwearSinceRef.current = 0;
+    } else if (
+      footZoneMem
+      && !footZoneMem.cropped
+      && (footZoneMem.visible || footZoneMem.detectionEnabled)
+    ) {
+      if (!noFootwearSinceRef.current) noFootwearSinceRef.current = memNow;
+    } else {
+      noFootwearSinceRef.current = 0;
+    }
+    const searchingBarefootTimeout = Boolean(
+      !beliefSlots?.footwear
+      && noFootwearSinceRef.current
+      && (memNow - noFootwearSinceRef.current) >= SEARCHING_BAREFOOT_MS,
+    );
+    // No footwear belief + feet not cropped → barefoot identity (unlocks score/labels).
+    // Without this, barefoot outfits stay on "—" forever even when top+bottom lock.
+    const barefootIdentity = Boolean(
+      !beliefSlots?.footwear
+      && (
+        memNow < (detectionMemoryRef.current.footwearBlockedUntil || 0)
+        || (footZoneMem && !footZoneMem.cropped)
+        || searchingBarefootTimeout
+        || detectionMemoryRef.current.lastFootwearCandidates?.some(
+          (c) => c.rejectReason === 'barefoot',
+        )
+      ),
+    );
+    const shoeSubtype = beliefSlots?.footwear?.subcategory
+      || (barefootIdentity ? 'barefoot' : null);
+    const pieceSet = livePieceSetKey({
+      topSub: beliefSlots?.top?.subcategory,
+      topKind: beliefSlots?.top?.kind,
+      layerSub: beliefSlots?.layer?.subcategory,
+      layerKind: beliefSlots?.layer?.kind,
+    });
     identityBufRef.current = pushLiveIdentitySample(identityBufRef.current, {
       bottomKind: beliefSlots?.bottom?.kind || null,
-      shoeSubtype: beliefSlots?.footwear?.subcategory || null,
+      shoeSubtype,
       topKind: beliefSlots?.top?.kind || beliefSlots?.layer?.kind || null,
+      pieceSet,
       bottomConfidence: beliefSlots?.bottom?.confidence ?? beliefSlots?.bottom?.stability ?? null,
-      shoeConfidence: beliefSlots?.footwear?.confidence ?? beliefSlots?.footwear?.stability ?? null,
+      shoeConfidence: beliefSlots?.footwear?.confidence
+        ?? beliefSlots?.footwear?.stability
+        ?? (barefootIdentity ? 0.95 : null),
       topConfidence: (beliefSlots?.top || beliefSlots?.layer)?.confidence
         ?? (beliefSlots?.top || beliefSlots?.layer)?.stability
         ?? null,
     });
-    const tipKey = liveIdentityKey(identityBufRef.current[identityBufRef.current.length - 1]);
+    const tipSample = identityBufRef.current[identityBufRef.current.length - 1];
+    const coreKey = liveCoreIdentityKey(tipSample);
+    const fullKey = liveIdentityKey(tipSample);
     const prevLockedKey = identityLockedKeyRef.current;
     const identityLocked = liveIdentityIsConsistent(identityBufRef.current, {
       prevLockedKey,
     });
-    // Core only — top/layer drift must not block scoring (partial truth).
+    // Core slots settle for scoring; piece-set versions the score after publish.
+    // Barefoot: do not require a footwear belief slot to settle.
     const settled = liveOutfitReadyToScore({
-      slots: [
-        beliefSlots?.bottom,
-        beliefSlots?.footwear,
-      ],
+      slots: barefootIdentity
+        ? [beliefSlots?.bottom]
+        : [beliefSlots?.bottom, beliefSlots?.footwear],
       identityBuf: identityBufRef.current,
       prevLockedKey,
     });
-    if (identityLocked && tipKey) {
-      identityLockedKeyRef.current = tipKey;
+    // Labels must never wait on score lock — blank BBoxes while DBG sees pieces
+    // is the 60s trust-breaker. Paint as soon as belief has garments.
+    const hasPaintableBelief = Boolean(
+      beliefSlots?.bottom
+      || beliefSlots?.top
+      || beliefSlots?.layer
+      || beliefSlots?.footwear
+      || previousItemsRef.current.length,
+    );
+    if (hasPaintableBelief) {
       if (!labelsReadyRef.current) {
         labelsReadyRef.current = true;
         if (mountedRef.current) setLabelsReady(true);
       }
-    } else if (!identityLocked && labelsReadyRef.current) {
-      labelsReadyRef.current = false;
-      if (mountedRef.current) setLabelsReady(false);
+    }
+    if (identityLocked && coreKey) {
+      identityLockedKeyRef.current = coreKey;
     }
     const certaintyRaw = liveJudgmentCertainty({
       identityBuf: identityBufRef.current,
@@ -464,7 +525,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const coreFilled = Boolean(
       (beliefSlots?.top || beliefSlots?.layer)
       && beliefSlots?.bottom
-      && beliefSlots?.footwear,
+      && (beliefSlots?.footwear || barefootIdentity),
     );
     const gated = gateLiveScore(
       scoreGateRef.current,
@@ -479,7 +540,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         settled,
         identityLocked,
         coreFilled,
-        identityKey: identityLocked ? tipKey : null,
+        // Full key (includes piece-set) so ghost top add/remove rescores after publish.
+        identityKey: identityLocked ? fullKey : null,
         certainty,
       },
     );
@@ -757,7 +819,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
       }
-      const shownScore = painted?.score ?? scoreGateRef.current.shown ?? res.feedback?.score;
+      // Footer must match the score badge — never leak the ungated Vision number.
+      const shownScore = painted?.score ?? scoreGateRef.current.shown ?? null;
       const scoreLabel = presentLiveScore(
         shownScore,
         painted?.confidenceLevel
@@ -857,7 +920,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             identityBufRef.current = sample
               ? [sample, sample, sample]
               : [];
-            identityLockedKeyRef.current = sample ? liveIdentityKey(sample) : null;
+            identityLockedKeyRef.current = sample ? liveCoreIdentityKey(sample) : null;
             labelsReadyRef.current = Boolean(sample);
             setLabelsReady(Boolean(sample));
             const warmConf = warm.truth.confidenceLevel || 'high';
@@ -933,6 +996,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           scoreGateRef.current = createLiveScoreGate();
           identityBufRef.current = [];
           identityLockedKeyRef.current = null;
+          noFootwearSinceRef.current = 0;
           labelsReadyRef.current = false;
           setLabelsReady(false);
           certaintySmoothRef.current = createCertaintySmoothState();
@@ -1043,9 +1107,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
       }
+      const stillScore = scoreGateRef.current.shown
+        ?? previousFeedbackRef.current?.score
+        ?? null;
       setStatusNote(
         res.itemCount
-          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${res.feedback?.score ?? '—'}`
+          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${presentLiveScore(stillScore).display}`
           : 'Still scan done',
       );
       try {

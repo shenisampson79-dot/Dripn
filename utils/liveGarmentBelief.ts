@@ -249,6 +249,12 @@ function colorFamilyKey(raw?: string | null): string | null {
  * family qualify. Counting both inflates the piece count and describes the
  * same garment twice in the summary.
  */
+/** Generic "Charcoal top" / "Beige top" — often a second read of the same hoodie. */
+function isGenericTopLabel(blob: string): boolean {
+  return /\btop\b/.test(blob)
+    && !/tee|t-?shirt|tank|singlet|polo|blouse|dress[\s_-]*shirt|button/.test(blob);
+}
+
 export function isDuplicateUpperRead(
   base: OnDeviceDetection | null | undefined,
   layer: OnDeviceDetection | null | undefined,
@@ -261,11 +267,48 @@ export function isDuplicateUpperRead(
     && /jacket|blazer|coat|trench|parka|overcoat/.test(layerBlob);
   // Same coat/blazer reported twice with only partial box overlap.
   if (bothOuter && iou >= 0.35) return true;
+  // Hoodie + generic "* top" (any colour) — nested / partial overlap still one garment.
+  // Charcoal ghost boxes often IoU ~0.28–0.40 with the real hoodie.
+  if (
+    iou >= 0.28
+    && /hoodie|sweater|knit/.test(layerBlob)
+    && isGenericTopLabel(baseBlob)
+  ) {
+    return true;
+  }
+  // Same hoodie/sweater reported twice as top + layer.
+  if (
+    iou >= 0.28
+    && /hoodie|sweater|knit/.test(baseBlob)
+    && /hoodie|sweater|knit/.test(layerBlob)
+  ) {
+    return true;
+  }
   if (iou < UPPER_DUPLICATE_IOU) return false;
   const baseFamily = colorFamilyKey(base.color);
   const layerFamily = colorFamilyKey(layer.color);
   if (!baseFamily || !layerFamily) return false;
   return baseFamily === layerFamily;
+}
+
+/** Held base under outerwear with no nested evidence this frame — drop the ghost. */
+function isPhantomHeldBaseUnderLayer(
+  held: { subcategory?: string | null; name?: string | null; color?: string | null },
+  layer: OnDeviceDetection,
+): boolean {
+  const heldBlob = `${held.subcategory || ''} ${held.name || ''}`.toLowerCase();
+  const layerBlob = `${layer.category || ''} ${layer.subcategory || ''} ${layer.name || ''}`.toLowerCase();
+  if (!/hoodie|sweater|knit|cardigan|jacket|blazer|coat|gilet|vest/.test(layerBlob)) return false;
+  // Specific tee/shirt can be a real open-jacket base — keep unless same-family under hoodie.
+  const specificBase = /tee|t-?shirt|tank|singlet|polo|blouse|dress[\s_-]*shirt|oxford|button/.test(heldBlob);
+  if (specificBase) {
+    if (!/hoodie|sweater|knit|cardigan/.test(layerBlob)) return false;
+    const heldFamily = colorFamilyKey(held.color);
+    const layerFamily = colorFamilyKey(layer.color);
+    return Boolean(heldFamily && layerFamily && heldFamily === layerFamily);
+  }
+  // Generic "* top" under outerwear without this-frame base detection → phantom. No guessing.
+  return isGenericTopLabel(heldBlob);
 }
 
 function splitUpperDetections(uppers: OnDeviceDetection[]): {
@@ -1544,6 +1587,7 @@ export function applyOutfitBelief(
   let layerObs = split.base && split.layer ? split.layer : null;
   // Stable base top (shirt/tee) must not vanish when only the blazer re-fires —
   // otherwise tie/shirt dependency logic invents a "no shirt" conflict.
+  // Exception: generic charcoal/beige "top" under a hoodie is a phantom second read.
   if (
     !split.base
     && split.layer
@@ -1551,8 +1595,21 @@ export function applyOutfitBelief(
     && state.top?.kind === 'top'
     && Number(state.top.stability) >= BELIEF_STABILITY_RESIST
   ) {
-    resolvedTopObs = null;
-    layerObs = split.layer;
+    if (isPhantomHeldBaseUnderLayer(state.top, split.layer)) {
+      resolvedTopObs = split.layer;
+      layerObs = null;
+      repairs.push('cleared_phantom_base_under_hoodie');
+      appendDecision(decisions, {
+        type: 'update',
+        message: 'Cleared phantom base under hoodie',
+        reason: 'generic top held without nested evidence',
+        slot: 'top',
+        time: now,
+      });
+    } else {
+      resolvedTopObs = null;
+      layerObs = split.layer;
+    }
   }
   const hasShirtTop = Boolean(
     (resolvedTopObs && beliefKindFromDetection(resolvedTopObs) === 'top')
@@ -1716,22 +1773,40 @@ export function applyOutfitBelief(
     );
     // Jacket/trench alone must not keep a stale duplicate in layer while top
     // already holds the same outerwear (Top + Layer both "Beige trench").
-    if (layer && top && !layerObs) {
+    // Also collapse ghost charcoal top + hoodie even while Vision still emits both.
+    if (layer && top) {
       const topBlob = `${top.category || ''} ${top.subcategory || ''} ${top.name || ''}`.toLowerCase();
       const layerBlob = `${layer.category || ''} ${layer.subcategory || ''} ${layer.name || ''}`.toLowerCase();
-      const bothOuter = /jacket|blazer|coat|trench|parka|overcoat/.test(topBlob)
-        && /jacket|blazer|coat|trench|parka|overcoat/.test(layerBlob);
+      const bothOuter = /jacket|blazer|coat|trench|parka|overcoat|hoodie/.test(topBlob)
+        && /jacket|blazer|coat|trench|parka|overcoat|hoodie/.test(layerBlob);
       const sameFamily = Boolean(
         top.name && layer.name
         && top.name.toLowerCase().replace(/\s+/g, ' ') === layer.name.toLowerCase().replace(/\s+/g, ' '),
       );
-      if (bothOuter || sameFamily) {
+      const ghostTopUnderHoodie = isGenericTopLabel(topBlob)
+        && /hoodie|sweater|knit/.test(layerBlob);
+      const phantomLayer = /hoodie|sweater|knit/.test(topBlob)
+        && isGenericTopLabel(layerBlob);
+      if (ghostTopUnderHoodie) {
+        top = layer;
+        layer = null;
+        repairs.push('collapsed_ghost_top_under_hoodie');
+        appendDecision(decisions, {
+          type: 'update',
+          message: 'Collapsed ghost top under hoodie',
+          reason: 'generic top + hoodie is one garment',
+          slot: 'top',
+          time: now,
+        });
+      } else if (bothOuter || sameFamily || phantomLayer) {
         layer = null;
         repairs.push('cleared_duplicate_layer');
         appendDecision(decisions, {
           type: 'update',
           message: 'Cleared duplicate layer',
-          reason: 'outerwear already in top slot',
+          reason: phantomLayer
+            ? 'hoodie already in top slot'
+            : 'outerwear already in top slot',
           slot: 'layer',
           time: now,
         });

@@ -325,6 +325,104 @@ assert.equal(layerState.layer?.category, 'outerwear');
   assert.match(dupe.top?.name || '', /hoodie/i, 'the named garment survives, not the generic read');
 }
 
+// Massive head-to-waist charcoal ghost (low IoU with nested hoodie) — QA IMG_9692.
+{
+  const hoodie: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'outerwear',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.95,
+    bbox: [0.28, 0.28, 0.44, 0.22],
+    trackId: 'hn1',
+  };
+  const ghostHuge: OnDeviceDetection = {
+    name: 'Charcoal Top',
+    category: 'tops',
+    subcategory: 'top',
+    color: 'charcoal',
+    confidence: 0.97,
+    bbox: [0.18, 0.08, 0.64, 0.48],
+    trackId: 'hn2',
+  };
+  let nested = createOutfitBeliefState();
+  nested = applyOutfitBelief(nested, [hoodie, ghostHuge, shorts], { now: 15500 }).state;
+  assert.equal(nested.layer, null, 'huge charcoal ghost must not layer under hoodie');
+  assert.match(nested.top?.name || '', /hoodie/i, 'hoodie wins over nested charcoal ghost');
+}
+
+// Two Black Hoodie bboxes → one belief slot (top + layer both hoodie).
+{
+  const h1: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'outerwear',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.98,
+    bbox: [0.24, 0.16, 0.46, 0.34],
+    trackId: 'dh1',
+  };
+  const h2: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'tops',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.95,
+    bbox: [0.26, 0.18, 0.42, 0.30],
+    trackId: 'dh2',
+  };
+  let twin = createOutfitBeliefState();
+  twin = applyOutfitBelief(twin, [h1, h2, shorts], { now: 15600 }).state;
+  assert.equal(twin.layer, null, 'duplicate hoodie bboxes must not fill layer');
+  assert.match(twin.top?.name || '', /hoodie/i);
+}
+
+// Beige ghost under black hoodie (different colour family) must not invent layering.
+{
+  const hoodie: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'outerwear',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.9,
+    bbox: [0.22, 0.14, 0.48, 0.36],
+    trackId: 'hb1',
+  };
+  const ghostBeige: OnDeviceDetection = {
+    name: 'Beige top',
+    category: 'tops',
+    subcategory: 'top',
+    color: 'beige',
+    confidence: 0.91,
+    bbox: [0.24, 0.16, 0.45, 0.34],
+    trackId: 'hb2',
+  };
+  let beigeGhost = createOutfitBeliefState();
+  beigeGhost = applyOutfitBelief(beigeGhost, [hoodie, ghostBeige, shorts], { now: 17000 }).state;
+  assert.equal(beigeGhost.layer, null, 'beige ghost must not become a base layer');
+  assert.match(beigeGhost.top?.name || '', /hoodie/i, 'hoodie remains the only upper');
+
+  // Charcoal top locks first, then hoodie-only frames must clear the phantom base.
+  const ghostCharcoalHeld: OnDeviceDetection = {
+    name: 'Charcoal top',
+    category: 'tops',
+    subcategory: 'top',
+    color: 'charcoal',
+    confidence: 0.93,
+    bbox: [0.23, 0.15, 0.47, 0.35],
+    trackId: 'hc1',
+  };
+  let heldPhantom = createOutfitBeliefState();
+  heldPhantom = applyOutfitBelief(heldPhantom, [ghostCharcoalHeld, shorts], { now: 18000 }).state;
+  heldPhantom = applyOutfitBelief(heldPhantom, [ghostCharcoalHeld, shorts], { now: 18100 }).state;
+  heldPhantom = applyOutfitBelief(heldPhantom, [ghostCharcoalHeld, shorts], { now: 18200 }).state;
+  heldPhantom = applyOutfitBelief(heldPhantom, [ghostCharcoalHeld, shorts], { now: 18300 }).state;
+  assert.ok(Number(heldPhantom.top?.stability) >= 0.55, 'charcoal must be stable to test hold');
+  heldPhantom = applyOutfitBelief(heldPhantom, [hoodie, shorts], { now: 18400 }).state;
+  assert.equal(heldPhantom.layer, null, 'hoodie-only frame clears phantom charcoal base');
+  assert.match(heldPhantom.top?.name || '', /hoodie/i, 'hoodie replaces generic charcoal top');
+}
+
 // Tee + overshirt (no outerwear category) still layers
 const overshirt: OnDeviceDetection = {
   name: 'Blue shirt',

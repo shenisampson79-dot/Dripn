@@ -7,6 +7,7 @@ import {
   liveBeliefIsSettled,
   liveIdentityIsConsistent,
   liveIdentityKey,
+  liveCoreIdentityKey,
   liveJudgmentCertainty,
   liveOutfitReadyToScore,
   liveScoreSignature,
@@ -29,9 +30,10 @@ const OUTFIT = liveScoreSignature([
   { category: 'shoes', subcategory: 'sneakers', color: 'white' },
 ]);
 
-const confident = (bottom: string, shoe: string, conf = 0.92) => ({
+const confident = (bottom: string, shoe: string, conf = 0.92, pieceSet = 'none') => ({
   bottomKind: bottom,
   shoeSubtype: shoe,
+  pieceSet,
   bottomConfidence: conf,
   shoeConfidence: conf,
 });
@@ -318,7 +320,7 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     buf = pushLiveIdentitySample(buf, confident('trousers', 'loafers'));
   }
   assert.equal(
-    liveIdentityIsConsistent(buf, { prevLockedKey: 'shorts|loafers' }),
+    liveIdentityIsConsistent(buf, { prevLockedKey: 'shorts|loafers|none' }),
     false,
     '3 frames is not enough after an identity change',
   );
@@ -329,7 +331,8 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     true,
     '4 frames unlocks the new identity',
   );
-  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'trousers|loafers');
+  assert.equal(liveCoreIdentityKey(buf[buf.length - 1]), 'trousers|loafers');
+  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'trousers|loafers|none');
 }
 
 // Partial truth: top drift softens certainty but does not block core lock.
@@ -360,6 +363,37 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
   }
   assert.equal(liveJudgmentCertainty({ identityBuf: buf, coreReady: true }), 'high');
   assert.ok(liveSlotWeightedStability(buf) >= 0.85);
+}
+
+// Phantom piece-set change must version the full identity key, but must NOT
+// block core settle — that left the badge on "—" over a locked hoodie+shorts.
+{
+  let buf: ReturnType<typeof pushLiveIdentitySample> = [];
+  for (let i = 0; i < 3; i += 1) {
+    buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.92, 't:hoodie'));
+  }
+  assert.equal(liveIdentityIsConsistent(buf), true);
+  const before = liveIdentityKey(buf[buf.length - 1]);
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.92, 't:top+l:hoodie'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.92, 't:top+l:hoodie'));
+  buf = pushLiveIdentitySample(buf, confident('shorts', 'loafers', 0.92, 't:top+l:hoodie'));
+  assert.equal(
+    liveIdentityIsConsistent(buf, { prevLockedKey: 'shorts|loafers' }),
+    true,
+    'core still locks when piece-set flickers',
+  );
+  assert.equal(
+    liveOutfitReadyToScore({
+      slots: [{ stability: 0.9 }, { stability: 0.9 }],
+      identityBuf: buf,
+      prevLockedKey: 'shorts|loafers',
+    }),
+    true,
+    'first score must publish despite ghost top piece-set',
+  );
+  const after = liveIdentityKey(buf[buf.length - 1]);
+  assert.notEqual(before, after, 'full key still versions piece-set for rescore');
+  assert.equal(liveCoreIdentityKey(buf[buf.length - 1]), 'shorts|loafers');
 }
 
 // Medium certainty caps score movement once a number is shown.
@@ -439,6 +473,24 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
   const open = gateLiveJudgment(coaching, 82);
   assert.equal(open?.headline, 'Mixed direction');
   assert.equal(open?.summary, 'Sportswear under a tie.');
+}
+
+// Barefoot is a lockable shoe identity — bottom + barefoot can settle without footwear belief.
+{
+  let buf: ReturnType<typeof pushLiveIdentitySample> = [];
+  for (let i = 0; i < 3; i += 1) {
+    buf = pushLiveIdentitySample(buf, confident('shorts', 'barefoot'));
+  }
+  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'shorts|barefoot|none');
+  assert.equal(liveIdentityIsConsistent(buf), true, 'barefoot identity locks');
+  assert.equal(
+    liveOutfitReadyToScore({
+      slots: [{ stability: 0.9 }],
+      identityBuf: buf,
+    }),
+    true,
+    'barefoot outfits score with bottom alone settled',
+  );
 }
 
 console.log('liveScoreStability.test.ts: all passed');
