@@ -19,10 +19,15 @@ export const LIVE_SCORE_AGREEMENT = 5;
  */
 export const LIVE_SCORE_MAX_HOLD_MS = 3000;
 /**
- * Absolute ceiling for the first score if belief never quite hits 0.85.
- * Still requires core slots filled — never score an empty warmup frame.
+ * Absolute ceiling for the first score if belief never quite hits settled.
+ * Requires coreFilled (bottom + shoe/barefoot) — never score an empty frame.
  */
 export const LIVE_FIRST_SCORE_MAX_HOLD_MS = 7000;
+/**
+ * Hard failsafe: if a finite Vision score has been held this long with core
+ * present, publish even when settle/identity lock never trips. Stops eternal "—".
+ */
+export const LIVE_FORCE_PUBLISH_MS = 2000;
 /** Consecutive matching bottom+shoe identities before scoring is allowed. */
 export const LIVE_IDENTITY_STABLE_FRAMES = 3;
 /** Extra frames required when bottom/shoe identity changes vs the last lock. */
@@ -370,9 +375,12 @@ export function gateLiveScore(
     signature: string;
     now: number;
     settled?: boolean;
-    /** 3-frame bottom+shoe lock — required for the first-score safety valve. */
+    /** 3-frame bottom+shoe lock — preferred for first publish. */
     identityLocked?: boolean;
-    /** Top + bottom (+ footwear when visible) present — for first-score safety valve. */
+    /**
+     * Bottom + (footwear OR barefoot) present — required for force-publish.
+     * Must NOT require a stable top/layer.
+     */
     coreFilled?: boolean;
     /**
      * Stable identity key for this frame. When it differs from the key the
@@ -427,11 +435,11 @@ export function gateLiveScore(
     score: gate.shown,
   });
 
-  // First publish: NEVER force-adopt an unsettled warmup score. That is the
-  // "40 Mixed weights on dark shorts" bug. Only settle — or a long safety valve
-  // once core slots + identity lock exist — may surface the first number.
+  // First publish: settle preferred; else force after 2s with core present.
+  // Upper-body / piece-set must never be required here.
   if (gate.shown === null) {
     if (opts.settled) return adopt();
+    if (opts.coreFilled && heldMs >= LIVE_FORCE_PUBLISH_MS) return adopt();
     if (
       opts.coreFilled
       && opts.identityLocked

@@ -1530,6 +1530,8 @@ export function applyOutfitBelief(
     decisions?: BeliefDecision[];
     /** Barefoot veto — clear footwear inside belief (single mutation owner). */
     clearFootwear?: boolean;
+    /** Subject left frame / heavy crop / focus break — kill held ghost layers. */
+    subjectLost?: boolean;
   },
 ): {
   state: OutfitBeliefState;
@@ -1771,6 +1773,25 @@ export function applyOutfitBelief(
       now,
       decisions,
     );
+    // Camera loss / reframe: do not TTL-hold a ghost charcoal layer across focus breaks.
+    const upperLost = !resolvedTopObs && !layerObs;
+    if (
+      (opts?.subjectLost || upperLost)
+      && layer
+      && !layerObs
+    ) {
+      layer = null;
+      repairs.push('cleared_layer_on_camera_loss');
+      appendDecision(decisions, {
+        type: 'update',
+        message: 'Cleared layer on camera loss',
+        reason: opts?.subjectLost
+          ? 'subject left frame or focus break'
+          : 'no upper evidence this frame',
+        slot: 'layer',
+        time: now,
+      });
+    }
     // Jacket/trench alone must not keep a stale duplicate in layer while top
     // already holds the same outerwear (Top + Layer both "Beige trench").
     // Also collapse ghost charcoal top + hoodie even while Vision still emits both.

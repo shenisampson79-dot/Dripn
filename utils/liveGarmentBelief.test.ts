@@ -377,6 +377,44 @@ assert.equal(layerState.layer?.category, 'outerwear');
   assert.match(twin.top?.name || '', /hoodie/i);
 }
 
+// Camera loss / focus break must drop held ghost layers immediately (no 18s TTL).
+{
+  const hoodie: OnDeviceDetection = {
+    name: 'Black Hoodie',
+    category: 'outerwear',
+    subcategory: 'hoodie',
+    color: 'black',
+    confidence: 0.95,
+    bbox: [0.25, 0.18, 0.45, 0.32],
+    trackId: 'cl1',
+  };
+  const ghost: OnDeviceDetection = {
+    name: 'Charcoal Top',
+    category: 'tops',
+    subcategory: 'top',
+    color: 'charcoal',
+    confidence: 0.9,
+    bbox: [0.2, 0.1, 0.55, 0.4],
+    trackId: 'cl2',
+  };
+  let lost = createOutfitBeliefState();
+  // Force a layered state then subject-loss clear
+  lost = applyOutfitBelief(lost, [hoodie, ghost, shorts], { now: 20000 }).state;
+  // Manually simulate held layer surviving a bad frame path
+  if (!lost.layer && lost.top) {
+    lost = {
+      ...lost,
+      layer: { ...lost.top, name: 'Charcoal Top', subcategory: 'top', kind: 'top' as const },
+      top: { ...lost.top, name: 'Black Hoodie', subcategory: 'hoodie' },
+    };
+  }
+  const afterLoss = applyOutfitBelief(lost, [shorts], {
+    now: 20100,
+    subjectLost: true,
+  }).state;
+  assert.equal(afterLoss.layer, null, 'subjectLost clears ghost layer immediately');
+}
+
 // Beige ghost under black hoodie (different colour family) must not invent layering.
 {
   const hoodie: OnDeviceDetection = {

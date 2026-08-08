@@ -195,6 +195,8 @@ export function applyDetectionMemory(
     bottomBandBrightness?: number | null;
     occasionType?: string | null;
     forceClearFootwear?: boolean;
+    /** Subject left frame / focus break — clear held ghost layers. */
+    subjectLost?: boolean;
   },
 ): {
   detections: OnDeviceDetection[];
@@ -344,6 +346,7 @@ export function applyDetectionMemory(
     now,
     decisions,
     clearFootwear,
+    subjectLost: Boolean(opts?.subjectLost || cropped || prepared.length === 0),
   });
   repairs.push(...believed.repairs);
   if (!believed.state.bottom) bottomColorHistory = [];

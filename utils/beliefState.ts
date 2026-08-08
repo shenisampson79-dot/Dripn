@@ -96,6 +96,8 @@ export function updateLiveBelief(
     decisions?: BeliefDecision[];
     /** Vision frame with outfit but no shoes — clear ghost footwear immediately. */
     forceClearFootwear?: boolean;
+    /** Subject left frame / focus break — clear held ghost layers. */
+    subjectLost?: boolean;
   },
 ): {
   detections: OnDeviceDetection[];
@@ -114,6 +116,7 @@ export function updateLiveBelief(
     occasionType: opts?.occasionType,
     decisions,
     forceClearFootwear: opts?.forceClearFootwear,
+    subjectLost: opts?.subjectLost,
   });
   const mutations = diffVisionToBelief(detections, result.detections, 'updateLiveBelief');
   for (const m of mutations) {

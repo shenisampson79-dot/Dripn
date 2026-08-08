@@ -69,6 +69,7 @@ import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { roleOfCategory } from '@/utils/liveDetectionMemory';
+import { beliefBboxIou } from '@/utils/liveGarmentBelief';
 import { detectSuspectLiveRead } from '@/utils/liveSuspectRead';
 import {
   createLiveScoreGate,
@@ -142,7 +143,8 @@ function detectionsToLiveItems(
   detections: OnDeviceDetection[],
   seed?: LiveTrackedItem[],
 ): LiveTrackedItem[] {
-  return detections.map((d, i) => {
+  const merged = mergeOverlappingSameClassDetections(detections);
+  return merged.map((d, i) => {
     const prev = seed?.find((s) => s.trackId === d.trackId) || seed?.[i];
     return {
       tempId: d.trackId || prev?.tempId || `belief_${i}`,
@@ -160,6 +162,45 @@ function detectionsToLiveItems(
       wardrobeMatch: prev?.wardrobeMatch ?? null,
     };
   });
+}
+
+/** Collapse duplicate paint boxes (two Black Hoodie bboxes) before HUD. */
+function mergeOverlappingSameClassDetections(
+  detections: OnDeviceDetection[],
+): OnDeviceDetection[] {
+  if (detections.length < 2) return detections;
+  const out: OnDeviceDetection[] = [];
+  for (const det of detections) {
+    const blob = `${det.category || ''} ${det.subcategory || ''} ${det.name || ''}`.toLowerCase();
+    const idx = out.findIndex((kept) => {
+      const keptBlob = `${kept.category || ''} ${kept.subcategory || ''} ${kept.name || ''}`.toLowerCase();
+      const sameName = Boolean(
+        det.name && kept.name
+        && det.name.toLowerCase().replace(/\s+/g, ' ') === kept.name.toLowerCase().replace(/\s+/g, ' '),
+      );
+      const sameFamily = (
+        (/hoodie|sweater|knit/.test(blob) && /hoodie|sweater|knit/.test(keptBlob))
+        || (/chino|short|trouser|pant|skirt|dress/.test(blob)
+          && /chino|short|trouser|pant|skirt|dress/.test(keptBlob)
+          && roleOfCategory(det.category, det.subcategory)
+            === roleOfCategory(kept.category, kept.subcategory))
+      );
+      if (!sameName && !sameFamily) return false;
+      if (!det.bbox || !kept.bbox) return sameName;
+      return beliefBboxIou(
+        det.bbox as [number, number, number, number],
+        kept.bbox as [number, number, number, number],
+      ) >= 0.28;
+    });
+    if (idx < 0) {
+      out.push(det);
+      continue;
+    }
+    // Keep the higher-confidence / more specific label.
+    const kept = out[idx];
+    out[idx] = (det.confidence || 0) > (kept.confidence || 0) ? det : kept;
+  }
+  return out;
 }
 
 type LiveParams = {
@@ -432,17 +473,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const footZoneMem = detectionMemoryRef.current.lastFootZone;
     if (beliefSlots?.footwear) {
       noFootwearSinceRef.current = 0;
-    } else if (
-      footZoneMem
-      && !footZoneMem.cropped
-      && (footZoneMem.visible || footZoneMem.detectionEnabled)
-    ) {
+    } else if (beliefSlots?.bottom) {
+      // Bottom present, still no shoes — keep searching timer even if foot-zone
+      // diagnostics flicker (resetting here caused eternal "—" while Searching…).
       if (!noFootwearSinceRef.current) noFootwearSinceRef.current = memNow;
     } else {
       noFootwearSinceRef.current = 0;
     }
     const searchingBarefootTimeout = Boolean(
       !beliefSlots?.footwear
+      && beliefSlots?.bottom
       && noFootwearSinceRef.current
       && (memNow - noFootwearSinceRef.current) >= SEARCHING_BAREFOOT_MS,
     );
@@ -452,8 +492,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       !beliefSlots?.footwear
       && (
         memNow < (detectionMemoryRef.current.footwearBlockedUntil || 0)
-        || (footZoneMem && !footZoneMem.cropped)
         || searchingBarefootTimeout
+        || (footZoneMem && !footZoneMem.cropped)
         || detectionMemoryRef.current.lastFootwearCandidates?.some(
           (c) => c.rejectReason === 'barefoot',
         )
@@ -522,9 +562,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const smoothed = smoothLiveCertainty(certaintySmoothRef.current, certaintyRaw);
     certaintySmoothRef.current = smoothed.state;
     const certainty = smoothed.certainty;
+    // Core = bottom + shoe/barefoot only. Top/layer flicker must not block publish.
     const coreFilled = Boolean(
-      (beliefSlots?.top || beliefSlots?.layer)
-      && beliefSlots?.bottom
+      beliefSlots?.bottom
       && (beliefSlots?.footwear || barefootIdentity),
     );
     const gated = gateLiveScore(

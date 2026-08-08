@@ -18,6 +18,7 @@ import {
   createCertaintySmoothState,
   smoothLiveCertainty,
   LIVE_FIRST_SCORE_MAX_HOLD_MS,
+  LIVE_FORCE_PUBLISH_MS,
   LIVE_IDENTITY_CHANGE_FRAMES,
   LIVE_MEDIUM_MAX_STREAK,
   LIVE_PARTIAL_SCORE_CAP,
@@ -221,32 +222,31 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
   assert.notEqual(shown, null, 'jittering labels must still publish a score');
 }
 
-// First score safety valve: long hold + core + identity lock.
+// First score safety valve: 2s force-publish with core present (no top required).
 {
   let gate = createLiveScoreGate();
   gate = gateLiveScore(gate, 70, { signature: OUTFIT, now: 1000 }).gate;
   const stillHeld = gateLiveScore(gate, 95, {
     signature: OUTFIT,
-    now: 1000 + LIVE_SCORE_MAX_HOLD_MS,
+    now: 1000 + 1500,
     coreFilled: true,
-    identityLocked: true,
   });
-  assert.equal(stillHeld.score, null, '3s is not enough for first unsettled publish');
-  const noIdentity = gateLiveScore(stillHeld.gate, 95, {
+  assert.equal(stillHeld.score, null, 'under 2s still withholds without settle');
+  const forced = gateLiveScore(stillHeld.gate, 95, {
     signature: OUTFIT,
-    now: 1000 + LIVE_FIRST_SCORE_MAX_HOLD_MS,
+    now: 1000 + LIVE_FORCE_PUBLISH_MS,
     coreFilled: true,
-    identityLocked: false,
   });
-  assert.equal(noIdentity.score, null, '7s without identity lock still withholds');
-  const forced = gateLiveScore(noIdentity.gate, 95, {
+  assert.equal(forced.score, 95, '2s + coreFilled force-publishes first score');
+  // Identity lock path still works as a secondary ceiling.
+  let gate2 = createLiveScoreGate();
+  gate2 = gateLiveScore(gate2, 40, { signature: OUTFIT, now: 1000 }).gate;
+  const noCore = gateLiveScore(gate2, 95, {
     signature: OUTFIT,
-    now: 1000 + LIVE_FIRST_SCORE_MAX_HOLD_MS,
-    coreFilled: true,
-    identityLocked: true,
-    identityKey: 'shorts|sneakers',
+    now: 1000 + LIVE_FORCE_PUBLISH_MS,
+    coreFilled: false,
   });
-  assert.equal(forced.score, 95, '7s + core + identity may publish first score');
+  assert.equal(noCore.score, null, 'force-publish still requires coreFilled');
 }
 
 // Once shown, unsettled identity must not adopt a new score.
