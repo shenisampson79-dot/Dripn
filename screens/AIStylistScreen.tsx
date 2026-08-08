@@ -145,6 +145,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Chat row geometry — keep outfit bubbles inside the screen with readable text inset. */
 const CHAT_ROW_PADDING = Spacing.xl;
 const CHAT_AVATAR_SIZE = 32;
+
+/** Circle is too small for a full name — show the stylist's initial instead of a generic icon. */
+function stylistAvatarInitial(name: string | undefined | null): string {
+  const trimmed = String(name || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+}
 const CHAT_AVATAR_GAP = Spacing.sm;
 const CHAT_BUBBLE_PADDING_H = Spacing.lg;
 const CHAT_EDGE_SAFE = Spacing.sm;
@@ -191,6 +197,8 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   imageUri?: string;
+  /** Up to 3 attached photos (buy-compare). Prefer this over singular imageUri. */
+  imageUris?: string[];
   voiceMessage?: VoiceMessage;
   outfitSuggestion?: {
     items: WardrobeItem[];
@@ -222,10 +230,36 @@ interface ChatMessage {
   isShopRequired?: boolean;
   status?: string;
   displayState?: string;
+  /** Decision Firewall: open Choosing what to buy */
+  redirectToDecide?: boolean;
+  cta?: {
+    action?: string;
+    label?: string;
+    screen?: string;
+  } | null;
   missing?: FallbackMissingItem[];
   stylistNote?: string;
   /** Frozen wear/plan date from generation — actions must reuse this */
   styleSession?: StyleSession;
+}
+
+/** Buy/compare asks should keep Decide→Chat shopping continuity, not hard-kill it. */
+function looksLikeBuyCompareAsk(text: string): boolean {
+  const t = String(text || '');
+  return (
+    /\bshould i buy\b/i.test(t)
+    || /\bi should buy\b/i.test(t)
+    || /\bwhich should i (buy|get|pick|choose)\b/i.test(t)
+    || /\bwhat should i (buy|get)\b/i.test(t)
+    || /\bwhich (item|one|option|piece|top|shirt).{0,80}\b(buy|get|pick|choose|better)\b/i.test(t)
+    || /\bwhich .{0,50}\bis better\b/i.test(t)
+    || /\b(buy|get|pick|choose).{0,40}\bbetween\b/i.test(t)
+    || /\bbetween\b.{0,80}\b(buy|get|pick|choose)\b/i.test(t)
+    || /\bpick between\b/i.test(t)
+    || /\bcouldn'?t attach\b/i.test(t)
+    || /\b(compare|choosing) what to buy\b/i.test(t)
+    || /\b(these|those) (two|2|three|3).{0,60}\b(buy|pick|choose|better|compare)\b/i.test(t)
+  );
 }
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -246,6 +280,13 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
 
   if (typeof message.imageUri === 'string') {
     normalized.imageUri = message.imageUri;
+  }
+  if (Array.isArray(message.imageUris)) {
+    const uris = message.imageUris.filter((u): u is string => typeof u === 'string' && Boolean(u.trim())).slice(0, 3);
+    if (uris.length) {
+      normalized.imageUris = uris;
+      if (!normalized.imageUri) normalized.imageUri = uris[0];
+    }
   }
   if (message.isVisualizingOutfit === true) {
     normalized.isVisualizingOutfit = true;
@@ -473,6 +514,8 @@ function attachWardrobeVisualToMessage(
     type?: string;
     status?: string;
     displayState?: string;
+    redirectToDecide?: boolean;
+    cta?: ChatMessage['cta'];
     missing?: FallbackMissingItem[];
     stylistNote?: string;
     responseType?: 'single' | 'multi' | string;
@@ -508,6 +551,12 @@ function attachWardrobeVisualToMessage(
     || response.displayState === 'SHOP_REQUIRED'
     || response.type === 'shop_required',
   );
+  const redirectToDecide = Boolean(
+    response.redirectToDecide
+    || response.status === 'redirect_to_decide'
+    || response.displayState === 'REDIRECT_TO_DECIDE'
+    || response.type === 'redirect_to_decide',
+  );
   const strippedContent = stripStructuredOutfitMarkers(message.content);
   const styleSession = buildStyleSession({
     userMessage,
@@ -523,6 +572,8 @@ function attachWardrobeVisualToMessage(
     isShopRequired: isShopRequired || undefined,
     status: response.status,
     displayState: response.displayState,
+    redirectToDecide: redirectToDecide || undefined,
+    cta: response.cta || undefined,
     missing: Array.isArray(response.missing) ? response.missing : undefined,
     stylistNote: response.stylistNote,
     responseType: response.responseType,
@@ -1636,14 +1687,22 @@ export default function AIStylistScreen() {
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
 
-  const continuityApiFields = useCallback(() => {
+  const continuityApiFields = useCallback((opts?: { bootstrapRecent?: boolean }) => {
     const payload = decisionContinuityRef.current;
     const api = toApiDecisionContinuity(payload);
-    if (!api) return {};
-    return {
-      decisionContinuity: api as unknown as Record<string, unknown>,
-      fromDecisionSessionId: payload?.decisionSessionId,
-    };
+    const fields: {
+      decisionContinuity?: Record<string, unknown>;
+      fromDecisionSessionId?: string;
+      useRecentDecisionContinuity?: boolean;
+    } = {};
+    if (api) {
+      fields.decisionContinuity = api as unknown as Record<string, unknown>;
+      fields.fromDecisionSessionId = payload?.decisionSessionId;
+    }
+    if (opts?.bootstrapRecent) {
+      fields.useRecentDecisionContinuity = true;
+    }
+    return fields;
   }, []);
 
   const releaseDecisionContinuity = useCallback(async () => {
@@ -1730,7 +1789,7 @@ export default function AIStylistScreen() {
     ];
   });
   const [inputText, setInputText] = useState('');
-  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedImageUris, setSelectedImageUris] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
@@ -2591,16 +2650,30 @@ export default function AIStylistScreen() {
         Alert.alert(t('common.permissionNeeded'), t('aiStylist.photoPermissionRuby'));
         return;
       }
+
+      const remaining = Math.max(0, 3 - selectedImageUris.length);
+      if (remaining <= 0) {
+        Alert.alert(
+          t('aiStylist.maxPhotosTitle') || 'Up to 3 photos',
+          t('aiStylist.maxPhotosBody') || 'Attach up to 3 items to compare what to buy.',
+        );
+        return;
+      }
       
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 5],
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+        allowsEditing: false,
         quality: 0.7,
       });
       
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setSelectedImageUri(result.assets[0].uri);
+      if (!result.canceled && result.assets?.length) {
+        const next = [
+          ...selectedImageUris,
+          ...result.assets.map((a) => a.uri).filter(Boolean),
+        ].slice(0, 3);
+        setSelectedImageUris(next);
       }
     } catch (error) {
       console.log('Image picker error:', error);
@@ -2641,28 +2714,35 @@ export default function AIStylistScreen() {
   const sendMessage = async (text: string) => {
     if (!text.trim() || !canSendMessage()) return;
 
-    // Soft-attach without Continue must not ghost: chatting without confirming
-    // drops the pending Decide context entirely (not just the banner).
+    // Soft-attach without Continue: chatting usually drops Decide context.
+    // Buy/compare asks keep shopping continuity so DO_NOT_BUY can restate.
     if (pendingSoftContinuityRef.current && !decisionContinuityRef.current) {
-      await releaseDecisionContinuity();
+      if (looksLikeBuyCompareAsk(text)) {
+        confirmSoftContinuity();
+      } else {
+        await releaseDecisionContinuity();
+      }
     }
     
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+
+    const attachedUris = selectedImageUris.slice(0, 3);
     
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
       role: 'user',
       content: text.trim(),
       timestamp: new Date().toISOString(),
-      imageUri: selectedImageUri || undefined,
+      imageUri: attachedUris[0] || undefined,
+      imageUris: attachedUris.length ? attachedUris : undefined,
     };
     
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputText('');
-    setSelectedImageUri(null);
+    setSelectedImageUris([]);
     setShowQuickPrompts(false);
     setIsTyping(true);
     
@@ -2724,11 +2804,28 @@ export default function AIStylistScreen() {
       } catch (error) {
         console.log('Location not available:', error);
       }
+
+      let imagesForApi: string[] | undefined;
+      if (attachedUris.length) {
+        try {
+          const { convertImageToBase64 } = await import('@/services/VisionAnalysisService');
+          const encoded = await Promise.all(
+            attachedUris.map(async (uri) => {
+              const b64 = await convertImageToBase64(uri);
+              return b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
+            }),
+          );
+          imagesForApi = encoded.filter(Boolean).slice(0, 3);
+        } catch (imgErr) {
+          console.log('Chat image encode failed:', imgErr);
+        }
+      }
       
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
         userMessage: text.trim(),
+        images: imagesForApi,
         wardrobeItems: wardrobeContext,
         userGender: mappedGenderText,
         subscriptionTier: tier,
@@ -2736,7 +2833,7 @@ export default function AIStylistScreen() {
         ...locationData,
         location: user?.country || actualCountry || locationData.location,
         countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
-        ...continuityApiFields(),
+        ...continuityApiFields({ bootstrapRecent: looksLikeBuyCompareAsk(text) }),
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderText,
@@ -3585,7 +3682,14 @@ export default function AIStylistScreen() {
             colors={stylist.id === 'ruby' ? [LUXURY_COLORS.rose, LUXURY_COLORS.berry] : stylist.id === 'max' ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] : stylist.id === 'ace' ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] : [LUXURY_COLORS.coral, '#C46A4F']}
             style={styles.avatarContainer}
           >
-            <Feather name={stylist.icon} size={16} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+            <ThemedText
+              style={[
+                styles.avatarInitial,
+                { color: stylist.id === 'ace' ? LUXURY_COLORS.midnight : '#FFFFFF' },
+              ]}
+            >
+              {stylistAvatarInitial(stylist.name)}
+            </ThemedText>
           </LinearGradient>
         ) : null}
         
@@ -3613,6 +3717,23 @@ export default function AIStylistScreen() {
           ) : (
             <>
               {renderAssistantContent(item, index)}
+              {item.redirectToDecide || item.cta?.action === 'open_choosing_what_to_buy' ? (
+                <Pressable
+                  onPress={() => navigation.navigate('ChoosingWhatToBuy')}
+                  style={({ pressed }) => [
+                    styles.decideRedirectCta,
+                    {
+                      backgroundColor: stylist.color,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name="shopping-bag" size={16} color="#FFFFFF" />
+                  <ThemedText style={styles.decideRedirectCtaText}>
+                    {item.cta?.label || t('stylistHub.choosingWhatToBuy') || 'Open Choosing what to buy'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
               {((item.isFallback || item.isShopRequired) && item.missing?.length) ? (
                 <View style={{ marginTop: Spacing.sm }}>
                   {item.missing.map((gap, gapIdx) => (
@@ -3632,14 +3753,25 @@ export default function AIStylistScreen() {
             </>
           )}
           
-          {item.imageUri && (
-            <Image
-              source={{ uri: item.imageUri }}
-              style={[styles.messageImage, { marginTop: Spacing.md }]}
-              resizeMode="cover"
-            />
-          )}
-          {item.isVisualizingOutfit && !item.imageUri ? (
+          {(() => {
+            const uris = (item.imageUris?.length ? item.imageUris : (item.imageUri ? [item.imageUri] : []))
+              .filter(Boolean)
+              .slice(0, 3);
+            if (!uris.length) return null;
+            return (
+              <View style={styles.messageImageRow}>
+                {uris.map((uri) => (
+                  <Image
+                    key={uri}
+                    source={{ uri }}
+                    style={[styles.messageImage, uris.length > 1 ? styles.messageImageMulti : null]}
+                    resizeMode="cover"
+                  />
+                ))}
+              </View>
+            );
+          })()}
+          {item.isVisualizingOutfit && !(item.imageUri || item.imageUris?.length) ? (
             <View style={styles.visualizingOutfitRow}>
               <ActivityIndicator size="small" color={theme.link} />
               <ThemedText style={styles.visualizingOutfitText}>
@@ -3940,7 +4072,14 @@ export default function AIStylistScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.stylistIcon}
           >
-            <Feather name={stylist.icon} size={20} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+            <ThemedText
+              style={[
+                styles.headerAvatarInitial,
+                { color: stylist.id === 'ace' ? LUXURY_COLORS.midnight : '#FFFFFF' },
+              ]}
+            >
+              {stylistAvatarInitial(stylist.name)}
+            </ThemedText>
           </LinearGradient>
           <View>
             <View style={styles.headerTitleRow}>
@@ -4116,7 +4255,14 @@ export default function AIStylistScreen() {
             colors={stylistGradient}
             style={styles.avatarContainer}
           >
-            <Feather name={moodInfo ? moodInfo.icon : stylist.icon} size={16} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+            <ThemedText
+              style={[
+                styles.avatarInitial,
+                { color: stylist.id === 'ace' ? LUXURY_COLORS.midnight : '#FFFFFF' },
+              ]}
+            >
+              {stylistAvatarInitial(stylist.name)}
+            </ThemedText>
           </LinearGradient>
           <View style={[styles.typingBubble, { backgroundColor: theme.backgroundSecondary }]}>
             <ActivityIndicator size="small" color={stylistGradient[0]} />
@@ -4257,20 +4403,32 @@ export default function AIStylistScreen() {
             onUpgrade={navigateToSubscriptionScreen}
           />
         ) : null}
-        {selectedImageUri ? (
-          <View style={[styles.selectedImagePreview, { backgroundColor: theme.backgroundSecondary }]}>
-            <Image
-              source={{ uri: selectedImageUri }}
-              style={styles.selectedImage}
-              resizeMode="cover"
-            />
-            <Pressable
-              onPress={() => setSelectedImageUri(null)}
-              style={styles.removeImageButton}
-            >
-              <Feather name="x" size={16} color="#FFFFFF" />
-            </Pressable>
-          </View>
+        {selectedImageUris.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.selectedImagePreviewRow}
+            contentContainerStyle={styles.selectedImagePreviewContent}
+          >
+            {selectedImageUris.map((uri) => (
+              <View
+                key={uri}
+                style={[styles.selectedImagePreview, { backgroundColor: theme.backgroundSecondary }]}
+              >
+                <Image
+                  source={{ uri }}
+                  style={styles.selectedImage}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  onPress={() => setSelectedImageUris((prev) => prev.filter((u) => u !== uri))}
+                  style={styles.removeImageButton}
+                >
+                  <Feather name="x" size={16} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
         ) : null}
         <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary }]}>
           <Pressable
@@ -4630,6 +4788,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarInitial: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  headerAvatarInitial: {
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
   userAvatar: {
     width: CHAT_AVATAR_SIZE,
     height: CHAT_AVATAR_SIZE,
@@ -4730,6 +4900,33 @@ const styles = StyleSheet.create({
     width: 200,
     height: 250,
     borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  messageImageRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  messageImageMulti: {
+    width: 96,
+    height: 120,
+    marginTop: 0,
+  },
+  decideRedirectCta: {
+    marginTop: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+  },
+  decideRedirectCtaText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   visualizingOutfitRow: {
     flexDirection: 'row',
@@ -4929,13 +5126,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.sm,
   },
+  selectedImagePreviewRow: {
+    maxHeight: 120,
+    marginBottom: Spacing.sm,
+  },
+  selectedImagePreviewContent: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+    alignItems: 'center',
+  },
   selectedImagePreview: {
     position: 'relative',
     width: 100,
     height: 100,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
   },
   selectedImage: {
