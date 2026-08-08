@@ -48,27 +48,27 @@ export const QUICK_TROUBLESHOOTING: { id: string; label: string; response: strin
   {
     id: 'app-slow',
     label: 'App is running slow',
-    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app\n2. Check your internet connection\n3. Clear the app cache in your phone's settings\n4. Make sure you have the latest app version\n\nIf it's still slow after trying these, tap the envelope icon to the left of the message box to create a support ticket.",
+    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app.\n2. Check your internet connection.\n3. Clear the app cache in your phone's settings.\n4. Make sure you have the latest app version.\n\nIf it's still slow after trying these, tap the envelope icon to the left of the message box to create a support ticket.",
   },
   {
     id: 'login-issues',
     label: 'Cannot log in',
-    response: "Having trouble logging in? Let's fix that:\n\n1. Double-check your email address for typos\n2. Try resetting your password using 'Forgot Password'\n3. Make sure Caps Lock is off when entering your password\n4. Check if you signed up with Apple/Google instead\n\nStill having issues? Tap the ticket icon in the bottom-left corner to reach our support team.",
+    response: "Having trouble logging in? Let's fix that:\n\n1. Double-check your email address for typos.\n2. Try resetting your password using 'Forgot Password'.\n3. Make sure Caps Lock is off when entering your password.\n4. Check if you signed up with Apple/Google instead.\n\nStill having issues? Tap the ticket icon in the bottom-left corner to reach our support team.",
   },
   {
     id: 'subscription-not-working',
     label: 'Subscription features not working',
-    response: "Let's get your subscription features working:\n\n1. Log out and log back in to refresh your account\n2. Check if your payment went through in your app store\n3. Restore purchases in your account settings\n4. Give it a few minutes - sometimes there's a short delay\n\nIf features are still locked, tap the ticket icon in the bottom-left corner for priority support.",
+    response: "Let's get your subscription features working:\n\n1. Log out and log back in to refresh your account.\n2. Check if your payment went through in your app store.\n3. Restore purchases in your account settings.\n4. Give it a few minutes - sometimes there's a short delay.\n\nIf features are still locked, tap the envelope icon next to the message box to create a support ticket.",
   },
   {
     id: 'photos-not-uploading',
     label: 'Photos not uploading',
-    response: "Let's fix your photo uploads:\n\n1. Check if you've allowed Dripn to access your photos\n2. Make sure you have a stable internet connection\n3. Try uploading a smaller photo first\n4. Close other apps to free up memory\n\nNeed more help? Tap the ticket icon in the bottom-left corner to reach our team.",
+    response: "Let's fix your photo uploads:\n\n1. Check if you've allowed Dripn to access your photos.\n2. Make sure you have a stable internet connection.\n3. Try uploading a smaller photo first.\n4. Close other apps to free up memory.\n\nNeed more help? Tap the ticket icon in the bottom-left corner to reach our team.",
   },
   {
     id: 'notifications-not-working',
     label: 'Not receiving notifications',
-    response: "To get your notifications working:\n\n1. Go to your phone's Settings and find Dripn\n2. Make sure notifications are enabled\n3. Check that 'Do Not Disturb' is off\n4. In the app, check notification settings under Profile > Settings\n\nStill not working? Tap the ticket icon in the bottom-left corner to get help from our team.",
+    response: "To get your notifications working:\n\n1. Go to your phone's Settings and find Dripn.\n2. Make sure notifications are enabled.\n3. Check that 'Do Not Disturb' is off.\n4. In the app, check notification settings under Profile > Settings.\n\nStill not working? Tap the ticket icon in the bottom-left corner to get help from our team.",
   },
 ];
 
@@ -85,7 +85,25 @@ function stripSupportMarkdown(text: string): string {
     .replace(/__([^_]+)__/g, '$1')
     .replace(/(^|[^\w])\*([^*\n]+)\*(?!\w)/g, '$1$2')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+    .replace(/stylist\s+unlimited/gi, 'Stylist Pro');
+}
+
+/** Numbered / bulleted lines should end with a full stop in support chat. */
+function ensureSupportListFullStops(text: string): string {
+  if (!text) return text;
+  return text
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.replace(/\s+$/, '');
+      if (!/^\s*(?:\d+[.)]|[-•*])\s+\S/.test(trimmed)) return line;
+      if (/[.!?…:]$/.test(trimmed)) return line;
+      if (/["')\]]$/.test(trimmed)) {
+        return `${trimmed.slice(0, -1)}.${trimmed.slice(-1)}`;
+      }
+      return `${trimmed}.`;
+    })
+    .join('\n');
 }
 
 class SupportService {
@@ -140,17 +158,65 @@ class SupportService {
     };
   }
 
+  /** Idempotent — used so the UI and service share one user bubble (no duplicate flash). */
+  ensureUserMessage(id: string, content: string): void {
+    const existing = this.chatHistory.find((m) => m.id === id && m.role === 'user');
+    if (existing) {
+      existing.content = content;
+      return;
+    }
+    this.chatHistory.push({
+      id,
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  seedWelcomeIfEmpty(): SupportMessage {
+    if (this.chatHistory.length === 0) {
+      const welcome = this.getWelcomeMessage();
+      this.chatHistory.push(welcome);
+      return welcome;
+    }
+    return this.chatHistory[0];
+  }
+
+  /** Drop duplicate ids (keeps first). */
+  getChatHistoryDeduped(): SupportMessage[] {
+    const seen = new Set<string>();
+    const deduped = this.chatHistory.filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+    this.chatHistory = deduped;
+    return deduped;
+  }
+
   async sendMessage(
     userMessage: string,
     options?: { fromQuickAction?: boolean; clientMessageId?: string },
   ): Promise<SupportMessage> {
-    const userMsg: SupportMessage = {
-      id: options?.clientMessageId || generateId(),
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date().toISOString(),
-    };
-    this.chatHistory.push(userMsg);
+    const clientId = options?.clientMessageId;
+    const alreadyQueued =
+      Boolean(clientId) && this.chatHistory.some((m) => m.id === clientId && m.role === 'user');
+
+    if (!alreadyQueued) {
+      const userMsg: SupportMessage = {
+        id: clientId || generateId(),
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toISOString(),
+      };
+      this.chatHistory.push(userMsg);
+    } else {
+      // Keep content in sync if the optimistic bubble used a translated quick-action label
+      const existing = this.chatHistory.find((m) => m.id === clientId);
+      if (existing && existing.content !== userMessage) {
+        existing.content = userMessage;
+      }
+    }
 
     // Only use canned troubleshooting when the user tapped a quick-action chip
     // (exact label). Fuzzy matching on first words caused false hits — e.g.
@@ -170,7 +236,7 @@ class SupportService {
     const assistantMsg: SupportMessage = {
       id: generateId(),
       role: 'assistant',
-      content: stripSupportMarkdown(responseContent),
+      content: ensureSupportListFullStops(stripSupportMarkdown(responseContent)),
       timestamp: new Date().toISOString(),
     };
     this.chatHistory.push(assistantMsg);
@@ -241,7 +307,7 @@ class SupportService {
 
   private connectionTroubleshooting(signOff: string, note?: string): string {
     const prefix = note ? `${note}\n\n` : '';
-    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the envelope icon to the left of the message box to create a support ticket, or email support@dripnapp.com with your phone model and what screen you were on. ${signOff}`;
+    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data.\n2. Force-quit Dripn and open it again.\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again.\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular.\n5. Make sure you're on the latest app version.\n\nIf it still fails, tap the envelope icon to the left of the message box to create a support ticket, or email support@dripnapp.com with your phone model and what screen you were on. ${signOff}`;
   }
 
   private getMockResponse(
@@ -275,15 +341,15 @@ class SupportService {
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Dripn has three tiers:\n\n- Free: Try the stylist — limited daily decisions and wardrobe items\n- Personal Stylist (~$9.99/mo): Unlimited daily decisions, outfit calendar, more wardrobe space, AI chat, voice comments\n- Stylist Pro (~$19.99/mo): Everything in Personal Stylist plus unlimited wardrobe, event planning, sustainability tools, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
+      return `Dripn has three tiers:\n\n- Free: 1 stylist decision per day, up to 15 wardrobe items, limited AI chat.\n- Personal Stylist (~£9.99/mo): Unlimited daily decisions, wardrobe-aware advice, expanded wardrobe (~75 items), unlimited AI stylist chat, limited voice.\n- Stylist Pro (~£19.99/mo): Everything in Personal Stylist plus unlimited wardrobe and higher voice allowance.\n\nThe app shows your local store price before you confirm. See Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
-      return `Stylist Pro members can start peer video calls with other members from the VIP Members screen when the feature is available in your region.\n\nUpgrade to Stylist Pro in Settings > Subscription to unlock member video calling. ${signOff}`;
+      return `For styling help, open the Stylist tab and chat with Ruby, Max, Ace, or Ivy.\n\nCompare plans anytime in Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('wardrobe') || lowerMessage.includes('closet')) {
-      return `Your digital wardrobe is where you can store photos of your clothes! Here's how to use it:\n\n1. Go to your Profile\n2. Tap "My Wardrobe"\n3. Add items by taking photos or selecting from gallery\n4. The AI stylist can then suggest outfits from your actual clothes!\n\n${signOff}`;
+      return `Your digital wardrobe is where you can store photos of your clothes! Here's how to use it:\n\n1. Go to your Profile.\n2. Tap "My Wardrobe".\n3. Add items by taking photos or selecting from gallery.\n4. The AI stylist can then suggest outfits from your actual clothes!\n\n${signOff}`;
     }
 
     if (lowerMessage.includes('refund') || lowerMessage.includes('cancel subscription')) {

@@ -1356,7 +1356,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'Can I download my data?',
       },
       s1: {
-        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, outfit calendar, decision history), and Stylist Pro at £19.99 per month (unlimited wardrobe, event planning, and full planning tools).',
+        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, wardrobe-aware advice, expanded wardrobe, unlimited stylist chat, limited voice), and Stylist Pro at £19.99 per month (unlimited wardrobe and higher voice allowance).',
         question: 'What subscription plans are available?',
       },
       s2: {
@@ -1596,11 +1596,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
       lossUnlimitedDecisions: 'Unlimited style decisions',
       lossWardrobeAware: 'Wardrobe-aware stylist advice',
       lossUnlimitedEverything: 'Unlimited wardrobe & outfit suggestions',
-      lossUnlimitedVoice: 'Higher voice & virtual try-on limits',
+      lossUnlimitedVoice: 'Higher voice allowance',
       lossVideoCalls: 'Priority background removal',
-      lossVipAccess: 'Stylist Pro planning tools',
+      lossVipAccess: 'Higher voice allowance',
       lossVoiceConversations: 'Voice conversations with your stylist',
-      lossWhiteGlove: 'Priority stylist support',
+      lossWhiteGlove: 'Ask Julia support',
       basedOnUsage: 'Based on how you use Dripn',
       appleCancelTitle: 'Manage in the App Store',
       appleCancelMessage:
@@ -1709,9 +1709,9 @@ const DEFAULT_TRANSLATIONS: Translations = {
       },
       stylistUnlimited: {
         everythingPersonal: 'Everything in Personal Stylist',
-        eventPlanning: 'Event planning & sustainability tools',
         fullWardrobe: 'See your full wardrobe instantly',
         planAhead: 'Plan outfits days or weeks ahead',
+        prioritySupport: 'Priority support',
         systemWorks: 'Build a system that always works',
         voiceAnytime: 'Talk to your stylist by voice, anytime',
       },
@@ -1816,7 +1816,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         subtext: 'Plan, pack, and prioritise with Stylist Pro',
       },
       goUnlimited: 'Go Unlimited',
-      goUnlimitedBody: 'Unlimited wardrobe, event planning, and VIP member access',
+      goUnlimitedBody: 'Unlimited wardrobe and higher voice allowance',
       guidedPrompt: 'Your stylist is ready when you are',
       heroTitle: 'You\'re all set!',
       outfitSetup: {
@@ -1829,7 +1829,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       },
       personalStylist: {
         check1: 'Unlimited stylist decisions',
-        check2: 'Outfit calendar',
+        check2: 'Expanded wardrobe (~75 items)',
         check3: 'Wardrobe-aware daily advice',
         check4: 'Voice chat with your stylist',
         headline: 'Your outfit setup is confirmed',
@@ -1849,10 +1849,10 @@ const DEFAULT_TRANSLATIONS: Translations = {
         subtext: 'Start a conversation — text or voice',
       },
       stylistUnlimited: {
-        check1: 'Full wardrobe analysis',
-        check2: 'Event planning & sustainability tools',
-        check3: 'Unlimited wardrobe & try-on',
-        check4: 'Priority support',
+        check1: 'Everything in Personal Stylist',
+        check2: 'Unlimited wardrobe',
+        check3: 'Bulk upload tools',
+        check4: 'Higher voice allowance',
         headline: 'You\'re on Stylist Pro',
         subtext: 'Unlimited wardrobe, voice, and planning tools — ready when you are',
       },
@@ -1954,7 +1954,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     section04: {
       sub01: {
         bullet1: 'Free: Limited stylist decisions, wardrobe items, and AI chat.',
-        bullet2: 'Personal Stylist: Unlimited decisions, wardrobe-aware advice, outfit calendar, and extended AI chat.',
+        bullet2: 'Personal Stylist: Unlimited decisions, wardrobe-aware advice, and extended AI chat.',
         bullet3: 'Stylist Pro: Everything in Personal Stylist plus unlimited wardrobe and planning tools.',
         intro: 'Dripn offers the following subscription tiers with varying features:',
         title: '4.1 Subscription Tiers',

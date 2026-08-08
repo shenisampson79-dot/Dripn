@@ -159,11 +159,10 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       'Unlimited stylist decisions',
       'Compare up to 3 options',
-      'Decision history & wardrobe memory',
       'Wardrobe-aware recommendations',
-      'Outfit calendar',
       '75 wardrobe items',
-      'Voice styling sessions',
+      'Unlimited stylist text chat',
+      'Limited voice sessions',
     ],
   },
   {
@@ -177,11 +176,9 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     popular: true,
     features: [
       'Everything in Personal Stylist',
-      'Event planning tools',
-      'Unlimited wardrobe & try-on',
+      'Unlimited wardrobe',
       'Bulk upload (20 items)',
-      'Sustainability insights',
-      'Priority support',
+      'Higher voice allowance',
     ],
   },
 ];
