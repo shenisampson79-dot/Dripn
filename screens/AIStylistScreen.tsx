@@ -69,6 +69,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import {
+  isAiBudgetError,
+  stylistMonthlyAllowanceMessage,
+} from '@/utils/aiBudgetError';
+import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { useNavigation, CommonActions, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
@@ -1793,6 +1798,8 @@ export default function AIStylistScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
+  /** Server monthly AI meter exhausted — convert, do not pretend it is a network snag. */
+  const [monthlyAllowanceExhausted, setMonthlyAllowanceExhausted] = useState(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(
     () => chatQuickPromptsMemoryCache ?? !threadHasUserMessage(getCachedMessagesSync() || []),
   );
@@ -2199,14 +2206,18 @@ export default function AIStylistScreen() {
     }
 
     if (!canSendMessage()) {
-      Alert.alert(
-        t('common.dailyLimitReached'),
-        t('aiStylist.dailyLimitUpgrade'),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('aiStylist.upgradeNow') || 'Upgrade Now', onPress: navigateToSubscriptionScreen },
-        ],
-      );
+      if (monthlyAllowanceExhausted) {
+        presentMonthlyAllowancePaywall();
+      } else {
+        Alert.alert(
+          t('common.dailyLimitReached'),
+          t('aiStylist.dailyLimitUpgrade'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('aiStylist.upgradeNow') || 'Upgrade Now', onPress: navigateToSubscriptionScreen },
+          ],
+        );
+      }
       return;
     }
 
@@ -2451,23 +2462,23 @@ export default function AIStylistScreen() {
       }, 100);
     } catch (error: any) {
       console.log('API call failed for voice:', error);
-      
-      // Check if this is an authentication error
-      const isAuthError = error?.message?.includes('Authentication required') || 
-                          error?.message?.includes('Unauthorized') ||
-                          error?.message?.includes('401');
-      
+
+      const isAuthError = error?.message?.includes('Authentication required')
+        || error?.message?.includes('Unauthorized')
+        || error?.message?.includes('401');
+
       let responseContent: string;
-      if (isAuthError) {
+      if (isAiBudgetError(error)) {
+        responseContent = presentMonthlyAllowancePaywall(error);
+      } else if (isAuthError) {
         responseContent = `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`;
       } else {
-        const voiceResponses = [
-          `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
-          `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
-          `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
-          `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
-        ];
-        responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+        // Never invent a fake styling reply on failure — that destroys trust.
+        responseContent = stylist.id === 'max'
+          ? "I couldn't finish that reply just now. Give it another shot in a moment — I'll be right here."
+          : stylist.id === 'ace'
+            ? "I couldn't finish that reply just now. Please try again in a moment."
+            : "I couldn't finish that reply just now, gorgeous. Give it another try in a moment — I'll be right here.";
       }
 
       const assistantMessage: ChatMessage = {
@@ -2483,7 +2494,7 @@ export default function AIStylistScreen() {
 
       await saveChatHistory(finalMessages);
 
-      if (voiceSettings.autoPlayResponses) {
+      if (voiceSettings.autoPlayResponses && !isAiBudgetError(error)) {
         playTTSAudio(responseContent);
       }
 
@@ -2700,10 +2711,35 @@ export default function AIStylistScreen() {
   };
   
   const canSendMessage = () => {
+    if (monthlyAllowanceExhausted) return false;
     if (limits.aiChatMessagesPerDay === Infinity) return true;
     if (messagesToday < limits.aiChatMessagesPerDay) return true;
     return bonusAIRequests > 0;
   };
+
+  const presentMonthlyAllowancePaywall = useCallback((error?: unknown) => {
+    setMonthlyAllowanceExhausted(true);
+    const planTier = planTierFromBudgetError(error) || tier;
+    const content = stylistMonthlyAllowanceMessage({
+      stylistName: stylist.name,
+      stylistId: stylist.id,
+      tier: planTier,
+    });
+    Alert.alert(
+      t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month",
+      (t('aiStylist.monthlyAllowanceAlert')
+        || 'Your monthly AI allowance is spent — Settings shows 100% used. Upgrade so {name} can keep helping you.')
+        .replace('{name}', stylist.name),
+      [
+        { text: t('common.cancel') || 'Not now', style: 'cancel' },
+        {
+          text: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
+          onPress: navigateToSubscriptionScreen,
+        },
+      ],
+    );
+    return content;
+  }, [tier, stylist.name, stylist.id, t, navigateToSubscriptionScreen]);
   
   const getRemainingMessages = () => {
     if (limits.aiChatMessagesPerDay === Infinity) return Infinity;
@@ -2902,51 +2938,52 @@ export default function AIStylistScreen() {
     } catch (error: any) {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       console.log('Error message:', error?.message);
-      
-      // The /api/chat/resilient endpoint should never fail with 401 - it auto-falls back to guest mode
-      // If we get here, it's a network error or server issue, not an auth problem
+
       const isMale = stylist.id === 'max';
       const isAce = stylist.id === 'ace';
-      
-      // Any failure here — timeout, server error, cellular blip — previously read as
-      // "trouble connecting", which sounded like home Wi‑Fi was required. Clarify.
       const rawMessage = String(error?.message || '');
       const isNetwork =
         /network|internet|offline|failed to fetch|timed?\s*out|took too long/i.test(rawMessage);
       const isServer =
         /5\d{2}|server error|service unavailable|empty response/i.test(rawMessage);
 
-      const errorContent = isNetwork
-        ? (isMale
+      let errorContent: string;
+      if (isAiBudgetError(error)) {
+        // Monthly meter — conversion opportunity, never a fake "try again later".
+        errorContent = presentMonthlyAllowancePaywall(error);
+      } else if (isNetwork) {
+        errorContent = isMale
           ? "I couldn't reach the styling servers just now — mobile data is fine, but the link dropped. Try again in a moment."
           : isAce
             ? "I couldn't reach the styling servers just now. Mobile data works — please try again in a moment."
-            : "I couldn't reach the styling servers just now, gorgeous — mobile data is fine, the link just dropped. Try again in a moment.")
-        : isServer
-          ? (isMale
-            ? "My styling brain hiccupped on the server side. Give it another shot in a moment."
-            : isAce
-              ? "There was a brief server issue on my end. Please try again in a moment."
-              : "My styling brain hiccupped on the server side, darling. Give it another try in just a moment.")
-          : (isMale
-            ? "Hey, I hit a snag answering that. Give it another shot in a moment — I'll be right here."
-            : isAce
-              ? "I hit a snag answering that. Please try again in a moment — I'll be here."
-              : "Oh darling, I hit a snag answering that. Give it another try in just a moment, gorgeous — I'll be right here waiting!");
-      
+            : "I couldn't reach the styling servers just now, gorgeous — mobile data is fine, the link just dropped. Try again in a moment.";
+      } else if (isServer) {
+        errorContent = isMale
+          ? "My styling brain hiccupped on the server side. Give it another shot in a moment."
+          : isAce
+            ? "There was a brief server issue on my end. Please try again in a moment."
+            : "My styling brain hiccupped on the server side, darling. Give it another try in just a moment.";
+      } else {
+        errorContent = isMale
+          ? "Hey, I hit a snag answering that. Give it another shot in a moment — I'll be right here."
+          : isAce
+            ? "I hit a snag answering that. Please try again in a moment — I'll be here."
+            : "Oh darling, I hit a snag answering that. Give it another try in just a moment, gorgeous — I'll be right here waiting!";
+      }
+
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
         role: 'assistant',
         content: errorContent,
         timestamp: new Date().toISOString(),
       };
-      
+
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
       setIsTyping(false);
-      
+
       await saveChatHistory(finalMessages);
-      
+
       setTimeout(() => {
         scrollChatToEnd(true);
       }, 100);
@@ -3911,11 +3948,25 @@ export default function AIStylistScreen() {
   const remainingMessages = getRemainingMessages();
   const limitReached = useMemo(
     () => limitsLoaded && !canSendMessage(),
-    [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay, bonusAIRequests],
+    [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay, bonusAIRequests, monthlyAllowanceExhausted],
   );
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
+    if (monthlyAllowanceExhausted && chatMode !== 'voice') {
+      return {
+        showWarning: true,
+        showTeaser: true,
+        teaserTitle: t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month",
+        teaserMsg: (t('aiStylist.monthlyAllowanceTeaser')
+          || "You've used 100% of your monthly AI allowance. Upgrade so {name} can keep styling with you.")
+          .replace('{name}', stylist.name),
+        teaserIcon: 'heart' as const,
+        teaserCta: 'upgrade' as const,
+        teaserButtonLabel: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
+      };
+    }
+
     // Voice mode: show spoken-reply usage (more relevant than text-chat daily limit)
     if (chatMode === 'voice') {
       // Balance fetch failed — never treat unknown remaining as exhausted (0 + top-up)
@@ -4027,6 +4078,7 @@ export default function AIStylistScreen() {
     tier,
     stylist.name,
     t,
+    monthlyAllowanceExhausted,
     voiceCreditsBalance?.usedThisMonth,
     voiceCreditsBalance?.monthlyAllowance,
     voiceRemainingCredits,
@@ -4397,9 +4449,23 @@ export default function AIStylistScreen() {
         ) : null}
         {limitReached ? (
           <LimitHitUpgradePrompt
-            title={t('common.dailyMessageLimitReached') || "Daily message limit reached"}
-            message="Upgrade to Personal Stylist for unlimited AI styling conversations."
-            ctaLabel="Upgrade"
+            title={
+              monthlyAllowanceExhausted
+                ? (t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month")
+                : (t('common.dailyMessageLimitReached') || 'Daily message limit reached')
+            }
+            message={
+              monthlyAllowanceExhausted
+                ? ((t('aiStylist.monthlyAllowanceTeaser')
+                  || "You've used 100% of your monthly AI allowance. Upgrade so {name} can keep styling with you.")
+                  .replace('{name}', stylist.name))
+                : 'Upgrade to Personal Stylist for unlimited AI styling conversations.'
+            }
+            ctaLabel={
+              monthlyAllowanceExhausted
+                ? (t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans')
+                : 'Upgrade'
+            }
             onUpgrade={navigateToSubscriptionScreen}
           />
         ) : null}
