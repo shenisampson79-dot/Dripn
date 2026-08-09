@@ -230,6 +230,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const cameraReadyRef = useRef(false);
 
   const occasionType = route.params?.occasionType || 'casual_day';
   const yoloStatus = getOnDeviceYoloStatus();
@@ -716,7 +717,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
-    if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
+    if (!cameraRef.current || !cameraReadyRef.current || inFlightRef.current || !mountedRef.current) return;
     inFlightRef.current = true;
     setIsBusy(true);
     try {
@@ -914,38 +915,58 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!isLive) return undefined;
-    processFrame();
-    const id = setInterval(() => {
-      processFrame();
-    }, SAMPLE_INTERVAL_MS);
-    return () => clearInterval(id);
+    let cancelled = false;
+    let id: ReturnType<typeof setInterval> | null = null;
+    // Wait for CameraView onCameraReady — immediate takePictureAsync can native-crash.
+    const start = () => {
+      if (cancelled || !mountedRef.current) return;
+      if (!cameraReadyRef.current) {
+        setTimeout(start, 200);
+        return;
+      }
+      void processFrame();
+      id = setInterval(() => {
+        void processFrame();
+      }, SAMPLE_INTERVAL_MS);
+    };
+    const boot = setTimeout(start, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(boot);
+      if (id) clearInterval(id);
+    };
   }, [isLive, processFrame]);
 
   const toggleLive = async () => {
-    if (!permission?.granted) {
-      const next = await requestPermission();
-      if (!next.granted) {
-        Alert.alert(
-          t('wardrobe.permissionRequired') || 'Permission Required',
-          t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || 'Enable camera in Settings.',
-          [
-            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-            { text: t('common.openSettings') || 'Settings', onPress: () => Linking.openSettings() },
-          ],
-        );
-        return;
+    try {
+      if (!permission?.granted) {
+        const next = await requestPermission();
+        if (!next.granted) {
+          Alert.alert(
+            t('wardrobe.permissionRequired') || 'Permission Required',
+            t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || 'Enable camera in Settings.',
+            [
+              { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+              { text: t('common.openSettings') || 'Settings', onPress: () => Linking.openSettings() },
+            ],
+          );
+          return;
+        }
       }
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsLive((v) => {
-      const next = !v;
-      if (!next) {
-        // Pausing — stash a warm truth so a quick restart does not cold-boot.
-        warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
-      } else {
-        const warm = warmTruthRef.current;
-        const now = Date.now();
-        if (canWarmStartTruth(warm, now) && warm) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {
+        /* optional */
+      }
+      setIsLive((v) => {
+        const next = !v;
+        if (!next) {
+          // Pausing — stash a warm truth so a quick restart does not cold-boot.
+          warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
+        } else {
+          const warm = warmTruthRef.current;
+          const now = Date.now();
+          if (canWarmStartTruth(warm, now) && warm) {
           // Warm start: re-seed belief from the last resolved outfit instead of
           // wiping to empty and re-learning shorts from a truncated box.
           detectionMemoryRef.current = createLiveBeliefMemory();
@@ -1079,10 +1100,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setStatusNote(next ? 'Live — sampling…' : 'Paused');
       return next;
     });
+    } catch (err) {
+      console.warn('[LiveStylist] toggleLive failed:', err);
+      setIsLive(false);
+      setStatusNote('Could not start live — try again');
+    }
   };
 
   const openStillScan = useCallback(async () => {
-    if (!cameraRef.current || inFlightRef.current || !mountedRef.current) return;
+    if (!cameraRef.current || !cameraReadyRef.current || inFlightRef.current || !mountedRef.current) return;
     setIsLive(false);
     inFlightRef.current = true;
     setIsBusy(true);
@@ -1232,7 +1258,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           setLayout({ width, height });
         }}
       >
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mode="picture" />
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing="back"
+          mode="picture"
+          onCameraReady={() => {
+            cameraReadyRef.current = true;
+          }}
+        />
         <LiveArOverlay
           width={layout.width}
           height={layout.height}

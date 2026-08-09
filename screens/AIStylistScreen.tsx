@@ -172,6 +172,8 @@ const WARDROBE_CHAT_CANVAS_WIDTH =
 const WARDROBE_CHAT_BUBBLE_MAX_WIDTH =
   SCREEN_WIDTH - CHAT_ROW_PADDING * 2 - CHAT_AVATAR_SIZE - CHAT_AVATAR_GAP - CHAT_EDGE_SAFE;
 const INPUT_CONTAINER_HEIGHT = 80;
+/** Allowance / daily-limit banner sits above the input — reserve space so the last bubble isn't covered. */
+const LIMIT_HIT_BANNER_HEIGHT = 108;
 const TAB_BAR_HEIGHT = 56;
 
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
@@ -1957,16 +1959,8 @@ export default function AIStylistScreen() {
     }, [scrollChatToEnd, tier]),
   );
 
-  // Tab bar hides while keyboard is open — reserve keyboard height instead so
-  // the last messages stay above the sticky input (same idea as WhatsApp).
-  const listBottomInset = useMemo(
-    () =>
-      INPUT_CONTAINER_HEIGHT
-      + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
-      + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarHeight)
-      + Spacing.md,
-    [showQuickPrompts, isTyping, messages.length, tabBarHeight, isKeyboardVisible, keyboardHeightPx],
-  );
+  // listBottomInset is computed after limitReached (see below) so the allowance
+  // banner can lift the last message above the sticky input.
   
   const pulseScale = useSharedValue(1);
   const waveformBars = [
@@ -3409,17 +3403,11 @@ export default function AIStylistScreen() {
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Alert.alert(
-        t('bargains.copiedToClipboard') || 'Copied to Clipboard',
-        t('aiStylist.messageCopied') || 'Message copied — you can paste it anywhere.',
-      );
+      // No Alert — WhatsApp-style: silent copy for a11y / explicit Copy action.
     } catch {
-      Alert.alert(
-        t('common.error') || 'Error',
-        t('aiStylist.copyFailed') || "Couldn't copy that message.",
-      );
+      // Selection copy is primary; fail quietly for a11y fallback.
     }
-  }, [t]);
+  }, []);
 
   // Helper function to parse markdown and render bold text
   const renderMarkdownText = (text: string) => {
@@ -3834,11 +3822,7 @@ export default function AIStylistScreen() {
           </LinearGradient>
         ) : null}
         
-        <Pressable
-          onLongPress={() => {
-            void copyChatMessage(item.content);
-          }}
-          delayLongPress={350}
+        <View
           accessibilityActions={[{ name: 'copy', label: 'Copy' }]}
           onAccessibilityAction={(event) => {
             if (event.nativeEvent.actionName === 'copy') {
@@ -3933,7 +3917,7 @@ export default function AIStylistScreen() {
             </View>
           ) : null}
 
-        </Pressable>
+        </View>
         
         {isUser ? (
           <LinearGradient
@@ -4066,6 +4050,33 @@ export default function AIStylistScreen() {
     () => limitsLoaded && !canSendMessage(),
     [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay, bonusAIRequests, monthlyAllowanceExhausted],
   );
+
+  // Tab bar hides while keyboard is open — reserve keyboard height instead so
+  // the last messages stay above the sticky input (same idea as WhatsApp).
+  const listBottomInset = useMemo(
+    () =>
+      INPUT_CONTAINER_HEIGHT
+      + (limitReached ? LIMIT_HIT_BANNER_HEIGHT : 0)
+      + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
+      + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarHeight)
+      + Spacing.md,
+    [
+      limitReached,
+      showQuickPrompts,
+      isTyping,
+      messages.length,
+      tabBarHeight,
+      isKeyboardVisible,
+      keyboardHeightPx,
+    ],
+  );
+
+  // When the limit banner appears, nudge the list so the last reply clears it.
+  useEffect(() => {
+    if (!limitReached) return;
+    const t = setTimeout(() => scrollChatToEnd(true, false), 80);
+    return () => clearTimeout(t);
+  }, [limitReached, scrollChatToEnd]);
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
