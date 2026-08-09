@@ -81,13 +81,33 @@ export function LiveBeliefDebugOverlay({
   const shoeScore = snapshot.footwear?.score;
   const shoeCandidates = snapshot.footwear?.candidates || [];
 
+  // Collapsed = compact chip above the footer only. Never a full-width thin bar
+  // that can migrate over the score / summary (QA 9 Aug).
+  if (collapsed) {
+    return (
+      <View style={styles.collapsedRoot} pointerEvents="box-none">
+        <Pressable
+          onPress={onToggleCollapse}
+          hitSlop={8}
+          style={styles.collapsedChip}
+          accessibilityRole="button"
+          accessibilityLabel="Expand belief debug"
+        >
+          <ThemedText type="caption" style={styles.headerTitle}>
+            ▸ BELIEF DEBUG · {snapshot.source}
+          </ThemedText>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root} pointerEvents="box-none">
       <View style={styles.panel}>
         <View style={styles.header}>
           <Pressable onPress={onToggleCollapse} hitSlop={8} style={styles.headerBtn}>
             <ThemedText type="caption" style={styles.headerTitle}>
-              {collapsed ? '▸ BELIEF DEBUG' : '▾ BELIEF DEBUG'} · {snapshot.source}
+              ▾ BELIEF DEBUG · {snapshot.source}
             </ThemedText>
           </Pressable>
           {onClose ? (
@@ -99,12 +119,11 @@ export function LiveBeliefDebugOverlay({
           ) : null}
         </View>
 
-        {collapsed ? null : (
-          <ScrollView
-            style={styles.scroll}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-          >
+        <ScrollView
+          style={styles.scroll}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+        >
             <ThemedText type="caption" style={[styles.section, styles.sectionGap]}>
               FINAL BELIEF
             </ThemedText>
@@ -290,7 +309,6 @@ export function LiveBeliefDebugOverlay({
               </>
             ) : null}
           </ScrollView>
-        )}
       </View>
     </View>
   );
@@ -303,6 +321,23 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     padding: Spacing.sm,
     paddingBottom: 118,
+  },
+  collapsedRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: Spacing.sm,
+    paddingBottom: 118,
+  },
+  collapsedChip: {
+    maxWidth: '92%',
+    backgroundColor: 'rgba(8,10,14,0.88)',
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   panel: {
     maxHeight: '52%',

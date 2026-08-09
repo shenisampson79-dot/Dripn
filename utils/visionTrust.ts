@@ -96,9 +96,16 @@ export function garmentSpecificityRank(
 ): number {
   const blob = `${args.category || ''} ${args.subcategory || ''} ${args.name || ''}`.toLowerCase();
   if (!blob.trim()) return 0;
-  // Bottoms
+  // Bottoms — shorts specificity must differ (chino must not share rank with athletic).
+  if (/tailored|chino|bermuda|smart|pleat/.test(blob) && /\bshorts?\b/.test(blob)) return 42;
+  if (/linen/.test(blob) && /\bshorts?\b/.test(blob)) return 38;
+  if (/casual_shorts/.test(blob)) return 36;
+  if (/athletic|gym|sweat|jersey|sport|running|basketball|training|terry|drawstring/.test(blob)
+    && /\bshorts?\b/.test(blob)) {
+    return 22;
+  }
   if (/sweatpant|jogger|track\s*pant/.test(blob)) return 45;
-  if (/chino|jean|slacks/.test(blob)) return 35;
+  if (/chino|jean|slacks/.test(blob) && !/\bshorts?\b/.test(blob)) return 35;
   if (/trouser|\bpants?\b/.test(blob) && !/\bshorts?\b/.test(blob)) return 25;
   if (/\bshorts?\b/.test(blob)) return 30;
   if (/skirt/.test(blob)) return 30;
@@ -144,6 +151,11 @@ export function coreGarmentToken(
   if (/sweatpant/.test(blob)) return 'sweatpants';
   if (/jogger|track\s*pant/.test(blob)) return 'joggers';
   if (/chino/.test(blob) && /\bshorts?\b/.test(blob)) return 'chino_shorts';
+  if (/tailored|bermuda|smart|pleat/.test(blob) && /\bshorts?\b/.test(blob)) return 'tailored_shorts';
+  if (/athletic|gym|sweat|jersey|sport|running|basketball|training/.test(blob)
+    && /\bshorts?\b/.test(blob)) {
+    return 'athletic_shorts';
+  }
   if (/chino/.test(blob)) return 'chinos';
   if (/jean/.test(blob)) return 'jeans';
   if (/trouser|slacks|\bpants?\b/.test(blob)) return 'trousers';
@@ -242,9 +254,18 @@ export function resolveFusedIdentity(
     return pickPrev('generic label never replaces a specific one');
   }
 
-  // Type-token flip (boat→sneaker, trousers→sweatpants already handled by rank):
-  // Vision peer at ≥0.75 wins even against a 0.99 YOLO lock.
+  // Type-token flip: Vision peer at ≥0.75 wins — except shorts-family
+  // specificity downgrades (chino/tailored → athletic) need ≥0.92.
   if (prevToken !== nextToken && nextName && nextConf >= 0.75) {
+    const shortsFamily = (t: string) => /short/.test(t);
+    if (
+      shortsFamily(prevToken)
+      && shortsFamily(nextToken)
+      && prevRank > nextRank + 2
+      && nextConf < 0.92
+    ) {
+      return pickPrev('specificity holds against weak peer');
+    }
     return pickNext('vision peer override');
   }
 

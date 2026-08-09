@@ -32,6 +32,11 @@ import {
 } from '@/utils/liveFootwearGate';
 
 import { isCloudVisionCorrection, isMultiColorVisionName, isSpecificVisionName, preferVisionIdentityName, resistsShortsGeometryDemotion, resolveFusedIdentity, semanticBottomSubcategory, isVisionAccessoryDet, isVisionShortsUnlock } from '@/utils/visionTrust';
+import {
+  isShortsSubtypeFamily,
+  stickShortsSubtype,
+} from '@/utils/stickyShortsSubtype';
+import { resolveShortsWithContext } from '@/utils/liveLayeringIntelligence';
 
 export type { BeliefDecision, BeliefDecisionType } from '@/utils/liveBeliefDecisions';
 export { isSpecificVisionName } from '@/utils/visionTrust';
@@ -1406,15 +1411,30 @@ export function updateBelief(
         time: now,
       });
     }
-    const nextSub = fused.adopted === 'next'
+    let nextSub = fused.adopted === 'next'
       ? (semanticBottomSubcategory(fused.name, fused.subcategory)
         || fused.subcategory
         || c.subcategory
         || p.subcategory)
       : p.subcategory;
+    // Sticky shorts: chino/tailored must not flip to athletic on soft Vision.
+    if (
+      p.kind === 'shorts'
+      || isShortsSubtypeFamily(p.subcategory)
+      || isShortsSubtypeFamily(nextSub)
+    ) {
+      const stuck = stickShortsSubtype({
+        prev: p.subcategory,
+        next: nextSub,
+        nextConfidence: c.confidence,
+        prevStability: p.stability,
+      });
+      if (stuck) nextSub = stuck;
+    }
     const nextStability = Math.min(1, p.stability + (fused.adopted === 'next' ? 0.04 : 0.12));
     const earnAuthority = isBottomLengthKind(p.kind)
       && (Boolean(p.lengthAuthority) || nextStability >= LENGTH_AUTHORITY_STABILITY);
+    const subChanged = String(nextSub || '') !== String(p.subcategory || '');
     return advanceLengthUiPhase({
       ...p,
       confidence: Math.min(1, p.confidence + 0.06),
@@ -1429,11 +1449,26 @@ export function updateBelief(
           : (isSpecificVisionName(c.name) ? c.name : (p.name || c.name || null))),
       subcategory: String(nextSub || p.subcategory),
       lastSeenAt: now,
-      ...(fused.adopted === 'next' ? { lastChangedAt: now } : {}),
+      ...(fused.adopted === 'next' || subChanged ? { lastChangedAt: now } : {}),
     }, now);
   }
 
   return resolveConflict(p, c, now, log);
+}
+
+/**
+ * Single detection contract: only paint confirmed belief slots.
+ * candidate (warm) → hold off; confirmed → bbox + label; dropped → absent.
+ */
+export const BELIEF_PAINT_STABILITY = 0.55;
+
+export function isBeliefConfirmedForPaint(belief: GarmentBelief | null | undefined): boolean {
+  if (!belief) return false;
+  if (hasBottomLengthAuthority(belief)) return true;
+  if (belief.stability >= BELIEF_PAINT_STABILITY) return true;
+  // First solid lock — avoid empty HUD while still settling.
+  if (belief.confidence >= 0.8 && belief.stability >= 0.4) return true;
+  return false;
 }
 
 export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
@@ -1961,12 +1996,15 @@ export function applyOutfitBelief(
     .slice(0, 3)
     .map((d) => {
       const obs = observationFromDetection(d, now, decisions);
+      const conf = Number(d.confidence) || 0;
       return {
         ...obs,
         kind: 'other' as const,
         category: d.category || 'accessories',
         subcategory: d.subcategory || (/tie/i.test(`${d.name}`) ? 'tie' : 'accessory'),
         name: preferVisionIdentityName(d.name, d.confidence) || d.name || 'Accessory',
+        // Vision accessory inject is already a confirmed read — paint with core slots.
+        stability: conf >= 0.75 ? Math.max(obs.stability, BELIEF_PAINT_STABILITY) : obs.stability,
       };
     });
   if (accessories.length) {
@@ -1981,6 +2019,40 @@ export function applyOutfitBelief(
     }
   }
 
+  // Context harmonize + sticky shorts after top/footwear are known (single SSOT write).
+  if (
+    bottomFinal
+    && (bottomFinal.kind === 'shorts' || isShortsSubtypeFamily(bottomFinal.subcategory))
+  ) {
+    const contextual = resolveShortsWithContext(bottomFinal.subcategory, {
+      topName: top?.name || layer?.name,
+      topSubtype: top?.subcategory || layer?.subcategory,
+      footwearName: footwear?.name,
+      footwearSubtype: footwear?.subcategory,
+    });
+    const stuck = stickShortsSubtype({
+      prev: bottomFinal.subcategory,
+      next: contextual,
+      nextConfidence: bottomFinal.confidence,
+      prevStability: bottomFinal.stability,
+    }) || contextual;
+    if (stuck && stuck !== bottomFinal.subcategory) {
+      bottomFinal = {
+        ...bottomFinal,
+        subcategory: stuck,
+        lastChangedAt: now,
+      };
+      repairs.push(`sticky_shorts→${stuck}`);
+      appendDecision(decisions, {
+        type: 'update',
+        message: `Shorts held as ${stuck}`,
+        reason: 'sticky classification + outfit context',
+        slot: 'bottom',
+        time: now,
+      });
+    }
+  }
+
   const next: OutfitBeliefState = {
     top,
     layer,
@@ -1989,12 +2061,19 @@ export function applyOutfitBelief(
     accessories,
     torsoState,
   };
+  // Hard rule: rendered detections === confirmed belief slots (no raw Vision paint).
   const out: OnDeviceDetection[] = [];
-  if (top) out.push(beliefToDetection(top));
-  if (layer) out.push(beliefToDetection(layer));
-  if (bottomFinal) out.push(beliefToDetection(bottomFinal));
-  if (footwear) out.push(beliefToDetection(footwear));
-  for (const acc of accessories) out.push(beliefToDetection(acc));
+  if (top && isBeliefConfirmedForPaint(top)) out.push(beliefToDetection(top));
+  if (layer && isBeliefConfirmedForPaint(layer)) out.push(beliefToDetection(layer));
+  if (bottomFinal && isBeliefConfirmedForPaint(bottomFinal)) {
+    out.push(beliefToDetection(bottomFinal));
+  }
+  if (footwear && isBeliefConfirmedForPaint(footwear)) {
+    out.push(beliefToDetection(footwear));
+  }
+  for (const acc of accessories) {
+    if (isBeliefConfirmedForPaint(acc)) out.push(beliefToDetection(acc));
+  }
 
   return { state: next, detections: out, repairs, decisions };
 }

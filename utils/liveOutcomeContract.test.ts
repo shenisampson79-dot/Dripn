@@ -35,14 +35,15 @@ assert.throws(() => assertOutcomeConsistency(88, 'weak'));
 {
   const out = enforceLiveOutcomeContract({
     headline: 'Mixed directions',
-    summary: 'Black loafers sit awkwardly with white cotton shorts.',
-    bullets: ['Keep pieces in one style lane for a cleaner score.'],
+    summary: 'The direction of black hoodie conflicts with white chino shorts.',
+    bullets: ['Mixes athleisure with smart casual — different style worlds'],
     hasConflict: true,
     summaryArchetype: 'tension',
     styleLane: 'casual',
-  }, 89);
-  assert.doesNotMatch(out?.headline || '', /mixed/i);
-  assert.doesNotMatch(out?.summary || '', /awkward|conflict|different directions/i);
+  }, 98);
+  assert.doesNotMatch(out?.summary || '', /direction of black hoodie with white/i);
+  assert.doesNotMatch(out?.summary || '', /conflicts with/i);
+  assert.match(out?.summary || '', /work together|consistent direction|settling/i);
 }
 
 {

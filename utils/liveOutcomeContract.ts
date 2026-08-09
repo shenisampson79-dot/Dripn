@@ -108,11 +108,14 @@ function contradictsCohesion(summary: string, bullet: string): boolean {
 }
 
 function stripTensionPhrases(text: string): string {
-  return String(text || '')
-    .replace(/\s*[-–—,]?\s*(clash(?:es|ing)?|conflict(?:s|ing)?|awkward(?:ly)?|mismatch(?:es|ed)?)\b/gi, '')
-    .replace(/\bpull(?:s)? in different directions\b/gi, 'sit together cleanly')
-    .replace(/\bdo not fully come together yet\b/gi, 'hold a consistent direction')
-    .replace(/\bfeel slightly out of step\b/gi, 'sit in one lane')
+  // Never half-edit tension sentences ("conflicts with" → "with") — that left
+  // "The direction of black hoodie with white chino shorts." as a dead stump.
+  const raw = String(text || '').trim();
+  if (!raw) return raw;
+  if (TENSION_COPY_RE.test(raw) || /\bconflicts?\s+with\b/i.test(raw)) {
+    return '';
+  }
+  return raw
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+([.,])/g, '$1')
     .trim();

@@ -21,6 +21,7 @@ import {
   LIVE_FORCE_PUBLISH_MS,
   LIVE_IDENTITY_CHANGE_FRAMES,
   LIVE_MEDIUM_MAX_STREAK,
+  LIVE_MEDIUM_MAX_MS,
   LIVE_PARTIAL_SCORE_CAP,
   LIVE_SCORE_MAX_HOLD_MS,
 } from '@/utils/liveScoreStability';
@@ -131,6 +132,7 @@ assert.equal(
 }
 
 // Changing clothes must not be corroborated by the previous outfit's sample.
+// Signature change = different garments — must not freeze the old number.
 {
   let gate = createLiveScoreGate();
   gate = gateLiveScore(gate, 80, {
@@ -140,15 +142,41 @@ assert.equal(
     identityKey: 'shorts|sneakers',
   }).gate;
   const changed = liveScoreSignature([
-    { category: 'dresses', subcategory: 'maxi_dress', color: 'black' },
+    { category: 'bottoms', subcategory: 'athletic_shorts', color: 'white' },
+    { category: 'tops', subcategory: 'hoodie', color: 'black' },
   ]);
-  const out = gateLiveScore(gate, 40, {
+  const out = gateLiveScore(gate, 55, {
     signature: changed,
     now: 2500,
     settled: true,
-    identityKey: 'shorts|sneakers',
+    identityKey: 'athletic_shorts|barefoot',
   });
-  assert.equal(out.score, 80, 'different outfit keeps previous score pending');
+  assert.equal(out.score, 55, 'signature + core drift adopts the new score');
+}
+
+// Unsettled athletic→chino flip: clear the frozen lie (dash) until re-settle.
+{
+  let gate = createLiveScoreGate();
+  gate = gateLiveScore(gate, 98, {
+    signature: liveScoreSignature([
+      { category: 'bottoms', subcategory: 'athletic_shorts', color: 'white' },
+      { category: 'tops', subcategory: 'hoodie', color: 'black' },
+    ]),
+    now: 1000,
+    settled: true,
+    identityKey: 'athletic_shorts|barefoot',
+  }).gate;
+  const flipped = gateLiveScore(gate, 72, {
+    signature: liveScoreSignature([
+      { category: 'bottoms', subcategory: 'chino_shorts', color: 'white' },
+      { category: 'tops', subcategory: 'hoodie', color: 'black' },
+    ]),
+    now: 2000,
+    settled: false,
+    identityKey: 'chino_shorts|barefoot',
+  });
+  assert.equal(flipped.score, null, 'core drift while unsettled clears frozen score');
+  assert.equal(flipped.gate.shown, null);
 }
 
 // Identity version change: wrong early score must yield to the corrected lock.
@@ -450,13 +478,21 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
 // Medium must converge — perpetual ~ is a silent trust killer.
 {
   let state = createCertaintySmoothState();
-  let out = smoothLiveCertainty(state, 'medium');
+  let out = smoothLiveCertainty(state, 'medium', 1000);
   for (let i = 1; i < LIVE_MEDIUM_MAX_STREAK - 1; i += 1) {
-    out = smoothLiveCertainty(out.state, 'medium');
+    out = smoothLiveCertainty(out.state, 'medium', 1000 + i * 100);
     assert.equal(out.certainty, 'medium', `frame ${i + 1} still soft`);
   }
-  out = smoothLiveCertainty(out.state, 'medium');
+  out = smoothLiveCertainty(out.state, 'medium', 1000 + LIVE_MEDIUM_MAX_STREAK * 100);
   assert.equal(out.certainty, 'high', 'long medium streak commits displayed score');
+}
+
+// Wall-clock fallback: slow cloud FPS still commits within LIVE_MEDIUM_MAX_MS.
+{
+  let state = createCertaintySmoothState();
+  let out = smoothLiveCertainty(state, 'medium', 1000);
+  out = smoothLiveCertainty(out.state, 'medium', 1000 + LIVE_MEDIUM_MAX_MS);
+  assert.equal(out.certainty, 'high', '12s medium wall-clock commits even at 2 frames');
 }
 
 // Unscored HUD must not paint judgment copy.

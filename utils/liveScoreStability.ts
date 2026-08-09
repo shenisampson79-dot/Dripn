@@ -156,7 +156,7 @@ export function liveIdentityKey(sample: LiveIdentitySample | null | undefined): 
   return `${core}|${pieces}`;
 }
 
-/** Core identity for first-score settle — bottom + shoe only (tolerate upper flicker). */
+/** Core identity for first-score settle — bottom subtype + shoe (tolerate upper flicker). */
 export function liveCoreIdentityKey(sample: LiveIdentitySample | null | undefined): string {
   if (!sample) return '';
   const bottom = String(sample.bottomKind || '').toLowerCase();
@@ -280,10 +280,12 @@ export function liveJudgmentCertainty(args: {
 export const LIVE_CERTAINTY_UPGRADE_STREAK = 2;
 /**
  * Medium must not be a permanent escape hatch. After this many consecutive
- * medium frames with a locked core (~1 fps → ~10s), commit the displayed score
- * so Live still feels decisive while labels wait on top lock.
+ * medium frames with a locked core, commit the displayed score.
+ * Cloud Vision is often ~0.3–1 fps — keep this low so ~10–15s max, not minutes.
  */
-export const LIVE_MEDIUM_MAX_STREAK = 10;
+export const LIVE_MEDIUM_MAX_STREAK = 5;
+/** Wall-clock fallback when frame rate is very low (cloud-only). */
+export const LIVE_MEDIUM_MAX_MS = 12_000;
 
 export type CertaintySmoothState = {
   lastRaw: LiveJudgmentCertainty | null;
@@ -291,10 +293,12 @@ export type CertaintySmoothState = {
   streak: number;
   /** What the HUD is allowed to express. */
   displayed: LiveJudgmentCertainty;
+  /** When the current medium streak began (ms). */
+  mediumSinceMs?: number | null;
 };
 
 export function createCertaintySmoothState(): CertaintySmoothState {
-  return { lastRaw: null, streak: 0, displayed: 'none' };
+  return { lastRaw: null, streak: 0, displayed: 'none', mediumSinceMs: null };
 }
 
 /**
@@ -305,10 +309,11 @@ export function createCertaintySmoothState(): CertaintySmoothState {
 export function smoothLiveCertainty(
   state: CertaintySmoothState,
   current: LiveJudgmentCertainty,
+  nowMs: number = Date.now(),
 ): { state: CertaintySmoothState; certainty: LiveJudgmentCertainty } {
   if (current === 'none') {
     return {
-      state: { lastRaw: 'none', streak: 0, displayed: 'none' },
+      state: { lastRaw: 'none', streak: 0, displayed: 'none', mediumSinceMs: null },
       certainty: 'none',
     };
   }
@@ -317,15 +322,19 @@ export function smoothLiveCertainty(
 
   // Softness arrives immediately — users should see ~N the moment the top drifts.
   if (current === 'medium') {
+    const mediumSinceMs = state.lastRaw === 'medium' && state.mediumSinceMs != null
+      ? state.mediumSinceMs
+      : nowMs;
+    const heldMs = nowMs - mediumSinceMs;
     // Convergence pressure: core has been ready long enough — stop eternal hedging.
-    if (streak >= LIVE_MEDIUM_MAX_STREAK) {
+    if (streak >= LIVE_MEDIUM_MAX_STREAK || heldMs >= LIVE_MEDIUM_MAX_MS) {
       return {
-        state: { lastRaw: 'medium', streak, displayed: 'high' },
+        state: { lastRaw: 'medium', streak, displayed: 'high', mediumSinceMs },
         certainty: 'high',
       };
     }
     return {
-      state: { lastRaw: 'medium', streak, displayed: 'medium' },
+      state: { lastRaw: 'medium', streak, displayed: 'medium', mediumSinceMs },
       certainty: 'medium',
     };
   }
@@ -333,13 +342,13 @@ export function smoothLiveCertainty(
   // current === 'high': hold medium briefly when upgrading from soft display.
   if (state.displayed === 'medium' && streak < LIVE_CERTAINTY_UPGRADE_STREAK) {
     return {
-      state: { lastRaw: 'high', streak, displayed: 'medium' },
+      state: { lastRaw: 'high', streak, displayed: 'medium', mediumSinceMs: null },
       certainty: 'medium',
     };
   }
 
   return {
-    state: { lastRaw: 'high', streak, displayed: 'high' },
+    state: { lastRaw: 'high', streak, displayed: 'high', mediumSinceMs: null },
     certainty: 'high',
   };
 }
@@ -450,7 +459,41 @@ export function gateLiveScore(
     return hold();
   }
 
-  // Identity still thrashing: keep the last good number. Do not score a new frame.
+  // --- After a score is showing ---
+  // Core / signature drift MUST invalidate a frozen score. Freezing ~98 while
+  // bottoms flip athletic↔chino (settled=false) is worse than a brief dash.
+  const coreOf = (key: string | null | undefined): string => {
+    const raw = String(key || '');
+    if (!raw) return '';
+    // full key is bottom|shoe|pieceSet — core is bottom|shoe
+    const parts = raw.split('|');
+    return parts.length >= 2 ? `${parts[0]}|${parts[1]}` : raw;
+  };
+  const scoredCore = coreOf(gate.scoredIdentityKey);
+  const nextCore = coreOf(identityKey);
+  const coreDrift = Boolean(scoredCore && nextCore && scoredCore !== nextCore);
+  const signatureDrift = Boolean(
+    gate.signature
+    && opts.signature
+    && gate.signature !== opts.signature,
+  );
+
+  if (coreDrift || signatureDrift) {
+    if (opts.settled || opts.identityLocked) return adopt();
+    // Clear the lie immediately — resettle on the new identity.
+    return {
+      gate: {
+        shown: null,
+        pending: value,
+        signature: opts.signature,
+        heldSince: opts.now,
+        scoredIdentityKey: null,
+      },
+      score: null,
+    };
+  }
+
+  // Identity still thrashing (same core): keep the last good number.
   if (!opts.settled) {
     return {
       gate: { ...gate, heldSince: null },

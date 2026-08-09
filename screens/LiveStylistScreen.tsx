@@ -94,6 +94,7 @@ import {
   buildOutfitTruth,
   canWarmStartTruth,
   stashWarmTruth,
+  truthMateriallyChanged,
   type LiveOutfitTruth,
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
@@ -508,7 +509,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       layerKind: beliefSlots?.layer?.kind,
     });
     identityBufRef.current = pushLiveIdentitySample(identityBufRef.current, {
-      bottomKind: beliefSlots?.bottom?.kind || null,
+      // Prefer subtype so athletic_shorts ↔ chino_shorts invalidates score.
+      // Kind alone is just "shorts" and hid the QA 9 Aug score freeze.
+      bottomKind: beliefSlots?.bottom?.subcategory
+        || beliefSlots?.bottom?.kind
+        || null,
       shoeSubtype,
       topKind: beliefSlots?.top?.kind || beliefSlots?.layer?.kind || null,
       pieceSet,
@@ -554,12 +559,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     if (identityLocked && coreKey) {
       identityLockedKeyRef.current = coreKey;
     }
+    const nowMs = Date.now();
     const certaintyRaw = liveJudgmentCertainty({
       identityBuf: identityBufRef.current,
       prevLockedKey,
       coreReady: settled,
     });
-    const smoothed = smoothLiveCertainty(certaintySmoothRef.current, certaintyRaw);
+    const smoothed = smoothLiveCertainty(
+      certaintySmoothRef.current,
+      certaintyRaw,
+      nowMs,
+    );
     certaintySmoothRef.current = smoothed.state;
     const certainty = smoothed.certainty;
     // Core = bottom + shoe/barefoot only. Top/layer flicker must not block publish.
@@ -576,12 +586,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           subcategory: it.subcategory,
           color: it.color,
         }))),
-        now: Date.now(),
+        now: nowMs,
         settled,
         identityLocked,
         coreFilled,
-        // Full key (includes piece-set) so ghost top add/remove rescores after publish.
-        identityKey: identityLocked ? fullKey : null,
+        // Always pass key so athletic↔chino / loafers on/off can invalidate.
+        identityKey: fullKey || coreKey || null,
         certainty,
       },
     );
@@ -591,13 +601,27 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
     // Freeze the arbitrated outfit into one truth object. Score is already
     // gated; coaching only injects names — neither recomputes meaning here.
+    const prevTruth = outfitTruthRef.current;
     const truth = buildOutfitTruth({
       belief: detectionMemoryRef.current.belief,
       feedback: next,
-      prev: outfitTruthRef.current,
+      prev: prevTruth,
       confidenceLevel: next.confidenceLevel,
     });
     outfitTruthRef.current = truth;
+
+    // SSOT: material outfit change (e.g. athletic↔chino) invalidates stale judgment.
+    if (truthMateriallyChanged(prevTruth, truth) && !settled && next.score != null) {
+      next.score = null;
+      scoreGateRef.current = {
+        ...scoreGateRef.current,
+        shown: null,
+        pending: null,
+        scoredIdentityKey: null,
+        heldSince: null,
+        signature: truth.signature,
+      };
+    }
 
     // Belief-synced summary when Vision returned items; else keep Vision verdict (UK-polished).
     if (next.coaching && res.items?.length && previousItemsRef.current.length) {
@@ -621,7 +645,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }) || next.coaching;
     }
     // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
-    if (gated.score == null) {
+    if (next.score == null) {
       next.coaching = gateLiveJudgment(next.coaching, null) || next.coaching;
       next.hints = [];
       next.suggestions = [];

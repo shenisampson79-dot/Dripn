@@ -198,16 +198,28 @@ export function deriveOutfitConflict(args: {
   return false;
 }
 
+/** Slot fingerprint — subcategory first so athletic↔chino invalidates consumers. */
+function slotSig(item: LiveTruthItem | null | undefined): string {
+  if (!item) return '';
+  const sub = String(item.subcategory || '').trim().toLowerCase();
+  const name = String(item.name || '').trim().toLowerCase();
+  if (sub && name) return `${sub}:${name}`;
+  return sub || name;
+}
+
 export function truthSignature(truth: Pick<LiveOutfitTruth, 'top' | 'layer' | 'bottom' | 'footwear'>): string {
-  return [
-    truth.top?.name,
-    truth.layer?.name,
-    truth.bottom?.name,
-    truth.footwear?.name,
-  ]
+  return [slotSig(truth.top), slotSig(truth.layer), slotSig(truth.bottom), slotSig(truth.footwear)]
     .filter(Boolean)
-    .join('|')
-    .toLowerCase();
+    .join('|');
+}
+
+/** Material change = subtype or core name drift — invalidate score/summary upstream. */
+export function truthMateriallyChanged(
+  prev: LiveOutfitTruth | null | undefined,
+  next: LiveOutfitTruth | null | undefined,
+): boolean {
+  if (!prev || !next) return Boolean(next);
+  return prev.signature !== next.signature;
 }
 
 /**
