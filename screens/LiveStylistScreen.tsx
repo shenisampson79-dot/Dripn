@@ -41,7 +41,6 @@ import {
   detectGarmentsOnDevice,
   getLastOnDeviceFootZone,
   getOnDeviceYoloStatus,
-  warmUpOnDeviceYolo,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
 import {
@@ -315,7 +314,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const cameraReadyRef = useRef(false);
 
   const occasionType = route.params?.occasionType || 'casual_day';
-  const yoloStatus = getOnDeviceYoloStatus();
   const tier = normalizeSubscriptionTier(user?.subscriptionTier);
 
   const [isLive, setIsLive] = useState(false);
@@ -338,6 +336,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   /** Prefer server tier from the 429 usage snapshot over cached Auth. */
   const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
+  /** Defer CameraView until after navigation transition — mount-time camera init can native-kill. */
+  const [cameraMounted, setCameraMounted] = useState(false);
+  const [yoloStatusNote, setYoloStatusNote] = useState('Checking on-device vision…');
 
   // Staff status resolves after the first render, so the overlay cannot be
   // seeded from initial state — open it once, then leave the toggle to the user.
@@ -454,49 +455,52 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     mountedRef.current = true;
+    void liveStartCrumb('screen.mount');
 
-    // Catch JS fatals that would otherwise hard-exit with no Metro on OTA builds.
-    const ErrorUtils = (global as { ErrorUtils?: {
-      getGlobalHandler?: () => ((e: Error, isFatal?: boolean) => void) | undefined;
-      setGlobalHandler?: (h: (e: Error, isFatal?: boolean) => void) => void;
-    } }).ErrorUtils;
-    const prevHandler = ErrorUtils?.getGlobalHandler?.();
-    ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
-      console.error('[LiveStylist] GLOBAL CRASH', { isFatal, message: error?.message, error });
-      void liveStartCrumb(`GLOBAL_CRASH fatal=${Boolean(isFatal)} ${error?.message || 'unknown'}`);
-      prevHandler?.(error, isFatal);
-    });
+    // Do NOT warm TFLite / monkey-patch ErrorUtils / Alert on mount — those race
+    // navigation + CameraView and can native-kill before Start Live is visible.
+    const camTimer = setTimeout(() => {
+      if (mountedRef.current) setCameraMounted(true);
+    }, 450);
+
+    const statusTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      try {
+        const status = getOnDeviceYoloStatus();
+        setYoloStatusNote(
+          status.available
+            ? 'On-device YOLO ready — cloud Vision only if detection fails'
+            : status.requiresNativeRebuild
+              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
+              : 'On-device YOLO unavailable — using cloud sampling',
+        );
+      } catch {
+        setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
+      }
+    }, 800);
 
     void (async () => {
       const crumb = await readLiveStartCrumb();
-      if (crumb && mountedRef.current) {
-        const step = crumb.includes('|') ? crumb.split('|').slice(1).join('|') : crumb;
-        // Only a completed first frame (or clean pause) means start didn't kill the process.
-        const ok = /^(idle|paused|frame\.ok)$/i.test(step.trim());
-        if (!ok) {
-          setStatusNote(`Last Start step: ${step}`);
-          Alert.alert(
-            'Live start debug',
-            `App exited during Start Live.\n\nLast step: ${step}\n\nShare this with support.`,
-          );
-        }
+      if (!mountedRef.current || !crumb) return;
+      const step = crumb.includes('|') ? crumb.split('|').slice(1).join('|') : crumb;
+      const ok = /^(idle|paused|frame\.ok|screen\.mount)$/i.test(step.trim());
+      if (!ok) {
+        setStatusNote(`Last Start step: ${step}`);
       }
-      // Warm model on idle mount only — never overlap with Start camera init.
+      // Consume once so re-opening Live does not keep fighting the UI.
       try {
-        await warmUpOnDeviceYolo();
-        await sleep(200);
+        await AsyncStorage.removeItem(LIVE_START_CRUMB_KEY);
       } catch {
-        /* cloud fallback */
+        /* ignore */
       }
     })();
 
     return () => {
       mountedRef.current = false;
       startingLiveRef.current = false;
+      clearTimeout(camTimer);
+      clearTimeout(statusTimer);
       stopSamplingLoop();
-      if (prevHandler && ErrorUtils?.setGlobalHandler) {
-        ErrorUtils.setGlobalHandler(prevHandler);
-      }
     };
   }, [stopSamplingLoop]);
 
@@ -1511,15 +1515,20 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           setLayout({ width, height });
         }}
       >
-        <CameraView
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          mode="picture"
-          onCameraReady={() => {
-            cameraReadyRef.current = true;
-          }}
-        />
+        {cameraMounted ? (
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            mode="picture"
+            onCameraReady={() => {
+              cameraReadyRef.current = true;
+              void liveStartCrumb('camera.ready');
+            }}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
+        )}
         <LiveArOverlay
           width={layout.width}
           height={layout.height}
@@ -1591,11 +1600,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
         <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
-          {yoloStatus.available
-            ? 'On-device YOLO ready — cloud Vision only if detection fails'
-            : yoloStatus.requiresNativeRebuild
-              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
-              : 'On-device YOLO unavailable — using cloud sampling'}
+          {yoloStatusNote}
         </ThemedText>
 
         <View style={styles.actions}>
