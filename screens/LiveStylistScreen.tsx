@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  InteractionManager,
   Linking,
   Modal,
   Platform,
@@ -1117,7 +1118,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }, delayMs);
     };
     // Extra settle after setIsLive — first takePicture is the native crash zone.
-    scheduleNext(2500);
+    scheduleNext(4000);
   }, [stopSamplingLoop]);
 
   const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
@@ -1140,18 +1141,30 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const ensureCameraMounted = useCallback(async (): Promise<boolean> => {
     if (!mountedRef.current) return false;
     if (!cameraMounted) {
-      await liveStartCrumb('camera.mount');
+      await liveStartCrumb('camera.mount.begin');
+      // Finish navigation/UI work before touching native camera.
+      await new Promise<void>((resolve) => {
+        InteractionManager.runAfterInteractions(() => resolve());
+      });
+      await sleep(300);
       cameraReadyRef.current = false;
       setCameraMounted(true);
-      await sleep(150);
+      // CameraView needs a real commit before onCameraReady / takePicture.
+      await sleep(600);
+      await liveStartCrumb('camera.mount.committed');
     }
-    const camOk = await waitForCameraReady(5000);
-    if (!camOk || !mountedRef.current) return false;
-    await sleep(800);
+    const camOk = await waitForCameraReady(6000);
+    if (!camOk || !mountedRef.current) {
+      await liveStartCrumb('camera.mount.ready_timeout');
+      return false;
+    }
+    await liveStartCrumb('camera.mount.ready');
+    await sleep(1200);
+    await liveStartCrumb('camera.mount.settled');
     return Boolean(cameraRef.current && cameraReadyRef.current);
   }, [cameraMounted, waitForCameraReady]);
 
-  /** Reset session refs + minimal UI. Call only after camera is ready. */
+  /** Reset session refs + minimal UI. Prefer calling BEFORE CameraView mounts. */
   const resetLiveSessionState = useCallback(() => {
     const warm = warmTruthRef.current;
     const now = Date.now();
@@ -1314,28 +1327,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       }
 
-      // 2) Mount camera ONLY now (screen open stays camera-free)
-      await liveStartCrumb('2. mount camera');
+      // 2) Reset UI/refs while still camera-free (avoid remount churn on CameraView)
+      await liveStartCrumb('2. reset session (pre-camera)');
+      resetLiveSessionState();
+      // Keep on-device YOLO off for first captures — isolate takePicture crashes.
+      yoloEnabledAtRef.current = Date.now() + 15000;
+      firstFrameLoggedRef.current = false;
+
+      // 3) Mount camera only after UI reset settled
+      await liveStartCrumb('3. mount camera');
       const camOk = await ensureCameraMounted();
       if (!camOk || !mountedRef.current) {
         startingLiveRef.current = false;
         unmountCamera();
         setStatusNote('Camera not ready — try again');
-        await liveStartCrumb('2. camera not ready');
+        await liveStartCrumb('3. camera not ready');
         return;
-      }
-
-      try {
-        const status = getOnDeviceYoloStatus();
-        setYoloStatusNote(
-          status.available
-            ? 'On-device YOLO ready — cloud Vision only if detection fails'
-            : status.requiresNativeRebuild
-              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
-              : 'On-device YOLO unavailable — using cloud sampling',
-        );
-      } catch {
-        setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
       }
 
       if (!mountedRef.current) {
@@ -1343,16 +1350,31 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
 
-      // 3) Reset session, flip live, arm sample loop (first capture ~2.5s later)
-      await liveStartCrumb('3. reset + setIsLive');
-      resetLiveSessionState();
-      yoloEnabledAtRef.current = Date.now() + 4000;
-      firstFrameLoggedRef.current = false;
+      // 4) Flip live + arm loop (first capture ~4s later; YOLO much later)
+      await liveStartCrumb('4. setIsLive + arm loop');
+      setYoloStatusNote('Live sampling (cloud path first — on-device YOLO delayed)');
       setStatusNote('Live — sampling…');
       setIsLive(true);
       startSamplingLoop();
-      await liveStartCrumb('4. start armed.ok');
+      await liveStartCrumb('5. start armed.ok');
       startingLiveRef.current = false;
+
+      // Status-only YOLO probe well after camera is stable (never on critical path)
+      setTimeout(() => {
+        if (!mountedRef.current) return;
+        try {
+          const status = getOnDeviceYoloStatus();
+          setYoloStatusNote(
+            status.available
+              ? 'On-device YOLO ready — cloud Vision only if detection fails'
+              : status.requiresNativeRebuild
+                ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
+                : 'On-device YOLO unavailable — using cloud sampling',
+          );
+        } catch {
+          setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
+        }
+      }, 5000);
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
       await liveStartCrumb(`toggleLive.fail ${err instanceof Error ? err.message : 'unknown'}`);
