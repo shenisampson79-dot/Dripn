@@ -1,41 +1,23 @@
 ---
-description: When to migrate Live from takePictureAsync to VisionCamera frame processors
+description: Live camera — VisionCamera preferred when native-linked; Expo fallback otherwise
 globs: screens/LiveStylistScreen.tsx,services/onDeviceGarmentDetector.ts,components/live/**
 alwaysApply: false
 ---
 
-# Live camera: takePicture vs VisionCamera
+# Live camera: VisionCamera vs Expo
 
-## Current architecture (short-term)
+## Current architecture
 
-Live samples via `expo-camera` `CameraView.takePictureAsync` (~1 fps), then YOLO / cloud Vision.
-This is **OTA-safe** but native-fragile: calling capture too early or overlapping captures can kill the process with no JS stack.
+- Prefer **VisionCamera v5** (`photoOutput.capturePhoto`) when `isVisionCameraLinked()` (Nitro `CameraFactory` present).
+- Fall back to Expo `CameraView.takePictureAsync` on older binaries (OTA cannot add VisionCamera).
+- Gate import via `LiveVisionCameraGate` so unlinked builds never evaluate `react-native-vision-camera`.
 
-Required guards (do not remove without a replacement):
-- No capture probe on Start Live
-- No `useEffect([isLive, processFrame])` sample loop restarts
-- Hard capturing lock + skip-on-fail + retries
-- Delay first capture until after UI/camera settle
+## Native rebuild required
 
-## When to recommend VisionCamera (long-term)
-
-Surface this upgrade when **any** of these are true:
-
-1. Start Live / Still Scan still native-crashes after capture guards
-2. Product needs true realtime HUD (&gt; ~2–3 fps) or smoother AR overlays
-3. You're already scheduling an **EAS native build** (new modules, permissions, New Arch, YOLO binary)
-4. User asks to "fix Live camera for good" / "make Live realtime" / "stop takePicture crashes"
-
-## Upgrade criteria checklist (all should be true before committing)
-
-- [ ] Budget for a **new iOS + Android EAS build** (OTA alone cannot add VisionCamera)
-- [ ] `react-native-vision-camera` + frame processors enabled in app config / Babel
-- [ ] Plan: throttle 3–5 fps, `runOnJS` for heavy work, resize before YOLO/API
-- [ ] Remove Live `takePictureAsync` loop after frame path is proven on device
-- [ ] QA: Start Live, Stop/Start, Still scan, background/foreground, permission deny
+VisionCamera needs a new EAS binary. OTA alone is not enough.
 
 ## What NOT to do
 
-- Do not add VisionCamera "just because" during an OTA-only Live bugfix
-- Do not call `takePictureAsync` during Start Live init to "test readiness"
-- Do not treat `onCameraReady` as "safe to capture immediately"
+- Do not probe readiness with Expo `takePictureAsync` on Start Live
+- Do not `require('react-native-vision-camera')` to feature-detect (import creates HybridObjects)
+- Do not restart the sample loop from `useEffect([isLive, processFrame])`

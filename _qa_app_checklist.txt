@@ -1,0 +1,81 @@
+============================================================
+DRIPN APP QA CHECKLIST — progress 0/49
+============================================================
+Mark done in the device-qa-checklist canvas. Skip Live Start capture until VisionCamera TestFlight is ready.
+
+## Shared smoke (every surface)
+[ ] 1. Open → use → leave via back/close/tab → reopen: no stuck screen / blank flash / double header
+[ ] 2. Limit or fail once: never “network / try again later” when Settings shows allowance used
+[ ] 3. Upgrade CTA always dismissible (X/back); returns to origin or Profile root
+[ ] 4. Profile tab never traps you on Subscription
+
+## Stylist chat
+[ ] 5. Send message; reply renders; select a word + long-press copy whole message
+[ ] 6. ~90% soft warn teaser; chat still works
+[ ] 7. 100% hard limit: clear upgrade copy + See plans; input locked; no “snag”
+[ ] 8. After upgrade, last question auto-retries (or still recoverable)
+[ ] 9. Voice fail on limit: no invented styling reply / no TTS of fake answer
+[ ] 10. Tab away mid-thread and return: history intact, scrolled to latest
+[ ] 11. Paid: unlimited / higher allowance still responds; no false lock
+
+## Get outfits now
+[ ] 12. Opaque back works; no hub flash under slide
+[ ] 13. Generate once; pieces/save don’t crash
+[ ] 14. Limit/deny → upgrade path, not generic error
+[ ] 15. Leave and re-enter: no stuck generation spinner
+
+## Choosing what to buy
+[ ] 16. Pick occasion → result; refine with a note
+[ ] 17. Budget/deny → See plans, not “Ruby didn’t get your message”
+[ ] 18. Soft gate after free allowance is clear (not silent fake success)
+[ ] 19. Continue into chat: continuity correct; Continue / drop works
+
+## Quick sanity check
+[ ] 20. Complete one check; score/copy sensible
+[ ] 21. From Live budget → Sanity: no black slide / trapped Live
+[ ] 22. Exit to hub/tab cleanly
+
+## Outfit for an event / Today’s outfit
+[ ] 23. Generate; wardrobe pieces show when claimed
+[ ] 24. Save outfit (if shown) lands correctly
+[ ] 25. Limit → paywall, not network snag
+[ ] 26. Back + tab out: no orphan loading state
+
+## Wardrobe
+[ ] 27. Open item; edit/favorite; back
+[ ] 28. Add one item; save copy tone OK
+[ ] 29. Rembg fail/limit: upgrade or honest unavailable (not fake Replicate later)
+[ ] 30. Live/quick-add entries return without stack leak
+
+## Profile
+[ ] 31. Tier label matches reality (Free / Personal / Pro) — no phantom perks
+[ ] 32. Subscription from Profile → back to Profile
+[ ] 33. Chat Upgrade → Subscription → close: not stuck; Profile tab → Profile root
+[ ] 34. AI allowance meter matches chat lock state
+
+## Chat with Julia
+[ ] 35. “What’s on my plan?” — only real Free/Personal/Pro features
+[ ] 36. No VIP / try-on / sustainability tools / invented $
+[ ] 37. Prices in local currency only
+[ ] 38. Connection fail: honest reconnect, not invented plan benefits
+
+## Send feedback
+[ ] 39. Thumbs up/down on a stylist message
+[ ] 40. Detailed feedback submit succeeds
+[ ] 41. Fail path: clear error, form recoverable
+
+## Settings
+[ ] 42. Edit profile / privacy / subscription open and return cleanly
+[ ] 43. Allowance % matches Profile + chat
+[ ] 44. Subscription → dismiss → still in Settings
+[ ] 45. Export/copy: no token/secret leakage in toast
+
+## Leak hunts (highest value)
+[ ] 46. Nav trap: Upgrade from chat → only use tabs to leave → Profile tab recovers
+[ ] 47. Entitlement lie: Julia vs Profile plan bullets disagree
+[ ] 48. Error laundering: force allowance 429 on chat / Decide / Live paths
+[ ] 49. State bleed: Decide → jump to chat unrelated ask → continuity drops unless Continued
+[ ] 50. Remount churn: rapid tab spam Stylist ↔ Profile ↔ Wardrobe
+[ ] 51. Ghost UI: leave mid-generate; return; no stuck spinner/CTA
+
+(Canvas tracks Free + Paid columns separately; use Free first.)

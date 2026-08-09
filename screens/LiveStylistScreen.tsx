@@ -1,7 +1,7 @@
 /**
  * Live Stylist — continuous camera sampling (~1 fps) + AR overlays.
- * Uses expo-camera. Prefers on-device YOLO TFLite when the native module is linked
- * (EAS binary); otherwise posts the JPEG to cloud Vision. OTA alone cannot add TFLite.
+ * Prefers VisionCamera (v5) when linked in the binary; falls back to Expo CameraView
+ * on older builds. On-device YOLO TFLite when linked; else cloud Vision.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,6 +28,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 
 import { LiveArOverlay } from '@/components/live/LiveArOverlay';
+import { LiveVisionCameraGate } from '@/components/live/LiveVisionCameraGate';
+import type { LiveVisionCameraHandle } from '@/components/live/LiveVisionCamera';
+import { isVisionCameraLinked } from '@/utils/visionCameraAvailability';
 import { LiveBeliefDebugOverlay } from '@/components/live/LiveBeliefDebugOverlay';
 import { LiveAiBudgetModal, isAiBudgetError, planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { FallbackShopSection, type FallbackMissingItem } from '@/components/stylist/FallbackShopSection';
@@ -314,7 +317,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
+  /** VisionCamera binary when native module is linked; Expo CameraView otherwise. */
+  const preferVision = useRef(isVisionCameraLinked()).current;
   const cameraRef = useRef<CameraView>(null);
+  const visionCamRef = useRef<LiveVisionCameraHandle>(null);
   const cameraReadyRef = useRef(false);
 
   const occasionType = route.params?.occasionType || 'casual_day';
@@ -868,9 +874,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
+    const visionReady = preferVision && visionCamRef.current?.isReady();
+    const expoReady = !preferVision && cameraRef.current && cameraReadyRef.current;
     if (
-      !cameraRef.current
-      || !cameraReadyRef.current
+      !(visionReady || expoReady)
       || inFlightRef.current
       || capturingRef.current
       || !mountedRef.current
@@ -878,7 +885,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     ) {
       return;
     }
-    // Preview-only warmup — do not call takePicture until the session has settled.
+    // Expo path needs long warmup; VisionCamera settles much faster.
     if (Date.now() < captureAllowedAtRef.current) {
       void liveStartCrumb('capture.warmup_skip');
       setStatusNote('Live — camera warming…');
@@ -886,16 +893,29 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
     inFlightRef.current = true;
     try {
-      const photo = await safeTakePictureAsync(
-        () => cameraRef.current,
-        {
-          quality: 0.35,
-          isMounted: () => mountedRef.current,
-          isCapturing: capturingRef,
-          label: 'capture',
-          skipProcessing: true,
-        },
-      );
+      let photo: LiveCameraPhoto | null = null;
+      if (preferVision) {
+        await liveStartCrumb('capture.vision.begin');
+        capturingRef.current = true;
+        try {
+          photo = await visionCamRef.current?.takeSampleAsync() ?? null;
+          if (photo?.uri) await liveStartCrumb('capture.vision.ok');
+          else await liveStartCrumb('capture.vision.empty');
+        } finally {
+          capturingRef.current = false;
+        }
+      } else {
+        photo = await safeTakePictureAsync(
+          () => cameraRef.current,
+          {
+            quality: 0.35,
+            isMounted: () => mountedRef.current,
+            isCapturing: capturingRef,
+            label: 'capture',
+            skipProcessing: true,
+          },
+        );
+      }
       if (!photo?.uri) {
         setStatusNote('Camera busy — hold steady');
         return;
@@ -1098,7 +1118,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         void liveStartCrumb('frame.ok');
       }
     }
-  }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, publishDebug]);
+  }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, preferVision, publishDebug]);
 
   // Keep latest processFrame for the imperative sample loop (stable identity).
   processFrameRef.current = processFrame;
@@ -1113,7 +1133,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         void (async () => {
           sampleBootTimerRef.current = null;
           if (!samplingActiveRef.current || !mountedRef.current) return;
-          if (!cameraReadyRef.current || !cameraRef.current) {
+          const ready = preferVision
+            ? Boolean(visionCamRef.current?.isReady() || cameraReadyRef.current)
+            : Boolean(cameraReadyRef.current && cameraRef.current);
+          if (!ready) {
             scheduleNext(250);
             return;
           }
@@ -1129,31 +1152,37 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         })();
       }, delayMs);
     };
-    // Tick often; captureAllowedAtRef blocks takePicture until warmup ends (~7s).
-    scheduleNext(1100);
-  }, [stopSamplingLoop]);
+    // Tick often; captureAllowedAtRef blocks capture until warmup ends.
+    scheduleNext(preferVision ? 400 : 1100);
+  }, [preferVision, stopSamplingLoop]);
 
   const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
-    if (cameraReadyRef.current && cameraRef.current) return true;
+    const hasRef = () => (preferVision ? Boolean(visionCamRef.current) : Boolean(cameraRef.current));
+    const isReady = () => (
+      preferVision
+        ? Boolean(visionCamRef.current?.isReady())
+        : Boolean(cameraReadyRef.current && cameraRef.current)
+    );
+    if (isReady()) return true;
     const started = Date.now();
     while (Date.now() - started < timeoutMs) {
       if (!mountedRef.current) return false;
-      if (cameraReadyRef.current && cameraRef.current) return true;
+      if (isReady()) return true;
       await sleep(100);
     }
     // Some devices never re-fire onCameraReady if preview was already warm.
-    if (cameraRef.current) {
+    if (hasRef()) {
       cameraReadyRef.current = true;
       return true;
     }
     return false;
-  }, []);
+  }, [preferVision]);
 
-  /** Mount CameraView only after user intent — never on screen open. */
+  /** Mount camera only after user intent — never on screen open. */
   const ensureCameraMounted = useCallback(async (): Promise<boolean> => {
     if (!mountedRef.current) return false;
     if (!cameraMounted) {
-      await liveStartCrumb('camera.mount.begin');
+      await liveStartCrumb(preferVision ? 'camera.mount.vision.begin' : 'camera.mount.begin');
       // Finish navigation/UI work before touching native camera.
       await new Promise<void>((resolve) => {
         InteractionManager.runAfterInteractions(() => resolve());
@@ -1161,20 +1190,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       await sleep(300);
       cameraReadyRef.current = false;
       setCameraMounted(true);
-      // CameraView needs a real commit before onCameraReady / takePicture.
-      await sleep(600);
+      // Native preview needs a real commit before ready / capture.
+      await sleep(preferVision ? 400 : 600);
       await liveStartCrumb('camera.mount.committed');
     }
-    const camOk = await waitForCameraReady(6000);
+    const camOk = await waitForCameraReady(preferVision ? 8000 : 6000);
     if (!camOk || !mountedRef.current) {
       await liveStartCrumb('camera.mount.ready_timeout');
       return false;
     }
     await liveStartCrumb('camera.mount.ready');
-    await sleep(1200);
+    await sleep(preferVision ? 500 : 1200);
     await liveStartCrumb('camera.mount.settled');
+    if (preferVision) {
+      return Boolean(visionCamRef.current?.isReady() || cameraReadyRef.current);
+    }
     return Boolean(cameraRef.current && cameraReadyRef.current);
-  }, [cameraMounted, waitForCameraReady]);
+  }, [cameraMounted, preferVision, waitForCameraReady]);
 
   /** Reset session refs + minimal UI. Prefer calling BEFORE CameraView mounts. */
   const resetLiveSessionState = useCallback(() => {
@@ -1342,10 +1374,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       // 2) Reset UI/refs while still camera-free (avoid remount churn on CameraView)
       await liveStartCrumb('2. reset session (pre-camera)');
       resetLiveSessionState();
-      // Keep on-device YOLO off for first captures — isolate takePicture crashes.
-      yoloEnabledAtRef.current = Date.now() + 20000;
-      // Preview-only for ~7s after arm — user's ~3s crash matched first takePicture.
-      captureAllowedAtRef.current = Date.now() + 7000;
+      // Keep on-device YOLO off for first captures — isolate capture crashes.
+      yoloEnabledAtRef.current = Date.now() + (preferVision ? 2500 : 20000);
+      // Expo needs long preview-only warmup; VisionCamera ~1.2s settle is enough.
+      captureAllowedAtRef.current = Date.now() + (preferVision ? 1200 : 7000);
       firstFrameLoggedRef.current = false;
 
       // 3) Mount camera only after UI reset settled
@@ -1364,15 +1396,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
 
-      // 4) Flip live + arm loop (takePicture blocked until captureAllowedAtRef)
+      // 4) Flip live + arm loop (capture blocked until captureAllowedAtRef)
       await liveStartCrumb('4. setIsLive + arm loop');
-      setYoloStatusNote('Live preview warming — first photo in a few seconds');
+      setYoloStatusNote(
+        preferVision
+          ? 'VisionCamera preview — sampling soon'
+          : 'Live preview warming — first photo in a few seconds',
+      );
       setStatusNote('Live — camera warming…');
       // Refresh capture gate from "now" so mount time doesn't eat the warmup.
-      captureAllowedAtRef.current = Date.now() + 7000;
+      captureAllowedAtRef.current = Date.now() + (preferVision ? 1200 : 7000);
       setIsLive(true);
       startSamplingLoop();
-      await liveStartCrumb('5. start armed.ok');
+      await liveStartCrumb(preferVision ? '5. start armed.vision.ok' : '5. start armed.ok');
       startingLiveRef.current = false;
 
       // Status-only YOLO probe well after camera is stable (never on critical path)
@@ -1424,15 +1460,25 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
       await sleep(400);
-      const photo = await safeTakePictureAsync(
-        () => cameraRef.current,
-        {
-          quality: 0.7,
-          isMounted: () => mountedRef.current,
-          isCapturing: capturingRef,
-          label: 'still',
-        },
-      );
+      let photo: LiveCameraPhoto | null = null;
+      if (preferVision) {
+        capturingRef.current = true;
+        try {
+          photo = await visionCamRef.current?.takeSampleAsync() ?? null;
+        } finally {
+          capturingRef.current = false;
+        }
+      } else {
+        photo = await safeTakePictureAsync(
+          () => cameraRef.current,
+          {
+            quality: 0.7,
+            isMounted: () => mountedRef.current,
+            isCapturing: capturingRef,
+            label: 'still',
+          },
+        );
+      }
       if (!photo?.uri) {
         setStatusNote('Still scan failed — no photo');
         return;
@@ -1535,7 +1581,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, ensureCameraMounted, handleAiBudgetHit, occasionType, permission?.granted, publishDebug, requestPermission, stopSamplingLoop]);
+  }, [applyResponse, ensureCameraMounted, handleAiBudgetHit, occasionType, permission?.granted, preferVision, publishDebug, requestPermission, stopSamplingLoop]);
 
   if (!permission) {
     return (
@@ -1573,16 +1619,30 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }}
       >
         {cameraMounted ? (
-          <CameraView
-            ref={cameraRef}
-            style={StyleSheet.absoluteFill}
-            facing="back"
-            mode="picture"
-            onCameraReady={() => {
-              cameraReadyRef.current = true;
-              void liveStartCrumb('camera.ready');
-            }}
-          />
+          preferVision ? (
+            <LiveVisionCameraGate
+              ref={visionCamRef}
+              isActive={cameraMounted}
+              onReady={() => {
+                cameraReadyRef.current = true;
+                void liveStartCrumb('camera.vision.ready');
+              }}
+              onError={(message) => {
+                void liveStartCrumb(`camera.vision.error ${message}`);
+              }}
+            />
+          ) : (
+            <CameraView
+              ref={cameraRef}
+              style={StyleSheet.absoluteFill}
+              facing="back"
+              mode="picture"
+              onCameraReady={() => {
+                cameraReadyRef.current = true;
+                void liveStartCrumb('camera.ready');
+              }}
+            />
+          )
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
         )}
