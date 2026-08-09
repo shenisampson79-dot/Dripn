@@ -16,6 +16,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
@@ -101,6 +102,29 @@ import {
 import { enforceLiveOutcomeContract } from '@/utils/liveOutcomeContract';
 
 const SAMPLE_INTERVAL_MS = 1100;
+/** Survives process death — next Live open shows last Start step if we crashed. */
+const LIVE_START_CRUMB_KEY = '@dripn_live_start_crumb';
+
+async function liveStartCrumb(step: string) {
+  console.log(`[LiveStylist] ${step}`);
+  try {
+    await AsyncStorage.setItem(LIVE_START_CRUMB_KEY, `${Date.now()}|${step}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function readLiveStartCrumb(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(LIVE_START_CRUMB_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
 const FRAME_WIDTH = 640;
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
@@ -285,7 +309,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   /** Imperative sample loop — never restart from useEffect([isLive, processFrame]). */
   const sampleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sampleBootTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const samplingActiveRef = useRef(false);
   const processFrameRef = useRef<() => Promise<void>>(async () => {});
+  /** Delay on-device YOLO until after camera path is proven (native crash isolation). */
+  const yoloEnabledAtRef = useRef(0);
+  const firstFrameLoggedRef = useRef(false);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -353,6 +381,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, []);
 
   const stopSamplingLoop = useCallback(() => {
+    samplingActiveRef.current = false;
     if (sampleBootTimerRef.current) {
       clearTimeout(sampleBootTimerRef.current);
       sampleBootTimerRef.current = null;
@@ -365,11 +394,49 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void warmUpOnDeviceYolo().catch(() => {});
+
+    // Catch JS fatals that would otherwise hard-exit with no Metro on OTA builds.
+    const ErrorUtils = (global as { ErrorUtils?: {
+      getGlobalHandler?: () => ((e: Error, isFatal?: boolean) => void) | undefined;
+      setGlobalHandler?: (h: (e: Error, isFatal?: boolean) => void) => void;
+    } }).ErrorUtils;
+    const prevHandler = ErrorUtils?.getGlobalHandler?.();
+    ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
+      console.error('[LiveStylist] GLOBAL CRASH', { isFatal, message: error?.message, error });
+      void liveStartCrumb(`GLOBAL_CRASH fatal=${Boolean(isFatal)} ${error?.message || 'unknown'}`);
+      prevHandler?.(error, isFatal);
+    });
+
+    void (async () => {
+      const crumb = await readLiveStartCrumb();
+      if (crumb && mountedRef.current) {
+        const step = crumb.includes('|') ? crumb.split('|').slice(1).join('|') : crumb;
+        // Only a completed first frame (or clean pause) means start didn't kill the process.
+        const ok = /^(idle|paused|frame\.ok)$/i.test(step.trim());
+        if (!ok) {
+          setStatusNote(`Last Start step: ${step}`);
+          Alert.alert(
+            'Live start debug',
+            `App exited during Start Live.\n\nLast step: ${step}\n\nShare this with support.`,
+          );
+        }
+      }
+      // Warm model on idle mount only — never overlap with Start camera init.
+      try {
+        await warmUpOnDeviceYolo();
+        await sleep(200);
+      } catch {
+        /* cloud fallback */
+      }
+    })();
+
     return () => {
       mountedRef.current = false;
       startingLiveRef.current = false;
       stopSamplingLoop();
+      if (prevHandler && ErrorUtils?.setGlobalHandler) {
+        ErrorUtils.setGlobalHandler(prevHandler);
+      }
     };
   }, [stopSamplingLoop]);
 
@@ -777,11 +844,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       lastHashRef.current = frameHash;
 
       let onDevice: Awaited<ReturnType<typeof detectGarmentsOnDevice>> = null;
-      try {
-        onDevice = await detectGarmentsOnDevice(manipulated.uri);
-      } catch (yoloErr) {
-        console.warn('[LiveStylist] on-device detect failed:', yoloErr);
-        onDevice = null;
+      // First ~1.5s after Start: camera-only path (isolate YOLO native crashes).
+      if (Date.now() >= yoloEnabledAtRef.current) {
+        try {
+          onDevice = await detectGarmentsOnDevice(manipulated.uri);
+        } catch (yoloErr) {
+          console.warn('[LiveStylist] on-device detect failed:', yoloErr);
+          onDevice = null;
+        }
       }
       const payload: Record<string, unknown> = {
         occasionType,
@@ -949,6 +1019,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } finally {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
+      if (!firstFrameLoggedRef.current) {
+        firstFrameLoggedRef.current = true;
+        void liveStartCrumb('frame.ok');
+      }
     }
   }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, publishDebug]);
 
@@ -957,23 +1031,32 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   const startSamplingLoop = useCallback(() => {
     stopSamplingLoop();
-    // Camera must be ready before takePictureAsync — native crash otherwise.
-    const tick = () => {
-      if (!mountedRef.current) return;
-      void processFrameRef.current();
+    samplingActiveRef.current = true;
+    // Chained timeouts (not setInterval): never overlap frames; skip if still in flight.
+    const scheduleNext = (delayMs: number) => {
+      if (!samplingActiveRef.current || !mountedRef.current) return;
+      sampleBootTimerRef.current = setTimeout(() => {
+        void (async () => {
+          sampleBootTimerRef.current = null;
+          if (!samplingActiveRef.current || !mountedRef.current) return;
+          if (!cameraReadyRef.current || !cameraRef.current) {
+            scheduleNext(250);
+            return;
+          }
+          if (!inFlightRef.current) {
+            try {
+              await processFrameRef.current();
+            } catch (tickErr) {
+              console.warn('[LiveStylist] sample tick error:', tickErr);
+              void liveStartCrumb(`tick.error ${tickErr instanceof Error ? tickErr.message : 'unknown'}`);
+            }
+          }
+          scheduleNext(SAMPLE_INTERVAL_MS);
+        })();
+      }, delayMs);
     };
-    const arm = () => {
-      if (!mountedRef.current) return;
-      if (!cameraReadyRef.current || !cameraRef.current) {
-        sampleBootTimerRef.current = setTimeout(arm, 250);
-        return;
-      }
-      sampleBootTimerRef.current = null;
-      tick();
-      sampleIntervalRef.current = setInterval(tick, SAMPLE_INTERVAL_MS);
-    };
-    // Brief settle after UI flips to Live — avoids camera+render race on tap.
-    sampleBootTimerRef.current = setTimeout(arm, 500);
+    // Longer settle after setIsLive — camera+render must finish before capture.
+    scheduleNext(900);
   }, [stopSamplingLoop]);
 
   const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
@@ -982,7 +1065,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     while (Date.now() - started < timeoutMs) {
       if (!mountedRef.current) return false;
       if (cameraReadyRef.current && cameraRef.current) return true;
-      await new Promise((r) => setTimeout(r, 100));
+      await sleep(100);
     }
     // Some devices never re-fire onCameraReady if preview was already warm.
     if (cameraRef.current) {
@@ -990,6 +1073,29 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       return true;
     }
     return false;
+  }, []);
+
+  /** Prove takePicture works before flipping Live UI / starting the loop. */
+  const probeCameraFrame = useCallback(async (): Promise<boolean> => {
+    if (!cameraRef.current || !cameraReadyRef.current) return false;
+    try {
+      await liveStartCrumb('probe.takePicture');
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.2,
+        shutterSound: false,
+        skipProcessing: Platform.OS === 'android',
+      });
+      if (!photo?.uri) {
+        await liveStartCrumb('probe.no_uri');
+        return false;
+      }
+      await liveStartCrumb('probe.ok');
+      return true;
+    } catch (err) {
+      console.warn('[LiveStylist] camera probe failed:', err);
+      await liveStartCrumb(`probe.fail ${err instanceof Error ? err.message : 'unknown'}`);
+      return false;
+    }
   }, []);
 
   /** Reset session refs + minimal UI. Call only after camera/model are ready. */
@@ -1119,21 +1225,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [stopSamplingLoop]);
 
   const toggleLive = async () => {
-    console.log('[LiveStylist] START LIVE PRESSED', { isLive, starting: startingLiveRef.current });
+    await liveStartCrumb('START LIVE PRESSED');
     try {
       if (isLive) {
         pauseLiveSession();
+        await liveStartCrumb('paused');
         return;
       }
       if (startingLiveRef.current) {
-        console.log('[LiveStylist] start ignored — already starting');
+        await liveStartCrumb('start ignored — already starting');
         return;
       }
       startingLiveRef.current = true;
       setStatusNote('Starting…');
 
       // 1) Permissions
-      console.log('[LiveStylist] 1. permissions');
+      await liveStartCrumb('1. permissions');
       if (!permission?.granted) {
         const next = await requestPermission();
         if (!next.granted) {
@@ -1147,48 +1254,53 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             ],
           );
           setStatusNote('Camera permission needed');
+          await liveStartCrumb('1. permission denied');
           return;
         }
       }
 
-      // 2) Camera must be ready before any capture / live UI flip
-      console.log('[LiveStylist] 2. wait camera ready');
+      // 2) Camera ready flag + settle buffer (onCameraReady alone is often premature)
+      await liveStartCrumb('2. wait camera ready');
       const camOk = await waitForCameraReady(4000);
       if (!camOk || !mountedRef.current) {
         startingLiveRef.current = false;
         setStatusNote('Camera not ready — try again');
+        await liveStartCrumb('2. camera not ready');
         return;
       }
+      await liveStartCrumb('2b. camera settle 400ms');
+      await sleep(400);
 
-      // 3) Warm YOLO (safe no-op if missing) BEFORE flipping isLive
-      console.log('[LiveStylist] 3. warm vision model');
-      try {
-        await warmUpOnDeviceYolo();
-      } catch (warmErr) {
-        console.warn('[LiveStylist] YOLO warm failed (continuing cloud-only):', warmErr);
+      // 3) Do NOT warm YOLO here — mount already warms; overlapping with camera = native risk.
+      //    Prove capture works before Live UI / loop.
+      await liveStartCrumb('3. probe camera frame');
+      const probeOk = await probeCameraFrame();
+      if (!probeOk || !mountedRef.current) {
+        startingLiveRef.current = false;
+        setStatusNote('Camera busy — try again');
+        return;
       }
-
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch {
-        /* optional */
-      }
+      await sleep(200);
 
       if (!mountedRef.current) {
         startingLiveRef.current = false;
         return;
       }
 
-      // 4) Reset session, then flip live, then arm sample loop (sequential)
-      console.log('[LiveStylist] 4. reset + setIsLive');
+      // 4) Reset session, flip live, arm sequential sample loop
+      await liveStartCrumb('4. reset + setIsLive');
       resetLiveSessionState();
+      // YOLO stays off for ~1.5s so first frames are camera+cloud only
+      yoloEnabledAtRef.current = Date.now() + 1500;
+      firstFrameLoggedRef.current = false;
       setStatusNote('Live — sampling…');
       setIsLive(true);
       startSamplingLoop();
-      console.log('[LiveStylist] 5. start armed');
+      await liveStartCrumb('5. start armed.ok');
       startingLiveRef.current = false;
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
+      await liveStartCrumb(`toggleLive.fail ${err instanceof Error ? err.message : 'unknown'}`);
       startingLiveRef.current = false;
       stopSamplingLoop();
       setIsLive(false);
