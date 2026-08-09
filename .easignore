@@ -41,6 +41,15 @@ marketing-website.zip
 dripn-backend.zip
 dev-qr
 
+# Live QA screenshot dumps (hundreds of MB — never ship in EAS archive)
+_qa_live*
+_qa_*
+_test_out.txt
+
+# Local street-scrape / YOLO training dumps (app uses small JSON signals only)
+data/oxford_street_dataset
+data/yolo_shop_windows
+
 # Store / marketing screenshots (not require()'d by the app)
 assets/screenshots
 

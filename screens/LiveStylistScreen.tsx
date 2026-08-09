@@ -125,6 +125,64 @@ async function readLiveStartCrumb(): Promise<string | null> {
 function sleep(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
+
+type LiveCameraPhoto = { uri?: string };
+
+/**
+ * Native takePictureAsync can kill the process if the session isn't ready or
+ * two captures overlap. Guard + retry; never throw — skip the frame instead.
+ */
+async function safeTakePictureAsync(
+  getCamera: () => { takePictureAsync: (opts: Record<string, unknown>) => Promise<LiveCameraPhoto | undefined> } | null,
+  opts: {
+    quality: number;
+    isMounted: () => boolean;
+    isCapturing: { current: boolean };
+    label?: string;
+  },
+): Promise<LiveCameraPhoto | null> {
+  if (!opts.isMounted() || opts.isCapturing.current) {
+    await liveStartCrumb(`${opts.label || 'capture'}.skipped`);
+    return null;
+  }
+  const cam = getCamera();
+  if (!cam) {
+    await liveStartCrumb(`${opts.label || 'capture'}.no_ref`);
+    return null;
+  }
+
+  opts.isCapturing.current = true;
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!opts.isMounted()) return null;
+      const liveCam = getCamera();
+      if (!liveCam) return null;
+      try {
+        await liveStartCrumb(`${opts.label || 'capture'}.takePicture attempt=${attempt}`);
+        const photo = await liveCam.takePictureAsync({
+          quality: opts.quality,
+          shutterSound: false,
+          skipProcessing: Platform.OS === 'android',
+        });
+        if (photo?.uri) {
+          await liveStartCrumb(`${opts.label || 'capture'}.takePicture.ok`);
+          return photo;
+        }
+      } catch (err) {
+        console.warn('[LiveStylist] takePictureAsync attempt failed:', err);
+        await liveStartCrumb(
+          `${opts.label || 'capture'}.retry ${attempt} ${err instanceof Error ? err.message : 'unknown'}`,
+        );
+      }
+      await sleep(350);
+    }
+    await liveStartCrumb(`${opts.label || 'capture'}.exhausted`);
+    return null;
+  } finally {
+    opts.isCapturing.current = false;
+  }
+}
+
 const FRAME_WIDTH = 640;
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
@@ -303,6 +361,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const decisionLogRef = useRef<BeliefDecision[]>([]);
   const inspectRef = useRef<ReturnType<typeof inspectDetection> | null>(null);
   const inFlightRef = useRef(false);
+  /** Hard lock around native takePictureAsync — overlapping captures can SIGKILL. */
+  const capturingRef = useRef(false);
   const mountedRef = useRef(true);
   /** Prevents double-tap / overlapping Start Live init. */
   const startingLiveRef = useRef(false);
@@ -810,23 +870,32 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }, [beliefSignature, occasionType, publishDebug]);
 
   const processFrame = useCallback(async () => {
-    if (!cameraRef.current || !cameraReadyRef.current || inFlightRef.current || !mountedRef.current) return;
+    if (
+      !cameraRef.current
+      || !cameraReadyRef.current
+      || inFlightRef.current
+      || capturingRef.current
+      || !mountedRef.current
+      || !samplingActiveRef.current
+    ) {
+      return;
+    }
     inFlightRef.current = true;
     setIsBusy(true);
     try {
-      let photo: { uri?: string } | undefined;
-      try {
-        photo = await cameraRef.current.takePictureAsync({
+      const photo = await safeTakePictureAsync(
+        () => cameraRef.current,
+        {
           quality: 0.45,
-          shutterSound: false,
-          skipProcessing: Platform.OS === 'android',
-        });
-      } catch (camErr) {
-        console.warn('[LiveStylist] takePictureAsync failed:', camErr);
+          isMounted: () => mountedRef.current,
+          isCapturing: capturingRef,
+          label: 'capture',
+        },
+      );
+      if (!photo?.uri) {
         setStatusNote('Camera busy — hold steady');
         return;
       }
-      if (!photo?.uri) return;
 
       const manipulated = await ImageManipulator.manipulateAsync(
         photo.uri,
@@ -1055,8 +1124,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         })();
       }, delayMs);
     };
-    // Longer settle after setIsLive — camera+render must finish before capture.
-    scheduleNext(900);
+    // Extra settle after setIsLive — first takePicture is the native crash zone.
+    scheduleNext(2500);
   }, [stopSamplingLoop]);
 
   const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
@@ -1075,30 +1144,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     return false;
   }, []);
 
-  /** Prove takePicture works before flipping Live UI / starting the loop. */
-  const probeCameraFrame = useCallback(async (): Promise<boolean> => {
-    if (!cameraRef.current || !cameraReadyRef.current) return false;
-    try {
-      await liveStartCrumb('probe.takePicture');
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.2,
-        shutterSound: false,
-        skipProcessing: Platform.OS === 'android',
-      });
-      if (!photo?.uri) {
-        await liveStartCrumb('probe.no_uri');
-        return false;
-      }
-      await liveStartCrumb('probe.ok');
-      return true;
-    } catch (err) {
-      console.warn('[LiveStylist] camera probe failed:', err);
-      await liveStartCrumb(`probe.fail ${err instanceof Error ? err.message : 'unknown'}`);
-      return false;
-    }
-  }, []);
-
-  /** Reset session refs + minimal UI. Call only after camera/model are ready. */
+  /** Reset session refs + minimal UI. Call only after camera is ready. */
   const resetLiveSessionState = useCallback(() => {
     const warm = warmTruthRef.current;
     const now = Date.now();
@@ -1259,7 +1305,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       }
 
-      // 2) Camera ready flag + settle buffer (onCameraReady alone is often premature)
+      // 2) Camera ready flag + longer settle (onCameraReady alone is often premature)
       await liveStartCrumb('2. wait camera ready');
       const camOk = await waitForCameraReady(4000);
       if (!camOk || !mountedRef.current) {
@@ -1268,35 +1314,25 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         await liveStartCrumb('2. camera not ready');
         return;
       }
-      await liveStartCrumb('2b. camera settle 400ms');
-      await sleep(400);
-
-      // 3) Do NOT warm YOLO here — mount already warms; overlapping with camera = native risk.
-      //    Prove capture works before Live UI / loop.
-      await liveStartCrumb('3. probe camera frame');
-      const probeOk = await probeCameraFrame();
-      if (!probeOk || !mountedRef.current) {
-        startingLiveRef.current = false;
-        setStatusNote('Camera busy — try again');
-        return;
-      }
-      await sleep(200);
+      // Native crash was at takePicture during probe — do NOT probe; settle only.
+      await liveStartCrumb('2b. camera settle 1200ms');
+      await sleep(1200);
 
       if (!mountedRef.current) {
         startingLiveRef.current = false;
         return;
       }
 
-      // 4) Reset session, flip live, arm sequential sample loop
-      await liveStartCrumb('4. reset + setIsLive');
+      // 3) Reset session, flip live, arm sample loop (first capture ~2.5s later)
+      await liveStartCrumb('3. reset + setIsLive');
       resetLiveSessionState();
-      // YOLO stays off for ~1.5s so first frames are camera+cloud only
-      yoloEnabledAtRef.current = Date.now() + 1500;
+      // YOLO stays off longer so first captures are camera-only
+      yoloEnabledAtRef.current = Date.now() + 4000;
       firstFrameLoggedRef.current = false;
       setStatusNote('Live — sampling…');
       setIsLive(true);
       startSamplingLoop();
-      await liveStartCrumb('5. start armed.ok');
+      await liveStartCrumb('4. start armed.ok');
       startingLiveRef.current = false;
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
@@ -1309,7 +1345,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   };
 
   const openStillScan = useCallback(async () => {
-    if (!cameraRef.current || !cameraReadyRef.current || inFlightRef.current || !mountedRef.current) return;
+    if (
+      !cameraRef.current
+      || !cameraReadyRef.current
+      || inFlightRef.current
+      || capturingRef.current
+      || !mountedRef.current
+    ) {
+      return;
+    }
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
@@ -1317,11 +1361,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     setIsBusy(true);
     setStatusNote('Still scan — locking look…');
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.7,
-        shutterSound: false,
-        skipProcessing: Platform.OS === 'android',
-      });
+      // Brief settle after stopping the live loop so the session isn't mid-capture.
+      await sleep(400);
+      const photo = await safeTakePictureAsync(
+        () => cameraRef.current,
+        {
+          quality: 0.7,
+          isMounted: () => mountedRef.current,
+          isCapturing: capturingRef,
+          label: 'still',
+        },
+      );
       if (!photo?.uri) {
         setStatusNote('Still scan failed — no photo');
         return;
