@@ -721,11 +721,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     inFlightRef.current = true;
     setIsBusy(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.45,
-        shutterSound: false,
-        skipProcessing: Platform.OS === 'android',
-      });
+      let photo: { uri?: string } | undefined;
+      try {
+        photo = await cameraRef.current.takePictureAsync({
+          quality: 0.45,
+          shutterSound: false,
+          skipProcessing: Platform.OS === 'android',
+        });
+      } catch (camErr) {
+        console.warn('[LiveStylist] takePictureAsync failed:', camErr);
+        setStatusNote('Camera busy — hold steady');
+        return;
+      }
       if (!photo?.uri) return;
 
       const manipulated = await ImageManipulator.manipulateAsync(
@@ -918,6 +925,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     let cancelled = false;
     let id: ReturnType<typeof setInterval> | null = null;
     // Wait for CameraView onCameraReady — immediate takePictureAsync can native-crash.
+    // Some devices never re-fire onCameraReady if the preview was already warm.
+    const readyFallback = setTimeout(() => {
+      if (!cancelled) cameraReadyRef.current = true;
+    }, 1200);
     const start = () => {
       if (cancelled || !mountedRef.current) return;
       if (!cameraReadyRef.current) {
@@ -929,16 +940,152 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         void processFrame();
       }, SAMPLE_INTERVAL_MS);
     };
-    const boot = setTimeout(start, 350);
+    const boot = setTimeout(start, 400);
     return () => {
       cancelled = true;
       clearTimeout(boot);
+      clearTimeout(readyFallback);
       if (id) clearInterval(id);
     };
   }, [isLive, processFrame]);
 
+  const beginLiveSession = useCallback(() => {
+    const warm = warmTruthRef.current;
+    const now = Date.now();
+    try {
+      if (canWarmStartTruth(warm, now) && warm) {
+        detectionMemoryRef.current = createLiveBeliefMemory();
+        const seeded = updateLiveBelief(warm.truth.seedDetections, detectionMemoryRef.current, {
+          now,
+          decisions: [],
+        });
+        detectionMemoryRef.current = seeded.memory;
+        decisionLogRef.current = [];
+        inspectRef.current = null;
+        lastHashRef.current = null;
+        lastCloudFillAtRef.current = 0;
+        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+        sceneChangeStreakRef.current = 0;
+        scoreGateRef.current = createLiveScoreGate();
+        const b = detectionMemoryRef.current.belief;
+        const sample = warm.truth.isStable
+          && b?.bottom?.kind
+          && b?.footwear?.subcategory
+          ? {
+            bottomKind: String(b.bottom.kind),
+            shoeSubtype: String(b.footwear.subcategory),
+            topKind: String(b.top?.kind || b.layer?.kind || ''),
+            bottomConfidence: Number(b.bottom.confidence || b.bottom.stability || 0.9),
+            shoeConfidence: Number(b.footwear.confidence || b.footwear.stability || 0.9),
+            topConfidence: Number(
+              (b.top || b.layer)?.confidence
+              || (b.top || b.layer)?.stability
+              || 0.9,
+            ),
+          }
+          : null;
+        identityBufRef.current = sample ? [sample, sample, sample] : [];
+        identityLockedKeyRef.current = sample ? liveCoreIdentityKey(sample) : null;
+        labelsReadyRef.current = Boolean(sample);
+        setLabelsReady(Boolean(sample));
+        const warmConf = warm.truth.confidenceLevel || 'high';
+        certaintySmoothRef.current = warmConf === 'high'
+          ? { lastRaw: 'high', streak: LIVE_CERTAINTY_UPGRADE_STREAK, displayed: 'high' }
+          : { lastRaw: 'medium', streak: 1, displayed: 'medium' };
+        if (warm.truth.score != null) {
+          const warmIdentity = identityLockedKeyRef.current;
+          scoreGateRef.current = {
+            shown: warm.truth.score,
+            pending: null,
+            signature: liveScoreSignature(warm.truth.seedDetections.map((d) => ({
+              category: d.category,
+              subcategory: d.subcategory,
+              color: d.color,
+            }))),
+            heldSince: null,
+            scoredIdentityKey: warmIdentity,
+          };
+        }
+        suspectAskedRef.current = new Set<string>();
+        filledOnceRef.current = {
+          top: Boolean(warm.truth.top),
+          layer: Boolean(warm.truth.layer),
+          bottom: Boolean(warm.truth.bottom),
+        };
+        previousItemsRef.current = [];
+        outfitTruthRef.current = warm.truth;
+        previousFeedbackRef.current = warm.truth.score != null
+          ? {
+            score: warm.truth.score,
+            confidenceLevel: warm.truth.confidenceLevel || 'high',
+            issues: [],
+            hints: [],
+            suggestions: [],
+            coaching: {
+              headline: '',
+              summary: '',
+              bullets: [],
+              styleLane: warm.truth.lane,
+              hasConflict: false,
+              sameLane: true,
+            },
+          }
+          : null;
+        setFeedback(previousFeedbackRef.current);
+        paintBeliefItems(warm.truth.seedDetections || []);
+        setDebugSnapshot(emptyDebugSnapshot('live_warm'));
+        warmTruthRef.current = null;
+      } else {
+        detectionMemoryRef.current = createLiveBeliefMemory();
+        decisionLogRef.current = [];
+        inspectRef.current = null;
+        lastHashRef.current = null;
+        lastCloudFillAtRef.current = 0;
+        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+        sceneChangeStreakRef.current = 0;
+        scoreGateRef.current = createLiveScoreGate();
+        identityBufRef.current = [];
+        identityLockedKeyRef.current = null;
+        noFootwearSinceRef.current = 0;
+        labelsReadyRef.current = false;
+        setLabelsReady(false);
+        certaintySmoothRef.current = createCertaintySmoothState();
+        suspectAskedRef.current = new Set<string>();
+        filledOnceRef.current = {};
+        outfitTruthRef.current = null;
+        previousItemsRef.current = [];
+        previousFeedbackRef.current = null;
+        recentLayerTipIdsRef.current = [];
+        setItems([]);
+        setFeedback(null);
+        setDebugSnapshot(emptyDebugSnapshot('live'));
+        warmTruthRef.current = null;
+      }
+      setStatusNote('Live — sampling…');
+      setIsLive(true);
+    } catch (err) {
+      console.warn('[LiveStylist] beginLiveSession failed:', err);
+      setIsLive(false);
+      setStatusNote('Could not start live — try again');
+    }
+  }, [paintBeliefItems]);
+
+  const pauseLiveSession = useCallback(() => {
+    try {
+      warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
+    } catch {
+      warmTruthRef.current = null;
+    }
+    setIsLive(false);
+    setStatusNote('Paused');
+  }, []);
+
   const toggleLive = async () => {
     try {
+      if (isLive) {
+        pauseLiveSession();
+        return;
+      }
       if (!permission?.granted) {
         const next = await requestPermission();
         if (!next.granted) {
@@ -958,148 +1105,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       } catch {
         /* optional */
       }
-      setIsLive((v) => {
-        const next = !v;
-        if (!next) {
-          // Pausing — stash a warm truth so a quick restart does not cold-boot.
-          warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
-        } else {
-          const warm = warmTruthRef.current;
-          const now = Date.now();
-          if (canWarmStartTruth(warm, now) && warm) {
-          // Warm start: re-seed belief from the last resolved outfit instead of
-          // wiping to empty and re-learning shorts from a truncated box.
-          detectionMemoryRef.current = createLiveBeliefMemory();
-          const seeded = updateLiveBelief(warm.truth.seedDetections, detectionMemoryRef.current, {
-            now,
-            decisions: [],
-          });
-          detectionMemoryRef.current = seeded.memory;
-          decisionLogRef.current = [];
-          inspectRef.current = null;
-          lastHashRef.current = null;
-          lastCloudFillAtRef.current = 0;
-          cloudSceneBaselineRef.current = { detections: [], frameHash: null };
-          sceneChangeStreakRef.current = 0;
-          scoreGateRef.current = createLiveScoreGate();
-          {
-            // Only seed identity when the previous truth was stable (warm path
-            // already requires isStable). Unstable last session must cold-start.
-            const b = detectionMemoryRef.current.belief;
-            const sample = warm.truth.isStable
-              && b?.bottom?.kind
-              && b?.footwear?.subcategory
-              ? {
-                bottomKind: String(b.bottom.kind),
-                shoeSubtype: String(b.footwear.subcategory),
-                topKind: String(b.top?.kind || b.layer?.kind || ''),
-                bottomConfidence: Number(b.bottom.confidence || b.bottom.stability || 0.9),
-                shoeConfidence: Number(b.footwear.confidence || b.footwear.stability || 0.9),
-                topConfidence: Number(
-                  (b.top || b.layer)?.confidence
-                  || (b.top || b.layer)?.stability
-                  || 0.9,
-                ),
-              }
-              : null;
-            identityBufRef.current = sample
-              ? [sample, sample, sample]
-              : [];
-            identityLockedKeyRef.current = sample ? liveCoreIdentityKey(sample) : null;
-            labelsReadyRef.current = Boolean(sample);
-            setLabelsReady(Boolean(sample));
-            const warmConf = warm.truth.confidenceLevel || 'high';
-            certaintySmoothRef.current = warmConf === 'high'
-              ? { lastRaw: 'high', streak: LIVE_CERTAINTY_UPGRADE_STREAK, displayed: 'high' }
-              : { lastRaw: 'medium', streak: 1, displayed: 'medium' };
-          }
-          if (warm.truth.score != null) {
-            // Publish the last settled score immediately — no dash over a known outfit.
-            const warmIdentity = identityLockedKeyRef.current;
-            scoreGateRef.current = {
-              shown: warm.truth.score,
-              pending: null,
-              signature: liveScoreSignature(warm.truth.seedDetections.map((d) => ({
-                category: d.category,
-                subcategory: d.subcategory,
-                color: d.color,
-              }))),
-              heldSince: null,
-              scoredIdentityKey: warmIdentity,
-            };
-          }
-          suspectAskedRef.current = new Set<string>();
-          filledOnceRef.current = {
-            top: Boolean(warm.truth.top),
-            layer: Boolean(warm.truth.layer),
-            bottom: Boolean(warm.truth.bottom),
-          };
-          previousItemsRef.current = warm.truth.seedDetections.map((d, i) => ({
-            name: d.name,
-            category: d.category,
-            subcategory: d.subcategory,
-            color: d.color,
-            confidence: d.confidence,
-            bbox: d.bbox,
-            trackId: d.trackId || `warm_${i}`,
-          })) as LiveTrackedItem[];
-          outfitTruthRef.current = warm.truth;
-          previousFeedbackRef.current = warm.truth.score != null
-            ? {
-              score: warm.truth.score,
-              confidenceLevel: warm.truth.confidenceLevel || 'high',
-              issues: [],
-              hints: [],
-              suggestions: [],
-              coaching: {
-                headline: '',
-                summary: '',
-                bullets: [],
-                styleLane: warm.truth.lane,
-                // Never warm-start Mixed directions — wait for a fresh critique.
-                hasConflict: false,
-                sameLane: true,
-              },
-            }
-            : null;
-          if (warm.truth.score != null) {
-            setFeedback(previousFeedbackRef.current);
-          } else {
-            setFeedback(null);
-          }
-          paintBeliefItems(warm.truth.seedDetections);
-          setDebugSnapshot(emptyDebugSnapshot('live_warm'));
-          warmTruthRef.current = null;
-        } else {
-          detectionMemoryRef.current = createLiveBeliefMemory();
-          decisionLogRef.current = [];
-          inspectRef.current = null;
-          lastHashRef.current = null;
-          lastCloudFillAtRef.current = 0;
-          cloudSceneBaselineRef.current = { detections: [], frameHash: null };
-          sceneChangeStreakRef.current = 0;
-          scoreGateRef.current = createLiveScoreGate();
-          identityBufRef.current = [];
-          identityLockedKeyRef.current = null;
-          noFootwearSinceRef.current = 0;
-          labelsReadyRef.current = false;
-          setLabelsReady(false);
-          certaintySmoothRef.current = createCertaintySmoothState();
-          suspectAskedRef.current = new Set<string>();
-          filledOnceRef.current = {};
-          outfitTruthRef.current = null;
-          previousItemsRef.current = [];
-          previousFeedbackRef.current = null;
-          recentLayerTipIdsRef.current = [];
-          setItems([]);
-          setFeedback(null);
-          setDebugSnapshot(emptyDebugSnapshot('live'));
-          warmTruthRef.current = null;
-        }
-      }
-      setStatusNote(next ? 'Live — sampling…' : 'Paused');
-      return next;
-    });
+      // Never nest setState inside setIsLive — that hard-crashed Start Live on device.
+      beginLiveSession();
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
       setIsLive(false);
