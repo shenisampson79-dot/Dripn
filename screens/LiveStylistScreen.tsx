@@ -338,7 +338,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
   /** Defer CameraView until after navigation transition — mount-time camera init can native-kill. */
   const [cameraMounted, setCameraMounted] = useState(false);
-  const [yoloStatusNote, setYoloStatusNote] = useState('Checking on-device vision…');
+  const [yoloStatusNote, setYoloStatusNote] = useState(
+    'Camera starts when you tap Start live',
+  );
 
   // Staff status resolves after the first render, so the overlay cannot be
   // seeded from initial state — open it once, then leave the toggle to the user.
@@ -457,28 +459,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     mountedRef.current = true;
     void liveStartCrumb('screen.mount');
 
-    // Do NOT warm TFLite / monkey-patch ErrorUtils / Alert on mount — those race
-    // navigation + CameraView and can native-kill before Start Live is visible.
-    const camTimer = setTimeout(() => {
-      if (mountedRef.current) setCameraMounted(true);
-    }, 450);
-
-    const statusTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      try {
-        const status = getOnDeviceYoloStatus();
-        setYoloStatusNote(
-          status.available
-            ? 'On-device YOLO ready — cloud Vision only if detection fails'
-            : status.requiresNativeRebuild
-              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
-              : 'On-device YOLO unavailable — using cloud sampling',
-        );
-      } catch {
-        setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
-      }
-    }, 800);
-
+    // Screen mount must stay cheap: NO CameraView, NO TFLite warm, NO YOLO status probe.
+    // Camera mounts only after explicit Start Live / Still scan.
     void (async () => {
       const crumb = await readLiveStartCrumb();
       if (!mountedRef.current || !crumb) return;
@@ -487,7 +469,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (!ok) {
         setStatusNote(`Last Start step: ${step}`);
       }
-      // Consume once so re-opening Live does not keep fighting the UI.
       try {
         await AsyncStorage.removeItem(LIVE_START_CRUMB_KEY);
       } catch {
@@ -498,11 +479,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     return () => {
       mountedRef.current = false;
       startingLiveRef.current = false;
-      clearTimeout(camTimer);
-      clearTimeout(statusTimer);
       stopSamplingLoop();
     };
   }, [stopSamplingLoop]);
+
+  const unmountCamera = useCallback(() => {
+    cameraReadyRef.current = false;
+    setCameraMounted(false);
+  }, []);
 
   const handleAiBudgetHit = useCallback((err?: unknown) => {
     if (!mountedRef.current) return;
@@ -512,19 +496,21 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
+    unmountCamera();
     setShowBudgetModal(true);
     setStatusNote(
       isTopTier(effective)
         ? (t('live.budgetModal.statusNoteTop') || 'Monthly AI allowance used — resets next month')
         : (t('live.budgetModal.statusNote') || 'Monthly AI allowance used — upgrade or wait until next month'),
     );
-  }, [t, tier, stopSamplingLoop]);
+  }, [t, tier, stopSamplingLoop, unmountCamera]);
 
   const openSubscription = useCallback(() => {
     setShowBudgetModal(false);
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
+    unmountCamera();
     const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
     const highlightPlan = plan === 'free'
       ? 'personal_stylist'
@@ -532,26 +518,28 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ? 'stylist_unlimited'
         : undefined;
     leaveLiveAndNavigate(navigation, { kind: 'subscription', highlightPlan });
-  }, [navigation, budgetPlanTier, tier, stopSamplingLoop]);
+  }, [navigation, budgetPlanTier, tier, stopSamplingLoop, unmountCamera]);
 
   const openAiTopUp = useCallback(() => {
     setShowBudgetModal(false);
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
+    unmountCamera();
     leaveLiveAndNavigate(navigation, {
       kind: 'subscription',
       scrollToAiTopUp: true,
     });
-  }, [navigation, stopSamplingLoop]);
+  }, [navigation, stopSamplingLoop, unmountCamera]);
 
   const openSanityCheck = useCallback(() => {
     setShowBudgetModal(false);
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
+    unmountCamera();
     leaveLiveAndNavigate(navigation, { kind: 'sanity' });
-  }, [navigation, stopSamplingLoop]);
+  }, [navigation, stopSamplingLoop, unmountCamera]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return null;
@@ -1148,6 +1136,21 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     return false;
   }, []);
 
+  /** Mount CameraView only after user intent — never on screen open. */
+  const ensureCameraMounted = useCallback(async (): Promise<boolean> => {
+    if (!mountedRef.current) return false;
+    if (!cameraMounted) {
+      await liveStartCrumb('camera.mount');
+      cameraReadyRef.current = false;
+      setCameraMounted(true);
+      await sleep(150);
+    }
+    const camOk = await waitForCameraReady(5000);
+    if (!camOk || !mountedRef.current) return false;
+    await sleep(800);
+    return Boolean(cameraRef.current && cameraReadyRef.current);
+  }, [cameraMounted, waitForCameraReady]);
+
   /** Reset session refs + minimal UI. Call only after camera is ready. */
   const resetLiveSessionState = useCallback(() => {
     const warm = warmTruthRef.current;
@@ -1271,8 +1274,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       warmTruthRef.current = null;
     }
     setIsLive(false);
-    setStatusNote('Paused');
-  }, [stopSamplingLoop]);
+    unmountCamera();
+    setStatusNote('Paused — tap Start to resume');
+    setYoloStatusNote('Camera starts when you tap Start live');
+  }, [stopSamplingLoop, unmountCamera]);
 
   const toggleLive = async () => {
     await liveStartCrumb('START LIVE PRESSED');
@@ -1289,7 +1294,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       startingLiveRef.current = true;
       setStatusNote('Starting…');
 
-      // 1) Permissions
+      // 1) Permissions (before any CameraView)
       await liveStartCrumb('1. permissions');
       if (!permission?.granted) {
         const next = await requestPermission();
@@ -1309,18 +1314,29 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       }
 
-      // 2) Camera ready flag + longer settle (onCameraReady alone is often premature)
-      await liveStartCrumb('2. wait camera ready');
-      const camOk = await waitForCameraReady(4000);
+      // 2) Mount camera ONLY now (screen open stays camera-free)
+      await liveStartCrumb('2. mount camera');
+      const camOk = await ensureCameraMounted();
       if (!camOk || !mountedRef.current) {
         startingLiveRef.current = false;
+        unmountCamera();
         setStatusNote('Camera not ready — try again');
         await liveStartCrumb('2. camera not ready');
         return;
       }
-      // Native crash was at takePicture during probe — do NOT probe; settle only.
-      await liveStartCrumb('2b. camera settle 1200ms');
-      await sleep(1200);
+
+      try {
+        const status = getOnDeviceYoloStatus();
+        setYoloStatusNote(
+          status.available
+            ? 'On-device YOLO ready — cloud Vision only if detection fails'
+            : status.requiresNativeRebuild
+              ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
+              : 'On-device YOLO unavailable — using cloud sampling',
+        );
+      } catch {
+        setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
+      }
 
       if (!mountedRef.current) {
         startingLiveRef.current = false;
@@ -1330,7 +1346,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       // 3) Reset session, flip live, arm sample loop (first capture ~2.5s later)
       await liveStartCrumb('3. reset + setIsLive');
       resetLiveSessionState();
-      // YOLO stays off longer so first captures are camera-only
       yoloEnabledAtRef.current = Date.now() + 4000;
       firstFrameLoggedRef.current = false;
       setStatusNote('Live — sampling…');
@@ -1344,20 +1359,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       startingLiveRef.current = false;
       stopSamplingLoop();
       setIsLive(false);
+      unmountCamera();
       setStatusNote('Could not start live — try again');
     }
   };
 
   const openStillScan = useCallback(async () => {
-    if (
-      !cameraRef.current
-      || !cameraReadyRef.current
-      || inFlightRef.current
-      || capturingRef.current
-      || !mountedRef.current
-    ) {
-      return;
-    }
+    if (inFlightRef.current || capturingRef.current || !mountedRef.current) return;
     stopSamplingLoop();
     startingLiveRef.current = false;
     setIsLive(false);
@@ -1365,7 +1373,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     setIsBusy(true);
     setStatusNote('Still scan — locking look…');
     try {
-      // Brief settle after stopping the live loop so the session isn't mid-capture.
+      if (!permission?.granted) {
+        const next = await requestPermission();
+        if (!next.granted) {
+          setStatusNote('Camera permission needed');
+          return;
+        }
+      }
+      const camOk = await ensureCameraMounted();
+      if (!camOk) {
+        setStatusNote('Camera not ready — try again');
+        return;
+      }
       await sleep(400);
       const photo = await safeTakePictureAsync(
         () => cameraRef.current,
@@ -1478,7 +1497,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, handleAiBudgetHit, occasionType, publishDebug, stopSamplingLoop]);
+  }, [applyResponse, ensureCameraMounted, handleAiBudgetHit, occasionType, permission?.granted, publishDebug, requestPermission, stopSamplingLoop]);
 
   if (!permission) {
     return (
