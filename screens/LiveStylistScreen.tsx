@@ -139,6 +139,8 @@ async function safeTakePictureAsync(
     isMounted: () => boolean;
     isCapturing: { current: boolean };
     label?: string;
+    /** Prefer true for Live — native processing on the capture path is a crash vector. */
+    skipProcessing?: boolean;
   },
 ): Promise<LiveCameraPhoto | null> {
   if (!opts.isMounted() || opts.isCapturing.current) {
@@ -159,10 +161,11 @@ async function safeTakePictureAsync(
       if (!liveCam) return null;
       try {
         await liveStartCrumb(`${opts.label || 'capture'}.takePicture attempt=${attempt}`);
+        // Always skip native post-processing on Live path — iOS kills are common there.
         const photo = await liveCam.takePictureAsync({
           quality: opts.quality,
           shutterSound: false,
-          skipProcessing: Platform.OS === 'android',
+          skipProcessing: opts.skipProcessing !== false,
         });
         if (photo?.uri) {
           await liveStartCrumb(`${opts.label || 'capture'}.takePicture.ok`);
@@ -174,7 +177,7 @@ async function safeTakePictureAsync(
           `${opts.label || 'capture'}.retry ${attempt} ${err instanceof Error ? err.message : 'unknown'}`,
         );
       }
-      await sleep(350);
+      await sleep(500);
     }
     await liveStartCrumb(`${opts.label || 'capture'}.exhausted`);
     return null;
@@ -377,6 +380,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const processFrameRef = useRef<() => Promise<void>>(async () => {});
   /** Delay on-device YOLO until after camera path is proven (native crash isolation). */
   const yoloEnabledAtRef = useRef(0);
+  /** Wall clock when takePictureAsync is first allowed after Start. */
+  const captureAllowedAtRef = useRef(0);
   const firstFrameLoggedRef = useRef(false);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
@@ -873,22 +878,29 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     ) {
       return;
     }
+    // Preview-only warmup — do not call takePicture until the session has settled.
+    if (Date.now() < captureAllowedAtRef.current) {
+      void liveStartCrumb('capture.warmup_skip');
+      setStatusNote('Live — camera warming…');
+      return;
+    }
     inFlightRef.current = true;
-    setIsBusy(true);
     try {
       const photo = await safeTakePictureAsync(
         () => cameraRef.current,
         {
-          quality: 0.45,
+          quality: 0.35,
           isMounted: () => mountedRef.current,
           isCapturing: capturingRef,
           label: 'capture',
+          skipProcessing: true,
         },
       );
       if (!photo?.uri) {
         setStatusNote('Camera busy — hold steady');
         return;
       }
+      if (mountedRef.current) setIsBusy(true);
 
       const manipulated = await ImageManipulator.manipulateAsync(
         photo.uri,
@@ -1117,8 +1129,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         })();
       }, delayMs);
     };
-    // Extra settle after setIsLive — first takePicture is the native crash zone.
-    scheduleNext(4000);
+    // Tick often; captureAllowedAtRef blocks takePicture until warmup ends (~7s).
+    scheduleNext(1100);
   }, [stopSamplingLoop]);
 
   const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
@@ -1331,7 +1343,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       await liveStartCrumb('2. reset session (pre-camera)');
       resetLiveSessionState();
       // Keep on-device YOLO off for first captures — isolate takePicture crashes.
-      yoloEnabledAtRef.current = Date.now() + 15000;
+      yoloEnabledAtRef.current = Date.now() + 20000;
+      // Preview-only for ~7s after arm — user's ~3s crash matched first takePicture.
+      captureAllowedAtRef.current = Date.now() + 7000;
       firstFrameLoggedRef.current = false;
 
       // 3) Mount camera only after UI reset settled
@@ -1350,10 +1364,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return;
       }
 
-      // 4) Flip live + arm loop (first capture ~4s later; YOLO much later)
+      // 4) Flip live + arm loop (takePicture blocked until captureAllowedAtRef)
       await liveStartCrumb('4. setIsLive + arm loop');
-      setYoloStatusNote('Live sampling (cloud path first — on-device YOLO delayed)');
-      setStatusNote('Live — sampling…');
+      setYoloStatusNote('Live preview warming — first photo in a few seconds');
+      setStatusNote('Live — camera warming…');
+      // Refresh capture gate from "now" so mount time doesn't eat the warmup.
+      captureAllowedAtRef.current = Date.now() + 7000;
       setIsLive(true);
       startSamplingLoop();
       await liveStartCrumb('5. start armed.ok');
