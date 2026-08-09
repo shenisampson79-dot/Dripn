@@ -17,7 +17,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea, BodyMeasurements, HeightUnit, WeightUnit, SkinUndertone } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
-import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
+import {
+  playVoicePreview as playOpenAIVoice,
+  stopAudio,
+  voicePreviewSaidUserName,
+} from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
 import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance, ScanReview } from "@/services/OnboardingService";
@@ -900,12 +904,24 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
       // Only use name if user hasn't said pronunciation is wrong
       const nameToUse = useNameInGreetings ? userFirstName : undefined;
-      await playOpenAIVoice(stylistId, stylistLanguage, effectivePitch, voiceForStylist, undefined, nameToUse);
+      const spokenScript = await playOpenAIVoice(
+        stylistId,
+        stylistLanguage,
+        effectivePitch,
+        voiceForStylist,
+        undefined,
+        nameToUse,
+      );
       setIsPlayingVoice(null);
       
-      // Show pronunciation prompt after first voice preview if user has a name and hasn't confirmed yet
-      // Only show once per session to avoid annoying the user (module-level flag persists across remounts)
-      if (userFirstName && !namePronunciationConfirmed && useNameInGreetings && !hasPromptedForPronunciationThisSession) {
+      // Only ask about pronunciation when the preview actually said their name
+      if (
+        userFirstName &&
+        !namePronunciationConfirmed &&
+        useNameInGreetings &&
+        !hasPromptedForPronunciationThisSession &&
+        voicePreviewSaidUserName(spokenScript, userFirstName)
+      ) {
         setShowPronunciationPrompt(true);
         hasPromptedForPronunciationThisSession = true;
       }
@@ -1857,6 +1873,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ScrollProgressIndicator />
             <ScrollView 
               style={styles.optionsScroll} 
+              contentContainerStyle={styles.stylistScrollContent}
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
               scrollEventThrottle={16}
@@ -1884,7 +1901,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         ) : (
                           <Feather
                             name={stylist.icon}
-                            size={28}
+                            size={24}
                             color="#FFFFFF"
                           />
                         )}
@@ -1893,7 +1910,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         <View style={styles.stylistNameRow}>
                           <ThemedText
                             type="h2"
-                            style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                            style={[styles.stylistName, { color: isSelected ? "#FFFFFF" : theme.text }]}
                           >
                             {stylist.name}
                           </ThemedText>
@@ -1904,13 +1921,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                           >
                             <Feather
                               name={isPlaying ? "pause" : "volume-2"}
-                              size={16}
+                              size={15}
                               color={isSelected ? "#FFFFFF" : theme.link}
                             />
                           </Pressable>
                         </View>
                         <ThemedText
                           type="small"
+                          numberOfLines={1}
                           style={{ color: isSelected ? "rgba(255,255,255,0.9)" : theme.tabIconDefault }}
                         >
                           {stylist.tagline}
@@ -1918,7 +1936,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         <ThemedText
                           type="small"
                           numberOfLines={2}
-                          style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: Spacing.xs }}
+                          style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: 2 }}
                         >
                           {stylist.personality}
                         </ThemedText>
@@ -1955,42 +1973,44 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   onDismiss={() => setShowPronunciationPrompt(false)}
                 />
               ) : null}
-
-              <View style={styles.voiceSettingsSection}>
-                <ThemedText type="h3" style={styles.sectionLabel}>
-                  {t('onboarding.stylist.language') || 'Stylist language'}
-                </ThemedText>
-                <ThemedText type="small" style={[styles.sectionHint, { color: theme.tabIconDefault }]}>
-                  {t('onboarding.stylist.languageHint') || 'This is the language your stylist will use in chat and voice — separate from the app language.'}
-                </ThemedText>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                  <View style={styles.horizontalOptionsRow}>
-                    {STYLIST_LANGUAGES.map((lang) => (
-                      <Pressable
-                        key={lang}
-                        onPress={() => handleLanguageChange(lang)}
-                        style={({ pressed }) => [
-                          styles.optionChip,
-                          {
-                            backgroundColor: stylistLanguage === lang ? theme.link : theme.backgroundDefault,
-                            opacity: pressed ? 0.8 : 1,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="body"
-                          style={{ color: stylistLanguage === lang ? "#FFFFFF" : theme.text }}
-                        >
-                          {lang}
-                        </ThemedText>
-                      </Pressable>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-
-
             </ScrollView>
+
+            {/* Docked above Continue so chips are never clipped by the footer */}
+            <View style={styles.stylistLanguageDock}>
+              <ThemedText type="h3" style={styles.sectionLabel}>
+                {t('onboarding.stylist.language') || 'Stylist language'}
+              </ThemedText>
+              <ThemedText type="small" style={[styles.sectionHint, { color: theme.tabIconDefault }]}>
+                {t('onboarding.stylist.languageHint') || 'This is the language your stylist will use in chat and voice — separate from the app language.'}
+              </ThemedText>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalOptionsRow}
+              >
+                {STYLIST_LANGUAGES.map((lang) => (
+                  <Pressable
+                    key={lang}
+                    onPress={() => handleLanguageChange(lang)}
+                    style={({ pressed }) => [
+                      styles.optionChip,
+                      {
+                        backgroundColor: stylistLanguage === lang ? theme.link : theme.backgroundDefault,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      type="body"
+                      style={{ color: stylistLanguage === lang ? "#FFFFFF" : theme.text }}
+                    >
+                      {lang}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
           </View>
         );
 
@@ -4255,25 +4275,25 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   stylistStepSubtitle: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   stylistsContainer: {
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: 10,
+    marginBottom: Spacing.sm,
   },
   stylistCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 2,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   stylistIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -4284,12 +4304,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
+  },
+  stylistName: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   voicePreviewButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -4308,17 +4332,30 @@ const styles = StyleSheet.create({
     height: 12,
   },
   voiceSettingsSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  stylistScrollContent: {
+    paddingBottom: Spacing.lg,
+  },
+  /** Fixed strip between stylist list and Continue — keeps full chip height visible. */
+  stylistLanguageDock: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   horizontalScroll: {
     marginLeft: -Spacing.xl,
     marginRight: -Spacing.xl,
-    paddingLeft: Spacing.xl,
+    flexGrow: 0,
   },
   horizontalOptionsRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
+    paddingLeft: Spacing.xl,
     paddingRight: Spacing.xl * 2,
+    paddingVertical: Spacing.xs,
   },
   pitchOptionsRow: {
     flexDirection: "row",

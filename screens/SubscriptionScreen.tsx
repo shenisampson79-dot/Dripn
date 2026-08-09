@@ -20,6 +20,7 @@ import {
 } from "@/utils/dfyEntitlements";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
+import { dismissSubscription } from "@/utils/dismissSubscription";
 import {
   appleIAPService,
   IAP_UNAVAILABLE_MESSAGE,
@@ -546,9 +547,67 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     return () => clearTimeout(clear);
   }, [route?.params?.scrollToAiTopUp]);
 
+  const handleDismissPaywall = useCallback(() => {
+    Haptics.selectionAsync();
+    void apiService
+      .logAnalyticsEvent({
+        event: 'subscription_dismiss',
+        source: String(route?.params?.source || (route?.params?.asPaywall ? 'paywall' : 'subscription')),
+        cta: 'header_close',
+      })
+      .catch(() => {});
+    dismissSubscription(navigation);
+  }, [navigation, route?.params?.asPaywall, route?.params?.source]);
+
+  useEffect(() => {
+    void apiService
+      .logAnalyticsEvent({
+        event: 'subscription_open',
+        source: String(route?.params?.source || (route?.params?.asPaywall ? 'paywall' : 'subscription')),
+        cta: route?.params?.asPaywall ? 'upgrade' : 'browse',
+        metadata: {
+          asPaywall: !!route?.params?.asPaywall,
+          highlightPlan: route?.params?.highlightPlan || null,
+        },
+      })
+      .catch(() => {});
+  }, []);
+
   useLayoutEffect(() => {
-    navigation.setOptions({ title: t('subscription.screenTitle') });
-  }, [navigation, t]);
+    const titleColor = isDark ? '#FFFFFF' : (theme.text || '#111111');
+    const chipBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.08)';
+    const asPaywall = !!route?.params?.asPaywall;
+    const showClose = asPaywall || !navigation.canGoBack();
+    // Always show an escape — never rely on the tab bar alone.
+    navigation.setOptions({
+      title: t('subscription.screenTitle'),
+      headerBackVisible: false,
+      gestureEnabled: true,
+      headerLeft: () => (
+        <Pressable
+          onPress={handleDismissPaywall}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showClose
+              ? (t('common.close') || 'Close')
+              : (t('common.back') || 'Back')
+          }
+          hitSlop={12}
+          style={{
+            marginLeft: Platform.OS === 'ios' ? 4 : 0,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: chipBg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Feather name={showClose ? 'x' : 'chevron-left'} size={showClose ? 20 : 24} color={titleColor} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, t, isDark, theme.text, handleDismissPaywall, route?.params?.asPaywall]);
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
   const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;
@@ -1289,7 +1348,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   };
 
   return (
-    <ScreenScrollView ref={scrollViewRef} style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+    <ScreenScrollView
+      ref={scrollViewRef}
+      opaqueHeader
+      style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}
+    >
       {(winbackBanner || winbackOffer50 || winbackPausePrompt) ? (
         <View style={[styles.winbackBanner, { backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.25)' }]}>
           {winbackBanner ? (

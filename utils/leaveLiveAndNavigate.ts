@@ -22,10 +22,14 @@ type LiveNav = {
 };
 
 function subscriptionParams(dest: Extract<LiveExitDestination, { kind: 'subscription' }>) {
-  const params: Record<string, string | boolean> = {};
+  // asPaywall: false → card presentation (Live replace must not become a modal).
+  const params: Record<string, string | boolean> = {
+    asPaywall: false,
+    source: 'live',
+  };
   if (dest.highlightPlan) params.highlightPlan = dest.highlightPlan;
   if (dest.scrollToAiTopUp) params.scrollToAiTopUp = true;
-  return Object.keys(params).length ? params : undefined;
+  return params;
 }
 
 /**

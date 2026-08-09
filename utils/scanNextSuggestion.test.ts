@@ -23,6 +23,7 @@ console.log('=== scanNextSuggestion ===\n');
   const withShoes = { ...counts, shoes: 1, outerwear: 0, dresses: 0 };
   assert.equal(estimateOutfitCombos(withShoes), 2);
   assert.equal(unlockGainIfAdd(withShoes, 'bottoms'), 2, 'extra bottom doubles with 2 tops');
+  assert.equal(unlockGainIfAdd(withShoes, 'outerwear'), 0, 'jacket never claims a combo count');
   console.log('✓ combo math');
 }
 
@@ -47,7 +48,10 @@ console.log('=== scanNextSuggestion ===\n');
   });
   assert.ok(s);
   assert.equal(s!.slot, 'outerwear');
-  console.log('✓ gap: outerwear after base set');
+  assert.equal(s!.unlockGain, 0);
+  assert.match(s!.detail || '', /depends on the jacket/i);
+  assert.doesNotMatch(s!.detail || '', /\d+\s+new outfits/i);
+  console.log('✓ gap: outerwear qualitative only');
 }
 
 {

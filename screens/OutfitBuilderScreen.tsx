@@ -1,4 +1,9 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+/**
+ * Outfit Mix (Clueless-style wardrobe reels).
+ * Kept in the repo for possible reintroduction — not registered in navigation.
+ * Backend mix-and-match + analysis APIs remain available.
+ */
 import {
   StyleSheet,
   View,

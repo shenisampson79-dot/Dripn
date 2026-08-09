@@ -114,6 +114,8 @@ export function garmentSpecificityRank(
   if (/blazer|suit\s*jacket/.test(blob)) return 38;
   if (/dress[\s_-]*shirt|oxford[\s_-]*shirt|button[\s_-]?down/.test(blob)) return 36;
   if (/t-?shirt|\btee\b/.test(blob)) return 22;
+  if (/hoodie|sweatshirt/.test(blob)) return 40;
+  if (/sweater|cardigan|knit/.test(blob)) return 32;
   if (/top|shirt|clothing|garment/.test(blob)) return 10;
   return isSpecificVisionName(args.name) ? 18 : 5;
 }
@@ -157,6 +159,8 @@ export function coreGarmentToken(
   if (/\btie\b|necktie/.test(blob)) return 'tie';
   if (/blazer/.test(blob)) return 'blazer';
   if (/t-?shirt|\btee\b/.test(blob)) return 'tshirt';
+  if (/hoodie|sweatshirt/.test(blob)) return 'hoodie';
+  if (/sweater|cardigan/.test(blob)) return 'sweater';
   if (/shirt/.test(blob)) return 'shirt';
   if (/top/.test(blob)) return 'top';
   return blob || 'unknown';
@@ -164,7 +168,7 @@ export function coreGarmentToken(
 
 const SPECIFIC_LEG_TOKENS = new Set(['sweatpants', 'joggers', 'chinos', 'jeans']);
 const SPECIFIC_SHOE_TOKENS = new Set(['boat_shoes', 'sneakers', 'boots', 'loafers', 'sandals']);
-const SPECIFIC_UPPER_TOKENS = new Set(['tshirt', 'shirt', 'blazer']);
+const SPECIFIC_UPPER_TOKENS = new Set(['tshirt', 'shirt', 'blazer', 'hoodie', 'sweater']);
 
 /**
  * True when `next` is only the generic name for what `prev` already identified

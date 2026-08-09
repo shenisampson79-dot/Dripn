@@ -227,9 +227,18 @@ function isAccessoryPiece(p: BeliefPieceForCoach): boolean {
 export function sentenceCaseGarmentName(name: string, atSentenceStart = false): string {
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) return '';
-  const lowered = words.map((word) => (
-    /^[A-Z][a-z'’]*(-[A-Za-z][a-z'’]*)*$/.test(word) ? word.toLowerCase() : word
-  ));
+  const colourOrTone = /^(black|white|navy|grey|gray|brown|cream|beige|khaki|olive|red|blue|green|pink|purple|orange|yellow|turquoise|charcoal|stone|tan|neon|light|dark|multicolou?r)$/i;
+  const garmentWord = /^(t-?shirts?|tees?|shirts?|jeans|trousers?|pants?|trainers?|sneakers?|boots?|loafers?|sandals?|heels?|tote|bag|bags?|jacket|blazer|coat|hoodie|polo|blouse|skirt|dress|shorts?|joggers?|singlet|overshirt|cargos?|chinos?|utility|plaid|striped|check(?:ed)?|henley|oxford)$/i;
+  const descriptor = /^(relaxed|slim|straight|wide|cropped|canvas|leather|cotton|wool|knit|crew|low-?top|high-?top|insulated|elastic-?waist|button-?(?:up|down)|short-?sleeve(?:d)?|long-?sleeve(?:d)?|sleeveless|running)$/i;
+  const lowered = words.map((word) => {
+    if (/^[A-Z]{2,}$/.test(word)) return word;
+    if (colourOrTone.test(word) || garmentWord.test(word) || descriptor.test(word)) {
+      return word.toLowerCase();
+    }
+    // Soften leftover Title Case tokens (Cream → cream) while keeping mixed brands.
+    if (/^[A-Z][a-z'’]*(-[A-Za-z][a-z'’]*)*$/.test(word)) return word.toLowerCase();
+    return word;
+  });
   const out = lowered.join(' ');
   if (!atSentenceStart) return out;
   return out.charAt(0).toUpperCase() + out.slice(1);

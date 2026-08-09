@@ -48,11 +48,16 @@ export type UserStylistStackParamList = {
   AddWardrobeItem: undefined;
   ScanWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
-  /** Same-stack replace target from Live — avoids modal dismiss / black slide. */
+  /**
+   * Live uses same-stack replace (card). Chat/upgrade CTAs use asPaywall modal.
+   * See navigateToSubscription / leaveLiveAndNavigate.
+   */
   Subscription: {
     highlightPlan?: SubscriptionTier;
     scrollToDFY?: boolean;
     scrollToAiTopUp?: boolean;
+    asPaywall?: boolean;
+    source?: string;
   } | undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
@@ -169,10 +174,20 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          presentation: "card",
-          animation: "slide_from_right",
+        options={({ route }) => {
+          const asPaywall = !!route.params?.asPaywall;
+          return {
+            ...getSettingsChildScreenOptions({
+              theme,
+              isDark,
+              title: t('subscription.screenTitle'),
+              transparent: false,
+            }),
+            // Paywall CTAs → modal. Live replace → card (avoids black dismiss slide).
+            presentation: asPaywall ? "modal" : "card",
+            animation: asPaywall ? "slide_from_bottom" : "slide_from_right",
+            gestureEnabled: true,
+          };
         }}
       />
       <Stack.Screen

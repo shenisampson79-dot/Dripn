@@ -2,6 +2,8 @@
  * Friendly wardrobe save confirmations — stylist tone, clear outcomes.
  */
 
+import { sentenceCaseGarmentName } from '@/utils/liveLayeringIntelligence';
+
 const REACTIONS = ['Sharp', 'Nice', 'Good pick', 'Clean', 'Love that', 'Got it'] as const;
 
 const LIVE_SAVED = [
@@ -17,18 +19,13 @@ function pick<T>(pool: readonly T[]): T {
   return pool[Math.floor(Math.random() * pool.length)] || pool[0];
 }
 
-/** Title-case garment names ("cream henley shirt" → "Cream Henley Shirt"). */
+/**
+ * Display garment names in editorial sentence case (not Title Case product dumps).
+ * Keeps brand/model tokens; softens ordinary colour and garment words.
+ * @deprecated Name kept for call-site compatibility — no longer Title Cases.
+ */
 export function titleCaseItemName(name?: string | null): string {
-  const raw = String(name || '').trim();
-  if (!raw) return '';
-  return raw
-    .split(/\s+/)
-    .map((word) => {
-      if (!word) return word;
-      const lower = word.toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    })
-    .join(' ');
+  return sentenceCaseGarmentName(String(name || '').trim(), true);
 }
 
 export type SaveOutcomeSkipped = {

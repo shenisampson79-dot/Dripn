@@ -25,6 +25,9 @@ const TENSION_COPY_RE =
   /\b(clash|conflict|awkward|mismatch|pull(?:s)? in different directions|do not fully come together|feel slightly out of step|out of step|fighting|formality span|tiers of each|disjoint|messy|unclear)\b/i;
 const COHESION_COPY_RE =
   /\b(consistent|cohesive|clean(?:er)?|balanced|work(?:s| well)? together|deliberately simple|palette stays|simple,? easy|sit together cleanly|sharp|tight|dialed|intentional)\b/i;
+/** Layering praise that contradicts a weak/mixed score ("Worn over beige top…"). */
+const LAYERING_PRAISE_RE =
+  /\b(worn over|adds depth|layered? (?:look|well)|depth to the outfit|nice layer)\b/i;
 
 /** Headlines illegal for each numeric band — rewritten from score. */
 const HEADLINE_FORBIDDEN: Record<LiveOutcomeBand, RegExp> = {
@@ -36,8 +39,8 @@ const HEADLINE_FORBIDDEN: Record<LiveOutcomeBand, RegExp> = {
 
 /** Summary / bullet language forbidden for the band. */
 const COPY_FORBIDDEN: Record<LiveOutcomeBand, RegExp> = {
-  weak: /\b(cohesive|balanced|clean(?:er)?|sharp|polished|tight|dialed|intentional|work(?:s| well)? together|sit together cleanly)\b/i,
-  mixed: /\b(sharp|polished|tight|dialed|looks sharp|intentional)\b/i,
+  weak: /\b(cohesive|balanced|clean(?:er)?|sharp|polished|tight|dialed|intentional|work(?:s| well)? together|sit together cleanly|worn over|adds depth)\b/i,
+  mixed: /\b(sharp|polished|tight|dialed|looks sharp|intentional|worn over|adds depth)\b/i,
   good: /\b(conflicting|messy|disjoint|clash|awkward|fighting)\b/i,
   strong: /\b(mixed|uneven|conflicting|messy|disjoint|clash|awkward|fighting|formality span)\b/i,
 };
@@ -135,6 +138,8 @@ function editorialiseSummaryProse(text: string): string {
 
 /**
  * Confidence modifies intensity, never category/band meaning.
+ * Medium must sound provisional — "Looking solid" still reads as a locked verdict
+ * next to ~93 and caused trust friction after Test 8.
  */
 export function softenOutcomeTone(text: string, certainty: LiveOutcomeCertainty): string {
   if (certainty !== 'medium' || !text) return text;
@@ -143,9 +148,14 @@ export function softenOutcomeTone(text: string, certainty: LiveOutcomeCertainty)
     .replace(/\bwork(?:s)? together cleanly\b/gi, 'are settling together')
     .replace(/\bholds a consistent direction\b/gi, 'is settling into one direction')
     .replace(/\bsit together cleanly\b/gi, 'are settling together')
-    .replace(/\bLooking good\b/g, 'Looking solid')
-    .replace(/\bLooks sharp\b/g, 'Looking solid')
-    .replace(/\bPolished\b/g, 'Looking solid')
+    .replace(/\bLooking solid\b/g, 'Settling in')
+    .replace(/\bLooking good\b/g, 'Settling in')
+    .replace(/\bLooks sharp\b/g, 'Settling in')
+    .replace(/\bPolished\b/g, 'Settling in')
+    .replace(/\bSport-ready\b/g, 'Settling in')
+    .replace(/\bSmart casual\b/g, 'Settling in')
+    .replace(/\bCasual and easy\b/g, 'Settling in')
+    .replace(/\bNice balance\b/g, 'Almost there')
     .trim();
 }
 
@@ -168,7 +178,7 @@ const SAFE_MEDIUM_TRAITS: Record<LiveOutcomeBand, string> = {
   weak: 'Still reading the overall direction of the look.',
   mixed: 'Simple structure is coming into focus.',
   good: 'Consistent base — top is still settling.',
-  strong: 'Clean palette with a relaxed, settling cohesion.',
+  strong: 'Direction looks strong — still confirming the upper pieces.',
 };
 
 export function ensureMediumTraitDensity(
@@ -224,10 +234,11 @@ export function enforceLiveOutcomeContract<T extends LiveCoaching>(
       || HEADLINE_FORBIDDEN[band].test(headline)
       || MIXED_HEADLINE_RE.test(headline)
       || MIXED_WEIGHTS_RE.test(headline)
-      || /polished|needs a tweak/i.test(headline)
+      || /polished|needs a tweak|looking (good|solid)|looks sharp|sport-ready/i.test(headline)
     ) {
+      // Provisional — never paint a locked polish verdict under soft certainty.
       headline = band === 'strong' || band === 'good'
-        ? (n >= 80 ? 'Looking good' : 'Almost there')
+        ? (n >= 65 ? 'Settling in' : 'Almost there')
         : headlineFromScore(n, lane);
     }
   } else if (!headline.trim() || HEADLINE_FORBIDDEN[band].test(headline)) {
@@ -261,8 +272,18 @@ export function enforceLiveOutcomeContract<T extends LiveCoaching>(
     }
   } else if (band === 'weak' || band === 'mixed') {
     summary = stripForbiddenCopy(summary, band);
-    if (!summary || COPY_FORBIDDEN[band].test(summary) || COHESION_COPY_RE.test(summary)) {
-      if (COHESION_COPY_RE.test(String(coaching.summary || '')) || !summary) {
+    if (
+      !summary
+      || COPY_FORBIDDEN[band].test(summary)
+      || COHESION_COPY_RE.test(summary)
+      || LAYERING_PRAISE_RE.test(summary)
+    ) {
+      if (
+        COHESION_COPY_RE.test(String(coaching.summary || ''))
+        || LAYERING_PRAISE_RE.test(String(coaching.summary || ''))
+        || !summary
+        || LAYERING_PRAISE_RE.test(summary)
+      ) {
         summary = defaultSummaryForBand(band, n);
       }
     }

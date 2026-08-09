@@ -796,18 +796,6 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
   const renderQuickActionsBar = useCallback(() => (
     <View style={styles.quickActionsBar}>
       <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          navigation.navigate('OutfitBuilder');
-        }}
-        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
-      >
-        <Feather name="shuffle" size={15} color="#FFFFFF" />
-        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          {t('wardrobe.outfitMix') || 'Outfit Mix'}
-        </ThemedText>
-      </Pressable>
-      <Pressable
         onPress={handleScanWardrobe}
         style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
       >
@@ -835,7 +823,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         </ThemedText>
       </Pressable>
     </View>
-  ), [handleBulkAdd, handleQuickAdd, handleScanWardrobe, navigation, LUXURY_COLORS.midnight, t]);
+  ), [handleBulkAdd, handleQuickAdd, handleScanWardrobe, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     // Resilience: wardrobe tiles can hit malformed item data after upgrades or partial sync.

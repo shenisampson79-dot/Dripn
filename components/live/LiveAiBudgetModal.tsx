@@ -75,7 +75,7 @@ export function LiveAiBudgetModal({
       ? (t('live.budgetModal.bodyPersonal')
         || "Your live AI styling allowance is spent. Upgrade for a bigger monthly pot or buy more credit to keep going on your current plan.")
       : (t('live.budgetModal.body')
-        || "Your live AI styling allowance is spent — even the best stylists need a coffee break. Upgrade for a bigger pot or continue with Quick sanity check and Stylist Chat.");
+        || "You've used your free monthly live AI allowance. Upgrade to Personal Stylist for unlimited outfit coaching, faster feedback, and full wardrobe support — or continue with Quick sanity check and Stylist Chat.");
 
   const upgradeLabel = isPersonal
     ? (t('live.budgetModal.upgradePlan') || 'Upgrade plan')

@@ -1,6 +1,7 @@
 /**
  * Lean “what to scan next” suggestions — gaps + outfit sequencing + conservative unlock math.
  * One suggestion at a time; specific stylist tone, never “scan more items”.
+ * Outerwear never gets an unlock number (subtype decides which looks it finishes).
  */
 
 export type ScanSuggestionSlot = 'tops' | 'bottoms' | 'shoes' | 'outerwear' | 'dresses';
@@ -71,14 +72,16 @@ export function estimateOutfitCombos(counts: Record<ScanSuggestionSlot, number>)
   return tops * bottoms + dresses;
 }
 
+/**
+ * Incremental looks if we add one item of `slot`.
+ * Outerwear returns 0 — a trench and a Bond overcoat do not finish the same set,
+ * so any jacket number would overclaim.
+ */
 export function unlockGainIfAdd(
   counts: Record<ScanSuggestionSlot, number>,
   slot: ScanSuggestionSlot,
 ): number {
-  // Outerwear finishes existing complete looks rather than inventing new combos.
-  if (slot === 'outerwear') {
-    return estimateOutfitCombos(counts);
-  }
+  if (slot === 'outerwear') return 0;
   const next = { ...counts, [slot]: (counts[slot] || 0) + 1 };
   return Math.max(0, estimateOutfitCombos(next) - estimateOutfitCombos(counts));
 }
@@ -126,9 +129,9 @@ function suggestionForSlot(
       coverage: 'Shoes would finish a lot of outfits',
     },
     outerwear: {
-      gap: 'Try scanning: a jacket or coat',
-      sequence: 'A jacket would finish this look',
-      coverage: 'A jacket would finish more outfits',
+      gap: 'Try scanning: a jacket you actually wear',
+      sequence: 'A jacket can finish more of these looks',
+      coverage: 'A jacket can finish more of these looks',
     },
     dresses: {
       gap: 'Try scanning: a dress or one-piece',
@@ -143,11 +146,15 @@ function suggestionForSlot(
         : tone === 'coverage' ? pack.coverage
           : pack.gap;
 
-  const detail = unlockGain > 0
-    ? (unlockGain === 1
+  // Outerwear: qualitative only — subtype (trench vs overcoat) decides which looks it finishes.
+  let detail: string | undefined;
+  if (slot === 'outerwear') {
+    detail = 'Depends on the jacket — trench, coat, and bomber finish different looks';
+  } else if (unlockGain > 0) {
+    detail = unlockGain === 1
       ? 'About 1 new outfit unlocked'
-      : `About ${unlockGain} new outfits unlocked`)
-    : undefined;
+      : `About ${unlockGain} new outfits unlocked`;
+  }
 
   return { chip, detail, slot, unlockGain, reason };
 }

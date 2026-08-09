@@ -11,7 +11,7 @@ import LiveStylistScreen from "@/screens/LiveStylistScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import SanityCheckScreen from "@/screens/SanityCheckScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
-import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
+// Outfit Mix (OutfitBuilderScreen) kept on disk for possible reintroduction — not registered in nav.
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
 import StyleDNAScreen from "@/screens/StyleDNAScreen";
@@ -47,15 +47,18 @@ export type WardrobeStackParamList = {
   /** Wardrobe Creation layer — digitise rail/drawer photos into items. */
   DigitizeWardrobe: undefined;
   LiveStylist: { occasionType?: string } | undefined;
-  /** Same-stack replace target from Live — avoids modal dismiss / black slide. */
+  /** Live replace = card; upgrade CTAs pass asPaywall for modal. */
   Subscription: {
     highlightPlan?: SubscriptionTier;
+    asPaywall?: boolean;
+    source?: string;
     scrollToDFY?: boolean;
     scrollToAiTopUp?: boolean;
   } | undefined;
   SanityCheck: undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
+  /** Retained for OutfitBuilderScreen.tsx (not registered — Mix removed from UI). */
   OutfitBuilder: undefined;
   WardrobeDigitalTwin: undefined;
   CostPerWear: undefined;
@@ -145,10 +148,19 @@ export default function WardrobeStackNavigator() {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          presentation: "card",
-          animation: "slide_from_right",
+        options={({ route }) => {
+          const asPaywall = !!route.params?.asPaywall;
+          return {
+            ...getSettingsChildScreenOptions({
+              theme,
+              isDark,
+              title: t('subscription.screenTitle'),
+              transparent: false,
+            }),
+            presentation: asPaywall ? "modal" : "card",
+            animation: asPaywall ? "slide_from_bottom" : "slide_from_right",
+            gestureEnabled: true,
+          };
         }}
       />
       <Stack.Screen
@@ -174,14 +186,6 @@ export default function WardrobeStackNavigator() {
         component={OutfitCalendarScreen}
         options={{
           title: t('navTitles.outfitCalendar') || t('wardrobe.outfitCalendar') || "Outfit Calendar",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="OutfitBuilder"
-        component={OutfitBuilderScreen}
-        options={{
-          title: t('navTitles.outfitBuilder') || "Outfit Builder",
           headerShown: false,
         }}
       />

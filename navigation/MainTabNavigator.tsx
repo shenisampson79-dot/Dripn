@@ -9,7 +9,7 @@ import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/b
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-import { StackActions, type NavigatorScreenParams } from "@react-navigation/native";
+import { CommonActions, type NavigatorScreenParams } from "@react-navigation/native";
 
 import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
 import UserStylistStackNavigator, {
@@ -86,14 +86,51 @@ const HIDE_TAB_BAR_SCREENS = new Set([
   'ImproveRecognition',
 ]);
 
-/** Pop nested stack to root without remounting the root screen. */
-function popNestedStackToTop(navigation: CustomTabBarProps['navigation'], route: BottomTabBarProps['state']['routes'][number]) {
+const TAB_ROOT_SCREEN: Record<keyof MainTabParamList, string> = {
+  StylistTab: 'StylistHub',
+  WardrobeTab: 'Wardrobe',
+  ProfileTab: 'Profile',
+  SettingsTab: 'Settings',
+};
+
+/**
+ * Hard rule: tab press always lands on that tab's root screen.
+ * Never rely on popToTop alone (fails when a deep screen was mounted as sole root).
+ */
+function forceTabToRoot(
+  navigation: CustomTabBarProps['navigation'],
+  route: BottomTabBarProps['state']['routes'][number],
+  tabName: keyof MainTabParamList,
+) {
+  const rootScreen = TAB_ROOT_SCREEN[tabName];
+  if (!rootScreen) {
+    navigation.navigate(tabName);
+    return;
+  }
+
   const nested = route.state as { key?: string; index?: number } | undefined;
-  if (!nested?.key || (nested.index ?? 0) <= 0) return;
-  navigation.dispatch({
-    ...StackActions.popToTop(),
-    target: nested.key,
-  });
+  const focused = getFocusedRouteName(route);
+  const alreadyAtRoot = focused === rootScreen && (nested?.index ?? 0) === 0;
+
+  if (alreadyAtRoot) {
+    navigation.navigate(tabName);
+    return;
+  }
+
+  // Focus the tab, then hard-reset its nested stack (covers Subscription-as-sole-root).
+  navigation.navigate(tabName);
+  if (nested?.key) {
+    navigation.dispatch({
+      ...CommonActions.reset({
+        index: 0,
+        routes: [{ name: rootScreen }],
+      }),
+      target: nested.key,
+    });
+    return;
+  }
+
+  navigation.navigate(tabName, { screen: rootScreen } as never);
 }
 
 function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
@@ -138,15 +175,8 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 
       if (event.defaultPrevented) return;
 
-      if (!isFocused) {
-        // Switch tab first, then pop that stack to root if deep (Subscription leak, etc.).
-        navigation.navigate(tabConfig.name);
-        popNestedStackToTop(navigation, route);
-        return;
-      }
-
-      // Re-tap focused tab → pop to root (no navigate-to-root remount).
-      popNestedStackToTop(navigation, route);
+      // Always force tab root — paywall / deep screens must never trap the user.
+      forceTabToRoot(navigation, route, tabConfig.name);
     };
 
     const onLongPress = () => {

@@ -28,7 +28,8 @@ export type FootwearRejectReason =
   | 'barefoot'
   | 'skin_unknown'
   | 'low_confidence'
-  | 'not_labeled_footwear';
+  | 'not_labeled_footwear'
+  | 'off_body';
 
 export type FootwearCandidateAnalysis = {
   trackId?: string;
@@ -103,7 +104,7 @@ export function isConfusableShoeFlip(prev: ShoeSubtype, next: ShoeSubtype): bool
 export const BAREFOOT_SKIN_RATIO = 0.22;
 export const FOOT_ZONE_BRIGHTNESS_MIN = 0.1;
 /** Frames (~1.1s) to block footwear after barefoot veto. */
-export const BAREFOOT_BLOCK_MS = 5500;
+export const BAREFOOT_BLOCK_MS = 14000;
 
 const SHOE_FORMALITY: Record<ShoeSubtype, number> = {
   sneakers: 0.3,
@@ -317,6 +318,26 @@ export function gateFootwearDetections(
   // Only true skin-dominant feet veto footwear. skin_unknown is "can't tell" — not barefoot.
   const barefootEvidence = candidates.some((c) => c.rejectReason === 'barefoot');
 
+  // Off-body / floor shoes: lateral to top+bottom centers (no pose keypoints yet).
+  const bodyBboxes = detections
+    .filter((d) => {
+      const blob = `${d.category} ${d.subcategory || ''}`.toLowerCase();
+      return /top|outer|bottom|dress|trouser|short|skirt|pant|hoodie|jacket|blazer|shirt|tee/.test(blob)
+        && !FOOTWEAR_LABEL_RE.test(blob);
+    })
+    .map((d) => d.bbox as BBoxTuple)
+    .filter(Boolean);
+
+  for (let i = 0; i < candidates.length; i += 1) {
+    const c = candidates[i];
+    if (!c.valid) continue;
+    const shoeBbox = shoeLike[i]?.bbox as BBoxTuple | undefined;
+    if (shoeBbox && isOffBodyFootwear(shoeBbox, bodyBboxes)) {
+      c.valid = false;
+      c.rejectReason = 'off_body';
+    }
+  }
+
   for (const c of candidates) {
     if (!c.valid && c.rejectReason) {
       appendDecision(decisions, {
@@ -422,7 +443,28 @@ function rejectReasonLabel(reason: FootwearRejectReason, skin: number | null): s
   if (reason === 'outside_footwear_zone') return 'outside footwear zone';
   if (reason === 'invalid_shape') return 'not shoe-like shape';
   if (reason === 'low_confidence') return 'low confidence';
+  if (reason === 'off_body') return 'off-body / floor shoe (lateral to outfit)';
   return 'not labeled footwear';
+}
+
+/** Horizontal center of a bbox [x,y,w,h]. */
+function bboxCenterX(bbox: BBoxTuple): number {
+  return bbox[0] + bbox[2] / 2;
+}
+
+/**
+ * Shoes a yard away sit laterally in the frame while feet stay under the body.
+ * Without pose keypoints, outfit centers (top/bottom) are the body proxy.
+ */
+export function isOffBodyFootwear(
+  shoeBbox: BBoxTuple,
+  bodyBboxes: BBoxTuple[],
+  maxLateral = 0.28,
+): boolean {
+  if (!bodyBboxes.length) return false;
+  const shoeCx = bboxCenterX(shoeBbox);
+  const bodyCx = bodyBboxes.reduce((sum, b) => sum + bboxCenterX(b), 0) / bodyBboxes.length;
+  return Math.abs(shoeCx - bodyCx) > maxLateral;
 }
 
 function capitalize(s: string): string {

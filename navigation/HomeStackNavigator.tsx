@@ -53,11 +53,17 @@ export default function HomeStackNavigator() {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({
-          theme,
-          isDark,
-          title: t('navTitles.subscription') || t('subscription.screenTitle') || "Subscription",
-        })}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            transparent: false,
+            title: t('navTitles.subscription') || t('subscription.screenTitle') || "Subscription",
+          }),
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          gestureEnabled: true,
+        }}
       />
       <Stack.Screen
         name="DFYComparison"

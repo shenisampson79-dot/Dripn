@@ -27,9 +27,11 @@ import { USER_TOKEN_KEY, setSecureToken } from '@/utils/secureTokenStore';
 await setSecureToken(USER_TOKEN_KEY, jwt);
 ```
 
-## Cross-tab Subscription navigation
+## Subscription / paywall navigation
 
-- Subscription lives on **ProfileTab**. From Stylist / Wardrobe screens use `navigateToSubscription()` — never `navigation.navigate('Subscription')`.
+- From Stylist / Wardrobe / Live / chat upgrade CTAs use `navigateToSubscription()` — never raw `navigation.navigate('Subscription')`.
+- The helper opens Subscription as a **dismissible modal** (prefer current stack; ProfileTab fallback with `initial: false`).
+- Subscription must always expose a back/close control — never rely on tab bar alone as the exit.
 
 ```typescript
 import { navigateToSubscription } from '@/utils/navigateToSubscription';

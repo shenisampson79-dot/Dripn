@@ -100,13 +100,12 @@ export default function SupportScreen() {
     const initialize = async () => {
       await supportService.initialize(user?.gender);
       setStylist(supportService.getStylist());
-      const history = supportService.getChatHistory();
+      let history = supportService.getChatHistoryDeduped();
       if (history.length === 0) {
-        const welcome = supportService.getWelcomeMessage();
-        setMessages([welcome]);
-      } else {
-        setMessages(history);
+        supportService.seedWelcomeIfEmpty();
+        history = supportService.getChatHistoryDeduped();
       }
+      setMessages(history);
       await currencyService.initialize();
       setCurrencySymbol(currencyService.getCurrencySymbol());
       setIsInitialized(true);
@@ -131,24 +130,17 @@ export default function SupportScreen() {
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Same id as SupportService will store — avoids remount / double-bubble flash
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: clientMessageId,
-        role: 'user',
-        content: userMessage,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    // Same id as SupportService — register once so we never flash a duplicate bubble
+    supportService.ensureUserMessage(clientMessageId, userMessage);
+    setMessages(supportService.getChatHistoryDeduped());
     scrollToEnd();
 
     try {
       await supportService.sendMessage(userMessage, { clientMessageId });
-      setMessages(supportService.getChatHistory());
+      setMessages(supportService.getChatHistoryDeduped());
       scrollToEnd();
     } catch (error) {
-      setMessages(supportService.getChatHistory());
+      setMessages(supportService.getChatHistoryDeduped());
       Alert.alert(t('common.error'), t('support.sendFailed') || 'Could not send your message. Please try again.');
     } finally {
       sendingRef.current = false;
@@ -168,15 +160,8 @@ export default function SupportScreen() {
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: clientMessageId,
-        role: 'user',
-        content: label,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    supportService.ensureUserMessage(clientMessageId, label);
+    setMessages(supportService.getChatHistoryDeduped());
     scrollToEnd();
 
     try {
@@ -184,10 +169,10 @@ export default function SupportScreen() {
         fromQuickAction: true,
         clientMessageId,
       });
-      setMessages(supportService.getChatHistory());
+      setMessages(supportService.getChatHistoryDeduped());
       scrollToEnd();
     } catch (error) {
-      setMessages(supportService.getChatHistory());
+      setMessages(supportService.getChatHistoryDeduped());
       Alert.alert(t('common.error'), t('support.responseFailed') || 'Could not get a response. Please try again.');
     } finally {
       sendingRef.current = false;

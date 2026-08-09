@@ -348,7 +348,35 @@ const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
     Polish: "Hej! Jestem Max, twój ekspert od stylu. Jestem autentyczny i pomagam ci wyglądać na wyluzowanego bez wysiłku!",
     Turkish: "Selam! Ben Max, senin stil uzmanın. Gerçekçi kalıyorum ve zahmetsizce havalı görünmene yardımcı oluyorum!",
   },
+  ace: {
+    English: "No fluff. Just answers. I'm Ace, and I'm here to give you direct, no-nonsense style advice that works.",
+  },
+  ivy: {
+    English: "Straight talk. Real style. I'm Ivy. I'll tell you exactly what works and what doesn't, with zero hesitation.",
+  },
 };
+
+/** True when the spoken preview script actually contains the member's name. */
+export function voicePreviewSaidUserName(script: string | null | undefined, userName?: string | null): boolean {
+  const name = String(userName || '').trim();
+  const text = String(script || '').trim();
+  if (!name || !text) return false;
+  // Case-insensitive substring — only show pronunciation UI when name was spoken.
+  return text.toLowerCase().includes(name.toLowerCase());
+}
+
+function personalizePreviewPhrase(phrase: string, userName?: string): string {
+  const name = String(userName || '').trim();
+  if (!name || !phrase) return phrase;
+  if (/\bI'm (Ruby|Max|Ace|Ivy)\b/.test(phrase)) {
+    return phrase
+      .replace("I'm Ruby", `${name}, I'm Ruby`)
+      .replace("I'm Max", `${name}, I'm Max`)
+      .replace("I'm Ace", `${name}, I'm Ace`)
+      .replace("I'm Ivy", `${name}, I'm Ivy`);
+  }
+  return phrase.replace(/^(Hey!|Hello!|Hi there!|Hi!)/, `$1 ${name},`);
+}
 
 let currentPlayer: AudioPlayer | null = null;
 let webAudioElement: HTMLAudioElement | null = null;
@@ -524,7 +552,7 @@ const playWithFallbackSpeech = async (
   voiceRange?: string,
   accent?: string,
   userName?: string // Optional: use member's actual name when logged in
-): Promise<void> => {
+): Promise<string> => {
   // Use culturally-authentic scripts for non-English languages
   let text = getVoicePreviewPhrase(stylistId, language, accent, userName);
   if (!text) {
@@ -595,7 +623,7 @@ const playWithFallbackSpeech = async (
       rate,
       onDone: () => {
         console.log(`Speech completed for ${language}${useEnglishFallback ? ' (English fallback)' : ''}`);
-        resolve();
+        resolve(text);
       },
       onError: (error) => {
         console.log(`Speech error for ${language}:`, error);
@@ -721,7 +749,7 @@ export const playVoicePreview = async (
   voice?: TTSVoice,
   accent?: string,
   userName?: string // Optional: use member's actual name when logged in
-): Promise<void> => {
+): Promise<string | null> => {
   await stopAudio();
 
   const selectedVoice = voice || DEFAULT_VOICE_FOR_STYLIST[stylistId] || 'nova';
@@ -833,7 +861,7 @@ export const playVoicePreview = async (
         const mimeType = contentType.includes('mpeg') ? 'audio/mpeg' : 'audio/wav';
         const dataUri = `data:${mimeType};base64,${base64Audio}`;
         await playAudioFile(dataUri);
-        return;
+        return text;
       }
       
       const ext = contentType.includes('mpeg') ? 'mp3' : 'wav';
@@ -845,7 +873,7 @@ export const playVoicePreview = async (
       });
 
       await playAudioFile(fileUri);
-      return;
+      return text;
     }
 
     const data = await response.json();
@@ -855,7 +883,7 @@ export const playVoicePreview = async (
     if (data.audioDataUri) {
       console.log('Playing audio from data URI (optimized path)');
       await playAudioFile(data.audioDataUri);
-      return;
+      return text;
     }
     
     let audioData: string | null = null;
@@ -874,7 +902,7 @@ export const playVoicePreview = async (
     if (audioUrl) {
       console.log('Playing audio from URL:', audioUrl.substring(0, 50));
       await playAudioFile(audioUrl);
-      return;
+      return text;
     }
     
     if (audioData) {
@@ -884,7 +912,7 @@ export const playVoicePreview = async (
       if (Platform.OS === 'web') {
         const dataUri = `data:audio/mpeg;base64,${audioData}`;
         await playAudioFile(dataUri);
-        return;
+        return text;
       }
       
       const fileName = `voice_preview_${Date.now()}.mp3`;
@@ -895,7 +923,7 @@ export const playVoicePreview = async (
       });
 
       await playAudioFile(fileUri);
-      return;
+      return text;
     }
     
     console.log('No audio data in response, falling back to device speech');
@@ -930,8 +958,7 @@ export const getVoicePreviewPhrase = (stylistId: string, language: string, accen
   // For English, include the user's name if provided
   let phrase = phrases[language] || phrases['English'];
   if (userName && phrase) {
-    // Insert name into English greetings
-    phrase = phrase.replace(/^(Hey!|Hello!|Hi!)/, `$1 ${userName},`);
+    phrase = personalizePreviewPhrase(phrase, userName);
   }
   return phrase;
 };
@@ -975,6 +1002,7 @@ export default {
   isPlaying,
   getSupportedLanguages,
   getVoicePreviewPhrase,
+  voicePreviewSaidUserName,
   checkLanguageVoiceAvailability,
   getAvailableLanguagesWithVoices,
 };

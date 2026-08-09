@@ -393,4 +393,23 @@ const gatedName = applyGatedShoeFusion({
 assert.equal(gatedName.subcategory, 'sneakers');
 assert.ok(gatedName.nameEnriched || gatedName.name?.includes('Brown'), 'same-subtype name enrich allowed');
 
+// Floor shoes a yard away (lateral) must not count as worn.
+{
+  const floorShoe: OnDeviceDetection = {
+    name: 'Black Loafers',
+    category: 'shoes',
+    subcategory: 'loafers',
+    color: 'black',
+    confidence: 0.92,
+    bbox: [0.02, 0.86, 0.18, 0.12],
+    skinRatio: 0.05,
+  };
+  const g = gateFootwearDetections([top, shorts, floorShoe], {
+    now: 9000,
+    bottomBandBrightness: 0.3,
+  });
+  assert.equal(g.accepted, null, 'lateral floor shoe rejected');
+  assert.ok(g.candidates.some((c) => c.rejectReason === 'off_body'));
+}
+
 console.log('liveFootwearGate.test.ts: all passed');

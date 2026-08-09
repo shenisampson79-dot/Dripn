@@ -1942,6 +1942,9 @@ class ApiService {
     chatHistory?: Array<{ role: string; content: string }>;
     stylistName?: string;
     stylistPersonality?: string;
+    storeCountry?: string;
+    appStoreCountry?: string;
+    deviceCountry?: string;
   }) {
     // Render cold starts often exceed the default 30s timeout; wake first, then allow
     // enough time for OpenAI (same pattern as wardrobe / stylist resilient calls).
@@ -1951,9 +1954,39 @@ class ApiService {
       // Non-fatal — request may still succeed if the backend is already warm
     }
 
+    let storeCountry = data.storeCountry || data.appStoreCountry || undefined;
+    let deviceCountry = data.deviceCountry || undefined;
+    if (!storeCountry) {
+      try {
+        const { getAppStoreCountryCode } = await import('@/services/AppleIAPService');
+        storeCountry = (await getAppStoreCountryCode()) || undefined;
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!deviceCountry) {
+      try {
+        const Localization = await import('expo-localization');
+        const region =
+          (Localization as { getLocales?: () => Array<{ regionCode?: string | null }> })
+            .getLocales?.()?.[0]?.regionCode
+          || (Localization as { region?: string }).region;
+        if (region) {
+          deviceCountry = region.trim().toUpperCase() === 'UK' ? 'GB' : region.trim().toUpperCase();
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
     return this.request<{ response: string; fallback?: boolean }>('/api/support/chat', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        storeCountry,
+        appStoreCountry: storeCountry,
+        deviceCountry,
+      }),
       timeout: 90000,
     });
   }
@@ -1962,6 +1995,8 @@ class ApiService {
     stylistId: string;
     messages: Array<{ role: string; content: string }>;
     userMessage: string;
+    /** Up to 3 data-URL or raw base64 images for vision / buy-compare. */
+    images?: string[];
     wardrobeItems?: Array<{
       id: string;
       name: string;
@@ -2043,6 +2078,12 @@ class ApiService {
     type?: string;
     status?: string;
     displayState?: string;
+    redirectToDecide?: boolean;
+    cta?: {
+      action?: string;
+      label?: string;
+      screen?: string;
+    } | null;
     missing?: Array<{
       role?: string;
       label?: string;
@@ -2170,6 +2211,13 @@ class ApiService {
       isFallback?: boolean;
       type?: string;
       status?: string;
+      displayState?: string;
+      redirectToDecide?: boolean;
+      cta?: {
+        action?: string;
+        label?: string;
+        screen?: string;
+      } | null;
       missing?: Array<{
         role?: string;
         label?: string;
@@ -2249,6 +2297,12 @@ class ApiService {
       type: isFallback ? 'fallback_outfit' : (isShopRequired ? 'shop_required' : result.type),
       status: isFallback ? 'fallback_outfit' : (isShopRequired ? 'SHOP_REQUIRED' : result.status),
       displayState: isShopRequired ? 'SHOP_REQUIRED' : result.displayState,
+      redirectToDecide: Boolean(
+        result.redirectToDecide
+        || result.status === 'redirect_to_decide'
+        || result.displayState === 'REDIRECT_TO_DECIDE',
+      ) || undefined,
+      cta: result.cta || undefined,
       missing: result.missing,
       outfitPieces: result.outfitPieces,
       products: result.products,

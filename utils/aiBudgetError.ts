@@ -31,7 +31,7 @@ export function isAiBudgetError(err: unknown): boolean {
   return false;
 }
 
-/** In-chat copy when stylist AI monthly allowance is spent — conversion, not a network snag. */
+/** In-chat copy when stylist AI monthly allowance is spent — conversion, not a network error. */
 export function stylistMonthlyAllowanceMessage(args: {
   stylistName: string;
   stylistId?: string;
@@ -43,21 +43,27 @@ export function stylistMonthlyAllowanceMessage(args: {
   const tier = String(args.tier || 'free').toLowerCase();
   const isFree = !tier || tier === 'free';
 
+  const unlockLines = [
+    '• Unlimited outfit advice',
+    '• Wardrobe-aware recommendations',
+    '• Instant answers when you need them',
+  ].join('\n');
+
   if (isFree) {
     if (isMale) {
-      return `You've used 100% of your monthly AI allowance — that's the Free plan cap, not a connection blip. Upgrade to Personal Stylist for a bigger allowance so ${name} can keep helping you. Tap See plans below, or open Settings → Subscription.`;
+      return `You've used your free monthly allowance — so ${name} has to pause for now.\n\nUpgrade to Personal Stylist to keep getting:\n${unlockLines}\n\nTap See plans to continue now. After you upgrade, I'll retry your last question automatically.`;
     }
     if (isAce) {
-      return `You've used 100% of your monthly AI allowance. That is a Free plan limit, not a temporary glitch. Upgrade to Personal Stylist for a bigger allowance so we can keep going. Tap See plans, or open Settings → Subscription.`;
+      return `You've used your free monthly allowance, so I have to pause for now.\n\nUpgrade to Personal Stylist to keep getting:\n${unlockLines}\n\nTap See plans to continue now. After you upgrade, I'll retry your last question automatically.`;
     }
-    return `You've used 100% of your monthly AI allowance, gorgeous — that's your Free plan limit, not a connection problem. Upgrade to Personal Stylist for a bigger allowance so ${name} can keep styling with you. Tap See plans, or open Settings → Subscription.`;
+    return `You've used your free monthly allowance, gorgeous — so ${name} has to pause for now.\n\nUpgrade to Personal Stylist to keep getting:\n${unlockLines}\n\nTap See plans to continue now. After you upgrade, I'll retry your last question automatically.`;
   }
 
   if (isMale) {
-    return `You've used 100% of your monthly AI allowance for this plan. Upgrade for a bigger pot, or buy more AI credit in Settings so ${name} can keep going.`;
+    return `You've hit your monthly AI allowance for this plan — so ${name} has to pause.\n\nUpgrade for a bigger pot, or buy more AI credit in Settings, to keep getting outfit advice instantly. After you top up, I'll retry your last question.`;
   }
   if (isAce) {
-    return `You've used 100% of your monthly AI allowance for this plan. Upgrade for a bigger allowance, or buy more AI credit in Settings to continue.`;
+    return `You've hit your monthly AI allowance for this plan, so I have to pause.\n\nUpgrade for a bigger allowance, or buy more AI credit in Settings, to keep getting outfit advice instantly. After you top up, I'll retry your last question.`;
   }
-  return `You've used 100% of your monthly AI allowance for this plan, darling. Upgrade for a bigger pot, or buy more AI credit in Settings so ${name} can keep helping you.`;
+  return `You've hit your monthly AI allowance for this plan, darling — so ${name} has to pause.\n\nUpgrade for a bigger pot, or buy more AI credit in Settings, to keep getting outfit advice instantly. After you top up, I'll retry your last question.`;
 }

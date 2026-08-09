@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import {
   useAudioRecorder,
@@ -175,6 +176,8 @@ const TAB_BAR_HEIGHT = 56;
 
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
+/** Last user question to auto-retry after an allowance upgrade. */
+const PENDING_STYLIST_RETRY_KEY = '@dripn_stylist_pending_retry';
 /** Stable FlatList row id for the welcome bubble — never swap this id on hydrate. */
 const SEED_MESSAGE_ID = 'msg_seed_init';
 
@@ -1800,6 +1803,11 @@ export default function AIStylistScreen() {
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   /** Server monthly AI meter exhausted — convert, do not pretend it is a network snag. */
   const [monthlyAllowanceExhausted, setMonthlyAllowanceExhausted] = useState(false);
+  /** Soft warn at ~90% of monthly AI meter (before hard block). */
+  const [aiAllowanceSoftWarn, setAiAllowanceSoftWarn] = useState(false);
+  const lastOutboundPromptRef = useRef<string | null>(null);
+  const sendMessageRef = useRef<(text: string) => Promise<void>>(async () => {});
+  const pendingRetryInFlightRef = useRef(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(
     () => chatQuickPromptsMemoryCache ?? !threadHasUserMessage(getCachedMessagesSync() || []),
   );
@@ -1880,6 +1888,7 @@ export default function AIStylistScreen() {
   }, []);
 
   // Re-entering Stylist Chat always lands on the latest message (like WhatsApp).
+  // Also refresh monthly AI meter — clear hard block after upgrade and retry the last question.
   useFocusEffect(
     useCallback(() => {
       chatMachineRef.current = transitionPhase(chatMachineRef.current, 'READY');
@@ -1890,10 +1899,62 @@ export default function AIStylistScreen() {
       const timers = [80, 200, 450, 800, 1400, 2200].map((ms) =>
         setTimeout(() => scrollChatToEnd(true, false), ms),
       );
+
+      let cancelled = false;
+      let retryTimer: ReturnType<typeof setTimeout> | null = null;
+      (async () => {
+        try {
+          await apiService.init();
+          const result = await apiService.getAiUsage();
+          if (cancelled) return;
+          const u = result.usage;
+          if (!u) return;
+          const budget = Number(u.budgetCents) || 0;
+          const used = Number(u.usedCents) || 0;
+          const remaining = Number(u.remainingCents);
+          const hasRoom = Number.isFinite(remaining) ? remaining > 0 : budget > 0 && used < budget;
+          const pct = budget > 0 ? used / budget : 0;
+
+          if (!hasRoom) {
+            setMonthlyAllowanceExhausted(true);
+            setAiAllowanceSoftWarn(false);
+            return;
+          }
+
+          setMonthlyAllowanceExhausted(false);
+          setAiAllowanceSoftWarn(pct >= 0.9 && String(tier || '').toLowerCase() === 'free');
+
+          const raw = await AsyncStorage.getItem(PENDING_STYLIST_RETRY_KEY);
+          if (!raw || cancelled || pendingRetryInFlightRef.current) return;
+          let pendingText = '';
+          try {
+            const parsed = JSON.parse(raw) as { text?: string };
+            pendingText = String(parsed?.text || '').trim();
+          } catch {
+            pendingText = String(raw || '').trim();
+          }
+          if (!pendingText) {
+            await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY);
+            return;
+          }
+          pendingRetryInFlightRef.current = true;
+          await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY);
+          retryTimer = setTimeout(() => {
+            void sendMessageRef.current(pendingText).finally(() => {
+              pendingRetryInFlightRef.current = false;
+            });
+          }, 450);
+        } catch {
+          // Usage endpoint optional — don't block chat.
+        }
+      })();
+
       return () => {
+        cancelled = true;
         timers.forEach(clearTimeout);
+        if (retryTimer) clearTimeout(retryTimer);
       };
-    }, [scrollChatToEnd]),
+    }, [scrollChatToEnd, tier]),
   );
 
   // Tab bar hides while keyboard is open — reserve keyboard height instead so
@@ -1921,7 +1982,7 @@ export default function AIStylistScreen() {
   }));
 
   const navigateToSubscriptionScreen = useCallback(() => {
-    navigateToSubscription(navigation);
+    navigateToSubscription(navigation, { source: 'stylist_chat', asPaywall: true });
   }, [navigation]);
   
   const navigateToWardrobe = useCallback(() => {
@@ -2335,6 +2396,7 @@ export default function AIStylistScreen() {
 
     const displayText = transcribedText || 'Voice message';
     const messageToSend = transcribedText || 'I just sent you a voice message about my style needs. Please help me with outfit suggestions.';
+    lastOutboundPromptRef.current = messageToSend;
 
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
@@ -2719,16 +2781,29 @@ export default function AIStylistScreen() {
 
   const presentMonthlyAllowancePaywall = useCallback((error?: unknown) => {
     setMonthlyAllowanceExhausted(true);
+    setAiAllowanceSoftWarn(false);
     const planTier = planTierFromBudgetError(error) || tier;
     const content = stylistMonthlyAllowanceMessage({
       stylistName: stylist.name,
       stylistId: stylist.id,
       tier: planTier,
     });
+    const pending = String(lastOutboundPromptRef.current || '').trim();
+    if (pending) {
+      void AsyncStorage.setItem(
+        PENDING_STYLIST_RETRY_KEY,
+        JSON.stringify({ text: pending, stylistId: stylist.id, at: Date.now() }),
+      );
+    }
+    const isFree = !planTier || String(planTier).toLowerCase() === 'free';
     Alert.alert(
-      t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month",
+      t('aiStylist.monthlyAllowanceTitle') || (isFree
+        ? "You've used your free monthly allowance"
+        : "That's your lot for this month"),
       (t('aiStylist.monthlyAllowanceAlert')
-        || 'Your monthly AI allowance is spent — Settings shows 100% used. Upgrade so {name} can keep helping you.')
+        || (isFree
+          ? 'Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question automatically.'
+          : 'Upgrade for a bigger monthly pot, or buy more AI credit in Settings, so {name} can keep helping you. After you top up, your last question will retry automatically.'))
         .replace('{name}', stylist.name),
       [
         { text: t('common.cancel') || 'Not now', style: 'cancel' },
@@ -2748,7 +2823,15 @@ export default function AIStylistScreen() {
   };
   
   const sendMessage = async (text: string) => {
-    if (!text.trim() || !canSendMessage()) return;
+    if (!text.trim()) return;
+    if (!canSendMessage()) {
+      if (monthlyAllowanceExhausted) {
+        lastOutboundPromptRef.current = text.trim();
+        presentMonthlyAllowancePaywall();
+      }
+      return;
+    }
+    lastOutboundPromptRef.current = text.trim();
 
     // Soft-attach without Continue: chatting usually drops Decide context.
     // Buy/compare asks keep shopping continuity so DO_NOT_BUY can restate.
@@ -2989,6 +3072,7 @@ export default function AIStylistScreen() {
       }, 100);
     }
   };
+  sendMessageRef.current = sendMessage;
   
   useEffect(() => {
     if (route.params?.initialPrompt) {
@@ -3317,6 +3401,26 @@ export default function AIStylistScreen() {
     await releaseDecisionContinuity();
   };
   
+  const copyChatMessage = useCallback(async (content: string) => {
+    const text = String(content || '').trim();
+    if (!text) return;
+    try {
+      await Clipboard.setStringAsync(text);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Alert.alert(
+        t('bargains.copiedToClipboard') || 'Copied to Clipboard',
+        t('aiStylist.messageCopied') || 'Message copied — you can paste it anywhere.',
+      );
+    } catch {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('aiStylist.copyFailed') || "Couldn't copy that message.",
+      );
+    }
+  }, [t]);
+
   // Helper function to parse markdown and render bold text
   const renderMarkdownText = (text: string) => {
     const safeText = typeof text === 'string' ? text : '';
@@ -3325,7 +3429,7 @@ export default function AIStylistScreen() {
       if (part.startsWith('**') && part.endsWith('**')) {
         // Bold text
         return (
-          <Text key={index} style={{ fontWeight: '700' }}>
+          <Text key={index} selectable style={{ fontWeight: '700' }}>
             {part.slice(2, -2)}
           </Text>
         );
@@ -3611,7 +3715,7 @@ export default function AIStylistScreen() {
 
               return (
                 <View key={`section-${sectionIndex}`} style={sectionIndex > 0 ? styles.outfitSectionGap : undefined}>
-                  <ThemedText style={styles.messageText}>
+                  <ThemedText selectable style={styles.messageText}>
                     {renderMarkdownText(section)}
                   </ThemedText>
                   {outfit ? renderOutfitVisual(outfit, `Outfit ${outfitNumber}`, message) : null}
@@ -3624,7 +3728,7 @@ export default function AIStylistScreen() {
 
       return (
         <>
-          <ThemedText style={styles.messageText}>
+          <ThemedText selectable style={styles.messageText}>
             {renderMarkdownText(message.content)}
           </ThemedText>
           {visual.outfits.map((outfit, index) => (
@@ -3638,7 +3742,7 @@ export default function AIStylistScreen() {
 
     if (outfitCount >= 2 && visual?.layout !== 'multi' && !(visual?.pieces?.length)) {
       return (
-        <ThemedText style={styles.messageText}>
+        <ThemedText selectable style={styles.messageText}>
           {renderMarkdownText(message.content)}
         </ThemedText>
       );
@@ -3655,7 +3759,7 @@ export default function AIStylistScreen() {
     if (isSingleOutfitWithFollowUp) {
       return (
         <>
-          <ThemedText style={styles.messageText}>
+          <ThemedText selectable style={styles.messageText}>
             {renderMarkdownText(sections[0])}
           </ThemedText>
           {renderWardrobeVisual(
@@ -3663,7 +3767,7 @@ export default function AIStylistScreen() {
             inferWardrobeVisualLabel(priorUser?.content || ''),
           )}
           {sections.slice(1).map((section, sectionIndex) => (
-            <ThemedText key={`follow-up-${sectionIndex}`} style={styles.messageText}>
+            <ThemedText key={`follow-up-${sectionIndex}`} selectable style={styles.messageText}>
               {renderMarkdownText(section)}
             </ThemedText>
           ))}
@@ -3677,7 +3781,7 @@ export default function AIStylistScreen() {
           { ...message, wardrobeVisual: visual },
           inferWardrobeVisualLabel(priorUser?.content || ''),
         )}
-        <ThemedText style={styles.messageText}>
+        <ThemedText selectable style={styles.messageText}>
           {renderMarkdownText(message.content)}
         </ThemedText>
       </>
@@ -3689,7 +3793,7 @@ export default function AIStylistScreen() {
       console.warn('[AIStylist] renderAssistantContent soft-fallback (text + SoftRenderFallback):', renderErr);
       return (
         <>
-          <ThemedText style={styles.messageText}>
+          <ThemedText selectable style={styles.messageText}>
             {renderMarkdownText(typeof message?.content === 'string' ? message.content : '')}
           </ThemedText>
           <SoftRenderFallback message="Outfit preview unavailable" />
@@ -3730,7 +3834,17 @@ export default function AIStylistScreen() {
           </LinearGradient>
         ) : null}
         
-        <View
+        <Pressable
+          onLongPress={() => {
+            void copyChatMessage(item.content);
+          }}
+          delayLongPress={350}
+          accessibilityActions={[{ name: 'copy', label: 'Copy' }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'copy') {
+              void copyChatMessage(item.content);
+            }
+          }}
           style={[
             styles.messageBubble,
             isUser 
@@ -3744,6 +3858,7 @@ export default function AIStylistScreen() {
         >
           {isUser ? (
             <ThemedText
+              selectable
               style={[
                 styles.messageText,
                 { color: '#FFFFFF' },
@@ -3776,6 +3891,7 @@ export default function AIStylistScreen() {
                   {item.missing.map((gap, gapIdx) => (
                     <ThemedText
                       key={`gap-${gap.role || gapIdx}-${gap.label || gap.name || gapIdx}`}
+                      selectable
                       style={[styles.messageText, { opacity: 0.8, marginBottom: 2 }]}
                     >
                       · {gap.label || gap.name || gap.role || 'Upgrade'} · recommended
@@ -3817,7 +3933,7 @@ export default function AIStylistScreen() {
             </View>
           ) : null}
 
-        </View>
+        </Pressable>
         
         {isUser ? (
           <LinearGradient
@@ -3957,11 +4073,25 @@ export default function AIStylistScreen() {
       return {
         showWarning: true,
         showTeaser: true,
-        teaserTitle: t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month",
+        teaserTitle: t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance",
         teaserMsg: (t('aiStylist.monthlyAllowanceTeaser')
-          || "You've used 100% of your monthly AI allowance. Upgrade so {name} can keep styling with you.")
+          || "Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question.")
           .replace('{name}', stylist.name),
         teaserIcon: 'heart' as const,
+        teaserCta: 'upgrade' as const,
+        teaserButtonLabel: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
+      };
+    }
+
+    if (aiAllowanceSoftWarn && chatMode !== 'voice' && !monthlyAllowanceExhausted) {
+      return {
+        showWarning: true,
+        showTeaser: true,
+        teaserTitle: t('aiStylist.monthlyAllowanceSoftTitle') || "You're close to your free monthly limit",
+        teaserMsg: (t('aiStylist.monthlyAllowanceSoftTeaser')
+          || "Upgrade now so {name}'s outfit advice never stops mid-chat — unlimited replies, wardrobe-aware picks, and faster answers.")
+          .replace('{name}', stylist.name),
+        teaserIcon: 'zap' as const,
         teaserCta: 'upgrade' as const,
         teaserButtonLabel: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
       };
@@ -4079,6 +4209,7 @@ export default function AIStylistScreen() {
     stylist.name,
     t,
     monthlyAllowanceExhausted,
+    aiAllowanceSoftWarn,
     voiceCreditsBalance?.usedThisMonth,
     voiceCreditsBalance?.monthlyAllowance,
     voiceRemainingCredits,
@@ -4451,13 +4582,13 @@ export default function AIStylistScreen() {
           <LimitHitUpgradePrompt
             title={
               monthlyAllowanceExhausted
-                ? (t('aiStylist.monthlyAllowanceTitle') || "That's your lot for this month")
+                ? (t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance")
                 : (t('common.dailyMessageLimitReached') || 'Daily message limit reached')
             }
             message={
               monthlyAllowanceExhausted
                 ? ((t('aiStylist.monthlyAllowanceTeaser')
-                  || "You've used 100% of your monthly AI allowance. Upgrade so {name} can keep styling with you.")
+                  || "Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question.")
                   .replace('{name}', stylist.name))
                 : 'Upgrade to Personal Stylist for unlimited AI styling conversations.'
             }
@@ -4544,9 +4675,11 @@ export default function AIStylistScreen() {
               scrollChatToEnd(true, false);
             }}
             placeholder={
-              limitReached
-                ? (t('aiStylist.dailyLimitPlaceholder') || 'Daily limit reached - upgrade for more')
-                : (t('aiStylist.askPlaceholder') || 'Ask for styling advice...')
+              monthlyAllowanceExhausted
+                ? (t('aiStylist.monthlyAllowancePlaceholder') || 'Monthly allowance used — upgrade to continue')
+                : limitReached
+                  ? (t('aiStylist.dailyLimitPlaceholder') || 'Daily limit reached - upgrade for more')
+                  : (t('aiStylist.askPlaceholder') || 'Ask for styling advice...')
             }
             placeholderTextColor={theme.tabIconDefault}
             style={[styles.textInput, { color: theme.text }]}

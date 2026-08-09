@@ -93,7 +93,8 @@ assert.throws(() => assertOutcomeConsistency(88, 'weak'));
   assert.equal(out?.hasConflict, false);
   assert.equal((out?.bullets || []).length, 1, 'hard claims dropped; safe trait backfilled');
   assert.doesNotMatch(out?.bullets?.[0] || '', /formality|mixed|conflict/i);
-  assert.match(out?.headline || '', /looking (good|solid)/i);
+  assert.match(out?.headline || '', /settling in/i);
+  assert.doesNotMatch(out?.headline || '', /looking solid|polished|looks sharp/i);
 }
 
 // Balanced praise is illegal on a weak score.
@@ -109,7 +110,22 @@ assert.throws(() => assertOutcomeConsistency(88, 'weak'));
   assert.doesNotMatch(out?.summary || '', /balanced|cohesive/i);
 }
 
-assert.match(softenOutcomeTone('Looking good', 'medium'), /Looking solid/);
+// Layering praise cannot sit on a weak/mixed score (beige top ghost summary).
+{
+  const out = enforceLiveOutcomeContract({
+    headline: 'Needs a tweak',
+    summary: 'Worn over beige top, black hoodie adds depth to the outfit.',
+    bullets: [],
+    hasConflict: false,
+    styleLane: 'casual',
+    summaryArchetype: 'layerTop',
+  }, 47);
+  assert.doesNotMatch(out?.summary || '', /worn over|adds depth/i);
+  assert.match(out?.summary || '', /partially aligned|different directions/i);
+}
+
+assert.match(softenOutcomeTone('Looking good', 'medium'), /Settling in/);
+assert.match(softenOutcomeTone('Looking solid', 'medium'), /Settling in/);
 assert.equal(softenOutcomeTone('Looking good', 'high'), 'Looking good');
 
 console.log('liveOutcomeContract.test.ts: all passed');

@@ -104,7 +104,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
     voiceCommentsPerMonth: 20,
     virtualTryOnPerMonth: 5,
 
-    hasOutfitCalendar: true,
+    hasOutfitCalendar: false,
     hasEventPlanning: false,
     hasSustainabilityFeatures: false,
     canAccessChallenges: true,
@@ -140,8 +140,8 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
     voiceCommentsPerMonth: 100,
     virtualTryOnPerMonth: 'unlimited',
 
-    hasOutfitCalendar: true,
-    hasEventPlanning: true,
+    hasOutfitCalendar: false,
+    hasEventPlanning: false,
     hasSustainabilityFeatures: true,
     canAccessChallenges: true,
     canUploadVideo: true,

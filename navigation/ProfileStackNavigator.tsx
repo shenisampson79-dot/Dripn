@@ -59,6 +59,8 @@ export type ProfileStackParamList = {
     offer50?: boolean;
     pause?: boolean;
     winbackBanner?: string;
+    asPaywall?: boolean;
+    source?: string;
   } | undefined;
   SubscriptionSuccess: { sessionId?: string } | undefined;
   EditProfile: undefined;
@@ -135,10 +137,20 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          ...getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') }),
-          presentation: "card",
-          animation: "slide_from_right",
+        options={({ route }) => {
+          const asPaywall = !!route.params?.asPaywall;
+          return {
+            ...getSettingsChildScreenOptions({
+              theme,
+              isDark,
+              title: t('subscription.screenTitle'),
+              transparent: false,
+            }),
+            // Upgrade CTAs → modal. In-profile browse can stay a card push.
+            presentation: asPaywall ? "modal" : "card",
+            animation: asPaywall ? "slide_from_bottom" : "slide_from_right",
+            gestureEnabled: true,
+          };
         }}
       />
       <Stack.Screen

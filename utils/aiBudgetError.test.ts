@@ -29,8 +29,10 @@ const freeMsg = stylistMonthlyAllowanceMessage({
   stylistId: 'ruby',
   tier: 'free',
 });
-assert.match(freeMsg, /monthly AI allowance/i);
+assert.match(freeMsg, /free monthly allowance/i);
 assert.match(freeMsg, /Upgrade|Personal Stylist/i);
-assert.doesNotMatch(freeMsg, /try again in a moment|hit a snag/i);
+assert.match(freeMsg, /Unlimited outfit advice/i);
+assert.match(freeMsg, /retry your last question/i);
+assert.doesNotMatch(freeMsg, /try again in a moment|hit a snag|network/i);
 
 console.log('aiBudgetError.test.ts: all passed');

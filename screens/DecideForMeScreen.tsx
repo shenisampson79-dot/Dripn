@@ -23,6 +23,8 @@ import { onboardingSessionService } from "@/services/OnboardingSessionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAiBudgetError } from "@/utils/aiBudgetError";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -837,7 +839,22 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           gotApiResponse = true;
           void generateOutfitImageAsync(data.recommendation, selectedOccasion || "work");
         }
-      } catch {
+      } catch (refineErr) {
+        if (isAiBudgetError(refineErr)) {
+          Alert.alert(
+            t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance",
+            t('aiStylist.monthlyAllowanceAlert')
+              || 'Upgrade to Personal Stylist for unlimited outfit advice and wardrobe-aware picks — then try again.',
+            [
+              { text: t('common.cancel') || 'Not now', style: 'cancel' },
+              {
+                text: t('aiStylist.seePlans') || 'See plans',
+                onPress: () => navigateToSubscription(navigation),
+              },
+            ],
+          );
+          return;
+        }
         console.log("Refinement API failed, using local fallback");
       }
 
@@ -858,11 +875,26 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       setExpressionText("");
       Keyboard.dismiss();
       scrollRef.current?.scrollTo({ y: 0, animated: true });
-    } catch {
-      Alert.alert(
-        t('common.couldNotUpdateOutfit') || "Could not update outfit",
-        t('common.pleaseTryAgainRubyDidntGetYourMessage') || "Please try again — Ruby didn't get your message.",
-      );
+    } catch (outerErr) {
+      if (isAiBudgetError(outerErr)) {
+        Alert.alert(
+          t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance",
+          t('aiStylist.monthlyAllowanceAlert')
+            || 'Upgrade to Personal Stylist for unlimited outfit advice — then try again.',
+          [
+            { text: t('common.cancel') || 'Not now', style: 'cancel' },
+            {
+              text: t('aiStylist.seePlans') || 'See plans',
+              onPress: () => navigateToSubscription(navigation),
+            },
+          ],
+        );
+      } else {
+        Alert.alert(
+          t('common.couldNotUpdateOutfit') || "Could not update outfit",
+          t('common.pleaseTryAgainRubyDidntGetYourMessage') || "Please try again — Ruby didn't get your message.",
+        );
+      }
     } finally {
       setIsSubmittingExpression(false);
       setIsRefiningOutfit(false);
@@ -877,6 +909,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     generateTailoredRecommendation,
     currentLanguage,
     t,
+    navigation,
   ]);
 
   const handlePersonalise = () => {

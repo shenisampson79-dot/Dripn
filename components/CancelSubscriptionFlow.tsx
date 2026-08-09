@@ -110,11 +110,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     { value: "other", label: t('subscription.cancel.reasonOther') },
   ];
 
-  // Aligned with TIER_MATRIX — Personal Stylist includes outfit calendar
+  // Aligned with live product tiers (no outfit calendar / event planning offers)
   const tierLosses: Record<string, string[]> = {
     free: [],
     personal_stylist: [
-      t('subscription.cancel.lossOutfitCalendar'),
       t('subscription.cancel.lossVoiceConversations'),
       t('subscription.cancel.lossUnlimitedDecisions'),
       t('subscription.cancel.lossExtendedWardrobe'),
@@ -122,7 +121,6 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       t('subscription.cancel.lossSmartSuggestions'),
     ],
     stylist_unlimited: [
-      t('subscription.cancel.lossOutfitCalendar'),
       t('subscription.cancel.lossUnlimitedEverything'),
       t('subscription.cancel.lossUnlimitedVoice'),
       t('subscription.cancel.lossVipAccess'),

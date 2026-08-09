@@ -90,7 +90,17 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') })}
+        options={{
+          ...getSettingsChildScreenOptions({
+            theme,
+            isDark,
+            title: t('subscription.screenTitle'),
+            transparent: false,
+          }),
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          gestureEnabled: true,
+        }}
       />
       <Stack.Screen
         name="EditProfile"
