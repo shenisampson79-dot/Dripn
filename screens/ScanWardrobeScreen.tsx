@@ -556,7 +556,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
-        Point your camera at a few pieces — with wardrobe fill on, even 1–2 items can unlock up to 3 looks.
+        Point your camera at a few pieces — even 1–2 items can unlock up to 3 looks.
       </ThemedText>
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
@@ -571,15 +571,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       <View style={styles.captureActions}>
         <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {t('wardrobe.takePhotoForOutfits') || 'Get outfits from a photo'}
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate('LiveStylist')}
-          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
-        >
-          <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-            Live camera tips
+            {t('wardrobe.takePhotoForOutfits') || 'Take a photo of item(s)'}
           </ThemedText>
         </Pressable>
         <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
@@ -664,7 +656,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
         {hybridMerge
           ? 'Scan a couple of pieces — we’ll fill bottoms/shoes from your wardrobe and build up to 3 looks.'
-          : 'Quick check optional — scan at least 3 pieces for looks (or enable wardrobe fill below).'}
+          : 'Quick check optional — scan at least 3 pieces for looks (or turn on “Include saved wardrobe pieces” below).'}
         {' '}Scene: {sceneType.replace(/_/g, ' ')}
       </ThemedText>
       <FlatList

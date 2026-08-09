@@ -577,8 +577,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     const titleColor = isDark ? '#FFFFFF' : (theme.text || '#111111');
     const chipBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.08)';
     const asPaywall = !!route?.params?.asPaywall;
+    const fromStylistChat = String(route?.params?.source || '') === 'stylist_chat';
     const showClose = asPaywall || !navigation.canGoBack();
+    const chatBackLabel = t('common.chat') || 'Chat';
     // Always show an escape — never rely on the tab bar alone.
+    // Chat allowance paywall: label the return path as Chat (not a bare X).
     navigation.setOptions({
       title: t('subscription.screenTitle'),
       headerBackVisible: false,
@@ -588,26 +591,50 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           onPress={handleDismissPaywall}
           accessibilityRole="button"
           accessibilityLabel={
-            showClose
-              ? (t('common.close') || 'Close')
-              : (t('common.back') || 'Back')
+            fromStylistChat
+              ? chatBackLabel
+              : (showClose
+                ? (t('common.close') || 'Close')
+                : (t('common.back') || 'Back'))
           }
           hitSlop={12}
-          style={{
-            marginLeft: Platform.OS === 'ios' ? 4 : 0,
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: chipBg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={
+            fromStylistChat
+              ? {
+                  marginLeft: Platform.OS === 'ios' ? 4 : 0,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 8,
+                  paddingVertical: 6,
+                  borderRadius: 18,
+                  backgroundColor: chipBg,
+                  gap: 2,
+                }
+              : {
+                  marginLeft: Platform.OS === 'ios' ? 4 : 0,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: chipBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }
+          }
         >
-          <Feather name={showClose ? 'x' : 'chevron-left'} size={showClose ? 20 : 24} color={titleColor} />
+          {fromStylistChat ? (
+            <>
+              <Feather name="chevron-left" size={22} color={titleColor} />
+              <ThemedText type="body" style={{ color: titleColor, fontWeight: '600' }}>
+                {chatBackLabel}
+              </ThemedText>
+            </>
+          ) : (
+            <Feather name={showClose ? 'x' : 'chevron-left'} size={showClose ? 20 : 24} color={titleColor} />
+          )}
         </Pressable>
       ),
     });
-  }, [navigation, t, isDark, theme.text, handleDismissPaywall, route?.params?.asPaywall]);
+  }, [navigation, t, isDark, theme.text, handleDismissPaywall, route?.params?.asPaywall, route?.params?.source]);
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
   const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;

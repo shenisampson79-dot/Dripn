@@ -78,10 +78,11 @@ function getFocusedRouteName(route: BottomTabBarProps['state']['routes'][number]
 /**
  * Full-viewport stack screens — hide the floating tab bar via layout
  * (Live is a normal card, not a modal).
+ * ScanWardrobe (GON) keeps tabs visible so back-to-hub does not flash a blank
+ * tab strip (unmount → remount). Live / Quick Add stay immersive.
  */
 const HIDE_TAB_BAR_SCREENS = new Set([
   'LiveStylist',
-  'ScanWardrobe',
   'QuickAdd',
   'ImproveRecognition',
 ]);
