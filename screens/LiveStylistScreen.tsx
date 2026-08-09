@@ -280,6 +280,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const inspectRef = useRef<ReturnType<typeof inspectDetection> | null>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  /** Prevents double-tap / overlapping Start Live init. */
+  const startingLiveRef = useRef(false);
+  /** Imperative sample loop — never restart from useEffect([isLive, processFrame]). */
+  const sampleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sampleBootTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processFrameRef = useRef<() => Promise<void>>(async () => {});
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -346,20 +352,34 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     );
   }, []);
 
+  const stopSamplingLoop = useCallback(() => {
+    if (sampleBootTimerRef.current) {
+      clearTimeout(sampleBootTimerRef.current);
+      sampleBootTimerRef.current = null;
+    }
+    if (sampleIntervalRef.current) {
+      clearInterval(sampleIntervalRef.current);
+      sampleIntervalRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
-    void warmUpOnDeviceYolo();
+    void warmUpOnDeviceYolo().catch(() => {});
     return () => {
       mountedRef.current = false;
-      setIsLive(false);
+      startingLiveRef.current = false;
+      stopSamplingLoop();
     };
-  }, []);
+  }, [stopSamplingLoop]);
 
   const handleAiBudgetHit = useCallback((err?: unknown) => {
     if (!mountedRef.current) return;
     const serverTier = planTierFromBudgetError(err);
     const effective = serverTier || tier;
     setBudgetPlanTier(effective);
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     setIsLive(false);
     setShowBudgetModal(true);
     setStatusNote(
@@ -367,10 +387,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ? (t('live.budgetModal.statusNoteTop') || 'Monthly AI allowance used — resets next month')
         : (t('live.budgetModal.statusNote') || 'Monthly AI allowance used — upgrade or wait until next month'),
     );
-  }, [t, tier]);
+  }, [t, tier, stopSamplingLoop]);
 
   const openSubscription = useCallback(() => {
     setShowBudgetModal(false);
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     setIsLive(false);
     const plan = normalizeSubscriptionTier(budgetPlanTier || tier);
     const highlightPlan = plan === 'free'
@@ -379,22 +401,26 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ? 'stylist_unlimited'
         : undefined;
     leaveLiveAndNavigate(navigation, { kind: 'subscription', highlightPlan });
-  }, [navigation, budgetPlanTier, tier]);
+  }, [navigation, budgetPlanTier, tier, stopSamplingLoop]);
 
   const openAiTopUp = useCallback(() => {
     setShowBudgetModal(false);
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     setIsLive(false);
     leaveLiveAndNavigate(navigation, {
       kind: 'subscription',
       scrollToAiTopUp: true,
     });
-  }, [navigation]);
+  }, [navigation, stopSamplingLoop]);
 
   const openSanityCheck = useCallback(() => {
     setShowBudgetModal(false);
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     setIsLive(false);
     leaveLiveAndNavigate(navigation, { kind: 'sanity' });
-  }, [navigation]);
+  }, [navigation, stopSamplingLoop]);
 
   const applyResponse = useCallback((res: LiveFrameResponse) => {
     if (!mountedRef.current) return null;
@@ -750,7 +776,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
       lastHashRef.current = frameHash;
 
-      const onDevice = await detectGarmentsOnDevice(manipulated.uri);
+      let onDevice: Awaited<ReturnType<typeof detectGarmentsOnDevice>> = null;
+      try {
+        onDevice = await detectGarmentsOnDevice(manipulated.uri);
+      } catch (yoloErr) {
+        console.warn('[LiveStylist] on-device detect failed:', yoloErr);
+        onDevice = null;
+      }
       const payload: Record<string, unknown> = {
         occasionType,
         hybridMatch: true,
@@ -920,157 +952,163 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
   }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, publishDebug]);
 
-  useEffect(() => {
-    if (!isLive) return undefined;
-    let cancelled = false;
-    let id: ReturnType<typeof setInterval> | null = null;
-    // Wait for CameraView onCameraReady — immediate takePictureAsync can native-crash.
-    // Some devices never re-fire onCameraReady if the preview was already warm.
-    const readyFallback = setTimeout(() => {
-      if (!cancelled) cameraReadyRef.current = true;
-    }, 1200);
-    const start = () => {
-      if (cancelled || !mountedRef.current) return;
-      if (!cameraReadyRef.current) {
-        setTimeout(start, 200);
+  // Keep latest processFrame for the imperative sample loop (stable identity).
+  processFrameRef.current = processFrame;
+
+  const startSamplingLoop = useCallback(() => {
+    stopSamplingLoop();
+    // Camera must be ready before takePictureAsync — native crash otherwise.
+    const tick = () => {
+      if (!mountedRef.current) return;
+      void processFrameRef.current();
+    };
+    const arm = () => {
+      if (!mountedRef.current) return;
+      if (!cameraReadyRef.current || !cameraRef.current) {
+        sampleBootTimerRef.current = setTimeout(arm, 250);
         return;
       }
-      void processFrame();
-      id = setInterval(() => {
-        void processFrame();
-      }, SAMPLE_INTERVAL_MS);
+      sampleBootTimerRef.current = null;
+      tick();
+      sampleIntervalRef.current = setInterval(tick, SAMPLE_INTERVAL_MS);
     };
-    const boot = setTimeout(start, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(boot);
-      clearTimeout(readyFallback);
-      if (id) clearInterval(id);
-    };
-  }, [isLive, processFrame]);
+    // Brief settle after UI flips to Live — avoids camera+render race on tap.
+    sampleBootTimerRef.current = setTimeout(arm, 500);
+  }, [stopSamplingLoop]);
 
-  const beginLiveSession = useCallback(() => {
+  const waitForCameraReady = useCallback(async (timeoutMs = 4000): Promise<boolean> => {
+    if (cameraReadyRef.current && cameraRef.current) return true;
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      if (!mountedRef.current) return false;
+      if (cameraReadyRef.current && cameraRef.current) return true;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    // Some devices never re-fire onCameraReady if preview was already warm.
+    if (cameraRef.current) {
+      cameraReadyRef.current = true;
+      return true;
+    }
+    return false;
+  }, []);
+
+  /** Reset session refs + minimal UI. Call only after camera/model are ready. */
+  const resetLiveSessionState = useCallback(() => {
     const warm = warmTruthRef.current;
     const now = Date.now();
-    try {
-      if (canWarmStartTruth(warm, now) && warm) {
-        detectionMemoryRef.current = createLiveBeliefMemory();
-        const seeded = updateLiveBelief(warm.truth.seedDetections, detectionMemoryRef.current, {
-          now,
-          decisions: [],
-        });
-        detectionMemoryRef.current = seeded.memory;
-        decisionLogRef.current = [];
-        inspectRef.current = null;
-        lastHashRef.current = null;
-        lastCloudFillAtRef.current = 0;
-        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
-        sceneChangeStreakRef.current = 0;
-        scoreGateRef.current = createLiveScoreGate();
-        const b = detectionMemoryRef.current.belief;
-        const sample = warm.truth.isStable
-          && b?.bottom?.kind
-          && b?.footwear?.subcategory
-          ? {
-            bottomKind: String(b.bottom.kind),
-            shoeSubtype: String(b.footwear.subcategory),
-            topKind: String(b.top?.kind || b.layer?.kind || ''),
-            bottomConfidence: Number(b.bottom.confidence || b.bottom.stability || 0.9),
-            shoeConfidence: Number(b.footwear.confidence || b.footwear.stability || 0.9),
-            topConfidence: Number(
-              (b.top || b.layer)?.confidence
-              || (b.top || b.layer)?.stability
-              || 0.9,
-            ),
-          }
-          : null;
-        identityBufRef.current = sample ? [sample, sample, sample] : [];
-        identityLockedKeyRef.current = sample ? liveCoreIdentityKey(sample) : null;
-        labelsReadyRef.current = Boolean(sample);
-        setLabelsReady(Boolean(sample));
-        const warmConf = warm.truth.confidenceLevel || 'high';
-        certaintySmoothRef.current = warmConf === 'high'
-          ? { lastRaw: 'high', streak: LIVE_CERTAINTY_UPGRADE_STREAK, displayed: 'high' }
-          : { lastRaw: 'medium', streak: 1, displayed: 'medium' };
-        if (warm.truth.score != null) {
-          const warmIdentity = identityLockedKeyRef.current;
-          scoreGateRef.current = {
-            shown: warm.truth.score,
-            pending: null,
-            signature: liveScoreSignature(warm.truth.seedDetections.map((d) => ({
-              category: d.category,
-              subcategory: d.subcategory,
-              color: d.color,
-            }))),
-            heldSince: null,
-            scoredIdentityKey: warmIdentity,
-          };
+    if (canWarmStartTruth(warm, now) && warm) {
+      detectionMemoryRef.current = createLiveBeliefMemory();
+      const seeded = updateLiveBelief(warm.truth.seedDetections, detectionMemoryRef.current, {
+        now,
+        decisions: [],
+      });
+      detectionMemoryRef.current = seeded.memory;
+      decisionLogRef.current = [];
+      inspectRef.current = null;
+      lastHashRef.current = null;
+      lastCloudFillAtRef.current = 0;
+      cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+      sceneChangeStreakRef.current = 0;
+      scoreGateRef.current = createLiveScoreGate();
+      const b = detectionMemoryRef.current.belief;
+      const sample = warm.truth.isStable
+        && b?.bottom?.kind
+        && b?.footwear?.subcategory
+        ? {
+          bottomKind: String(b.bottom.kind),
+          shoeSubtype: String(b.footwear.subcategory),
+          topKind: String(b.top?.kind || b.layer?.kind || ''),
+          bottomConfidence: Number(b.bottom.confidence || b.bottom.stability || 0.9),
+          shoeConfidence: Number(b.footwear.confidence || b.footwear.stability || 0.9),
+          topConfidence: Number(
+            (b.top || b.layer)?.confidence
+            || (b.top || b.layer)?.stability
+            || 0.9,
+          ),
         }
-        suspectAskedRef.current = new Set<string>();
-        filledOnceRef.current = {
-          top: Boolean(warm.truth.top),
-          layer: Boolean(warm.truth.layer),
-          bottom: Boolean(warm.truth.bottom),
+        : null;
+      identityBufRef.current = sample ? [sample, sample, sample] : [];
+      identityLockedKeyRef.current = sample ? liveCoreIdentityKey(sample) : null;
+      labelsReadyRef.current = Boolean(sample);
+      const warmConf = warm.truth.confidenceLevel || 'high';
+      certaintySmoothRef.current = warmConf === 'high'
+        ? { lastRaw: 'high', streak: LIVE_CERTAINTY_UPGRADE_STREAK, displayed: 'high' }
+        : { lastRaw: 'medium', streak: 1, displayed: 'medium' };
+      if (warm.truth.score != null) {
+        const warmIdentity = identityLockedKeyRef.current;
+        scoreGateRef.current = {
+          shown: warm.truth.score,
+          pending: null,
+          signature: liveScoreSignature(warm.truth.seedDetections.map((d) => ({
+            category: d.category,
+            subcategory: d.subcategory,
+            color: d.color,
+          }))),
+          heldSince: null,
+          scoredIdentityKey: warmIdentity,
         };
-        previousItemsRef.current = [];
-        outfitTruthRef.current = warm.truth;
-        previousFeedbackRef.current = warm.truth.score != null
-          ? {
-            score: warm.truth.score,
-            confidenceLevel: warm.truth.confidenceLevel || 'high',
-            issues: [],
-            hints: [],
-            suggestions: [],
-            coaching: {
-              headline: '',
-              summary: '',
-              bullets: [],
-              styleLane: warm.truth.lane,
-              hasConflict: false,
-              sameLane: true,
-            },
-          }
-          : null;
-        setFeedback(previousFeedbackRef.current);
-        paintBeliefItems(warm.truth.seedDetections || []);
-        setDebugSnapshot(emptyDebugSnapshot('live_warm'));
-        warmTruthRef.current = null;
-      } else {
-        detectionMemoryRef.current = createLiveBeliefMemory();
-        decisionLogRef.current = [];
-        inspectRef.current = null;
-        lastHashRef.current = null;
-        lastCloudFillAtRef.current = 0;
-        cloudSceneBaselineRef.current = { detections: [], frameHash: null };
-        sceneChangeStreakRef.current = 0;
-        scoreGateRef.current = createLiveScoreGate();
-        identityBufRef.current = [];
-        identityLockedKeyRef.current = null;
-        noFootwearSinceRef.current = 0;
-        labelsReadyRef.current = false;
-        setLabelsReady(false);
-        certaintySmoothRef.current = createCertaintySmoothState();
-        suspectAskedRef.current = new Set<string>();
-        filledOnceRef.current = {};
-        outfitTruthRef.current = null;
-        previousItemsRef.current = [];
-        previousFeedbackRef.current = null;
-        recentLayerTipIdsRef.current = [];
-        setItems([]);
-        setFeedback(null);
-        setDebugSnapshot(emptyDebugSnapshot('live'));
-        warmTruthRef.current = null;
       }
-      setStatusNote('Live — sampling…');
-      setIsLive(true);
-    } catch (err) {
-      console.warn('[LiveStylist] beginLiveSession failed:', err);
-      setIsLive(false);
-      setStatusNote('Could not start live — try again');
+      suspectAskedRef.current = new Set<string>();
+      filledOnceRef.current = {
+        top: Boolean(warm.truth.top),
+        layer: Boolean(warm.truth.layer),
+        bottom: Boolean(warm.truth.bottom),
+      };
+      previousItemsRef.current = [];
+      outfitTruthRef.current = warm.truth;
+      previousFeedbackRef.current = warm.truth.score != null
+        ? {
+          score: warm.truth.score,
+          confidenceLevel: warm.truth.confidenceLevel || 'high',
+          issues: [],
+          hints: [],
+          suggestions: [],
+          coaching: {
+            headline: '',
+            summary: '',
+            bullets: [],
+            styleLane: warm.truth.lane,
+            hasConflict: false,
+            sameLane: true,
+          },
+        }
+        : null;
+      warmTruthRef.current = null;
+      setLabelsReady(Boolean(sample));
+      setFeedback(previousFeedbackRef.current);
+      paintBeliefItems(warm.truth.seedDetections || []);
+      setDebugSnapshot(emptyDebugSnapshot('live_warm'));
+    } else {
+      detectionMemoryRef.current = createLiveBeliefMemory();
+      decisionLogRef.current = [];
+      inspectRef.current = null;
+      lastHashRef.current = null;
+      lastCloudFillAtRef.current = 0;
+      cloudSceneBaselineRef.current = { detections: [], frameHash: null };
+      sceneChangeStreakRef.current = 0;
+      scoreGateRef.current = createLiveScoreGate();
+      identityBufRef.current = [];
+      identityLockedKeyRef.current = null;
+      noFootwearSinceRef.current = 0;
+      labelsReadyRef.current = false;
+      certaintySmoothRef.current = createCertaintySmoothState();
+      suspectAskedRef.current = new Set<string>();
+      filledOnceRef.current = {};
+      outfitTruthRef.current = null;
+      previousItemsRef.current = [];
+      previousFeedbackRef.current = null;
+      recentLayerTipIdsRef.current = [];
+      warmTruthRef.current = null;
+      setLabelsReady(false);
+      setItems([]);
+      setFeedback(null);
+      setDebugSnapshot(emptyDebugSnapshot('live'));
     }
   }, [paintBeliefItems]);
 
   const pauseLiveSession = useCallback(() => {
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     try {
       warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
     } catch {
@@ -1078,17 +1116,28 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
     setIsLive(false);
     setStatusNote('Paused');
-  }, []);
+  }, [stopSamplingLoop]);
 
   const toggleLive = async () => {
+    console.log('[LiveStylist] START LIVE PRESSED', { isLive, starting: startingLiveRef.current });
     try {
       if (isLive) {
         pauseLiveSession();
         return;
       }
+      if (startingLiveRef.current) {
+        console.log('[LiveStylist] start ignored — already starting');
+        return;
+      }
+      startingLiveRef.current = true;
+      setStatusNote('Starting…');
+
+      // 1) Permissions
+      console.log('[LiveStylist] 1. permissions');
       if (!permission?.granted) {
         const next = await requestPermission();
         if (!next.granted) {
+          startingLiveRef.current = false;
           Alert.alert(
             t('wardrobe.permissionRequired') || 'Permission Required',
             t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || 'Enable camera in Settings.',
@@ -1097,18 +1146,51 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               { text: t('common.openSettings') || 'Settings', onPress: () => Linking.openSettings() },
             ],
           );
+          setStatusNote('Camera permission needed');
           return;
         }
       }
+
+      // 2) Camera must be ready before any capture / live UI flip
+      console.log('[LiveStylist] 2. wait camera ready');
+      const camOk = await waitForCameraReady(4000);
+      if (!camOk || !mountedRef.current) {
+        startingLiveRef.current = false;
+        setStatusNote('Camera not ready — try again');
+        return;
+      }
+
+      // 3) Warm YOLO (safe no-op if missing) BEFORE flipping isLive
+      console.log('[LiveStylist] 3. warm vision model');
+      try {
+        await warmUpOnDeviceYolo();
+      } catch (warmErr) {
+        console.warn('[LiveStylist] YOLO warm failed (continuing cloud-only):', warmErr);
+      }
+
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {
         /* optional */
       }
-      // Never nest setState inside setIsLive — that hard-crashed Start Live on device.
-      beginLiveSession();
+
+      if (!mountedRef.current) {
+        startingLiveRef.current = false;
+        return;
+      }
+
+      // 4) Reset session, then flip live, then arm sample loop (sequential)
+      console.log('[LiveStylist] 4. reset + setIsLive');
+      resetLiveSessionState();
+      setStatusNote('Live — sampling…');
+      setIsLive(true);
+      startSamplingLoop();
+      console.log('[LiveStylist] 5. start armed');
+      startingLiveRef.current = false;
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
+      startingLiveRef.current = false;
+      stopSamplingLoop();
       setIsLive(false);
       setStatusNote('Could not start live — try again');
     }
@@ -1116,6 +1198,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   const openStillScan = useCallback(async () => {
     if (!cameraRef.current || !cameraReadyRef.current || inFlightRef.current || !mountedRef.current) return;
+    stopSamplingLoop();
+    startingLiveRef.current = false;
     setIsLive(false);
     inFlightRef.current = true;
     setIsBusy(true);
@@ -1228,7 +1312,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, handleAiBudgetHit, occasionType, publishDebug]);
+  }, [applyResponse, handleAiBudgetHit, occasionType, publishDebug, stopSamplingLoop]);
 
   if (!permission) {
     return (
