@@ -437,21 +437,25 @@ function boxesToDetections(
   return out;
 }
 
+type DetectOpts = {
+  confThreshold?: number;
+  maxDetections?: number;
+  /**
+   * When true (default), drop skin-heavy / bare-torso boxes — for Live worn outfits.
+   * Flat-lay Quick Add / Digitize must set false: beige coats read as "skin".
+   */
+  bodyGuards?: boolean;
+};
+
 /**
- * Run on-device detection when the native plugin exists.
+ * Run YOLO on a packed RGBA buffer (Live frame-output path — no JPEG file).
  * @returns detections or null to fall back to cloud Vision.
  */
-export async function detectGarmentsOnDevice(
-  imageUri: string,
-  opts?: {
-    confThreshold?: number;
-    maxDetections?: number;
-    /**
-     * When true (default), drop skin-heavy / bare-torso boxes — for Live worn outfits.
-     * Flat-lay Quick Add / Digitize must set false: beige coats read as "skin".
-     */
-    bodyGuards?: boolean;
-  },
+export async function detectGarmentsFromRgba(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  opts?: DetectOpts,
 ): Promise<OnDeviceDetection[] | null> {
   if (!ON_DEVICE_YOLO_NATIVE) return null;
 
@@ -459,8 +463,7 @@ export async function detectGarmentsOnDevice(
   if (!model) return null;
 
   try {
-    const { data, width, height } = await loadRgbaFromUri(imageUri);
-    const { tensor, scale, padX, padY } = letterboxRgbToFloat32(data, width, height, INPUT_SIZE);
+    const { tensor, scale, padX, padY } = letterboxRgbToFloat32(rgba, width, height, INPUT_SIZE);
     const inputBuffer = tensor.buffer.slice(
       tensor.byteOffset,
       tensor.byteOffset + tensor.byteLength,
@@ -484,7 +487,7 @@ export async function detectGarmentsOnDevice(
 
     if (!boxes.length) {
       // Empty on-device result → let cloud Vision try (better UX than "no garments").
-      const brightness = measureBottomBandBrightness(data, width, height);
+      const brightness = measureBottomBandBrightness(rgba, width, height);
       lastFootZoneMeta = {
         brightness,
         visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
@@ -492,15 +495,36 @@ export async function detectGarmentsOnDevice(
       };
       return null;
     }
-    const brightness = measureBottomBandBrightness(data, width, height);
+    const brightness = measureBottomBandBrightness(rgba, width, height);
     lastFootZoneMeta = {
       brightness,
       visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
       cropped: brightness < FOOT_ZONE_BRIGHTNESS_MIN,
     };
-    return boxesToDetections(boxes, data, width, height, {
+    return boxesToDetections(boxes, rgba, width, height, {
       bodyGuards: opts?.bodyGuards,
     });
+  } catch (err) {
+    console.warn('[onDeviceYolo] rgba inference failed, falling back to cloud:', err);
+    lastFootZoneMeta = null;
+    return null;
+  }
+}
+
+/**
+ * Run on-device detection from a file URI (wardrobe / Quick Add / still paths).
+ * @returns detections or null to fall back to cloud Vision.
+ */
+export async function detectGarmentsOnDevice(
+  imageUri: string,
+  opts?: DetectOpts,
+): Promise<OnDeviceDetection[] | null> {
+  if (!ON_DEVICE_YOLO_NATIVE) return null;
+  if (!(await ensureModel())) return null;
+
+  try {
+    const { data, width, height } = await loadRgbaFromUri(imageUri);
+    return detectGarmentsFromRgba(data, width, height, opts);
   } catch (err) {
     console.warn('[onDeviceYolo] inference failed, falling back to cloud:', err);
     lastFootZoneMeta = null;

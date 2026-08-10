@@ -1,6 +1,7 @@
 /**
  * True only when this binary registered VisionCamera's Nitro CameraFactory.
- * Old TestFlight/store builds without the native module stay on Expo CameraView.
+ * Live also needs react-native-vision-camera-worklets in the same native binary
+ * for useFrameOutput — OTA cannot add that link.
  * Do NOT require('react-native-vision-camera') here — its import creates CameraFactory
  * and would throw on unlinked binaries.
  */

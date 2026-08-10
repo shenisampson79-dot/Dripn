@@ -4,11 +4,13 @@
  */
 import React, { forwardRef } from 'react';
 import type { LiveVisionCameraHandle } from './LiveVisionCamera';
+import type { LiveFrameSample } from '@/utils/liveFrameBuffer';
 
 type Props = {
   isActive: boolean;
   onReady?: () => void;
   onError?: (message: string) => void;
+  onFrameSample?: (sample: LiveFrameSample) => void;
 };
 
 export const LiveVisionCameraGate = forwardRef<LiveVisionCameraHandle, Props>(function LiveVisionCameraGate(
