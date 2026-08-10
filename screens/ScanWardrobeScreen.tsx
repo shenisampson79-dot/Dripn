@@ -38,6 +38,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
+import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import {
+  getAiAllowancePaywallCopy,
+  isAiBudgetError,
+} from '@/utils/aiBudgetError';
+import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
 import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
 import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
@@ -441,10 +447,28 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       }
       skipAutoOpenRef.current = false;
     } catch (error) {
-      Alert.alert(
-        t('wardrobe.error') || 'Error',
-        error instanceof Error ? error.message : 'Outfit generation failed.',
-      );
+      if (isAiBudgetError(error)) {
+        const paywall = getAiAllowancePaywallCopy(
+          planTierFromBudgetError(error) || user?.subscriptionTier,
+        );
+        Alert.alert(paywall.title, paywall.message, [
+          { text: paywall.secondaryLabel, style: 'cancel' },
+          {
+            text: paywall.primaryLabel,
+            onPress: () =>
+              navigateToSubscription(navigation, {
+                source: 'get_outfits',
+                asPaywall: true,
+                scrollToAiTopUp: paywall.primaryAction === 'topup',
+              }),
+          },
+        ]);
+      } else {
+        Alert.alert(
+          t('wardrobe.error') || 'Error',
+          error instanceof Error ? error.message : 'Outfit generation failed.',
+        );
+      }
       setStep('confirm');
     } finally {
       setIsGenerating(false);

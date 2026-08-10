@@ -32,6 +32,11 @@ import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import {
+  getAiAllowancePaywallCopy,
+  isAiBudgetError,
+} from '@/utils/aiBudgetError';
+import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { safeEnforceDecisionContract } from '@/utils/decisionContract';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import {
@@ -677,10 +682,29 @@ export function useStylistDecision({
       surpriseMe: isSurpriseMe,
     });
     if (
-      error.limitCopy
+      isAiBudgetError(error)
+      || error.limitCopy
       || error.message?.includes('your decision for today')
       || error.status === 429
     ) {
+      if (isAiBudgetError(error)) {
+        const paywall = getAiAllowancePaywallCopy(
+          planTierFromBudgetError(error) || user?.subscriptionTier,
+        );
+        Alert.alert(paywall.title, paywall.message, [
+          { text: paywall.secondaryLabel, style: 'cancel' },
+          {
+            text: paywall.primaryLabel,
+            onPress: () =>
+              navigateToSubscription(navigation as never, {
+                source: flowKey,
+                asPaywall: true,
+                scrollToAiTopUp: paywall.primaryAction === 'topup',
+              }),
+          },
+        ]);
+        return;
+      }
       await checkAccess({ showPaywallIfBlocked: true });
       Alert.alert(
         t('askStylist.unableToSubmit'),
@@ -688,7 +712,7 @@ export function useStylistDecision({
         [
           { text: t('common.maybeLater'), style: 'cancel' },
           {
-            text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
+            text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions') || 'See plans',
             onPress: openSubscriptionFromPaywall,
           },
         ],

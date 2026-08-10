@@ -72,6 +72,7 @@ import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import {
+  getAiAllowancePaywallCopy,
   isAiBudgetError,
   stylistMonthlyAllowanceMessage,
 } from '@/utils/aiBudgetError';
@@ -1999,7 +2000,7 @@ export default function AIStylistScreen() {
           }
 
           setMonthlyAllowanceExhausted(false);
-          setAiAllowanceSoftWarn(pct >= 0.9 && String(tier || '').toLowerCase() === 'free');
+          setAiAllowanceSoftWarn(pct >= 0.9);
 
           const raw = await AsyncStorage.getItem(PENDING_STYLIST_RETRY_KEY);
           if (!raw || cancelled || pendingRetryInFlightRef.current) return;
@@ -2052,9 +2053,18 @@ export default function AIStylistScreen() {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  const navigateToSubscriptionScreen = useCallback(() => {
-    navigateToSubscription(navigation, { source: 'stylist_chat', asPaywall: true });
+  const navigateToSubscriptionScreen = useCallback((opts?: { scrollToAiTopUp?: boolean }) => {
+    navigateToSubscription(navigation, {
+      source: 'stylist_chat',
+      asPaywall: true,
+      ...(opts?.scrollToAiTopUp ? { scrollToAiTopUp: true } : {}),
+    });
   }, [navigation]);
+
+  const openAiAllowanceDestination = useCallback((action: 'upgrade' | 'topup' | 'dismiss') => {
+    if (action === 'dismiss') return;
+    navigateToSubscriptionScreen({ scrollToAiTopUp: action === 'topup' });
+  }, [navigateToSubscriptionScreen]);
   
   const navigateToWardrobe = useCallback(() => {
     navigation.dispatch(
@@ -2859,6 +2869,7 @@ export default function AIStylistScreen() {
       stylistId: stylist.id,
       tier: planTier,
     });
+    const paywall = getAiAllowancePaywallCopy(planTier);
     const pending = String(lastOutboundPromptRef.current || '').trim();
     if (pending) {
       void AsyncStorage.setItem(
@@ -2866,27 +2877,25 @@ export default function AIStylistScreen() {
         JSON.stringify({ text: pending, stylistId: stylist.id, at: Date.now() }),
       );
     }
-    const isFree = !planTier || String(planTier).toLowerCase() === 'free';
-    Alert.alert(
-      t('aiStylist.monthlyAllowanceTitle') || (isFree
-        ? "You've used your free monthly allowance"
-        : "That's your lot for this month"),
-      (t('aiStylist.monthlyAllowanceAlert')
-        || (isFree
-          ? 'Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question automatically.'
-          : 'Upgrade for a bigger monthly pot, or buy more AI credit in Settings, so {name} can keep helping you. After you top up, your last question will retry automatically.'))
-        .replace('{name}', stylist.name),
-      [
-        { text: t('common.cancel') || 'Not now', style: 'cancel' },
-        {
-          text: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
-          onPress: navigateToSubscriptionScreen,
-        },
-      ],
-    );
+    const buttons: Array<{ text: string; style?: 'cancel'; onPress?: () => void }> = [
+      { text: paywall.secondaryLabel, style: 'cancel' },
+      {
+        text: paywall.primaryLabel,
+        onPress: () => openAiAllowanceDestination(paywall.primaryAction),
+      },
+    ];
+    // Personal Stylist: secondary is Buy more credit
+    if (paywall.secondaryLabel.toLowerCase().includes('buy')) {
+      buttons[0] = {
+        text: paywall.secondaryLabel,
+        onPress: () => openAiAllowanceDestination('topup'),
+      };
+      buttons.splice(1, 0, { text: 'Maybe later', style: 'cancel' });
+    }
+    Alert.alert(paywall.title, paywall.message, buttons);
     return content;
-  }, [tier, stylist.name, stylist.id, t, navigateToSubscriptionScreen]);
-  
+  }, [tier, stylist.name, stylist.id, openAiAllowanceDestination]);
+
   const getRemainingMessages = () => {
     if (limits.aiChatMessagesPerDay === Infinity) return Infinity;
     const dailyLeft = Math.max(0, limits.aiChatMessagesPerDay - messagesToday);
@@ -4144,30 +4153,28 @@ export default function AIStylistScreen() {
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
     if (monthlyAllowanceExhausted && chatMode !== 'voice') {
+      const paywall = getAiAllowancePaywallCopy(tier);
       return {
         showWarning: true,
         showTeaser: true,
-        teaserTitle: t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance",
-        teaserMsg: (t('aiStylist.monthlyAllowanceTeaser')
-          || "Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question.")
-          .replace('{name}', stylist.name),
+        teaserTitle: paywall.title,
+        teaserMsg: paywall.message,
         teaserIcon: 'heart' as const,
-        teaserCta: 'upgrade' as const,
-        teaserButtonLabel: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
+        teaserCta: (paywall.primaryAction === 'topup' ? 'topup' : 'upgrade') as const,
+        teaserButtonLabel: paywall.primaryLabel,
       };
     }
 
     if (aiAllowanceSoftWarn && chatMode !== 'voice' && !monthlyAllowanceExhausted) {
+      const paywall = getAiAllowancePaywallCopy(tier);
       return {
         showWarning: true,
         showTeaser: true,
-        teaserTitle: t('aiStylist.monthlyAllowanceSoftTitle') || "You're close to your free monthly limit",
-        teaserMsg: (t('aiStylist.monthlyAllowanceSoftTeaser')
-          || "Upgrade now so {name}'s outfit advice never stops mid-chat — unlimited replies, wardrobe-aware picks, and faster answers.")
-          .replace('{name}', stylist.name),
+        teaserTitle: paywall.softTitle,
+        teaserMsg: paywall.softMessage,
         teaserIcon: 'zap' as const,
-        teaserCta: 'upgrade' as const,
-        teaserButtonLabel: t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans',
+        teaserCta: (paywall.primaryAction === 'topup' ? 'topup' : 'upgrade') as const,
+        teaserButtonLabel: paywall.primaryLabel,
       };
     }
 
@@ -4228,7 +4235,7 @@ export default function AIStylistScreen() {
               .replace('{allowance}', String(Math.max(allowance, used)));
 
       const teaserMsg = (t('aiStylist.voiceUnlockMore') ||
-        'Add a voice pack so {name} can keep speaking with you. Text chat stays unlimited.')
+        'Add a voice pack so {name} can keep speaking with you. Text chat still uses your monthly AI allowance.')
         .replace('{name}', stylist.name);
 
       return {
@@ -4247,13 +4254,13 @@ export default function AIStylistScreen() {
     
     let teaserTitle = (t('aiStylist.messagesRemainingToday') || '{count} messages remaining today')
       .replace('{count}', String(remainingMessages));
-    let teaserMsg = (t('aiStylist.unlockUnlimitedConversations') || 'Unlock unlimited conversations with {name} and never miss a styling moment.')
+    let teaserMsg = (t('aiStylist.unlockUnlimitedConversations') || 'Upgrade to Personal Stylist for a bigger monthly AI pot with {name}.')
       .replace('{name}', stylist.name);
     let teaserIcon: 'star' | 'heart' | 'zap' | 'mic' = 'star';
     
     if (remainingMessages === 0) {
       teaserTitle = t('aiStylist.dontLeaveConversation') || "Don't leave the conversation here!";
-      teaserMsg = (t('aiStylist.upgradeForUnlimited') || '{name} has so much more to share with you. Upgrade now for unlimited styling sessions.')
+      teaserMsg = (t('aiStylist.upgradeForUnlimited') || '{name} has so much more to share with you. Upgrade for a bigger monthly AI pot.')
         .replace('{name}', stylist.name);
       teaserIcon = 'heart';
     } else if (remainingMessages <= 3) {
@@ -4477,7 +4484,8 @@ export default function AIStylistScreen() {
                     setShowVoiceCreditsModal(true);
                   }
                 } else {
-                  navigateToSubscriptionScreen();
+                  const action = upgradeTeaserData.teaserCta === 'topup' ? 'topup' : 'upgrade';
+                  openAiAllowanceDestination(action);
                 }
               }}
               style={({ pressed }) => [
@@ -4656,22 +4664,26 @@ export default function AIStylistScreen() {
           <LimitHitUpgradePrompt
             title={
               monthlyAllowanceExhausted
-                ? (t('aiStylist.monthlyAllowanceTitle') || "You've used your free monthly allowance")
+                ? getAiAllowancePaywallCopy(tier).title
                 : (t('common.dailyMessageLimitReached') || 'Daily message limit reached')
             }
             message={
               monthlyAllowanceExhausted
-                ? ((t('aiStylist.monthlyAllowanceTeaser')
-                  || "Upgrade to Personal Stylist for unlimited outfit advice, wardrobe-aware picks, and instant answers. After you upgrade, {name} will retry your last question.")
-                  .replace('{name}', stylist.name))
-                : 'Upgrade to Personal Stylist for unlimited AI styling conversations.'
+                ? getAiAllowancePaywallCopy(tier).message
+                : 'Upgrade to Personal Stylist for a bigger monthly AI pot and more chat.'
             }
             ctaLabel={
               monthlyAllowanceExhausted
-                ? (t('aiStylist.seePlans') || t('aiStylist.upgradeNow') || 'See plans')
-                : 'Upgrade'
+                ? getAiAllowancePaywallCopy(tier).primaryLabel
+                : 'See plans'
             }
-            onUpgrade={navigateToSubscriptionScreen}
+            onUpgrade={() => {
+              if (monthlyAllowanceExhausted) {
+                openAiAllowanceDestination(getAiAllowancePaywallCopy(tier).primaryAction);
+              } else {
+                navigateToSubscriptionScreen();
+              }
+            }}
           />
         ) : null}
         {selectedImageUris.length ? (

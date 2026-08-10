@@ -559,8 +559,8 @@ class DecisionService {
       const error: any = new Error(access.reason || 'Cannot make decision');
       error.limitCopy = {
         message: access.reason || "That's your decision for today. Your stylist is here whenever you're ready.",
-        subtext: "Upgrade for unlimited stylist consultations",
-        cta: "Unlock unlimited decisions",
+        subtext: "Upgrade for more stylist consultations this month",
+        cta: "See plans",
         redirectUrl: "/subscription",
         shouldRedirect: true,
       };

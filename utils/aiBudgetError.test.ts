@@ -2,7 +2,11 @@
  * Run: npx tsx utils/aiBudgetError.test.ts
  */
 import assert from 'node:assert/strict';
-import { isAiBudgetError, stylistMonthlyAllowanceMessage } from './aiBudgetError';
+import {
+  getAiAllowancePaywallCopy,
+  isAiBudgetError,
+  stylistMonthlyAllowanceMessage,
+} from './aiBudgetError';
 
 assert.equal(
   isAiBudgetError({
@@ -31,8 +35,19 @@ const freeMsg = stylistMonthlyAllowanceMessage({
 });
 assert.match(freeMsg, /free monthly allowance/i);
 assert.match(freeMsg, /Upgrade|Personal Stylist/i);
-assert.match(freeMsg, /Unlimited outfit advice/i);
+assert.match(freeMsg, /bigger monthly AI pot/i);
 assert.match(freeMsg, /retry your last question/i);
+assert.doesNotMatch(freeMsg, /unlimited/i);
 assert.doesNotMatch(freeMsg, /try again in a moment|hit a snag|network/i);
+
+const proCopy = getAiAllowancePaywallCopy('stylist_unlimited');
+assert.equal(proCopy.primaryAction, 'topup');
+assert.match(proCopy.primaryLabel, /buy more credit/i);
+assert.doesNotMatch(proCopy.message, /upgrade to personal/i);
+assert.doesNotMatch(proCopy.message, /unlimited/i);
+
+const personalCopy = getAiAllowancePaywallCopy('personal_stylist');
+assert.equal(personalCopy.primaryAction, 'upgrade');
+assert.match(personalCopy.message, /Stylist Pro/i);
 
 console.log('aiBudgetError.test.ts: all passed');
