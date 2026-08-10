@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -94,6 +95,12 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
+  const tabBarHeightContext = useContext(BottomTabBarHeightContext);
+  const TAB_BAR_HEIGHT = 56;
+  const tabBarHeight =
+    typeof tabBarHeightContext === 'number' && tabBarHeightContext > 0
+      ? tabBarHeightContext
+      : TAB_BAR_HEIGHT + insets.bottom;
   const { user } = useAuth();
   const { items: savedWardrobe, addItemsBatch } = useWardrobe();
 
@@ -655,8 +662,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       </ThemedText>
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
         {hybridMerge
-          ? 'Scan a couple of pieces — we’ll fill bottoms/shoes from your wardrobe and build up to 3 looks.'
-          : 'Quick check optional — scan at least 3 pieces for looks (or turn on “Include saved wardrobe pieces” below).'}
+          ? canGenerateLooks
+            ? `You’re ready — we’ll fill bottoms/shoes from your wardrobe (${ownedWardrobeCount} saved) and build up to 3 looks.`
+            : `Need a bit more — retake with another piece in the photo, or add clothes to your wardrobe (${ownedWardrobeCount} saved).`
+          : 'Scan at least 3 pieces in one photo for looks, or turn on “Include saved wardrobe pieces” below.'}
         {' '}Scene: {sceneType.replace(/_/g, ' ')}
       </ThemedText>
       <FlatList
@@ -708,7 +717,24 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: theme.text }}>
-            Save key pieces later?
+            Save scanned pieces to wardrobe
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            Alert.alert(
+              'Retake photo?',
+              'This clears the current scanned piece(s) so you can photograph again. Tip: put 2–3 items in one flat-lay if you want more than one scan.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Retake', onPress: () => void resetToCapture() },
+              ],
+            );
+          }}
+          style={[styles.secondaryBtn, { borderColor: theme.border }]}
+        >
+          <ThemedText type="body" style={{ color: theme.textSecondary }}>
+            Retake photo
           </ThemedText>
         </Pressable>
       </View>
@@ -764,7 +790,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: theme.text }}>
-            Save these key pieces to wardrobe?
+            Save scanned pieces to wardrobe
           </ThemedText>
         </Pressable>
         <Pressable onPress={() => setStep('confirm')} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
@@ -813,7 +839,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.backgroundDefault }}>
       <KeyboardAwareScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + Spacing.xl * 2 }]}
         keyboardShouldPersistTaps="handled"
       >
         {step === 'capture' && renderCapture()}
