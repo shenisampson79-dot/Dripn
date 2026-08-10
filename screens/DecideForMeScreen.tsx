@@ -849,7 +849,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               { text: t('common.cancel') || 'Not now', style: 'cancel' },
               {
                 text: t('aiStylist.seePlans') || 'See plans',
-                onPress: () => navigateToSubscription(navigation),
+                onPress: () => navigateToSubscription(navigation, { source: 'decide_for_me' }),
               },
             ],
           );
@@ -885,7 +885,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             { text: t('common.cancel') || 'Not now', style: 'cancel' },
             {
               text: t('aiStylist.seePlans') || 'See plans',
-              onPress: () => navigateToSubscription(navigation),
+              onPress: () => navigateToSubscription(navigation, { source: 'decide_for_me' }),
             },
           ],
         );

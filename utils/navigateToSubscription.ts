@@ -18,8 +18,13 @@ export type SubscriptionNavParams = {
    * Set automatically by navigateToSubscription.
    */
   asPaywall?: boolean;
-  /** Analytics / funnel source (chat, live, settings, …). */
+  /**
+   * Analytics / funnel source (stylist_chat, shopping, event-outfit,
+   * sanity-check, profile, live, …). Also drives the header back label.
+   */
   source?: string;
+  /** Override header back label (otherwise derived from `source` / previous route). */
+  backLabel?: string;
 };
 
 /**

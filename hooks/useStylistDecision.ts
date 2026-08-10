@@ -471,7 +471,10 @@ export function useStylistDecision({
 
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
-    navigateToSubscription(navigation as never, 'personal_stylist');
+    navigateToSubscription(navigation as never, {
+      highlightPlan: 'personal_stylist',
+      source: flowKey,
+    });
   };
 
   const dismissPaywall = () => setShowUpgradeModal(false);

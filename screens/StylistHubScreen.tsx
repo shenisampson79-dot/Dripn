@@ -288,7 +288,7 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
   const handleFeaturePress = (feature: StylistFeature) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (feature.id === "outfit-calendar" && !limits.canAccessOutfitCalendar) {
-      navigateToSubscription(navigation);
+      navigateToSubscription(navigation, { source: 'stylist_hub' });
       return;
     }
     if (feature.screen) {

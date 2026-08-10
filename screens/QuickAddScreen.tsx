@@ -74,9 +74,9 @@ const HOLD_AMBER = '#FFC107';
 /** takePicture sampling is heavy — keep interval roomy so YOLO can finish. */
 const SAMPLE_MS = 850;
 const SAMPLE_WIDTH = 640;
-/** Ready → snap in ~0.9s (2 ticks), after ~1.7s stable tracking. */
-const COUNTDOWN_TICK_MS = 450;
-const COUNTDOWN_START = 2;
+/** Ready → snap after a full 3-2-1 second countdown. */
+const COUNTDOWN_TICK_MS = 1000;
+const COUNTDOWN_START = 3;
 /** Lower than default parse threshold so boots/shoes still register in-frame. */
 const QUICK_ADD_YOLO_CONF = 0.14;
 

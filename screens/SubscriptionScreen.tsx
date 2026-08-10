@@ -21,6 +21,7 @@ import {
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import { dismissSubscription } from "@/utils/dismissSubscription";
+import { resolveSubscriptionBackLabel } from "@/utils/subscriptionBackLabel";
 import {
   appleIAPService,
   IAP_UNAVAILABLE_MESSAGE,
@@ -577,11 +578,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     const titleColor = isDark ? '#FFFFFF' : (theme.text || '#111111');
     const chipBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.08)';
     const asPaywall = !!route?.params?.asPaywall;
-    const fromStylistChat = String(route?.params?.source || '') === 'stylist_chat';
     const showClose = asPaywall || !navigation.canGoBack();
-    const chatBackLabel = t('common.chat') || 'Chat';
-    // Always show an escape — never rely on the tab bar alone.
-    // Chat allowance paywall: label the return path as Chat (not a bare X).
+    const backLabel = resolveSubscriptionBackLabel({
+      t,
+      source: route?.params?.source,
+      backLabel: route?.params?.backLabel,
+      navigation,
+    });
+    // Prefer a labeled return path (Chat / Profile / Decide / …) over a bare X.
+    const useLabeledBack = Boolean(backLabel);
     navigation.setOptions({
       title: t('subscription.screenTitle'),
       headerBackVisible: false,
@@ -591,15 +596,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           onPress={handleDismissPaywall}
           accessibilityRole="button"
           accessibilityLabel={
-            fromStylistChat
-              ? chatBackLabel
+            useLabeledBack
+              ? backLabel!
               : (showClose
                 ? (t('common.close') || 'Close')
                 : (t('common.back') || 'Back'))
           }
           hitSlop={12}
           style={
-            fromStylistChat
+            useLabeledBack
               ? {
                   marginLeft: Platform.OS === 'ios' ? 4 : 0,
                   flexDirection: 'row',
@@ -609,6 +614,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                   borderRadius: 18,
                   backgroundColor: chipBg,
                   gap: 2,
+                  maxWidth: 220,
                 }
               : {
                   marginLeft: Platform.OS === 'ios' ? 4 : 0,
@@ -621,11 +627,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 }
           }
         >
-          {fromStylistChat ? (
+          {useLabeledBack ? (
             <>
               <Feather name="chevron-left" size={22} color={titleColor} />
-              <ThemedText type="body" style={{ color: titleColor, fontWeight: '600' }}>
-                {chatBackLabel}
+              <ThemedText
+                type="body"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ color: titleColor, fontWeight: '600', flexShrink: 1 }}
+              >
+                {backLabel}
               </ThemedText>
             </>
           ) : (
@@ -634,7 +645,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         </Pressable>
       ),
     });
-  }, [navigation, t, isDark, theme.text, handleDismissPaywall, route?.params?.asPaywall, route?.params?.source]);
+  }, [
+    navigation,
+    t,
+    isDark,
+    theme.text,
+    handleDismissPaywall,
+    route?.params?.asPaywall,
+    route?.params?.source,
+    route?.params?.backLabel,
+  ]);
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
   const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;

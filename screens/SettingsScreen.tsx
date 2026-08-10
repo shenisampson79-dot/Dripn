@@ -23,6 +23,7 @@ import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { getLocalizedSubscriptionSubtitle } from "@/utils/subscriptionPlanLabels";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 import { ALL_COUNTRIES } from "@/constants/countries";
 import { filterCountriesBySearch, getLocalizedCountryName } from "@/utils/countryLocalization";
@@ -754,7 +755,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             icon="credit-card"
             title={t('settings.subscription')}
             subtitle={getLocalizedSubscriptionSubtitle(user?.subscriptionTier, t)}
-            onPress={() => navigation.navigate("Subscription")}
+            onPress={() => navigateToSubscription(navigation, { source: 'settings' })}
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}

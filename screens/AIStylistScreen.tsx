@@ -50,6 +50,7 @@ import Animated, {
 // Input uses KeyboardStickyView (absolute bottom) so it tracks the keyboard without extra gap.
 
 import { ThemedText } from '@/components/ThemedText';
+import { ChatSelectableText } from '@/components/chat/ChatSelectableText';
 import { RenderErrorBoundary } from '@/components/RenderErrorBoundary';
 import { SoftRenderFallback } from '@/components/SoftRenderFallback';
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
@@ -178,8 +179,34 @@ const TAB_BAR_HEIGHT = 56;
 
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
+/** Unsent composer text — survives leaving chat (like iMessage / WhatsApp drafts). */
+const COMPOSER_DRAFT_KEY_PREFIX = '@dripn_ai_stylist_composer_draft:';
 /** Last user question to auto-retry after an allowance upgrade. */
 const PENDING_STYLIST_RETRY_KEY = '@dripn_stylist_pending_retry';
+
+function composerDraftKey(stylistId: string) {
+  return `${COMPOSER_DRAFT_KEY_PREFIX}${stylistId || 'default'}`;
+}
+
+/** Sync cache so remount restores draft before AsyncStorage resolves. */
+const composerDraftMemory: Record<string, string> = {};
+
+function readComposerDraft(stylistId: string): string {
+  const mem = composerDraftMemory[stylistId || 'default'];
+  return typeof mem === 'string' ? mem : '';
+}
+
+function writeComposerDraft(stylistId: string, text: string) {
+  const id = stylistId || 'default';
+  const next = String(text || '');
+  if (!next.trim()) {
+    delete composerDraftMemory[id];
+    void AsyncStorage.removeItem(composerDraftKey(id)).catch(() => {});
+    return;
+  }
+  composerDraftMemory[id] = next;
+  void AsyncStorage.setItem(composerDraftKey(id), next).catch(() => {});
+}
 /** Stable FlatList row id for the welcome bubble — never swap this id on hydrate. */
 const SEED_MESSAGE_ID = 'msg_seed_init';
 
@@ -1798,8 +1825,16 @@ export default function AIStylistScreen() {
       },
     ];
   });
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(() => readComposerDraft(stylist.id));
+  const inputTextRef = useRef(inputText);
+  inputTextRef.current = inputText;
   const [selectedImageUris, setSelectedImageUris] = useState<string[]>([]);
+
+  const setComposerText = useCallback((text: string) => {
+    setInputText(text);
+    inputTextRef.current = text;
+    writeComposerDraft(stylist.id, text);
+  }, [stylist.id]);
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
@@ -1889,10 +1924,50 @@ export default function AIStylistScreen() {
     stickToLatestRef.current = locked;
   }, []);
 
+  // Restore unsent composer draft from disk (memory already applied in useState).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(composerDraftKey(stylist.id));
+        if (cancelled || raw == null) return;
+        // Prefer in-progress typing; otherwise restore stored draft.
+        if (!String(inputTextRef.current || '').trim() && raw.length > 0) {
+          setInputText(raw);
+          inputTextRef.current = raw;
+          composerDraftMemory[stylist.id || 'default'] = raw;
+        } else if (String(inputTextRef.current || '').trim()) {
+          // Keep memory aligned with what is on screen.
+          composerDraftMemory[stylist.id || 'default'] = inputTextRef.current;
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stylist.id]);
+
   // Re-entering Stylist Chat always lands on the latest message (like WhatsApp).
   // Also refresh monthly AI meter — clear hard block after upgrade and retry the last question.
   useFocusEffect(
     useCallback(() => {
+      // Re-apply draft if the composer is empty (remount / tab return).
+      const mem = readComposerDraft(stylist.id);
+      if (mem && !String(inputTextRef.current || '').trim()) {
+        setInputText(mem);
+        inputTextRef.current = mem;
+      }
+      void AsyncStorage.getItem(composerDraftKey(stylist.id))
+        .then((raw) => {
+          if (!raw || String(inputTextRef.current || '').trim()) return;
+          setInputText(raw);
+          inputTextRef.current = raw;
+          composerDraftMemory[stylist.id || 'default'] = raw;
+        })
+        .catch(() => {});
+
       chatMachineRef.current = transitionPhase(chatMachineRef.current, 'READY');
       chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
       stickToLatestRef.current = true;
@@ -1955,8 +2030,10 @@ export default function AIStylistScreen() {
         cancelled = true;
         timers.forEach(clearTimeout);
         if (retryTimer) clearTimeout(retryTimer);
+        // Flush draft on leave (memory + disk).
+        writeComposerDraft(stylist.id, inputTextRef.current);
       };
-    }, [scrollChatToEnd, tier]),
+    }, [scrollChatToEnd, tier, stylist.id]),
   );
 
   // listBottomInset is computed after limitReached (see below) so the allowance
@@ -2854,7 +2931,7 @@ export default function AIStylistScreen() {
     
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    setInputText('');
+    setComposerText('');
     setSelectedImageUris([]);
     setShowQuickPrompts(false);
     setIsTyping(true);
@@ -3391,6 +3468,7 @@ export default function AIStylistScreen() {
     setMessages([greetingMessage]);
     setShowQuickPrompts(true);
     rememberChatMessages([greetingMessage], true);
+    setComposerText('');
     await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
     await releaseDecisionContinuity();
   };
@@ -3408,23 +3486,6 @@ export default function AIStylistScreen() {
       // Selection copy is primary; fail quietly for a11y fallback.
     }
   }, []);
-
-  // Helper function to parse markdown and render bold text
-  const renderMarkdownText = (text: string) => {
-    const safeText = typeof text === 'string' ? text : '';
-    const parts = safeText.split(/(\*\*[^*]+\*\*)/);
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        // Bold text
-        return (
-          <Text key={index} selectable style={{ fontWeight: '700' }}>
-            {part.slice(2, -2)}
-          </Text>
-        );
-      }
-      return part;
-    });
-  };
 
   const resolveAssistantWardrobeVisual = (message: ChatMessage, _messageIndex: number) => {
     let visual = hydrateWardrobeVisualImagesByIds(
@@ -3703,9 +3764,10 @@ export default function AIStylistScreen() {
 
               return (
                 <View key={`section-${sectionIndex}`} style={sectionIndex > 0 ? styles.outfitSectionGap : undefined}>
-                  <ThemedText selectable style={styles.messageText}>
-                    {renderMarkdownText(section)}
-                  </ThemedText>
+                  <ChatSelectableText
+                    text={section}
+                    style={[styles.messageText, { color: theme.text }]}
+                  />
                   {outfit ? renderOutfitVisual(outfit, `Outfit ${outfitNumber}`, message) : null}
                 </View>
               );
@@ -3716,9 +3778,10 @@ export default function AIStylistScreen() {
 
       return (
         <>
-          <ThemedText selectable style={styles.messageText}>
-            {renderMarkdownText(message.content)}
-          </ThemedText>
+          <ChatSelectableText
+            text={message.content}
+            style={[styles.messageText, { color: theme.text }]}
+          />
           {visual.outfits.map((outfit, index) => (
             <View key={`outfit-${outfit.sectionIndex}-${index}`}>
               {renderOutfitVisual(outfit, `Outfit ${index + 1}`, message)}
@@ -3730,9 +3793,10 @@ export default function AIStylistScreen() {
 
     if (outfitCount >= 2 && visual?.layout !== 'multi' && !(visual?.pieces?.length)) {
       return (
-        <ThemedText selectable style={styles.messageText}>
-          {renderMarkdownText(message.content)}
-        </ThemedText>
+        <ChatSelectableText
+          text={message.content}
+          style={[styles.messageText, { color: theme.text }]}
+        />
       );
     }
 
@@ -3747,17 +3811,20 @@ export default function AIStylistScreen() {
     if (isSingleOutfitWithFollowUp) {
       return (
         <>
-          <ThemedText selectable style={styles.messageText}>
-            {renderMarkdownText(sections[0])}
-          </ThemedText>
+          <ChatSelectableText
+            text={sections[0]}
+            style={[styles.messageText, { color: theme.text }]}
+          />
           {renderWardrobeVisual(
             { ...message, wardrobeVisual: visual },
             inferWardrobeVisualLabel(priorUser?.content || ''),
           )}
           {sections.slice(1).map((section, sectionIndex) => (
-            <ThemedText key={`follow-up-${sectionIndex}`} selectable style={styles.messageText}>
-              {renderMarkdownText(section)}
-            </ThemedText>
+            <ChatSelectableText
+              key={`follow-up-${sectionIndex}`}
+              text={section}
+              style={[styles.messageText, { color: theme.text }]}
+            />
           ))}
         </>
       );
@@ -3769,9 +3836,10 @@ export default function AIStylistScreen() {
           { ...message, wardrobeVisual: visual },
           inferWardrobeVisualLabel(priorUser?.content || ''),
         )}
-        <ThemedText selectable style={styles.messageText}>
-          {renderMarkdownText(message.content)}
-        </ThemedText>
+        <ChatSelectableText
+          text={message.content}
+          style={[styles.messageText, { color: theme.text }]}
+        />
       </>
     );
     } catch (renderErr) {
@@ -3781,9 +3849,10 @@ export default function AIStylistScreen() {
       console.warn('[AIStylist] renderAssistantContent soft-fallback (text + SoftRenderFallback):', renderErr);
       return (
         <>
-          <ThemedText selectable style={styles.messageText}>
-            {renderMarkdownText(typeof message?.content === 'string' ? message.content : '')}
-          </ThemedText>
+          <ChatSelectableText
+            text={typeof message?.content === 'string' ? message.content : ''}
+            style={[styles.messageText, { color: theme.text }]}
+          />
           <SoftRenderFallback message="Outfit preview unavailable" />
         </>
       );
@@ -3841,15 +3910,11 @@ export default function AIStylistScreen() {
           ]}
         >
           {isUser ? (
-            <ThemedText
-              selectable
-              style={[
-                styles.messageText,
-                { color: '#FFFFFF' },
-              ]}
-            >
-              {renderMarkdownText(item.content)}
-            </ThemedText>
+            <ChatSelectableText
+              text={item.content}
+              inverted
+              style={[styles.messageText, { color: '#FFFFFF' }]}
+            />
           ) : (
             <>
               {renderAssistantContent(item, index)}
@@ -3873,13 +3938,11 @@ export default function AIStylistScreen() {
               {((item.isFallback || item.isShopRequired) && item.missing?.length) ? (
                 <View style={{ marginTop: Spacing.sm }}>
                   {item.missing.map((gap, gapIdx) => (
-                    <ThemedText
+                    <ChatSelectableText
                       key={`gap-${gap.role || gapIdx}-${gap.label || gap.name || gapIdx}`}
-                      selectable
-                      style={[styles.messageText, { opacity: 0.8, marginBottom: 2 }]}
-                    >
-                      · {gap.label || gap.name || gap.role || 'Upgrade'} · recommended
-                    </ThemedText>
+                      text={`· ${gap.label || gap.name || gap.role || 'Upgrade'} · recommended`}
+                      style={[styles.messageText, { color: theme.text, opacity: 0.8, marginBottom: 2 }]}
+                    />
                   ))}
                   <FallbackShopSection
                     missing={item.missing}
@@ -4679,7 +4742,7 @@ export default function AIStylistScreen() {
           </Pressable>
           <TextInput
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={setComposerText}
             onFocus={() => {
               stickToLatestRef.current = true;
               isNearBottomRef.current = true;

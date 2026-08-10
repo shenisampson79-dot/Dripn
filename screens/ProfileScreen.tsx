@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, View, Pressable, Alert, ScrollView, ActivityIndicator, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,6 +20,7 @@ import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
@@ -80,6 +81,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
   const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<MixAndMatchSavedOutfit[]>([]);
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
+  /** After first outfit fetch, keep table/empty stable — never flash gold spinner on tab remount. */
+  const [outfitsBootstrapped, setOutfitsBootstrapped] = useState(false);
+  const lastLookbookFocusFetchAt = useRef(0);
   const [stylePackages, setStylePackages] = useState<DfyPackageSummary[]>([]);
   const [loadingStylePackages, setLoadingStylePackages] = useState(false);
   const [travelTrips, setTravelTrips] = useState<TravelTripSummary[]>([]);
@@ -180,43 +184,70 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
   }, [user?.id, user?.colorScanData, hasColorAnalysis]);
 
-  // Fetch saved mix-and-match outfits from backend
+  const outfitsBootstrappedRef = useRef(false);
+  useEffect(() => {
+    outfitsBootstrappedRef.current = outfitsBootstrapped;
+  }, [outfitsBootstrapped]);
+
+  // Reset outfit bootstrap when account changes.
+  useEffect(() => {
+    outfitsBootstrappedRef.current = false;
+    setOutfitsBootstrapped(false);
+    lastLookbookFocusFetchAt.current = 0;
+  }, [user?.id]);
+
+  // Fetch saved mix-and-match outfits from backend (once per user; silent after bootstrap).
   useEffect(() => {
     const fetchSavedOutfits = async () => {
       if (!user?.id) {
         setSavedMixAndMatchOutfits([]);
+        outfitsBootstrappedRef.current = true;
+        setOutfitsBootstrapped(true);
         return;
       }
 
       try {
-        setLoadingSavedOutfits(true);
+        if (!outfitsBootstrappedRef.current) setLoadingSavedOutfits(true);
         const response = await apiService.getMixAndMatchOutfits();
         setSavedMixAndMatchOutfits(response.outfits || []);
       } catch {
-        // Non-critical — profile still works with liked outfits only
-        setSavedMixAndMatchOutfits([]);
+        // Keep prior list if we already bootstrapped — avoid empty-state flash.
+        if (!outfitsBootstrappedRef.current) setSavedMixAndMatchOutfits([]);
       } finally {
         setLoadingSavedOutfits(false);
+        outfitsBootstrappedRef.current = true;
+        setOutfitsBootstrapped(true);
       }
     };
 
     fetchSavedOutfits();
   }, [user?.id]);
 
-  const loadSavedLookbookOutfits = useCallback(async () => {
+  const loadSavedLookbookOutfits = useCallback(async (opts?: { force?: boolean }) => {
     if (!user?.id) {
       setSavedLookbookOutfits([]);
+      outfitsBootstrappedRef.current = true;
+      setOutfitsBootstrapped(true);
       return;
     }
 
+    const now = Date.now();
+    // Rapid tab churn: skip lookbook refetch for ~20s unless forced.
+    if (!opts?.force && lastLookbookFocusFetchAt.current > 0 && now - lastLookbookFocusFetchAt.current < 20000) {
+      return;
+    }
+    lastLookbookFocusFetchAt.current = now;
+
     try {
-      setLoadingSavedLookbook(true);
+      if (!outfitsBootstrappedRef.current) setLoadingSavedLookbook(true);
       const outfits = await dfyService.getSavedLookbookOutfits(user.id);
       setSavedLookbookOutfits(outfits);
     } catch {
-      setSavedLookbookOutfits([]);
+      if (!outfitsBootstrappedRef.current) setSavedLookbookOutfits([]);
     } finally {
       setLoadingSavedLookbook(false);
+      outfitsBootstrappedRef.current = true;
+      setOutfitsBootstrapped(true);
     }
   }, [user?.id]);
 
@@ -226,13 +257,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       return;
     }
     try {
-      setLoadingStylePackages(true);
+      // Silent refresh — package list already rendered when non-empty.
       const packages = await dfyService.listDfyPackages();
       setStylePackages(packages);
     } catch {
-      setStylePackages([]);
-    } finally {
-      setLoadingStylePackages(false);
+      /* keep prior */
     }
   }, [user?.id]);
 
@@ -242,21 +271,18 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       return;
     }
     try {
-      setLoadingTravelTrips(true);
       const trips = await dfyService.listTravelTrips(user.id);
       setTravelTrips(trips);
     } catch {
-      setTravelTrips([]);
-    } finally {
-      setLoadingTravelTrips(false);
+      /* keep prior */
     }
   }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
-      loadSavedLookbookOutfits();
-      loadStylePackages();
-      loadTravelTrips();
+      void loadSavedLookbookOutfits();
+      void loadStylePackages();
+      void loadTravelTrips();
     }, [loadSavedLookbookOutfits, loadStylePackages, loadTravelTrips]),
   );
 
@@ -490,7 +516,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const handleSubscriptionPress = () => {
-    navigation.navigate("Subscription");
+    navigateToSubscription(navigation, { source: 'profile' });
   };
 
   const handleAdminDashboardPress = () => {
@@ -980,7 +1006,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={styles.contentSection}>
         {activeTab === "outfits" ? (
-          loadingSavedLookbook || loadingSavedOutfits ? (
+          !outfitsBootstrapped && (loadingSavedLookbook || loadingSavedOutfits) ? (
             <View style={styles.emptyState}>
               <LinearGradient
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}

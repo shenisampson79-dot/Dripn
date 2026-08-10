@@ -268,10 +268,16 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
       const response = await apiService.submitFeedback(payload);
 
       if (response.success) {
+        setFeedbackType(null);
+        setCategory(null);
+        setTitle("");
+        setDescription("");
+        setRating(0);
+        // Stay on Send Feedback — do not navigate away on OK.
         Alert.alert(
           tx(t, "feedback.thankYouTitle"),
           tx(t, "feedback.thankYouMessage"),
-          [{ text: t("common.ok") || "OK", onPress: () => navigation.goBack() }],
+          [{ text: t("common.ok") || "OK" }],
         );
       } else {
         throw new Error("Submission failed");
