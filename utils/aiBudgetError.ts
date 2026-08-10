@@ -97,6 +97,20 @@ export function getAiAllowancePaywallCopy(tier?: string | null): AiAllowancePayw
   };
 }
 
+/** Params for navigateToSubscription after an allowance block. */
+export function aiAllowanceSubscriptionParams(
+  tier: string | null | undefined,
+  source: string,
+): { source: string; asPaywall: true; scrollToAiTopUp: boolean; highlightPlan?: string } {
+  const paywall = getAiAllowancePaywallCopy(tier);
+  return {
+    source,
+    asPaywall: true,
+    scrollToAiTopUp: paywall.primaryAction === 'topup',
+    highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
+  };
+}
+
 /** In-chat copy when stylist AI monthly allowance is spent — conversion, not a network error. */
 export function stylistMonthlyAllowanceMessage(args: {
   stylistName: string;

@@ -22,6 +22,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import { AiAllowanceBlockedBanner } from '@/components/AiAllowanceBlockedBanner';
 import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/components/outfit/GeneratedOutfitModal';
 import { OccasionPickerList } from '@/components/outfit/OccasionPickerList';
 import { DuplicateComparisonSheet } from '@/components/wardrobe/DuplicateComparisonSheet';
@@ -40,6 +41,7 @@ import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator
 import { apiService } from '@/services/ApiService';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import {
+  aiAllowanceSubscriptionParams,
   getAiAllowancePaywallCopy,
   isAiBudgetError,
 } from '@/utils/aiBudgetError';
@@ -133,8 +135,11 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const [sessionReady, setSessionReady] = useState(false);
   /** When true, the next scan appends items instead of replacing the session. */
   const [appendNextScan, setAppendNextScan] = useState(false);
+  /** Set after dismissing AI allowance paywall so Start over stays visible at the top. */
+  const [allowanceBlocked, setAllowanceBlocked] = useState(false);
   const skipAutoOpenRef = useRef(false);
   const appendNextScanRef = useRef(false);
+  const scrollRef = useRef<React.ElementRef<typeof KeyboardAwareScrollView>>(null);
 
   React.useEffect(() => {
     onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
@@ -240,6 +245,33 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     }
   };
 
+  const openAllowanceDestination = useCallback(() => {
+    navigateToSubscription(
+      navigation,
+      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'get_outfits'),
+    );
+  }, [navigation, user?.subscriptionTier]);
+
+  const openAllowancePaywall = useCallback(
+    (error?: unknown) => {
+      const planTier = planTierFromBudgetError(error) || user?.subscriptionTier;
+      const paywall = getAiAllowancePaywallCopy(planTier);
+      setAllowanceBlocked(true);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo?.({ y: 0, animated: true });
+      });
+      Alert.alert(paywall.title, paywall.message, [
+        { text: paywall.secondaryLabel, style: 'cancel' },
+        {
+          text: paywall.primaryLabel,
+          onPress: () =>
+            navigateToSubscription(navigation, aiAllowanceSubscriptionParams(planTier, 'get_outfits')),
+        },
+      ]);
+    },
+    [navigation, user?.subscriptionTier],
+  );
+
   const runScan = async (uri: string) => {
     const append = appendNextScanRef.current;
     setStep('scanning');
@@ -251,6 +283,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           t('wardrobe.scanWardrobe') || 'Scan Wardrobe',
           result.message || 'No garments detected. Try a flat-lay photo with clear separation.',
         );
+        // Keep the photo so they can retry or Start over — don't leave a dead preview.
         setStep(append && scanItems.length ? 'confirm' : 'capture');
         return;
       }
@@ -268,15 +301,21 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       setScanItems((prev) => (append ? [...prev, ...incoming] : incoming));
       appendNextScanRef.current = false;
       setAppendNextScan(false);
+      setAllowanceBlocked(false);
       setStep('confirm');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.warn('[ScanWardrobe] scan failed:', error);
+      // Stay on capture with this photo so Continue / Start over remain available.
+      setStep(append && scanItems.length ? 'confirm' : 'capture');
+      if (isAiBudgetError(error)) {
+        openAllowancePaywall(error);
+        return;
+      }
       Alert.alert(
         t('wardrobe.error') || 'Error',
         error instanceof Error ? error.message : 'Could not scan photo. Please try again.',
       );
-      setStep(append && scanItems.length ? 'confirm' : 'capture');
     }
   };
 
@@ -358,6 +397,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   };
 
   const handleGenerateOutfit = async () => {
+    if (allowanceBlocked) {
+      openAllowanceDestination();
+      return;
+    }
     if (!canGenerateLooks) {
       Alert.alert(
         t('wardrobe.moreItemsNeeded') || 'More pieces needed',
@@ -421,6 +464,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           + weatherNote;
       setWowMessage(nextWow);
       setStep('looks');
+      setAllowanceBlocked(false);
       // Persist immediately so backing out before the debounce effect still keeps looks.
       void saveGetOutfitsSession({
         step: 'looks',
@@ -447,29 +491,15 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       }
       skipAutoOpenRef.current = false;
     } catch (error) {
+      setStep('confirm');
       if (isAiBudgetError(error)) {
-        const paywall = getAiAllowancePaywallCopy(
-          planTierFromBudgetError(error) || user?.subscriptionTier,
-        );
-        Alert.alert(paywall.title, paywall.message, [
-          { text: paywall.secondaryLabel, style: 'cancel' },
-          {
-            text: paywall.primaryLabel,
-            onPress: () =>
-              navigateToSubscription(navigation, {
-                source: 'get_outfits',
-                asPaywall: true,
-                scrollToAiTopUp: paywall.primaryAction === 'topup',
-              }),
-          },
-        ]);
+        openAllowancePaywall(error);
       } else {
         Alert.alert(
           t('wardrobe.error') || 'Error',
           error instanceof Error ? error.message : 'Outfit generation failed.',
         );
       }
-      setStep('confirm');
     } finally {
       setIsGenerating(false);
     }
@@ -494,6 +524,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     await clearGetOutfitsSession();
     appendNextScanRef.current = false;
     setAppendNextScan(false);
+    setAllowanceBlocked(false);
     setStep('capture');
     setImageUri(null);
     setSessionId(null);
@@ -505,6 +536,17 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     setShowOutfitModal(false);
     skipAutoOpenRef.current = false;
   }, []);
+
+  const confirmStartOver = useCallback(() => {
+    Alert.alert(
+      'Start over?',
+      'This clears your current photo and scanned pieces so you can begin again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Start over', style: 'destructive', onPress: () => void resetToCapture() },
+      ],
+    );
+  }, [resetToCapture]);
 
   const finishSession = useCallback(async () => {
     await clearGetOutfitsSession();
@@ -618,6 +660,15 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           ? `Keeping your ${scanItems.length} scanned piece${scanItems.length === 1 ? '' : 's'} — add another photo if you want.`
           : 'Start with one piece — we’ll style 3 outfits with it.'}
       </ThemedText>
+      {allowanceBlocked ? (
+        <AiAllowanceBlockedBanner
+          tier={user?.subscriptionTier}
+          message="Looks and scans need AI credit. Start over anytime, or buy more credit / see plans when you’re ready."
+          onPrimary={() => openAllowanceDestination()}
+          onSecondary={confirmStartOver}
+          secondaryLabel="Start over"
+        />
+      ) : null}
       {appendNextScan && scanItems.length > 0 ? (
         <Pressable
           onPress={() => {
@@ -643,8 +694,39 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         </View>
       )}
       <View style={styles.captureActions}>
-        <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
-          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+        {imageUri ? (
+          <Pressable
+            onPress={() => {
+              if (allowanceBlocked) {
+                openAllowanceDestination();
+                return;
+              }
+              void runScan(imageUri);
+            }}
+            style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+          >
+            <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+              {allowanceBlocked
+                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                : 'Continue with this photo'}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={handleTakePhoto}
+          style={
+            imageUri
+              ? [styles.secondaryBtn, { borderColor: theme.border }]
+              : [styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]
+          }
+        >
+          <ThemedText
+            type="body"
+            style={{
+              color: imageUri ? theme.text : LuxuryColors.midnight,
+              fontWeight: '600',
+            }}
+          >
             {appendNextScan
               ? 'Take another photo'
               : (t('wardrobe.takePhotoForOutfits') || 'Take a photo')}
@@ -655,6 +737,13 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
             {t('wardrobe.chooseFromGallery') || 'Choose from Gallery'}
           </ThemedText>
         </Pressable>
+        {imageUri || scanItems.length > 0 || allowanceBlocked ? (
+          <Pressable onPress={confirmStartOver} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
+            <ThemedText type="body" style={{ color: theme.textSecondary }}>
+              Start over
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -726,9 +815,25 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 
   const renderConfirm = () => (
     <View style={styles.stepBody}>
-      <ThemedText type="h2" style={styles.title}>
-        You have {confirmedItems.length} usable item{confirmedItems.length === 1 ? '' : 's'}
-      </ThemedText>
+      <View style={styles.confirmHeaderRow}>
+        <ThemedText type="h2" style={[styles.title, { flex: 1, marginBottom: 0 }]}>
+          You have {confirmedItems.length} usable item{confirmedItems.length === 1 ? '' : 's'}
+        </ThemedText>
+        <Pressable onPress={confirmStartOver} hitSlop={8}>
+          <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: '600' }}>
+            Start over
+          </ThemedText>
+        </Pressable>
+      </View>
+      {allowanceBlocked ? (
+        <AiAllowanceBlockedBanner
+          tier={user?.subscriptionTier}
+          message="Looks can’t run until you buy more credit or your allowance resets. You can still edit items or start over."
+          onPrimary={() => openAllowanceDestination()}
+          onSecondary={confirmStartOver}
+          secondaryLabel="Start over"
+        />
+      ) : null}
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
         {hybridMerge
           ? canGenerateLooks
@@ -773,11 +878,15 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         ) : null}
         <Pressable
           onPress={handleGenerateOutfit}
-          disabled={isGenerating || !canGenerateLooks}
-          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || !canGenerateLooks ? 0.5 : 1 }]}
+          disabled={isGenerating || (!canGenerateLooks && !allowanceBlocked)}
+          style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || (!canGenerateLooks && !allowanceBlocked) ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {isGenerating ? 'Building looks…' : 'Show me 3 outfits'}
+            {isGenerating
+              ? 'Building looks…'
+              : allowanceBlocked
+                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                : 'Show me 3 outfits'}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -797,19 +906,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
             + Add another item
           </ThemedText>
         </Pressable>
-        <Pressable
-          onPress={() => {
-            Alert.alert(
-              'Start over?',
-              'This clears your current scanned pieces so you can photograph again from scratch.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Start over', style: 'destructive', onPress: () => void resetToCapture() },
-              ],
-            );
-          }}
-          style={[styles.secondaryBtn, { borderColor: theme.border }]}
-        >
+        <Pressable onPress={confirmStartOver} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
           <ThemedText type="body" style={{ color: theme.textSecondary }}>
             Start over
           </ThemedText>
@@ -858,7 +955,9 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold, opacity: isGenerating ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-            Refresh looks
+            {allowanceBlocked
+              ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+              : 'Refresh looks'}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -884,16 +983,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           </ThemedText>
         </Pressable>
         <Pressable
-          onPress={() => {
-            Alert.alert(
-              'Start again?',
-              'This clears your current looks and scanned pieces.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Start again', style: 'destructive', onPress: () => void resetToCapture() },
-              ],
-            );
-          }}
+          onPress={confirmStartOver}
           style={[styles.secondaryBtn, { borderColor: theme.border }]}
         >
           <ThemedText type="body" style={{ color: theme.textSecondary }}>
@@ -916,6 +1006,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.backgroundDefault }}>
       <KeyboardAwareScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + Spacing.xl * 2 }]}
         keyboardShouldPersistTaps="handled"
       >
@@ -987,6 +1078,12 @@ const styles = StyleSheet.create({
     minHeight: 280,
   },
   title: {
+    marginBottom: Spacing.sm,
+  },
+  confirmHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   previewImage: {

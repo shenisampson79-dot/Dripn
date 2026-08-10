@@ -24,6 +24,7 @@ import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareS
 import { SafeOutfitPieces } from '@/components/SafeOutfitPieces';
 import { SurpriseMeLoadingOverlay } from '@/components/SurpriseMeLoadingOverlay';
 import { ThemedText } from '@/components/ThemedText';
+import { AiAllowanceBlockedBanner } from '@/components/AiAllowanceBlockedBanner';
 import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
@@ -31,6 +32,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { DecisionType } from '@/services/DecisionService';
 import { decisionService } from '@/services/DecisionService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
 import { useStylistDecision } from '@/hooks/useStylistDecision';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePicker';
@@ -184,6 +186,14 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
   const stickyCta = (() => {
     if (flow.isReadOnly) return null;
+    if (flow.allowanceBlocked && flow.step !== 'response') {
+      const paywall = getAiAllowancePaywallCopy(flow.user?.subscriptionTier);
+      return {
+        label: paywall.primaryLabel,
+        onPress: () => flow.openAllowanceDestination(),
+        loading: false,
+      };
+    }
     if (flow.step === 'event') {
       if (!flow.eventDetails.eventType || !flow.eventDetails.dressCode) return null;
       return {
@@ -1293,12 +1303,36 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           colors={[LuxuryColors.champagne, theme.backgroundRoot]}
           style={styles.heroBanner}
         >
-          <ThemedText type="h2">{introCopy.title}</ThemedText>
+          <View style={styles.heroTitleRow}>
+            <ThemedText type="h2" style={{ flex: 1 }}>{introCopy.title}</ThemedText>
+            {!flow.isReadOnly ? (
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  flow.resetFlow();
+                }}
+                hitSlop={8}
+              >
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, fontWeight: '600' }}>
+                  {t('stylistFlow.startOver') || 'Start over'}
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
           <ThemedText style={[styles.heroSubtitle, { color: theme.tabIconDefault }]}>
             {introCopy.subtitle}
           </ThemedText>
           {flow.step !== 'response' ? renderProgress() : null}
         </LinearGradient>
+
+        {flow.allowanceBlocked && flow.step !== 'response' ? (
+          <AiAllowanceBlockedBanner
+            tier={flow.user?.subscriptionTier}
+            onPrimary={() => flow.openAllowanceDestination()}
+            onSecondary={() => flow.resetFlow()}
+            secondaryLabel={t('stylistFlow.startOver') || 'Start over'}
+          />
+        ) : null}
 
         {flow.isStale ? (
           <View style={[styles.staleBanner, { backgroundColor: '#FFF4E5', borderColor: LuxuryColors.gold }]}>
@@ -1426,6 +1460,11 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     marginBottom: Spacing.lg,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   heroSubtitle: {
     marginTop: Spacing.xs,

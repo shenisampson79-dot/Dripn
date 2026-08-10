@@ -3,6 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import {
+  aiAllowanceSubscriptionParams,
   getAiAllowancePaywallCopy,
   isAiBudgetError,
   stylistMonthlyAllowanceMessage,
@@ -49,5 +50,14 @@ assert.doesNotMatch(proCopy.message, /unlimited/i);
 const personalCopy = getAiAllowancePaywallCopy('personal_stylist');
 assert.equal(personalCopy.primaryAction, 'upgrade');
 assert.match(personalCopy.message, /Stylist Pro/i);
+
+const proParams = aiAllowanceSubscriptionParams('stylist_unlimited', 'get_outfits');
+assert.equal(proParams.scrollToAiTopUp, true);
+assert.equal(proParams.source, 'get_outfits');
+assert.equal(proParams.asPaywall, true);
+
+const freeParams = aiAllowanceSubscriptionParams('free', 'sanity-check');
+assert.equal(freeParams.scrollToAiTopUp, false);
+assert.equal(freeParams.highlightPlan, 'personal_stylist');
 
 console.log('aiBudgetError.test.ts: all passed');

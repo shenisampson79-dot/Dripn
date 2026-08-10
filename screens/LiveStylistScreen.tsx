@@ -40,6 +40,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
+import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
 import { isStaffUser } from '@/utils/staffAccess';
 import {
   detectGarmentsOnDevice,
@@ -344,6 +345,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  /** Stays true after dismissing the modal so Start live can't re-loop the same block. */
+  const [budgetExhausted, setBudgetExhausted] = useState(false);
   /** Prefer server tier from the 429 usage snapshot over cached Auth. */
   const [budgetPlanTier, setBudgetPlanTier] = useState<string | null>(null);
   /** Defer CameraView until after navigation transition — mount-time camera init can native-kill. */
@@ -509,6 +512,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     startingLiveRef.current = false;
     setIsLive(false);
     unmountCamera();
+    setBudgetExhausted(true);
     setShowBudgetModal(true);
     setStatusNote(
       isTopTier(effective)
@@ -1344,6 +1348,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         await liveStartCrumb('paused');
         return;
       }
+      if (budgetExhausted) {
+        setShowBudgetModal(true);
+        await liveStartCrumb('start blocked — allowance exhausted');
+        return;
+      }
       if (startingLiveRef.current) {
         await liveStartCrumb('start ignored — already starting');
         return;
@@ -1439,6 +1448,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   };
 
   const openStillScan = useCallback(async () => {
+    if (budgetExhausted) {
+      setShowBudgetModal(true);
+      return;
+    }
     if (inFlightRef.current || capturingRef.current || !mountedRef.current) return;
     stopSamplingLoop();
     startingLiveRef.current = false;
@@ -1581,7 +1594,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
     }
-  }, [applyResponse, ensureCameraMounted, handleAiBudgetHit, occasionType, permission?.granted, preferVision, publishDebug, requestPermission, stopSamplingLoop]);
+  }, [applyResponse, budgetExhausted, ensureCameraMounted, handleAiBudgetHit, occasionType, permission?.granted, preferVision, publishDebug, requestPermission, stopSamplingLoop]);
 
   if (!permission) {
     return (
@@ -1724,19 +1737,46 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>
             <Feather name="x" size={22} color="#FFF" />
           </Pressable>
-          <Pressable
-            onPress={toggleLive}
-            style={[styles.primaryBtn, { backgroundColor: isLive ? '#C45C4A' : LuxuryColors.gold, flex: 1 }]}
-          >
-            <ThemedText type="body" style={{ color: isLive ? '#FFF' : LuxuryColors.midnight, fontWeight: '700' }}>
-              {isLive ? 'Stop' : 'Start live'}
-            </ThemedText>
-          </Pressable>
-          <Pressable onPress={openStillScan} style={[styles.secondaryBtn, { borderColor: 'rgba(255,255,255,0.35)' }]}>
-            <ThemedText type="caption" style={{ color: '#FFF' }}>
-              Still scan
-            </ThemedText>
-          </Pressable>
+          {budgetExhausted ? (
+            <>
+              <Pressable
+                onPress={() => {
+                  const paywall = getAiAllowancePaywallCopy(budgetPlanTier || tier);
+                  if (paywall.primaryAction === 'topup') openAiTopUp();
+                  else openSubscription();
+                }}
+                style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, flex: 1 }]}
+              >
+                <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '700' }}>
+                  {getAiAllowancePaywallCopy(budgetPlanTier || tier).primaryLabel}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={openSanityCheck}
+                style={[styles.secondaryBtn, { borderColor: 'rgba(255,255,255,0.35)' }]}
+              >
+                <ThemedText type="caption" style={{ color: '#FFF' }}>
+                  Sanity check
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Pressable
+                onPress={toggleLive}
+                style={[styles.primaryBtn, { backgroundColor: isLive ? '#C45C4A' : LuxuryColors.gold, flex: 1 }]}
+              >
+                <ThemedText type="body" style={{ color: isLive ? '#FFF' : LuxuryColors.midnight, fontWeight: '700' }}>
+                  {isLive ? 'Stop' : 'Start live'}
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={openStillScan} style={[styles.secondaryBtn, { borderColor: 'rgba(255,255,255,0.35)' }]}>
+                <ThemedText type="caption" style={{ color: '#FFF' }}>
+                  Still scan
+                </ThemedText>
+              </Pressable>
+            </>
+          )}
         </View>
       </LinearGradient>
       ) : null}

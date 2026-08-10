@@ -10,6 +10,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import type { ScrollView as RNScrollView } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
+import { AiAllowanceBlockedBanner } from "@/components/AiAllowanceBlockedBanner";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +24,11 @@ import { onboardingSessionService } from "@/services/OnboardingSessionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAiAllowancePaywallCopy, isAiBudgetError } from "@/utils/aiBudgetError";
+import {
+  aiAllowanceSubscriptionParams,
+  getAiAllowancePaywallCopy,
+  isAiBudgetError,
+} from "@/utils/aiBudgetError";
 import { planTierFromBudgetError } from "@/components/live/LiveAiBudgetModal";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
@@ -283,6 +288,28 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
   const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [allowanceBlocked, setAllowanceBlocked] = useState(false);
+
+  const openAllowanceDestination = useCallback(() => {
+    navigateToSubscription(
+      navigation,
+      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'decide_for_me'),
+    );
+  }, [navigation, user?.subscriptionTier]);
+
+  const presentAllowancePaywall = useCallback((error?: unknown) => {
+    const planTier = planTierFromBudgetError(error) || user?.subscriptionTier;
+    const paywall = getAiAllowancePaywallCopy(planTier);
+    setAllowanceBlocked(true);
+    Alert.alert(paywall.title, paywall.message, [
+      { text: paywall.secondaryLabel, style: 'cancel' },
+      {
+        text: paywall.primaryLabel,
+        onPress: () =>
+          navigateToSubscription(navigation, aiAllowanceSubscriptionParams(planTier, 'decide_for_me')),
+      },
+    ]);
+  }, [navigation, user?.subscriptionTier]);
 
   const handleExpressionInputFocus = useCallback(() => {
     // KeyboardAwareScrollView handles scroll-to-input automatically via scrollOnFocus
@@ -578,7 +605,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       setStep("result");
       incrementRecommendationCount();
       generateOutfitImageAsync(outfitDescription, occasionId);
-    } catch {
+    } catch (err) {
+      if (isAiBudgetError(err)) {
+        setStep(recommendation ? 'result' : 'occasion');
+        presentAllowancePaywall(err);
+        return;
+      }
       setRecommendation({
         outfit: fallbackOutfit.outfit,
         reasoning: fallbackOutfit.reasoning,
@@ -589,7 +621,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       incrementRecommendationCount();
       generateOutfitImageAsync(outfitDescription, occasionId);
     }
-  }, [onboardingProfile, weather, expressionText, currentLanguage, t]);
+  }, [onboardingProfile, weather, expressionText, currentLanguage, t, presentAllowancePaywall, recommendation]);
 
   const handleOccasionSelect = (occasionId: string) => {
     setSelectedOccasion(occasionId);
@@ -597,6 +629,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const handleDecideOutfit = () => {
     if (!selectedOccasion) return;
+    if (allowanceBlocked) {
+      openAllowanceDestination();
+      return;
+    }
     void generateRecommendation(selectedOccasion);
   };
 
@@ -692,6 +728,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const handleAnotherOption = async () => {
+    if (allowanceBlocked) {
+      openAllowanceDestination();
+      return;
+    }
     // Soft-gate after free allowance: user has already seen the current pick;
     // farewell on the next "Another option" attempt (never covering first paint).
     if (recommendationCountRef.current >= FREE_RECOMMENDATION_LIMIT) {
@@ -800,6 +840,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleExpressionSubmit = useCallback(async () => {
     const userExpression = expressionText.trim();
     if (!userExpression || isSubmittingExpression || isRefiningOutfit) return;
+    if (allowanceBlocked) {
+      openAllowanceDestination();
+      return;
+    }
 
     setIsSubmittingExpression(true);
     setIsRefiningOutfit(true);
@@ -842,21 +886,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         }
       } catch (refineErr) {
         if (isAiBudgetError(refineErr)) {
-          const paywall = getAiAllowancePaywallCopy(
-            planTierFromBudgetError(refineErr) || user?.subscriptionTier,
-          );
-          Alert.alert(paywall.title, paywall.message, [
-            { text: paywall.secondaryLabel, style: 'cancel' },
-            {
-              text: paywall.primaryLabel,
-              onPress: () =>
-                navigateToSubscription(navigation, {
-                  source: 'decide_for_me',
-                  asPaywall: true,
-                  scrollToAiTopUp: paywall.primaryAction === 'topup',
-                }),
-            },
-          ]);
+          presentAllowancePaywall(refineErr);
           return;
         }
         console.log("Refinement API failed, using local fallback");
@@ -881,21 +911,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (outerErr) {
       if (isAiBudgetError(outerErr)) {
-        const paywall = getAiAllowancePaywallCopy(
-          planTierFromBudgetError(outerErr) || user?.subscriptionTier,
-        );
-        Alert.alert(paywall.title, paywall.message, [
-          { text: paywall.secondaryLabel, style: 'cancel' },
-          {
-            text: paywall.primaryLabel,
-            onPress: () =>
-              navigateToSubscription(navigation, {
-                source: 'decide_for_me',
-                asPaywall: true,
-                scrollToAiTopUp: paywall.primaryAction === 'topup',
-              }),
-          },
-        ]);
+        presentAllowancePaywall(outerErr);
       } else {
         Alert.alert(
           t('common.couldNotUpdateOutfit') || "Could not update outfit",
@@ -910,6 +926,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     expressionText,
     isSubmittingExpression,
     isRefiningOutfit,
+    allowanceBlocked,
+    openAllowanceDestination,
+    presentAllowancePaywall,
     recommendation?.outfit,
     selectedOccasion,
     weather,
@@ -959,6 +978,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
     return (
       <Animated.View entering={FadeIn} style={styles.stepContainer} pointerEvents="box-none">
+        {allowanceBlocked ? (
+          <AiAllowanceBlockedBanner
+            tier={user?.subscriptionTier}
+            onPrimary={() => openAllowanceDestination()}
+            onSecondary={() => {
+              setAllowanceBlocked(false);
+              setStep('occasion');
+            }}
+            secondaryLabel={t('common.back') || 'Back'}
+          />
+        ) : null}
         <View style={styles.stylistMessage}>
           <LinearGradient
             colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
@@ -1064,7 +1094,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               onPress={handleDecideOutfit}
               style={[styles.decideCtaButton, { backgroundColor: '#4A3428' }]}
             >
-              {t("decideForMe.decideCta") || "Decide my outfit"}
+              {allowanceBlocked
+                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                : (t("decideForMe.decideCta") || "Decide my outfit")}
             </Button>
           </Animated.View>
         ) : null}
@@ -1144,6 +1176,18 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const renderResultStep = () => (
     <Animated.View entering={FadeIn} style={styles.resultContainer} pointerEvents="box-none">
+      {allowanceBlocked ? (
+        <AiAllowanceBlockedBanner
+          tier={user?.subscriptionTier}
+          onPrimary={() => openAllowanceDestination()}
+          onSecondary={() => {
+            setAllowanceBlocked(false);
+            setStep('occasion');
+            setRecommendation(null);
+          }}
+          secondaryLabel={t('stylistFlow.startOver') || 'Start over'}
+        />
+      ) : null}
       <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitRecommendationCard}>
         <LinearGradient
           colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
@@ -1272,7 +1316,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           <ThemedText type="body" style={[styles.actionButtonText, { color: isLoadingAnotherOption ? "#FFFFFF" : theme.text }]}>
             {isLoadingAnotherOption
               ? t("decideForMe.loading") || t("common.loading") || "Loading..."
-              : t("decideForMe.anotherOption") || "Another option"}
+              : allowanceBlocked
+                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                : t("decideForMe.anotherOption") || "Another option"}
           </ThemedText>
         </Pressable>
       </Animated.View>

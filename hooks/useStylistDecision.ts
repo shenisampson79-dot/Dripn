@@ -207,6 +207,8 @@ export function useStylistDecision({
   }, []);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  /** Soft paywall after Maybe later — keep a recovery CTA, don't re-loop submit. */
+  const [allowanceBlocked, setAllowanceBlocked] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<DecisionSessionStatus>('draft');
   const [brokenImageCount, setBrokenImageCount] = useState(0);
@@ -476,16 +478,38 @@ export function useStylistDecision({
 
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
+    setAllowanceBlocked(true);
+    const paywall = getAiAllowancePaywallCopy(user?.subscriptionTier);
     navigateToSubscription(navigation as never, {
-      highlightPlan: 'personal_stylist',
+      highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
       source: flowKey,
+      asPaywall: true,
+      scrollToAiTopUp: paywall.primaryAction === 'topup',
     });
   };
 
-  const dismissPaywall = () => setShowUpgradeModal(false);
+  const dismissPaywall = () => {
+    setShowUpgradeModal(false);
+    setAllowanceBlocked(true);
+  };
+
+  const openAllowanceDestination = () => {
+    setAllowanceBlocked(true);
+    const paywall = getAiAllowancePaywallCopy(user?.subscriptionTier);
+    navigateToSubscription(navigation as never, {
+      highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
+      source: flowKey,
+      asPaywall: true,
+      scrollToAiTopUp: paywall.primaryAction === 'topup',
+    });
+  };
 
   const guardAccess = () => {
     if (isReadOnly) return false;
+    if (allowanceBlocked) {
+      openAllowanceDestination();
+      return false;
+    }
     if (accessStatus && !accessStatus.canMakeDecision) {
       setShowUpgradeModal(true);
       return false;
@@ -691,6 +715,7 @@ export function useStylistDecision({
         const paywall = getAiAllowancePaywallCopy(
           planTierFromBudgetError(error) || user?.subscriptionTier,
         );
+        setAllowanceBlocked(true);
         Alert.alert(paywall.title, paywall.message, [
           { text: paywall.secondaryLabel, style: 'cancel' },
           {
@@ -706,6 +731,7 @@ export function useStylistDecision({
         return;
       }
       await checkAccess({ showPaywallIfBlocked: true });
+      setAllowanceBlocked(true);
       Alert.alert(
         t('askStylist.unableToSubmit'),
         error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
@@ -1307,6 +1333,8 @@ export function useStylistDecision({
     setIsSurpriseMe(false);
     setBrokenImageCount(0);
     setSessionStatus('draft');
+    setAllowanceBlocked(false);
+    setShowUpgradeModal(false);
     if (user?.id) {
       void decisionSessionManager.clearSession(user.id, flowKey);
       const hash = contextHashRef.current || '';
@@ -1510,6 +1538,7 @@ export function useStylistDecision({
     isSurpriseMe,
     response,
     showUpgradeModal,
+    allowanceBlocked,
     contextChips,
     wardrobeItems,
     user,
@@ -1535,6 +1564,7 @@ export function useStylistDecision({
     editAndRerun,
     refreshStaleRecommendation,
     openSubscriptionFromPaywall,
+    openAllowanceDestination,
     dismissPaywall,
     guardAccess,
   };
