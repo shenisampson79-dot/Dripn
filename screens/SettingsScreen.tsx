@@ -189,15 +189,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     month: string;
     usedCents: number;
     budgetCents: number;
-    rembgLifetimeCount: number;
-    rembgMonthCount: number;
-    rembgCap?: number;
-    rembgCapScope?: 'lifetime' | 'month';
     remainingCents: number;
   } | null>(null);
   const [aiUsageLoading, setAiUsageLoading] = useState(false);
-  const [freeRembgLifetimeLimit, setFreeRembgLifetimeLimit] = useState(10);
-  const [paidRembgMonthlyLimit, setPaidRembgMonthlyLimit] = useState(120);
   const [outfitPopupPrefs, setOutfitPopupPrefs] = useState<TodaysOutfitPopupPrefs>(
     DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
   );
@@ -269,12 +263,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         const result = await apiService.getAiUsage();
         if (!cancelled) {
           setAiUsage(result.usage || null);
-          if (typeof result.freeRembgLifetimeLimit === 'number') {
-            setFreeRembgLifetimeLimit(result.freeRembgLifetimeLimit);
-          }
-          if (typeof result.paidRembgMonthlyLimit === 'number') {
-            setPaidRembgMonthlyLimit(result.paidRembgMonthlyLimit);
-          }
         }
       } catch (err) {
         console.warn('[Settings] AI usage load skipped:', err);
@@ -774,7 +762,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 </ThemedText>
                 {(() => {
                   // Progress bar = shared monthly AI cost meter (chat, voice, rembg, decisions…).
-                  // Not rembg-only — rembg count is shown separately as used / cap.
                   const usagePct = aiUsage
                     ? Math.min(
                         100,
@@ -786,17 +773,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   const usageRatio = aiUsage
                     ? aiUsage.usedCents / Math.max(aiUsage.budgetCents, 1)
                     : 0;
-                  const isFree =
-                    normalizeSubscriptionTier(user?.subscriptionTier) === 'free';
-                  const rembgUsed = isFree
-                    ? Number(aiUsage?.rembgLifetimeCount ?? aiUsage?.rembgMonthCount ?? 0)
-                    : Number(aiUsage?.rembgMonthCount ?? 0);
-                  const rembgCap =
-                    typeof aiUsage?.rembgCap === 'number' && aiUsage.rembgCap > 0
-                      ? aiUsage.rembgCap
-                      : isFree
-                        ? freeRembgLifetimeLimit
-                        : paidRembgMonthlyLimit;
 
                   return (
                     <>
@@ -811,47 +787,31 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                               'Usage will appear after your next AI action')}
                       </ThemedText>
                       {aiUsage ? (
-                        <>
+                        <View
+                          style={[
+                            styles.usageTrack,
+                            {
+                              backgroundColor: isDark
+                                ? 'rgba(255,255,255,0.08)'
+                                : 'rgba(0,0,0,0.06)',
+                            },
+                          ]}
+                        >
                           <View
                             style={[
-                              styles.usageTrack,
+                              styles.usageFill,
                               {
-                                backgroundColor: isDark
-                                  ? 'rgba(255,255,255,0.08)'
-                                  : 'rgba(0,0,0,0.06)',
+                                width: `${usagePct}%`,
+                                backgroundColor:
+                                  usageRatio >= 0.9
+                                    ? '#FF3B30'
+                                    : usageRatio >= 0.7
+                                      ? LUXURY_COLORS.gold
+                                      : LUXURY_COLORS.teal,
                               },
                             ]}
-                          >
-                            <View
-                              style={[
-                                styles.usageFill,
-                                {
-                                  width: `${usagePct}%`,
-                                  backgroundColor:
-                                    usageRatio >= 0.9
-                                      ? '#FF3B30'
-                                      : usageRatio >= 0.7
-                                        ? LUXURY_COLORS.gold
-                                        : LUXURY_COLORS.teal,
-                                },
-                              ]}
-                            />
-                          </View>
-                          <ThemedText
-                            type="small"
-                            style={[styles.settingSubtitle, { marginTop: 6 }]}
-                          >
-                            {isFree
-                              ? (t('settings.usageRembgFreeLine') ||
-                                  'Background removals: {used} / {cap}')
-                                  .replace('{used}', String(rembgUsed))
-                                  .replace('{cap}', String(rembgCap))
-                              : (t('settings.usageRembgMonthOfCap') ||
-                                  'Background removals: {used} / {cap} this month')
-                                  .replace('{used}', String(rembgUsed))
-                                  .replace('{cap}', String(rembgCap))}
-                          </ThemedText>
-                        </>
+                          />
+                        </View>
                       ) : null}
                     </>
                   );
