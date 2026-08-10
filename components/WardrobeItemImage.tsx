@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Pressable,
   StyleProp,
   StyleSheet,
   Text,
@@ -47,6 +48,8 @@ type Props = {
   tileBackgroundColor?: string;
   /** Grid uses thumb; outfit/detail can request medium/full. */
   imageVariant?: WardrobeImageVariant;
+  /** Shown on blank/failed tiles — e.g. open Improve Recognition to add a photo. */
+  onAddPhoto?: () => void;
 };
 
 export function WardrobeItemImage({
@@ -61,6 +64,7 @@ export function WardrobeItemImage({
   tileBackgroundColor,
   displayScale = 1,
   imageVariant = 'thumb',
+  onAddPhoto,
 }: Props) {
   const { isDark } = useTheme();
   const { resolvedUri, isCutout, item: safeItem } = useResolvedGarmentImage(item);
@@ -175,12 +179,34 @@ export function WardrobeItemImage({
   }
 
   if (failed || !uri) {
-    return (
-      <View style={[containerStyle, styles.failedRoot, { backgroundColor: tileBg }]}>
+    const body = (
+      <>
         <Feather name="image" size={22} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.22)'} />
         <Text style={[styles.failedLabel, isDark ? styles.failedLabelDark : styles.failedLabelLight]}>
           No photo
         </Text>
+        {onAddPhoto ? (
+          <Text style={[styles.retryLabel, isDark ? styles.retryLabelDark : styles.retryLabelLight]}>
+            Add photo
+          </Text>
+        ) : null}
+      </>
+    );
+    if (onAddPhoto) {
+      return (
+        <Pressable
+          onPress={onAddPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Add photo for this item"
+          style={[containerStyle, styles.failedRoot, { backgroundColor: tileBg }]}
+        >
+          {body}
+        </Pressable>
+      );
+    }
+    return (
+      <View style={[containerStyle, styles.failedRoot, { backgroundColor: tileBg }]}>
+        {body}
       </View>
     );
   }
@@ -251,5 +277,16 @@ const styles = StyleSheet.create({
   },
   failedLabelDark: {
     color: 'rgba(255,255,255,0.35)',
+  },
+  retryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  retryLabelLight: {
+    color: 'rgba(0,0,0,0.55)',
+  },
+  retryLabelDark: {
+    color: 'rgba(255,255,255,0.7)',
   },
 });

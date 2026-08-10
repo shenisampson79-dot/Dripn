@@ -125,7 +125,10 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 
   const [onboardingProfile, setOnboardingProfile] = useState<Awaited<ReturnType<typeof onboardingProfileService.getProfile>> | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
+  /** When true, the next scan appends items instead of replacing the session. */
+  const [appendNextScan, setAppendNextScan] = useState(false);
   const skipAutoOpenRef = useRef(false);
+  const appendNextScanRef = useRef(false);
 
   React.useEffect(() => {
     onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
@@ -232,6 +235,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   };
 
   const runScan = async (uri: string) => {
+    const append = appendNextScanRef.current;
     setStep('scanning');
     try {
       const base64 = await convertImageToBase64(uri);
@@ -241,12 +245,23 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           t('wardrobe.scanWardrobe') || 'Scan Wardrobe',
           result.message || 'No garments detected. Try a flat-lay photo with clear separation.',
         );
-        setStep('capture');
+        setStep(append && scanItems.length ? 'confirm' : 'capture');
         return;
       }
-      setSessionId(result.sessionId);
+      const incoming = (result.items || []).map((item, index) => ({
+        ...item,
+        // Keep tempIds unique across appended photos
+        tempId: append
+          ? `${result.sessionId || 'scan'}_${Date.now()}_${index}_${item.tempId || index}`
+          : item.tempId,
+      }));
+      if (!append || !sessionId) {
+        setSessionId(result.sessionId);
+      }
       setSceneType(result.sceneType);
-      setScanItems(result.items);
+      setScanItems((prev) => (append ? [...prev, ...incoming] : incoming));
+      appendNextScanRef.current = false;
+      setAppendNextScan(false);
       setStep('confirm');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -255,9 +270,17 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         t('wardrobe.error') || 'Error',
         error instanceof Error ? error.message : 'Could not scan photo. Please try again.',
       );
-      setStep('capture');
+      setStep(append && scanItems.length ? 'confirm' : 'capture');
     }
   };
+
+  const goAddAnotherItem = useCallback(() => {
+    appendNextScanRef.current = true;
+    setAppendNextScan(true);
+    setImageUri(null);
+    setStep('capture');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   const beginImageImport = async (asset: ImagePicker.ImagePickerAsset) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -445,6 +468,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
 
   const resetToCapture = useCallback(async () => {
     await clearGetOutfitsSession();
+    appendNextScanRef.current = false;
+    setAppendNextScan(false);
     setStep('capture');
     setImageUri(null);
     setSessionId(null);
@@ -560,11 +585,29 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const renderCapture = () => (
     <View style={styles.stepBody}>
       <ThemedText type="h2" style={styles.title}>
-        {t('wardrobe.getOutfitsNow') || 'Get outfits now'}
+        {appendNextScan
+          ? 'Add another item'
+          : (t('wardrobe.getOutfitsNow') || 'Get outfits now')}
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
-        Point your camera at a few pieces — even 1–2 items can unlock up to 3 looks.
+        {appendNextScan
+          ? `Keeping your ${scanItems.length} scanned piece${scanItems.length === 1 ? '' : 's'} — snap or pick another photo to add more.`
+          : 'Point your camera at a few pieces — even 1–2 items can unlock up to 3 looks.'}
       </ThemedText>
+      {appendNextScan && scanItems.length > 0 ? (
+        <Pressable
+          onPress={() => {
+            appendNextScanRef.current = false;
+            setAppendNextScan(false);
+            setStep('confirm');
+          }}
+          style={{ marginBottom: Spacing.md }}
+        >
+          <ThemedText type="caption" style={{ color: LuxuryColors.gold }}>
+            ← Back to {scanItems.length} scanned item{scanItems.length === 1 ? '' : 's'}
+          </ThemedText>
+        </Pressable>
+      ) : null}
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.previewImage} contentFit="cover" />
       ) : (
@@ -664,7 +707,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         {hybridMerge
           ? canGenerateLooks
             ? `You’re ready — we’ll fill bottoms/shoes from your wardrobe (${ownedWardrobeCount} saved) and build up to 3 looks.`
-            : `Need a bit more — retake with another piece in the photo, or add clothes to your wardrobe (${ownedWardrobeCount} saved).`
+            : `Need a bit more — tap Add another item, or add clothes to your wardrobe (${ownedWardrobeCount} saved).`
           : 'Scan at least 3 pieces in one photo for looks, or turn on “Include saved wardrobe pieces” below.'}
         {' '}Scene: {sceneType.replace(/_/g, ' ')}
       </ThemedText>
@@ -721,20 +764,28 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           </ThemedText>
         </Pressable>
         <Pressable
+          onPress={goAddAnotherItem}
+          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+        >
+          <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+            + Add another item
+          </ThemedText>
+        </Pressable>
+        <Pressable
           onPress={() => {
             Alert.alert(
-              'Retake photo?',
-              'This clears the current scanned piece(s) so you can photograph again. Tip: put 2–3 items in one flat-lay if you want more than one scan.',
+              'Start over?',
+              'This clears your current scanned pieces so you can photograph again from scratch.',
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Retake', onPress: () => void resetToCapture() },
+                { text: 'Start over', style: 'destructive', onPress: () => void resetToCapture() },
               ],
             );
           }}
           style={[styles.secondaryBtn, { borderColor: theme.border }]}
         >
           <ThemedText type="body" style={{ color: theme.textSecondary }}>
-            Retake photo
+            Start over
           </ThemedText>
         </Pressable>
       </View>

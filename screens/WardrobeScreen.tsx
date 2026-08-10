@@ -879,6 +879,17 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
                   showLoading
                   transition={280}
                   tileBackgroundColor={tileBackground}
+                  onAddPhoto={
+                    selectionMode
+                      ? undefined
+                      : () => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          navigation.navigate('ImproveRecognition', {
+                            itemId: String(item.id),
+                            itemName: item.name,
+                          });
+                        }
+                  }
                 />
               );
             } catch (err) {
@@ -923,7 +934,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         </View>
       </Pressable>
     );
-  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, CATEGORY_COLORS, LUXURY_COLORS.gold, t]);
+  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, navigation, CATEGORY_COLORS, LUXURY_COLORS.gold, t]);
 
   const renderEmptyCategoryState = () => {
     const categoryLabel = CATEGORY_OPTIONS.find(c => c.key === selectedCategory)?.label || selectedCategory;
