@@ -592,7 +592,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
         {appendNextScan
           ? `Keeping your ${scanItems.length} scanned piece${scanItems.length === 1 ? '' : 's'} — add another photo if you want.`
-          : 'Start with one piece — we’ll do the styling.'}
+          : 'Start with one piece — we’ll style 3 outfits with it.'}
       </ThemedText>
       {appendNextScan && scanItems.length > 0 ? (
         <Pressable
