@@ -591,8 +591,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       </ThemedText>
       <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
         {appendNextScan
-          ? `Keeping your ${scanItems.length} scanned piece${scanItems.length === 1 ? '' : 's'} — snap or pick another photo to add more.`
-          : 'Point your camera at a few pieces — even 1–2 items can unlock up to 3 looks.'}
+          ? `Keeping your ${scanItems.length} scanned piece${scanItems.length === 1 ? '' : 's'} — add another photo if you want.`
+          : 'Start with one piece — we’ll do the styling.'}
       </ThemedText>
       {appendNextScan && scanItems.length > 0 ? (
         <Pressable
@@ -613,15 +613,17 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       ) : (
         <View style={[styles.previewPlaceholder, { borderColor: theme.border }]}>
           <Feather name="camera" size={48} color={LuxuryColors.gold} />
-          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
-            Lay out a few pieces · snap a photo · get styled looks in seconds
+          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center', paddingHorizontal: Spacing.md }}>
+            Snap one item to start — you can add another photo after
           </ThemedText>
         </View>
       )}
       <View style={styles.captureActions}>
         <Pressable onPress={handleTakePhoto} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
           <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {t('wardrobe.takePhotoForOutfits') || 'Take a photo of item(s)'}
+            {appendNextScan
+              ? 'Take another photo'
+              : (t('wardrobe.takePhotoForOutfits') || 'Take a photo')}
           </ThemedText>
         </Pressable>
         <Pressable onPress={handlePickImage} style={[styles.secondaryBtn, { borderColor: theme.border }]}>
@@ -706,7 +708,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       <ThemedText type="caption" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
         {hybridMerge
           ? canGenerateLooks
-            ? `You’re ready — we’ll fill bottoms/shoes from your wardrobe (${ownedWardrobeCount} saved) and build up to 3 looks.`
+            ? `You’re ready — we’ll style this with pieces from your wardrobe (${ownedWardrobeCount} saved).`
             : `Need a bit more — tap Add another item, or add clothes to your wardrobe (${ownedWardrobeCount} saved).`
           : 'Scan at least 3 pieces in one photo for looks, or turn on “Include saved wardrobe pieces” below.'}
         {' '}Scene: {sceneType.replace(/_/g, ' ')}
