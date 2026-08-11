@@ -73,9 +73,12 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
   }, [hasPermission, canRequestPermission, requestPermission]);
 
   useEffect(() => {
-    if (!device && hasPermission) {
+    // Device factory loads async after permission — don't fail on the first null tick.
+    if (!hasPermission || device) return;
+    const timer = setTimeout(() => {
       onErrorRef.current?.('No back camera available on this device');
-    }
+    }, 4000);
+    return () => clearTimeout(timer);
   }, [device, hasPermission]);
 
   const markReady = useCallback(() => {
@@ -84,8 +87,20 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
     onReadyRef.current?.();
   }, []);
 
-  const deliverSample = useCallback((sample: LiveFrameSample) => {
-    onFrameSampleRef.current?.(sample);
+  const deliverSample = useCallback((
+    width: number,
+    height: number,
+    buffer: ArrayBuffer,
+    pixelFormat: string,
+    bytesPerRow: number,
+  ) => {
+    onFrameSampleRef.current?.({
+      width,
+      height,
+      buffer,
+      pixelFormat,
+      bytesPerRow: bytesPerRow > 0 ? bytesPerRow : undefined,
+    });
   }, []);
 
   const reportError = useCallback((message: string) => {
@@ -108,15 +123,17 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
     try {
       const pixelBuffer = frame.getPixelBuffer();
       // Copy before dispose — GPU buffer is invalidated after dispose().
+      // Pass ArrayBuffer as a top-level scheduleOnRN arg (not nested in an object)
+      // so worklets serialization keeps the bytes intact.
       const copy = pixelBuffer.slice(0);
-      const sample: LiveFrameSample = {
-        width: frame.width,
-        height: frame.height,
-        buffer: copy,
-        pixelFormat: String(frame.pixelFormat || 'rgb'),
-        bytesPerRow: frame.bytesPerRow || undefined,
-      };
-      scheduleOnRN(deliverSample, sample);
+      scheduleOnRN(
+        deliverSample,
+        frame.width,
+        frame.height,
+        copy,
+        String(frame.pixelFormat || 'rgb'),
+        frame.bytesPerRow || 0,
+      );
     } catch {
       // Drop malformed frames silently — next tick retries.
     } finally {

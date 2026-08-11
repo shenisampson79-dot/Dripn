@@ -55,6 +55,7 @@ import {
   encodeRgbaToJpegBase64,
   frameBufferToRgba,
   hashRgbaFrame,
+  isFrameBufferPlausible,
   type LiveFrameSample,
 } from '@/utils/liveFrameBuffer';
 import {
@@ -352,6 +353,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const captureAllowedAtRef = useRef(0);
   const firstFrameLoggedRef = useRef(false);
   const firstDetectionLoggedRef = useRef(false);
+  /** Only skip duplicate hashes after at least one successful liveScanFrame. */
+  const analysisSucceededRef = useRef(false);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -865,7 +868,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     try {
       if (!firstFrameLoggedRef.current) {
         firstFrameLoggedRef.current = true;
-        void liveStartCrumb('frameProcessor.active');
+        void liveStartCrumb(
+          `frameProcessor.active ${sample.width}x${sample.height} ${sample.pixelFormat} ${sample.buffer?.byteLength || 0}B`,
+        );
+      }
+
+      if (!isFrameBufferPlausible(sample)) {
+        void liveStartCrumb(
+          `frame.buffer_invalid ${sample.width}x${sample.height} ${sample.pixelFormat} ${sample.buffer?.byteLength || 0}B`,
+        );
+        setStatusNote('Camera frame incomplete — hold steady');
+        return;
       }
 
       const rgbaFull = frameBufferToRgba(
@@ -878,17 +891,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const scaled = downscaleRgba(rgbaFull, sample.width, sample.height, FRAME_WIDTH);
       const { data: rgba, width, height } = scaled;
       const frameHash = hashRgbaFrame(rgba, width, height);
-      if (framesLikelySame(lastHashRef.current, frameHash)) {
+      // Don't "hold" until we've analysed at least once — otherwise a failed
+      // first frame locks Live on an identical hash forever.
+      if (analysisSucceededRef.current && framesLikelySame(lastHashRef.current, frameHash)) {
         setStatusNote('Holding — frame unchanged');
         return;
       }
-      lastHashRef.current = frameHash;
       lastFrameRgbaRef.current = { rgba, width, height, hash: frameHash };
 
       if (mountedRef.current) setIsBusy(true);
 
       let onDevice: Awaited<ReturnType<typeof detectGarmentsFromRgba>> = null;
-      // First ~1.5s after Start: camera-only path (isolate YOLO native crashes).
+      // Brief camera settle, then YOLO (was 1.5s — left early frames cloud-only and fragile).
       if (Date.now() >= yoloEnabledAtRef.current) {
         try {
           onDevice = await detectGarmentsFromRgba(rgba, width, height);
@@ -1047,6 +1061,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         setStatusNote(res.message || 'Scan failed');
         return;
       }
+      lastHashRef.current = frameHash;
+      analysisSucceededRef.current = true;
       const painted = applyResponse(res);
       const tipId = res.feedback?.coaching?.layerTipId;
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
@@ -1068,12 +1084,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
       const msg = error instanceof Error ? error.message : 'Frame failed';
+      void liveStartCrumb(`frame.error ${msg}`);
+      // Allow the next identical hash to retry after a failure.
+      lastHashRef.current = null;
       if (isAiBudgetError(error)) {
         handleAiBudgetHit(error);
       } else if (/rate limit|429/i.test(msg) && !/usage limit/i.test(msg)) {
         setStatusNote('Slowing down — rate limited');
+      } else if (/buffer|btoa|JPEG|RGBA|encode/i.test(msg)) {
+        setStatusNote('Could not read camera frame — retrying…');
       } else {
-        setStatusNote('Could not analyse frame');
+        setStatusNote('Could not analyse frame — retrying…');
       }
     } finally {
       inFlightRef.current = false;
@@ -1281,6 +1302,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     setCameraError(null);
     setLiveState('idle');
     unmountCamera();
+    analysisSucceededRef.current = false;
+    lastHashRef.current = null;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
   }, [stopSamplingLoop, unmountCamera]);
@@ -1350,10 +1373,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       await liveStartCrumb('2. reset session (pre-camera)');
       resetLiveSessionState();
       lastFrameRgbaRef.current = null;
-      yoloEnabledAtRef.current = Date.now() + 1500;
+      yoloEnabledAtRef.current = Date.now() + 600;
       captureAllowedAtRef.current = Date.now() + 400;
       firstFrameLoggedRef.current = false;
       firstDetectionLoggedRef.current = false;
+      analysisSucceededRef.current = false;
+      lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)
       setLiveState('camera-loading');

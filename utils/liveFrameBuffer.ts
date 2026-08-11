@@ -16,6 +16,16 @@ export type LiveFrameSample = {
   bytesPerRow?: number;
 };
 
+/** True when buffer is large enough for the declared dimensions. */
+export function isFrameBufferPlausible(sample: LiveFrameSample): boolean {
+  const w = sample.width | 0;
+  const h = sample.height | 0;
+  if (w < 16 || h < 16) return false;
+  const len = sample.buffer?.byteLength ?? 0;
+  // At least ~1 byte/pixel; RGB/RGBA frames are 3–4 bpp (plus stride slack).
+  return len >= w * h;
+}
+
 /** Unpack camera buffer into tightly packed RGBA (handles rgb / rgba / bgra). */
 export function frameBufferToRgba(
   buffer: ArrayBuffer,
@@ -27,9 +37,21 @@ export function frameBufferToRgba(
   const src = new Uint8Array(buffer);
   const fmt = String(pixelFormat || 'rgba').toLowerCase();
   const isBgra = fmt.includes('bgra');
-  const isRgb3 = fmt === 'rgb' || (fmt.includes('rgb') && !fmt.includes('a') && !isBgra);
+  // VisionCamera 'rgb' target usually yields rgb-bgra-8-bit / rgb-rgba-8-bit (4 bpp).
+  // Only treat as 3-byte packed RGB when the buffer is clearly too small for 4 bpp.
+  const packed4 = width * height * 4;
+  const packed3 = width * height * 3;
+  const isRgb3 = !isBgra
+    && (fmt === 'rgb' || (fmt.includes('rgb') && !fmt.includes('a')))
+    && src.byteLength < packed4
+    && src.byteLength >= packed3 * 0.9;
   const bpp = isRgb3 ? 3 : 4;
   const stride = bytesPerRow && bytesPerRow >= width * bpp ? bytesPerRow : width * bpp;
+  if (src.byteLength < stride * (height - 1) + width * bpp) {
+    throw new Error(
+      `Frame buffer too small (${src.byteLength}B for ${width}x${height} ${fmt} stride=${stride})`,
+    );
+  }
   const out = new Uint8Array(width * height * 4);
 
   for (let y = 0; y < height; y++) {
@@ -100,13 +122,18 @@ export function hashRgbaFrame(rgba: Uint8Array, width: number, height: number): 
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
-  const chunk = 0x8000;
+  // Avoid String.fromCharCode(...hugeArray) — Hermes blows the call stack on VGA frames.
+  const chunk = 0x2000;
   let binary = '';
   for (let i = 0; i < bytes.length; i += chunk) {
-    const slice = bytes.subarray(i, i + chunk);
-    binary += String.fromCharCode(...slice);
+    const end = Math.min(i + chunk, bytes.length);
+    for (let j = i; j < end; j++) {
+      binary += String.fromCharCode(bytes[j]!);
+    }
   }
-  // Hermes / RN provide btoa
+  if (typeof globalThis.btoa !== 'function') {
+    throw new Error('btoa unavailable — cannot encode live JPEG');
+  }
   return globalThis.btoa(binary);
 }
 
@@ -117,6 +144,9 @@ export function encodeRgbaToJpegBase64(
   height: number,
   quality = 55,
 ): string {
+  if (rgba.byteLength < width * height * 4) {
+    throw new Error(`RGBA too small for ${width}x${height}`);
+  }
   const encoded = encodeJpeg({ data: rgba, width, height }, quality);
   const raw = encoded.data instanceof Uint8Array
     ? encoded.data
