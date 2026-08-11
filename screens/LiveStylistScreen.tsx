@@ -154,10 +154,13 @@ function sleep(ms: number) {
 
 const FRAME_WIDTH = 640;
 /**
- * Prove camera → Nitro Image → RN → raw pixels before YOLO/cloud.
- * Flip to false only after field crumbs show PIXELS_EXTRACTED healthy.
+ * Milestone 1 — camera→RGBA proof only.
+ * Stay true until PIPELINE_PROVEN is consistent in the field; then flip
+ * LIVE_PIPELINE_PROOF_ONLY to false to reintroduce YOLO/cloud one layer at a time.
+ * Do not change scoring/identity/footwear while proving.
  */
 const LIVE_REQUIRE_PIPELINE_PROOF = true;
+const LIVE_PIPELINE_PROOF_ONLY = true;
 const PIPELINE_PROOF_STREAK = 3;
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
@@ -888,15 +891,31 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setStatusNote('Live — camera warming…');
       return;
     }
-    // Leave the warming copy as soon as capture is allowed.
-    setStatusNote((prev) => (
-      /warming|sampling soon|Starting|incomplete|retrying/i.test(prev) ? 'Live — reading your look…' : prev
-    ));
+    // Don't claim "reading your look" while Milestone 1 proof is active.
+    if (pipelineProvenRef.current && !LIVE_PIPELINE_PROOF_ONLY) {
+      setStatusNote((prev) => (
+        /warming|sampling soon|Starting|incomplete|retrying/i.test(prev)
+          ? 'Live — reading your look…'
+          : prev
+      ));
+    } else if (!pipelineProvenRef.current) {
+      setStatusNote((prev) => (
+        /warming|sampling soon|Starting/i.test(prev)
+          ? 'PIPELINE_PROOF — waiting for pixels…'
+          : prev
+      ));
+    }
     inFlightRef.current = true;
     try {
-      // --- Tests A–D: prove Frame → Image → RN → pixels. No YOLO/cloud until D. ---
-      void liveStartCrumb(`ANALYSIS_START ${image.width}x${image.height}`);
-      setYoloStatusNote(`Pipeline: ANALYSIS_START ${image.width}x${image.height}`);
+      // ── Milestone 1: camera → Nitro Image → RN → RGBA only ──────────────
+      // No YOLO / cloud / belief / scoring until PIPELINE_PROVEN (and proof-only off).
+      const failProof = (boundary: string, detail?: string) => {
+        pipelineProofStreakRef.current = 0;
+        const line = detail ? `${boundary} ${detail}` : boundary;
+        void liveStartCrumb(`PIPELINE_FAIL ${line}`);
+        setYoloStatusNote(`Pipeline: FAIL @ ${line}`);
+        setStatusNote(`Pipeline fail @ ${boundary} — retrying…`);
+      };
 
       let rgba: Uint8Array;
       let width: number;
@@ -909,9 +928,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       } catch (extractErr) {
         const msg = extractErr instanceof Error ? extractErr.message : 'unknown';
         void liveStartCrumb(`PIXELS_EXTRACT_FAILED ${msg}`);
-        pipelineProofStreakRef.current = 0;
-        setYoloStatusNote(`Pipeline: PIXELS_EXTRACT_FAILED ${msg.slice(0, 40)}`);
-        setStatusNote('Camera pixels failed — retrying…');
+        failProof('PIXELS_EXTRACT_FAILED', msg.slice(0, 80));
         return;
       }
 
@@ -927,28 +944,41 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         void liveStartCrumb(
           `PIXELS_EXTRACTED_INVALID bytes=${rgba.byteLength} need=${needBytes} nz=${nonzeroSample}`,
         );
-        pipelineProofStreakRef.current = 0;
-        void liveStartCrumb('ANALYSIS_FAILURE pixels_incomplete');
-        setYoloStatusNote('Pipeline: ANALYSIS_FAILURE pixels_incomplete');
-        setStatusNote('Camera pixels incomplete — retrying…');
+        failProof('PIXELS_EXTRACTED_INVALID', `bytes=${rgba.byteLength} nz=${nonzeroSample}`);
         return;
       }
 
-      // Gate E: do not analyse until D has passed repeatedly this session.
       if (LIVE_REQUIRE_PIPELINE_PROOF && !pipelineProvenRef.current) {
         pipelineProofStreakRef.current += 1;
         const n = pipelineProofStreakRef.current;
         void liveStartCrumb(`PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
-        setYoloStatusNote(`Pipeline: PROOF ${n}/${PIPELINE_PROOF_STREAK} pixels OK`);
+        setYoloStatusNote(`Pipeline: PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
         if (n >= PIPELINE_PROOF_STREAK) {
           pipelineProvenRef.current = true;
           void liveStartCrumb('PIPELINE_PROVEN');
-          setStatusNote('Camera pipeline proven — analysing next frames…');
+          setYoloStatusNote('Pipeline: PIPELINE_PROVEN');
+          setStatusNote(
+            LIVE_PIPELINE_PROOF_ONLY
+              ? 'PIPELINE_PROVEN — camera OK (analysis frozen)'
+              : 'Camera pipeline proven — analysing next frames…',
+          );
         } else {
-          setStatusNote(`Proving camera pipeline ${n}/${PIPELINE_PROOF_STREAK} — hold steady`);
+          setStatusNote(`PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK} — hold steady`);
         }
+        // Always stop here during the proof streak — no intelligence layer.
         return;
       }
+
+      // After proven: stay frozen until LIVE_PIPELINE_PROOF_ONLY is flipped off.
+      if (LIVE_PIPELINE_PROOF_ONLY) {
+        setStatusNote('PIPELINE_PROVEN — camera OK (analysis frozen)');
+        setYoloStatusNote('Pipeline: PIPELINE_PROVEN (analysis frozen)');
+        return;
+      }
+
+      // ── Milestone 2+: YOLO / cloud / belief (gated) ─────────────────────
+      void liveStartCrumb(`ANALYSIS_START ${width}x${height}`);
+      setYoloStatusNote(`Pipeline: ANALYSIS_START ${width}x${height}`);
 
       const frameHash = hashRgbaFrame(rgba, width, height);
       // Don't "hold" until we've analysed at least once — otherwise a failed
@@ -1763,10 +1793,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             onPipelineStage={(stage, detail) => {
               const line = detail ? `${stage} ${detail}` : stage;
               // Always console; throttle AsyncStorage for per-frame stages.
-              if (/^FRAME_RECEIVED|^IMAGE_CREATED|^PIXELS_ON_JS/.test(stage)) {
+              if (/^FRAME_RECEIVED$|^IMAGE_CREATED$|^PIXELS_ON_JS$/.test(stage)) {
                 void livePipelineCrumb(line);
               } else {
                 void liveStartCrumb(line);
+              }
+              // Ambiguous pass/fail surface for testers.
+              if (/_INVALID$|_FAIL$/.test(stage) || stage === 'IMAGE_CREATED_FAIL') {
+                pipelineProofStreakRef.current = 0;
+                void liveStartCrumb(`PIPELINE_FAIL ${line}`);
+                setYoloStatusNote(`Pipeline: FAIL @ ${line}`);
+                setStatusNote(`Pipeline fail @ ${stage} — retrying…`);
+                return;
               }
               setYoloStatusNote(`Pipeline: ${line}`);
             }}

@@ -1,12 +1,23 @@
 /**
  * VisionCamera (v5) Live preview + frame output (no photo capture).
  *
- * Ownership:
- *   Frame (callback) → convertFrameToImage (CPU copy) → Image
- *   scheduleOnRN transfers Image ownership to RN; then frame.dispose().
+ * IMAGE OWNERSHIP CONTRACT (do not break):
+ * ```
+ * Frame  (worklet owns)
+ *   → convertFrameToImage()   // CPU copy into Nitro Image
+ *   → scheduleOnRN(deliverImage, image)  // transfer Image to RN
+ *   → frame.dispose()         // worklet ALWAYS disposes Frame here
+ *   → worklet MUST NOT dispose Image after scheduleOnRN
  *
- * Prove chain before analysis:
- *   FRAME_RECEIVED → IMAGE_CREATED → PIXELS_ON_JS → (JS) PIXELS_EXTRACTED
+ * RN deliverImage / onFrameSample owns Image exactly once:
+ *   → synchronous toRawPixelData() (or imageToLiveRgba)
+ *   → any later awaits (YOLO/cloud) use copied bytes, not the Frame
+ *   → image.dispose() exactly once in the RN consumer finally
+ * ```
+ *
+ * Pipeline proof crumbs (before any YOLO/cloud):
+ *   FRAME_RECEIVED → IMAGE_CREATED → PIXELS_ON_JS → PIXELS_EXTRACTED
+ *   → PIPELINE_PROOF n/3 → PIPELINE_PROVEN
  *
  * Requires react-native-vision-camera-worklets in the native binary.
  */
@@ -36,13 +47,16 @@ type Props = {
   onError?: (message: string) => void;
   /** Pipeline stage crumbs (FRAME_RECEIVED / IMAGE_CREATED / …). */
   onPipelineStage?: (stage: string, detail?: string) => void;
-  /** Throttled frame images. Caller owns dispose after handoff. */
+  /**
+   * RN owns the Image after this callback is invoked.
+   * Must dispose exactly once when finished (typically in `finally`).
+   */
   onFrameSample?: (image: Image) => void;
 };
 
 /**
- * Start at 1 FPS until the RN pixel pipeline is proven.
- * Bump toward ~500ms only after PIXELS_EXTRACTED is consistently healthy.
+ * 1 FPS while proving the camera→pixels path.
+ * Raise only after PIPELINE_PROVEN is consistent.
  */
 const FRAME_MIN_INTERVAL_MS = 1000;
 
@@ -101,8 +115,11 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
     onPipelineStageRef.current?.(stage, detail);
   }, []);
 
+  /**
+   * RN-side owner of `image` after scheduleOnRN.
+   * Worklet must never dispose this Image after transfer.
+   */
   const deliverImage = useCallback((image: Image, meta: string) => {
-    // Ownership: this RN callback now owns `image` (transferred via scheduleOnRN).
     const w = image?.width ?? 0;
     const h = image?.height ?? 0;
     reportStage('PIXELS_ON_JS', `${w}x${h} via=${meta}`);
@@ -113,9 +130,11 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
     }
     const consumer = onFrameSampleRef.current;
     if (!consumer) {
+      // No RN consumer — we still own it; dispose exactly once.
       try { image.dispose(); } catch { /* ignore */ }
       return;
     }
+    // Transfer ownership to onFrameSample (must dispose exactly once).
     consumer(image);
   }, [reportStage]);
 
@@ -149,7 +168,7 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
       return;
     }
 
-    // Explicit ownership: only dispose Image here if transfer to RN failed.
+    // image starts owned by this worklet; after scheduleOnRN it is owned by RN.
     let image: Image | null = null;
     try {
       image = HybridFrameConverter.convertFrameToImage(frame);
@@ -158,15 +177,17 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
       scheduleOnRN(reportStage, 'IMAGE_CREATED', `${iw}x${ih} fromFrame=${w}x${h}`);
       if (iw < 16 || ih < 16) {
         scheduleOnRN(reportStage, 'IMAGE_CREATED_INVALID', `${iw}x${ih}`);
-        return;
+        return; // finally disposes Frame + leftover Image
       }
       scheduleOnRN(deliverImage, image, `${fmt}:${iw}x${ih}`);
-      image = null; // ownership transferred to RN callback
+      image = null; // RN owns Image now — worklet must not dispose it
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'convert_failed';
       scheduleOnRN(reportStage, 'IMAGE_CREATED_FAIL', msg);
     } finally {
+      // Frame always disposed on the worklet after Image CPU copy attempt.
       frame.dispose();
+      // Only dispose Image if scheduleOnRN never took ownership.
       if (image) {
         try {
           image.dispose();
