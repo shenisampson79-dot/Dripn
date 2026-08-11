@@ -1,18 +1,23 @@
 /**
  * VisionCamera (v5) Live preview + frame output (no photo capture).
  *
- * Frame acquisition uses useFrameOutput → throttled RGB buffers → JS via scheduleOnRN.
- * Requires react-native-vision-camera-worklets in the native binary (EAS rebuild).
+ * Ownership:
+ *   Frame (callback) → convertFrameToImage (CPU copy) → Image
+ *   scheduleOnRN transfers Image ownership to RN; then frame.dispose().
  *
- * Do NOT pass usePreviewOutput() — Camera already owns preview.
- * Do NOT use usePhotoOutput / capturePhoto for Live sampling.
+ * Prove chain before analysis:
+ *   FRAME_RECEIVED → IMAGE_CREATED → PIXELS_ON_JS → (JS) PIXELS_EXTRACTED
+ *
+ * Requires react-native-vision-camera-worklets in the native binary.
  */
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
+import type { Image } from 'react-native-nitro-image';
 import {
   Camera,
   CommonResolutions,
+  HybridFrameConverter,
   useCameraDevice,
   useCameraPermission,
   useFrameOutput,
@@ -20,8 +25,6 @@ import {
   type Frame,
 } from 'react-native-vision-camera';
 import { scheduleOnRN } from 'react-native-worklets';
-
-import type { LiveFrameSample } from '@/utils/liveFrameBuffer';
 
 export type LiveVisionCameraHandle = {
   isReady: () => boolean;
@@ -31,15 +34,20 @@ type Props = {
   isActive: boolean;
   onReady?: () => void;
   onError?: (message: string) => void;
-  /** Throttled frame samples (~3–4 FPS). Must return quickly; heavy work stays on JS. */
-  onFrameSample?: (sample: LiveFrameSample) => void;
+  /** Pipeline stage crumbs (FRAME_RECEIVED / IMAGE_CREATED / …). */
+  onPipelineStage?: (stage: string, detail?: string) => void;
+  /** Throttled frame images. Caller owns dispose after handoff. */
+  onFrameSample?: (image: Image) => void;
 };
 
-/** Min gap between delivered frames (ms). */
-const FRAME_MIN_INTERVAL_MS = 280;
+/**
+ * Start at 1 FPS until the RN pixel pipeline is proven.
+ * Bump toward ~500ms only after PIXELS_EXTRACTED is consistently healthy.
+ */
+const FRAME_MIN_INTERVAL_MS = 1000;
 
 export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(function LiveVisionCamera(
-  { isActive, onReady, onError, onFrameSample },
+  { isActive, onReady, onError, onPipelineStage, onFrameSample },
   ref,
 ) {
   const device = useCameraDevice('back');
@@ -48,9 +56,11 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
   const readyRef = useRef(false);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
+  const onPipelineStageRef = useRef(onPipelineStage);
   const onFrameSampleRef = useRef(onFrameSample);
   onReadyRef.current = onReady;
   onErrorRef.current = onError;
+  onPipelineStageRef.current = onPipelineStage;
   onFrameSampleRef.current = onFrameSample;
 
   const lastProcessedAt = useSharedValue(0);
@@ -87,21 +97,27 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
     onReadyRef.current?.();
   }, []);
 
-  const deliverSample = useCallback((
-    width: number,
-    height: number,
-    buffer: ArrayBuffer,
-    pixelFormat: string,
-    bytesPerRow: number,
-  ) => {
-    onFrameSampleRef.current?.({
-      width,
-      height,
-      buffer,
-      pixelFormat,
-      bytesPerRow: bytesPerRow > 0 ? bytesPerRow : undefined,
-    });
+  const reportStage = useCallback((stage: string, detail?: string) => {
+    onPipelineStageRef.current?.(stage, detail);
   }, []);
+
+  const deliverImage = useCallback((image: Image, meta: string) => {
+    // Ownership: this RN callback now owns `image` (transferred via scheduleOnRN).
+    const w = image?.width ?? 0;
+    const h = image?.height ?? 0;
+    reportStage('PIXELS_ON_JS', `${w}x${h} via=${meta}`);
+    if (!image || w < 16 || h < 16) {
+      reportStage('PIXELS_ON_JS_INVALID', `${w}x${h}`);
+      try { image?.dispose(); } catch { /* ignore */ }
+      return;
+    }
+    const consumer = onFrameSampleRef.current;
+    if (!consumer) {
+      try { image.dispose(); } catch { /* ignore */ }
+      return;
+    }
+    consumer(image);
+  }, [reportStage]);
 
   const reportError = useCallback((message: string) => {
     readyRef.current = false;
@@ -115,34 +131,53 @@ export const LiveVisionCamera = forwardRef<LiveVisionCameraHandle, Props>(functi
       frame.dispose();
       return;
     }
-    if (!frame.hasPixelBuffer) {
+    lastProcessedAt.value = now;
+
+    const w = frame.width;
+    const h = frame.height;
+    const fmt = String(frame.pixelFormat || '?');
+    const orient = String(frame.orientation || '?');
+    const ts = frame.timestamp;
+    const hasBuf = Boolean(frame.hasPixelBuffer);
+    const valid = Boolean(frame.isValid);
+
+    scheduleOnRN(reportStage, 'FRAME_RECEIVED', `${w}x${h} fmt=${fmt} orient=${orient} ts=${ts} hasBuf=${hasBuf} valid=${valid}`);
+
+    if (!valid || w < 16 || h < 16) {
+      scheduleOnRN(reportStage, 'FRAME_RECEIVED_INVALID', `${w}x${h} valid=${valid}`);
       frame.dispose();
       return;
     }
-    lastProcessedAt.value = now;
+
+    // Explicit ownership: only dispose Image here if transfer to RN failed.
+    let image: Image | null = null;
     try {
-      const pixelBuffer = frame.getPixelBuffer();
-      // Copy before dispose — GPU buffer is invalidated after dispose().
-      // Pass ArrayBuffer as a top-level scheduleOnRN arg (not nested in an object)
-      // so worklets serialization keeps the bytes intact.
-      const copy = pixelBuffer.slice(0);
-      scheduleOnRN(
-        deliverSample,
-        frame.width,
-        frame.height,
-        copy,
-        String(frame.pixelFormat || 'rgb'),
-        frame.bytesPerRow || 0,
-      );
-    } catch {
-      // Drop malformed frames silently — next tick retries.
+      image = HybridFrameConverter.convertFrameToImage(frame);
+      const iw = image.width;
+      const ih = image.height;
+      scheduleOnRN(reportStage, 'IMAGE_CREATED', `${iw}x${ih} fromFrame=${w}x${h}`);
+      if (iw < 16 || ih < 16) {
+        scheduleOnRN(reportStage, 'IMAGE_CREATED_INVALID', `${iw}x${ih}`);
+        return;
+      }
+      scheduleOnRN(deliverImage, image, `${fmt}:${iw}x${ih}`);
+      image = null; // ownership transferred to RN callback
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'convert_failed';
+      scheduleOnRN(reportStage, 'IMAGE_CREATED_FAIL', msg);
     } finally {
       frame.dispose();
+      if (image) {
+        try {
+          image.dispose();
+        } catch {
+          /* ignore */
+        }
+      }
     }
-  }, [deliverSample, lastProcessedAt]);
+  }, [deliverImage, lastProcessedAt, reportStage]);
 
   const frameOutput = useFrameOutput({
-    // LiteRT / TFLite path prefers RGB conversion in the camera pipeline.
     pixelFormat: 'rgb',
     targetResolution: CommonResolutions.VGA_16_9,
     dropFramesWhileBusy: true,

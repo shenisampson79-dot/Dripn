@@ -3,14 +3,15 @@
  * react-native-vision-camera until we know the module is linked and mounted.
  */
 import React, { forwardRef } from 'react';
+import type { Image } from 'react-native-nitro-image';
 import type { LiveVisionCameraHandle } from './LiveVisionCamera';
-import type { LiveFrameSample } from '@/utils/liveFrameBuffer';
 
 type Props = {
   isActive: boolean;
   onReady?: () => void;
   onError?: (message: string) => void;
-  onFrameSample?: (sample: LiveFrameSample) => void;
+  onPipelineStage?: (stage: string, detail?: string) => void;
+  onFrameSample?: (image: Image) => void;
 };
 
 export const LiveVisionCameraGate = forwardRef<LiveVisionCameraHandle, Props>(function LiveVisionCameraGate(

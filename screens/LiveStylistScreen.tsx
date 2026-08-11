@@ -51,13 +51,13 @@ import {
   hasMeaningfulLiveSceneChange,
 } from '@/utils/liveFrameHash';
 import {
-  downscaleRgba,
+  encodeImageToJpegBase64,
   encodeRgbaToJpegBase64,
-  frameBufferToRgba,
   hashRgbaFrame,
-  isFrameBufferPlausible,
-  type LiveFrameSample,
+  imageToLiveRgba,
+  sampleNonZeroPixels,
 } from '@/utils/liveFrameBuffer';
+import type { Image } from 'react-native-nitro-image';
 import {
   createLiveBeliefMemory,
   syncCoachingToBelief,
@@ -126,6 +126,20 @@ async function liveStartCrumb(step: string) {
   }
 }
 
+/** High-frequency frame stages — log to console always; persist at most ~1/s. */
+let lastPipelinePersistAt = 0;
+async function livePipelineCrumb(step: string) {
+  console.log(`[LivePipeline] ${step}`);
+  const now = Date.now();
+  if (now - lastPipelinePersistAt < 1000) return;
+  lastPipelinePersistAt = now;
+  try {
+    await AsyncStorage.setItem(LIVE_START_CRUMB_KEY, `${now}|${step}`);
+  } catch {
+    /* ignore */
+  }
+}
+
 async function readLiveStartCrumb(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(LIVE_START_CRUMB_KEY);
@@ -139,6 +153,12 @@ function sleep(ms: number) {
 }
 
 const FRAME_WIDTH = 640;
+/**
+ * Prove camera → Nitro Image → RN → raw pixels before YOLO/cloud.
+ * Flip to false only after field crumbs show PIXELS_EXTRACTED healthy.
+ */
+const LIVE_REQUIRE_PIPELINE_PROOF = true;
+const PIPELINE_PROOF_STREAK = 3;
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
  * a filled belief looks complete indefinitely. Re-ask cloud Vision on this slow
@@ -337,7 +357,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const liveBootGenRef = useRef(0);
   const sampleBootTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const samplingActiveRef = useRef(false);
-  const processFrameRef = useRef<(sample: LiveFrameSample) => Promise<void>>(async () => {});
+  const processFrameRef = useRef<(image: Image) => Promise<void>>(async () => {});
   /** Last VisionCamera RGBA sample — Still scan + cloud fill reuse. */
   const lastFrameRgbaRef = useRef<{
     rgba: Uint8Array;
@@ -346,7 +366,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     hash: string;
   } | null>(null);
   /** One-shot waiter for Still scan when no last frame exists. */
-  const stillFrameWaiterRef = useRef<((sample: LiveFrameSample | null) => void) | null>(null);
+  const stillFrameWaiterRef = useRef<((image: Image | null) => void) | null>(null);
   /** Delay on-device YOLO until after camera path is proven (native crash isolation). */
   const yoloEnabledAtRef = useRef(0);
   /** Wall clock when frame sampling is first allowed after Start. */
@@ -355,6 +375,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const firstDetectionLoggedRef = useRef(false);
   /** Only skip duplicate hashes after at least one successful liveScanFrame. */
   const analysisSucceededRef = useRef(false);
+  /** Camera→RGBA proof gate — YOLO/cloud blocked until streak passes. */
+  const pipelineProofStreakRef = useRef(0);
+  const pipelineProvenRef = useRef(false);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -838,13 +861,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     };
   }, [beliefSignature, occasionType, publishDebug]);
 
-  const processFrameSample = useCallback(async (sample: LiveFrameSample) => {
-    if (liveStateRef.current !== 'live') return;
+  const processFrameSample = useCallback(async (image: Image) => {
+    if (liveStateRef.current !== 'live') {
+      try { image.dispose(); } catch { /* ignore */ }
+      return;
+    }
     if (
       inFlightRef.current
       || !mountedRef.current
       || !samplingActiveRef.current
     ) {
+      try { image.dispose(); } catch { /* ignore */ }
       // Don't leave "camera warming…" forever when the preview never becomes ready.
       if (
         samplingActiveRef.current
@@ -856,40 +883,73 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       return;
     }
     if (Date.now() < captureAllowedAtRef.current) {
+      try { image.dispose(); } catch { /* ignore */ }
       void liveStartCrumb('capture.warmup_skip');
       setStatusNote('Live — camera warming…');
       return;
     }
     // Leave the warming copy as soon as capture is allowed.
     setStatusNote((prev) => (
-      /warming|sampling soon|Starting/i.test(prev) ? 'Live — reading your look…' : prev
+      /warming|sampling soon|Starting|incomplete|retrying/i.test(prev) ? 'Live — reading your look…' : prev
     ));
     inFlightRef.current = true;
     try {
-      if (!firstFrameLoggedRef.current) {
-        firstFrameLoggedRef.current = true;
-        void liveStartCrumb(
-          `frameProcessor.active ${sample.width}x${sample.height} ${sample.pixelFormat} ${sample.buffer?.byteLength || 0}B`,
-        );
-      }
+      // --- Tests A–D: prove Frame → Image → RN → pixels. No YOLO/cloud until D. ---
+      void liveStartCrumb(`ANALYSIS_START ${image.width}x${image.height}`);
+      setYoloStatusNote(`Pipeline: ANALYSIS_START ${image.width}x${image.height}`);
 
-      if (!isFrameBufferPlausible(sample)) {
-        void liveStartCrumb(
-          `frame.buffer_invalid ${sample.width}x${sample.height} ${sample.pixelFormat} ${sample.buffer?.byteLength || 0}B`,
-        );
-        setStatusNote('Camera frame incomplete — hold steady');
+      let rgba: Uint8Array;
+      let width: number;
+      let height: number;
+      try {
+        const extracted = imageToLiveRgba(image, FRAME_WIDTH);
+        rgba = extracted.rgba;
+        width = extracted.width;
+        height = extracted.height;
+      } catch (extractErr) {
+        const msg = extractErr instanceof Error ? extractErr.message : 'unknown';
+        void liveStartCrumb(`PIXELS_EXTRACT_FAILED ${msg}`);
+        pipelineProofStreakRef.current = 0;
+        setYoloStatusNote(`Pipeline: PIXELS_EXTRACT_FAILED ${msg.slice(0, 40)}`);
+        setStatusNote('Camera pixels failed — retrying…');
         return;
       }
 
-      const rgbaFull = frameBufferToRgba(
-        sample.buffer,
-        sample.width,
-        sample.height,
-        sample.pixelFormat,
-        sample.bytesPerRow,
+      const nonzeroSample = sampleNonZeroPixels(rgba);
+      const needBytes = width * height * 4;
+      void liveStartCrumb(
+        `PIXELS_EXTRACTED ${width}x${height} bytes=${rgba.byteLength} nonzeroSample=${nonzeroSample}`,
       );
-      const scaled = downscaleRgba(rgbaFull, sample.width, sample.height, FRAME_WIDTH);
-      const { data: rgba, width, height } = scaled;
+      setYoloStatusNote(
+        `Pipeline: PIXELS_EXTRACTED ${width}x${height} · ${rgba.byteLength}B · nz=${nonzeroSample}`,
+      );
+      if (rgba.byteLength < needBytes || nonzeroSample === 0) {
+        void liveStartCrumb(
+          `PIXELS_EXTRACTED_INVALID bytes=${rgba.byteLength} need=${needBytes} nz=${nonzeroSample}`,
+        );
+        pipelineProofStreakRef.current = 0;
+        void liveStartCrumb('ANALYSIS_FAILURE pixels_incomplete');
+        setYoloStatusNote('Pipeline: ANALYSIS_FAILURE pixels_incomplete');
+        setStatusNote('Camera pixels incomplete — retrying…');
+        return;
+      }
+
+      // Gate E: do not analyse until D has passed repeatedly this session.
+      if (LIVE_REQUIRE_PIPELINE_PROOF && !pipelineProvenRef.current) {
+        pipelineProofStreakRef.current += 1;
+        const n = pipelineProofStreakRef.current;
+        void liveStartCrumb(`PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
+        setYoloStatusNote(`Pipeline: PROOF ${n}/${PIPELINE_PROOF_STREAK} pixels OK`);
+        if (n >= PIPELINE_PROOF_STREAK) {
+          pipelineProvenRef.current = true;
+          void liveStartCrumb('PIPELINE_PROVEN');
+          setStatusNote('Camera pipeline proven — analysing next frames…');
+        } else {
+          setStatusNote(`Proving camera pipeline ${n}/${PIPELINE_PROOF_STREAK} — hold steady`);
+        }
+        return;
+      }
+
       const frameHash = hashRgbaFrame(rgba, width, height);
       // Don't "hold" until we've analysed at least once — otherwise a failed
       // first frame locks Live on an identical hash forever.
@@ -902,7 +962,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (mountedRef.current) setIsBusy(true);
 
       let onDevice: Awaited<ReturnType<typeof detectGarmentsFromRgba>> = null;
-      // Brief camera settle, then YOLO (was 1.5s — left early frames cloud-only and fragile).
+      // Brief camera settle, then YOLO.
       if (Date.now() >= yoloEnabledAtRef.current) {
         try {
           onDevice = await detectGarmentsFromRgba(rgba, width, height);
@@ -913,7 +973,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
       if (onDevice?.length && !firstDetectionLoggedRef.current) {
         firstDetectionLoggedRef.current = true;
-        void liveStartCrumb('detection.first');
+        void liveStartCrumb(`detection.first n=${onDevice.length}`);
       }
 
       const payload: Record<string, unknown> = {
@@ -929,7 +989,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       let jpegBase64: string | null = null;
       const ensureJpeg = () => {
         if (!jpegBase64) {
-          jpegBase64 = encodeRgbaToJpegBase64(rgba, width, height, 55);
+          try {
+            jpegBase64 = encodeImageToJpegBase64(image, 55);
+          } catch {
+            jpegBase64 = encodeRgbaToJpegBase64(rgba, width, height, 55);
+          }
         }
         return jpegBase64;
       };
@@ -947,6 +1011,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           },
         });
         if (pipeline?.discarded) {
+          void liveStartCrumb(`ANALYSIS_FAILURE discard:${pipeline.discardReason || 'quality'}`);
+          setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE discard:${pipeline.discardReason || 'quality'}`);
           setStatusNote(
             pipeline.discardReason === 'too_blurry'
               ? 'Hold steadier — frame too blurry'
@@ -1054,6 +1120,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const res = await apiService.liveScanFrame(payload);
       void liveStartCrumb('cloud.response');
       if (!res.success) {
+        void liveStartCrumb(`ANALYSIS_FAILURE cloud:${res.message || 'scan_failed'}`);
+        setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE cloud`);
         if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
           handleAiBudgetHit(res);
           return;
@@ -1063,6 +1131,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
       lastHashRef.current = frameHash;
       analysisSucceededRef.current = true;
+      void liveStartCrumb(`ANALYSIS_SUCCESS items=${res.itemCount ?? 0}`);
+      setYoloStatusNote(`Pipeline: ANALYSIS_SUCCESS items=${res.itemCount ?? 0}`);
       const painted = applyResponse(res);
       const tipId = res.feedback?.coaching?.layerTipId;
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
@@ -1084,14 +1154,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
       const msg = error instanceof Error ? error.message : 'Frame failed';
+      void liveStartCrumb(`ANALYSIS_FAILURE ${msg}`);
       void liveStartCrumb(`frame.error ${msg}`);
+      setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE ${msg.slice(0, 48)}`);
       // Allow the next identical hash to retry after a failure.
       lastHashRef.current = null;
       if (isAiBudgetError(error)) {
         handleAiBudgetHit(error);
       } else if (/rate limit|429/i.test(msg) && !/usage limit/i.test(msg)) {
         setStatusNote('Slowing down — rate limited');
-      } else if (/buffer|btoa|JPEG|RGBA|encode/i.test(msg)) {
+      } else if (/buffer|btoa|JPEG|RGBA|encode|pixels|incomplete/i.test(msg)) {
         setStatusNote('Could not read camera frame — retrying…');
       } else {
         setStatusNote('Could not analyse frame — retrying…');
@@ -1099,6 +1171,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } finally {
       inFlightRef.current = false;
       if (mountedRef.current) setIsBusy(false);
+      try {
+        image.dispose();
+      } catch {
+        /* ignore */
+      }
     }
   }, [applyResponse, handleAiBudgetHit, occasionType, paintBeliefItems, publishDebug]);
 
@@ -1304,6 +1381,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     unmountCamera();
     analysisSucceededRef.current = false;
     lastHashRef.current = null;
+    pipelineProofStreakRef.current = 0;
+    pipelineProvenRef.current = false;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
   }, [stopSamplingLoop, unmountCamera]);
@@ -1378,6 +1457,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       firstFrameLoggedRef.current = false;
       firstDetectionLoggedRef.current = false;
       analysisSucceededRef.current = false;
+      pipelineProofStreakRef.current = 0;
+      pipelineProvenRef.current = false;
       lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)
@@ -1485,41 +1566,39 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           setLiveState('idle');
           return;
         }
-        const sample = await new Promise<LiveFrameSample | null>((resolve) => {
+        const captured = await new Promise<Image | null>((resolve) => {
           const timer = setTimeout(() => {
             if (stillFrameWaiterRef.current) {
               stillFrameWaiterRef.current = null;
               resolve(null);
             }
           }, 8000);
-          stillFrameWaiterRef.current = (s) => {
+          stillFrameWaiterRef.current = (img) => {
             clearTimeout(timer);
             stillFrameWaiterRef.current = null;
-            resolve(s);
+            resolve(img);
           };
         });
-        if (!sample || liveBootGenRef.current !== stillBootGen) {
+        if (!captured || liveBootGenRef.current !== stillBootGen) {
+          try { captured?.dispose(); } catch { /* ignore */ }
           setStatusNote('Still scan failed — no frame');
           setLiveState('idle');
           unmountCamera();
           return;
         }
-        const rgbaFull = frameBufferToRgba(
-          sample.buffer,
-          sample.width,
-          sample.height,
-          sample.pixelFormat,
-          sample.bytesPerRow,
-        );
-        const scaled = downscaleRgba(rgbaFull, sample.width, sample.height, Math.max(FRAME_WIDTH, 720));
-        const frameHash = hashRgbaFrame(scaled.data, scaled.width, scaled.height);
-        frame = {
-          rgba: scaled.data,
-          width: scaled.width,
-          height: scaled.height,
-          hash: frameHash,
-        };
-        lastFrameRgbaRef.current = frame;
+        try {
+          const scaled = imageToLiveRgba(captured, Math.max(FRAME_WIDTH, 720));
+          const frameHash = hashRgbaFrame(scaled.rgba, scaled.width, scaled.height);
+          frame = {
+            rgba: scaled.rgba,
+            width: scaled.width,
+            height: scaled.height,
+            hash: frameHash,
+          };
+          lastFrameRgbaRef.current = frame;
+        } finally {
+          try { captured.dispose(); } catch { /* ignore */ }
+        }
         setLiveState('idle');
         unmountCamera();
       } else if (liveStateRef.current === 'live' || liveStateRef.current === 'camera-loading') {
@@ -1681,15 +1760,28 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               if (!sessionOpen) return;
               enterCameraError(message || 'VisionCamera error');
             }}
-            onFrameSample={(sample) => {
+            onPipelineStage={(stage, detail) => {
+              const line = detail ? `${stage} ${detail}` : stage;
+              // Always console; throttle AsyncStorage for per-frame stages.
+              if (/^FRAME_RECEIVED|^IMAGE_CREATED|^PIXELS_ON_JS/.test(stage)) {
+                void livePipelineCrumb(line);
+              } else {
+                void liveStartCrumb(line);
+              }
+              setYoloStatusNote(`Pipeline: ${line}`);
+            }}
+            onFrameSample={(image) => {
               if (stillFrameWaiterRef.current) {
                 const waiter = stillFrameWaiterRef.current;
                 stillFrameWaiterRef.current = null;
-                waiter(sample);
+                waiter(image);
                 return;
               }
-              if (!samplingActiveRef.current || liveStateRef.current !== 'live') return;
-              void processFrameRef.current(sample);
+              if (!samplingActiveRef.current || liveStateRef.current !== 'live') {
+                try { image.dispose(); } catch { /* ignore */ }
+                return;
+              }
+              void processFrameRef.current(image);
             }}
           />
         ) : (

@@ -1,75 +1,77 @@
 /**
- * Live frame helpers: RGBA normalization, cheap hashing, JPEG encode for cloud fill.
- * Used by the VisionCamera frame-output path (no photo capture).
+ * Live frame helpers: Nitro Image → RGBA, hashing, JPEG encode for cloud fill.
  */
 
+import type { Image, PixelFormat } from 'react-native-nitro-image';
 import { encode as encodeJpeg } from 'jpeg-js';
 
 import { stripBase64Prefix } from '@/utils/liveFrameHash';
 
-export type LiveFrameSample = {
+export type LiveRgbaFrame = {
+  rgba: Uint8Array;
   width: number;
   height: number;
-  /** Raw camera buffer (may be BGRA/RGBA with row padding). */
-  buffer: ArrayBuffer;
-  pixelFormat: string;
-  bytesPerRow?: number;
 };
 
-/** True when buffer is large enough for the declared dimensions. */
-export function isFrameBufferPlausible(sample: LiveFrameSample): boolean {
-  const w = sample.width | 0;
-  const h = sample.height | 0;
-  if (w < 16 || h < 16) return false;
-  const len = sample.buffer?.byteLength ?? 0;
-  // At least ~1 byte/pixel; RGB/RGBA frames are 3–4 bpp (plus stride slack).
-  return len >= w * h;
+const MAX_LIVE_EDGE = 640;
+
+function nitroPixelFormatToString(fmt: PixelFormat | string): string {
+  return String(fmt || 'rgba').toLowerCase();
 }
 
-/** Unpack camera buffer into tightly packed RGBA (handles rgb / rgba / bgra). */
-export function frameBufferToRgba(
+/** Unpack Nitro raw pixels into tightly packed RGBA. */
+export function rawPixelsToRgba(
   buffer: ArrayBuffer,
   width: number,
   height: number,
-  pixelFormat: string,
-  bytesPerRow?: number,
+  pixelFormat: PixelFormat | string,
 ): Uint8Array {
   const src = new Uint8Array(buffer);
-  const fmt = String(pixelFormat || 'rgba').toLowerCase();
-  const isBgra = fmt.includes('bgra');
-  // VisionCamera 'rgb' target usually yields rgb-bgra-8-bit / rgb-rgba-8-bit (4 bpp).
-  // Only treat as 3-byte packed RGB when the buffer is clearly too small for 4 bpp.
-  const packed4 = width * height * 4;
-  const packed3 = width * height * 3;
-  const isRgb3 = !isBgra
-    && (fmt === 'rgb' || (fmt.includes('rgb') && !fmt.includes('a')))
-    && src.byteLength < packed4
-    && src.byteLength >= packed3 * 0.9;
-  const bpp = isRgb3 ? 3 : 4;
-  const stride = bytesPerRow && bytesPerRow >= width * bpp ? bytesPerRow : width * bpp;
-  if (src.byteLength < stride * (height - 1) + width * bpp) {
+  const fmt = nitroPixelFormatToString(pixelFormat);
+  const isBgra = fmt === 'bgra' || fmt === 'bgrx' || fmt.includes('bgra');
+  const isAbgr = fmt === 'abgr' || fmt === 'xbgr';
+  const isArgb = fmt === 'argb' || fmt === 'xrgb';
+  const isBgr = fmt === 'bgr';
+  const isRgb3 = fmt === 'rgb';
+  const bpp = isRgb3 || isBgr ? 3 : 4;
+  const stride = width * bpp;
+  if (src.byteLength < width * height * bpp) {
     throw new Error(
-      `Frame buffer too small (${src.byteLength}B for ${width}x${height} ${fmt} stride=${stride})`,
+      `Raw pixels too small (${src.byteLength}B for ${width}x${height} ${fmt})`,
     );
   }
   const out = new Uint8Array(width * height * 4);
-
   for (let y = 0; y < height; y++) {
-    const row = y * stride;
     for (let x = 0; x < width; x++) {
-      const si = row + x * bpp;
+      const si = y * stride + x * bpp;
       const di = (y * width + x) * 4;
       if (isBgra) {
         out[di] = src[si + 2] ?? 0;
         out[di + 1] = src[si + 1] ?? 0;
         out[di + 2] = src[si] ?? 0;
         out[di + 3] = src[si + 3] ?? 255;
+      } else if (isAbgr) {
+        out[di] = src[si + 3] ?? 0;
+        out[di + 1] = src[si + 2] ?? 0;
+        out[di + 2] = src[si + 1] ?? 0;
+        out[di + 3] = src[si] ?? 255;
+      } else if (isArgb) {
+        out[di] = src[si + 1] ?? 0;
+        out[di + 1] = src[si + 2] ?? 0;
+        out[di + 2] = src[si + 3] ?? 0;
+        out[di + 3] = src[si] ?? 255;
+      } else if (isBgr) {
+        out[di] = src[si + 2] ?? 0;
+        out[di + 1] = src[si + 1] ?? 0;
+        out[di + 2] = src[si] ?? 0;
+        out[di + 3] = 255;
       } else if (isRgb3) {
         out[di] = src[si] ?? 0;
         out[di + 1] = src[si + 1] ?? 0;
         out[di + 2] = src[si + 2] ?? 0;
         out[di + 3] = 255;
       } else {
+        // RGBA / RGBX
         out[di] = src[si] ?? 0;
         out[di + 1] = src[si + 1] ?? 0;
         out[di + 2] = src[si + 2] ?? 0;
@@ -80,32 +82,47 @@ export function frameBufferToRgba(
   return out;
 }
 
-/** Nearest-neighbour downscale so YOLO / JPEG stay cheap. */
-export function downscaleRgba(
-  rgba: Uint8Array,
-  width: number,
-  height: number,
-  maxEdge = 640,
-): { data: Uint8Array; width: number; height: number } {
-  const maxDim = Math.max(width, height);
-  if (maxDim <= maxEdge) return { data: rgba, width, height };
-  const scale = maxEdge / maxDim;
-  const nw = Math.max(1, Math.round(width * scale));
-  const nh = Math.max(1, Math.round(height * scale));
-  const out = new Uint8Array(nw * nh * 4);
-  for (let y = 0; y < nh; y++) {
-    const sy = Math.min(height - 1, Math.floor(y / scale));
-    for (let x = 0; x < nw; x++) {
-      const sx = Math.min(width - 1, Math.floor(x / scale));
-      const si = (sy * width + sx) * 4;
-      const di = (y * nw + x) * 4;
-      out[di] = rgba[si] ?? 0;
-      out[di + 1] = rgba[si + 1] ?? 0;
-      out[di + 2] = rgba[si + 2] ?? 0;
-      out[di + 3] = rgba[si + 3] ?? 255;
+/**
+ * Resize + extract RGBA from a Nitro Image (safe CPU path).
+ * Installed nitro-image exposes sync `toRawPixelData` and async `toRawPixelDataAsync`.
+ * Prefer sync so pixels are fully copied before any await/dispose boundary.
+ */
+export function imageToLiveRgba(image: Image, maxEdge = MAX_LIVE_EDGE): LiveRgbaFrame {
+  const maxDim = Math.max(image.width, image.height);
+  let working = image;
+  let createdResize = false;
+  if (maxDim > maxEdge) {
+    const scale = maxEdge / maxDim;
+    working = image.resize(
+      Math.max(1, Math.round(image.width * scale)),
+      Math.max(1, Math.round(image.height * scale)),
+    );
+    createdResize = true;
+  }
+  try {
+    const raw = working.toRawPixelData(false);
+    const rgba = rawPixelsToRgba(raw.buffer, raw.width, raw.height, raw.pixelFormat);
+    return { rgba, width: raw.width, height: raw.height };
+  } finally {
+    if (createdResize) {
+      try {
+        working.dispose();
+      } catch {
+        /* ignore */
+      }
     }
   }
-  return { data: out, width: nw, height: nh };
+}
+
+/** Sample whether raw pixel bytes look non-empty (not all zeros). */
+export function sampleNonZeroPixels(bytes: ArrayBuffer | Uint8Array, maxSample = 4096): number {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let nonzero = 0;
+  const end = Math.min(view.byteLength, maxSample);
+  for (let i = 0; i < end; i += 16) {
+    if ((view[i] ?? 0) > 0) nonzero += 1;
+  }
+  return nonzero;
 }
 
 /** djb2-ish hash over sampled RGBA bytes (dedupe before cloud). */
@@ -152,4 +169,11 @@ export function encodeRgbaToJpegBase64(
     ? encoded.data
     : new Uint8Array(encoded.data as ArrayBuffer);
   return stripBase64Prefix(bytesToBase64(raw));
+}
+
+/** Prefer native JPEG encode from Nitro Image when available. */
+export function encodeImageToJpegBase64(image: Image, quality = 55): string {
+  const enc = image.toEncodedImageData('jpg', Math.round(quality));
+  const bytes = new Uint8Array(enc.buffer);
+  return stripBase64Prefix(bytesToBase64(bytes));
 }
