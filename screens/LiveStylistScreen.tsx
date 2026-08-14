@@ -154,14 +154,17 @@ function sleep(ms: number) {
 
 const FRAME_WIDTH = 640;
 /**
- * Milestone 1 — camera→RGBA proof only.
- * Stay true until PIPELINE_PROVEN is consistent in the field; then flip
- * LIVE_PIPELINE_PROOF_ONLY to false to reintroduce YOLO/cloud one layer at a time.
- * Do not change scoring/identity/footwear while proving.
+ * Live milestones (reintroduce one layer at a time):
+ *   M1 camera→RGBA ✅ frozen — do not redesign VisionCamera / Image ownership
+ *   M2 RGBA→YOLO   ← current (cloud/belief/score stay OFF)
+ *   M3+ cloud → belief → score — later
  */
 const LIVE_REQUIRE_PIPELINE_PROOF = true;
-const LIVE_PIPELINE_PROOF_ONLY = true;
+const LIVE_PIPELINE_PROOF_ONLY = false; // M1 passed — allow YOLO layer
 const PIPELINE_PROOF_STREAK = 3;
+const LIVE_REQUIRE_YOLO_PROOF = true;
+const LIVE_YOLO_PROOF_ONLY = true; // stop after YOLO_PROVEN; no cloud/belief/score
+const YOLO_PROOF_STREAK = 3;
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
  * a filled belief looks complete indefinitely. Re-ask cloud Vision on this slow
@@ -378,9 +381,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const firstDetectionLoggedRef = useRef(false);
   /** Only skip duplicate hashes after at least one successful liveScanFrame. */
   const analysisSucceededRef = useRef(false);
-  /** Camera→RGBA proof gate — YOLO/cloud blocked until streak passes. */
+  /** Camera→RGBA proof gate — YOLO blocked until streak passes. */
   const pipelineProofStreakRef = useRef(0);
   const pipelineProvenRef = useRef(false);
+  /** RGBA→YOLO proof gate — cloud/belief blocked until streak passes. */
+  const yoloProofStreakRef = useRef(0);
+  const yoloProvenRef = useRef(false);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -891,30 +897,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setStatusNote('Live — camera warming…');
       return;
     }
-    // Don't claim "reading your look" while Milestone 1 proof is active.
-    if (pipelineProvenRef.current && !LIVE_PIPELINE_PROOF_ONLY) {
-      setStatusNote((prev) => (
-        /warming|sampling soon|Starting|incomplete|retrying/i.test(prev)
-          ? 'Live — reading your look…'
-          : prev
-      ));
-    } else if (!pipelineProvenRef.current) {
+    if (!pipelineProvenRef.current) {
       setStatusNote((prev) => (
         /warming|sampling soon|Starting/i.test(prev)
-          ? 'PIPELINE_PROOF — waiting for pixels…'
+          ? 'Reading camera…'
           : prev
       ));
     }
     inFlightRef.current = true;
     try {
-      // ── Milestone 1: camera → Nitro Image → RN → RGBA only ──────────────
-      // No YOLO / cloud / belief / scoring until PIPELINE_PROVEN (and proof-only off).
-      const failProof = (boundary: string, detail?: string) => {
+      // ── Milestone 1 (frozen): camera → Nitro Image → RN → RGBA ─────────
+      const failPipeline = (boundary: string, detail?: string) => {
         pipelineProofStreakRef.current = 0;
         const line = detail ? `${boundary} ${detail}` : boundary;
         void liveStartCrumb(`PIPELINE_FAIL ${line}`);
-        setYoloStatusNote(`Pipeline: FAIL @ ${line}`);
-        setStatusNote(`Pipeline fail @ ${boundary} — retrying…`);
+        setYoloStatusNote(`DBG: FAIL @ ${line}`);
+        setStatusNote(`Pipeline fail @ ${boundary}`);
       };
 
       let rgba: Uint8Array;
@@ -928,23 +926,24 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       } catch (extractErr) {
         const msg = extractErr instanceof Error ? extractErr.message : 'unknown';
         void liveStartCrumb(`PIXELS_EXTRACT_FAILED ${msg}`);
-        failProof('PIXELS_EXTRACT_FAILED', msg.slice(0, 80));
+        failPipeline('PIXELS_EXTRACT_FAILED', msg.slice(0, 80));
         return;
       }
 
       const nonzeroSample = sampleNonZeroPixels(rgba);
       const needBytes = width * height * 4;
-      void liveStartCrumb(
-        `PIXELS_EXTRACTED ${width}x${height} bytes=${rgba.byteLength} nonzeroSample=${nonzeroSample}`,
+      // Verbose crumbs stay in DBG / console — not the customer status line.
+      void livePipelineCrumb(
+        `PIXELS_EXTRACTED ${width}x${height} bytes=${rgba.byteLength} nz=${nonzeroSample}`,
       );
-      setYoloStatusNote(
-        `Pipeline: PIXELS_EXTRACTED ${width}x${height} · ${rgba.byteLength}B · nz=${nonzeroSample}`,
-      );
+      if (!pipelineProvenRef.current) {
+        setYoloStatusNote(`DBG: PIXELS ${width}x${height} nz=${nonzeroSample}`);
+      }
       if (rgba.byteLength < needBytes || nonzeroSample === 0) {
         void liveStartCrumb(
           `PIXELS_EXTRACTED_INVALID bytes=${rgba.byteLength} need=${needBytes} nz=${nonzeroSample}`,
         );
-        failProof('PIXELS_EXTRACTED_INVALID', `bytes=${rgba.byteLength} nz=${nonzeroSample}`);
+        failPipeline('PIXELS_EXTRACTED_INVALID', `bytes=${rgba.byteLength} nz=${nonzeroSample}`);
         return;
       }
 
@@ -952,42 +951,123 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         pipelineProofStreakRef.current += 1;
         const n = pipelineProofStreakRef.current;
         void liveStartCrumb(`PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
-        setYoloStatusNote(`Pipeline: PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
+        setYoloStatusNote(`DBG: PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
         if (n >= PIPELINE_PROOF_STREAK) {
           pipelineProvenRef.current = true;
           void liveStartCrumb('PIPELINE_PROVEN');
-          setYoloStatusNote('Pipeline: PIPELINE_PROVEN');
+          setYoloStatusNote('DBG: PIPELINE_PROVEN');
           setStatusNote(
             LIVE_PIPELINE_PROOF_ONLY
               ? 'PIPELINE_PROVEN — camera OK (analysis frozen)'
-              : 'Camera pipeline proven — analysing next frames…',
+              : 'Camera OK — proving YOLO…',
           );
         } else {
-          setStatusNote(`PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK} — hold steady`);
+          setStatusNote(`Reading camera… ${n}/${PIPELINE_PROOF_STREAK}`);
         }
-        // Always stop here during the proof streak — no intelligence layer.
         return;
       }
 
-      // After proven: stay frozen until LIVE_PIPELINE_PROOF_ONLY is flipped off.
       if (LIVE_PIPELINE_PROOF_ONLY) {
         setStatusNote('PIPELINE_PROVEN — camera OK (analysis frozen)');
-        setYoloStatusNote('Pipeline: PIPELINE_PROVEN (analysis frozen)');
+        setYoloStatusNote('DBG: PIPELINE_PROVEN (frozen)');
         return;
       }
 
-      // ── Milestone 2+: YOLO / cloud / belief (gated) ─────────────────────
-      void liveStartCrumb(`ANALYSIS_START ${width}x${height}`);
-      setYoloStatusNote(`Pipeline: ANALYSIS_START ${width}x${height}`);
+      lastFrameRgbaRef.current = {
+        rgba,
+        width,
+        height,
+        hash: hashRgbaFrame(rgba, width, height),
+      };
 
-      const frameHash = hashRgbaFrame(rgba, width, height);
+      // ── Milestone 2: RGBA → YOLO only (no cloud / belief / score) ───────
+      if (LIVE_REQUIRE_YOLO_PROOF || LIVE_YOLO_PROOF_ONLY) {
+        if (Date.now() < yoloEnabledAtRef.current) {
+          setStatusNote('Camera OK — proving YOLO…');
+          setYoloStatusNote('DBG: YOLO warmup');
+          return;
+        }
+        if (mountedRef.current) setIsBusy(true);
+
+        let onDevice: OnDeviceDetection[] | null = null;
+        try {
+          onDevice = await detectGarmentsFromRgba(rgba, width, height);
+        } catch (yoloErr) {
+          console.warn('[LiveStylist] YOLO proof failed:', yoloErr);
+          onDevice = null;
+        }
+
+        if (onDevice === null) {
+          yoloProofStreakRef.current = 0;
+          const status = getOnDeviceYoloStatus();
+          void liveStartCrumb(`YOLO_FAIL ${status?.reason || 'null'}`);
+          setYoloStatusNote(`DBG: YOLO_FAIL ${status?.reason || 'null'}`);
+          setStatusNote('YOLO fail — detector unavailable');
+          return;
+        }
+
+        // Raw YOLO boxes only — no belief / cloud / scoring.
+        const painted = detectionsToLiveItems(onDevice, []);
+        if (mountedRef.current) {
+          setItems(painted);
+          setLabelsReady(true);
+          setSourceLabel('On-device');
+        }
+        publishDebug({
+          frameDetections: onDevice,
+          source: 'on_device_yolo_proof',
+          cropped: false,
+        });
+
+        const nDet = onDevice.length;
+        if (nDet && !firstDetectionLoggedRef.current) {
+          firstDetectionLoggedRef.current = true;
+          void liveStartCrumb(`detection.first n=${nDet}`);
+        }
+
+        if (!yoloProvenRef.current) {
+          yoloProofStreakRef.current += 1;
+          const n = yoloProofStreakRef.current;
+          void liveStartCrumb(`YOLO_PROOF ${n}/${YOLO_PROOF_STREAK} dets=${nDet}`);
+          setYoloStatusNote(`DBG: YOLO_PROOF ${n}/${YOLO_PROOF_STREAK} · ${nDet} det`);
+          if (n >= YOLO_PROOF_STREAK) {
+            yoloProvenRef.current = true;
+            void liveStartCrumb(`YOLO_PROVEN dets=${nDet}`);
+            setYoloStatusNote(`DBG: YOLO_PROVEN · ${nDet} det`);
+            setStatusNote(
+              nDet > 0
+                ? `YOLO_PROVEN — ${nDet} garment${nDet === 1 ? '' : 's'} detected`
+                : 'YOLO_PROVEN — detector OK · 0 detections',
+            );
+          } else {
+            setStatusNote(`Proving YOLO… ${n}/${YOLO_PROOF_STREAK}`);
+          }
+          return;
+        }
+
+        // Keep painting raw YOLO while M2 is frozen; never open cloud/belief.
+        if (LIVE_YOLO_PROOF_ONLY) {
+          setStatusNote(
+            nDet > 0
+              ? `YOLO_PROVEN — ${nDet} garment${nDet === 1 ? '' : 's'} detected`
+              : 'YOLO_PROVEN — detector OK · 0 detections',
+          );
+          setYoloStatusNote(`DBG: YOLO_PROVEN · ${nDet} det (frozen)`);
+          return;
+        }
+      }
+
+      // ── Milestone 3+: cloud / belief / score (gated — not yet) ──────────
+      void liveStartCrumb(`ANALYSIS_START ${width}x${height}`);
+      setYoloStatusNote(`DBG: ANALYSIS_START ${width}x${height}`);
+
+      const frameHash = lastFrameRgbaRef.current?.hash || hashRgbaFrame(rgba, width, height);
       // Don't "hold" until we've analysed at least once — otherwise a failed
       // first frame locks Live on an identical hash forever.
       if (analysisSucceededRef.current && framesLikelySame(lastHashRef.current, frameHash)) {
         setStatusNote('Holding — frame unchanged');
         return;
       }
-      lastFrameRgbaRef.current = { rgba, width, height, hash: frameHash };
 
       if (mountedRef.current) setIsBusy(true);
 
@@ -1413,6 +1493,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     lastHashRef.current = null;
     pipelineProofStreakRef.current = 0;
     pipelineProvenRef.current = false;
+    yoloProofStreakRef.current = 0;
+    yoloProvenRef.current = false;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
   }, [stopSamplingLoop, unmountCamera]);
@@ -1489,6 +1571,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       analysisSucceededRef.current = false;
       pipelineProofStreakRef.current = 0;
       pipelineProvenRef.current = false;
+      yoloProofStreakRef.current = 0;
+      yoloProvenRef.current = false;
       lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)
@@ -1792,21 +1876,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             }}
             onPipelineStage={(stage, detail) => {
               const line = detail ? `${stage} ${detail}` : stage;
-              // Always console; throttle AsyncStorage for per-frame stages.
               if (/^FRAME_RECEIVED$|^IMAGE_CREATED$|^PIXELS_ON_JS$/.test(stage)) {
                 void livePipelineCrumb(line);
               } else {
                 void liveStartCrumb(line);
               }
-              // Ambiguous pass/fail surface for testers.
               if (/_INVALID$|_FAIL$/.test(stage) || stage === 'IMAGE_CREATED_FAIL') {
                 pipelineProofStreakRef.current = 0;
                 void liveStartCrumb(`PIPELINE_FAIL ${line}`);
-                setYoloStatusNote(`Pipeline: FAIL @ ${line}`);
-                setStatusNote(`Pipeline fail @ ${stage} — retrying…`);
+                setYoloStatusNote(`DBG: FAIL @ ${line}`);
+                setStatusNote(`Pipeline fail @ ${stage}`);
                 return;
               }
-              setYoloStatusNote(`Pipeline: ${line}`);
+              // Don't thrash customer HUD with per-frame crumbs — DBG line only.
+              if (!pipelineProvenRef.current) {
+                setYoloStatusNote(`DBG: ${stage}`);
+              }
             }}
             onFrameSample={(image) => {
               if (stillFrameWaiterRef.current) {
@@ -1903,9 +1988,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               setShowBeliefDebug((v) => !v);
             } : undefined}
             delayLongPress={450}
-            style={{ flex: 1 }}
+            style={{ flex: 1, minHeight: 18, justifyContent: 'center' }}
           >
-            <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
+            <ThemedText
+              type="caption"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{ color: 'rgba(255,255,255,0.75)' }}
+            >
               {sourceLabel} · {statusNote}
             </ThemedText>
           </Pressable>
@@ -1925,9 +2015,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           ) : null}
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
-        <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
-          {yoloStatusNote}
-        </ThemedText>
+        <View style={styles.dbgLine}>
+          <ThemedText
+            type="caption"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{ color: 'rgba(255,255,255,0.45)' }}
+          >
+            {yoloStatusNote}
+          </ThemedText>
+        </View>
 
         <View style={styles.actions}>
           <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>
@@ -2109,6 +2206,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
     gap: 8,
+    minHeight: 22,
+  },
+  dbgLine: {
+    minHeight: 18,
+    marginBottom: 8,
+    justifyContent: 'center',
   },
   debugChip: {
     paddingHorizontal: 10,
