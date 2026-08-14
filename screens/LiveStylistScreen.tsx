@@ -41,9 +41,12 @@ import { apiService } from '@/services/ApiService';
 import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
 import { isStaffUser } from '@/utils/staffAccess';
 import {
+  diagnoseYoloFromRgba,
+  diagnoseYoloReferenceAsset,
   detectGarmentsFromRgba,
   getLastOnDeviceFootZone,
   getOnDeviceYoloStatus,
+  type YoloDetectorDiag,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
 import {
@@ -156,15 +159,29 @@ const FRAME_WIDTH = 640;
 /**
  * Live milestones (reintroduce one layer at a time):
  *   M1 camera→RGBA ✅ frozen — do not redesign VisionCamera / Image ownership
- *   M2 RGBA→YOLO   ← current (cloud/belief/score stay OFF)
+ *   M2b YOLO detector-internal diag ← current (cloud/belief/score stay OFF)
  *   M3+ cloud → belief → score — later
+ *
+ * bodyGuards:false / low conf are DIAGNOSTIC ONLY (paint + counts). Production
+ * filter stack is still reported separately in DBG.
  */
 const LIVE_REQUIRE_PIPELINE_PROOF = true;
 const LIVE_PIPELINE_PROOF_ONLY = false; // M1 passed — allow YOLO layer
 const PIPELINE_PROOF_STREAK = 3;
 const LIVE_REQUIRE_YOLO_PROOF = true;
-const LIVE_YOLO_PROOF_ONLY = true; // stop after YOLO_PROVEN; no cloud/belief/score
+const LIVE_YOLO_PROOF_ONLY = true; // stop after YOLO diag; no cloud/belief/score
 const YOLO_PROOF_STREAK = 3;
+
+function formatYoloDiagHud(diag: YoloDetectorDiag, tag: 'live' | 'ref'): string {
+  const max = diag.rawOutput?.maxScore ?? 0;
+  const a15 = diag.counts.rawAbove015;
+  const nms = diag.counts.afterProdConfNms;
+  const guards = diag.counts.afterBodyGuards;
+  const shapeIn = diag.model.inputs[0]
+    ? `${diag.model.inputs[0].dataType}[${diag.model.inputs[0].shape.join('x')}]`
+    : '?';
+  return `${tag}:${diag.verdict} max=${max} ≥.15=${a15} nms=${nms} guard=${guards} in=${shapeIn}`;
+}
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
  * a filled belief looks complete indefinitely. Re-ask cloud Vision on this slow
@@ -387,6 +404,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   /** RGBA→YOLO proof gate — cloud/belief blocked until streak passes. */
   const yoloProofStreakRef = useRef(0);
   const yoloProvenRef = useRef(false);
+  /** One-shot reference JPEG vs Live split test (Milestone 2b). */
+  const yoloRefDiagDoneRef = useRef(false);
+  const yoloRefVerdictRef = useRef<string | null>(null);
+  const yoloLiveVerdictRef = useRef<string | null>(null);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -980,7 +1001,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         hash: hashRgbaFrame(rgba, width, height),
       };
 
-      // ── Milestone 2: RGBA → YOLO only (no cloud / belief / score) ───────
+      // ── Milestone 2b: detector-internal YOLO diag (no cloud/belief/score) ─
       if (LIVE_REQUIRE_YOLO_PROOF || LIVE_YOLO_PROOF_ONLY) {
         if (Date.now() < yoloEnabledAtRef.current) {
           setStatusNote('Camera OK — proving YOLO…');
@@ -989,83 +1010,112 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
         if (mountedRef.current) setIsBusy(true);
 
-        // Milestone 2: raw detector output — no skin/body guards (those are later layers).
-        let onDevice: OnDeviceDetection[] | null = null;
-        try {
-          onDevice = await detectGarmentsFromRgba(rgba, width, height, {
-            bodyGuards: false,
-            confThreshold: 0.2,
-            maxDetections: 12,
-          });
-        } catch (yoloErr) {
-          console.warn('[LiveStylist] YOLO proof failed:', yoloErr);
-          onDevice = null;
+        // Offline reference JPEG once per session — decisive Live vs preprocess split.
+        if (!yoloRefDiagDoneRef.current) {
+          yoloRefDiagDoneRef.current = true;
+          try {
+            const refDiag = await diagnoseYoloReferenceAsset();
+            yoloRefVerdictRef.current = formatYoloDiagHud(refDiag, 'ref');
+            void liveStartCrumb(`YOLO_REF ${refDiag.verdict} ${refDiag.summary}`);
+            void liveStartCrumb(
+              `YOLO_REF_META in=${JSON.stringify(refDiag.model.inputs)} out=${JSON.stringify(refDiag.model.outputs)} max=${refDiag.rawOutput?.maxScore}`,
+            );
+            setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current}`);
+            setStatusNote(`REF ${refDiag.verdict} · max=${refDiag.rawOutput?.maxScore ?? 0}`);
+          } catch (refErr) {
+            const msg = refErr instanceof Error ? refErr.message : 'ref_failed';
+            yoloRefVerdictRef.current = `ref:run_failed ${msg}`;
+            void liveStartCrumb(`YOLO_REF_FAIL ${msg}`);
+            setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current}`);
+          }
+          // Next frame continues with Live RGBA diag.
+          return;
         }
 
-        if (onDevice === null) {
+        let diag: YoloDetectorDiag;
+        try {
+          diag = await diagnoseYoloFromRgba(rgba, width, height, 'live_rgba');
+        } catch (yoloErr) {
+          console.warn('[LiveStylist] YOLO diag failed:', yoloErr);
           yoloProofStreakRef.current = 0;
-          const status = getOnDeviceYoloStatus();
-          // Don't paste the "linked OK" success reason as a failure message.
-          const detail = status.available
-            ? 'model/run failed (linked but inference returned null)'
-            : (status.reason || 'detector unavailable');
-          void liveStartCrumb(`YOLO_FAIL ${detail}`);
-          setYoloStatusNote(`DBG: YOLO_FAIL ${detail.slice(0, 60)}`);
+          const msg = yoloErr instanceof Error ? yoloErr.message : 'diag_failed';
+          void liveStartCrumb(`YOLO_FAIL ${msg}`);
+          setYoloStatusNote(`DBG: YOLO_FAIL ${msg.slice(0, 60)}`);
           setStatusNote('YOLO fail — model/run unavailable');
           return;
         }
 
-        // Raw YOLO boxes only — no belief / cloud / scoring.
-        const painted = detectionsToLiveItems(onDevice, []);
+        if (diag.verdict === 'model_unavailable' || diag.verdict === 'run_failed') {
+          yoloProofStreakRef.current = 0;
+          void liveStartCrumb(`YOLO_FAIL ${diag.verdict} ${diag.summary}`);
+          setYoloStatusNote(`DBG: YOLO_FAIL ${diag.summary.slice(0, 60)}`);
+          setStatusNote(`YOLO fail — ${diag.verdict}`);
+          return;
+        }
+
+        yoloLiveVerdictRef.current = formatYoloDiagHud(diag, 'live');
+        void liveStartCrumb(`YOLO_LIVE ${diag.verdict} ${diag.summary}`);
+        void liveStartCrumb(
+          `YOLO_LIVE_META max=${diag.rawOutput?.maxScore} ≥.15=${diag.counts.rawAbove015} nms=${diag.counts.afterProdConfNms} guard=${diag.counts.afterBodyGuards} tMean=${diag.preprocess.tensorMean}`,
+        );
+
+        // Paint DIAGNOSTIC boxes only (low conf, no bodyGuards) — not production defaults.
+        const paintList = diag.diagnosticDetections;
+        const painted = detectionsToLiveItems(paintList, []);
         if (mountedRef.current) {
           setItems(painted);
           setLabelsReady(true);
           setSourceLabel('On-device');
         }
         publishDebug({
-          frameDetections: onDevice,
+          frameDetections: paintList,
           source: 'on_device_yolo_proof',
           cropped: false,
         });
 
-        const nDet = onDevice.length;
+        const nDet = paintList.length;
+        const rawOk = (diag.rawOutput?.maxScore ?? 0) >= 0.05 || diag.counts.rawAbove015 > 0;
         if (nDet && !firstDetectionLoggedRef.current) {
           firstDetectionLoggedRef.current = true;
           void liveStartCrumb(`detection.first n=${nDet}`);
         }
 
+        const dbgLine = [
+          yoloLiveVerdictRef.current,
+          yoloRefVerdictRef.current ? `| ${yoloRefVerdictRef.current}` : '',
+        ].filter(Boolean).join(' ');
+
         if (!yoloProvenRef.current) {
           yoloProofStreakRef.current += 1;
           const n = yoloProofStreakRef.current;
-          void liveStartCrumb(`YOLO_PROOF ${n}/${YOLO_PROOF_STREAK} dets=${nDet}`);
-          setYoloStatusNote(`DBG: YOLO_PROOF ${n}/${YOLO_PROOF_STREAK} · ${nDet} det`);
+          void liveStartCrumb(`YOLO_PROOF ${n}/${YOLO_PROOF_STREAK} verdict=${diag.verdict}`);
+          setYoloStatusNote(`DBG: ${dbgLine}`);
           if (n >= YOLO_PROOF_STREAK) {
             yoloProvenRef.current = true;
-            void liveStartCrumb(`YOLO_PROVEN dets=${nDet}`);
-            setYoloStatusNote(`DBG: YOLO_PROVEN · ${nDet} det`);
-            setStatusNote(
-              nDet > 0
-                ? `YOLO_PROVEN — ${nDet} garment${nDet === 1 ? '' : 's'} detected`
-                : 'YOLO_PROVEN — detector OK · 0 detections',
-            );
+            void liveStartCrumb(`YOLO_PROVEN verdict=${diag.verdict} dets=${nDet}`);
+            // Plumbing pass ≠ garment recognition pass.
+            if (diag.verdict === 'garments_ok' || (rawOk && nDet > 0)) {
+              setStatusNote(`YOLO_PROVEN — raw boxes · ${nDet} diag / ${diag.counts.afterBodyGuards} prod`);
+            } else if (diag.verdict === 'output_near_zero') {
+              setStatusNote('YOLO_PROVEN plumbing · output≈0 (preprocess/model?)');
+            } else if (diag.verdict === 'filtered_to_zero') {
+              setStatusNote('YOLO_PROVEN plumbing · filters deleted boxes');
+            } else {
+              setStatusNote(`YOLO_PROVEN plumbing · ${diag.verdict} · 0 garments`);
+            }
           } else {
-            setStatusNote(
-              nDet > 0
-                ? `Proving YOLO… ${n}/${YOLO_PROOF_STREAK} · ${nDet} box${nDet === 1 ? '' : 'es'}`
-                : `Proving YOLO… ${n}/${YOLO_PROOF_STREAK} · 0 boxes`,
-            );
+            setStatusNote(`YOLO diag ${n}/${YOLO_PROOF_STREAK} · ${diag.verdict}`);
           }
           return;
         }
 
-        // Keep painting raw YOLO while M2 is frozen; never open cloud/belief.
         if (LIVE_YOLO_PROOF_ONLY) {
-          setStatusNote(
-            nDet > 0
-              ? `YOLO_PROVEN — ${nDet} garment${nDet === 1 ? '' : 's'} detected`
-              : 'YOLO_PROVEN — detector OK · 0 detections',
-          );
-          setYoloStatusNote(`DBG: YOLO_PROVEN · ${nDet} det (frozen)`);
+          setYoloStatusNote(`DBG: ${dbgLine}`);
+          if (diag.verdict === 'garments_ok' || nDet > 0) {
+            setStatusNote(`YOLO_PROVEN — raw boxes · ${nDet} diag / ${diag.counts.afterBodyGuards} prod`);
+          } else {
+            setStatusNote(`YOLO_PROVEN plumbing · ${diag.verdict} · 0 garments`);
+          }
           return;
         }
       }
@@ -1508,6 +1558,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     pipelineProvenRef.current = false;
     yoloProofStreakRef.current = 0;
     yoloProvenRef.current = false;
+    yoloRefDiagDoneRef.current = false;
+    yoloRefVerdictRef.current = null;
+    yoloLiveVerdictRef.current = null;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
   }, [stopSamplingLoop, unmountCamera]);
@@ -1586,6 +1639,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       pipelineProvenRef.current = false;
       yoloProofStreakRef.current = 0;
       yoloProvenRef.current = false;
+      yoloRefDiagDoneRef.current = false;
+      yoloRefVerdictRef.current = null;
+      yoloLiveVerdictRef.current = null;
       lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)

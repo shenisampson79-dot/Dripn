@@ -135,6 +135,74 @@ export function parseYoloGarmentOutput(
 }
 
 /**
+ * Detector-internal: confidence distribution BEFORE threshold / NMS / guards.
+ * Used to distinguish "model output near zero" vs "filtered to empty".
+ */
+export function inspectYoloRawOutput(output: Float32Array): {
+  numPred: number;
+  channels: number;
+  outputLength: number;
+  maxScore: number;
+  meanBestScore: number;
+  above: { t05: number; t10: number; t15: number; t20: number; t28: number; t50: number };
+  first8: number[];
+  top3: Array<{ cls: number; score: number; i: number }>;
+} {
+  const channels = NUM_CHANNELS;
+  const numPred = Math.floor(output.length / channels);
+  const above = { t05: 0, t10: 0, t15: 0, t20: 0, t28: 0, t50: 0 };
+  let maxScore = 0;
+  let sumBest = 0;
+  const top3: Array<{ cls: number; score: number; i: number }> = [];
+
+  for (let i = 0; i < numPred; i++) {
+    let bestCls = 0;
+    let bestScore = -1;
+    for (let c = 0; c < NUM_CLASSES; c++) {
+      const score = output[(4 + c) * numPred + i] ?? 0;
+      if (score > bestScore) {
+        bestScore = score;
+        bestCls = c;
+      }
+    }
+    sumBest += Math.max(0, bestScore);
+    if (bestScore > maxScore) maxScore = bestScore;
+    if (bestScore >= 0.05) above.t05 += 1;
+    if (bestScore >= 0.10) above.t10 += 1;
+    if (bestScore >= 0.15) above.t15 += 1;
+    if (bestScore >= 0.20) above.t20 += 1;
+    if (bestScore >= 0.28) above.t28 += 1;
+    if (bestScore >= 0.50) above.t50 += 1;
+
+    if (bestScore > 0.01) {
+      top3.push({ cls: bestCls, score: bestScore, i });
+      top3.sort((a, b) => b.score - a.score);
+      if (top3.length > 3) top3.length = 3;
+    }
+  }
+
+  const first8: number[] = [];
+  for (let i = 0; i < Math.min(8, output.length); i++) {
+    first8.push(Number((output[i] ?? 0).toFixed(4)));
+  }
+
+  return {
+    numPred,
+    channels,
+    outputLength: output.length,
+    maxScore: Number(maxScore.toFixed(4)),
+    meanBestScore: numPred > 0 ? Number((sumBest / numPred).toFixed(5)) : 0,
+    above,
+    first8,
+    top3: top3.map((t) => ({
+      cls: t.cls,
+      score: Number(t.score.toFixed(4)),
+      i: t.i,
+    })),
+  };
+}
+
+/**
  * Map YOLO clothing classes → Scan Wardrobe / live-frame categories.
  * "Clothing" is ambiguous — use bbox geometry as a coarse tops/bottoms/dress prior.
  *

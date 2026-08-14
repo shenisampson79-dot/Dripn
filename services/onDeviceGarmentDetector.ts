@@ -24,6 +24,8 @@ import {
   looksLikeFootwearBbox,
   mapYoloClassToWardrobeCategory,
   parseYoloGarmentOutput,
+  inspectYoloRawOutput,
+  YOLO_GARMENT_CLASS_NAMES,
   type ParsedYoloBox,
 } from '@/services/yoloGarmentParse';
 import {
@@ -509,6 +511,394 @@ export async function detectGarmentsFromRgba(
     console.warn('[onDeviceYolo] rgba inference failed, falling back to cloud:', err);
     lastFootZoneMeta = null;
     return null;
+  }
+}
+
+export type YoloDetectorDiag = {
+  source: 'live_rgba' | 'uri' | 'reference_asset';
+  model: {
+    available: boolean;
+    inputs: Array<{ shape: number[]; dataType: string }>;
+    outputs: Array<{ shape: number[]; dataType: string }>;
+    expected: string;
+  };
+  frame: {
+    width: number;
+    height: number;
+    byteLength: number;
+    sampleMin: number;
+    sampleMax: number;
+    sampleMean: number;
+    nonzeroSample: number;
+  };
+  preprocess: {
+    inputSize: number;
+    scale: number;
+    padX: number;
+    padY: number;
+    channelOrder: 'RGB';
+    tensorMin: number;
+    tensorMax: number;
+    tensorMean: number;
+    letterboxed: boolean;
+  };
+  rawOutput: ReturnType<typeof inspectYoloRawOutput> | null;
+  counts: {
+    rawAbove015: number;
+    afterProdConfNms: number;
+    afterBodyGuards: number;
+  };
+  labelMap: typeof YOLO_GARMENT_CLASS_NAMES;
+  /** Diagnostic boxes only (low conf, no body guards) — not production defaults. */
+  diagnosticDetections: OnDeviceDetection[];
+  /** Production-filtered detections. */
+  productionDetections: OnDeviceDetection[];
+  verdict:
+    | 'model_unavailable'
+    | 'run_failed'
+    | 'output_near_zero'
+    | 'raw_boxes_exist'
+    | 'filtered_to_zero'
+    | 'garments_ok';
+  summary: string;
+};
+
+function sampleBufferStats(buf: Uint8Array | Float32Array, step = 64): {
+  min: number;
+  max: number;
+  mean: number;
+  nonzero: number;
+} {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  let sum = 0;
+  let n = 0;
+  let nonzero = 0;
+  for (let i = 0; i < buf.length; i += step) {
+    const v = buf[i] ?? 0;
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+    n += 1;
+    if (v > 0) nonzero += 1;
+  }
+  if (!n) return { min: 0, max: 0, mean: 0, nonzero: 0 };
+  return {
+    min: Number(min.toFixed(4)),
+    max: Number(max.toFixed(4)),
+    mean: Number((sum / n).toFixed(5)),
+    nonzero,
+  };
+}
+
+/**
+ * Full detector-internal diagnostic (Milestone 2b).
+ * Does NOT change production thresholds permanently — reports both diagnostic
+ * and production filter stacks from one inference.
+ */
+export async function diagnoseYoloFromRgba(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  source: YoloDetectorDiag['source'] = 'live_rgba',
+): Promise<YoloDetectorDiag> {
+  const expected = '1x320x320x3 float32 NHWC 0..1 letterboxed → 1x8x2100';
+  const labelMap = YOLO_GARMENT_CLASS_NAMES;
+  const frameStats = sampleBufferStats(rgba, 32);
+
+  const baseFail = (
+    verdict: YoloDetectorDiag['verdict'],
+    summary: string,
+  ): YoloDetectorDiag => ({
+    source,
+    model: { available: false, inputs: [], outputs: [], expected },
+    frame: {
+      width,
+      height,
+      byteLength: rgba.byteLength,
+      sampleMin: frameStats.min,
+      sampleMax: frameStats.max,
+      sampleMean: frameStats.mean,
+      nonzeroSample: frameStats.nonzero,
+    },
+    preprocess: {
+      inputSize: INPUT_SIZE,
+      scale: 0,
+      padX: 0,
+      padY: 0,
+      channelOrder: 'RGB',
+      tensorMin: 0,
+      tensorMax: 0,
+      tensorMean: 0,
+      letterboxed: false,
+    },
+    rawOutput: null,
+    counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
+    labelMap,
+    diagnosticDetections: [],
+    productionDetections: [],
+    verdict,
+    summary,
+  });
+
+  if (!ON_DEVICE_YOLO_NATIVE) {
+    return baseFail('model_unavailable', 'ON_DEVICE_YOLO_NATIVE=false');
+  }
+  const model = await ensureModel();
+  if (!model) {
+    return baseFail(
+      'model_unavailable',
+      nativeUnavailableReason || 'ensureModel() returned null',
+    );
+  }
+
+  try {
+    const { tensor, scale, padX, padY } = letterboxRgbToFloat32(rgba, width, height, INPUT_SIZE);
+    const tStats = sampleBufferStats(tensor, 48);
+    const inputBuffer = tensor.buffer.slice(
+      tensor.byteOffset,
+      tensor.byteOffset + tensor.byteLength,
+    );
+    const outputs = await model.run([inputBuffer]);
+    const outBuf = outputs?.[0];
+    if (!outBuf) {
+      return {
+        ...baseFail('run_failed', 'model.run() returned empty output'),
+        model: {
+          available: true,
+          inputs: model.inputs?.map((i) => ({ shape: i.shape, dataType: i.dataType })) || [],
+          outputs: model.outputs?.map((o) => ({ shape: o.shape, dataType: o.dataType })) || [],
+          expected,
+        },
+        preprocess: {
+          inputSize: INPUT_SIZE,
+          scale,
+          padX,
+          padY,
+          channelOrder: 'RGB',
+          tensorMin: tStats.min,
+          tensorMax: tStats.max,
+          tensorMean: tStats.mean,
+          letterboxed: padX > 0 || padY > 0,
+        },
+      };
+    }
+
+    const output = new Float32Array(outBuf);
+    const rawOutput = inspectYoloRawOutput(output);
+
+    // Diagnostic path: low conf, no body guards (temporary proof only).
+    const diagBoxes = parseYoloGarmentOutput(output, {
+      inputSize: INPUT_SIZE,
+      confThreshold: 0.15,
+      maxDetections: 12,
+      scale,
+      padX,
+      padY,
+      srcWidth: width,
+      srcHeight: height,
+    });
+    const diagnosticDetections = boxesToDetections(diagBoxes, rgba, width, height, {
+      bodyGuards: false,
+    });
+
+    // Production path: default conf + body guards.
+    const prodBoxes = parseYoloGarmentOutput(output, {
+      inputSize: INPUT_SIZE,
+      confThreshold: 0.28,
+      maxDetections: 8,
+      scale,
+      padX,
+      padY,
+      srcWidth: width,
+      srcHeight: height,
+    });
+    const productionDetections = boxesToDetections(prodBoxes, rgba, width, height, {
+      bodyGuards: true,
+    });
+
+    let verdict: YoloDetectorDiag['verdict'];
+    let summary: string;
+    if (rawOutput.maxScore < 0.05) {
+      verdict = 'output_near_zero';
+      summary = `Raw maxScore=${rawOutput.maxScore} — preprocess/model mismatch likely`;
+    } else if (productionDetections.length > 0) {
+      verdict = 'garments_ok';
+      summary = `Production OK · ${productionDetections.length} garments`;
+    } else if (diagnosticDetections.length > 0 || rawOutput.above.t15 > 0) {
+      verdict = productionDetections.length === 0 && prodBoxes.length > 0
+        ? 'filtered_to_zero'
+        : 'raw_boxes_exist';
+      summary = prodBoxes.length > 0 && productionDetections.length === 0
+        ? `Raw/NMS ${prodBoxes.length} → bodyGuards 0 (filters deleted them)`
+        : `Raw candidates exist (max=${rawOutput.maxScore}, ≥0.15=${rawOutput.above.t15}) but prod empty`;
+      if (diagnosticDetections.length > 0 && productionDetections.length === 0 && prodBoxes.length === 0) {
+        verdict = 'raw_boxes_exist';
+        summary = `Diag boxes ${diagnosticDetections.length} below prod conf 0.28 (max=${rawOutput.maxScore})`;
+      }
+    } else {
+      verdict = 'filtered_to_zero';
+      summary = `Scores exist but parse→0 (max=${rawOutput.maxScore})`;
+    }
+
+    const diag: YoloDetectorDiag = {
+      source,
+      model: {
+        available: true,
+        inputs: model.inputs?.map((i) => ({ shape: i.shape, dataType: i.dataType })) || [],
+        outputs: model.outputs?.map((o) => ({ shape: o.shape, dataType: o.dataType })) || [],
+        expected,
+      },
+      frame: {
+        width,
+        height,
+        byteLength: rgba.byteLength,
+        sampleMin: frameStats.min,
+        sampleMax: frameStats.max,
+        sampleMean: frameStats.mean,
+        nonzeroSample: frameStats.nonzero,
+      },
+      preprocess: {
+        inputSize: INPUT_SIZE,
+        scale: Number(scale.toFixed(4)),
+        padX,
+        padY,
+        channelOrder: 'RGB',
+        tensorMin: tStats.min,
+        tensorMax: tStats.max,
+        tensorMean: tStats.mean,
+        letterboxed: padX > 0 || padY > 0,
+      },
+      rawOutput,
+      counts: {
+        rawAbove015: rawOutput.above.t15,
+        afterProdConfNms: prodBoxes.length,
+        afterBodyGuards: productionDetections.length,
+      },
+      labelMap,
+      diagnosticDetections,
+      productionDetections,
+      verdict,
+      summary,
+    };
+
+    console.log('[YoloDiag]', JSON.stringify({
+      source: diag.source,
+      modelIn: diag.model.inputs,
+      modelOut: diag.model.outputs,
+      frame: diag.frame,
+      preprocess: diag.preprocess,
+      raw: diag.rawOutput,
+      counts: diag.counts,
+      verdict: diag.verdict,
+      summary: diag.summary,
+      top3: diag.rawOutput?.top3,
+      labels: diag.labelMap,
+    }));
+
+    return diag;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'run_failed';
+    console.warn('[YoloDiag] failed:', msg);
+    return baseFail('run_failed', msg);
+  }
+}
+
+/** Same diagnostic path from a file URI (still / wardrobe / reference JPEG). */
+export async function diagnoseYoloFromUri(
+  imageUri: string,
+  source: YoloDetectorDiag['source'] = 'uri',
+): Promise<YoloDetectorDiag> {
+  try {
+    const { data, width, height } = await loadRgbaFromUri(imageUri);
+    return diagnoseYoloFromRgba(data, width, height, source);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'uri_load_failed';
+    return {
+      source,
+      model: { available: false, inputs: [], outputs: [], expected: '1x320x320x3 float32' },
+      frame: {
+        width: 0,
+        height: 0,
+        byteLength: 0,
+        sampleMin: 0,
+        sampleMax: 0,
+        sampleMean: 0,
+        nonzeroSample: 0,
+      },
+      preprocess: {
+        inputSize: INPUT_SIZE,
+        scale: 0,
+        padX: 0,
+        padY: 0,
+        channelOrder: 'RGB',
+        tensorMin: 0,
+        tensorMax: 0,
+        tensorMean: 0,
+        letterboxed: false,
+      },
+      rawOutput: null,
+      counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
+      labelMap: YOLO_GARMENT_CLASS_NAMES,
+      diagnosticDetections: [],
+      productionDetections: [],
+      verdict: 'run_failed',
+      summary: msg,
+    };
+  }
+}
+
+/** Known-good flat-lay / full-frame asset for the offline vs Live split test. */
+export async function diagnoseYoloReferenceAsset(): Promise<YoloDetectorDiag> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const asset = require('../assets/upload-guide/men/full-frame-good.jpg');
+    const AssetMod = await import('expo-asset');
+    const resolved = await AssetMod.Asset.fromModule(asset).downloadAsync();
+    const uri = resolved.localUri || resolved.uri;
+    if (!uri) {
+      return {
+        source: 'reference_asset',
+        model: { available: false, inputs: [], outputs: [], expected: '1x320x320x3 float32' },
+        frame: {
+          width: 0, height: 0, byteLength: 0,
+          sampleMin: 0, sampleMax: 0, sampleMean: 0, nonzeroSample: 0,
+        },
+        preprocess: {
+          inputSize: INPUT_SIZE, scale: 0, padX: 0, padY: 0, channelOrder: 'RGB',
+          tensorMin: 0, tensorMax: 0, tensorMean: 0, letterboxed: false,
+        },
+        rawOutput: null,
+        counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
+        labelMap: YOLO_GARMENT_CLASS_NAMES,
+        diagnosticDetections: [],
+        productionDetections: [],
+        verdict: 'run_failed',
+        summary: 'Reference asset URI missing',
+      };
+    }
+    return diagnoseYoloFromUri(uri, 'reference_asset');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'reference_asset_failed';
+    return {
+      source: 'reference_asset',
+      model: { available: false, inputs: [], outputs: [], expected: '1x320x320x3 float32' },
+      frame: {
+        width: 0, height: 0, byteLength: 0,
+        sampleMin: 0, sampleMax: 0, sampleMean: 0, nonzeroSample: 0,
+      },
+      preprocess: {
+        inputSize: INPUT_SIZE, scale: 0, padX: 0, padY: 0, channelOrder: 'RGB',
+        tensorMin: 0, tensorMax: 0, tensorMean: 0, letterboxed: false,
+      },
+      rawOutput: null,
+      counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
+      labelMap: YOLO_GARMENT_CLASS_NAMES,
+      diagnosticDetections: [],
+      productionDetections: [],
+      verdict: 'run_failed',
+      summary: msg,
+    };
   }
 }
 
