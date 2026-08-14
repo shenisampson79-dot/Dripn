@@ -486,14 +486,15 @@ export async function detectGarmentsFromRgba(
     });
 
     if (!boxes.length) {
-      // Empty on-device result → let cloud Vision try (better UX than "no garments").
+      // Detector ran successfully with no hits — empty array, not null.
+      // null is reserved for "model/run unavailable" (cloud fallback).
       const brightness = measureBottomBandBrightness(rgba, width, height);
       lastFootZoneMeta = {
         brightness,
         visible: brightness >= FOOT_ZONE_BRIGHTNESS_MIN,
         cropped: brightness < FOOT_ZONE_BRIGHTNESS_MIN,
       };
-      return null;
+      return [];
     }
     const brightness = measureBottomBandBrightness(rgba, width, height);
     lastFootZoneMeta = {

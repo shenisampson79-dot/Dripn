@@ -989,9 +989,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
         if (mountedRef.current) setIsBusy(true);
 
+        // Milestone 2: raw detector output — no skin/body guards (those are later layers).
         let onDevice: OnDeviceDetection[] | null = null;
         try {
-          onDevice = await detectGarmentsFromRgba(rgba, width, height);
+          onDevice = await detectGarmentsFromRgba(rgba, width, height, {
+            bodyGuards: false,
+            confThreshold: 0.2,
+            maxDetections: 12,
+          });
         } catch (yoloErr) {
           console.warn('[LiveStylist] YOLO proof failed:', yoloErr);
           onDevice = null;
@@ -1000,9 +1005,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         if (onDevice === null) {
           yoloProofStreakRef.current = 0;
           const status = getOnDeviceYoloStatus();
-          void liveStartCrumb(`YOLO_FAIL ${status?.reason || 'null'}`);
-          setYoloStatusNote(`DBG: YOLO_FAIL ${status?.reason || 'null'}`);
-          setStatusNote('YOLO fail — detector unavailable');
+          // Don't paste the "linked OK" success reason as a failure message.
+          const detail = status.available
+            ? 'model/run failed (linked but inference returned null)'
+            : (status.reason || 'detector unavailable');
+          void liveStartCrumb(`YOLO_FAIL ${detail}`);
+          setYoloStatusNote(`DBG: YOLO_FAIL ${detail.slice(0, 60)}`);
+          setStatusNote('YOLO fail — model/run unavailable');
           return;
         }
 
@@ -1040,7 +1049,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
                 : 'YOLO_PROVEN — detector OK · 0 detections',
             );
           } else {
-            setStatusNote(`Proving YOLO… ${n}/${YOLO_PROOF_STREAK}`);
+            setStatusNote(
+              nDet > 0
+                ? `Proving YOLO… ${n}/${YOLO_PROOF_STREAK} · ${nDet} box${nDet === 1 ? '' : 'es'}`
+                : `Proving YOLO… ${n}/${YOLO_PROOF_STREAK} · 0 boxes`,
+            );
           }
           return;
         }
