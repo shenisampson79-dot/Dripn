@@ -357,6 +357,199 @@ async function loadRgbaFromUri(imageUri: string): Promise<{
   };
 }
 
+export type YoloGuardDecision = {
+  index: number;
+  classId: number;
+  className: string;
+  confidence: number;
+  bbox: [number, number, number, number];
+  skinRatio: number;
+  lowerSkinRatio: number;
+  mappedCategory: string;
+  mappedSubcategory: string;
+  lockedCategory: string;
+  lockedName: string;
+  /** Ordered guard checks — first REJECT stops the candidate. */
+  checks: Array<{ name: string; result: 'PASS' | 'REJECT' | 'SKIP'; detail: string }>;
+  outcome: 'PASS' | 'REJECT';
+  rejectReason: string | null;
+};
+
+/**
+ * Production body-guard path with full instrumentation (thresholds unchanged).
+ * Does not mutate detection behaviour — only explains nms→prod drops.
+ */
+export function traceBodyGuardsOnBoxes(
+  boxes: ParsedYoloBox[],
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+): { decisions: YoloGuardDecision[]; survivors: OnDeviceDetection[] } {
+  const decisions: YoloGuardDecision[] = [];
+  const survivors: OnDeviceDetection[] = [];
+
+  boxes.forEach((box, i) => {
+    const checks: YoloGuardDecision['checks'] = [];
+    const skinRatio = measureSkinRatio(rgba, width, height, box.bbox);
+    const lowerSkin = measureLowerSkinRatio(rgba, width, height, box.bbox);
+    const colorProbe = estimateColorFromRoi(rgba, width, height, box.bbox, 'garment');
+    const yoloMapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
+    const locked = resolveClassByRegionLock({
+      bbox: box.bbox,
+      yoloCategory: yoloMapped.category,
+      yoloSubcategory: yoloMapped.subcategory,
+      lowerSkinRatio: lowerSkin,
+      fabricColor: colorProbe,
+    });
+
+    let rejectReason: string | null = null;
+
+    if (skinRatio > SKIN_DISCARD_RATIO) {
+      checks.push({
+        name: 'skin_overlap',
+        result: 'REJECT',
+        detail: `${skinRatio.toFixed(2)} > ${SKIN_DISCARD_RATIO}`,
+      });
+      rejectReason = `skin_overlap ${skinRatio.toFixed(2)} > ${SKIN_DISCARD_RATIO}`;
+    } else {
+      checks.push({
+        name: 'skin_overlap',
+        result: 'PASS',
+        detail: `${skinRatio.toFixed(2)} ≤ ${SKIN_DISCARD_RATIO}`,
+      });
+    }
+
+    if (!rejectReason) {
+      if (looksLikeFootwearBbox(box.bbox) && skinRatio >= 0.22) {
+        checks.push({
+          name: 'barefoot_footwear_shape',
+          result: 'REJECT',
+          detail: `footwear-shaped + skin ${skinRatio.toFixed(2)} ≥ 0.22`,
+        });
+        rejectReason = `barefoot_footwear_shape skin=${skinRatio.toFixed(2)}`;
+      } else if (looksLikeFootwearBbox(box.bbox)) {
+        checks.push({
+          name: 'barefoot_footwear_shape',
+          result: 'PASS',
+          detail: `footwear-shaped but skin ${skinRatio.toFixed(2)} < 0.22`,
+        });
+      } else {
+        checks.push({
+          name: 'barefoot_footwear_shape',
+          result: 'SKIP',
+          detail: 'not footwear-shaped',
+        });
+      }
+    }
+
+    if (!rejectReason) {
+      if (isBareTorsoTopLike({
+        category: locked.category,
+        subcategory: locked.subcategory,
+        name: locked.name,
+        skinRatio,
+        fabricColor: colorProbe,
+      })) {
+        checks.push({
+          name: 'bare_torso_top',
+          result: 'REJECT',
+          detail: `top-like + skin ${skinRatio.toFixed(2)} color=${colorProbe}`,
+        });
+        rejectReason = `bare_torso_top skin=${skinRatio.toFixed(2)}`;
+      } else {
+        checks.push({
+          name: 'bare_torso_top',
+          result: 'PASS',
+          detail: 'not bare-torso top-like',
+        });
+      }
+    }
+
+    if (!rejectReason) {
+      if (locked.category === 'shoes' && skinRatio >= 0.22) {
+        checks.push({
+          name: 'shoes_skin_roi',
+          result: 'REJECT',
+          detail: `shoes + skin ${skinRatio.toFixed(2)} ≥ 0.22`,
+        });
+        rejectReason = `shoes_skin_roi skin=${skinRatio.toFixed(2)}`;
+      } else if (locked.category === 'shoes') {
+        checks.push({
+          name: 'shoes_skin_roi',
+          result: 'PASS',
+          detail: `shoes skin ${skinRatio.toFixed(2)} < 0.22`,
+        });
+      } else {
+        checks.push({
+          name: 'shoes_skin_roi',
+          result: 'SKIP',
+          detail: `category=${locked.category}`,
+        });
+      }
+    }
+
+    const decision: YoloGuardDecision = {
+      index: i,
+      classId: box.classId,
+      className: box.className,
+      confidence: Number(box.confidence.toFixed(3)),
+      bbox: box.bbox,
+      skinRatio: Number(skinRatio.toFixed(3)),
+      lowerSkinRatio: Number(lowerSkin.toFixed(3)),
+      mappedCategory: yoloMapped.category,
+      mappedSubcategory: yoloMapped.subcategory,
+      lockedCategory: locked.category,
+      lockedName: locked.name,
+      checks,
+      outcome: rejectReason ? 'REJECT' : 'PASS',
+      rejectReason,
+    };
+    decisions.push(decision);
+
+    if (rejectReason) return;
+
+    const isShorts = locked.subcategory === 'shorts' || /short/i.test(locked.name);
+    const bbox = isShorts && !isFloorLengthTrousersEvidence(box.bbox)
+      ? clipShortsBbox(box.bbox)
+      : box.bbox;
+    const sampleMode: ColorSampleMode =
+      locked.category === 'shoes'
+        ? 'footwear'
+        : locked.category === 'bottoms'
+          ? 'bottom'
+          : 'top';
+    const color = estimateColorFromRoi(rgba, width, height, bbox, sampleMode);
+    const name = formatGarmentDisplayName({
+      color,
+      category: locked.category,
+      subcategory: locked.subcategory,
+      fallbackName: locked.name,
+    });
+    survivors.push({
+      name,
+      category: locked.category,
+      subcategory: locked.subcategory,
+      color,
+      confidence: box.confidence,
+      bbox,
+      trackId: `yolo_${locked.category}_${i}`,
+      skinRatio,
+      source: 'on_device_yolo',
+    });
+  });
+
+  return { decisions, survivors };
+}
+
+/** Compact HUD line for TestFlight (one candidate). */
+export function formatGuardDecisionHud(d: YoloGuardDecision): string {
+  const [x, y, w, h] = d.bbox;
+  if (d.outcome === 'PASS') {
+    return `#${d.index} ${d.lockedName||d.className} ${d.confidence} PASS bbox=${x.toFixed(2)},${y.toFixed(2)},${w.toFixed(2)},${h.toFixed(2)}`;
+  }
+  return `#${d.index} ${d.lockedName||d.className} ${d.confidence} REJECT ${d.rejectReason} bbox=${x.toFixed(2)},${y.toFixed(2)},${w.toFixed(2)},${h.toFixed(2)} skin=${d.skinRatio}`;
+}
+
 function boxesToDetections(
   boxes: ParsedYoloBox[],
   rgba: Uint8Array,
@@ -366,20 +559,12 @@ function boxesToDetections(
 ): OnDeviceDetection[] {
   /** Live worn outfits only — beige coats / tan leather flat-lays look like "skin". */
   const bodyGuards = opts?.bodyGuards !== false;
+  if (bodyGuards) {
+    return traceBodyGuardsOnBoxes(boxes, rgba, width, height).survivors;
+  }
   const out: OnDeviceDetection[] = [];
   boxes.forEach((box, i) => {
     const skinRatio = measureSkinRatio(rgba, width, height, box.bbox);
-    if (bodyGuards) {
-      // Discard skin-dominated boxes — arms AND bare feet (never "shoes")
-      if (skinRatio > SKIN_DISCARD_RATIO) {
-        return;
-      }
-      // Extra bare-foot guard: footwear-shaped but still mostly skin
-      if (looksLikeFootwearBbox(box.bbox) && skinRatio >= 0.22) {
-        return;
-      }
-    }
-
     const lowerSkin = measureLowerSkinRatio(rgba, width, height, box.bbox);
     const colorProbe = estimateColorFromRoi(rgba, width, height, box.bbox, 'garment');
     const yoloMapped = mapYoloClassToWardrobeCategory(box.classId, box.bbox);
@@ -387,28 +572,10 @@ function boxesToDetections(
       bbox: box.bbox,
       yoloCategory: yoloMapped.category,
       yoloSubcategory: yoloMapped.subcategory,
-      lowerSkinRatio: bodyGuards ? lowerSkin : 0,
+      lowerSkinRatio: 0,
       fabricColor: colorProbe,
     });
-    if (bodyGuards) {
-      // Bare torso / arms must never lock as a Top (swim / topless looks)
-      if (isBareTorsoTopLike({
-        category: locked.category,
-        subcategory: locked.subcategory,
-        name: locked.name,
-        skinRatio,
-        fabricColor: colorProbe,
-      })) {
-        return;
-      }
-      // Geometry said shoes but ROI is skin → drop
-      if (locked.category === 'shoes' && skinRatio >= 0.22) {
-        return;
-      }
-    }
-    // Never soft-boost shoe confidence — barefoot false positives looked "locked"
     const isShorts = locked.subcategory === 'shorts' || /short/i.test(locked.name);
-    // Only clip after confirmed shorts — never clip a floor-length trousers box
     const bbox = isShorts && !isFloorLengthTrousersEvidence(box.bbox)
       ? clipShortsBbox(box.bbox)
       : box.bbox;
@@ -549,6 +716,13 @@ export type YoloDetectorDiag = {
     afterBodyGuards: number;
   };
   labelMap: typeof YOLO_GARMENT_CLASS_NAMES;
+  /**
+   * Pre-guard production-conf NMS boxes (conf≥0.28) for coordinate overlay.
+   * Labels should show PASS/REJECT — not promoted to belief.
+   */
+  nmsOverlayDetections: OnDeviceDetection[];
+  /** Per post-NMS candidate guard trace (production thresholds unchanged). */
+  guardDecisions: YoloGuardDecision[];
   /** Diagnostic boxes only (low conf, no body guards) — not production defaults. */
   diagnosticDetections: OnDeviceDetection[];
   /** Production-filtered detections. */
@@ -635,6 +809,8 @@ export async function diagnoseYoloFromRgba(
     rawOutput: null,
     counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
     labelMap,
+    nmsOverlayDetections: [],
+    guardDecisions: [],
     diagnosticDetections: [],
     productionDetections: [],
     verdict,
@@ -702,7 +878,7 @@ export async function diagnoseYoloFromRgba(
       bodyGuards: false,
     });
 
-    // Production path: default conf + body guards.
+    // Production path: default conf + traced body guards (thresholds unchanged).
     const prodBoxes = parseYoloGarmentOutput(output, {
       inputSize: INPUT_SIZE,
       confThreshold: 0.28,
@@ -713,29 +889,45 @@ export async function diagnoseYoloFromRgba(
       srcWidth: width,
       srcHeight: height,
     });
-    const productionDetections = boxesToDetections(prodBoxes, rgba, width, height, {
-      bodyGuards: true,
+    const { decisions: guardDecisions, survivors: productionDetections } =
+      traceBodyGuardsOnBoxes(prodBoxes, rgba, width, height);
+
+    // Overlay = pre-guard NMS boxes with PASS/REJECT baked into the name.
+    const nmsOverlayDetections: OnDeviceDetection[] = guardDecisions.map((d) => {
+      const tag = d.outcome === 'PASS' ? 'PASS' : `REJECT:${d.rejectReason || '?'}`;
+      const [x, y, w, h] = d.bbox;
+      return {
+        name: `${d.lockedName || d.className} ${tag}`,
+        category: d.lockedCategory || d.mappedCategory || 'tops',
+        subcategory: d.mappedSubcategory,
+        color: d.outcome === 'PASS' ? 'green' : 'red',
+        confidence: d.confidence,
+        bbox: d.bbox,
+        trackId: `nms_${d.index}`,
+        skinRatio: d.skinRatio,
+        source: 'on_device_yolo_nms_trace',
+        suggestion: `bbox=${x.toFixed(2)},${y.toFixed(2)},${w.toFixed(2)},${h.toFixed(2)} skin=${d.skinRatio}`,
+      };
     });
 
     let verdict: YoloDetectorDiag['verdict'];
     let summary: string;
+    const rejectSummary = guardDecisions
+      .filter((d) => d.outcome === 'REJECT')
+      .map((d) => `#${d.index}:${d.rejectReason}`)
+      .join('; ');
     if (rawOutput.maxScore < 0.05) {
       verdict = 'output_near_zero';
       summary = `Raw maxScore=${rawOutput.maxScore} — preprocess/model mismatch likely`;
     } else if (productionDetections.length > 0) {
       verdict = 'garments_ok';
       summary = `Production OK · ${productionDetections.length} garments`;
+    } else if (prodBoxes.length > 0) {
+      verdict = 'filtered_to_zero';
+      summary = `NMS ${prodBoxes.length} → guard 0 · ${rejectSummary || 'no reject detail'}`;
     } else if (diagnosticDetections.length > 0 || rawOutput.above.t15 > 0) {
-      verdict = productionDetections.length === 0 && prodBoxes.length > 0
-        ? 'filtered_to_zero'
-        : 'raw_boxes_exist';
-      summary = prodBoxes.length > 0 && productionDetections.length === 0
-        ? `Raw/NMS ${prodBoxes.length} → bodyGuards 0 (filters deleted them)`
-        : `Raw candidates exist (max=${rawOutput.maxScore}, ≥0.15=${rawOutput.above.t15}) but prod empty`;
-      if (diagnosticDetections.length > 0 && productionDetections.length === 0 && prodBoxes.length === 0) {
-        verdict = 'raw_boxes_exist';
-        summary = `Diag boxes ${diagnosticDetections.length} below prod conf 0.28 (max=${rawOutput.maxScore})`;
-      }
+      verdict = 'raw_boxes_exist';
+      summary = `Scores ≥0.15=${rawOutput.above.t15} but below prod conf 0.28 (max=${rawOutput.maxScore})`;
     } else {
       verdict = 'filtered_to_zero';
       summary = `Scores exist but parse→0 (max=${rawOutput.maxScore})`;
@@ -776,6 +968,8 @@ export async function diagnoseYoloFromRgba(
         afterBodyGuards: productionDetections.length,
       },
       labelMap,
+      nmsOverlayDetections,
+      guardDecisions,
       diagnosticDetections,
       productionDetections,
       verdict,
@@ -792,6 +986,15 @@ export async function diagnoseYoloFromRgba(
       counts: diag.counts,
       verdict: diag.verdict,
       summary: diag.summary,
+      guards: diag.guardDecisions.map((d) => ({
+        i: d.index,
+        cls: d.className,
+        conf: d.confidence,
+        bbox: d.bbox,
+        outcome: d.outcome,
+        reject: d.rejectReason,
+        checks: d.checks,
+      })),
       top3: diag.rawOutput?.top3,
       labels: diag.labelMap,
     }));
@@ -840,6 +1043,8 @@ export async function diagnoseYoloFromUri(
       rawOutput: null,
       counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
       labelMap: YOLO_GARMENT_CLASS_NAMES,
+      nmsOverlayDetections: [],
+      guardDecisions: [],
       diagnosticDetections: [],
       productionDetections: [],
       verdict: 'run_failed',
@@ -871,6 +1076,8 @@ export async function diagnoseYoloReferenceAsset(): Promise<YoloDetectorDiag> {
         rawOutput: null,
         counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
         labelMap: YOLO_GARMENT_CLASS_NAMES,
+        nmsOverlayDetections: [],
+        guardDecisions: [],
         diagnosticDetections: [],
         productionDetections: [],
         verdict: 'run_failed',
@@ -894,6 +1101,8 @@ export async function diagnoseYoloReferenceAsset(): Promise<YoloDetectorDiag> {
       rawOutput: null,
       counts: { rawAbove015: 0, afterProdConfNms: 0, afterBodyGuards: 0 },
       labelMap: YOLO_GARMENT_CLASS_NAMES,
+      nmsOverlayDetections: [],
+      guardDecisions: [],
       diagnosticDetections: [],
       productionDetections: [],
       verdict: 'run_failed',

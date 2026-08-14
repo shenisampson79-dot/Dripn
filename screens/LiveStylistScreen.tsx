@@ -44,6 +44,7 @@ import {
   diagnoseYoloFromRgba,
   diagnoseYoloReferenceAsset,
   detectGarmentsFromRgba,
+  formatGuardDecisionHud,
   getLastOnDeviceFootZone,
   getOnDeviceYoloStatus,
   type YoloDetectorDiag,
@@ -171,16 +172,19 @@ const PIPELINE_PROOF_STREAK = 3;
 const LIVE_REQUIRE_YOLO_PROOF = true;
 const LIVE_YOLO_PROOF_ONLY = true; // stop after YOLO diag; no cloud/belief/score
 const YOLO_PROOF_STREAK = 3;
+/** Keep REF JPEG result on the status line long enough to screenshot. */
+const YOLO_REF_STICKY_MS = 4500;
 
 function formatYoloDiagHud(diag: YoloDetectorDiag, tag: 'live' | 'ref'): string {
   const max = diag.rawOutput?.maxScore ?? 0;
-  const a15 = diag.counts.rawAbove015;
   const nms = diag.counts.afterProdConfNms;
   const guards = diag.counts.afterBodyGuards;
-  const shapeIn = diag.model.inputs[0]
-    ? `${diag.model.inputs[0].dataType}[${diag.model.inputs[0].shape.join('x')}]`
-    : '?';
-  return `${tag}:${diag.verdict} max=${max} ≥.15=${a15} nms=${nms} guard=${guards} in=${shapeIn}`;
+  const rejects = diag.guardDecisions
+    .filter((d) => d.outcome === 'REJECT')
+    .map((d) => d.rejectReason?.split(' ')[0] || 'rej')
+    .slice(0, 3)
+    .join(',');
+  return `${tag}:${diag.verdict} max=${max} nms=${nms} guard=${guards}${rejects ? ` rej=${rejects}` : ''}`;
 }
 /**
  * On-device YOLO has no outerwear class, so pulling a jacket on adds no box and
@@ -408,6 +412,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const yoloRefDiagDoneRef = useRef(false);
   const yoloRefVerdictRef = useRef<string | null>(null);
   const yoloLiveVerdictRef = useRef<string | null>(null);
+  /** Hold REF status on HUD until this timestamp (ms). */
+  const yoloRefStickyUntilRef = useRef(0);
   const lastCoachShownAtRef = useRef(0);
   const lastCloudFillAtRef = useRef(0);
   const cloudSceneBaselineRef = useRef<{
@@ -1010,25 +1016,55 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
         if (mountedRef.current) setIsBusy(true);
 
-        // Offline reference JPEG once per session — decisive Live vs preprocess split.
+        // Offline reference JPEG once per session — sticky on HUD for screenshots.
         if (!yoloRefDiagDoneRef.current) {
           yoloRefDiagDoneRef.current = true;
           try {
             const refDiag = await diagnoseYoloReferenceAsset();
             yoloRefVerdictRef.current = formatYoloDiagHud(refDiag, 'ref');
+            yoloRefStickyUntilRef.current = Date.now() + YOLO_REF_STICKY_MS;
             void liveStartCrumb(`YOLO_REF ${refDiag.verdict} ${refDiag.summary}`);
             void liveStartCrumb(
-              `YOLO_REF_META in=${JSON.stringify(refDiag.model.inputs)} out=${JSON.stringify(refDiag.model.outputs)} max=${refDiag.rawOutput?.maxScore}`,
+              `YOLO_REF_META nms=${refDiag.counts.afterProdConfNms} guard=${refDiag.counts.afterBodyGuards} max=${refDiag.rawOutput?.maxScore}`,
             );
-            setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current}`);
-            setStatusNote(`REF ${refDiag.verdict} · max=${refDiag.rawOutput?.maxScore ?? 0}`);
+            for (const d of refDiag.guardDecisions) {
+              void liveStartCrumb(`YOLO_REF_GUARD ${formatGuardDecisionHud(d)}`);
+            }
+            // Show REF NMS overlay so coordinate mapping can be judged offline too.
+            const refPaint = detectionsToLiveItems(refDiag.nmsOverlayDetections, []);
+            if (mountedRef.current) {
+              setItems(refPaint);
+              setLabelsReady(true);
+              setSourceLabel('On-device');
+              setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current}`);
+              setStatusNote(
+                `REF sticky ${Math.round(YOLO_REF_STICKY_MS / 1000)}s · ${refDiag.verdict} · nms=${refDiag.counts.afterProdConfNms} guard=${refDiag.counts.afterBodyGuards}`,
+              );
+            }
+            publishDebug({
+              frameDetections: refDiag.nmsOverlayDetections,
+              source: 'on_device_yolo_ref',
+              cropped: false,
+            });
           } catch (refErr) {
             const msg = refErr instanceof Error ? refErr.message : 'ref_failed';
             yoloRefVerdictRef.current = `ref:run_failed ${msg}`;
+            yoloRefStickyUntilRef.current = Date.now() + YOLO_REF_STICKY_MS;
             void liveStartCrumb(`YOLO_REF_FAIL ${msg}`);
             setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current}`);
+            setStatusNote(`REF sticky · fail ${msg.slice(0, 40)}`);
           }
-          // Next frame continues with Live RGBA diag.
+          return;
+        }
+
+        // Keep REF status visible long enough to screenshot before Live diag overwrites.
+        if (Date.now() < yoloRefStickyUntilRef.current) {
+          setStatusNote((prev) => (
+            /^REF /i.test(prev)
+              ? prev
+              : `REF sticky · ${yoloRefVerdictRef.current || '…'}`
+          ));
+          setYoloStatusNote(`DBG: ${yoloRefVerdictRef.current || 'ref…'}`);
           return;
         }
 
@@ -1056,11 +1092,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         yoloLiveVerdictRef.current = formatYoloDiagHud(diag, 'live');
         void liveStartCrumb(`YOLO_LIVE ${diag.verdict} ${diag.summary}`);
         void liveStartCrumb(
-          `YOLO_LIVE_META max=${diag.rawOutput?.maxScore} ≥.15=${diag.counts.rawAbove015} nms=${diag.counts.afterProdConfNms} guard=${diag.counts.afterBodyGuards} tMean=${diag.preprocess.tensorMean}`,
+          `YOLO_LIVE_META max=${diag.rawOutput?.maxScore} nms=${diag.counts.afterProdConfNms} guard=${diag.counts.afterBodyGuards}`,
         );
+        for (const d of diag.guardDecisions) {
+          void liveStartCrumb(`YOLO_LIVE_GUARD ${formatGuardDecisionHud(d)}`);
+        }
 
-        // Paint DIAGNOSTIC boxes only (low conf, no bodyGuards) — not production defaults.
-        const paintList = diag.diagnosticDetections;
+        // Overlay pre-guard NMS boxes (PASS/REJECT in label) — production thresholds unchanged.
+        const paintList = diag.nmsOverlayDetections;
         const painted = detectionsToLiveItems(paintList, []);
         if (mountedRef.current) {
           setItems(painted);
@@ -1073,16 +1112,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           cropped: false,
         });
 
-        const nDet = paintList.length;
-        const rawOk = (diag.rawOutput?.maxScore ?? 0) >= 0.05 || diag.counts.rawAbove015 > 0;
-        if (nDet && !firstDetectionLoggedRef.current) {
+        const nNms = diag.counts.afterProdConfNms;
+        const nProd = diag.counts.afterBodyGuards;
+        const firstReject = diag.guardDecisions.find((d) => d.outcome === 'REJECT');
+        if (nNms && !firstDetectionLoggedRef.current) {
           firstDetectionLoggedRef.current = true;
-          void liveStartCrumb(`detection.first n=${nDet}`);
+          void liveStartCrumb(`detection.first nms=${nNms}`);
         }
 
         const dbgLine = [
           yoloLiveVerdictRef.current,
           yoloRefVerdictRef.current ? `| ${yoloRefVerdictRef.current}` : '',
+          firstReject ? `| ${firstReject.rejectReason}` : '',
         ].filter(Boolean).join(' ');
 
         if (!yoloProvenRef.current) {
@@ -1092,30 +1133,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           setYoloStatusNote(`DBG: ${dbgLine}`);
           if (n >= YOLO_PROOF_STREAK) {
             yoloProvenRef.current = true;
-            void liveStartCrumb(`YOLO_PROVEN verdict=${diag.verdict} dets=${nDet}`);
-            // Plumbing pass ≠ garment recognition pass.
-            if (diag.verdict === 'garments_ok' || (rawOk && nDet > 0)) {
-              setStatusNote(`YOLO_PROVEN — raw boxes · ${nDet} diag / ${diag.counts.afterBodyGuards} prod`);
-            } else if (diag.verdict === 'output_near_zero') {
-              setStatusNote('YOLO_PROVEN plumbing · output≈0 (preprocess/model?)');
-            } else if (diag.verdict === 'filtered_to_zero') {
-              setStatusNote('YOLO_PROVEN plumbing · filters deleted boxes');
-            } else {
-              setStatusNote(`YOLO_PROVEN plumbing · ${diag.verdict} · 0 garments`);
-            }
+            void liveStartCrumb(`YOLO_PROVEN verdict=${diag.verdict} nms=${nNms} guard=${nProd}`);
+            setStatusNote(
+              `YOLO_PROVEN · NMS ${nNms} → guard ${nProd}${firstReject ? ` · ${firstReject.rejectReason}` : ''}`,
+            );
           } else {
-            setStatusNote(`YOLO diag ${n}/${YOLO_PROOF_STREAK} · ${diag.verdict}`);
+            setStatusNote(
+              `YOLO guard-trace ${n}/${YOLO_PROOF_STREAK} · NMS ${nNms} → ${nProd}${firstReject ? ` · ${firstReject.rejectReason}` : ''}`,
+            );
           }
           return;
         }
 
         if (LIVE_YOLO_PROOF_ONLY) {
           setYoloStatusNote(`DBG: ${dbgLine}`);
-          if (diag.verdict === 'garments_ok' || nDet > 0) {
-            setStatusNote(`YOLO_PROVEN — raw boxes · ${nDet} diag / ${diag.counts.afterBodyGuards} prod`);
-          } else {
-            setStatusNote(`YOLO_PROVEN plumbing · ${diag.verdict} · 0 garments`);
-          }
+          setStatusNote(
+            `YOLO_PROVEN · NMS ${nNms} → guard ${nProd}${firstReject ? ` · ${firstReject.rejectReason}` : ''}`,
+          );
           return;
         }
       }
@@ -1561,6 +1595,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     yoloRefDiagDoneRef.current = false;
     yoloRefVerdictRef.current = null;
     yoloLiveVerdictRef.current = null;
+    yoloRefStickyUntilRef.current = 0;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
   }, [stopSamplingLoop, unmountCamera]);
@@ -1642,6 +1677,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       yoloRefDiagDoneRef.current = false;
       yoloRefVerdictRef.current = null;
       yoloLiveVerdictRef.current = null;
+      yoloRefStickyUntilRef.current = 0;
       lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)
