@@ -14,17 +14,9 @@ import {
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  FadeInDown,
-  useAnimatedStyle,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
-import {
-  KeyboardStickyView,
-  useReanimatedKeyboardAnimation,
-} from 'react-native-keyboard-controller';
+import { KeyboardStickyView } from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -59,14 +51,11 @@ export default function SupportScreen() {
   const { paddingTop } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
   const sendingRef = useRef(false);
-  // Tab bar is absolute-positioned; pad composer when keyboard is closed only.
-  // Do NOT use KeyboardStickyView `closed` offset for this — positive closed = translateY down (hides under tab bar).
+  // Tab bar overlays the screen (absolute). Negative closed offset lifts the composer
+  // above it (positive closed translates DOWN and hides the bar under the tabs).
   const tabBarClearance = TAB_BAR_HEIGHT + safeAreaInsets.bottom;
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const inputBottomPadStyle = useAnimatedStyle(() => ({
-    paddingBottom: keyboardHeight.value === 0 ? tabBarClearance : Spacing.sm,
-  }), [tabBarClearance]);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -520,18 +509,18 @@ export default function SupportScreen() {
         }
       />
 
-      {/* Tracks keyboard interactively; tab clearance via padding (not closed offset). */}
+      {/* In-flow sticky (not absolute) so FlatList cannot steal TextInput focus/taps. */}
       <KeyboardStickyView
-        offset={{ closed: 0, opened: 0 }}
+        offset={{ closed: -tabBarClearance, opened: 0 }}
         style={styles.inputSticky}
       >
-        <Animated.View
+        <View
           style={[
             styles.inputBarFixed,
-            inputBottomPadStyle,
             {
               backgroundColor: theme.backgroundDefault,
               borderTopColor: theme.tabIconDefault + '30',
+              paddingBottom: Spacing.sm,
             },
           ]}
         >
@@ -546,6 +535,7 @@ export default function SupportScreen() {
               <Feather name="mail" size={20} color={theme.link} />
             </Pressable>
             <TextInput
+              ref={inputRef}
               style={[
                 styles.input,
                 {
@@ -562,6 +552,10 @@ export default function SupportScreen() {
               scrollEnabled
               textAlignVertical="top"
               underlineColorAndroid="transparent"
+              showSoftInputOnFocus
+              onFocus={() => {
+                requestAnimationFrame(() => scrollToEnd());
+              }}
             />
             <Pressable
               onPress={handleSend}
@@ -581,7 +575,7 @@ export default function SupportScreen() {
               />
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
       </KeyboardStickyView>
 
       {renderTicketModal()}
@@ -597,10 +591,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputSticky: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    zIndex: 2,
   },
   loadingContainer: {
     flex: 1,
