@@ -97,12 +97,63 @@ function wardrobeFromCanon(canon: string): string {
 }
 
 /**
- * Production hierarchy:
- * 1. Vision if confident (≥0.7) or any real garment label
- * 2. Hybrid: hanger mid → tops; region top → tops; region bottom → bottoms
- * 3. YOLO last
- * Footwear geometry only beats a *dress* mislabel (boots ≠ dress) —
- * never overrides outerwear/tops/bottoms (jackets must not become shoes).
+ * Macro roles for Quick Add reconciliation.
+ * Used to block weak on-device guesses from forcing an incompatible wardrobe category
+ * over confident Vision (e.g. jacket→shoes, trousers→shoes, shirt→bag).
+ */
+export type QuickAddMacroRole =
+  | 'footwear'
+  | 'outerwear'
+  | 'tops'
+  | 'bottoms'
+  | 'dresses'
+  | 'bags'
+  | 'accessories'
+  | 'other';
+
+export function quickAddMacroRole(wardrobeCategory: string | null | undefined): QuickAddMacroRole {
+  const c = String(wardrobeCategory || '').toLowerCase().trim();
+  if (c === 'shoes' || c === 'footwear') return 'footwear';
+  if (c === 'outerwear') return 'outerwear';
+  if (c === 'bottoms' || c === 'activewear_bottoms') return 'bottoms';
+  if (c === 'dresses' || c === 'dress') return 'dresses';
+  if (c === 'bags') return 'bags';
+  if (c === 'accessories') return 'accessories';
+  if (c === 'tops' || c === 'activewear_tops' || c === 'formal') return 'tops';
+  return 'other';
+}
+
+/**
+ * True when two wardrobe categories are fundamentally incompatible.
+ * Soft pairs (tops ↔ outerwear) are allowed — layering / hanger ambiguity.
+ */
+export function areFundamentallyIncompatible(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const ra = quickAddMacroRole(a);
+  const rb = quickAddMacroRole(b);
+  if (ra === 'other' || rb === 'other') return false;
+  if (ra === rb) return false;
+  // Soft-compatible: top vs outerwear (blazer vs shirt on hanger)
+  if (
+    (ra === 'tops' && rb === 'outerwear')
+    || (ra === 'outerwear' && rb === 'tops')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Production hierarchy — reconciled evidence, Vision-first:
+ * 1. Confident Vision wins over incompatible on-device (YOLO / soft bbox) guesses
+ * 2. Exception: dress + footwear device → shoes (boots ≠ dress)
+ * 3. Hybrid geometry when Vision is missing
+ * 4. YOLO last
+ *
+ * Final wardrobe `category` (not just display name) must come from this path —
+ * Outfit Mix / Get Outfits key off `item.category`.
  */
 export function resolveQuickAddCategory(args: {
   yoloClass?: string | null;
@@ -118,29 +169,49 @@ export function resolveQuickAddCategory(args: {
   const footwearHeuristic =
     box && box.y + box.h > 0.72 && box.y > 0.4 ? 'footwear' : null;
 
+  const deviceCanon = yoloRaw
+    ? canonicalizeCategory(yoloRaw)
+    : (footwearHeuristic === 'footwear' ? 'footwear' : null);
+  const deviceWardrobe = deviceCanon ? wardrobeFromCanon(deviceCanon) : null;
+
   if (visionRaw) {
     const visionCanon = canonicalizeCategory(visionRaw);
-    const yoloCanon = yoloRaw ? canonicalizeCategory(yoloRaw) : null;
-    const visionIsFootwear = visionCanon === 'footwear';
-    const yoloIsFootwear = yoloCanon === 'footwear' || footwearHeuristic === 'footwear';
-
-    // Boots ≠ dress: shoe recovery only when vision says dress/one-piece on a shoe box.
-    // Do NOT force shoes over blazer/jacket/top — that filed jackets under Shoes.
-    if (!visionIsFootwear && yoloIsFootwear && visionCanon === 'dress') {
-      return 'shoes';
-    }
-
     if (visionCanon && visionCanon !== 'other') {
-      if (conf >= QUICK_ADD_VISION_CONFIDENCE_WIN || conf <= 0) {
-        // conf<=0 means API omitted confidence — still trust named vision label
-        return wardrobeFromCanon(visionCanon);
+      const visionWardrobe = wardrobeFromCanon(visionCanon);
+      const visionConfident = conf >= QUICK_ADD_VISION_CONFIDENCE_WIN || conf <= 0;
+
+      // Boots ≠ dress: only known case where device footwear may correct Vision.
+      if (
+        visionCanon === 'dress'
+        && deviceWardrobe === 'shoes'
+      ) {
+        return 'shoes';
       }
-      // Low-confidence vision: still prefer over YOLO for tops↔bottoms, but allow hybrid override for hanger
+
+      // Confident Vision: never let weak/on-device force an incompatible role.
+      if (
+        visionConfident
+        && deviceWardrobe
+        && areFundamentallyIncompatible(visionWardrobe, deviceWardrobe)
+      ) {
+        return visionWardrobe;
+      }
+
+      if (visionConfident) {
+        return visionWardrobe;
+      }
+
+      // Low-confidence vision: still prefer over incompatible device; hanger may fix bottoms→tops.
+      if (
+        deviceWardrobe
+        && areFundamentallyIncompatible(visionWardrobe, deviceWardrobe)
+      ) {
+        return visionWardrobe;
+      }
       if (isHangerShape(box) && perceptionRegion(box) === 'middle') {
-        const v = wardrobeFromCanon(visionCanon);
-        if (v === 'bottoms') return 'tops';
+        if (visionWardrobe === 'bottoms') return 'tops';
       }
-      return wardrobeFromCanon(visionCanon);
+      return visionWardrobe;
     }
   }
 
@@ -152,6 +223,7 @@ export function resolveQuickAddCategory(args: {
   if (region === 'top') return 'tops';
   if (region === 'bottom' && box && box.h > 0.28) return 'bottoms';
 
+  if (deviceWardrobe) return deviceWardrobe;
   if (yoloRaw) {
     return wardrobeFromCanon(canonicalizeCategory(yoloRaw));
   }

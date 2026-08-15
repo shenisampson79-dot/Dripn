@@ -28,6 +28,7 @@ import {
 import {
   QUICK_ADD_VISION_TIMEOUT_MS,
   pickVisionFields,
+  quickAddMacroRole,
   resolveQuickAddCategory,
   type PerceptionBBox,
 } from '@/utils/quickAddPerception';
@@ -168,6 +169,16 @@ function buildTaggedAnalysis(
 ): any {
   const vision = pickVisionFields(analysis || {});
   const base = analysis && typeof analysis === 'object' ? analysis : {};
+  // Keep saved category and display name aligned — shoe words in a name would
+  // otherwise re-lock category via reconcileCategory and contaminate Outfit Mix.
+  let suggestedName = vision.suggestedName as string | undefined;
+  if (suggestedName) {
+    const role = quickAddMacroRole(categoryHint);
+    const shoeName = /\b(shoe|sneaker|boot|trainer|loafer|heel|sandal)s?\b/i.test(suggestedName);
+    const jacketName = /\b(jacket|coat|blazer|parka|trench)\b/i.test(suggestedName);
+    if (role !== 'footwear' && shoeName) suggestedName = undefined;
+    if (role === 'footwear' && jacketName) suggestedName = undefined;
+  }
   return {
     ...base,
     categoryHint,
@@ -180,7 +191,7 @@ function buildTaggedAnalysis(
       confidence: vision.confidence,
       brand: vision.brand,
       material: vision.material,
-      suggestedName: vision.suggestedName,
+      suggestedName,
       seasons: vision.seasons,
       occasions: vision.occasions,
       description: vision.description,
