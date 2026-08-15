@@ -16,7 +16,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
-import { KeyboardStickyView } from 'react-native-keyboard-controller';
+import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -42,6 +42,8 @@ import { currencyService } from '@/services/CurrencyService';
 
 const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
+/** Composer row + vertical padding — used so list content clears the sticky input. */
+const COMPOSER_HEIGHT = INPUT_MIN_HEIGHT + Spacing.md + Spacing.sm;
 
 export default function SupportScreen() {
   const navigation = useNavigation();
@@ -56,6 +58,12 @@ export default function SupportScreen() {
   // Tab bar overlays the screen (absolute). Negative closed offset lifts the composer
   // above it (positive closed translates DOWN and hides the bar under the tabs).
   const tabBarClearance = TAB_BAR_HEIGHT + safeAreaInsets.bottom;
+  const keyboardHeightPx = useKeyboardState((state) => state.height);
+  // Sticky composer overlays the list when the keyboard is open — pad enough to clear both.
+  const listBottomPad =
+    Spacing.xl +
+    COMPOSER_HEIGHT +
+    (keyboardHeightPx > 0 ? keyboardHeightPx : tabBarClearance);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -105,6 +113,14 @@ export default function SupportScreen() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, []);
+
+  // After keyboard height lands, re-scroll so footer actions clear the sticky composer.
+  const prevKeyboardHeightRef = useRef(0);
+  useEffect(() => {
+    const opened = prevKeyboardHeightRef.current <= 0 && keyboardHeightPx > 0;
+    prevKeyboardHeightRef.current = keyboardHeightPx;
+    if (opened) scrollToEnd();
+  }, [keyboardHeightPx, scrollToEnd]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading || sendingRef.current) return;
@@ -486,12 +502,9 @@ export default function SupportScreen() {
         style={styles.messagesFlex}
         contentContainerStyle={[
           styles.messagesList,
-          {
-            paddingBottom: Spacing.xl + INPUT_MIN_HEIGHT + tabBarClearance,
-          },
+          { paddingBottom: listBottomPad },
         ]}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={scrollToEnd}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         ListFooterComponent={
