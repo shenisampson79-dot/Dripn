@@ -56,6 +56,26 @@ assert.equal(
   'outerwear',
 );
 
+// YOLO/heuristic shoes must NOT override a vision blazer/jacket (jackets filed under Shoes)
+assert.equal(
+  resolveQuickAddCategory({
+    yoloClass: 'shoes',
+    visionCategory: 'blazer',
+    visionConfidence: 0.8,
+    bbox: { x: 0.2, y: 0.15, w: 0.55, h: 0.5 },
+  }),
+  'outerwear',
+);
+assert.equal(
+  resolveQuickAddCategory({
+    yoloClass: 'shoes',
+    visionCategory: 'jacket',
+    visionConfidence: 0.75,
+    bbox: { x: 0.1, y: 0.45, w: 0.7, h: 0.4 },
+  }),
+  'outerwear',
+);
+
 assert.equal(normalizeQuickAddColor('ivory'), 'cream');
 assert.equal(normalizeQuickAddColor('tan'), 'beige');
 assert.equal(normalizeQuickAddColor('cream'), 'cream');

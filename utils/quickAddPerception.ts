@@ -101,7 +101,8 @@ function wardrobeFromCanon(canon: string): string {
  * 1. Vision if confident (≥0.7) or any real garment label
  * 2. Hybrid: hanger mid → tops; region top → tops; region bottom → bottoms
  * 3. YOLO last
- * Footwear geometry still beats a dress mislabel.
+ * Footwear geometry only beats a *dress* mislabel (boots ≠ dress) —
+ * never overrides outerwear/tops/bottoms (jackets must not become shoes).
  */
 export function resolveQuickAddCategory(args: {
   yoloClass?: string | null;
@@ -123,8 +124,9 @@ export function resolveQuickAddCategory(args: {
     const visionIsFootwear = visionCanon === 'footwear';
     const yoloIsFootwear = yoloCanon === 'footwear' || footwearHeuristic === 'footwear';
 
-    // Boots ≠ dress: keep shoe recovery when vision is dress-like on a shoe box
-    if (!visionIsFootwear && yoloIsFootwear) {
+    // Boots ≠ dress: shoe recovery only when vision says dress/one-piece on a shoe box.
+    // Do NOT force shoes over blazer/jacket/top — that filed jackets under Shoes.
+    if (!visionIsFootwear && yoloIsFootwear && visionCanon === 'dress') {
       return 'shoes';
     }
 
