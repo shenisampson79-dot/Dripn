@@ -14,9 +14,17 @@ import {
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  FadeInDown,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
-import { KeyboardStickyView } from 'react-native-keyboard-controller';
+import {
+  KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
+} from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -48,10 +56,17 @@ export default function SupportScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { t } = useTranslations();
-  const { paddingTop, paddingBottom } = useScreenInsets();
+  const { paddingTop } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const sendingRef = useRef(false);
+  // Tab bar is absolute-positioned; pad composer when keyboard is closed only.
+  // Do NOT use KeyboardStickyView `closed` offset for this — positive closed = translateY down (hides under tab bar).
+  const tabBarClearance = TAB_BAR_HEIGHT + safeAreaInsets.bottom;
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const inputBottomPadStyle = useAnimatedStyle(() => ({
+    paddingBottom: keyboardHeight.value === 0 ? tabBarClearance : Spacing.sm,
+  }), [tabBarClearance]);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -479,11 +494,11 @@ export default function SupportScreen() {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
+        style={styles.messagesFlex}
         contentContainerStyle={[
           styles.messagesList,
           {
-            paddingBottom:
-              Spacing.xl + INPUT_MIN_HEIGHT + safeAreaInsets.bottom + TAB_BAR_HEIGHT,
+            paddingBottom: Spacing.xl + INPUT_MIN_HEIGHT + tabBarClearance,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -505,20 +520,18 @@ export default function SupportScreen() {
         }
       />
 
-      {/* Tracks keyboard interactively — avoids input floating while keyboard is dragged down. */}
+      {/* Tracks keyboard interactively; tab clearance via padding (not closed offset). */}
       <KeyboardStickyView
-        offset={{
-          closed: safeAreaInsets.bottom + TAB_BAR_HEIGHT,
-          opened: 0,
-        }}
+        offset={{ closed: 0, opened: 0 }}
+        style={styles.inputSticky}
       >
-        <View
+        <Animated.View
           style={[
             styles.inputBarFixed,
+            inputBottomPadStyle,
             {
               backgroundColor: theme.backgroundDefault,
               borderTopColor: theme.tabIconDefault + '30',
-              paddingBottom: Spacing.sm,
             },
           ]}
         >
@@ -568,7 +581,7 @@ export default function SupportScreen() {
               />
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </KeyboardStickyView>
 
       {renderTicketModal()}
@@ -579,6 +592,15 @@ export default function SupportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  messagesFlex: {
+    flex: 1,
+  },
+  inputSticky: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   loadingContainer: {
     flex: 1,
