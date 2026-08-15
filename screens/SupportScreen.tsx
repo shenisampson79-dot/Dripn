@@ -11,12 +11,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
+import { KeyboardStickyView } from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -56,7 +56,6 @@ export default function SupportScreen() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [stylist, setStylist] = useState<PersonalStylist | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -79,22 +78,6 @@ export default function SupportScreen() {
     t(`support.ticketCategory.${id}`) ||
     TICKET_CATEGORIES.find((c) => c.id === id)?.label ||
     id;
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setIsKeyboardVisible(true)
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setIsKeyboardVisible(false)
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -464,10 +447,8 @@ export default function SupportScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <View
       style={[styles.container, { backgroundColor: theme.backgroundDefault, paddingTop }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.headerContainer}>
         <View style={styles.headerLeft}>
@@ -500,7 +481,10 @@ export default function SupportScreen() {
         renderItem={renderMessage}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: Spacing.xl },
+          {
+            paddingBottom:
+              Spacing.xl + INPUT_MIN_HEIGHT + safeAreaInsets.bottom + TAB_BAR_HEIGHT,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={scrollToEnd}
@@ -521,66 +505,74 @@ export default function SupportScreen() {
         }
       />
 
-      <View
-        style={[
-          styles.inputBarFixed,
-          {
-            backgroundColor: theme.backgroundDefault,
-            borderTopColor: theme.tabIconDefault + '30',
-            paddingBottom: isKeyboardVisible ? Spacing.xs : safeAreaInsets.bottom + TAB_BAR_HEIGHT + Spacing.sm,
-          },
-        ]}
+      {/* Tracks keyboard interactively — avoids input floating while keyboard is dragged down. */}
+      <KeyboardStickyView
+        offset={{
+          closed: safeAreaInsets.bottom + TAB_BAR_HEIGHT,
+          opened: 0,
+        }}
       >
-        <View style={styles.inputRow}>
-          <Pressable
-            onPress={handleCreateTicket}
-            style={({ pressed }) => [
-              styles.actionButton,
-              { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Feather name="mail" size={20} color={theme.link} />
-          </Pressable>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.backgroundSecondary,
-                color: theme.text,
-              },
-            ]}
-            placeholder={t('support.messagePlaceholder') || 'Type your message...'}
-            placeholderTextColor={theme.tabIconDefault}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            blurOnSubmit={false}
-            scrollEnabled
-            textAlignVertical="top"
-            underlineColorAndroid="transparent"
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={!inputText.trim() || isLoading}
-            style={({ pressed }) => [
-              styles.sendButton,
-              {
-                backgroundColor: inputText.trim() ? theme.link : theme.backgroundSecondary,
-                opacity: pressed || !inputText.trim() ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Feather
-              name="send"
-              size={20}
-              color={inputText.trim() ? '#FFFFFF' : theme.tabIconDefault}
+        <View
+          style={[
+            styles.inputBarFixed,
+            {
+              backgroundColor: theme.backgroundDefault,
+              borderTopColor: theme.tabIconDefault + '30',
+              paddingBottom: Spacing.sm,
+            },
+          ]}
+        >
+          <View style={styles.inputRow}>
+            <Pressable
+              onPress={handleCreateTicket}
+              style={({ pressed }) => [
+                styles.actionButton,
+                { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Feather name="mail" size={20} color={theme.link} />
+            </Pressable>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  color: theme.text,
+                },
+              ]}
+              placeholder={t('support.messagePlaceholder') || 'Type your message...'}
+              placeholderTextColor={theme.tabIconDefault}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              blurOnSubmit={false}
+              scrollEnabled
+              textAlignVertical="top"
+              underlineColorAndroid="transparent"
             />
-          </Pressable>
+            <Pressable
+              onPress={handleSend}
+              disabled={!inputText.trim() || isLoading}
+              style={({ pressed }) => [
+                styles.sendButton,
+                {
+                  backgroundColor: inputText.trim() ? theme.link : theme.backgroundSecondary,
+                  opacity: pressed || !inputText.trim() ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Feather
+                name="send"
+                size={20}
+                color={inputText.trim() ? '#FFFFFF' : theme.tabIconDefault}
+              />
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </KeyboardStickyView>
 
       {renderTicketModal()}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
