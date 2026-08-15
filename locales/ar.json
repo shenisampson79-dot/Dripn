@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "اطلب نصائح التصميم...",
   "aiStylist.chatModeLabel": "دردشة المصمم",
   "aiStylist.couldNotStartRecording": "لا يمكن بدء التسجيل. يرجى المحاولة مرة أخرى.",
@@ -2261,7 +2261,7 @@
   "trustOnboarding.tf5.bullet2": "وقتك يهم أكثر مني",
   "trustOnboarding.tf5.headline": "التطبيقات الأخرى تريد انتباهك. أريدك أن ترتدي ملابسك وتذهب.",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

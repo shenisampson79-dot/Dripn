@@ -590,7 +590,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
                   {remainingAI === 0 
                     ? "No stylist requests remaining this month" 
                     : remainingAI === Infinity 
-                      ? "Unlimited stylist advice" 
+                      ? "Stylist advice (monthly AI allowance)" 
                       : `${remainingAI} requests remaining`}
                 </ThemedText>
               </View>

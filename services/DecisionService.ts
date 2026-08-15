@@ -474,7 +474,7 @@ class DecisionService {
 
     let reason: string | undefined;
     if (!canMakeDecision) {
-      reason = "That's your decision for today. Upgrade to Personal Stylist for unlimited decisions.";
+      reason = "That's your decision for today. Upgrade to Personal Stylist for more outfit decisions.";
     }
 
     return {
@@ -736,7 +736,7 @@ class DecisionService {
 
   /** Free-tier upsell on the decision type picker — upgrade language only, never "included". */
   getDecisionPickerFooterCopy(): string {
-    return 'Upgrade to Personal Stylist for unlimited decisions and 3-way shopping compare.';
+    return 'Upgrade to Personal Stylist for more outfit decisions and 3-way shopping compare.';
   }
 
   /** Tier status copy for limit/paywall surfaces — not for the decision picker footer. */
@@ -751,12 +751,12 @@ class DecisionService {
     if (normalized === 'personal_stylist') {
       return {
         title: 'Personal Stylist',
-        subtitle: 'Unlimited decisions with wardrobe-aware advice.',
+        subtitle: 'Outfit decisions within your monthly AI allowance, with wardrobe-aware advice.',
       };
     }
     return {
       title: 'Stylist Pro',
-      subtitle: 'Unlimited decisions with full wardrobe and planning tools.',
+      subtitle: 'Largest monthly AI allowance, unlimited wardrobe, and higher voice.',
     };
   }
 

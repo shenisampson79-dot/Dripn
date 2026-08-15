@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "Spørg om stylingråd...",
   "aiStylist.chatModeLabel": "Stylistchat",
   "aiStylist.couldNotStartRecording": "Kunne ikke starte optagelsen. Prøv venligst igen.",
@@ -2261,7 +2261,7 @@
   "trustOnboarding.tf5.bullet2": "Din tid betyder mere end min",
   "trustOnboarding.tf5.headline": "Andre apps vil have din opmærksomhed. Jeg vil have dig klædt på og væk.",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

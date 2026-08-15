@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "स्टाइलिंग सलाह के लिए पूछें...",
   "aiStylist.chatModeLabel": "स्टाइलिस्ट चैट",
   "aiStylist.couldNotStartRecording": "रिकॉर्डिंग प्रारंभ नहीं हो सकी. कृपया पुन: प्रयास करें।",
@@ -2261,7 +2261,7 @@
   "trustOnboarding.tf5.bullet2": "आपका समय मेरे से ज्यादा मायने रखता है",
   "trustOnboarding.tf5.headline": "अन्य ऐप्स आपका ध्यान चाहते हैं. मैं चाहता हूँ कि तुम कपड़े पहनो और चली जाओ।",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

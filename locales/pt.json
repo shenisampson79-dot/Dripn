@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "Peça conselhos de estilo...",
   "aiStylist.chatModeLabel": "Chat do estilista",
   "aiStylist.couldNotStartRecording": "Não foi possível iniciar a gravação. Por favor, tente novamente.",
@@ -2275,7 +2275,7 @@
   "trustOnboarding.tf5.bullet2": "Seu tempo importa mais que o meu",
   "trustOnboarding.tf5.headline": "Outros aplicativos querem sua atenção. Quero que você se vista e vá embora.",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

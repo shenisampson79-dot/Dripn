@@ -206,15 +206,15 @@ export function getVoiceAccessDenialMessage(options: {
     return "Couldn't load your spoken-reply balance. Please try again.";
   }
   if (options.reason === 'no_allowance' || options.reason === 'upgrade_required') {
-    return "Spoken replies aren't included on your plan yet. Add a voice pack, or switch to Chat for unlimited text.";
+    return "Spoken replies aren't included on your plan yet. Add a voice pack, or switch to Chat (uses your monthly AI allowance).";
   }
   if (options.hasMonthlyAllowance && options.usedThisMonth > 0) {
-    return "You've used this month's spoken replies. Add a top-up voice pack or switch to Chat for unlimited text.";
+    return "You've used this month's spoken replies. Add a top-up voice pack or switch to Chat (uses your monthly AI allowance).";
   }
   if (options.hasMonthlyAllowance && options.monthlyAllowance > 0 && options.usedThisMonth === 0) {
     return "No spoken replies available right now. Pull to refresh, or add a voice pack.";
   }
-  return "Spoken replies aren't available right now. Add a voice pack or switch to Chat for unlimited text.";
+  return "Spoken replies aren't available right now. Add a voice pack or switch to Chat (uses your monthly AI allowance).";
 }
 
 export function VoiceCreditsProvider({ children }: { children: ReactNode }) {

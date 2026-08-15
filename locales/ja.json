@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "スタイリングのアドバイスをお願い...",
   "aiStylist.chatModeLabel": "スタイリストチャット",
   "aiStylist.couldNotStartRecording": "録音を開始できませんでした。もう一度試してください。",
@@ -2261,7 +2261,7 @@
   "trustOnboarding.tf5.bullet2": "あなたの時間は私の時間より大切です",
   "trustOnboarding.tf5.headline": "他のアプリが注意を必要としています。服を着て出かけてほしい。",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

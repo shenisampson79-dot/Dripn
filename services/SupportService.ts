@@ -341,7 +341,7 @@ class SupportService {
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Dripn has three tiers:\n\n- Free: 1 stylist decision per day, up to 15 wardrobe items, limited AI chat.\n- Personal Stylist (~£9.99/mo): Unlimited outfit decisions, wardrobe-aware advice, about 75 wardrobe items, unlimited stylist chat, limited voice.\n- Stylist Pro (~£19.99/mo): Everything in Personal Stylist plus unlimited wardrobe and higher voice usage.\n\nPricing will appear in your local currency at checkout. See Settings > Subscription. ${signOff}`;
+      return `Dripn has three tiers:\n\n- Free: 1 stylist decision per day, up to 15 wardrobe items, limited AI chat.\n- Personal Stylist (~£9.99/mo): Bigger monthly AI allowance for outfit decisions, Live, and stylist chat; wardrobe-aware advice; about 75 wardrobe items; stylist text chat; limited voice.\n- Stylist Pro (~£19.99/mo): Everything in Personal Stylist plus unlimited wardrobe and higher voice usage.\n\nLive, stylist chat, and outfit decisions share your monthly AI allowance (Settings > Account > Usage this month) — they are not unlimited.\n\nPricing will appear in your local currency at checkout. See Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {

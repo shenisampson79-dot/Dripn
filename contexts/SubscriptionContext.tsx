@@ -157,11 +157,11 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceId: 'price_style_chat_monthly',
     productId: 'style_chat',
     features: [
-      'Unlimited stylist decisions',
+      'Outfit decisions (monthly AI allowance)',
       'Compare up to 3 options',
       'Wardrobe-aware recommendations',
       '75 wardrobe items',
-      'Unlimited stylist text chat',
+      'Stylist text chat (monthly AI allowance)',
       'Limited voice sessions',
     ],
   },

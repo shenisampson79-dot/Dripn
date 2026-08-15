@@ -1,4 +1,4 @@
-{
+﻿{
   "aiStylist.askPlaceholder": "求造型建议...",
   "aiStylist.chatModeLabel": "造型师聊天",
   "aiStylist.couldNotStartRecording": "无法开始录制。请再试一次。",
@@ -2261,7 +2261,7 @@
   "trustOnboarding.tf5.bullet2": "你的时间比我的更重要",
   "trustOnboarding.tf5.headline": "其他应用程序需要您的注意。我要你穿好衣服然后走开。",
   "upgrade.limitHit.cta": "Upgrade Now",
-  "upgrade.limitHit.message": "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
+  "upgrade.limitHit.message": "Upgrade to Personal Stylist for more stylist decisions and wardrobe-aware advice.",
   "upgrade.limitHit.title": "Daily limit reached",
   "upgrade.path.benefitDigitization": "Full wardrobe digitization (up to 30 items)",
   "upgrade.path.benefitPhotography": "Individual item photography & analysis",

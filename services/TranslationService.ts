@@ -1356,7 +1356,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'Can I download my data?',
       },
       s1: {
-        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, wardrobe-aware advice, expanded wardrobe, unlimited stylist chat, limited voice), and Stylist Pro at £19.99 per month (unlimited wardrobe and higher voice allowance).',
+        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (bigger monthly AI allowance for outfit decisions and stylist chat, wardrobe-aware advice, expanded wardrobe, limited voice), and Stylist Pro at £19.99 per month (unlimited wardrobe and higher voice allowance). Live, stylist chat, and outfit decisions share your monthly AI allowance.',
         question: 'What subscription plans are available?',
       },
       s2: {
@@ -1593,7 +1593,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       lossExtendedWardrobe: 'Extended wardrobe (up to 75 items)',
       lossOutfitCalendar: 'Outfit calendar',
       lossSmartSuggestions: 'Smart outfit suggestions',
-      lossUnlimitedDecisions: 'Unlimited style decisions',
+      lossUnlimitedDecisions: 'Outfit decisions (monthly AI allowance)',
       lossWardrobeAware: 'Wardrobe-aware stylist advice',
       lossUnlimitedEverything: 'Unlimited wardrobe & outfit suggestions',
       lossUnlimitedVoice: 'Higher voice allowance',
@@ -1828,7 +1828,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         subtext: 'Tailored looks built around your lifestyle',
       },
       personalStylist: {
-        check1: 'Unlimited stylist decisions',
+        check1: 'Outfit decisions (monthly AI allowance)',
         check2: 'Expanded wardrobe (~75 items)',
         check3: 'Wardrobe-aware daily advice',
         check4: 'Voice chat with your stylist',
@@ -1954,7 +1954,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     section04: {
       sub01: {
         bullet1: 'Free: Limited stylist decisions, wardrobe items, and AI chat.',
-        bullet2: 'Personal Stylist: Unlimited decisions, wardrobe-aware advice, and extended AI chat.',
+        bullet2: 'Personal Stylist: Outfit decisions and stylist chat within your monthly AI allowance, wardrobe-aware advice, and expanded wardrobe.',
         bullet3: 'Stylist Pro: Everything in Personal Stylist plus unlimited wardrobe and planning tools.',
         intro: 'Dripn offers the following subscription tiers with varying features:',
         title: '4.1 Subscription Tiers',

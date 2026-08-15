@@ -2221,7 +2221,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
                 {decisionService.getUpgradeCopy().headline}
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
-                {accessStatus?.reason || "Upgrade for unlimited stylist decisions."}
+                {accessStatus?.reason || "Upgrade for more stylist decisions."}
               </ThemedText>
               <Pressable
                 onPress={openSubscriptionFromPaywall}

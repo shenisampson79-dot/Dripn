@@ -388,7 +388,7 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
             Premium Feature
           </ThemedText>
           <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
-            Upgrade to Personal Stylist for unlimited outfit scanning
+            Upgrade to Personal Stylist for more outfit scanning
           </ThemedText>
           <Pressable
             onPress={() => navigateToSubscription(navigation, 'personal_stylist')}
