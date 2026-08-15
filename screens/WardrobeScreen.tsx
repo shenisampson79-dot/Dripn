@@ -147,7 +147,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
-  const { items, isLoading, error: wardrobeLoadError, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, markItemDirty, markItemClean, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
+  const { items, isLoading, error: wardrobeLoadError, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, markItemDirty, markItemClean, updateItem, reloadWardrobe, fixBackgroundsFromCache, backgroundRemovalProgress } = useWardrobe();
 
   const listItems = useMemo(
     () => (Array.isArray(items) ? items : []),
@@ -1901,21 +1901,6 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
           />
         }
         ListEmptyComponent={renderListEmptyComponent}
-        ListHeaderComponent={
-          wardrobePhotosUnavailable && filteredItems.length > 0 ? (
-            <View style={[styles.photoRepairBanner, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-              <Feather name="alert-circle" size={18} color={isDark ? '#F5C16C' : '#B45309'} />
-              <View style={{ flex: 1 }}>
-                <ThemedText type="body" style={{ fontWeight: '700', marginBottom: 4 }}>
-                  Photos missing
-                </ThemedText>
-                <ThemedText type="small" style={{ opacity: 0.75, lineHeight: 18 }}>
-                  Photos in your iPhone gallery are separate from Dripn. If originals were cleared from app storage, tap an item and re-attach its photo — or use + to add again.
-                </ThemedText>
-              </View>
-            </View>
-          ) : null
-        }
       />
 
       {selectionMode ? (
@@ -2224,14 +2209,6 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  photoRepairBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
   },
   itemCard: {
