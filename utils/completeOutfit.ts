@@ -24,9 +24,11 @@ export function isShoesItem(item: OutfitItemLike): boolean {
 }
 
 export function isTopItem(item: OutfitItemLike): boolean {
+  if (isMidLayerItem(item)) return false;
   const category = norm(item.category);
+  if (category === 'outerwear') return false;
   return ['tops', 'activewear_tops', 'formal'].includes(category)
-    || matchesHint(category, ['top', 'shirt', 'blouse', 'sweater', 'hoodie', 'tee', 't-shirt', 'polo', 'tank', 'singlet', 'jersey']);
+    || matchesHint(category, ['top', 'shirt', 'blouse', 'sweater', 'tee', 't-shirt', 'polo', 'tank', 'singlet', 'jersey']);
 }
 
 export function isBottomItem(item: OutfitItemLike): boolean {
@@ -35,10 +37,63 @@ export function isBottomItem(item: OutfitItemLike): boolean {
     || matchesHint(category, ['bottom', 'pant', 'jean', 'trouser', 'skirt', 'short', 'jogger', 'legging', 'dress', 'jumpsuit']);
 }
 
-export function isOuterwearItem(item: OutfitItemLike): boolean {
+export function isDressItem(item: OutfitItemLike): boolean {
   const category = norm(item.category);
+  const name = norm(item.name);
+  return category === 'dresses'
+    || matchesHint(category, ['dress', 'jumpsuit', 'romper'])
+    || matchesHint(name, ['dress', 'jumpsuit', 'romper']);
+}
+
+export function isSwimOrBeachItem(item: OutfitItemLike): boolean {
+  const category = norm(item.category);
+  const name = norm(item.name);
+  const sub = norm((item as { subcategory?: string }).subcategory);
+  return category === 'swimwear'
+    || matchesHint(category, ['swim', 'bikini', 'trunk'])
+    || matchesHint(sub, ['swim', 'bikini', 'trunk', 'board'])
+    || matchesHint(name, ['swim', 'bikini', 'swimsuit', 'trunks', 'board short', 'rash guard', 'cover[- ]?up']);
+}
+
+/** Hard completeness: top+bottom+shoes; dress+shoes; or swim/beach set. Blazer ≠ base top. */
+export function hasCoreOutfitRoles(items: OutfitItemLike[] = []): boolean {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (list.length < 1) return false;
+
+  const swimOnly = list.every(
+    (item) => isSwimOrBeachItem(item) || isShoesItem(item) || isAccessoryItem(item),
+  ) && list.some(isSwimOrBeachItem);
+  if (swimOnly) return true;
+
+  if (!list.some(isShoesItem)) return false;
+  if (list.some(isDressItem)) return true;
+  return list.some(isTopItem) && list.some(isBottomItem);
+}
+
+/** Quarter-zips / athletic pullovers / overshirts — over a base tee when layered. */
+export function isMidLayerItem(item: OutfitItemLike): boolean {
+  const subtype = norm((item as { subcategory?: string; classified?: { subtype?: string } }).classified?.subtype
+    || (item as { subcategory?: string }).subcategory).replace(/\s+/g, '_');
+  const text = `${norm(item.name)} ${norm((item as { subcategory?: string }).subcategory)} ${subtype}`;
+  if (
+    ['quarter_zip', 'half_zip', 'athletic_pullover', 'overshirt', 'shacket', 'zip_up_layer'].includes(subtype)
+  ) {
+    return true;
+  }
+  if (/\b(quarter[\s_-]?zip|half[\s_-]?zip)\b/.test(text)) return true;
+  if (/\bathletic[\s_-]?pullover\b/.test(text)) return true;
+  if (/\b(overshirt|shacket)\b/.test(text)) return true;
+  if (/\b(hoodie|hooded)\b/.test(text) && /\b(zip|athletic|tech)\b/.test(text)) return true;
+  return false;
+}
+
+export function isOuterwearItem(item: OutfitItemLike): boolean {
+  if (isMidLayerItem(item)) return true;
+  const category = norm(item.category);
+  const name = norm(item.name);
   return category === 'outerwear'
-    || matchesHint(category, ['jacket', 'coat', 'blazer', 'outerwear', 'parka', 'gilet']);
+    || matchesHint(category, ['jacket', 'coat', 'blazer', 'outerwear', 'parka', 'gilet'])
+    || matchesHint(name, ['jacket', 'coat', 'blazer', 'parka', 'puffer', 'gilet', 'cardigan']);
 }
 
 export function isAccessoryItem(item: OutfitItemLike): boolean {
@@ -128,5 +183,8 @@ export function completeOutfitItemIds(
 
 export function isCompleteOutfit(itemIds: string[], wardrobe: OutfitItemLike[]): boolean {
   const unique = [...new Set(itemIds.map(String))];
-  return unique.length >= MIN_OUTFIT_ITEMS && outfitHasRequiredShoes(unique, wardrobe);
+  if (unique.length < 3) return false;
+  const byId = new Map(wardrobe.map((item) => [String(item.id), item]));
+  const items = unique.map((id) => byId.get(id)).filter(Boolean) as OutfitItemLike[];
+  return hasCoreOutfitRoles(items);
 }

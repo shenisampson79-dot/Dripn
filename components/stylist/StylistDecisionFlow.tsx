@@ -41,6 +41,7 @@ import { RetailOutfitSection } from '@/components/stylist/RetailOutfitSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
 import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
+import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplayState';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -773,7 +774,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                     </ThemedText>
                     {inspirationRows.map(([role, label]) => (
                       <ThemedText key={role} type="body" style={{ marginBottom: Spacing.xs }}>
-                        {formatOutfitPieceRoleLabel(role)}: {label}
+                        {formatOutfitPieceRoleLabel(role)}: {editorialGarmentName(String(label || ''))}
                       </ThemedText>
                     ))}
                   </View>
@@ -866,11 +867,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
-        {flow.isReadOnly ? (
-          <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-            {t('stylistFlow.lastRecommendation')}
-          </ThemedText>
-        ) : null}
         <View style={styles.stylistHeader}>
           <LinearGradient colors={stylistGradient} style={styles.stylistAvatar}>
             <Feather name={stylistIcon} size={24} color="#FFFFFF" />
@@ -1159,7 +1155,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                         <ThemedText type="body">
                           {formatOutfitPieceRoleLabel(piece.role)}
                           {': '}
-                          {piece.name}
+                          {editorialGarmentName(piece.name || '', { brand: (piece as { brand?: string }).brand })}
                           {piece.type === 'recommended' ? ' · recommended' : ''}
                         </ThemedText>
                       </View>

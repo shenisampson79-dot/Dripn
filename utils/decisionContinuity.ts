@@ -109,9 +109,20 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
     : '';
 
   if (payload.flow === 'sanity-check') {
+    const pieceBits = (payload.verdict.outfitPieces || [])
+      .map((p) => {
+        const bits = [p.role, p.name, p.wardrobeItemId != null ? `id=${p.wardrobeItemId}` : '']
+          .filter(Boolean)
+          .join(' ');
+        return bits;
+      })
+      .filter(Boolean);
+    const pieceLock = pieceBits.length
+      ? ` Stick to this recommended look unless I change it: ${pieceBits.join('; ')}.`
+      : '';
     return (
-      `Following on from my ${label}.${verdictBit}${summaryBit}${score}${goal} `
-      + `Please refine this: build a stronger outfit from my wardrobe that addresses your feedback. `
+      `Following on from my ${label}.${verdictBit}${summaryBit}${score}${goal}${pieceLock} `
+      + `If anything is missing from that look (especially a base top under a blazer), keep every piece you already named and add only the missing role from my wardrobe — do not invent a different full outfit. `
       + `Keep the same occasion and weather context. Treat the pieces you criticised as avoid or fix unless I say otherwise.`
     ).trim();
   }
@@ -173,6 +184,12 @@ export function buildDecisionContinuity(args: {
         ),
       }
     : null;
+  const recommendedIds = (sanitizePieces(response.outfitPieces) || [])
+    .map((p) => (p.wardrobeItemId != null ? String(p.wardrobeItemId) : ''))
+    .filter(Boolean);
+  const wornIds = Array.isArray(session.input?.selectedWardrobeIds)
+    ? session.input.selectedWardrobeIds.map(String).slice(0, 24)
+    : [];
   const base: Omit<DecisionContinuityPayload, 'followUpPrompt'> = {
     decisionSessionId: session.id,
     flow: session.flow,
@@ -182,9 +199,8 @@ export function buildDecisionContinuity(args: {
     selectedContexts: Array.isArray(session.input?.selectedContexts)
       ? session.input.selectedContexts.slice(0, 12)
       : [],
-    selectedWardrobeIds: Array.isArray(session.input?.selectedWardrobeIds)
-      ? session.input.selectedWardrobeIds.map(String).slice(0, 24)
-      : [],
+    // Prefer the recommended wardrobe fix IDs so chat does not rebuild from the criticised worn set.
+    selectedWardrobeIds: recommendedIds.length ? recommendedIds.slice(0, 24) : wornIds,
     eventDetails: session.input?.eventDetails || null,
     uploadedImageCount: Math.min(
       12,

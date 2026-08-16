@@ -42,6 +42,7 @@ import { safeEnforceDecisionContract } from "@/utils/decisionContract";
 import { sanitizeOutfitPieces } from "@/utils/safeRender";
 import weatherService from "@/services/WeatherService";
 import { generateWardrobeOutfit } from "@/utils/generatedOutfit";
+import { resolveEventOutfitOccasion } from "@/utils/eventOutfitOccasion";
 import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
 import { getFashionRules } from "@/data/getFashionRules";
 import {
@@ -55,6 +56,8 @@ import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageL
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
+import { editorialGarmentName } from "@/utils/wardrobeItemName";
+import { formatOutfitPieceRoleLabel } from "@/utils/sanitizeStylistUserText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const OUTFIT_THUMB_COLUMNS = 3;
@@ -547,7 +550,13 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
 
       const occasionType =
         selectedType === 'event-outfit'
-          ? 'evening_out'
+          ? resolveEventOutfitOccasion({
+              eventType: eventDetails.eventType,
+              dressCode: eventDetails.dressCode,
+              venue: eventDetails.venue,
+              timeOfDay: eventDetails.timeOfDay,
+              context,
+            }).allocatorOccasion
           : selectedType === 'what-to-wear'
             ? 'casual_day'
             : 'smart_casual';
@@ -2117,11 +2126,11 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
             {allPieces.map((piece, index) => (
               <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={styles.outfitPieceRow}>
                 <ThemedText type="small" style={styles.outfitPieceRole}>
-                  {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                  {formatOutfitPieceRoleLabel(piece.role)}
                   {piece.type === 'recommended' ? ' · rec' : ''}
                 </ThemedText>
                 <ThemedText type="body" style={styles.outfitPieceName}>
-                  {piece.name}
+                  {editorialGarmentName(piece.name || '', { brand: (piece as { brand?: string }).brand })}
                   {piece.stylingNote ? ` — ${piece.stylingNote}` : ''}
                 </ThemedText>
               </View>

@@ -446,13 +446,25 @@ export function hydrateWardrobeVisualImagesByIds(
       if (!piece || typeof piece !== 'object') {
         return { name: 'Item', role: 'piece' };
       }
-      if (piece.imageUrl) return piece;
-      if (piece.wardrobeItemId == null) return piece;
-      const item = wardrobeItems.find((row) => String(row.id) === String(piece.wardrobeItemId));
+      const existingUrl = typeof piece.imageUrl === 'string' ? piece.imageUrl.trim() : '';
+      if (existingUrl) return piece;
+      let item = piece.wardrobeItemId != null
+        ? wardrobeItems.find((row) => String(row.id) === String(piece.wardrobeItemId))
+        : null;
+      if (!item && piece.name) {
+        const norm = String(piece.name).toLowerCase().trim();
+        item = wardrobeItems.find((row) => String(row.name || '').toLowerCase().trim() === norm)
+          || wardrobeItems.find((row) => String(row.name || '').toLowerCase().includes(norm.slice(0, 24)))
+          || null;
+      }
       if (!item) return piece;
       const localUrl = resolveWardrobeImageUri(item) || (item.id ? buildWardrobeImageProxyUrl(item.id) : null);
       if (!localUrl) return piece;
-      return { ...piece, imageUrl: localUrl };
+      return {
+        ...piece,
+        wardrobeItemId: piece.wardrobeItemId ?? item.id,
+        imageUrl: localUrl,
+      };
     };
 
     if (normalized.layout === 'multi' && normalized.outfits?.length) {

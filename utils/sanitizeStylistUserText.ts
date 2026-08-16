@@ -4,6 +4,7 @@
  */
 
 import { rewriteStylistCtaJargon } from '@/utils/shopDressCodeFilters';
+import { editorialGarmentName } from '@/utils/wardrobeItemName';
 
 const SCORED_FOR_RE = /\bScored for\b[^.!?\n]*[.!?]?/gi;
 const REFINEMENT_RE = /\bRefinement\s*:\s*[^.!?\n]*[.!?]?/gi;
@@ -73,6 +74,26 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = rewriteStylistCtaJargon(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
   text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  // Soften Title Case garment dumps in chat (Wear the / Opt for / …)
+  text = text.replace(
+    /((?:Wear this(?:\s+instead)?|You could go with|Opt for(?:\s+the)?|Instead,\s*wear(?:\s+the)?|Wear the|Try the)\s*[:—–-]?\s*)([^.!?\n]+)/gi,
+    (_m, lead, list) => {
+      const raw = String(list);
+      const parts = raw
+        .split(/\s*\+\s*|,\s*/)
+        .map((p) => p.replace(/^and\s+/i, '').replace(/\.$/, '').trim())
+        .filter(Boolean);
+      const soften = (n: string) => editorialGarmentName(n, { atSentenceStart: false });
+      if (parts.length < 2) {
+        return `${lead}${soften(raw.replace(/\.$/, ''))}${/\.$/.test(raw) ? '.' : ''}`;
+      }
+      const softened = parts.map(soften);
+      const body = softened.length === 2
+        ? `${softened[0]} and ${softened[1]}`
+        : `${softened.slice(0, -1).join(', ')}, and ${softened[softened.length - 1]}`;
+      return `${lead}${body}${/\.$/.test(raw) ? '.' : ''}`;
+    },
+  );
   // Post-transform editorial integrity (after any lead strip upstream)
   text = text
     .replace(/^(?:Wear this instead\s*[—–-]?\s*)+/i, '')

@@ -131,7 +131,7 @@ export function isAthleticTop(item: WardrobeItem): boolean {
   const t = itemText(item);
   return item.category === 'activewear_tops'
     || item.category === 'activewear'
-    || /singlet|tank|sleeveless|jersey|running vest|gym vest|training vest|athletic vest|performance vest|running top|athletic top|gym top|training top|performance top|compression|sports top|sports bra/.test(t);
+    || /singlet|tank|sleeveless|jersey|running vest|gym vest|training vest|athletic vest|performance vest|running top|athletic top|gym top|training top|performance top|compression|sports top|sports bra|running\s*t-?shirts?|running\s*tees?|runner(?:'s)?\s*t-?shirts?|performance\s*tee|gym\s*tee|athletic\s*tee|sport(?:s)?\s*tee|dri-?fit|hwpo|\bnike\b.*\b(run|training|gym|sport)/.test(t);
 }
 
 export function isAthleticBottom(item: WardrobeItem): boolean {
@@ -527,6 +527,19 @@ export const CLASH_RULES: Array<{
     when: (ctx) => {
       const code = String(ctx.options?.workDressCode || '').toLowerCase();
       return ctx.any('isTie') && (code === 'creative' || code === 'smart_casual');
+    },
+  },
+  {
+    id: 'casual_occasion_tie_blocked',
+    penalty: 94,
+    hint: 'Drop the tie for a casual day — keep the collared shirt open-collar or go without neckwear',
+    severity: 'fatal',
+    when: (ctx) => {
+      if (!ctx.any('isTie')) return false;
+      const occasion = String(ctx.occasion || ctx.options?.occasion || '').toLowerCase();
+      return occasion === 'casual_day'
+        || occasion === 'weekend'
+        || occasion === 'casual';
     },
   },
   {
@@ -1057,6 +1070,7 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   tie_short_sleeve: 'Drop the tie with short sleeves — or switch to a long-sleeve collared shirt',
   tie_linen_casual: 'Drop the tie with linen or camp shirts — or switch to a dress shirt',
   work_dress_tie_blocked: 'Skip the tie for this workplace, or raise your work dress code in Settings',
+  casual_occasion_tie_blocked: 'Drop the tie for a casual day — keep the collared shirt open-collar or go without neckwear',
   blazer_chunky_trainers: 'Swap chunky athletic trainers for plain white lifestyle sneakers, or drop the blazer',
   athletic_shorts_blazer: 'Swap athletic shorts for tailored shorts, chinos, or trousers',
   revealing_stack: 'Keep one revealing hero piece — tone down the second silhouette',

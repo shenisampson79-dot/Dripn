@@ -6,6 +6,7 @@
 import { CONFUSABLE_SHOE_FLIPS, type ShoeSubtype } from '@/utils/liveFootwearGate';
 import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import { LIVE_SUMMARY_MAX, packSummary } from '@/utils/packSummary';
+import { editorialGarmentName } from '@/utils/wardrobeItemName';
 
 export type LimSample = {
   label: string;
@@ -222,27 +223,11 @@ function isAccessoryPiece(p: BeliefPieceForCoach): boolean {
 }
 
 /**
- * Mirror of the server's sentence-case rule: garment names stay Title Case on
- * overlay labels but read as sentence case inside a summary clause.
+ * Editorial garment casing for prose: brands proper-cased (Gap/Next),
+ * descriptors lowercase — never Title Case Every Word.
  */
 export function sentenceCaseGarmentName(name: string, atSentenceStart = false): string {
-  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return '';
-  const colourOrTone = /^(black|white|navy|grey|gray|brown|cream|beige|khaki|olive|red|blue|green|pink|purple|orange|yellow|turquoise|charcoal|stone|tan|neon|light|dark|multicolou?r)$/i;
-  const garmentWord = /^(t-?shirts?|tees?|shirts?|jeans|trousers?|pants?|trainers?|sneakers?|boots?|loafers?|sandals?|heels?|tote|bag|bags?|jacket|blazer|coat|hoodie|polo|blouse|skirt|dress|shorts?|joggers?|singlet|overshirt|cargos?|chinos?|utility|plaid|striped|check(?:ed)?|henley|oxford)$/i;
-  const descriptor = /^(relaxed|slim|straight|wide|cropped|canvas|leather|cotton|wool|knit|crew|low-?top|high-?top|insulated|elastic-?waist|button-?(?:up|down)|short-?sleeve(?:d)?|long-?sleeve(?:d)?|sleeveless|running)$/i;
-  const lowered = words.map((word) => {
-    if (/^[A-Z]{2,}$/.test(word)) return word;
-    if (colourOrTone.test(word) || garmentWord.test(word) || descriptor.test(word)) {
-      return word.toLowerCase();
-    }
-    // Soften leftover Title Case tokens (Cream → cream) while keeping mixed brands.
-    if (/^[A-Z][a-z'’]*(-[A-Za-z][a-z'’]*)*$/.test(word)) return word.toLowerCase();
-    return word;
-  });
-  const out = lowered.join(' ');
-  if (!atSentenceStart) return out;
-  return out.charAt(0).toUpperCase() + out.slice(1);
+  return editorialGarmentName(name, { atSentenceStart });
 }
 
 /**

@@ -71,6 +71,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
+import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import {
   getAiAllowancePaywallCopy,
   isAiBudgetError,
@@ -595,7 +597,7 @@ function attachWardrobeVisualToMessage(
     || response.displayState === 'REDIRECT_TO_DECIDE'
     || response.type === 'redirect_to_decide',
   );
-  const strippedContent = stripStructuredOutfitMarkers(message.content);
+  const strippedContent = sanitizeStylistUserText(stripStructuredOutfitMarkers(message.content));
   const styleSession = buildStyleSession({
     userMessage,
     assistantContent: strippedContent,
@@ -625,11 +627,28 @@ function attachWardrobeVisualToMessage(
     enriched.isVisualizingOutfit = true;
   }
   if (!wardrobeVisual || !hasVisual) return enriched;
-  enriched.wardrobeVisual = wardrobeVisual;
 
-  const allPieces = wardrobeVisual.layout === 'multi'
-    ? (wardrobeVisual.outfits ?? []).flatMap((outfit) => outfit.pieces)
-    : (wardrobeVisual.pieces ?? []);
+  const editorialisePiece = <T extends { name?: string | null; brand?: string | null }>(piece: T): T => ({
+    ...piece,
+    name: editorialGarmentName(piece.name || '', { brand: piece.brand }) || piece.name,
+  });
+  const editorialVisual: typeof wardrobeVisual = wardrobeVisual.layout === 'multi'
+    ? {
+        ...wardrobeVisual,
+        outfits: (wardrobeVisual.outfits ?? []).map((outfit) => ({
+          ...outfit,
+          pieces: (outfit.pieces ?? []).map(editorialisePiece),
+        })),
+      }
+    : {
+        ...wardrobeVisual,
+        pieces: (wardrobeVisual.pieces ?? []).map(editorialisePiece),
+      };
+  enriched.wardrobeVisual = editorialVisual;
+
+  const allPieces = editorialVisual.layout === 'multi'
+    ? (editorialVisual.outfits ?? []).flatMap((outfit) => outfit.pieces)
+    : (editorialVisual.pieces ?? []);
 
   const matchedItems = allPieces
     .map((piece) => wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId)))
@@ -3609,7 +3628,9 @@ export default function AIStylistScreen() {
                 preferCover={false}
               />
             </View>
-            <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
+            <ThemedText style={styles.wardrobeVisualName}>
+              {editorialGarmentName(piece.name || '', { brand: piece.brand })}
+            </ThemedText>
           </View>
         </RenderErrorBoundary>
       );
@@ -3704,7 +3725,9 @@ export default function AIStylistScreen() {
                   preferCover={false}
                 />
               </View>
-              <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
+              <ThemedText style={styles.wardrobeVisualName}>
+              {editorialGarmentName(piece.name || '', { brand: piece.brand })}
+            </ThemedText>
             </View>
           </RenderErrorBoundary>
         );
