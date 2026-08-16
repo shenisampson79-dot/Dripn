@@ -6,7 +6,9 @@
 import { canonicalizeCategory } from '@/utils/outfitAutoAnalysisPipeline';
 import type { ClothingColor } from '@/contexts/WardrobeContext';
 
-export const QUICK_ADD_VISION_TIMEOUT_MS = 2000;
+export const QUICK_ADD_VISION_TIMEOUT_MS = 4000;
+/** Extra wait after timeout before showing a provisional result (stay on “Identifying…”). */
+export const QUICK_ADD_PROVISIONAL_GRACE_MS = 4000;
 export const QUICK_ADD_FORCE_UI_MS = 3000;
 export const QUICK_ADD_VISION_CONFIDENCE_WIN = 0.7;
 

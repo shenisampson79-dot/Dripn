@@ -52,7 +52,8 @@ type Props = {
   onClose: () => void;
   onMenu?: () => void;
   onSave: () => void;
-  onImprove: () => void;
+  /** Hidden for launch — Improve recognition is not shown in the UI. */
+  onImprove?: () => void;
 };
 
 const STYLE_OPTIONS: Array<{ id: string; label: string }> = [
@@ -270,17 +271,6 @@ export function QuickAddTagItem({
           ) : (
             <ThemedText type="body" style={styles.saveBtnText}>Save</ThemedText>
           )}
-        </Pressable>
-        <Pressable
-          onPress={onImprove}
-          disabled={saving}
-          style={[styles.improveBtn, { opacity: saving ? 0.7 : 1 }]}
-          accessibilityRole="button"
-          accessibilityLabel="Improve recognition"
-        >
-          <ThemedText type="body" style={styles.improveBtnText}>
-            Improve recognition (10s)
-          </ThemedText>
         </Pressable>
       </View>
 

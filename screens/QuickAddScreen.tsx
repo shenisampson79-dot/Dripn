@@ -65,8 +65,11 @@ import {
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
 import { processQuickAddCapture } from '@/utils/quickAddCapturePipeline';
-import { setImproveRecognitionFrontHandoff } from '@/utils/improveRecognitionHandoff';
-import { normalizeQuickAddColor, pickVisionFields } from '@/utils/quickAddPerception';
+import {
+  normalizeQuickAddColor,
+  pickVisionFields,
+  QUICK_ADD_PROVISIONAL_GRACE_MS,
+} from '@/utils/quickAddPerception';
 
 const FRAME_SIZE = 280;
 const SUCCESS_GREEN = '#4CAF50';
@@ -203,8 +206,9 @@ export default function QuickAddScreen({ navigation }: Props) {
 
     const analysisConf = vision.confidence;
     let band = bandFromScores(detectionConfidence, analysisConf);
+    // Never flash “Not sure…” — provisional / unknown colour stay at medium (“Check details”).
     if (opts?.provisional || color === 'other') {
-      band = band === 'high' ? 'medium' : 'low';
+      band = band === 'high' ? 'medium' : 'medium';
     }
 
     return {
@@ -235,8 +239,11 @@ export default function QuickAddScreen({ navigation }: Props) {
     setHint('Identifying your item…');
     setFrameUi('idle');
     try {
+      let settled = false;
       const applyResult = (result: Awaited<ReturnType<typeof processQuickAddCapture>>) => {
+        if (settled) return;
         if (!result.analysis && !result.imageUri) return;
+        settled = true;
         const next = buildDraftFromAnalysis(
           result.imageUri,
           result.imageBase64,
@@ -251,7 +258,8 @@ export default function QuickAddScreen({ navigation }: Props) {
 
       const result = await processQuickAddCapture(uri, detection, {
         onPartial: (partial) => {
-          // Late vision refine — only if user is still on result / processing
+          // Only reveal Item Details once Vision has settled — skip provisional “Not sure…” flash.
+          if (partial.provisional) return;
           if (stepRef.current === 'result' || stepRef.current === 'processing') {
             applyResult(partial);
           }
@@ -260,8 +268,27 @@ export default function QuickAddScreen({ navigation }: Props) {
       if (!result.analysis && !result.imageUri) {
         throw new Error('No analysis');
       }
-      applyResult(result);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (!result.provisional) {
+        applyResult(result);
+      } else {
+        // Stay on “Identifying…” while late Vision finishes.
+        await new Promise<void>((resolve) => {
+          const t = setTimeout(() => {
+            if (!settled) applyResult(result);
+            resolve();
+          }, QUICK_ADD_PROVISIONAL_GRACE_MS);
+          const poll = setInterval(() => {
+            if (settled) {
+              clearTimeout(t);
+              clearInterval(poll);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+      if (settled) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch (error) {
       console.warn('[QuickAdd] process failed:', error);
       Alert.alert(
@@ -551,35 +578,6 @@ export default function QuickAddScreen({ navigation }: Props) {
     }
   };
 
-  const handleImprove = async () => {
-    if (!draft || saving) return;
-    setSaving(true);
-    try {
-      const { ok, item } = await persistDraft();
-      if (!ok || !item?.id) return;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Push on top of Quick Add — do NOT replace (replace dismisses the modal
-      // and briefly flashes the Wardrobe screen underneath).
-      // Prefer URI handoff — large base64 in nav params can drop silently.
-      setImproveRecognitionFrontHandoff({
-        uri: draft.imageUri,
-        base64: draft.imageBase64,
-      });
-      navigation.navigate('ImproveRecognition', {
-        itemId: item.id,
-        itemName: item.name || draft.name,
-        frontImageUri: draft.imageUri,
-      });
-    } catch (error) {
-      Alert.alert(
-        t('wardrobe.error') || 'Error',
-        error instanceof Error ? error.message : 'Could not save item.',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (step === 'processing') {
     return (
       <View style={[styles.root, styles.centered, { backgroundColor: '#0B0B0B', paddingTop: insets.top }]}>
@@ -629,7 +627,6 @@ export default function QuickAddScreen({ navigation }: Props) {
           ]);
         }}
         onSave={handleSave}
-        onImprove={handleImprove}
       />
     );
   }
