@@ -7,7 +7,7 @@ import type { DecisionFlow, DecisionSession, DecisionSessionEventDetails } from 
 import type { DecisionResponse } from '@/services/DecisionService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ContinuitySource = DecisionFlow | 'get-outfits' | 'live';
+export type ContinuitySource = DecisionFlow | 'get-outfits';
 
 export type DecisionContinuityVerdict = {
   recommendation: string;
@@ -85,13 +85,12 @@ function flowLabel(flow: ContinuitySource): string {
   if (flow === 'event-outfit') return 'Outfit for Event';
   if (flow === 'shopping') return 'Choosing What to Buy';
   if (flow === 'get-outfits') return 'Get Outfits Now';
-  if (flow === 'live') return 'Live Stylist';
   return flow;
 }
 
-/** User is clearly following up on a recent QSC / Decide / GON / Live look. */
+/** User is clearly following up on a recent QSC / Decide / GON look. */
 export function looksLikeDecisionFollowUp(text: string): boolean {
-  return /\b(quick sanity|sanity check|you (just )?(gave|suggested|said|recommended|picked)|the outfit you|that outfit|this look|that look|footwear|what (shoes|footwear)|shoes? to wear|finish (off )?the outfit|complete (the |that )?outfit|earlier|before|continuation|forgot (the |a )?(top|bottom|shoes?|footwear|layer)|why did you (pick|choose|suggest|recommend)|with that|you didn't (suggest|include|tell)|get outfits now|from (the )?scan|scanned look|live stylist|from live|what i was wearing|outfit for (an )?event|event (look|outfit)|choosing what to buy)\b/i
+  return /\b(quick sanity|sanity check|you (just )?(gave|suggested|said|recommended|picked)|the outfit you|that outfit|this look|that look|footwear|what (shoes|footwear)|shoes? to wear|finish (off )?the outfit|complete (the |that )?outfit|earlier|before|continuation|forgot (the |a )?(top|bottom|shoes?|footwear|layer)|why did you (pick|choose|suggest|recommend)|with that|you didn't (suggest|include|tell)|get outfits now|from (the )?scan|scanned look|outfit for (an )?event|event (look|outfit)|choosing what to buy)\b/i
     .test(String(text || ''));
 }
 
@@ -180,7 +179,7 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
     ).trim();
   }
 
-  if (payload.flow === 'get-outfits' || payload.flow === 'live') {
+  if (payload.flow === 'get-outfits') {
     const pieceBits = (payload.verdict.outfitPieces || [])
       .map((p) => [p.role, p.name, p.wardrobeItemId != null ? `id=${p.wardrobeItemId}` : ''].filter(Boolean).join(' '))
       .filter(Boolean);
@@ -269,7 +268,7 @@ export function buildDecisionContinuity(args: {
   };
 }
 
-/** Persist a GON / Live look so Stylist tab chat can continue it. */
+/** Persist a GON look so Stylist tab chat can continue it. */
 export function buildLookContinuity(args: {
   flow: ContinuitySource;
   stylistId?: string;
