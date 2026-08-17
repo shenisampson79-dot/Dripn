@@ -1075,12 +1075,23 @@ export function useStylistDecision({
             : apiResult.evaluateResult?.suitable === false
               ? 'doesnt_work'
               : undefined),
-        styleRating: shouldDisplayStyleRating(apiResult.styleRating ?? null)
-          ? (apiResult.styleRating ?? null)
-          : null,
-        ratingLabel: shouldDisplayStyleRating(apiResult.styleRating ?? null)
-          ? sanitizeStylistUserText(apiResult.ratingLabel ?? '') || null
-          : null,
+        styleRating: (() => {
+          const raw = apiResult.styleRating ?? null;
+          // QSC always shows a finite score; other flows keep the display floor.
+          if (decisionType === 'sanity-check') {
+            return raw != null && Number.isFinite(Number(raw)) ? Number(raw) : null;
+          }
+          return shouldDisplayStyleRating(raw) ? Number(raw) : null;
+        })(),
+        ratingLabel: (() => {
+          const raw = apiResult.styleRating ?? null;
+          const show = decisionType === 'sanity-check'
+            ? (raw != null && Number.isFinite(Number(raw)))
+            : shouldDisplayStyleRating(raw);
+          return show
+            ? sanitizeStylistUserText(apiResult.ratingLabel ?? '') || null
+            : null;
+        })(),
         status: (apiResult.status as DecisionResponse['status'])
           || (apiResult.isFallback || apiResult.type === 'fallback_outfit' ? 'fallback_outfit' : 'ok'),
         type: apiResult.type,
@@ -1116,12 +1127,20 @@ export function useStylistDecision({
         suggestions: apiResult.suggestions,
         missingPieces: apiResult.missingPieces,
         outfitPieces: (() => {
+          // Launch: QSC is photo + score + verdict only — never attach replacement looks.
+          if (decisionType === 'sanity-check') return null;
           const pieces = sanitizeOutfitPieces(
             apiResult.outfitPieces || selectionPieces || localPieces || [],
           );
           return pieces.length > 0 ? pieces : null;
         })(),
         outfitSummary: (() => {
+          if (decisionType === 'sanity-check') {
+            // Prefer verdict prose over a garment-name list.
+            const fromApi = sanitizeStylistUserText(apiResult.outfitSummary || '');
+            if (fromApi && !/ · /.test(fromApi)) return fromApi;
+            return null;
+          }
           const fromApi = sanitizeStylistUserText(apiResult.outfitSummary || '');
           if (fromApi && !/ · /.test(fromApi)) return fromApi;
           // Never prefer a bare "Name · Name · Name" list as the only summary — it hides analysis.
@@ -1472,6 +1491,9 @@ export function useStylistDecision({
 
   /** Primary CTA: open AI Stylist with same stylist + seeded follow-up + continuity. */
   const continueInChat = async (opts?: { seedMessage?: string }) => {
+    // Launch: QSC ends on Done — no chat handoff / continuity seed from QSC.
+    if (decisionType === 'sanity-check') return;
+
     const continuity = getDecisionContinuity();
     if (!continuity) {
       navigation.navigate?.('AIStylist', opts?.seedMessage ? { initialPrompt: opts.seedMessage } : undefined);

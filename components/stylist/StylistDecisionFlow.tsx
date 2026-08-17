@@ -840,18 +840,23 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
     const uploaded = res.uploadedImages || flow.images || [];
     const allPieces = sanitizeOutfitPieces(res.outfitPieces || []);
-    const rejected = displayState === 'REJECTED_WARDROBE_FIX';
+    // QSC launch: never treat the result as a wardrobe replacement strip.
+    const rejected = decisionType !== 'sanity-check' && displayState === 'REJECTED_WARDROBE_FIX';
     const recommendedPieces = allPieces.filter((p) => p.type === 'recommended');
     const ownedPieces = allPieces.filter((p) => p.type !== 'recommended');
     // State 2: hide user outfit; show stylist wardrobe rebuild
-    const displayPieces = rejected
-      ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces)
-      : allPieces;
-    const visualPieces = rejected
-      ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces).filter(
-        (p) => p.wardrobeItemId != null || p.imageUrl,
-      )
-      : (ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null));
+    const displayPieces = decisionType === 'sanity-check'
+      ? []
+      : rejected
+        ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces)
+        : allPieces;
+    const visualPieces = decisionType === 'sanity-check'
+      ? []
+      : rejected
+        ? (ownedPieces.length > 0 ? ownedPieces : recommendedPieces).filter(
+          (p) => p.wardrobeItemId != null || p.imageUrl,
+        )
+        : (ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null));
 
     const winnerUri = rejected
       ? null
@@ -864,6 +869,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             ? uploaded[0]
             : null
       );
+
+    const qscRating = decisionType === 'sanity-check' && res.styleRating != null && Number.isFinite(Number(res.styleRating))
+      ? Number(res.styleRating)
+      : null;
+    const qscPercent = qscRating != null ? Math.round(qscRating * 10) : null;
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -973,6 +983,21 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+          {qscPercent != null ? (
+            <View style={styles.styleRatingRow}>
+              <View style={[styles.styleRatingBadge, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <ThemedText type="h2" style={[styles.styleRatingNumber, { color: LuxuryColors.gold }]}>
+                  {`${qscPercent}%`}
+                </ThemedText>
+              </View>
+              {res.ratingLabel ? (
+                <ThemedText type="body" style={[styles.styleRatingLabel, { color: theme.text }]}>
+                  {sanitizeStylistUserText(res.ratingLabel)}
+                </ThemedText>
+              ) : null}
+            </View>
+          ) : null}
+
           {decisionType === 'shopping' && uploaded.length > 1 ? (
             <ThemedText type="body" style={styles.responseBody}>
               {sanitizeStylistUserText(
@@ -1140,7 +1165,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                   ? recommendation
                   : '')
               );
-            const showPieceRows = displayPieces.length > 0;
+            const showPieceRows = decisionType !== 'sanity-check' && displayPieces.length > 0;
 
             return (
               <>
@@ -1731,6 +1756,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 4,
+  },
+  styleRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  styleRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  styleRatingNumber: {
+    fontWeight: '700',
+  },
+  styleRatingLabel: {
+    flex: 1,
+    fontWeight: '500',
   },
   responseBody: {
     lineHeight: 22,
