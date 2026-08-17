@@ -1195,7 +1195,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                     type="body"
                     style={[
                       rejected ? styles.responseBody : styles.reasoning,
-                      { color: rejected ? theme.text : theme.tabIconDefault, marginTop: Spacing.md },
+                      {
+                        color: rejected ? theme.text : theme.tabIconDefault,
+                        // QSC: keep card padding even — no extra top margin on the verdict text.
+                        marginTop: decisionType === 'sanity-check'
+                          ? 0
+                          : Spacing.md,
+                      },
                     ]}
                   >
                     {renderMarkdownText(analysis)}
@@ -1203,7 +1209,15 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : null}
 
                 {!rejected && !headline && !analysis && recommendation ? (
-                  <ThemedText type="body" style={[styles.responseBody, { marginTop: Spacing.md }]}>
+                  <ThemedText
+                    type="body"
+                    style={[
+                      styles.responseBody,
+                      {
+                        marginTop: decisionType === 'sanity-check' ? 0 : Spacing.md,
+                      },
+                    ]}
+                  >
                     {renderMarkdownText(recommendation)}
                   </ThemedText>
                 ) : null}
@@ -1221,8 +1235,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
         <View style={styles.responseActions}>
           {(() => {
+            const isQsc = decisionType === 'sanity-check';
             const showFollowUp =
-              (decisionType === 'sanity-check' && shouldShowSanityFollowUpCta(res))
+              (isQsc && shouldShowSanityFollowUpCta(res))
               || decisionType === 'event-outfit'
               || decisionType === 'shopping';
             const followUpLabel = (t('stylistFlow.refineWithStylist') || 'Refine this — {name}').replace(
@@ -1249,21 +1264,25 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                       {t('stylistFlow.done')}
                     </ThemedText>
                   </Pressable>
-                  <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
-                    <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                      {t('outfitFeedback.dontLike') || "Don't like"}
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
-                    <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                      {t('stylistFlow.editAndRerun')}
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
-                    <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                      {t('stylistFlow.startOver')}
-                    </ThemedText>
-                  </Pressable>
+                  {!isQsc ? (
+                    <>
+                      <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
+                        <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                          {t('outfitFeedback.dontLike') || "Don't like"}
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
+                        <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                          {t('stylistFlow.editAndRerun')}
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                        <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                          {t('stylistFlow.startOver')}
+                        </ThemedText>
+                      </Pressable>
+                    </>
+                  ) : null}
                 </>
               );
             }
@@ -1284,21 +1303,25 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                 ) : (
                   renderPrimaryButton(t('stylistFlow.done'), () => flow.completeAndClose())
                 )}
-                <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
-                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                    {t('outfitFeedback.dontLike') || "Don't like"}
-                  </ThemedText>
-                </Pressable>
-                <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
-                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                    {t('stylistFlow.editAndRerun')}
-                  </ThemedText>
-                </Pressable>
-                <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
-                  <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-                    {t('stylistFlow.startOver')}
-                  </ThemedText>
-                </Pressable>
+                {!isQsc ? (
+                  <>
+                    <Pressable onPress={() => flow.rejectAndClose()} style={styles.secondaryButton}>
+                      <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                        {t('outfitFeedback.dontLike') || "Don't like"}
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable onPress={() => { void flow.editAndRerun(); }} style={styles.secondaryButton}>
+                      <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                        {t('stylistFlow.editAndRerun')}
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                      <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                        {t('stylistFlow.startOver')}
+                      </ThemedText>
+                    </Pressable>
+                  </>
+                ) : null}
               </>
             );
           })()}
@@ -1761,7 +1784,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    marginBottom: Spacing.sm,
+    // Equal space around the separator — card gap handles space to verdict text.
     paddingBottom: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.08)',
