@@ -17,7 +17,7 @@ export const INTERNAL_SENTINELS = {
 } as const;
 
 export const SAFE_FALLBACKS = {
-  qsc: "I couldn't get a confident read on this look. Try again with the full outfit clearly in frame.",
+  qsc: "I've got your look. If a piece fights the rest of the outfit, swap that piece only.",
   gon: "I couldn't lock a confident outfit from your wardrobe. Try again in a moment.",
   chat: "I couldn't finish that thought cleanly. Ask me again in a moment.",
   events: "I couldn't lock a confident event look. Try again in a moment.",
@@ -28,11 +28,13 @@ export const SAFE_SURFACE_FALLBACKS = {
   ...SAFE_FALLBACKS,
   qscAlternative: "I couldn't build a confident alternative from your wardrobe.",
   qscGuardReject: "This look doesn't work for that brief, and I couldn't lock a confident replacement.",
+  qscFraming: "I couldn't get a confident read on this look. Try again with the full outfit clearly in frame.",
   gonScan: "I couldn't read that scan. Try again with the pieces clearly in frame.",
   gonLooks: "I couldn't build looks from your wardrobe. Try again in a moment.",
   gonImage: 'Image unavailable',
   chatClarify: "I lost the thread on that look. Tell me what you want to check.",
   chatRefuse: "That combination doesn't work together. Let's try a different mix from what you own.",
+  chatIncomplete: "I couldn't complete a full look with a top, bottom, and shoes from your wardrobe yet. Tell me the occasion and I will rebuild from owned pieces only.",
   eventsIncomplete: "I couldn't complete a confident event look from your wardrobe.",
   shoppingUnsure: "I couldn't make a confident call on these options.",
   shoppingHandoff: 'Add a photo or a short brief and I can compare options clearly.',

@@ -50,6 +50,7 @@ import {
 } from '@/utils/decisionWardrobeGroups';
 import {
   buildDecisionContinuity,
+  buildUserVisibleFollowUp,
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
 import {
@@ -1480,7 +1481,10 @@ export function useStylistDecision({
       await saveLastDecisionContinuity(user.id, continuity);
     }
     navigation.navigate?.('AIStylist', {
-      initialPrompt: opts?.seedMessage || continuity.followUpPrompt,
+      // Never seed the bubble with engine followUpPrompt — that dumps lock instructions.
+      initialPrompt: opts?.seedMessage
+        || continuity.userVisibleFollowUp
+        || buildUserVisibleFollowUp(continuity),
       decisionContinuity: continuity,
       fromDecisionSessionId: continuity.decisionSessionId,
     });

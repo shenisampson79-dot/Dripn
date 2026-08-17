@@ -32,7 +32,7 @@
     "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts",
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
-    "verify:presentation-boundary": "npx tsx scripts/test-presentation-boundary.ts && npx tsx scripts/test-presentation-matrix.ts",
+    "verify:presentation-boundary": "npx tsx scripts/test-presentation-boundary.ts && npx tsx scripts/test-presentation-matrix.ts && npx tsx scripts/test-decision-continuity.ts",
     "verify:outfit-score": "npx tsx scripts/verify-outfit-score.ts",
     "verify:allocation-score": "npx tsx utils/outfitAllocationScore.test.ts",
     "verify:auto-pipeline": "npx tsx utils/outfitAutoAnalysisPipeline.test.ts",

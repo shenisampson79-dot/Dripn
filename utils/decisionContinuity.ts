@@ -36,7 +36,10 @@ export type DecisionContinuityPayload = {
   eventDetails?: DecisionSessionEventDetails | null;
   uploadedImageCount: number;
   verdict: DecisionContinuityVerdict;
+  /** Engine handoff instructions — never show this as the user chat bubble. */
   followUpPrompt: string;
+  /** Short human seed shown in Stylist Chat when Refine opens chat. */
+  userVisibleFollowUp: string;
   /**
    * Decide-for-me → Stylist Chat snapshot bind only (not Live).
    * Soft TTL discard + session id prefix check reject corrupted/stale payloads.
@@ -118,7 +121,7 @@ function sanitizePieces(
   return out.length ? out : undefined;
 }
 
-export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'followUpPrompt'>): string {
+export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'followUpPrompt' | 'userVisibleFollowUp'>): string {
   const label = flowLabel(payload.flow);
   const goal = payload.goalText ? ` My notes: ${payload.goalText}.` : '';
   const score =
@@ -147,7 +150,7 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
       : '';
     return (
       `Following on from my ${label}.${verdictBit}${summaryBit}${score}${goal}${pieceLock} `
-      + `If anything is missing from that look (especially a base top under a blazer), keep every piece you already named and add only the missing role from my wardrobe — do not invent a different full outfit. `
+      + `If anything is missing from that look, keep every piece you already named and add only the missing role from my wardrobe — do not invent a different full outfit. `
       + `Keep the same occasion and weather context. Treat the pieces you criticised as avoid or fix unless I say otherwise.`
     ).trim();
   }
@@ -198,6 +201,26 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
   ).trim();
 }
 
+/** Short human seed for the chat bubble — never include engine lock instructions. */
+export function buildUserVisibleFollowUp(
+  payload: Omit<DecisionContinuityPayload, 'followUpPrompt' | 'userVisibleFollowUp'> | Pick<DecisionContinuityPayload, 'flow'>,
+): string {
+  const flow = payload.flow;
+  if (flow === 'sanity-check') {
+    return 'Can you finish this look from my wardrobe — a top, bottom, and shoes?';
+  }
+  if (flow === 'event-outfit') {
+    return 'Can you keep refining this event look from my wardrobe?';
+  }
+  if (flow === 'shopping') {
+    return 'Can you keep helping with that buy decision from my wardrobe?';
+  }
+  if (flow === 'get-outfits') {
+    return 'Can you keep working this look from my wardrobe?';
+  }
+  return 'Can you keep working this with me from my wardrobe?';
+}
+
 export function buildDecisionContinuity(args: {
   session: DecisionSession;
   response: DecisionResponse;
@@ -228,7 +251,7 @@ export function buildDecisionContinuity(args: {
   const wornIds = Array.isArray(session.input?.selectedWardrobeIds)
     ? session.input.selectedWardrobeIds.map(String).slice(0, 24)
     : [];
-  const base: Omit<DecisionContinuityPayload, 'followUpPrompt'> = {
+  const base: Omit<DecisionContinuityPayload, 'followUpPrompt' | 'userVisibleFollowUp'> = {
     decisionSessionId: session.id,
     flow: session.flow,
     stylistId,
@@ -265,6 +288,7 @@ export function buildDecisionContinuity(args: {
   return {
     ...base,
     followUpPrompt: buildFollowUpPrompt(base),
+    userVisibleFollowUp: buildUserVisibleFollowUp(base),
   };
 }
 
@@ -304,7 +328,7 @@ export function buildLookContinuity(args: {
     args.recommendation || `Wear the ${names.join(', ')}.`,
     1200,
   );
-  const base: Omit<DecisionContinuityPayload, 'followUpPrompt'> = {
+  const base: Omit<DecisionContinuityPayload, 'followUpPrompt' | 'userVisibleFollowUp'> = {
     decisionSessionId: sessionId,
     flow: args.flow,
     stylistId: clip(args.stylistId || 'ivy', 20).toLowerCase() || 'ivy',
@@ -326,15 +350,19 @@ export function buildLookContinuity(args: {
     },
     truthVersion: `${sessionId}#${new Date().toISOString()}`,
   };
-  return { ...base, followUpPrompt: buildFollowUpPrompt(base) };
+  return {
+    ...base,
+    followUpPrompt: buildFollowUpPrompt(base),
+    userVisibleFollowUp: buildUserVisibleFollowUp(base),
+  };
 }
 
-/** API body field — omit followUpPrompt (chat sends it as the user message). */
+/** API body field — omit chat seeds (user message is sent separately). */
 export function toApiDecisionContinuity(
   payload: DecisionContinuityPayload | null | undefined,
-): Omit<DecisionContinuityPayload, 'followUpPrompt'> | undefined {
+): Omit<DecisionContinuityPayload, 'followUpPrompt' | 'userVisibleFollowUp'> | undefined {
   if (!payload) return undefined;
-  const { followUpPrompt: _omit, ...rest } = payload;
+  const { followUpPrompt: _omit, userVisibleFollowUp: _omitVisible, ...rest } = payload;
   return rest;
 }
 
