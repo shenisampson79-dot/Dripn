@@ -976,7 +976,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           {decisionType === 'shopping' && uploaded.length > 1 ? (
             <ThemedText type="body" style={styles.responseBody}>
               {sanitizeStylistUserText(
-                res.message
+                res.presentation?.body
+                || res.message
                 || res.shoppingDecision?.message
                 || res.shoppingDecision?.text
                 || res.recommendation
@@ -1112,9 +1113,10 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
             const summaryIsNameList = looksLikeItemNameList(summary);
             // Single message field preferred — never prefer legacy reasoning over bound message
-            let recommendation = sanitizeStylistUserText(
-              res.message || res.recommendation || res.decision || '',
-            );
+            let recommendation = res.presentation?.body
+              || sanitizeStylistUserText(
+                res.message || res.recommendation || res.decision || '',
+              );
             const reasoning = (res.message || res.outfitId)
               ? ''
               : sanitizeStylistUserText(res.reasoning || '');

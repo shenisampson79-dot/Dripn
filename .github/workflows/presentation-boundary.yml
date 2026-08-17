@@ -1,0 +1,22 @@
+name: Presentation Boundary
+
+on:
+  push:
+    branches: [main, master, 'cursor/**']
+  pull_request:
+
+jobs:
+  presentation-boundary:
+    name: Launch-blocking leak matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Presentation boundary + 20-case matrix
+        run: npm run verify:presentation-boundary

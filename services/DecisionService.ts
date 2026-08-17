@@ -3,6 +3,7 @@ import { StylistId, SubscriptionTier } from '@/contexts/AuthContext';
 import { getTierFeatures, tierHasUnlimitedDecisions, canSaveDecisionHistory } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { apiService } from '@/services/ApiService';
+import type { SafePresentation } from '@/utils/stylistPresentationBoundary';
 
 export type DecisionType = 'shopping' | 'what-to-wear' | 'event-outfit' | 'sanity-check';
 export type DecisionContext =
@@ -39,6 +40,8 @@ export interface DecisionResponse {
   requestId: string;
   recommendation: string;
   reasoning: string;
+  /** Sealed UI model — render this, never engine diagnostics. */
+  presentation?: SafePresentation;
   confidenceNote?: string;
   /** Trust framing for deterministic vs AI-enhanced decisions — no numeric scores. */
   decisionConfidence?: {

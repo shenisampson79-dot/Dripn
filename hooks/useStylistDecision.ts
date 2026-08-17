@@ -40,6 +40,11 @@ import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { safeEnforceDecisionContract } from '@/utils/decisionContract';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import {
+  toSafePresentation,
+  type PresentationSurface,
+  type SafePresentation,
+} from '@/utils/stylistPresentationBoundary';
+import {
   MAX_DECISION_WARDROBE_ITEMS,
   MAX_SANITY_CHECK_PHOTOS,
 } from '@/utils/decisionWardrobeGroups';
@@ -1183,6 +1188,30 @@ export function useStylistDecision({
           result.stylistNote = undefined;
           result.outfitSummary = undefined;
         }
+      }
+
+      const presentationSurface: PresentationSurface =
+        mappedType === 'shopping' ? 'shopping'
+          : mappedType === 'event_outfit' ? 'events'
+            : 'qsc';
+      const sealed = toSafePresentation({
+        surface: presentationSurface,
+        modelOutput: result.message || result.recommendation || result.decision || '',
+        outfit: Array.isArray(result.outfitPieces) && result.outfitPieces.length
+          ? {
+            pieces: result.outfitPieces.map((p) => ({
+              id: String((p as { wardrobeItemId?: string; id?: string }).wardrobeItemId || (p as { id?: string }).id || ''),
+              name: String((p as { name?: string }).name || ''),
+              role: (p as { role?: string }).role,
+            })),
+          }
+          : null,
+      });
+      result.presentation = sealed.presentation;
+      if (sealed.presentation.body) {
+        result.recommendation = sealed.presentation.body;
+        if (result.message) result.message = sealed.presentation.body;
+        if (result.decision) result.decision = sealed.presentation.body;
       }
 
       if (isStale() || abortController.signal.aborted) {
