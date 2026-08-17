@@ -5,6 +5,7 @@
 
 import { rewriteStylistCtaJargon } from '@/utils/shopDressCodeFilters';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
+import { cannedFallback, containsEngineLeak, isFatalEngineLeak, presentText } from '@/utils/stylistPresentationBoundary';
 
 const SCORED_FOR_RE = /\bScored for\b[^.!?\n]*[.!?]?/gi;
 const REFINEMENT_RE = /\bRefinement\s*:\s*[^.!?\n]*[.!?]?/gi;
@@ -77,9 +78,10 @@ function stripInternalPromptLeaks(input: string): string {
 
 export function sanitizeStylistUserText(input?: string | null): string {
   if (typeof input !== 'string' || !input.trim()) return '';
+  if (isFatalEngineLeak(input)) return cannedFallback('qsc');
   let text = stripInternalPromptLeaks(input);
   if (!text) {
-    return "I've got your look. If a piece fights the rest of the outfit, swap that piece only.";
+    return cannedFallback('qsc');
   }
   text = text.replace(DRIPN_OUTFIT_BLOCK_RE, ' ');
   text = text.replace(DRIPN_OUTFIT_JSON_RE, ' ');
@@ -123,6 +125,9 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(/(^|[.!?]\s+|—\s*|–\s*)([a-z])/g, (_, lead, ch) => `${lead}${String(ch).toUpperCase()}`);
   if (text && !/^[A-ZÀ-ÖØ-Þ]/.test(text)) {
     text = text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  if (containsEngineLeak(input) || containsEngineLeak(text) || !text) {
+    return presentText(text, 'qsc');
   }
   return text;
 }
