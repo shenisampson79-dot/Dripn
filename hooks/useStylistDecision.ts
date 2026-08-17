@@ -50,7 +50,6 @@ import {
 import {
   resolveStoredWorkDressCode,
   workDressCodeForAsk,
-  workDressCodeInstruction,
 } from '@/services/OnboardingProfileService';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
@@ -884,8 +883,6 @@ export function useStylistDecision({
         eventDetails,
       };
       const workDressCode = workDressCodeForAsk(storedWorkDress, workAskArgs);
-      const workplaceNote = workDressCodeInstruction(workDressCode);
-      const contextWithWork = workplaceNote ? `${context}\n\n${workplaceNote}` : context;
       let base64Images: string[] = [];
       if (!surpriseMe && imageUris.length > 0) {
         base64Images = await resolveSubmitImages(imageUris);
@@ -911,7 +908,7 @@ export function useStylistDecision({
         try {
           const occasionResolved = resolveEventOutfitOccasion({
             eventDetails,
-            context: contextWithWork,
+            context,
             decisionType: 'event_outfit',
           });
           const local = await generateWardrobeOutfit({
@@ -975,7 +972,7 @@ export function useStylistDecision({
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: mappedType,
         images: base64Images,
-        context: contextWithWork,
+        context,
         stylist: stylistId,
         userProfile: buildUserProfile(workDressCode),
         surpriseMe,

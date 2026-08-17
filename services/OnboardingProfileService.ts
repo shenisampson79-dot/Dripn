@@ -125,6 +125,7 @@ export function workDressCodeForAsk(
   return normalizeWorkDressCode(code);
 }
 
+/** Prompt-only. Never concatenate into user-facing QSC / event context. */
 export function workDressCodeInstruction(code: WorkDressCode | null | undefined): string {
   const label = getWorkDressCodeLabel(code);
   if (!code || label === 'Not set') return '';

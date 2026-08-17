@@ -55,10 +55,32 @@ const WEAR_THIS_INSTEAD_DUP_RE =
 /** Ideal-outfit override lectures (different from the collage) */
 const IDEAL_OVERRIDE_RE =
   /\b(?:a\s+blazer\s+might|might\s+elevate|would\s+elevate|better\s+still|ideally)\b[^.!?\n]*[.!?]?/gi;
+const WORKPLACE_SETTINGS_RE = /\bWorkplace dress code from Settings:[^.!\n]*[.!]?/gi;
+const JUDGE_AGAINST_RE = /\b(?:For work\s*\/\s*office\s*\/\s*work[- ]?(?:appropriate|right) looks[^.!\n]*[.!]?|judge against this code[^.!\n]*[.!]?|not a generic office default[^.!\n]*[.!]?)/gi;
+const TRAINER_PROMPT_RE =
+  /\b(?:Never recommend trainers or sneakers for this workplace|Trainers only if they are clean\/minimal lifestyle)[^.!\n]*[.!]?/gi;
+const STYLE_LANE_PROMPT_RE = /\bKeep one clear style lane end to end[^.!\n]*[.!]?/gi;
+
+function stripInternalPromptLeaks(input: string): string {
+  let text = input.replace(/\\"/g, '"').replace(/\\'/g, "'");
+  text = text.replace(WORKPLACE_SETTINGS_RE, ' ');
+  text = text.replace(JUDGE_AGAINST_RE, ' ');
+  text = text.replace(TRAINER_PROMPT_RE, ' ');
+  text = text.replace(STYLE_LANE_PROMPT_RE, ' ');
+  text = text.replace(/I've got your look for\s*["'][^"']{0,240}["']/gi, (m) => (
+    /Settings|judge against|office default|work-appropr/i.test(m)
+      ? "I've got your look"
+      : m
+  ));
+  return text.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+}
 
 export function sanitizeStylistUserText(input?: string | null): string {
   if (typeof input !== 'string' || !input.trim()) return '';
-  let text = input;
+  let text = stripInternalPromptLeaks(input);
+  if (!text) {
+    return "I've got your look. If a piece fights the rest of the outfit, swap that piece only.";
+  }
   text = text.replace(DRIPN_OUTFIT_BLOCK_RE, ' ');
   text = text.replace(DRIPN_OUTFIT_JSON_RE, ' ');
   text = text.replace(SCORED_FOR_RE, ' ');
