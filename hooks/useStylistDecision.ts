@@ -48,8 +48,8 @@ import {
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
 import {
-  looksLikeWorkAttireAsk,
   resolveStoredWorkDressCode,
+  workDressCodeForAsk,
   workDressCodeInstruction,
 } from '@/services/OnboardingProfileService';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
@@ -588,9 +588,7 @@ export function useStylistDecision({
       budgetRange: user?.budgetRange,
       subscriptionTier: user?.subscriptionTier,
       retailers: user?.extendedPreferences?.favoriteShops || [],
-      workDressCode: workDressCode
-        || user?.onboardingProfile?.workDressCode
-        || null,
+      workDressCode: workDressCode || null,
     };
   };
 
@@ -877,14 +875,15 @@ export function useStylistDecision({
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
       const context = buildDecisionContext();
       const storedWorkDress = await resolveStoredWorkDressCode();
-      const workAsk = looksLikeWorkAttireAsk({
+      const workAskArgs = {
         selectedContexts: activeContexts,
         occasionType: decisionType === 'event-outfit' ? 'event_outfit' : decisionType,
         context,
         eventDressCode: eventDetails.dressCode,
         eventType: eventDetails.eventType,
-      });
-      const workDressCode = workAsk ? storedWorkDress : null;
+        eventDetails,
+      };
+      const workDressCode = workDressCodeForAsk(storedWorkDress, workAskArgs);
       const workplaceNote = workDressCodeInstruction(workDressCode);
       const contextWithWork = workplaceNote ? `${context}\n\n${workplaceNote}` : context;
       let base64Images: string[] = [];

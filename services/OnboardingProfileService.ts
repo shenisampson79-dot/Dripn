@@ -62,16 +62,37 @@ export function getWorkDressCodeLabel(code: WorkDressCode | null | undefined): s
   return WORK_DRESS_CODE_OPTIONS.find((o) => o.id === code)?.label || code;
 }
 
-export function looksLikeWorkAttireAsk(args: {
+export type WorkAttireAskArgs = {
   selectedContexts?: string[];
   occasionType?: string;
   context?: string;
   eventDressCode?: string;
   eventType?: string;
-} = {}): boolean {
+  eventDetails?: { eventType?: string; dressCode?: string } | null;
+};
+
+const EXPLICIT_OCCASION_DRESS_OVERRIDE = new Set([
+  'black_tie',
+  'white_tie',
+  'cocktail',
+  'formal',
+  'casual',
+  'smart_casual',
+]);
+
+function eventDressAndType(args: WorkAttireAskArgs = {}) {
+  const dress = String(args.eventDetails?.dressCode || args.eventDressCode || '')
+    .toLowerCase()
+    .replace(/[-\s]+/g, '_');
+  const type = String(args.eventDetails?.eventType || args.eventType || '')
+    .toLowerCase()
+    .replace(/[-\s]+/g, '_');
+  return { dress, type };
+}
+
+export function looksLikeWorkAttireAsk(args: WorkAttireAskArgs = {}): boolean {
   const chips = (args.selectedContexts || []).join(' ');
-  const dress = String(args.eventDressCode || '').toLowerCase().replace(/[-\s]+/g, '_');
-  const type = String(args.eventType || '').toLowerCase().replace(/[-\s]+/g, '_');
+  const { dress, type } = eventDressAndType(args);
   const blob = `${chips} ${args.occasionType || ''} ${args.context || ''} ${dress} ${type}`.toLowerCase();
   return /work[-_ ]?appropriate|work_outfit|work-appropriate/.test(blob)
     || dress === 'business'
@@ -79,6 +100,29 @@ export function looksLikeWorkAttireAsk(args: {
     || type === 'interview'
     || args.occasionType === 'work_outfit'
     || /\bwork outfit\b/.test(blob);
+}
+
+/**
+ * Explicit event/request dress code beats everyday workplace Settings.
+ * QSC Formal + Work-appropriate is not an override.
+ */
+export function hasExplicitOccasionDressOverride(args: WorkAttireAskArgs = {}): boolean {
+  const { dress, type } = eventDressAndType(args);
+  const blob = `${args.context || ''} ${type} ${args.eventDetails?.dressCode || args.eventDressCode || ''}`.toLowerCase();
+  if (/\b(black[\s_-]?tie|white[\s_-]?tie|cocktail|gala)\b/.test(blob)) return true;
+  if (!dress) return false;
+  if (dress === 'business' || dress === 'business_casual' || dress === 'business_formal') return false;
+  return EXPLICIT_OCCASION_DRESS_OVERRIDE.has(dress);
+}
+
+/** Settings/onboarding code only when this is a work ask with no explicit occasion override. */
+export function workDressCodeForAsk(
+  code: unknown,
+  askArgs: WorkAttireAskArgs = {},
+): WorkDressCode | null {
+  if (hasExplicitOccasionDressOverride(askArgs)) return null;
+  if (!looksLikeWorkAttireAsk(askArgs)) return null;
+  return normalizeWorkDressCode(code);
 }
 
 export function workDressCodeInstruction(code: WorkDressCode | null | undefined): string {
