@@ -177,10 +177,10 @@ const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
   ? [
       "choosing-what-to-buy",
       "live-stylist",
-      "scan-wardrobe",
+      "outfit-for-event",
       "quick-sanity-check",
       "ai-stylist",
-      "outfit-for-event",
+      "scan-wardrobe",
       "fashion-blog",
       "style-rules",
     ]
