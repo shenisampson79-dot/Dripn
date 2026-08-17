@@ -2425,6 +2425,7 @@ class ApiService {
     selectedWardrobeIds?: Array<string | number>;
     /** Manual wardrobe picks: mixed categories = evaluate look; same category = pick one. */
     wardrobeSelectionMode?: 'evaluate_outfit' | 'pick_one';
+    workDressCode?: string;
     /** App Store storefront / billing hint for regional shop links. */
     storeCountry?: string;
     appStoreCountry?: string;

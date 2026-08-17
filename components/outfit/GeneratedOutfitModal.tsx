@@ -30,6 +30,8 @@ type Props = {
   onClose: () => void;
   /** Called after "Don't like" — parent can show next look */
   onSkipLook?: () => void;
+  /** Continue this look in Stylist Chat */
+  onAskStylist?: () => void;
 };
 
 export function GeneratedOutfitModal({
@@ -39,6 +41,7 @@ export function GeneratedOutfitModal({
   defaultTitle = 'My Outfit',
   onClose,
   onSkipLook,
+  onAskStylist,
 }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
@@ -218,6 +221,19 @@ export function GeneratedOutfitModal({
                 {t('common.gotIt') || 'Got it!'}
               </ThemedText>
             </Pressable>
+            {onAskStylist ? (
+              <Pressable
+                style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.7 }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onAskStylist();
+                }}
+              >
+                <ThemedText type="body" style={{ color: LuxuryColors.violet, fontWeight: '600' }}>
+                  {t('stylistFlow.refineWithStylist') || 'Ask Ivy to finish this look'}
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>
@@ -295,6 +311,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
     backgroundColor: LuxuryColors.violet,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: LuxuryColors.violet,
     alignItems: 'center',
   },
 });

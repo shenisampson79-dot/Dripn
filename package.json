@@ -41,6 +41,7 @@
     "verify:fashion-color": "npx tsx utils/fashionColorTaxonomy.test.ts",
     "verify:dual-style-signals": "npx tsx utils/dualStyleSignals.test.ts",
     "verify:feedback-brain": "npx tsx utils/outfitFeedbackBrain.test.ts",
+    "verify:gon-hydration": "npx tsx utils/scanCropHydration.test.ts",
     "verify:outfit-mix-occasion": "npx tsx scripts/verify-outfit-mix-occasion.ts",
     "verify:outfit-mix-integrity": "npx tsx scripts/verify-outfit-mix-integrity.ts",
     "verify:ui-integrity": "npx tsx scripts/verify-ui-integrity.ts",

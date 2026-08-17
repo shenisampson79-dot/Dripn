@@ -3536,7 +3536,8 @@ export default function AIStylistScreen() {
     );
 
     // Allocator / occasion chip paths already supply ID-backed pieces via outfitSuggestion.
-    if (!visual && message.outfitSuggestion?.items?.length) {
+    // Failed solver: never rebuild a strip from the leaked working set.
+    if (!visual && message.hasOutfitRecommendation !== false && message.outfitSuggestion?.items?.length) {
       visual = normalizeWardrobeVisual(
         wardrobeVisualFromOutfitSuggestion(message.outfitSuggestion.items),
       );
@@ -3568,6 +3569,7 @@ export default function AIStylistScreen() {
       wardrobeItems,
     );
     if (!visual) {
+      if (message.hasOutfitRecommendation === false) return null;
       const legacyItems = message.outfitSuggestion?.items;
       if (!legacyItems?.length) return null;
       const legacyVisual = wardrobeVisualFromOutfitSuggestion(legacyItems);
@@ -3689,7 +3691,7 @@ export default function AIStylistScreen() {
       wardrobeItems,
     );
 
-    if (!visual && message.outfitSuggestion?.items?.length) {
+    if (!visual && message.hasOutfitRecommendation !== false && message.outfitSuggestion?.items?.length) {
       visual = normalizeWardrobeVisual(
         wardrobeVisualFromOutfitSuggestion(message.outfitSuggestion.items),
       );

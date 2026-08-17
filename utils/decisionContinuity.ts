@@ -7,6 +7,8 @@ import type { DecisionFlow, DecisionSession, DecisionSessionEventDetails } from 
 import type { DecisionResponse } from '@/services/DecisionService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type ContinuitySource = DecisionFlow | 'get-outfits' | 'live';
+
 export type DecisionContinuityVerdict = {
   recommendation: string;
   reasoning: string;
@@ -25,7 +27,7 @@ export type DecisionContinuityVerdict = {
 
 export type DecisionContinuityPayload = {
   decisionSessionId: string;
-  flow: DecisionFlow;
+  flow: ContinuitySource;
   stylistId: string;
   completedAt: string;
   goalText: string;
@@ -78,16 +80,18 @@ export function traceDecisionContinuity(payload: DecisionContinuityPayload | nul
   return continuityTrace(payload);
 }
 
-function flowLabel(flow: DecisionFlow): string {
+function flowLabel(flow: ContinuitySource): string {
   if (flow === 'sanity-check') return 'Quick Sanity Check';
   if (flow === 'event-outfit') return 'Outfit for Event';
   if (flow === 'shopping') return 'Choosing What to Buy';
+  if (flow === 'get-outfits') return 'Get Outfits Now';
+  if (flow === 'live') return 'Live Stylist';
   return flow;
 }
 
-/** User is clearly following up on a recent QSC / Decide look. */
+/** User is clearly following up on a recent QSC / Decide / GON / Live look. */
 export function looksLikeDecisionFollowUp(text: string): boolean {
-  return /\b(quick sanity|sanity check|you (just )?(gave|suggested|said|recommended|picked)|the outfit you|that outfit|this look|that look|footwear|what (shoes|footwear)|shoes? to wear|finish (off )?the outfit|complete (the |that )?outfit|earlier|before|continuation|forgot (the |a )?(top|bottom|shoes?|footwear|layer)|why did you (pick|choose|suggest|recommend)|with that|you didn't (suggest|include|tell))\b/i
+  return /\b(quick sanity|sanity check|you (just )?(gave|suggested|said|recommended|picked)|the outfit you|that outfit|this look|that look|footwear|what (shoes|footwear)|shoes? to wear|finish (off )?the outfit|complete (the |that )?outfit|earlier|before|continuation|forgot (the |a )?(top|bottom|shoes?|footwear|layer)|why did you (pick|choose|suggest|recommend)|with that|you didn't (suggest|include|tell)|get outfits now|from (the )?scan|scanned look|live stylist|from live|what i was wearing|outfit for (an )?event|event (look|outfit)|choosing what to buy)\b/i
     .test(String(text || ''));
 }
 
@@ -176,6 +180,19 @@ export function buildFollowUpPrompt(payload: Omit<DecisionContinuityPayload, 'fo
     ).trim();
   }
 
+  if (payload.flow === 'get-outfits' || payload.flow === 'live') {
+    const pieceBits = (payload.verdict.outfitPieces || [])
+      .map((p) => [p.role, p.name, p.wardrobeItemId != null ? `id=${p.wardrobeItemId}` : ''].filter(Boolean).join(' '))
+      .filter(Boolean);
+    const pieceLock = pieceBits.length
+      ? ` Stick to this look unless I change it: ${pieceBits.join('; ')}.`
+      : '';
+    return (
+      `Following on from my ${label}.${verdictBit}${summaryBit}${goal}${pieceLock} `
+      + `Keep every locked piece and only fill missing roles from my wardrobe — do not invent a different full outfit.`
+    ).trim();
+  }
+
   return (
     `Following on from my ${label}.${verdictBit}${score}${goal} `
     + `Please keep working this decision with me — same options and context.`
@@ -250,6 +267,67 @@ export function buildDecisionContinuity(args: {
     ...base,
     followUpPrompt: buildFollowUpPrompt(base),
   };
+}
+
+/** Persist a GON / Live look so Stylist tab chat can continue it. */
+export function buildLookContinuity(args: {
+  flow: ContinuitySource;
+  stylistId?: string;
+  items: Array<{
+    id?: string | number;
+    wardrobeItemId?: string | number;
+    name?: string;
+    category?: string;
+    role?: string;
+  }>;
+  recommendation?: string;
+  outfitSummary?: string;
+}): DecisionContinuityPayload | null {
+  const pieces = (args.items || [])
+    .map((item) => {
+      const wardrobeItemId = item.wardrobeItemId ?? item.id;
+      const name = clip(item.name, 120);
+      if (!name && wardrobeItemId == null) return null;
+      return {
+        role: clip(item.role || item.category, 40) || undefined,
+        name: name || undefined,
+        wardrobeItemId: wardrobeItemId != null ? wardrobeItemId : undefined,
+        category: item.category ? clip(item.category, 40) : null,
+        color: null as string | null,
+      };
+    })
+    .filter(Boolean) as NonNullable<DecisionContinuityVerdict['outfitPieces']>;
+  if (!pieces.length) return null;
+
+  const sessionId = `look_${args.flow}_${Date.now()}`;
+  const names = pieces.map((p) => p.name).filter(Boolean);
+  const recommendation = clip(
+    args.recommendation || `Wear the ${names.join(', ')}.`,
+    1200,
+  );
+  const base: Omit<DecisionContinuityPayload, 'followUpPrompt'> = {
+    decisionSessionId: sessionId,
+    flow: args.flow,
+    stylistId: clip(args.stylistId || 'ivy', 20).toLowerCase() || 'ivy',
+    completedAt: new Date().toISOString(),
+    goalText: '',
+    selectedContexts: [],
+    selectedWardrobeIds: pieces
+      .map((p) => (p.wardrobeItemId != null ? String(p.wardrobeItemId) : ''))
+      .filter(Boolean),
+    uploadedImageCount: 0,
+    verdict: {
+      recommendation,
+      reasoning: '',
+      styleRating: null,
+      ratingLabel: null,
+      outfitSummary: args.outfitSummary ? clip(args.outfitSummary, 1200) : names.join(' · '),
+      outfitPieces: pieces,
+      recommendedIndex: null,
+    },
+    truthVersion: `${sessionId}#${new Date().toISOString()}`,
+  };
+  return { ...base, followUpPrompt: buildFollowUpPrompt(base) };
 }
 
 /** API body field — omit followUpPrompt (chat sends it as the user message). */

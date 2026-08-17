@@ -112,6 +112,7 @@ import {
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
 import { enforceLiveOutcomeContract } from '@/utils/liveOutcomeContract';
+import { buildLookContinuity, saveLastDecisionContinuity } from '@/utils/decisionContinuity';
 
 /** Hard ceiling for camera mount/ready — never leave "warming" forever. */
 const CAMERA_READY_TIMEOUT_MS = 8000;
@@ -1583,6 +1584,38 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } catch {
       warmTruthRef.current = null;
     }
+    try {
+      const tracked = previousItemsRef.current || [];
+      const truth = outfitTruthRef.current;
+      const fromTracked = tracked.map((it) => ({
+        id: it.wardrobeMatch?.id,
+        wardrobeItemId: it.wardrobeMatch?.id,
+        name: it.wardrobeMatch?.name || it.name,
+        category: it.category,
+        role: it.category,
+      }));
+      const fromTruth = truth
+        ? [truth.top, truth.layer, truth.bottom, truth.footwear]
+            .filter(Boolean)
+            .map((slot) => ({
+              name: slot?.name,
+              category: slot?.category,
+              role: slot?.category,
+            }))
+        : [];
+      const continuity = buildLookContinuity({
+        flow: 'live',
+        stylistId: user?.stylistPreferences?.selectedStylistId || 'ivy',
+        items: fromTracked.some((p) => p.name) ? fromTracked : fromTruth,
+        recommendation: previousFeedbackRef.current?.coaching?.summary
+          || (truth?.lane ? `Live look (${truth.lane}).` : undefined),
+      });
+      if (continuity && user?.id) {
+        void saveLastDecisionContinuity(user.id, continuity);
+      }
+    } catch {
+      /* ignore continuity persist */
+    }
     setCameraError(null);
     setLiveState('idle');
     unmountCamera();
@@ -1598,7 +1631,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     yoloRefStickyUntilRef.current = 0;
     setStatusNote('Paused — tap Start to resume');
     setYoloStatusNote('Camera starts when you tap Start live');
-  }, [stopSamplingLoop, unmountCamera]);
+  }, [stopSamplingLoop, unmountCamera, user?.id, user?.stylistPreferences?.selectedStylistId]);
 
   const toggleLive = async () => {
     await liveStartCrumb('START LIVE PRESSED');

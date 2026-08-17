@@ -38,7 +38,7 @@ const CATEGORY_PICKER_RANK: Record<string, number> = {
 function inferSlotFromText(text: string): OutfitLayerSlot | null {
   const t = text.toLowerCase();
   if (/\b(dress|jumpsuit|romper|playsuit)\b/.test(t)) return 'dress';
-  if (/\b(blazer|jacket|coat|outerwear|cardigan|parka|trench|overcoat|gilet|vest)\b/.test(t)) return 'outerwear';
+  if (/\b(blazer|jacket|coat|outerwear|cardigan|parka|trench|overcoat|gilet|vest|quarter[-\s]?zip|athletic[-\s]?pullover|overshirt|shacket)\b/.test(t)) return 'outerwear';
   if (/\b(activewear|gym|legging|joggers|track\s*pant|sweatpant)\b/.test(t) && /\b(pant|short|legging|bottom|trouser|joggers)\b/.test(t)) {
     return 'active_bottom';
   }

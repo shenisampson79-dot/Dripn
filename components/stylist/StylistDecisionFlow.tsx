@@ -1195,7 +1195,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         <View style={styles.responseActions}>
           {(() => {
             const showFollowUp =
-              decisionType === 'sanity-check' && shouldShowSanityFollowUpCta(res);
+              (decisionType === 'sanity-check' && shouldShowSanityFollowUpCta(res))
+              || decisionType === 'event-outfit'
+              || decisionType === 'shopping';
             const followUpLabel = (t('stylistFlow.refineWithStylist') || 'Refine this — {name}').replace(
               '{name}',
               stylistName,

@@ -62,6 +62,47 @@ export function getWorkDressCodeLabel(code: WorkDressCode | null | undefined): s
   return WORK_DRESS_CODE_OPTIONS.find((o) => o.id === code)?.label || code;
 }
 
+export function looksLikeWorkAttireAsk(args: {
+  selectedContexts?: string[];
+  occasionType?: string;
+  context?: string;
+  eventDressCode?: string;
+  eventType?: string;
+} = {}): boolean {
+  const chips = (args.selectedContexts || []).join(' ');
+  const dress = String(args.eventDressCode || '').toLowerCase().replace(/[-\s]+/g, '_');
+  const type = String(args.eventType || '').toLowerCase().replace(/[-\s]+/g, '_');
+  const blob = `${chips} ${args.occasionType || ''} ${args.context || ''} ${dress} ${type}`.toLowerCase();
+  return /work[-_ ]?appropriate|work_outfit|work-appropriate/.test(blob)
+    || dress === 'business'
+    || type === 'business'
+    || type === 'interview'
+    || args.occasionType === 'work_outfit'
+    || /\bwork outfit\b/.test(blob);
+}
+
+export function workDressCodeInstruction(code: WorkDressCode | null | undefined): string {
+  const label = getWorkDressCodeLabel(code);
+  if (!code || label === 'Not set') return '';
+  return `Workplace dress code from Settings: ${label}. For work / office / work-appropriate looks, judge against this code — not a generic office default.`;
+}
+
+export async function resolveStoredWorkDressCode(): Promise<WorkDressCode | null> {
+  try {
+    const { getTodaysOutfitPopupPrefs } = await import('@/utils/todaysOutfitPrefs');
+    const prefs = await getTodaysOutfitPopupPrefs();
+    if (prefs.workDressCode) return prefs.workDressCode;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const profile = await onboardingProfileService.getProfile();
+    return normalizeWorkDressCode(profile.workDressCode);
+  } catch {
+    return null;
+  }
+}
+
 export type QuizGender = 'female' | 'male';
 
 export interface QuizLike {

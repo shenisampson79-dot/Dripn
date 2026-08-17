@@ -47,19 +47,24 @@ import {
 } from '@/utils/aiBudgetError';
 import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
-import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
+import { normalizeWorkDressCode, resolveStoredWorkDressCode } from '@/services/OnboardingProfileService';
 import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
 import { fetchWeatherSnapshot } from '@/services/TodaysOutfitGenerator';
 import type { ScanSessionItem, ScanWardrobeStep, ScanOutfitOption } from '@/types/scanWardrobe';
-import { hydrateGeneratedOutfitItems } from '@/utils/generatedOutfit';
+import { hydrateGeneratedOutfitItems } from '@/utils/hydrateGeneratedOutfitItems';
+import { materializeWardrobeItemImages } from '@/utils/scanCropCache';
 import {
   clearGetOutfitsSession,
   loadGetOutfitsSession,
   saveGetOutfitsSession,
 } from '@/utils/getOutfitsSessionStore';
 import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
+import {
+  buildLookContinuity,
+  saveLastDecisionContinuity,
+} from '@/utils/decisionContinuity';
 import {
   findLocalWardrobeDuplicates,
   normalizeDuplicateDecision,
@@ -79,13 +84,19 @@ type Props = {
 
 function sessionItemToWardrobeItem(item: ScanSessionItem): WardrobeItem {
   const imageUri = item.sceneCrop ? `data:image/jpeg;base64,${item.sceneCrop}` : '';
+  // Athletic quarter-zips / athletic pullovers / overshirts are mid-layers over a base top.
+  const midLayer = /\b(quarter[\s_-]?zip|half[\s_-]?zip|athletic[\s_-]?pullover|overshirt|shacket)\b/i.test(
+    `${item.name || ''} ${item.subcategory || ''}`,
+  )
+    || (/\b(hoodie|hooded)\b/i.test(`${item.name || ''} ${item.subcategory || ''}`)
+      && /\b(zip|athletic|tech)\b/i.test(`${item.name || ''} ${item.subcategory || ''}`));
   return {
     id: item.tempId,
     userId: '',
     imageUri,
     enhancedImageUri: imageUri || undefined,
-    imageProcessed: Boolean(item.sceneCrop),
-    category: (item.category as ClothingCategory) || 'tops',
+    imageProcessed: Boolean(imageUri),
+    category: (midLayer ? 'outerwear' : item.category || 'tops') as ClothingCategory,
     subcategory: item.subcategory || undefined,
     color: (item.color as WardrobeItem['color']) || 'multicolor',
     brand: item.brand || undefined,
@@ -111,6 +122,21 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       : TAB_BAR_HEIGHT + insets.bottom;
   const { user } = useAuth();
   const { items: savedWardrobe, addItemsBatch } = useWardrobe();
+
+  const persistLookContinuity = useCallback(async (
+    lookItems: WardrobeItem[],
+    summary?: string,
+  ) => {
+    if (!user?.id || !lookItems?.length) return null;
+    const continuity = buildLookContinuity({
+      flow: 'get-outfits',
+      stylistId: user.stylistPreferences?.selectedStylistId || 'ivy',
+      items: lookItems,
+      recommendation: summary,
+    });
+    if (continuity) await saveLastDecisionContinuity(user.id, continuity);
+    return continuity;
+  }, [user?.id, user?.stylistPreferences?.selectedStylistId]);
 
   const [step, setStep] = useState<ScanWardrobeStep>('capture');
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -139,6 +165,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const [allowanceBlocked, setAllowanceBlocked] = useState(false);
   const skipAutoOpenRef = useRef(false);
   const appendNextScanRef = useRef(false);
+  /** Keep scan crops in memory after AsyncStorage slims them — outfit thumbs need them. */
+  const scanCropByIdRef = useRef<Record<string, string>>({});
   const scrollRef = useRef<React.ElementRef<typeof KeyboardAwareScrollView>>(null);
 
   React.useEffect(() => {
@@ -299,6 +327,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       }
       setSceneType(result.sceneType);
       setScanItems((prev) => (append ? [...prev, ...incoming] : incoming));
+      rememberScanCrops(incoming);
       appendNextScanRef.current = false;
       setAppendNextScan(false);
       setAllowanceBlocked(false);
@@ -391,6 +420,32 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     setScanItems((prev) => prev.map((item) => (item.tempId === tempId ? { ...item, ...patch } : item)));
   };
 
+  const rememberScanCrops = useCallback((items: ScanSessionItem[]) => {
+    for (const item of items || []) {
+      if (item?.tempId && item.sceneCrop) {
+        scanCropByIdRef.current[String(item.tempId)] = item.sceneCrop;
+      }
+    }
+  }, []);
+
+  const hydrateLookItems = useCallback(
+    async (
+      apiItems: Array<{ id?: string | number; name?: string; category?: string; color?: string; imageUrl?: string | null; imageUri?: string | null }>,
+      pool: WardrobeItem[],
+    ) => {
+      const hydrated = hydrateGeneratedOutfitItems(apiItems, pool).map((item) => {
+        if (item.imageUri || item.enhancedImageUri) return item;
+        const crop = scanCropByIdRef.current[String(item.id)];
+        if (!crop) return item;
+        const uri = `data:image/jpeg;base64,${crop}`;
+        return { ...item, imageUri: uri, enhancedImageUri: uri, imageProcessed: true };
+      });
+      // WardrobeItemImage rejects data: URIs — write crops to cache files first.
+      return materializeWardrobeItemImages(hydrated, scanCropByIdRef.current);
+    },
+    [],
+  );
+
   const removeItem = (tempId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setScanItems((prev) => prev.filter((item) => item.tempId !== tempId));
@@ -416,7 +471,9 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     try {
       const weatherSnap = await fetchWeatherSnapshot();
       const prefs = await getTodaysOutfitPopupPrefs().catch(() => null);
-      const workDressCode = normalizeWorkDressCode(prefs?.workDressCode ?? null);
+      const workDressCode = selectedOccasion === 'work_outfit'
+        ? (await resolveStoredWorkDressCode().catch(() => normalizeWorkDressCode(prefs?.workDressCode ?? null)))
+        : null;
       const brandInspiration = resolveBrandInspiration(
         user?.extendedPreferences?.favoriteBrands || null,
       );
@@ -443,6 +500,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         ...confirmedItems.map(sessionItemToWardrobeItem),
         ...(hybridMerge ? savedWardrobe : []),
       ];
+      rememberScanCrops(confirmedItems);
       const options: ScanOutfitOption[] = (result.outfits?.length
         ? result.outfits
         : [{
@@ -482,12 +540,16 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       const first = options[0];
       if (first && !skipAutoOpenRef.current) {
         const apiItems = first.hydratedItems || first.outfit?.items || [];
-        const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
+        const hydrated = await hydrateLookItems(apiItems, wardrobePool);
         setGeneratedOutfit({
           items: hydrated,
           stylistMessage: humanizeStylistMessage(first.stylistMessage || result.stylistMessage) || undefined,
         });
         setShowOutfitModal(true);
+        void persistLookContinuity(
+          hydrated,
+          humanizeStylistMessage(first.stylistMessage || result.stylistMessage) || undefined,
+        );
       }
       skipAutoOpenRef.current = false;
     } catch (error) {
@@ -505,18 +567,19 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     }
   };
 
-  const openLook = (option: ScanOutfitOption) => {
+  const openLook = async (option: ScanOutfitOption) => {
     const wardrobePool = [
       ...confirmedItems.map(sessionItemToWardrobeItem),
       ...(hybridMerge ? savedWardrobe : []),
     ];
     const apiItems = option.hydratedItems || option.outfit?.items || [];
-    const hydrated = hydrateGeneratedOutfitItems(apiItems, wardrobePool);
+    const hydrated = await hydrateLookItems(apiItems, wardrobePool);
     setGeneratedOutfit({
       items: hydrated,
       stylistMessage: humanizeStylistMessage(option.stylistMessage) || undefined,
     });
     setShowOutfitModal(true);
+    void persistLookContinuity(hydrated, humanizeStylistMessage(option.stylistMessage) || undefined);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -1022,6 +1085,30 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         outfit={generatedOutfit}
         occasion={selectedOccasion}
         onClose={() => setShowOutfitModal(false)}
+        onAskStylist={() => {
+          const look = generatedOutfit?.items || [];
+          void (async () => {
+            const continuity = await persistLookContinuity(
+              look,
+              generatedOutfit?.stylistMessage,
+            );
+            setShowOutfitModal(false);
+            try {
+              (navigation as { navigate: (name: string, params?: object) => void }).navigate(
+                'AIStylist',
+                continuity
+                  ? {
+                      decisionContinuity: continuity,
+                      fromDecisionSessionId: continuity.decisionSessionId,
+                      initialPrompt: 'Finish off the outfit from Get outfits now.',
+                    }
+                  : { initialPrompt: 'Finish off the outfit from Get outfits now.' },
+              );
+            } catch {
+              /* Tab route still loads the persisted snapshot. */
+            }
+          })();
+        }}
         onSkipLook={() => {
           if (outfitOptions.length < 2) {
             setShowOutfitModal(false);

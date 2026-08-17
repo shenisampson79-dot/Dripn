@@ -16,6 +16,12 @@ import { normalizeWorkDressCode } from '@/services/OnboardingProfileService';
 import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
 import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
 import { hydrateOutfitFeedbackBrain } from '@/utils/outfitFeedbackBrain';
+import {
+  hydrateGeneratedOutfitItems,
+  type GeneratedOutfitApiItem,
+} from '@/utils/hydrateGeneratedOutfitItems';
+
+export { hydrateGeneratedOutfitItems, type GeneratedOutfitApiItem };
 
 async function getTodaysOutfitPrefsSafe() {
   try {
@@ -23,14 +29,7 @@ async function getTodaysOutfitPrefsSafe() {
   } catch {
     return null;
   }
-}export type GeneratedOutfitApiItem = {
-  id: string | number;
-  name?: string;
-  category?: string;
-  color?: string;
-  imageUri?: string | null;
-  imageUrl?: string | null;
-};
+}
 
 export type GeneratedOutfitDisplay = {
   items: WardrobeItem[];
@@ -38,34 +37,6 @@ export type GeneratedOutfitDisplay = {
   vibeLabel?: string;
   allocationMode?: string;
 };
-
-export function hydrateGeneratedOutfitItems(
-  outfitItems: GeneratedOutfitApiItem[],
-  wardrobeItems: WardrobeItem[],
-): WardrobeItem[] {
-  return outfitItems.map((apiItem) => {
-    const local = wardrobeItems.find((w) => String(w.id) === String(apiItem.id));
-    if (local) return local;
-
-    const imageUri = apiItem.imageUri || apiItem.imageUrl || '';
-    return {
-      id: String(apiItem.id),
-      userId: '',
-      imageUri,
-      enhancedImageUri: imageUri || undefined,
-      imageProcessed: Boolean(imageUri),
-      category: (apiItem.category as ClothingCategory) || 'tops',
-      color: apiItem.color || 'multicolor',
-      name: apiItem.name || 'Item',
-      seasons: ['all-season'],
-      occasions: ['everyday'],
-      timesWorn: 0,
-      isFavorite: false,
-      createdAt: '',
-      updatedAt: '',
-    };
-  });
-}
 
 export function resolveGeneratedOutfitItemIds(
   result: {

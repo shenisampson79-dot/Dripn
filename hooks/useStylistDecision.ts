@@ -47,7 +47,11 @@ import {
   buildDecisionContinuity,
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
-import { resolveEventOutfitOccasion } from '@/utils/eventOutfitOccasion';
+import {
+  looksLikeWorkAttireAsk,
+  resolveStoredWorkDressCode,
+  workDressCodeInstruction,
+} from '@/services/OnboardingProfileService';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 import { genderAwareGapSuggestions, filterSuggestionStringsForUi } from '@/utils/shopDressCodeFilters';
@@ -558,7 +562,7 @@ export function useStylistDecision({
     return [base, wardrobeBlock].filter(Boolean).join('\n\n');
   };
 
-  const buildUserProfile = () => {
+  const buildUserProfile = (workDressCode?: string | null) => {
     const mappedGender =
       user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || null;
 
@@ -584,6 +588,9 @@ export function useStylistDecision({
       budgetRange: user?.budgetRange,
       subscriptionTier: user?.subscriptionTier,
       retailers: user?.extendedPreferences?.favoriteShops || [],
+      workDressCode: workDressCode
+        || user?.onboardingProfile?.workDressCode
+        || null,
     };
   };
 
@@ -869,6 +876,17 @@ export function useStylistDecision({
     try {
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
       const context = buildDecisionContext();
+      const storedWorkDress = await resolveStoredWorkDressCode();
+      const workAsk = looksLikeWorkAttireAsk({
+        selectedContexts: activeContexts,
+        occasionType: decisionType === 'event-outfit' ? 'event_outfit' : decisionType,
+        context,
+        eventDressCode: eventDetails.dressCode,
+        eventType: eventDetails.eventType,
+      });
+      const workDressCode = workAsk ? storedWorkDress : null;
+      const workplaceNote = workDressCodeInstruction(workDressCode);
+      const contextWithWork = workplaceNote ? `${context}\n\n${workplaceNote}` : context;
       let base64Images: string[] = [];
       if (!surpriseMe && imageUris.length > 0) {
         base64Images = await resolveSubmitImages(imageUris);
@@ -894,7 +912,7 @@ export function useStylistDecision({
         try {
           const occasionResolved = resolveEventOutfitOccasion({
             eventDetails,
-            context,
+            context: contextWithWork,
             decisionType: 'event_outfit',
           });
           const local = await generateWardrobeOutfit({
@@ -903,6 +921,7 @@ export function useStylistDecision({
             stylistId,
             user,
             skipDecorate: true,
+            workDressCode: workDressCode || undefined,
           });
           if (local.items.length >= 3) {
             localPieces = local.items.map((item) => ({
@@ -957,13 +976,14 @@ export function useStylistDecision({
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: mappedType,
         images: base64Images,
-        context,
+        context: contextWithWork,
         stylist: stylistId,
-        userProfile: buildUserProfile(),
+        userProfile: buildUserProfile(workDressCode),
         surpriseMe,
         clientImageCount: surpriseMe ? 0 : imageUris.length,
         decisionSessionId: sessionRef.current?.id,
         selectedContexts: activeContexts,
+        workDressCode: workDressCode || undefined,
         eventDetails: decisionType === 'event-outfit' ? eventDetails : undefined,
         location: decisionType === 'event-outfit'
           ? (eventDetails.venue?.trim()
