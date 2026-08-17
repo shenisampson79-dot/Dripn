@@ -26,7 +26,7 @@ npx tsx utils/editorialGarmentName.test.ts
 ## Manual retest
 
 1. QSC rejects the worn look → alternative names a real **base top** (not only a blazer), **bottom**, and **shoes**.
-2. Open Stylist Chat (no Continue button required).
+2. Open Stylist Chat (no Continue button required) and mention the QSC look, e.g. “finish off the outfit” / “what shoes with that?”.
 3. Ask a narrow refinement (e.g. “you forgot the top” / “what shoes with that?”).
 4. Ivy keeps the same recommendation and fills **only** the missing role (same IDs).
 5. Outfit strip shows the **exact wardrobe image** for each locked `wardrobeItemId`.

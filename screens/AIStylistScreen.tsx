@@ -125,6 +125,7 @@ import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
   clearLastDecisionContinuity,
   loadLastDecisionContinuity,
+  looksLikeDecisionFollowUp,
   toApiDecisionContinuity,
   type DecisionContinuityPayload,
 } from '@/utils/decisionContinuity';
@@ -2564,7 +2565,9 @@ export default function AIStylistScreen() {
         ...locationDataVoice,
         location: user?.country || actualCountry || undefined,
         countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
-        ...continuityApiFields(),
+        ...continuityApiFields({
+          bootstrapRecent: looksLikeDecisionFollowUp(messageToSend),
+        }),
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderVoice,
@@ -2932,10 +2935,10 @@ export default function AIStylistScreen() {
     }
     lastOutboundPromptRef.current = text.trim();
 
-    // Soft-attach without Continue: chatting usually drops Decide context.
-    // Buy/compare asks keep shopping continuity so DO_NOT_BUY can restate.
+    // Soft-attach without Continue: bind when the user clearly refers back to QSC/Decide.
+    // Unrelated new questions drop the snapshot so chat does not silently inherit it.
     if (pendingSoftContinuityRef.current && !decisionContinuityRef.current) {
-      if (looksLikeBuyCompareAsk(text)) {
+      if (looksLikeBuyCompareAsk(text) || looksLikeDecisionFollowUp(text)) {
         confirmSoftContinuity();
       } else {
         await releaseDecisionContinuity();
@@ -3051,7 +3054,9 @@ export default function AIStylistScreen() {
         ...locationData,
         location: user?.country || actualCountry || locationData.location,
         countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
-        ...continuityApiFields({ bootstrapRecent: looksLikeBuyCompareAsk(text) }),
+        ...continuityApiFields({
+          bootstrapRecent: looksLikeBuyCompareAsk(text) || looksLikeDecisionFollowUp(text),
+        }),
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderText,

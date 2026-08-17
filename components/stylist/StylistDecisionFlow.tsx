@@ -1138,7 +1138,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                   ? recommendation
                   : '')
               );
-            const showPieceRows = !rejected && displayPieces.length > 0;
+            const showPieceRows = displayPieces.length > 0;
 
             return (
               <>

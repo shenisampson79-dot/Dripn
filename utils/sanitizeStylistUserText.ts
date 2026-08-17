@@ -76,7 +76,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
   // Soften Title Case garment dumps in chat (Wear the / Opt for / …)
   text = text.replace(
-    /((?:Wear this(?:\s+instead)?|You could go with|Opt for(?:\s+the)?|Instead,\s*wear(?:\s+the)?|Wear the|Try the)\s*[:—–-]?\s*)([^.!?\n]+)/gi,
+    /((?:Wear this(?:\s+instead)?|You could go with|Opt for(?:\s+the)?|Instead,\s*wear(?:\s+the)?|Wear the|Try the|Keeping)\s*[:—–-]?\s*)([^.!?\n]+)/gi,
     (_m, lead, list) => {
       const raw = String(list);
       const parts = raw

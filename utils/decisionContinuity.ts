@@ -69,6 +69,12 @@ function flowLabel(flow: DecisionFlow): string {
   return flow;
 }
 
+/** User is clearly following up on a recent QSC / Decide look. */
+export function looksLikeDecisionFollowUp(text: string): boolean {
+  return /\b(quick sanity|sanity check|you (just )?(gave|suggested|said|recommended|picked)|the outfit you|that outfit|this look|that look|footwear|what (shoes|footwear)|shoes? to wear|finish (off )?the outfit|complete (the |that )?outfit|earlier|before|continuation|forgot (the |a )?(top|bottom|shoes?|footwear|layer)|why did you (pick|choose|suggest|recommend)|with that|you didn't (suggest|include|tell))\b/i
+    .test(String(text || ''));
+}
+
 function sanitizePieces(
   pieces: DecisionResponse['outfitPieces'],
 ): DecisionContinuityVerdict['outfitPieces'] {

@@ -479,6 +479,13 @@ export const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isFleeceOrInsulated') && ctx.any('isShorts'),
   },
   {
+    id: 'insulated_athletic_top_season',
+    penalty: 88,
+    hint: 'Insulated or winter outerwear with a running singlet or gym tank — seasonal clash',
+    severity: 'fatal',
+    when: (ctx) => ctx.any('isFleeceOrInsulated') && ctx.any('isAthleticTop'),
+  },
+  {
     id: 'tie_tshirt',
     penalty: 86,
     hint: 'Tie needs a dress shirt collar — not a tee or casual top',
