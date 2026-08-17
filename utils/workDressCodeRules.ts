@@ -88,14 +88,18 @@ export function passesWorkDressCodeItemGate(
             : 'top');
 
   if (inferred === 'shoes') {
-    if (workDressCode === 'creative') return true;
+    if (workDressCode === 'creative') {
+      if (isAthleticFootwear(item) || isCasualTrainer(item) || classifyItem(item).isFashionTrainer) {
+        return Boolean(classifyItem(item).isFashionTrainer && !classifyItem(item).isChunkyOrTechTrainer);
+      }
+      return !isRuggedWorkBoot(item);
+    }
     if (
       workDressCode === 'smart_casual'
       || workDressCode === 'business_casual'
       || workDressCode === 'business_formal'
     ) {
-      // Do not suggest trainers for office / smart-casual workplaces — we cannot
-      // reliably tell lifestyle from athletic mesh (e.g. Nike Kukini).
+      // Launch freeze: no trainers for office / smart-casual / business workplaces.
       if (isAthleticFootwear(item) || isCasualTrainer(item) || classifyItem(item).isFashionTrainer) {
         return false;
       }

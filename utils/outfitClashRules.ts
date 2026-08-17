@@ -207,6 +207,100 @@ export function isLifestyleFashionTrainer(item: WardrobeItem): boolean {
   return isFashionTrainerFn(item);
 }
 
+export function isFashionTrainer(item: WardrobeItem): boolean {
+  return isLifestyleFashionTrainer(item);
+}
+
+export function isTrainerLike(item: WardrobeItem | null | undefined): boolean {
+  if (!item) return false;
+  const cat = String(item.category || '').toLowerCase();
+  if (cat && cat !== 'shoes' && cat !== 'footwear') return false;
+  return isCasualTrainer(item) || isLifestyleFashionTrainer(item) || isChunkyOrTechTrainer(item);
+}
+
+export function isCleanMinimalLifestyleTrainer(item: WardrobeItem): boolean {
+  return isLifestyleFashionTrainer(item) && !isChunkyOrTechTrainer(item);
+}
+
+function normalizeWorkDressCodeLocal(code: unknown): WorkDressCode | null {
+  const n = String(code || '').toLowerCase().replace(/[\s-]+/g, '_');
+  if (n === 'creative' || n === 'smart_casual' || n === 'business_casual' || n === 'business_formal') {
+    return n;
+  }
+  return null;
+}
+
+function lookIsTailoredOrWorkSmart(
+  items: WardrobeItem[] = [],
+  occasion = '',
+  workDressCode: unknown = null,
+): boolean {
+  const code = normalizeWorkDressCodeLocal(workDressCode);
+  if (code === 'business_formal' || code === 'business_casual' || code === 'smart_casual') return true;
+  const occ = String(occasion || '').toLowerCase();
+  if (/work_outfit|office|business|interview/.test(occ)) return true;
+  const blob = (Array.isArray(items) ? items : [])
+    .map((item) => `${item?.name || ''} ${item?.category || ''} ${item?.subcategory || ''}`)
+    .join(' ')
+    .toLowerCase();
+  return /blazer|sport coat|suit jacket|suit trouser|dress trouser|tailored trouser|chino|slack/.test(blob);
+}
+
+function isGymOrSportOccasion(occasion = ''): boolean {
+  const occ = String(occasion || '').toLowerCase();
+  if (/work_outfit|office|business|interview/.test(occ)) return false;
+  return /gym|workout|running|trail|hike|athletic|training/.test(occ);
+}
+
+/**
+ * Launch trainer eligibility. Conservative where silhouette confidence is low.
+ * Business formal / business casual / smart-casual work: no trainers.
+ * Creative workplace + non-work smart casual: clean/minimal lifestyle only.
+ * Running / trail / gym / tech / chunky: hard-block from tailored or work-smart looks.
+ */
+export function evaluateTrainerEligibility(
+  item: WardrobeItem | null | undefined,
+  {
+    workDressCode = null,
+    occasion = '',
+    items = [],
+  }: { workDressCode?: unknown; occasion?: string | null; items?: WardrobeItem[] } = {},
+): { allowed: boolean; reason: string } {
+  if (!item || !isTrainerLike(item)) return { allowed: true, reason: 'not_trainer' };
+  if (isGymOrSportOccasion(occasion || '')) return { allowed: true, reason: 'activity' };
+
+  const code = normalizeWorkDressCodeLocal(workDressCode);
+  const lifestyle = isCleanMinimalLifestyleTrainer(item);
+  const performance = isChunkyOrTechTrainer(item);
+  const tailored = lookIsTailoredOrWorkSmart(items, occasion || '', workDressCode);
+
+  if (performance && tailored) return { allowed: false, reason: 'performance_tailored' };
+  if (code === 'business_formal' || code === 'business_casual' || code === 'smart_casual') {
+    return { allowed: false, reason: 'work_code' };
+  }
+  if (code === 'creative') {
+    return lifestyle
+      ? { allowed: true, reason: 'creative_lifestyle' }
+      : { allowed: false, reason: 'creative_not_lifestyle' };
+  }
+  if (/work_outfit|office|business|interview/.test(String(occasion || '').toLowerCase())) {
+    return { allowed: false, reason: 'generic_work' };
+  }
+  if (/smart_casual/.test(String(occasion || '').toLowerCase())) {
+    return lifestyle
+      ? { allowed: true, reason: 'nonwork_lifestyle' }
+      : { allowed: false, reason: 'nonwork_not_lifestyle' };
+  }
+  return { allowed: true, reason: 'default' };
+}
+
+export function trainerAllowedForAsk(
+  item: WardrobeItem,
+  opts: { workDressCode?: unknown; occasion?: string | null; items?: WardrobeItem[] } = {},
+): boolean {
+  return evaluateTrainerEligibility(item, opts).allowed;
+}
+
 export function classifyItem(item: WardrobeItem): ItemSignals {
   const t = itemText(item);
   const cat = item.category || '';
@@ -745,15 +839,29 @@ export const CLASH_RULES: Array<{
     hint: 'Work / smart-casual office looks need loafers, oxfords, Chelsea boots, or heels — not trainers',
     severity: 'fatal',
     when: (ctx) => {
-      const code = String(ctx.options?.workDressCode || '').toLowerCase();
-      const occasion = String(ctx.occasion || ctx.options?.occasion || '').toLowerCase();
-      if (code === 'creative') return false;
-      const bans = code === 'smart_casual'
-        || code === 'business_casual'
-        || code === 'business_formal'
-        || /work_outfit|office|business|interview|\bwork\b/.test(occasion);
-      if (!bans) return false;
-      return ctx.signals.some((s) => s.isCasualTrainer || s.isFashionTrainer || s.isChunkyOrTechTrainer || s.isAthleticShoes);
+      const shoes = (ctx.items || []).filter((item) => {
+        const cat = String(item.category || '').toLowerCase();
+        return !cat || cat === 'shoes' || cat === 'footwear';
+      });
+      return shoes.some((shoe) => !evaluateTrainerEligibility(shoe, {
+        workDressCode: ctx.options?.workDressCode,
+        occasion: ctx.occasion,
+        items: ctx.items,
+      }).allowed);
+    },
+  },
+  {
+    id: 'performance_trainer_tailored',
+    penalty: 90,
+    hint: 'Running, trail, gym, or chunky tech trainers do not belong with tailored or work-smart looks',
+    severity: 'fatal',
+    when: (ctx) => {
+      if (isGymOrSportOccasion(ctx.occasion || '')) return false;
+      return ctx.any('isChunkyOrTechTrainer') && lookIsTailoredOrWorkSmart(
+        ctx.items,
+        ctx.occasion || '',
+        ctx.options?.workDressCode,
+      );
     },
   },
   {
@@ -1092,6 +1200,7 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   footwear_lane_mismatch: 'Let footwear set one direction — match shoes to the tailored or street lane',
   occasion_footwear_lock: 'Formal occasions need loafers, oxfords, heels, or Chelsea boots',
   work_trainers_ban: 'Work / smart-casual office looks need loafers, oxfords, Chelsea boots, or heels — not trainers',
+  performance_trainer_tailored: 'Swap running or chunky tech trainers for loafers, oxfords, or Chelsea boots with tailoring',
   tie_short_sleeve: 'Drop the tie with short sleeves — or switch to a long-sleeve collared shirt',
   tie_linen_casual: 'Drop the tie with linen or camp shirts — or switch to a dress shirt',
   work_dress_tie_blocked: 'Skip the tie for this workplace, or raise your work dress code in Settings',

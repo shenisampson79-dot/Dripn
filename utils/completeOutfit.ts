@@ -90,10 +90,14 @@ export function isMidLayerItem(item: OutfitItemLike): boolean {
 export function isOuterwearItem(item: OutfitItemLike): boolean {
   if (isMidLayerItem(item)) return true;
   const category = norm(item.category);
+  // Category wins: "coated trousers" must not become a coat.
+  if (['bottoms', 'activewear_bottoms', 'shoes', 'dresses', 'accessories', 'bags'].includes(category)) {
+    return false;
+  }
   const name = norm(item.name);
   return category === 'outerwear'
     || matchesHint(category, ['jacket', 'coat', 'blazer', 'outerwear', 'parka', 'gilet'])
-    || matchesHint(name, ['jacket', 'coat', 'blazer', 'parka', 'puffer', 'gilet', 'cardigan']);
+    || /\b(jacket|coats?|blazer|parka|puffer|gilet|cardigan)\b/.test(name);
 }
 
 export function isAccessoryItem(item: OutfitItemLike): boolean {

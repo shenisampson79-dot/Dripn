@@ -84,6 +84,8 @@ const CLASH_CODE_MAP: Record<string, string> = {
   athletic_shorts_blazer: COMPAT_CODES.ATHLETIC_TAILORED_CLASH,
   joggers_blazer: COMPAT_CODES.ATHLETIC_TAILORED_CLASH,
   trainers_suit: COMPAT_CODES.ATHLETIC_TAILORED_CLASH,
+  work_trainers_ban: COMPAT_CODES.ATHLETIC_TAILORED_CLASH,
+  performance_trainer_tailored: COMPAT_CODES.ATHLETIC_TAILORED_CLASH,
   swimwear_formal: COMPAT_CODES.CONTEXT_MISMATCH,
   sleepwear_formal: COMPAT_CODES.CONTEXT_MISMATCH,
 };
