@@ -121,28 +121,27 @@ export function isChunkyOrTechTrainer(item: { name?: string; category?: string; 
   const t = `${item.name || ''} ${item.category || ''} ${item.subcategory || ''}`.toLowerCase();
   if (/\bboots?\b/.test(t) && !/\b(trainers?|sneakers?)\b/.test(t)) return false;
   if (!/\b(trainers?|sneakers?|runners?|sport shoes?|tennis)\b/.test(t)) return false;
-  return /chunky|dad shoe|bulky|technical|trail|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|running|gym|training|performance|athletic|sport shoe|asics gel|gel-?kayano|nimbus|vomero|invincible|vaporfly|alpha.?fly|cloudmonster|cloudsurfer|max cushion|platform sneaker|tech sneaker|salomon/.test(t);
+  return /chunky|dad shoe|bulky|technical|trail|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|running|gym|training|performance|athletic|sport shoe|asics gel|gel-?kayano|nimbus|vomero|invincible|vaporfly|alpha.?fly|cloudmonster|cloudsurfer|max cushion|platform sneaker|tech sneaker|salomon|kukini|air\s*max|airmax|react\b|vapormax|free\s*run|flyknit|zoom\b|structure\b|metcon|nano\b|trail\s*run/.test(t);
 }
 
-/** Fashion/lifestyle trainers (Samba, plain white leather, etc.) — not gym/chunky runners. */
+/** Fashion/lifestyle trainers — not gym/chunky runners. Cream/colour alone is not enough. */
 export function isFashionTrainer(item: { name?: string; category?: string; subcategory?: string; color?: string }): boolean {
   const t = `${item.name || ''} ${item.category || ''} ${item.subcategory || ''}`.toLowerCase();
   if (!/\b(trainers?|sneakers?|runners?)\b/.test(t) && !/samba|gazelle|campus|spezial|stan smith|air force|af1|club c|converse|veja|autry/.test(t)) {
     return false;
   }
   if (isChunkyOrTechTrainer(item)) return false;
-  if (/running|gym|training|performance|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|trail|athletic|sport shoe/.test(t)) {
+  if (/running|gym|training|performance|hoka|zoomx|pegasus|ultraboost|fresh foam|cross.?train|trail|athletic|sport shoe|kukini|air\s*max|react\b|vapormax|flyknit|metcon/.test(t)) {
     return false;
   }
-  // Named lifestyle / fashion models
-  if (/samba|gazelle|campus|spezial|handball|superstar|stan smith|air force|af1|club c|retro|vintage trainer|leather trainer|canvas shoe|converse|old skool|autry|veja|clean white|minimal|plain white|lifestyle/.test(t)) {
+  // Named lifestyle / fashion models only — never infer from cream/grey colour alone
+  if (/samba|gazelle|campus|spezial|handball|superstar|stan smith|air force|af1|club c|retro|vintage trainer|leather trainer|canvas shoe|converse|old skool|autry|veja|clean white|minimal|plain white|lifestyle|low-?top leather/.test(t)) {
     return true;
   }
-  // Plain/minimal white lifestyle sneakers (color or name) without athletic cues
   const color = String(item.color || '').toLowerCase();
-  const looksWhite = /white|off.?white|cream|ivory/.test(t) || /white|off.?white|cream|ivory/.test(color);
-  const looksMinimal = /leather|minimal|plain|clean|simple|classic|low.?top|court/.test(t) || looksWhite;
-  return looksMinimal && /\b(trainers?|sneakers?)\b/.test(t);
+  const looksWhite = /white|off.?white|ivory/.test(t) || /white|off.?white|ivory/.test(color);
+  const looksMinimalLeather = /leather|minimal|plain|clean|simple|classic|low.?top|court/.test(t);
+  return looksWhite && looksMinimalLeather && /\b(trainers?|sneakers?)\b/.test(t);
 }
 
 export function isSmartCasualTailoringPiece(item: { name?: string; category?: string }): boolean {

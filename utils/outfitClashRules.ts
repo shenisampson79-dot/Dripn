@@ -723,9 +723,9 @@ export const CLASH_RULES: Array<{
       ) {
         return false;
       }
-      // Creative / casual workplaces opt out via workDressCode.
+      // Creative workplaces opt out via workDressCode. Smart casual still needs smart shoes.
       const dressCode = String(ctx.options?.workDressCode || '').toLowerCase();
-      if (dressCode === 'creative' || dressCode === 'smart_casual') return false;
+      if (dressCode === 'creative') return false;
 
       return ctx.signals.some((s) => {
         const shoeLike = s.isCasualTrainer || s.isFormalShoes || s.isHeels || s.isBoots
@@ -737,6 +737,23 @@ export const CLASH_RULES: Array<{
         }
         return (s.formalityTier ?? 3) < 4;
       });
+    },
+  },
+  {
+    id: 'work_trainers_ban',
+    penalty: 90,
+    hint: 'Work / smart-casual office looks need loafers, oxfords, Chelsea boots, or heels — not trainers',
+    severity: 'fatal',
+    when: (ctx) => {
+      const code = String(ctx.options?.workDressCode || '').toLowerCase();
+      const occasion = String(ctx.occasion || ctx.options?.occasion || '').toLowerCase();
+      if (code === 'creative') return false;
+      const bans = code === 'smart_casual'
+        || code === 'business_casual'
+        || code === 'business_formal'
+        || /work_outfit|office|business|interview|\bwork\b/.test(occasion);
+      if (!bans) return false;
+      return ctx.signals.some((s) => s.isCasualTrainer || s.isFashionTrainer || s.isChunkyOrTechTrainer || s.isAthleticShoes);
     },
   },
   {
@@ -1074,6 +1091,7 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   blazer_leather_sandals: 'Swap sandals for loafers or minimal sneakers with a blazer',
   footwear_lane_mismatch: 'Let footwear set one direction — match shoes to the tailored or street lane',
   occasion_footwear_lock: 'Formal occasions need loafers, oxfords, heels, or Chelsea boots',
+  work_trainers_ban: 'Work / smart-casual office looks need loafers, oxfords, Chelsea boots, or heels — not trainers',
   tie_short_sleeve: 'Drop the tie with short sleeves — or switch to a long-sleeve collared shirt',
   tie_linen_casual: 'Drop the tie with linen or camp shirts — or switch to a dress shirt',
   work_dress_tie_blocked: 'Skip the tie for this workplace, or raise your work dress code in Settings',

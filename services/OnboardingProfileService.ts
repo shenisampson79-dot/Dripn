@@ -128,7 +128,10 @@ export function workDressCodeForAsk(
 export function workDressCodeInstruction(code: WorkDressCode | null | undefined): string {
   const label = getWorkDressCodeLabel(code);
   if (!code || label === 'Not set') return '';
-  return `Workplace dress code from Settings: ${label}. For work / office / work-appropriate looks, judge against this code — not a generic office default.`;
+  const trainerBan = code === 'creative'
+    ? ''
+    : ' Never recommend trainers or sneakers for this workplace — prefer loafers, oxfords, derbies, Chelsea boots, or heels.';
+  return `Workplace dress code from Settings: ${label}. For work / office / work-appropriate looks, judge against this code — not a generic office default.${trainerBan}`;
 }
 
 export async function resolveStoredWorkDressCode(): Promise<WorkDressCode | null> {

@@ -89,16 +89,21 @@ export function passesWorkDressCodeItemGate(
 
   if (inferred === 'shoes') {
     if (workDressCode === 'creative') return true;
-    if (workDressCode === 'smart_casual') {
-      return !isRuggedWorkBoot(item);
-    }
-    if (workDressCode === 'business_casual') {
-      if (isAthleticFootwear(item) || isCasualTrainer(item)) return false;
+    if (
+      workDressCode === 'smart_casual'
+      || workDressCode === 'business_casual'
+      || workDressCode === 'business_formal'
+    ) {
+      // Do not suggest trainers for office / smart-casual workplaces — we cannot
+      // reliably tell lifestyle from athletic mesh (e.g. Nike Kukini).
+      if (isAthleticFootwear(item) || isCasualTrainer(item) || classifyItem(item).isFashionTrainer) {
+        return false;
+      }
       if (isRuggedWorkBoot(item)) return false;
+      if (workDressCode === 'business_formal') return isBusinessFormalShoe(item);
       return isSmartOfficeShoe(item) || classifyItem(item).isHeels;
     }
-    // business_formal — oxfords / derbies / formal pumps only
-    return isBusinessFormalShoe(item);
+    return true;
   }
 
   if (inferred === 'accessory') {
@@ -171,7 +176,8 @@ export function scoreWorkDressCodeFit(
     if (hasTie && (hasShortSleeve || hasLinenCasual)) score -= 8;
     if (shoes.some(isRuggedWorkBoot)) score -= 14;
   } else if (workDressCode === 'smart_casual') {
-    if (shoes.some(isSmartOfficeShoe) || shoes.some((s) => classifyItem(s).isFashionTrainer)) score += 5;
+    if (shoes.some(isSmartOfficeShoe)) score += 5;
+    if (shoes.some((s) => classifyItem(s).isCasualTrainer || classifyItem(s).isFashionTrainer)) score -= 12;
     if (hasTie) score -= 6;
     if (shoes.some(isRuggedWorkBoot)) score -= 8;
   } else if (workDressCode === 'creative') {

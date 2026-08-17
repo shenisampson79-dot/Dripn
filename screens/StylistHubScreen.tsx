@@ -175,9 +175,9 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
 /** Fixed 2-column grid order — do not persist or allow reorder. */
 const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
   ? [
-      "scan-wardrobe",
-      "live-stylist",
       "choosing-what-to-buy",
+      "live-stylist",
+      "scan-wardrobe",
       "quick-sanity-check",
       "ai-stylist",
       "outfit-for-event",
