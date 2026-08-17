@@ -7,7 +7,8 @@ Freeze this slice when the automated canonical-ID regression passes and the five
 1. **Editorial casing everywhere** — official brand styling + sentence-case descriptors (`Nike white leather low-top trainers`, not Title Case Every Word, not `gap white…` unless the brand is officially lowercase).
 2. **QSC alternatives are complete** — base top + bottoms + shoes for normal daywear. A blazer is a layer, not a top. Athletic/running tees do not pair with blazers.
 3. **One canonical garment set** — strip, headline, and prose all resolve from the **same wardrobe item IDs**.
-4. **Chat inherits QSC only on clear back-reference** — “the outfit you just suggested”, “what shoes with that?”, “you forgot the top”, “why did you pick that?”. Unrelated new asks do not silently inherit.
+4. **Chat inherits QSC only on clear back-reference** — “the outfit you just suggested”, “what shoes with that?”, “you forgot the top”, “why did you pick that?”, “finish off the outfit”. Unrelated new asks do not silently inherit.
+5. **Failed completion is not a recommendation** — if the solver cannot complete a clash-safe look, show “I couldn't complete that look from your wardrobe.” Never dump the candidate pool (multiple blazers, joggers + trousers, running singlet + winter jacket) as a strip or “Keeping A + B + C” card.
 
 ## Automated regression
 

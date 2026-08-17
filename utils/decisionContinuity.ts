@@ -62,6 +62,22 @@ function clip(value: unknown, max = 1200): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+function continuityTrace(payload: DecisionContinuityPayload | null | undefined) {
+  const pieces = payload?.verdict?.outfitPieces || [];
+  return {
+    session: payload?.decisionSessionId || null,
+    flow: payload?.flow || null,
+    pieceIds: pieces
+      .map((p) => (p.wardrobeItemId != null ? String(p.wardrobeItemId) : ''))
+      .filter(Boolean),
+    roles: pieces.map((p) => p.role).filter(Boolean),
+  };
+}
+
+export function traceDecisionContinuity(payload: DecisionContinuityPayload | null | undefined) {
+  return continuityTrace(payload);
+}
+
 function flowLabel(flow: DecisionFlow): string {
   if (flow === 'sanity-check') return 'Quick Sanity Check';
   if (flow === 'event-outfit') return 'Outfit for Event';
@@ -255,6 +271,7 @@ export async function saveLastDecisionContinuity(
       `${LAST_CONTINUITY_PREFIX}${userId}`,
       JSON.stringify(payload),
     );
+    console.log('[QscChatContinuity] save', continuityTrace(payload));
   } catch (err) {
     console.warn('[DecisionContinuity] save failed:', err);
   }
@@ -280,6 +297,7 @@ export async function loadLastDecisionContinuity(
     const ts = Date.parse(parsed.completedAt || '');
     if (Number.isFinite(ts) && Date.now() - ts > maxAgeMs) return null;
     if (Number.isFinite(ts) && Date.now() - ts > CLIENT_CONTINUITY_HARD_TTL_MS) return null;
+    console.log('[QscChatContinuity] load', continuityTrace(parsed));
     return parsed;
   } catch {
     return null;

@@ -127,6 +127,7 @@ import {
   loadLastDecisionContinuity,
   looksLikeDecisionFollowUp,
   toApiDecisionContinuity,
+  traceDecisionContinuity,
   type DecisionContinuityPayload,
 } from '@/utils/decisionContinuity';
 
@@ -1760,6 +1761,11 @@ export default function AIStylistScreen() {
     if (opts?.bootstrapRecent) {
       fields.useRecentDecisionContinuity = true;
     }
+    console.log('[QscChatContinuity] api_request', {
+      ...traceDecisionContinuity(payload),
+      bootstrapRecent: Boolean(opts?.bootstrapRecent),
+      hasBody: Boolean(api),
+    });
     return fields;
   }, []);
 
@@ -1780,6 +1786,7 @@ export default function AIStylistScreen() {
     pendingSoftContinuityRef.current = null;
     setContinuityNeedsConfirm(false);
     setContinuityBanner(pending.flow);
+    console.log('[QscChatContinuity] chat_bind', traceDecisionContinuity(pending));
   }, []);
 
   useEffect(() => {
@@ -1801,6 +1808,7 @@ export default function AIStylistScreen() {
         pendingSoftContinuityRef.current = recent;
         setContinuityBanner(recent.flow);
         setContinuityNeedsConfirm(true);
+        console.log('[QscChatContinuity] chat_load_pending', traceDecisionContinuity(recent));
       }
     })();
     return () => {
@@ -2941,6 +2949,7 @@ export default function AIStylistScreen() {
       if (looksLikeBuyCompareAsk(text) || looksLikeDecisionFollowUp(text)) {
         confirmSoftContinuity();
       } else {
+        console.log('[QscChatContinuity] chat_drop_unrelated');
         await releaseDecisionContinuity();
       }
     }
