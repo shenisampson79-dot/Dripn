@@ -117,4 +117,22 @@ console.log('=== Client wardrobe duplicate match ===\n');
   console.log('✓ normalize + within-batch');
 }
 
+{
+  const score = attributeSimilarity(
+    { name: 'H&M Denim Jacket', category: 'outerwear', color: 'blue', brand: 'H&M' },
+    { name: 'H&M Denim Outerwear', category: 'outerwear', color: 'blue', brand: 'H&M' },
+  );
+  assert.ok(score >= 0.82, `jacket vs outerwear should soft-match (got ${score})`);
+  console.log('✓ jacket vs outerwear name synonyms');
+}
+
+{
+  const score = attributeSimilarity(
+    { name: 'Next Suit Jacket', category: 'formal', color: 'black', brand: 'Next' },
+    { name: 'Next Black Blazer', category: 'outerwear', color: 'black', brand: 'Next' },
+  );
+  assert.ok(score >= 0.82, `suit jacket vs blazer across formal/outerwear (got ${score})`);
+  console.log('✓ formal/outerwear + blazer synonyms');
+}
+
 console.log('\nAll client wardrobe duplicate tests passed.');

@@ -214,6 +214,10 @@ export function normalizeWardrobeCategory(
     ) {
       return fromHints;
     }
+    // Suit jacket / blazer often labeled "formal" or "suit" — keep with outerwear grid.
+    if (fromHints === 'outerwear' && (category === 'formal' || category === 'tops')) {
+      return 'outerwear';
+    }
     return category;
   };
 

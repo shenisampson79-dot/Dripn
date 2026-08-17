@@ -112,6 +112,59 @@ function normalizeCategory(category?: string | null): string {
   return category.toLowerCase().trim().replace(/\s+/g, '_');
 }
 
+/** Closely related categories — jacket miscategorized as formal vs outerwear. */
+const CATEGORY_COMPAT_GROUPS: Array<Set<string>> = [
+  new Set(['outerwear', 'formal']),
+];
+
+/**
+ * Synonym tokens so Jacket / Blazer / Outerwear share Jaccard overlap.
+ */
+const NAME_TOKEN_SYNONYMS: Record<string, string> = {
+  jacket: 'jacket',
+  jackets: 'jacket',
+  blazer: 'jacket',
+  blazers: 'jacket',
+  coat: 'jacket',
+  coats: 'jacket',
+  outerwear: 'jacket',
+  overcoat: 'jacket',
+  sportcoat: 'jacket',
+  'sport-coat': 'jacket',
+  parka: 'jacket',
+  trench: 'jacket',
+  bomber: 'jacket',
+  windbreaker: 'jacket',
+  gilet: 'jacket',
+  suit: 'suit',
+  suits: 'suit',
+  tuxedo: 'suit',
+  tux: 'suit',
+  denim: 'denim',
+  jean: 'denim',
+  jeans: 'denim',
+  tee: 'tshirt',
+  tees: 'tshirt',
+  tshirt: 'tshirt',
+  't-shirt': 'tshirt',
+  shirt: 'tshirt',
+  shirts: 'tshirt',
+  sneaker: 'shoe',
+  sneakers: 'shoe',
+  trainer: 'shoe',
+  trainers: 'shoe',
+  shoe: 'shoe',
+  shoes: 'shoe',
+  boot: 'shoe',
+  boots: 'shoe',
+};
+
+function canonicalizeNameToken(token: string): string {
+  const t = String(token || '').toLowerCase().trim();
+  if (!t) return '';
+  return NAME_TOKEN_SYNONYMS[t] || t;
+}
+
 export function categoriesCompatible(a?: string | null, b?: string | null): boolean {
   const ca = normalizeCategory(a);
   const cb = normalizeCategory(b);
@@ -121,22 +174,26 @@ export function categoriesCompatible(a?: string | null, b?: string | null): bool
   if (ca === 'tops' && cb === 'activewear_tops') return true;
   if (ca === 'activewear_bottoms' && cb === 'bottoms') return true;
   if (ca === 'bottoms' && cb === 'activewear_bottoms') return true;
+  for (const group of CATEGORY_COMPAT_GROUPS) {
+    if (group.has(ca) && group.has(cb)) return true;
+  }
   return false;
 }
 
-function tokenSet(str?: string | null): Set<string> {
+function tokenSet(str?: string | null, useSynonyms = true): Set<string> {
   return new Set(
     String(str || '')
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
+      .map((t) => (useSynonyms ? canonicalizeNameToken(t) : t))
       .filter((t) => t.length > 1),
   );
 }
 
-function jaccard(a?: string | null, b?: string | null): number {
-  const sa = tokenSet(a);
-  const sb = tokenSet(b);
+function jaccard(a?: string | null, b?: string | null, useSynonyms = true): number {
+  const sa = tokenSet(a, useSynonyms);
+  const sb = tokenSet(b, useSynonyms);
   if (sa.size === 0 || sb.size === 0) return 0;
   let inter = 0;
   for (const t of sa) if (sb.has(t)) inter += 1;
@@ -149,7 +206,16 @@ export function attributeSimilarity(
 ): number {
   if (!categoriesCompatible(candidate.category, existing.category)) return 0;
 
-  const nameSim = jaccard(candidate.name, existing.name);
+  const candBrand = String(candidate.brand || '').toLowerCase().trim();
+  const existBrand = String(existing.brand || '').toLowerCase().trim();
+  const sameBrand = Boolean(
+    candBrand
+    && existBrand
+    && (candBrand === existBrand || candBrand.includes(existBrand) || existBrand.includes(candBrand)),
+  );
+
+  // Jacket↔Blazer synonyms only when brand matches — avoid soft-blocking two black jackets.
+  const nameSim = jaccard(candidate.name, existing.name, sameBrand);
 
   const candColor = normalizeColor(candidate.color);
   const existColor = normalizeColor(existing.color);
@@ -157,14 +223,6 @@ export function attributeSimilarity(
     candColor
     && existColor
     && (candColor === existColor || candColor.includes(existColor) || existColor.includes(candColor)),
-  );
-
-  const candBrand = String(candidate.brand || '').toLowerCase().trim();
-  const existBrand = String(existing.brand || '').toLowerCase().trim();
-  const sameBrand = Boolean(
-    candBrand
-    && existBrand
-    && (candBrand === existBrand || candBrand.includes(existBrand) || existBrand.includes(candBrand)),
   );
 
   const sameSub = Boolean(

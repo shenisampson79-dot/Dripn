@@ -15,6 +15,7 @@ import {
   type PresentationGender,
 } from '@/utils/wardrobeCategories';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
+import { findLocalWardrobeDuplicates } from '@/utils/wardrobeDuplicateMatch';
 import {
   readCachedWardrobeItemsForUser,
   sanitizeWardrobeItemList,
@@ -1232,15 +1233,27 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       console.log('[WardrobeContext] Backend addItem failed, saving locally:', err);
     }
 
-    // Local-only fallback (offline / backend down) — still soft-check attributes
+    // Local-only fallback (offline / backend down) — soft-check attributes (synonyms + category groups)
     if (!(itemData as any).allowDuplicate) {
-      const localDupes = itemsRef.current.filter((existing) => {
-        if (existing.origin === 'inspiration' || existing.origin === 'wishlist') return false;
-        const sameName =
-          String(existing.name || '').toLowerCase().trim()
-          === String(itemData.name || '').toLowerCase().trim();
-        return sameName && existing.category === itemData.category;
-      });
+      const localDupes = findLocalWardrobeDuplicates(
+        {
+          name: itemData.name,
+          category: itemData.category,
+          subcategory: itemData.subcategory,
+          color: itemData.color,
+          brand: itemData.brand,
+        },
+        itemsRef.current.map((existing) => ({
+          id: String(existing.id),
+          name: existing.name,
+          category: existing.category,
+          subcategory: existing.subcategory,
+          color: existing.color,
+          brand: existing.brand,
+          imageUri: existing.enhancedImageUri || existing.imageUri,
+          origin: existing.origin,
+        })),
+      );
       if (localDupes.length > 0) {
         const dupeErr = new Error(
           'Looks like you already have this (or something very similar) in your wardrobe.',

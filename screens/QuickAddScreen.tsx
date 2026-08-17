@@ -26,6 +26,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import { DuplicateComparisonSheet } from '@/components/wardrobe/DuplicateComparisonSheet';
 import { QuickAddTagItem, type QuickAddTagDraft } from '@/components/wardrobe/QuickAddTagItem';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import {
@@ -39,6 +40,7 @@ import {
 } from '@/contexts/WardrobeContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
+import { apiService } from '@/services/ApiService';
 import {
   getOnDeviceYoloStatus,
   warmUpOnDeviceYolo,
@@ -56,6 +58,8 @@ import {
 import {
   findLocalWardrobeDuplicates,
   formatDuplicateNames,
+  normalizeDuplicateDecision,
+  type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import {
   QuickAddCaptureController,
@@ -144,6 +148,10 @@ export default function QuickAddScreen({ navigation }: Props) {
   const [captureThumb, setCaptureThumb] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [dupeSheet, setDupeSheet] = useState<{
+    visible: boolean;
+    decision: NormalizedDuplicateDecision;
+  }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false } });
 
   stepRef.current = step;
 
@@ -496,75 +504,113 @@ export default function QuickAddScreen({ navigation }: Props) {
     }
   };
 
-  const persistDraft = async (): Promise<{ ok: boolean; item?: { id: string; name?: string } }> => {
+  const persistDraft = async (opts?: {
+    allowDuplicate?: boolean;
+  }): Promise<{ ok: boolean; item?: { id: string; name?: string }; blockedByDupe?: boolean }> => {
     if (!draft) return { ok: false };
-    const localDupes = findLocalWardrobeDuplicates(
-      {
+    const allowDuplicate = opts?.allowDuplicate === true;
+
+    if (!allowDuplicate) {
+      let decision: NormalizedDuplicateDecision = { type: 'ok', matches: [], isDuplicate: false };
+      try {
+        const check = await apiService.checkWardrobeDuplicates([{
+          name: draft.name,
+          category: draft.category,
+          color: draft.color,
+          brand: draft.brand,
+          imageBase64: draft.imageBase64,
+        }]);
+        const first = check?.results?.[0];
+        decision = normalizeDuplicateDecision({
+          ...first,
+          type: first?.type || first?.decision?.type,
+          decision: first?.decision,
+          similarMatches: first?.similarMatches,
+        });
+      } catch {
+        const localDupes = findLocalWardrobeDuplicates(
+          {
+            name: draft.name,
+            category: draft.category,
+            color: draft.color,
+            brand: draft.brand,
+          },
+          wardrobeItems.map((it) => ({
+            id: String(it.id),
+            name: it.name,
+            category: it.category,
+            subcategory: it.subcategory,
+            color: it.color,
+            brand: it.brand,
+            imageUri: it.enhancedImageUri || it.imageUri,
+            origin: it.origin,
+          })),
+        );
+        decision = normalizeDuplicateDecision({
+          isDuplicate: localDupes.length > 0,
+          type: localDupes.length > 0 ? 'duplicate' : 'ok',
+          matches: localDupes,
+          message: localDupes.length > 0
+            ? `Looks like you already have ${formatDuplicateNames(localDupes)}.`
+            : undefined,
+        });
+      }
+
+      if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item') {
+        setDupeSheet({ visible: true, decision });
+        return { ok: false, blockedByDupe: true };
+      }
+    }
+
+    try {
+      const saved = await addItem({
         name: draft.name,
         category: draft.category,
         color: draft.color,
         brand: draft.brand,
-      },
-      wardrobeItems.map((it) => ({
-        id: String(it.id),
-        name: it.name,
-        category: it.category,
-        subcategory: it.subcategory,
-        color: it.color,
-        brand: it.brand,
-        imageUri: it.enhancedImageUri || it.imageUri,
-        origin: it.origin,
-      })),
-    );
-    if (localDupes.length > 0) {
-      const names = formatDuplicateNames(localDupes);
-      const proceed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          'Similar item found',
-          `Looks like ${names}. Add anyway?`,
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Add anyway', onPress: () => resolve(true) },
-          ],
-        );
-      });
-      if (!proceed) return { ok: false };
+        material: draft.material,
+        size: draft.size,
+        notes: draft.notes,
+        seasons: draft.seasons.length ? draft.seasons : (['all-season'] as ClothingSeason[]),
+        occasions: draft.style
+          ? ([draft.style, ...draft.occasions.filter((o) => o !== draft.style)].slice(0, 3) as ClothingOccasion[])
+          : (draft.occasions.length ? draft.occasions : (['everyday'] as ClothingOccasion[])),
+        imageUri: draft.imageUri,
+        originalImageUri: draft.imageUri,
+        imageBase64: draft.imageBase64,
+        imageProcessed: draft.imageUri.startsWith('http'),
+        aiAnalyzed: true,
+        aiTags: [
+          CATEGORY_LABELS[draft.category],
+          COLOR_LABELS[draft.color],
+          draft.style,
+          draft.brand,
+        ].filter(Boolean) as string[],
+        isFavorite: false,
+        allowDuplicate,
+      } as any);
+      return { ok: true, item: { id: String(saved.id), name: saved.name } };
+    } catch (error: any) {
+      if (error?.duplicate || error?.error === 'DUPLICATE_WARDROBE_ITEM' || error?.status === 409) {
+        const decision = normalizeDuplicateDecision({
+          type: error?.type || 'duplicate',
+          isDuplicate: true,
+          message: error?.message,
+          matches: error?.matches,
+        });
+        setDupeSheet({ visible: true, decision });
+        return { ok: false, blockedByDupe: true };
+      }
+      throw error;
     }
-
-    const saved = await addItem({
-      name: draft.name,
-      category: draft.category,
-      color: draft.color,
-      brand: draft.brand,
-      material: draft.material,
-      size: draft.size,
-      notes: draft.notes,
-      seasons: draft.seasons.length ? draft.seasons : (['all-season'] as ClothingSeason[]),
-      occasions: draft.style
-        ? ([draft.style, ...draft.occasions.filter((o) => o !== draft.style)].slice(0, 3) as ClothingOccasion[])
-        : (draft.occasions.length ? draft.occasions : (['everyday'] as ClothingOccasion[])),
-      imageUri: draft.imageUri,
-      originalImageUri: draft.imageUri,
-      imageBase64: draft.imageBase64,
-      imageProcessed: draft.imageUri.startsWith('http'),
-      aiAnalyzed: true,
-      aiTags: [
-        CATEGORY_LABELS[draft.category],
-        COLOR_LABELS[draft.color],
-        draft.style,
-        draft.brand,
-      ].filter(Boolean) as string[],
-      isFavorite: false,
-      allowDuplicate: true,
-    } as any);
-    return { ok: true, item: { id: String(saved.id), name: saved.name } };
   };
 
-  const handleSave = async () => {
+  const handleSave = async (opts?: { allowDuplicate?: boolean }) => {
     if (!draft || saving) return;
     setSaving(true);
     try {
-      const { ok } = await persistDraft();
+      const { ok, blockedByDupe } = await persistDraft(opts);
+      if (blockedByDupe) return;
       if (!ok) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
@@ -594,40 +640,79 @@ export default function QuickAddScreen({ navigation }: Props) {
 
   if (step === 'result' && draft) {
     return (
-      <QuickAddTagItem
-        draft={draft}
-        saving={saving}
-        onChange={(next) => setDraft({ ...draft, ...next })}
-        onClose={() => {
-          setDraft(null);
-          setCaptureThumb(null);
-          setHint('Centre the garment in the box — it can fill the screen');
-          setFrameUi('idle');
-          controllerRef.current.reset();
-          lastBestRef.current = null;
-          clearCountdown();
-          setStep('camera');
-        }}
-        onMenu={() => {
-          Alert.alert('Item', undefined, [
-            {
-              text: 'Retake',
-              onPress: () => {
-                setDraft(null);
-                setCaptureThumb(null);
-                setHint('Centre the garment in the box — it can fill the screen');
-                setStep('camera');
-                controllerRef.current.reset();
-                lastBestRef.current = null;
-                clearCountdown();
+      <>
+        <QuickAddTagItem
+          draft={draft}
+          saving={saving}
+          onChange={(next) => setDraft({ ...draft, ...next })}
+          onClose={() => {
+            setDraft(null);
+            setCaptureThumb(null);
+            setHint('Centre the garment in the box — it can fill the screen');
+            setFrameUi('idle');
+            controllerRef.current.reset();
+            lastBestRef.current = null;
+            clearCountdown();
+            setStep('camera');
+          }}
+          onMenu={() => {
+            Alert.alert('Item', undefined, [
+              {
+                text: 'Retake',
+                onPress: () => {
+                  setDraft(null);
+                  setCaptureThumb(null);
+                  setHint('Centre the garment in the box — it can fill the screen');
+                  setStep('camera');
+                  controllerRef.current.reset();
+                  lastBestRef.current = null;
+                  clearCountdown();
+                },
               },
-            },
-            { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
-            { text: 'Cancel', style: 'cancel' },
-          ]);
-        }}
-        onSave={handleSave}
-      />
+              { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+              { text: 'Cancel', style: 'cancel' },
+            ]);
+          }}
+          onSave={() => { void handleSave(); }}
+        />
+        <DuplicateComparisonSheet
+          visible={dupeSheet.visible}
+          type={dupeSheet.decision.type}
+          message={
+            dupeSheet.decision.message
+            || (dupeSheet.decision.type === 'similar_item'
+              ? undefined
+              : (t('wardrobe.alreadyHaveThisMessage')
+                || 'Looks like you already have this (or something very similar) in your wardrobe.')
+                .replace('{names}', formatDuplicateNames(dupeSheet.decision.matches) || 'an existing item'))
+          }
+          candidateImageUri={draft.imageUri}
+          candidateLabel={draft.name || 'New item'}
+          matches={dupeSheet.decision.matches}
+          onClose={() => setDupeSheet((s) => ({ ...s, visible: false }))}
+          onAddAnyway={() => {
+            setDupeSheet((s) => ({ ...s, visible: false }));
+            void handleSave({ allowDuplicate: true });
+          }}
+          onContinue={() => {
+            setDupeSheet((s) => ({ ...s, visible: false }));
+            void handleSave({ allowDuplicate: true });
+          }}
+          onViewExisting={(match) => {
+            setDupeSheet((s) => ({ ...s, visible: false }));
+            const existingId = match?.id;
+            try {
+              if (existingId != null) {
+                (navigation as any).navigate('WardrobeItemDetail', { itemId: String(existingId) });
+              } else {
+                navigation.goBack();
+              }
+            } catch {
+              navigation.goBack();
+            }
+          }}
+        />
+      </>
     );
   }
 
