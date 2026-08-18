@@ -1536,14 +1536,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const msg = error instanceof Error ? error.message : 'Frame failed';
       void liveStartCrumb(`ANALYSIS_FAILURE ${msg}`);
       void liveStartCrumb(`frame.error ${msg}`);
-      setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE ${msg.slice(0, 48)}`);
+      const engineJs = /Property ['"`]?\w+['"`]? doesn't exist|is not a function|is not defined|Cannot read propert|btoa unavailable/i.test(msg);
+      setYoloStatusNote(
+        engineJs
+          ? 'DBG: ANALYSIS_FAILURE encode'
+          : `Pipeline: ANALYSIS_FAILURE ${msg.slice(0, 48)}`,
+      );
       // Allow the next identical hash to retry after a failure.
       lastHashRef.current = null;
       if (isAiBudgetError(error)) {
         handleAiBudgetHit(error);
       } else if (/rate limit|429/i.test(msg) && !/usage limit/i.test(msg)) {
         setStatusNote('Slowing down — rate limited');
-      } else if (/buffer|btoa|JPEG|RGBA|encode|pixels|incomplete/i.test(msg)) {
+      } else if (/buffer|btoa|JPEG|RGBA|encode|pixels|incomplete|doesn't exist/i.test(msg)) {
         setStatusNote('Could not read camera frame — retrying…');
       } else {
         setStatusNote('Could not analyse frame — retrying…');

@@ -3,8 +3,8 @@
  */
 
 import type { Image, PixelFormat } from 'react-native-nitro-image';
-import { encode as encodeJpeg } from 'jpeg-js';
 
+import encodeJpeg from './vendor/jpegEncoderUint8';
 import { stripBase64Prefix } from '@/utils/liveFrameHash';
 
 export type LiveRgbaFrame = {
@@ -164,6 +164,7 @@ export function encodeRgbaToJpegBase64(
   if (rgba.byteLength < width * height * 4) {
     throw new Error(`RGBA too small for ${width}x${height}`);
   }
+  // Proven RGBA → JPEG via Uint8Array encoder (Hermes-safe; no Node binary globals).
   const encoded = encodeJpeg({ data: rgba, width, height }, quality);
   const raw = encoded.data instanceof Uint8Array
     ? encoded.data

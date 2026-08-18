@@ -154,6 +154,11 @@ function yolo(
   assert.equal(box, '');
   assert.equal(sanitizeLiveBoxLabel('Maxi dress PASS'), '');
   assert.equal(sanitizeLiveBoxLabel('Black T-Shirt'), 'Black T-Shirt');
+  assert.equal(sanitizeLiveUserHudText("Property 'Buffer' doesn't exist"), '');
+  assert.equal(
+    sanitizeLiveUserHudText('Could not read camera frame — retrying…'),
+    'Could not read camera frame — retrying…',
+  );
 }
 
 {

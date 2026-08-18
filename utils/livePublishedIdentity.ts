@@ -24,6 +24,10 @@ const ENGINE_HUD_RE =
 const ENGINE_LABEL_JUNK_RE =
   /\b(PASS|REJECT)\b|:skin_overlap|skin_overlap\s*[\d.>\s()]+/gi;
 
+/** Hermes / JS engine exceptions must never land on the customer status line. */
+const JS_ENGINE_ERROR_RE =
+  /Property ['"`]?\w+['"`]? doesn't exist|\bis not a function\b|\bis not defined\b|\bCannot read propert/i;
+
 export function liveCloudPathBlockedByYoloProof(opts: {
   requireYoloProof: boolean;
   yoloProofOnly: boolean;
@@ -44,6 +48,7 @@ export function isLiveEngineHudText(text: string | null | undefined): boolean {
 export function sanitizeLiveUserHudText(text: string | null | undefined): string {
   let t = String(text || '');
   if (!t) return '';
+  if (JS_ENGINE_ERROR_RE.test(t)) return '';
   t = t.replace(ENGINE_LABEL_JUNK_RE, ' ');
   t = t.replace(/\d\.\d+\s*>\s*\d\.\d+(?:\s*\([^)]*\))?/g, ' ');
   t = t.replace(/\(\s*[\d.]+\s*\)/g, ' ');
