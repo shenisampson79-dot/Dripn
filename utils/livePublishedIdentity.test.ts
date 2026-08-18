@@ -8,7 +8,10 @@ import type { OutfitBeliefState } from '@/utils/liveGarmentBelief';
 import type { LiveOutfitTruth, LiveTruthItem } from '@/utils/liveOutfitTruth';
 import {
   adoptCloudIdentityIntoBelief,
+  blankProvisionalHeadlineAfterScore,
+  detectionsForCustomerPaint,
   hasPublishedLiveCore,
+  LIVE_YOLO_ENABLED,
   liveCloudPathBlockedByYoloProof,
   mapYoloBoxesOntoPublishedTruth,
   sanitizeLiveBoxLabel,
@@ -73,6 +76,7 @@ function yolo(
 }
 
 {
+  assert.equal(LIVE_YOLO_ENABLED, false, 'launch: YOLO fully off the truth path');
   assert.equal(
     liveCloudPathBlockedByYoloProof({
       requireYoloProof: false,
@@ -81,6 +85,16 @@ function yolo(
     }),
     false,
     'Cloud-complete can publish without YOLO proof',
+  );
+  assert.equal(
+    liveCloudPathBlockedByYoloProof({
+      requireYoloProof: true,
+      yoloProofOnly: true,
+      yoloProven: false,
+      yoloEnabled: false,
+    }),
+    false,
+    'YOLO disabled never gates Cloud',
   );
   assert.equal(
     liveCloudPathBlockedByYoloProof({
@@ -133,7 +147,40 @@ function yolo(
   const hud = sanitizeLiveUserHudText(leaked);
   assert.doesNotMatch(hud, /reject|skin_overlap|0\.50/i);
   const box = sanitizeLiveBoxLabel('Maxi dress REJECT:skin_overlap 0.48 > 0.4 (0.31)');
-  assert.doesNotMatch(box, /reject|skin_overlap/i);
+  assert.equal(box, '');
+  assert.equal(sanitizeLiveBoxLabel('Maxi dress PASS'), '');
+  assert.equal(sanitizeLiveBoxLabel('Black T-Shirt'), 'Black T-Shirt');
+}
+
+{
+  assert.equal(blankProvisionalHeadlineAfterScore('Settling in', 78), '');
+  assert.equal(blankProvisionalHeadlineAfterScore('Almost there', 62), '');
+  assert.equal(blankProvisionalHeadlineAfterScore('Sport-ready', 78), 'Sport-ready');
+  assert.equal(
+    blankProvisionalHeadlineAfterScore('Settling in', null),
+    'Settling in',
+    'placeholder may exist before a score publishes',
+  );
+}
+
+{
+  const raw = [
+    yolo('Maxi dress PASS', [0.2, 0.08, 0.5, 0.78], { category: 'dresses', subcategory: 'maxi_dress' }),
+    yolo('Trousers REJECT:skin_overlap 0.50>0.4 (0.26)', [0.25, 0.4, 0.4, 0.45], {
+      category: 'bottoms',
+      subcategory: 'trousers',
+    }),
+  ];
+  assert.deepEqual(
+    detectionsForCustomerPaint(raw, null),
+    [],
+    'launch: no YOLO-driven boxes',
+  );
+  assert.deepEqual(
+    detectionsForCustomerPaint(raw, truth()),
+    [],
+    'launch: no YOLO-driven boxes after Cloud either',
+  );
 }
 
 {

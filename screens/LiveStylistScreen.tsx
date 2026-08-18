@@ -46,7 +46,6 @@ import {
   detectGarmentsFromRgba,
   formatGuardDecisionHud,
   getLastOnDeviceFootZone,
-  getOnDeviceYoloStatus,
   type YoloDetectorDiag,
 } from '@/services/onDeviceGarmentDetector';
 import type { LiveFeedback, LiveFrameResponse, LiveTrackedItem } from '@/types/liveStylist';
@@ -79,7 +78,10 @@ import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import { renderCopyFromPublishedTruth } from '@/utils/livePublishedCopy';
 import {
   adoptCloudIdentityIntoBelief,
+  blankProvisionalHeadlineAfterScore,
+  detectionsForCustomerPaint,
   hasPublishedLiveCore,
+  LIVE_YOLO_ENABLED,
   liveCloudPathBlockedByYoloProof,
   mapYoloBoxesOntoPublishedTruth,
   sanitizeLiveBoxLabel,
@@ -166,18 +168,14 @@ function sleep(ms: number) {
 
 const FRAME_WIDTH = 640;
 /**
- * Live milestones (reintroduce one layer at a time):
- *   M1 camera→RGBA ✅ frozen — do not redesign VisionCamera / Image ownership
- *   M2b YOLO detector-internal diag — must NOT block first Cloud publish
- *   M3 cloud → belief → score — first Cloud complete read publishes immediately
- *
- * bodyGuards:false / low conf are DIAGNOSTIC ONLY (paint + counts). Production
- * filter stack is still reported separately in DBG.
+ * Launch path (frozen):
+ *   camera frame proven → Cloud Vision → published identity → score → copy
+ * YOLO is fully disabled. Belief may only hold/correct Cloud truth.
  */
 const LIVE_REQUIRE_PIPELINE_PROOF = true;
-const LIVE_PIPELINE_PROOF_ONLY = false; // M1 passed — allow YOLO layer
+const LIVE_PIPELINE_PROOF_ONLY = false;
 const PIPELINE_PROOF_STREAK = 3;
-/** YOLO proof is diagnostic only — waiting here pushed first score to ~17s. */
+/** Kept for the dormant YOLO diag block — launch never enters it. */
 const LIVE_REQUIRE_YOLO_PROOF = false;
 const LIVE_YOLO_PROOF_ONLY = false;
 const YOLO_PROOF_STREAK = 3;
@@ -243,7 +241,7 @@ function detectionsToLiveItems(
     return {
       tempId: d.trackId || prev?.tempId || `belief_${i}`,
       trackId: d.trackId || prev?.trackId || `belief_${i}`,
-      name: sanitizeLiveBoxLabel(d.name || '') || sanitizeLiveBoxLabel(d.category) || d.category,
+      name: sanitizeLiveBoxLabel(d.name || ''),
       category: d.category,
       subcategory: d.subcategory || null,
       // Belief owns colour — never keep a stale prev colour when belief cleared it.
@@ -769,21 +767,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       identityBuf: identityBufRef.current,
       prevLockedKey,
     });
-    // Labels must never wait on score lock — blank BBoxes while DBG sees pieces
-    // is the 60s trust-breaker. Paint as soon as belief has garments.
-    const hasPaintableBelief = Boolean(
-      beliefSlots?.bottom
-      || beliefSlots?.top
-      || beliefSlots?.layer
-      || beliefSlots?.footwear
-      || previousItemsRef.current.length,
-    );
-    if (hasPaintableBelief) {
-      if (!labelsReadyRef.current) {
-        labelsReadyRef.current = true;
-        if (mountedRef.current) setLabelsReady(true);
-      }
-    }
+    // Boxes may paint immediately; names wait for published Cloud identity.
     if (identityLocked && coreKey) {
       identityLockedKeyRef.current = coreKey;
     }
@@ -847,6 +831,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       confidenceLevel: next.confidenceLevel,
     });
     outfitTruthRef.current = truth;
+    if (hasPublishedLiveCore(truth) && !labelsReadyRef.current) {
+      labelsReadyRef.current = true;
+      if (mountedRef.current) setLabelsReady(true);
+    }
 
     // SSOT: material outfit change (e.g. athletic↔chino) invalidates stale judgment.
     // First snapshot (no prev) is not a change — clearing here undid Cloud first-publish.
@@ -878,6 +866,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ...truth,
         score: next.score,
       }) || next.coaching;
+      next.coaching = {
+        ...next.coaching,
+        headline: blankProvisionalHeadlineAfterScore(next.coaching.headline, next.score),
+      };
     }
     // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
     if (next.score == null) {
@@ -1047,7 +1039,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           setStatusNote(
             LIVE_PIPELINE_PROOF_ONLY
               ? 'PIPELINE_PROVEN — camera OK (analysis frozen)'
-              : 'Camera OK — proving YOLO…',
+              : 'Camera OK — reading outfit…',
           );
         } else {
           setStatusNote(`Reading camera… ${n}/${PIPELINE_PROOF_STREAK}`);
@@ -1068,11 +1060,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         hash: hashRgbaFrame(rgba, width, height),
       };
 
-      // ── Milestone 2b: detector-internal YOLO diag (never blocks first Cloud) ─
-      if (liveCloudPathBlockedByYoloProof({
+      // ── YOLO diag (dormant for launch) ─────────────────────────────────
+      if (LIVE_YOLO_ENABLED && liveCloudPathBlockedByYoloProof({
         requireYoloProof: LIVE_REQUIRE_YOLO_PROOF,
         yoloProofOnly: LIVE_YOLO_PROOF_ONLY,
         yoloProven: yoloProvenRef.current,
+        yoloEnabled: LIVE_YOLO_ENABLED,
       })) {
         if (Date.now() < yoloEnabledAtRef.current) {
           setStatusNote('Camera OK — proving YOLO…');
@@ -1236,8 +1229,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const firstCloudDue = !firstCloudSentRef.current;
 
       let onDevice: Awaited<ReturnType<typeof detectGarmentsFromRgba>> = null;
-      // First publish is Cloud JPEG — do not spend the 5s budget waiting on YOLO.
-      if (!firstCloudDue && Date.now() >= yoloEnabledAtRef.current) {
+      if (LIVE_YOLO_ENABLED && !firstCloudDue && Date.now() >= yoloEnabledAtRef.current) {
         try {
           onDevice = await detectGarmentsFromRgba(rgba, width, height);
         } catch (yoloErr) {
@@ -1252,7 +1244,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       const payload: Record<string, unknown> = {
         occasionType,
-        hybridMatch: true,
+        hybridMatch: LIVE_YOLO_ENABLED,
         frameHash,
         previousItems: previousItemsRef.current,
         previousFeedback: previousFeedbackRef.current,
@@ -1278,7 +1270,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         payload.cloudFillReason = 'first_publish';
         firstCloudSentRef.current = true;
         lastCloudFillAtRef.current = Date.now();
-      } else if (onDevice?.length) {
+      } else if (LIVE_YOLO_ENABLED && onDevice?.length) {
         const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
         const footZoneEarly = getLastOnDeviceFootZone();
         const { detections: corrected, pipeline } = correctOnDeviceDetections(onDevice, {
@@ -1339,7 +1331,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             payload.pipelineRepairs = repairs;
             payload.pipelineConfidence = pipeline?.confidence;
           }
-          paintBeliefItems(stabilized.detections);
+          paintBeliefItems(detectionsForCustomerPaint(
+            stabilized.detections,
+            outfitTruthRef.current,
+          ));
           publishDebug({
             frameDetections: onDevice,
             source: 'on_device_yolo',
@@ -1406,7 +1401,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           };
         }
       } else if (!firstCloudDue) {
-        payload.imageBase64 = ensureJpeg();
+        const published = hasPublishedLiveCore(outfitTruthRef.current);
+        const waitMs = published ? CLOUD_LAYER_VERIFY_MS : CLOUD_SCENE_EVENT_COOLDOWN_MS;
+        if (Date.now() - lastCloudFillAtRef.current >= waitMs) {
+          payload.imageBase64 = ensureJpeg();
+          payload.cloudFill = true;
+          payload.cloudFillReason = published ? 'layer_verify' : 'first_publish';
+          lastCloudFillAtRef.current = Date.now();
+        }
       }
 
       if (!payload.imageBase64 && hasPublishedLiveCore(outfitTruthRef.current)) {
@@ -1423,6 +1425,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             ? `${n} piece${n === 1 ? '' : 's'} · ${scoreLabel}`
             : 'No garments yet — hold steadier',
         );
+        return;
+      }
+      if (!payload.imageBase64) {
         return;
       }
 
@@ -1831,18 +1836,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       setTimeout(() => {
         if (!mountedRef.current || liveStateRef.current !== 'live') return;
-        try {
-          const status = getOnDeviceYoloStatus();
-          setYoloStatusNote(
-            status.available
-              ? 'On-device YOLO ready — cloud Vision only if detection fails'
-              : status.requiresNativeRebuild
-                ? 'On-device YOLO needs a new EAS binary — using cloud sampling (OTA insufficient)'
-                : 'On-device YOLO unavailable — using cloud sampling',
-          );
-        } catch {
-          setYoloStatusNote('On-device YOLO unavailable — using cloud sampling');
-        }
+        setYoloStatusNote(
+          LIVE_YOLO_ENABLED
+            ? 'DBG: YOLO optional — Cloud Vision owns identity'
+            : 'DBG: YOLO off for launch — Cloud Vision',
+        );
       }, 5000);
     } catch (err) {
       console.warn('[LiveStylist] toggleLive failed:', err);
@@ -1935,10 +1933,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const { rgba, width, height, hash: frameHash } = frame;
       lastHashRef.current = frameHash;
 
-      const onDevice = await detectGarmentsFromRgba(rgba, width, height);
+      const onDevice = LIVE_YOLO_ENABLED
+        ? await detectGarmentsFromRgba(rgba, width, height)
+        : null;
       const payload: Record<string, unknown> = {
         occasionType,
-        hybridMatch: true,
+        hybridMatch: LIVE_YOLO_ENABLED,
         frameHash,
         previousItems: previousItemsRef.current,
         previousFeedback: previousFeedbackRef.current,

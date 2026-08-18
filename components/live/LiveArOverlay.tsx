@@ -14,7 +14,10 @@ import {
   mapNormalizedBboxToPreview,
   type PreviewFitMode,
 } from '@/utils/livePreviewBbox';
-import { sanitizeLiveBoxLabel } from '@/utils/livePublishedIdentity';
+import {
+  isProvisionalLiveHeadline,
+  sanitizeLiveBoxLabel,
+} from '@/utils/livePublishedIdentity';
 import { presentLiveScore } from '@/utils/liveScoreStability';
 
 type Props = {
@@ -45,11 +48,8 @@ function scoreColor(score: number): string {
 
 /** Truncate at a word boundary — never mid-word ("Casual S"). */
 export function fitLiveBoxLabel(raw: string, max = 34): string {
-  if (/reject\s*:|skin_overlap/i.test(String(raw || ''))) {
-    return sanitizeLiveBoxLabel(raw);
-  }
-  const t = sanitizeLiveBoxLabel(raw) || String(raw || '').trim();
-  if (!t) return 'Item';
+  const t = sanitizeLiveBoxLabel(raw);
+  if (!t) return '';
   if (t.length <= max) return t;
   const cut = t.slice(0, max);
   const sp = cut.lastIndexOf(' ');
@@ -161,7 +161,7 @@ export function LiveArOverlay({
                 fontWeight="600"
               >
                 {showLabels
-                  ? fitLiveBoxLabel(item.name || item.category || 'Item')
+                  ? fitLiveBoxLabel(item.name || '')
                   : '…'}
               </SvgText>
             </React.Fragment>
@@ -205,7 +205,9 @@ export function LiveArOverlay({
                 {scorePresentation.soft ? 'approx' : 'score'}
               </ThemedText>
             </View>
-            {Number.isFinite(feedback.score) && coaching?.headline ? (
+            {Number.isFinite(feedback.score)
+              && coaching?.headline
+              && !isProvisionalLiveHeadline(coaching.headline) ? (
               <View style={styles.headlinePill}>
                 <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
                   {coaching.headline}

@@ -1,11 +1,13 @@
 /**
- * Published Live identity — Cloud/hybrid truth wins over raw YOLO labels.
+ * Published Live identity — Cloud/Vision owns first publish and copy.
  *
- * After the first complete Cloud read:
- *   - YOLO may supply bounding boxes
- *   - YOLO must not replace published garment names (maxi dress / trousers / rejects)
- * User-facing HUD never shows engine tokens such as Reject:skin_overlap.
+ * Launch: YOLO is fully off the critical path (no identity, belief, score, or
+ * boxes). Staff DBG may still mention it; customer HUD never shows engine tokens
+ * such as Reject:skin_overlap.
  */
+
+/** Launch kill switch — do not run YOLO for identity, boxes, or belief. */
+export const LIVE_YOLO_ENABLED = false;
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import {
@@ -26,7 +28,9 @@ export function liveCloudPathBlockedByYoloProof(opts: {
   requireYoloProof: boolean;
   yoloProofOnly: boolean;
   yoloProven: boolean;
+  yoloEnabled?: boolean;
 }): boolean {
+  if (opts.yoloEnabled === false) return false;
   if (opts.yoloProofOnly) return true;
   if (opts.requireYoloProof && !opts.yoloProven) return true;
   return false;
@@ -49,10 +53,53 @@ export function sanitizeLiveUserHudText(text: string | null | undefined): string
 }
 
 export function sanitizeLiveBoxLabel(raw: string | null | undefined): string {
+  const original = String(raw || '');
+  if (!original.trim()) return '';
+  // Engine overlay names ("Maxi dress PASS", "Trousers REJECT:skin_overlap")
+  // never belong on the customer box — staff DBG keeps the raw string.
+  if (/\b(PASS|REJECT)\b|skin_overlap/i.test(original)) return '';
   const cleaned = sanitizeLiveUserHudText(raw);
   if (!cleaned) return '';
   if (/^(item|top|bottom|clothing|garment)$/i.test(cleaned)) return '';
   return cleaned;
+}
+
+const PROVISIONAL_HEADLINE_RE = /^(Settling in|Almost there)$/i;
+
+/** True when the pill is the pre-lock placeholder, not a published lane. */
+export function isProvisionalLiveHeadline(headline: string | null | undefined): boolean {
+  return PROVISIONAL_HEADLINE_RE.test(String(headline || '').trim());
+}
+
+/**
+ * After a score is on screen, keep ~78 (approx) — never the "Settling in" pill.
+ */
+export function blankProvisionalHeadlineAfterScore(
+  headline: string | null | undefined,
+  score: number | null | undefined,
+): string {
+  const h = String(headline || '').trim();
+  if (score == null || !Number.isFinite(Number(score))) return h;
+  if (isProvisionalLiveHeadline(h)) return '';
+  return h;
+}
+
+/**
+ * Customer overlay boxes. Launch: YOLO is off, so this returns no boxes.
+ * If re-enabled, map geometry onto published Cloud names — never YOLO labels.
+ */
+export function detectionsForCustomerPaint(
+  yolo: OnDeviceDetection[],
+  truth: LiveOutfitTruth | null | undefined,
+): OnDeviceDetection[] {
+  if (!LIVE_YOLO_ENABLED) return [];
+  if (hasPublishedLiveCore(truth)) {
+    return mapYoloBoxesOntoPublishedTruth(yolo, truth);
+  }
+  return (yolo || []).map((d) => ({
+    ...d,
+    name: '',
+  }));
 }
 
 export function hasPublishedLiveCore(
