@@ -83,7 +83,7 @@ const HOLD_AMBER = '#FFC107';
 /** takePicture sampling is heavy — keep interval roomy so YOLO can finish. */
 const SAMPLE_MS = 850;
 const SAMPLE_WIDTH = 640;
-/** Ready → snap after a full 3-2-1 second countdown. */
+/** Ready → snap when the 3-2-1 countdown reaches 1 (no extra second, no amber re-lock). */
 const COUNTDOWN_TICK_MS = 1000;
 const COUNTDOWN_START = 3;
 /** Lower than default parse threshold so boots/shoes still register in-frame. */
@@ -336,23 +336,35 @@ export default function QuickAddScreen({ navigation }: Props) {
 
   const handleCapture = useCallback(async (detection?: QuickAddYoloDetection | null) => {
     if (!cameraRef.current || stepRef.current !== 'camera' || capturingRef.current) return;
-    clearCountdown();
+    // Lock before shutter so in-flight YOLO samples cannot paint amber.
+    capturingRef.current = true;
+    setFrameUi('ready');
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
     controllerRef.current.markCaptured();
     try {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setHint('Captured');
-      setFrameUi('ready');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
         shutterSound: true,
         skipProcessing: Platform.OS === 'android',
       });
-      if (!photo?.uri) return;
+      clearCountdown();
+      if (!photo?.uri) {
+        capturingRef.current = false;
+        return;
+      }
       setCaptureThumb(photo.uri);
       await processCapturedUri(photo.uri, detection ?? lastBestRef.current);
     } catch (error) {
       console.warn('[QuickAdd] capture failed:', error);
+      capturingRef.current = false;
+      clearCountdown();
       setCaptureThumb(null);
+      setFrameUi('idle');
       setHint('Centre the garment in the box — it can fill the screen');
       Alert.alert('Camera', 'Could not take photo. Try again.');
     }
@@ -372,18 +384,22 @@ export default function QuickAddScreen({ navigation }: Props) {
     let n = COUNTDOWN_START;
     countdownTimerRef.current = setInterval(() => {
       n -= 1;
-      if (n <= 0) {
+      if (n <= 1) {
         if (countdownTimerRef.current) {
           clearInterval(countdownTimerRef.current);
           countdownTimerRef.current = null;
         }
-        countdownArmedRef.current = false;
-        setCountdown(null);
+        // Fire on 1 — stay green; do not wait for 0 or a second stability lock.
+        setCountdown(1);
+        setHint('Locked — capturing…');
+        setFrameUi('ready');
+        void Haptics.selectionAsync();
         void handleCaptureRef.current(best);
         return;
       }
       setCountdown(n);
       setHint(`Locked — hold still ${n}`);
+      setFrameUi('ready');
       void Haptics.selectionAsync();
     }, COUNTDOWN_TICK_MS);
   }, []);
@@ -417,6 +433,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       || stepRef.current !== 'camera'
       || inFlightRef.current
       || capturingRef.current
+      || countdownArmedRef.current
     ) {
       return;
     }
@@ -440,6 +457,11 @@ export default function QuickAddScreen({ navigation }: Props) {
         ...SINGLE_ITEM_HYBRID_OPTS,
       });
       if (stepRef.current !== 'camera') return;
+      // Sample started before green lock — drop results, keep the box green.
+      if (countdownArmedRef.current || capturingRef.current) {
+        setFrameUi('ready');
+        return;
+      }
 
       const detections: QuickAddYoloDetection[] = (onDevice || []).map((d) => ({
         class: d.category || d.name || 'clothing',
