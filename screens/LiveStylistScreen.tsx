@@ -64,7 +64,6 @@ import {
 import type { Image } from 'react-native-nitro-image';
 import {
   createLiveBeliefMemory,
-  syncCoachingToBelief,
   updateLiveBelief,
   type DetectionMemory,
 } from '@/utils/beliefState';
@@ -77,7 +76,7 @@ import {
   type LiveBeliefDebugSnapshot,
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
-import { polishUkCoaching } from '@/utils/liveLocaleLabels';
+import { renderCopyFromPublishedTruth } from '@/utils/livePublishedCopy';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -88,6 +87,7 @@ import {
   createLiveScoreGate,
   gateLiveJudgment,
   gateLiveScore,
+  isHighConfidenceCompleteCloudRead,
   liveCoreIdentityKey,
   liveIdentityIsConsistent,
   liveIdentityKey,
@@ -160,8 +160,8 @@ const FRAME_WIDTH = 640;
 /**
  * Live milestones (reintroduce one layer at a time):
  *   M1 camera→RGBA ✅ frozen — do not redesign VisionCamera / Image ownership
- *   M2b YOLO detector-internal diag ← current (cloud/belief/score stay OFF)
- *   M3+ cloud → belief → score — later
+ *   M2b YOLO detector-internal diag ✅ proof gate then continue
+ *   M3 cloud → belief → score — first Cloud complete read may publish immediately
  *
  * bodyGuards:false / low conf are DIAGNOSTIC ONLY (paint + counts). Production
  * filter stack is still reported separately in DBG.
@@ -170,7 +170,7 @@ const LIVE_REQUIRE_PIPELINE_PROOF = true;
 const LIVE_PIPELINE_PROOF_ONLY = false; // M1 passed — allow YOLO layer
 const PIPELINE_PROOF_STREAK = 3;
 const LIVE_REQUIRE_YOLO_PROOF = true;
-const LIVE_YOLO_PROOF_ONLY = true; // stop after YOLO diag; no cloud/belief/score
+const LIVE_YOLO_PROOF_ONLY = false; // M3 unfrozen — Cloud/belief/score after YOLO proof
 const YOLO_PROOF_STREAK = 3;
 /** Keep REF JPEG result on the status line long enough to screenshot. */
 const YOLO_REF_STICKY_MS = 4500;
@@ -330,6 +330,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const isBooting = liveState === 'starting' || liveState === 'camera-loading';
   const [isBusy, setIsBusy] = useState(false);
   const [layout, setLayout] = useState({ width: Dimensions.get('window').width, height: 480 });
+  const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
+  const sourceSizeRef = useRef({ width: 0, height: 0 });
   const [items, setItems] = useState<LiveTrackedItem[]>([]);
   const [feedback, setFeedback] = useState<LiveFeedback | null>(null);
   /** Hide garment name labels until identity locks — boxes may still paint. */
@@ -759,6 +761,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       beliefSlots?.bottom
       && (beliefSlots?.footwear || barefootIdentity),
     );
+    const cloudComplete = isHighConfidenceCompleteCloudRead({
+      source: res.source,
+      items: res.items,
+      completeness: next.completeness,
+    });
     const gated = gateLiveScore(
       scoreGateRef.current,
       next.score,
@@ -772,6 +779,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         settled,
         identityLocked,
         coreFilled,
+        cloudComplete,
         // Always pass key so athletic↔chino / loafers on/off can invalidate.
         identityKey: fullKey || coreKey || null,
         certainty,
@@ -793,7 +801,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     outfitTruthRef.current = truth;
 
     // SSOT: material outfit change (e.g. athletic↔chino) invalidates stale judgment.
-    if (truthMateriallyChanged(prevTruth, truth) && !settled && next.score != null) {
+    // First snapshot (no prev) is not a change — clearing here undid Cloud first-publish.
+    if (
+      prevTruth
+      && truthMateriallyChanged(prevTruth, truth)
+      && !settled
+      && !cloudComplete
+      && next.score != null
+    ) {
       next.score = null;
       scoreGateRef.current = {
         ...scoreGateRef.current,
@@ -805,25 +820,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       };
     }
 
-    // Belief-synced summary when Vision returned items; else keep Vision verdict (UK-polished).
-    if (next.coaching && res.items?.length && previousItemsRef.current.length) {
-      next.coaching = syncCoachingToBelief(
-        next.coaching,
-        previousItemsRef.current.map((it) => ({
-          name: it.name,
-          category: String(it.category || ''),
-          subcategory: it.subcategory,
-          color: it.color,
-        })),
-        { score: next.score },
-      ) || next.coaching;
-    } else if (next.coaching) {
-      next.coaching = polishUkCoaching(next.coaching) || next.coaching;
-    }
+    // Published truth is the only garment-name source for HUD copy.
     if (next.coaching) {
       next.coaching = alignCoachingToTruth(next.coaching, truth) || next.coaching;
       next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
         certainty: certainty === 'none' ? 'medium' : certainty,
+      }) || next.coaching;
+      next.coaching = renderCopyFromPublishedTruth(next.coaching, {
+        ...truth,
+        score: next.score,
       }) || next.coaching;
     }
     // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
@@ -955,6 +960,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         void liveStartCrumb(`PIXELS_EXTRACT_FAILED ${msg}`);
         failPipeline('PIXELS_EXTRACT_FAILED', msg.slice(0, 80));
         return;
+      }
+
+      if (
+        sourceSizeRef.current.width !== width
+        || sourceSizeRef.current.height !== height
+      ) {
+        sourceSizeRef.current = { width, height };
+        if (mountedRef.current) setSourceSize({ width, height });
       }
 
       const nonzeroSample = sampleNonZeroPixels(rgba);
@@ -1154,7 +1167,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       }
 
-      // ── Milestone 3+: cloud / belief / score (gated — not yet) ──────────
+      // ── Milestone 3: cloud / belief / score ────────────────────────────
       void liveStartCrumb(`ANALYSIS_START ${width}x${height}`);
       setYoloStatusNote(`DBG: ANALYSIS_START ${width}x${height}`);
 
@@ -2023,6 +2036,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           selectedTrackId={selected?.trackId}
           showRegionGuides={beliefDebugAllowed && showBeliefDebug}
           showLabels={labelsReady}
+          sourceWidth={sourceSize.width}
+          sourceHeight={sourceSize.height}
+          logBboxTransform={beliefDebugAllowed && showBeliefDebug}
           onSelectItem={(item) => {
             Haptics.selectionAsync();
             setSelected(item);

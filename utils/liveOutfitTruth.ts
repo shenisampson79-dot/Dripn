@@ -218,7 +218,7 @@ export function truthMateriallyChanged(
   prev: LiveOutfitTruth | null | undefined,
   next: LiveOutfitTruth | null | undefined,
 ): boolean {
-  if (!prev || !next) return Boolean(next);
+  if (!prev || !next) return false;
   return prev.signature !== next.signature;
 }
 

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
@@ -6,6 +6,14 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import type { LiveFeedback, LiveTrackedItem } from '@/types/liveStylist';
 import { REGION } from '@/utils/bodyGeometryGuardrails';
+import {
+  computePreviewFit,
+  formatLiveBboxDiagnostic,
+  liveBboxDiagnostic,
+  LIVE_PREVIEW_FIT_MODE,
+  mapNormalizedBboxToPreview,
+  type PreviewFitMode,
+} from '@/utils/livePreviewBbox';
 import { presentLiveScore } from '@/utils/liveScoreStability';
 
 type Props = {
@@ -19,6 +27,13 @@ type Props = {
   showRegionGuides?: boolean;
   /** When false, box labels stay blank until identity locks (avoids first-frame lies). */
   showLabels?: boolean;
+  /** Source-image size the bboxes are normalized against (detection frame). */
+  sourceWidth?: number;
+  sourceHeight?: number;
+  /** Preview fit — camera fill is cover. */
+  previewFit?: PreviewFitMode;
+  /** Console diagnostic tuple behind existing staff/__DEV__ debug flag. */
+  logBboxTransform?: boolean;
 };
 
 function scoreColor(score: number): string {
@@ -47,6 +62,10 @@ export function LiveArOverlay({
   selectedTrackId,
   showRegionGuides = false,
   showLabels = true,
+  sourceWidth = 0,
+  sourceHeight = 0,
+  previewFit = LIVE_PREVIEW_FIT_MODE,
+  logBboxTransform = false,
 }: Props) {
   const boxes = useMemo(
     () =>
@@ -55,6 +74,36 @@ export function LiveArOverlay({
       ),
     [items],
   );
+
+  const fit = useMemo(
+    () => computePreviewFit(
+      sourceWidth > 0 ? sourceWidth : width,
+      sourceHeight > 0 ? sourceHeight : height,
+      width,
+      height,
+      previewFit,
+    ),
+    [sourceWidth, sourceHeight, width, height, previewFit],
+  );
+
+  const screenBoxes = useMemo(
+    () => boxes.map((item) => ({
+      item,
+      screen: mapNormalizedBboxToPreview(
+        item.bbox as [number, number, number, number],
+        fit,
+      ),
+    })),
+    [boxes, fit],
+  );
+
+  useEffect(() => {
+    if (!logBboxTransform || !screenBoxes.length) return;
+    for (const row of screenBoxes) {
+      const d = liveBboxDiagnostic(row.item.bbox as [number, number, number, number], fit);
+      console.log(`[LiveBBox] ${formatLiveBboxDiagnostic(d)} name=${row.item.name || row.item.category || ''}`);
+    }
+  }, [logBboxTransform, screenBoxes, fit]);
 
   const coaching = feedback?.coaching;
   const scorePresentation = presentLiveScore(
@@ -69,26 +118,22 @@ export function LiveArOverlay({
       <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
         {showRegionGuides ? (
           <>
-            <Rect x={0} y={REGION.TOP_MAX * height} width={width} height={1} fill="rgba(80,200,120,0.55)" />
-            <Rect x={0} y={REGION.BOTTOM_MIN * height} width={width} height={1} fill="rgba(80,160,255,0.55)" />
-            <Rect x={0} y={REGION.FOOTWEAR_MIN * height} width={width} height={1} fill="rgba(255,180,80,0.55)" />
-            <SvgText x={8} y={REGION.TOP_MAX * height - 4} fill="rgba(80,200,120,0.9)" fontSize="9">
+            <Rect x={0} y={REGION.TOP_MAX * fit.srcH * fit.scale + fit.offsetY} width={width} height={1} fill="rgba(80,200,120,0.55)" />
+            <Rect x={0} y={REGION.BOTTOM_MIN * fit.srcH * fit.scale + fit.offsetY} width={width} height={1} fill="rgba(80,160,255,0.55)" />
+            <Rect x={0} y={REGION.FOOTWEAR_MIN * fit.srcH * fit.scale + fit.offsetY} width={width} height={1} fill="rgba(255,180,80,0.55)" />
+            <SvgText x={8} y={REGION.TOP_MAX * fit.srcH * fit.scale + fit.offsetY - 4} fill="rgba(80,200,120,0.9)" fontSize="9">
               top
             </SvgText>
-            <SvgText x={8} y={REGION.BOTTOM_MIN * height - 4} fill="rgba(80,160,255,0.9)" fontSize="9">
+            <SvgText x={8} y={REGION.BOTTOM_MIN * fit.srcH * fit.scale + fit.offsetY - 4} fill="rgba(80,160,255,0.9)" fontSize="9">
               transition→bottom
             </SvgText>
-            <SvgText x={8} y={REGION.FOOTWEAR_MIN * height - 4} fill="rgba(255,180,80,0.9)" fontSize="9">
+            <SvgText x={8} y={REGION.FOOTWEAR_MIN * fit.srcH * fit.scale + fit.offsetY - 4} fill="rgba(255,180,80,0.9)" fontSize="9">
               footwear
             </SvgText>
           </>
         ) : null}
-        {boxes.map((item) => {
-          const [nx, ny, nw, nh] = item.bbox!;
-          const x = nx * width;
-          const y = ny * height;
-          const w = nw * width;
-          const h = nh * height;
+        {screenBoxes.map(({ item, screen }) => {
+          const { x, y, w, h } = screen;
           const active = selectedTrackId === item.trackId;
           const stroke = active ? LuxuryColors.gold : 'rgba(255,255,255,0.85)';
           return (
@@ -120,24 +165,21 @@ export function LiveArOverlay({
         })}
       </Svg>
 
-      {boxes.map((item) => {
-        const [nx, ny, nw, nh] = item.bbox!;
-        return (
+      {screenBoxes.map(({ item, screen }) => (
           <Pressable
             key={`hit_${item.trackId || item.tempId}`}
             onPress={() => onSelectItem?.(item)}
             style={{
               position: 'absolute',
-              left: nx * width,
-              top: ny * height,
-              width: nw * width,
-              height: nh * height,
+              left: screen.x,
+              top: screen.y,
+              width: screen.w,
+              height: screen.h,
             }}
             accessibilityRole="button"
             accessibilityLabel={item.name || item.category}
           />
-        );
-      })}
+      ))}
 
       {feedback ? (
         <View style={styles.hud} pointerEvents="box-none">

@@ -4,6 +4,7 @@ import {
   createLiveScoreGate,
   gateLiveJudgment,
   gateLiveScore,
+  isHighConfidenceCompleteCloudRead,
   liveBeliefIsSettled,
   liveIdentityIsConsistent,
   liveIdentityKey,
@@ -86,6 +87,41 @@ assert.equal(
     identityKey: 'shorts|sneakers',
   });
   assert.equal(out.score, 84, 'settled belief publishes immediately');
+}
+
+// First high-confidence complete Cloud read publishes without BELIEF_PROVEN.
+{
+  assert.equal(
+    isHighConfidenceCompleteCloudRead({
+      source: 'cloud_vision',
+      items: [
+        { category: 'tops', subcategory: 't-shirt', name: 'White T-Shirt', confidence: 0.92 },
+        { category: 'bottoms', subcategory: 'athletic_shorts', name: 'Black Athletic Shorts', confidence: 0.9 },
+        { category: 'shoes', subcategory: 'boat_shoes', name: 'Red and White Boat Shoes', confidence: 0.88 },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    isHighConfidenceCompleteCloudRead({
+      source: 'on_device_yolo',
+      items: [
+        { category: 'tops', subcategory: 't-shirt', name: 'White T-Shirt', confidence: 0.95 },
+        { category: 'bottoms', subcategory: 'shorts', name: 'Black Shorts', confidence: 0.95 },
+      ],
+    }),
+    false,
+    'YOLO-only is not a Cloud complete read',
+  );
+  const gate = createLiveScoreGate();
+  const out = gateLiveScore(gate, 88, {
+    signature: OUTFIT,
+    now: 1000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: true,
+  });
+  assert.equal(out.score, 88, 'first Cloud complete read publishes without BELIEF_PROVEN');
 }
 
 // Once shown, ordinary drift updates immediately.

@@ -1,11 +1,11 @@
 /**
  * Score gate for the Live HUD.
  *
- * The scorer reacts to whatever the belief holds this instant, so an outfit read
- * on half-settled labels scored 76 and then jumped to 100 a second later. The
- * number was never wrong — it was published too early. Withhold the first score
- * until the garment belief is settled (or the max-hold safety valve trips), and
- * require a second agreeing sample before adopting a large jump.
+ * First publish: a high-confidence complete Cloud read may land immediately.
+ * Do NOT wait for BELIEF_PROVEN / slot settle on that first number — Cloud is
+ * already ~5s, and waiting for belief lock pushed the badge to ~12s. Belief may
+ * keep running in the background. After a number is showing, hold it until a
+ * materially different read is corroborated (or identity/core drifts).
  */
 
 /** Points of movement treated as "the system changed its mind", not drift. */
@@ -377,6 +377,86 @@ export function gateLiveJudgment<T extends {
   };
 }
 
+/** Mean slot confidence required for a Cloud piece to count as "high". */
+export const LIVE_CLOUD_COMPLETE_MIN_CONF = 0.85;
+
+function cloudItemBlob(item: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+}): string {
+  return `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
+}
+
+function isCloudDressItem(item: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+}): boolean {
+  const blob = cloudItemBlob(item);
+  if (/dress[\s_-]*shirt|shirt[\s_-]*dress/.test(blob)) return false;
+  return /\bdress\b/.test(blob) || /dresses/.test(blob);
+}
+
+function isCloudFootwearItem(item: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+}): boolean {
+  const blob = cloudItemBlob(item);
+  if (/oxford\s*shirt|dress\s*shirt/.test(blob)) return false;
+  return /shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford|boat|deck|topsider|trainer|clog|flip/.test(blob);
+}
+
+function isCloudBottomItem(item: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+}): boolean {
+  if (isCloudDressItem(item) || isCloudFootwearItem(item)) return false;
+  return /bottom|trouser|jean|short|skirt|pant|chino|sweatpant|jogger/.test(cloudItemBlob(item));
+}
+
+function isCloudTopItem(item: {
+  category?: string | null;
+  subcategory?: string | null;
+  name?: string | null;
+}): boolean {
+  if (isCloudDressItem(item) || isCloudFootwearItem(item) || isCloudBottomItem(item)) return false;
+  return /top|shirt|polo|blouse|knit|sweater|outer|blazer|jacket|coat|vest|gilet|hoodie|tee/.test(
+    cloudItemBlob(item),
+  );
+}
+
+/**
+ * First-publish eligibility: a high-confidence complete Cloud (or hybrid) read.
+ * Dress-only or top+bottom is enough — footwear may still be unresolved.
+ * Does NOT require BELIEF_PROVEN / slot stability.
+ */
+export function isHighConfidenceCompleteCloudRead(args: {
+  source?: string | null;
+  items?: Array<{
+    category?: string | null;
+    subcategory?: string | null;
+    name?: string | null;
+    confidence?: number | null;
+  }> | null;
+  completeness?: string | null;
+}): boolean {
+  if (!/cloud_vision|hybrid/i.test(String(args.source || ''))) return false;
+  const items = (args.items || []).filter(
+    (it) => Number(it.confidence) >= LIVE_CLOUD_COMPLETE_MIN_CONF,
+  );
+  if (!items.length) return false;
+  const hasDress = items.some(isCloudDressItem);
+  const hasTop = items.some(isCloudTopItem);
+  const hasBottom = items.some(isCloudBottomItem);
+  if (hasDress) return true;
+  if (hasTop && hasBottom) return true;
+  return String(args.completeness || '').toLowerCase() === 'complete'
+    && (hasTop || hasBottom);
+}
+
 export function gateLiveScore(
   gate: LiveScoreGate,
   next: number | null | undefined,
@@ -399,6 +479,11 @@ export function gateLiveScore(
     identityKey?: string | null;
     /** Partial truth: top still drifting — cap movement, do not block publish. */
     certainty?: LiveJudgmentCertainty;
+    /**
+     * First high-confidence complete Cloud read. Publishes immediately even
+     * when belief is not yet settled (BELIEF_PROVEN not required).
+     */
+    cloudComplete?: boolean;
   },
 ): { gate: LiveScoreGate; score: number | null } {
   let value = Number(next);
@@ -444,9 +529,11 @@ export function gateLiveScore(
     score: gate.shown,
   });
 
-  // First publish: settle preferred; else force after 2s with core present.
+  // First publish: complete Cloud read wins immediately — do not wait for
+  // BELIEF_PROVEN. Otherwise settle, else force after 2s with core present.
   // Upper-body / piece-set must never be required here.
   if (gate.shown === null) {
+    if (opts.cloudComplete) return adopt();
     if (opts.settled) return adopt();
     if (opts.coreFilled && heldMs >= LIVE_FORCE_PUBLISH_MS) return adopt();
     if (
