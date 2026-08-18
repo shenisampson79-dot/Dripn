@@ -18,6 +18,14 @@ import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
 import { currencyService } from '@/services/CurrencyService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import {
+  APPLE_AI_TOPUP_PRODUCT_IDS,
+  type AiTopUpPackId,
+  aiTopUpProductIdFor,
+  creditsForAiTopUpProductId,
+  displayNameForAiTopUpProductId,
+  isAiTopUpProductId,
+} from '@/services/aiTopUpProducts';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
 
@@ -77,6 +85,8 @@ export const APPLE_VOICE_PRODUCT_TO_CREDITS: Record<string, number> = {
 export type IAPSubscriptionTier = keyof typeof APPLE_SUBSCRIPTION_PRODUCT_IDS;
 export type IAPDFYTier = keyof typeof APPLE_DFY_PRODUCT_IDS;
 export type VoiceCreditPackId = keyof typeof APPLE_VOICE_PRODUCT_IDS;
+export type { AiTopUpPackId };
+export { APPLE_AI_TOPUP_PRODUCT_IDS };
 
 export interface SubscriptionPriceInfo {
   tier: IAPSubscriptionTier;
@@ -112,6 +122,7 @@ export interface AppleIAPService {
   purchaseSubscription(tier: IAPSubscriptionTier, interval: SubscriptionInterval): Promise<CustomerInfo>;
   purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo>;
   purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo>;
+  purchaseAiTopUp(packId: AiTopUpPackId): Promise<CustomerInfo>;
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
 }
@@ -489,6 +500,13 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     return this.purchaseProductById(voiceProductIdFor(packId));
   }
 
+  async purchaseAiTopUp(packId: AiTopUpPackId): Promise<CustomerInfo> {
+    if (!this.isAvailable()) {
+      throw new Error('Apple IAP is not available on this platform');
+    }
+    return this.purchaseProductById(aiTopUpProductIdFor(packId));
+  }
+
   async restorePurchases(): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
@@ -695,6 +713,38 @@ export function serializeVoiceCustomerInfoForSync(
     credits,
     packId: packId ?? null,
     weekendUnlimited,
+    originalTransactionId: latestTxn?.transactionIdentifier ?? null,
+  };
+}
+
+/**
+ * Serialize CustomerInfo for AI meter top-up consumable server sync.
+ * Consumables are not restored via Apple — extra budget lives on the server account.
+ */
+export function serializeAiTopUpCustomerInfoForSync(
+  customerInfo: CustomerInfo,
+  packId?: AiTopUpPackId,
+) {
+  const expectedProductId = packId ? aiTopUpProductIdFor(packId) : null;
+  const topUpTxns = customerInfo.nonSubscriptionTransactions.filter((txn) =>
+    isAiTopUpProductId(txn.productIdentifier)
+    && (!expectedProductId || txn.productIdentifier === expectedProductId),
+  );
+  const latestTxn = topUpTxns[0]
+    || customerInfo.nonSubscriptionTransactions.find((txn) =>
+      expectedProductId && txn.productIdentifier === expectedProductId,
+    )
+    || null;
+  const productId = latestTxn?.productIdentifier || expectedProductId;
+  const credits = productId ? creditsForAiTopUpProductId(productId) : null;
+  const displayName = productId ? displayNameForAiTopUpProductId(productId) : null;
+
+  return {
+    appUserId: customerInfo.originalAppUserId,
+    productId,
+    credits,
+    packId: packId ?? null,
+    displayName,
     originalTransactionId: latestTxn?.transactionIdentifier ?? null,
   };
 }

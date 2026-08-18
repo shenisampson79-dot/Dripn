@@ -289,6 +289,31 @@ Description: Unlimited voice for 48 hours — buy any day
 
 ```
 
+## AI meter top-up consumables
+
+Display names must match in-app copy exactly.
+
+### `com.dripn.ai.topup.300` — £5.99
+
+- **Display name:** `AI Top-Up` **(9 chars)**
+- **Description:** `300 extra Live and chat credits` **(32 chars)**
+
+### `com.dripn.ai.topup.600` — £10.99
+
+- **Display name:** `AI Top-Up Plus` **(14 chars)**
+- **Description:** `600 extra Live and chat credits` **(32 chars)**
+
+```
+com.dripn.ai.topup.300
+Display name: AI Top-Up
+Description: 300 extra Live and chat credits
+
+com.dripn.ai.topup.600
+Display name: AI Top-Up Plus
+Description: 600 extra Live and chat credits
+```
+
+
 
 
 

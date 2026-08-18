@@ -28,7 +28,9 @@ import {
   resolveTierFromCustomerInfo,
   serializeCustomerInfoForSyncWithStorefront,
   serializeDfyCustomerInfoForSync,
+  serializeAiTopUpCustomerInfoForSync,
   type IAPSubscriptionTier,
+  type AiTopUpPackId,
 } from "@/services/AppleIAPService";
 import {
   openAppleManageSubscriptions,
@@ -46,6 +48,7 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { DFYTier } from "@/services/DFYService";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import { isPurchaseCancelledError, getPurchaseErrorMessage } from "@/hooks/useVoiceCredits";
 
 const SHOW_DFY_PURCHASE_UI = !FEATURE_FLAGS.hideDfyPurchaseUi;
 
@@ -687,13 +690,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
           {[
             {
-              id: 'standard',
+              id: 'standard' as AiTopUpPackId,
               name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
               price: '£5.99',
               detail: t('subscription.aiTopUp.standardDetail') || '300 AI credits',
             },
             {
-              id: 'plus',
+              id: 'plus' as AiTopUpPackId,
               name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
               price: '£10.99',
               detail: t('subscription.aiTopUp.plusDetail') || '600 AI credits',
@@ -702,35 +705,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           ].map((pack) => (
             <Pressable
               key={pack.id}
+              disabled={isProcessing}
               onPress={() => {
-                Haptics.selectionAsync();
-                const onPro = normalizedTier === 'stylist_unlimited';
-                Alert.alert(
-                  pack.name,
-                  onPro
-                    ? (t('subscription.aiTopUp.comingSoonPro')
-                      || 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit.')
-                    : (t('subscription.aiTopUp.comingSoon')
-                      || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
-                  onPro
-                    ? [{ text: t('common.ok') || 'OK' }]
-                    : [
-                        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-                        {
-                          text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
-                          onPress: () => {
-                            setSelectedPlan('stylist_unlimited');
-                            scrollToPlans();
-                          },
-                        },
-                      ],
-                );
+                void purchaseAiTopUpPack(pack);
               }}
               style={[
                 styles.aiTopUpCard,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                   borderColor: pack.bestValue ? LUXURY_COLORS.gold : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
+                  opacity: isProcessing ? 0.6 : 1,
                 },
               ]}
             >
@@ -788,6 +772,84 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       t('subscription.subscriptionActiveMessage').replace('{planName}', planName),
       [{ text: t('common.ok'), onPress: () => navigation.goBack() }],
     );
+  };
+
+  const showAiTopUpComingSoon = (packName: string) => {
+    const onPro = normalizedTier === 'stylist_unlimited';
+    Alert.alert(
+      packName,
+      onPro
+        ? (t('subscription.aiTopUp.comingSoonPro')
+          || 'AI Top-Up packs are being finished in App Store Connect. Check back shortly to buy extra Live and chat credit.')
+        : (t('subscription.aiTopUp.comingSoon')
+          || 'AI Top-Up packs are being finished in App Store Connect. You can upgrade for a bigger included monthly pot today, or check back shortly to buy credit on your current plan.'),
+      onPro
+        ? [{ text: t('common.ok') || 'OK' }]
+        : [
+            { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+            {
+              text: t('live.budgetModal.upgradePlan') || 'Upgrade plan',
+              onPress: () => {
+                setSelectedPlan('stylist_unlimited');
+                scrollToPlans();
+              },
+            },
+          ],
+    );
+  };
+
+  const purchaseAiTopUpPack = async (pack: {
+    id: AiTopUpPackId;
+    name: string;
+    detail: string;
+  }) => {
+    if (isProcessing) return;
+    Haptics.selectionAsync();
+
+    if (!useAppleIAP) {
+      showAiTopUpComingSoon(pack.name);
+      return;
+    }
+    if (!user?.id) {
+      Alert.alert(
+        t('subscription.signInToSubscribe') || 'Sign in required',
+        t('subscription.signInToBuyCredit') || 'Please sign in to buy AI credit with the App Store.',
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const iapReady = await appleIAPService.configure(user.id);
+      if (!iapReady) {
+        throw new Error(IAP_UNAVAILABLE_MESSAGE);
+      }
+      const customerInfo = await appleIAPService.purchaseAiTopUp(pack.id);
+      const syncPayload = serializeAiTopUpCustomerInfoForSync(customerInfo, pack.id);
+      if (!syncPayload.originalTransactionId) {
+        throw new Error(
+          t('subscription.aiTopUp.verifyFailed')
+            || 'AI Top-Up purchase could not be verified. Please contact support if credits are missing.',
+        );
+      }
+      const result = await apiService.syncAppleAiTopUpPurchase({
+        ...syncPayload,
+        customerInfo: syncPayload,
+      });
+      const added = Number(result.creditsAdded || syncPayload.credits || 0);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const successBody = added > 0
+        ? (t('subscription.aiTopUp.purchaseSuccess') || '+{credits} AI credits added to your allowance.').replace('{credits}', String(added))
+        : (t('subscription.aiTopUp.alreadySynced') || 'Your AI credit balance is up to date.');
+      Alert.alert(pack.name, successBody);
+    } catch (error: unknown) {
+      if (isPurchaseCancelledError(error)) return;
+      const message = getPurchaseErrorMessage(error)
+        || (error instanceof Error ? error.message : t('common.error'));
+      Alert.alert(t('common.error') || 'Error', message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleRestorePurchases = async () => {

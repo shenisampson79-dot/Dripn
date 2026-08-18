@@ -133,7 +133,7 @@ export function getPurchaseErrorMessage(error: unknown): string {
   if (isTechnicalErrorMessage(message)) {
     return "We couldn't complete your purchase. Please try again.";
   }
-  if (message.includes('Voice purchase could not be verified')) {
+  if (message.includes('Voice purchase could not be verified') || message.includes('AI Top-Up purchase could not be verified')) {
     return message;
   }
   return "We couldn't complete your purchase. Please try again.";

@@ -27,6 +27,8 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 | `com.dripn.voice.boost.30` | Consumable | 30 spoken replies | `boost` |
 | `com.dripn.voice.pro.80` | Consumable | 80 spoken replies | `pro` |
 | `com.dripn.voice.weekend_unlimited` | Consumable | Unlimited voice for 48 hours | `weekend` |
+| `com.dripn.ai.topup.300` | Consumable | +300 AI credits (AI Top-Up) | — |
+| `com.dripn.ai.topup.600` | Consumable | +600 AI credits (AI Top-Up Plus) | — |
 
 Legacy IDs (`com.dripn.personal_stylist.annual`, `credits_10`, `credits_40`, etc.) remain honoured server-side for existing purchases. New Personal Stylist purchases use the canonical `.yearly` product.
 

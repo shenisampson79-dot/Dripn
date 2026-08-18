@@ -1,13 +1,13 @@
 # Dripn IAP Setup Guide — App Store Connect + RevenueCat
 
-Complete setup guide for all **9** in-app purchase products used by Dripn (StyleWise iOS + Dripn-Server). Product IDs are exact strings from `AppleIAPService.ts` and `appleIAPService.js`.
+Complete setup guide for all **11** in-app purchase products used by Dripn (StyleWise iOS + Dripn-Server). Product IDs are exact strings from `AppleIAPService.ts` / `aiTopUpProducts.ts` and `appleIAPService.js` / `aiTopUpProducts.js`.
 
 **Bundle ID:** `com.dripn.app`  
 **Subscription group reference name:** `dripn_subscriptions`
 
 ---
 
-## 1. The 9 Products Table
+## 1. The 11 Products Table
 
 | # | Product ID | Type | Display Name (UK, ≤30) | Description (UK, ≤45) | UK Price Target (GBP) | Subscription Group | RevenueCat Entitlement | App Feature |
 |---|------------|------|------------------------|----------------------|----------------------|--------------------|------------------------|-------------|
@@ -20,6 +20,8 @@ Complete setup guide for all **9** in-app purchase products used by Dripn (Style
 | 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
 | 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
 | 9 | `com.dripn.voice.weekend_unlimited` | Consumable | 2-Day Unlimited | Unlimited voice for 48 hours — buy any day | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
+| 10 | `com.dripn.ai.topup.300` | Consumable | AI Top-Up | 300 extra Live and chat credits | **£5.99** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up pack (`standard`) |
+| 11 | `com.dripn.ai.topup.600` | Consumable | AI Top-Up Plus | 600 extra Live and chat credits | **£10.99** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up Plus pack (`plus`) |
 
 ### Price sources (server code)
 
@@ -80,6 +82,18 @@ Copy into each **Consumable** product's localization fields:
 **`com.dripn.voice.weekend_unlimited`**
 - Display name: `2-Day Unlimited` (15 chars)
 - Description: `Unlimited voice for 48 hours — buy any day` (43 chars)
+
+### App Store Connect — AI top-up paste blocks (English U.K.)
+
+Copy into each **Consumable** product's localization fields:
+
+**`com.dripn.ai.topup.300`**
+- Display name: `AI Top-Up` (9 chars)
+- Description: `300 extra Live and chat credits` (32 chars)
+
+**`com.dripn.ai.topup.600`**
+- Display name: `AI Top-Up Plus` (14 chars)
+- Description: `600 extra Live and chat credits` (32 chars)
 
 > **Legacy voice IDs** (`credits_10`, `credits_40`, `credits_80`, `credits_150`, `credits_25`, `credits_50`, `credits_100`) remain honoured server-side for existing purchases. Create the three canonical IDs above in ASC for new submissions.
 
@@ -382,6 +396,7 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 | Subscriptions | `purchaseSubscription` | `POST /api/subscription/apple/sync` |
 | DFY | `purchaseDFY` | `POST /api/dfy/apple/sync` |
 | Voice | `purchaseVoiceCredits` | `POST /api/voice/apple/sync` |
+| AI Top-Up | `purchaseAiTopUp` | `POST /api/ai-credits/apple/sync` |
 
 ### Common mistakes
 
@@ -421,4 +436,8 @@ Voice (consumable — server credits or 48h unlimited, no entitlement):
   com.dripn.voice.pro.80            →  80 credits   (pack: pro, Most Popular)
   com.dripn.voice.weekend_unlimited →  48h unlimited voice (pack: weekend)
   Legacy: credits_10/40/80/150, credits_25/50/100, voice.10/.30/.60 still honoured
+
+AI meter top-up (consumable — extra budget cents, no entitlement, no legacy aliases):
+  com.dripn.ai.topup.300            →  +300 AI credits  (display: AI Top-Up)
+  com.dripn.ai.topup.600            →  +600 AI credits  (display: AI Top-Up Plus)
 ```

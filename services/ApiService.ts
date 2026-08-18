@@ -2875,6 +2875,34 @@ class ApiService {
     });
   }
 
+  async syncAppleAiTopUpPurchase(payload: {
+    productId?: string | null;
+    credits?: number | null;
+    packId?: string | null;
+    displayName?: string | null;
+    originalTransactionId?: string | null;
+    customerInfo?: Record<string, unknown>;
+  }) {
+    return this.request<{
+      success: boolean;
+      creditsAdded: number;
+      alreadySynced?: boolean;
+      billingPlatform?: string;
+      productId?: string;
+      displayName?: string;
+      usage?: {
+        month: string;
+        usedCents: number;
+        budgetCents: number;
+        purchasedAiCredits?: number;
+        remainingCents: number;
+      } | null;
+    }>('/api/ai-credits/apple/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createCheckoutSession(plan: string, language?: string) {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/create-session', {
       method: 'POST',
@@ -6170,6 +6198,7 @@ class ApiService {
         rembgSoftMonthlyLimit?: number;
         remainingCents: number;
         marketTier?: string | null;
+        purchasedAiCredits?: number;
       } | null;
       freeRembgLifetimeLimit: number;
       paidRembgMonthlyLimit?: number;
