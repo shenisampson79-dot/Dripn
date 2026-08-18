@@ -77,9 +77,11 @@ import { permanentWardrobePhotoPath } from "@/utils/persistWardrobePhoto";
 import { invalidateWardrobeImageCache } from "@/utils/wardrobeImageLoader";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import {
+  decisionFromLocalMatches,
   findLocalWardrobeDuplicates,
   formatDuplicateNames,
   normalizeDuplicateDecision,
+  overrideIdsFromMatches,
   type DuplicateMatch,
   type NormalizedDuplicateDecision,
 } from "@/utils/wardrobeDuplicateMatch";
@@ -783,6 +785,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
             type: first?.type || first?.decision?.type,
             decision: first?.decision,
             similarMatches: first?.similarMatches,
+            conflictMatches: (first as { conflictMatches?: unknown[] } | undefined)?.conflictMatches,
           });
         } catch {
           const local = findLocalWardrobeDuplicates(
@@ -796,16 +799,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               brand: it.brand,
               imageUri: it.imageUri,
               origin: it.origin,
+              imagePhash: it.imagePhash,
+              sourceCropId: it.sourceCropId,
+              scanSessionId: it.scanSessionId,
+              sourceImageId: (it as { sourceImageId?: string }).sourceImageId,
             })),
           );
-          decision = normalizeDuplicateDecision({
-            isDuplicate: local.length > 0,
-            type: local.length > 0 ? 'duplicate' : 'ok',
-            matches: local,
-          });
+          decision = decisionFromLocalMatches(local);
         }
 
-        if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item') {
+        if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item' || decision.type === 'classification_conflict') {
           setIsSubmitting(false);
           setDupeSheet({ visible: true, decision });
           return;
@@ -828,6 +831,9 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         aiAnalyzed,
         isFavorite: false,
         allowDuplicate: opts?.allowDuplicate === true,
+        dedupeOverrideAgainst: opts?.allowDuplicate
+          ? overrideIdsFromMatches(dupeSheet.decision.matches)
+          : undefined,
       } as any);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

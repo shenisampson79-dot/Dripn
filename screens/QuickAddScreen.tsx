@@ -56,9 +56,11 @@ import {
   resolveSeasonChips,
 } from '@/utils/wardrobeSeasonOccasion';
 import {
+  decisionFromLocalMatches,
   findLocalWardrobeDuplicates,
   formatDuplicateNames,
   normalizeDuplicateDecision,
+  overrideIdsFromMatches,
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import {
@@ -526,6 +528,7 @@ export default function QuickAddScreen({ navigation }: Props) {
           type: first?.type || first?.decision?.type,
           decision: first?.decision,
           similarMatches: first?.similarMatches,
+          conflictMatches: (first as { conflictMatches?: unknown[] } | undefined)?.conflictMatches,
         });
       } catch {
         const localDupes = findLocalWardrobeDuplicates(
@@ -544,19 +547,17 @@ export default function QuickAddScreen({ navigation }: Props) {
             brand: it.brand,
             imageUri: it.enhancedImageUri || it.imageUri,
             origin: it.origin,
+            imagePhash: it.imagePhash,
+            sourceCropId: it.sourceCropId,
+            scanSessionId: it.scanSessionId,
+            sourceImageId: (it as { sourceImageId?: string }).sourceImageId,
+            captureSessionId: it.scanSessionId,
           })),
         );
-        decision = normalizeDuplicateDecision({
-          isDuplicate: localDupes.length > 0,
-          type: localDupes.length > 0 ? 'duplicate' : 'ok',
-          matches: localDupes,
-          message: localDupes.length > 0
-            ? `Looks like you already have ${formatDuplicateNames(localDupes)}.`
-            : undefined,
-        });
+        decision = decisionFromLocalMatches(localDupes);
       }
 
-      if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item') {
+      if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item' || decision.type === 'classification_conflict') {
         setDupeSheet({ visible: true, decision });
         return { ok: false, blockedByDupe: true };
       }
@@ -588,6 +589,9 @@ export default function QuickAddScreen({ navigation }: Props) {
         ].filter(Boolean) as string[],
         isFavorite: false,
         allowDuplicate,
+        dedupeOverrideAgainst: allowDuplicate
+          ? overrideIdsFromMatches(dupeSheet.decision.matches)
+          : undefined,
       } as any);
       return { ok: true, item: { id: String(saved.id), name: saved.name } };
     } catch (error: any) {

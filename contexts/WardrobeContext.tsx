@@ -156,6 +156,14 @@ export interface WardrobeItem {
   needsReview?: boolean;
   aiAnalyzed?: boolean;
   aiTags?: string[];
+  /** Perceptual hash from server fingerprint — duplicate matching only, never shown. */
+  imagePhash?: string;
+  sourceCropId?: string;
+  cropId?: string;
+  scanSessionId?: string;
+  captureSessionId?: string;
+  sourceImageId?: string;
+  dedupeOverrideAgainst?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -630,6 +638,35 @@ async function backfillMissingServerImages(
   return uploaded;
 }
 
+function fingerprintFromAiTags(tags: unknown): {
+  imagePhash?: string;
+  sourceCropId?: string;
+  cropId?: string;
+  scanSessionId?: string;
+  captureSessionId?: string;
+  sourceImageId?: string;
+  dedupeOverrideAgainst?: string[];
+} {
+  if (!tags || typeof tags !== 'object' || Array.isArray(tags)) return {};
+  const t = tags as Record<string, unknown>;
+  const imagePhash = typeof t.imagePhash === 'string'
+    ? t.imagePhash
+    : (typeof t.dHash === 'string' ? t.dHash : (typeof t.image_phash === 'string' ? t.image_phash : undefined));
+  const sourceCropId = typeof t.sourceCropId === 'string'
+    ? t.sourceCropId
+    : (typeof t.cropId === 'string' ? t.cropId : undefined);
+  const cropId = typeof t.cropId === 'string' ? t.cropId : sourceCropId;
+  const scanSessionId = typeof t.scanSessionId === 'string'
+    ? t.scanSessionId
+    : (typeof t.captureSessionId === 'string' ? t.captureSessionId : undefined);
+  const captureSessionId = typeof t.captureSessionId === 'string' ? t.captureSessionId : scanSessionId;
+  const sourceImageId = typeof t.sourceImageId === 'string' ? t.sourceImageId : undefined;
+  const dedupeOverrideAgainst = Array.isArray(t.dedupeOverrideAgainst)
+    ? t.dedupeOverrideAgainst.map((v) => String(v)).filter(Boolean)
+    : (typeof t.dedupeOverrideAgainst === 'string' ? [t.dedupeOverrideAgainst] : undefined);
+  return { imagePhash, sourceCropId, cropId, scanSessionId, captureSessionId, sourceImageId, dedupeOverrideAgainst };
+}
+
 function mapBackendItemToFrontend(
   row: any,
   imageCache: ImageCache,
@@ -762,6 +799,7 @@ function mapBackendItemToFrontend(
     ),
     aiAnalyzed: (meta as any).aiAnalyzed,
     aiTags: (meta as any).aiTags,
+    ...fingerprintFromAiTags(row.aiTags || row.ai_tags),
     imageUri: displayUri,
     enhancedImageUri:
       httpProcessed ||
@@ -1169,6 +1207,12 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           ? { processedImageUrl: remoteImageUrl }
           : {}),
         allowDuplicate: allowDuplicate === true,
+        sourceCropId: (itemData as any).sourceCropId || (itemData as any).cropId || metadata.sourceCropId,
+        cropId: (itemData as any).cropId || (itemData as any).sourceCropId || metadata.cropId,
+        scanSessionId: (itemData as any).scanSessionId || (itemData as any).captureSessionId || metadata.scanSessionId,
+        captureSessionId: (itemData as any).captureSessionId || (itemData as any).scanSessionId || metadata.captureSessionId,
+        sourceImageId: (itemData as any).sourceImageId || metadata.sourceImageId,
+        dedupeOverrideAgainst: (itemData as any).dedupeOverrideAgainst || metadata.dedupeOverrideAgainst,
       });
 
       if (response?.success && response.item) {
@@ -1235,25 +1279,39 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
     // Local-only fallback (offline / backend down) — soft-check attributes (synonyms + category groups)
     if (!(itemData as any).allowDuplicate) {
-      const localDupes = findLocalWardrobeDuplicates(
-        {
-          name: itemData.name,
-          category: itemData.category,
-          subcategory: itemData.subcategory,
-          color: itemData.color,
-          brand: itemData.brand,
-        },
-        itemsRef.current.map((existing) => ({
-          id: String(existing.id),
-          name: existing.name,
-          category: existing.category,
-          subcategory: existing.subcategory,
-          color: existing.color,
-          brand: existing.brand,
-          imageUri: existing.enhancedImageUri || existing.imageUri,
-          origin: existing.origin,
-        })),
-      );
+        const localDupes = findLocalWardrobeDuplicates(
+          {
+            name: itemData.name,
+            category: itemData.category,
+            subcategory: itemData.subcategory,
+            color: itemData.color,
+            brand: itemData.brand,
+            imagePhash: (itemData as any).imagePhash,
+            sourceCropId: (itemData as any).sourceCropId,
+            cropId: (itemData as any).cropId,
+            scanSessionId: (itemData as any).scanSessionId,
+            captureSessionId: (itemData as any).captureSessionId,
+            sourceImageId: (itemData as any).sourceImageId,
+            dedupeOverrideAgainst: (itemData as any).dedupeOverrideAgainst,
+          },
+          itemsRef.current.map((existing) => ({
+            id: String(existing.id),
+            name: existing.name,
+            category: existing.category,
+            subcategory: existing.subcategory,
+            color: existing.color,
+            brand: existing.brand,
+            imageUri: existing.enhancedImageUri || existing.imageUri,
+            origin: existing.origin,
+            imagePhash: existing.imagePhash,
+            sourceCropId: existing.sourceCropId,
+            cropId: existing.cropId || existing.sourceCropId,
+            scanSessionId: existing.scanSessionId,
+            captureSessionId: existing.captureSessionId || existing.scanSessionId,
+            sourceImageId: existing.sourceImageId,
+            dedupeOverrideAgainst: existing.dedupeOverrideAgainst,
+          })),
+        );
       if (localDupes.length > 0) {
         const dupeErr = new Error(
           'Looks like you already have this (or something very similar) in your wardrobe.',
@@ -1332,6 +1390,12 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           isFavorite: itemData.isFavorite || false,
           imageUrl: uri?.startsWith('http') ? uri : undefined,
           imageBase64: resolvedBase64 || undefined,
+          sourceCropId: (itemData as any).sourceCropId || rest.sourceCropId,
+          cropId: (itemData as any).cropId || rest.cropId,
+          scanSessionId: (itemData as any).scanSessionId || rest.scanSessionId,
+          captureSessionId: (itemData as any).captureSessionId || rest.captureSessionId,
+          sourceImageId: (itemData as any).sourceImageId || rest.sourceImageId,
+          dedupeOverrideAgainst: (itemData as any).dedupeOverrideAgainst || rest.dedupeOverrideAgainst,
           metadata: { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed },
         });
       }

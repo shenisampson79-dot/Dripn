@@ -3643,6 +3643,12 @@ class ApiService {
     processedImageUrl?: string;
     allowDuplicate?: boolean;
     imagePhash?: string;
+    sourceCropId?: string;
+    cropId?: string;
+    scanSessionId?: string;
+    captureSessionId?: string;
+    sourceImageId?: string;
+    dedupeOverrideAgainst?: string | string[];
   }): Promise<{ success: boolean; item: any }> {
     return this.request<{ success: boolean; item: any }>('/api/wardrobe', {
       method: 'POST',
@@ -3659,13 +3665,20 @@ class ApiService {
     imageBase64?: string;
     imageUrl?: string;
     imagePhash?: string;
+    sourceCropId?: string;
+    cropId?: string;
+    scanSessionId?: string;
+    captureSessionId?: string;
+    sourceImageId?: string;
+    material?: string;
+    dedupeOverrideAgainst?: string | string[];
   }>): Promise<{
     success: boolean;
     hasDuplicates: boolean;
     hasSimilar?: boolean;
     results: Array<{
       index: number;
-      type?: 'duplicate' | 'similar_item' | 'already_owned' | 'ok';
+      type?: 'duplicate' | 'similar_item' | 'classification_conflict' | 'already_owned' | 'ok';
       isDuplicate: boolean;
       message?: string;
       candidatePhash?: string | null;
@@ -3696,7 +3709,7 @@ class ApiService {
         matchScope?: 'wardrobe' | 'batch';
       }>;
       decision?: {
-        type: 'duplicate' | 'similar_item' | 'already_owned' | 'ok';
+        type: 'duplicate' | 'similar_item' | 'classification_conflict' | 'already_owned' | 'ok';
         matches: Array<Record<string, unknown>>;
         message?: string;
         isDuplicate?: boolean;

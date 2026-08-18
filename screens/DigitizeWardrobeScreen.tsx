@@ -57,7 +57,10 @@ import {
   promptWardrobeOrientationReview,
 } from '@/utils/wardrobeImageOrientation';
 import {
+  DEDUPE_COPY,
   normalizeDuplicateDecision,
+  overrideIdsFromMatches,
+  scanItemDedupeBind,
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import { partitionDigitizeCandidates } from '@/utils/digitizeDedup';
@@ -242,7 +245,7 @@ function sessionItemToWardrobeItem(item: ScanSessionItem): WardrobeItem {
   };
 }
 
-function toCandidate(item: ScanSessionItem) {
+function toCandidate(item: ScanSessionItem, scanSessionId?: string) {
   return {
     id: item.tempId,
     name: item.name,
@@ -251,6 +254,26 @@ function toCandidate(item: ScanSessionItem) {
     color: item.color,
     brand: item.brand,
     imageUri: item.sceneCrop ? `data:image/jpeg;base64,${item.sceneCrop}` : undefined,
+    ...scanItemDedupeBind(item, scanSessionId),
+  };
+}
+
+function toWardrobeDupeRow(it: WardrobeItem) {
+  return {
+    id: String(it.id),
+    name: it.name,
+    category: it.category,
+    subcategory: it.subcategory,
+    color: it.color,
+    brand: it.brand,
+    imageUri: it.enhancedImageUri || it.imageUri,
+    origin: it.origin,
+    imagePhash: it.imagePhash,
+    sourceCropId: it.sourceCropId,
+    cropId: it.sourceCropId,
+    scanSessionId: it.scanSessionId,
+    captureSessionId: it.scanSessionId,
+    sourceImageId: (it as WardrobeItem & { sourceImageId?: string }).sourceImageId,
   };
 }
 
@@ -289,6 +312,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { items: savedWardrobe, addItemsBatch, addItem } = useWardrobe();
+  const digitizeSessionIdRef = useRef(`digitize_${Date.now().toString(36)}`);
   const [permission, requestPermission] = useCameraPermissions();
   const yoloStatus = getOnDeviceYoloStatus();
 
@@ -401,17 +425,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
   const applyDedupToItems = useCallback(
     (incoming: ScanSessionItem[], opts?: { selectAllUnique?: boolean }) => {
       const partitioned = partitionDigitizeCandidates(
-        incoming.map(toCandidate),
-        savedWardrobeRef.current.map((it) => ({
-          id: String(it.id),
-          name: it.name,
-          category: it.category,
-          subcategory: it.subcategory,
-          color: it.color,
-          brand: it.brand,
-          imageUri: it.enhancedImageUri || it.imageUri,
-          origin: it.origin,
-        })),
+        incoming.map((item) => toCandidate(item, digitizeSessionIdRef.current)),
+        savedWardrobeRef.current.map(toWardrobeDupeRow),
       );
       const uniqueIds = new Set(partitioned.unique.map((u) => u.id));
       const uniqueItems = incoming.filter((item) => uniqueIds.has(item.tempId));
@@ -482,6 +497,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
       setSessionSavedItems([]);
       const titledItems = result.items.map((item) => ({
         ...item,
+        sourceImageId: result.sessionId || item.sourceImageId,
         name: titleCaseItemName(item.name) || item.name,
       }));
       const { uniqueItems, droppedCount, skipped } = applyDedupToItems(titledItems);
@@ -593,6 +609,7 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
     allowDuplicates = false,
     skippedMeta: SaveOutcomeSkipped[] = [],
     detectedTotal?: number,
+    overrideAgainst?: string[],
   ) => {
     if (itemsToSave.length === 0) {
       setSaveSuccess(buildSaveOutcome({
@@ -620,6 +637,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         isFavorite: false,
         wardrobeConfidence: item.wardrobeConfidence ?? item.confidence,
         needsReview: Boolean(item.needsReview || item.needsConfirm),
+        ...scanItemDedupeBind(item, digitizeSessionIdRef.current),
+        dedupeOverrideAgainst: overrideAgainst,
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -647,17 +666,8 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
 
     // Always re-partition immediately before save (wardrobe may have changed / batch dups).
     const partitioned = partitionDigitizeCandidates(
-      selectedItems.map(toCandidate),
-      savedWardrobe.map((it) => ({
-        id: String(it.id),
-        name: it.name,
-        category: it.category,
-        subcategory: it.subcategory,
-        color: it.color,
-        brand: it.brand,
-        imageUri: it.enhancedImageUri || it.imageUri,
-        origin: it.origin,
-      })),
+      selectedItems.map((item) => toCandidate(item, digitizeSessionIdRef.current)),
+      savedWardrobe.map(toWardrobeDupeRow),
     );
     const uniqueSelected = selectedItems.filter((item) =>
       partitioned.unique.some((u) => u.id === item.tempId),
@@ -692,39 +702,49 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         color: item.color,
         brand: item.brand || undefined,
         imageBase64: item.sceneCrop || undefined,
+        ...scanItemDedupeBind(item, digitizeSessionIdRef.current),
       }));
       const serverDupe = await apiService.checkWardrobeDuplicates(dupePayload);
       const blockedIndexes = new Set<number>();
+      const warnIndexes = new Set<number>();
       const legacyBatchOnlyIndexes: number[] = [];
+      let firstWarn: NormalizedDuplicateDecision | null = null;
       (serverDupe.results || []).forEach((r, idx) => {
         const decision = normalizeDuplicateDecision({
           ...r,
           type: r.type || r.decision?.type,
           decision: r.decision,
           similarMatches: r.similarMatches,
+          conflictMatches: (r as { conflictMatches?: unknown[] }).conflictMatches,
         });
-        if (decision.type === 'duplicate' || decision.type === 'already_owned') {
-          const index = typeof r.index === 'number' ? r.index : idx;
-          const matches = (decision.matches || r.matches || []) as Array<{
-            matchScope?: string;
-            matchedCandidateIndex?: number;
-          }>;
-          const batchOnly = matches.length > 0
-            && matches.every((m) => m.matchScope === 'batch');
-          if (batchOnly) {
-            const hasEarlierTwin = matches.some(
-              (m) => typeof m.matchedCandidateIndex === 'number' && m.matchedCandidateIndex < index,
-            );
-            const hasAnyIndex = matches.some(
-              (m) => typeof m.matchedCandidateIndex === 'number',
-            );
-            if (hasAnyIndex) {
-              if (!hasEarlierTwin) return; // keep first copy in this upload
-            } else {
-              legacyBatchOnlyIndexes.push(index);
-              return;
-            }
+        const isHard = decision.type === 'duplicate' || decision.type === 'already_owned';
+        const isWarn = decision.type === 'similar_item' || decision.type === 'classification_conflict';
+        if (!isHard && !isWarn) return;
+        const index = typeof r.index === 'number' ? r.index : idx;
+        const matches = (decision.matches || r.matches || []) as Array<{
+          matchScope?: string;
+          matchedCandidateIndex?: number;
+        }>;
+        const batchOnly = matches.length > 0
+          && matches.every((m) => m.matchScope === 'batch');
+        if (batchOnly) {
+          const hasEarlierTwin = matches.some(
+            (m) => typeof m.matchedCandidateIndex === 'number' && m.matchedCandidateIndex < index,
+          );
+          const hasAnyIndex = matches.some(
+            (m) => typeof m.matchedCandidateIndex === 'number',
+          );
+          if (hasAnyIndex) {
+            if (!hasEarlierTwin) return; // keep first copy in this upload
+          } else {
+            legacyBatchOnlyIndexes.push(index);
+            return;
           }
+        }
+        if (isWarn) {
+          warnIndexes.add(index);
+          if (!firstWarn) firstWarn = decision;
+        } else {
           blockedIndexes.add(index);
         }
       });
@@ -739,13 +759,34 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         }
         blockedIndexes.add(index);
       });
-      const afterServer = uniqueSelected.filter((_, i) => !blockedIndexes.has(i));
+      const afterServer = uniqueSelected.filter((_, i) => !blockedIndexes.has(i) && !warnIndexes.has(i));
       const blocked = uniqueSelected.filter((_, i) => blockedIndexes.has(i));
+      const warnItems = uniqueSelected.filter((_, i) => warnIndexes.has(i));
       const serverSkipped: SaveOutcomeSkipped[] = blocked.map((b) => ({
         name: b.name,
         reason: `We already have something similar to ${titleCaseItemName(b.name) || b.name}`,
       }));
       const allSkipped = [...localSkipped, ...serverSkipped];
+
+      if (warnItems.length > 0) {
+        setDupeSheet({
+          visible: true,
+          decision: firstWarn || normalizeDuplicateDecision({
+            type: 'similar_item',
+            isDuplicate: false,
+            message: DEDUPE_COPY.probable,
+            matches: warnItems.map((b) => ({
+              id: b.tempId,
+              name: b.name,
+              category: b.category,
+              color: b.color,
+              imageUri: b.sceneCrop ? `data:image/jpeg;base64,${b.sceneCrop}` : undefined,
+            })),
+          }),
+          pendingItems: [...afterServer, ...warnItems],
+        });
+        return;
+      }
 
       if (blocked.length > 0 && afterServer.length === 0) {
         setDupeSheet({
@@ -903,19 +944,10 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         };
 
         const partitioned = partitionDigitizeCandidates(
-          [toCandidate(item)],
+          [toCandidate(item, digitizeSessionIdRef.current)],
           [
-            ...savedWardrobeRef.current.map((it) => ({
-              id: String(it.id),
-              name: it.name,
-              category: it.category,
-              subcategory: it.subcategory,
-              color: it.color,
-              brand: it.brand,
-              imageUri: it.enhancedImageUri || it.imageUri,
-              origin: it.origin,
-            })),
-            ...scanItems.map(toCandidate),
+            ...savedWardrobeRef.current.map(toWardrobeDupeRow),
+            ...scanItems.map((row) => toCandidate(row, digitizeSessionIdRef.current)),
           ],
         );
 
@@ -950,7 +982,11 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
               seasons: ['all-season'],
               occasions: ['everyday'],
               isFavorite: false,
-            });
+              sourceCropId: tempId,
+              cropId: tempId,
+              scanSessionId: digitizeSessionIdRef.current,
+              captureSessionId: digitizeSessionIdRef.current,
+            } as any);
             liveSavedTempIdsRef.current.add(tempId);
             markTrackSaved(track.trackId);
             void playLiveShutter();
@@ -2057,9 +2093,24 @@ export default function DigitizeWardrobeScreen({ navigation }: Props) {
         onClose={() => setDupeSheet((s) => ({ ...s, visible: false }))}
         onAddAnyway={async () => {
           setDupeSheet((s) => ({ ...s, visible: false }));
-          await persistItems(dupeSheet.pendingItems, true);
+          await persistItems(
+            dupeSheet.pendingItems,
+            true,
+            [],
+            undefined,
+            overrideIdsFromMatches(dupeSheet.decision.matches),
+          );
         }}
-        onContinue={() => setDupeSheet((s) => ({ ...s, visible: false }))}
+        onContinue={async () => {
+          setDupeSheet((s) => ({ ...s, visible: false }));
+          await persistItems(
+            dupeSheet.pendingItems,
+            true,
+            [],
+            undefined,
+            overrideIdsFromMatches(dupeSheet.decision.matches),
+          );
+        }}
       />
 
       <Modal visible={challengeResult != null} transparent animationType="fade" onRequestClose={dismissChallengeResult}>

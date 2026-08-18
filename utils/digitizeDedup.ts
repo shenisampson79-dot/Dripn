@@ -1,10 +1,11 @@
 /**
- * Digitize-session dedup: within-batch collapse + wardrobe attribute filter.
- * Server dHash/embeddings remain authoritative when online; this never silently no-ops.
+ * Digitize-session dedup: within-batch collapse + wardrobe filter.
+ * Image hash / crop-session bind first; server dHash remains authoritative online.
+ * This never silently no-ops.
  */
 
 import {
-  attributeSimilarity,
+  scoreLocalDuplicateMatch,
   findLocalWardrobeDuplicates,
   type WardrobeDupeCandidate,
   type WardrobeDupeMatch,
@@ -12,6 +13,12 @@ import {
 
 export type DigitizeCandidate = WardrobeDupeCandidate & {
   id: string;
+  sourceCropId?: string | null;
+  cropId?: string | null;
+  scanSessionId?: string | null;
+  captureSessionId?: string | null;
+  sourceImageId?: string | null;
+  imagePhash?: string | null;
 };
 
 export type DigitizeDrop = {
@@ -32,8 +39,9 @@ export function collapseWithinBatch(candidates: DigitizeCandidate[]): {
   const dropped: DigitizeDrop[] = [];
 
   for (const candidate of candidates) {
-    const match = kept.find((k) => attributeSimilarity(candidate, k) >= 0.82);
+    const match = kept.find((k) => scoreLocalDuplicateMatch(candidate, k).isDuplicate);
     if (match) {
+      const scored = scoreLocalDuplicateMatch(candidate, match);
       dropped.push({
         item: candidate,
         reason: 'batch_duplicate',
@@ -46,10 +54,12 @@ export function collapseWithinBatch(candidates: DigitizeCandidate[]): {
             color: match.color,
             brand: match.brand,
             imageUri: match.imageUri,
-            confidence: 'high',
-            reason: 'batch_attribute_match',
-            attrScore: attributeSimilarity(candidate, match),
+            confidence: scored.confidence,
+            reason: scored.reason,
+            attrScore: scored.attrScore,
+            hamming: scored.hamming,
             matchScope: 'batch',
+            message: scored.message,
           },
         ],
       });
@@ -62,7 +72,7 @@ export function collapseWithinBatch(candidates: DigitizeCandidate[]): {
 }
 
 /**
- * Split candidates into new vs already-in-wardrobe (attribute heuristics).
+ * Split candidates into new vs already-in-wardrobe (image/session first).
  */
 export function filterAgainstWardrobe(
   candidates: DigitizeCandidate[],
@@ -81,7 +91,7 @@ export function filterAgainstWardrobe(
   const duplicates: DigitizeDrop[] = [];
 
   for (const candidate of candidates) {
-    const matches = findLocalWardrobeDuplicates(candidate, wardrobe);
+    const matches = findLocalWardrobeDuplicates(candidate, wardrobe).filter((m) => m.isDuplicate);
     if (matches.length > 0) {
       duplicates.push({
         item: candidate,

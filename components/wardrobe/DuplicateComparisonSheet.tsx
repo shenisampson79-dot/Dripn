@@ -15,6 +15,7 @@ import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { DuplicateDecisionType, DuplicateMatch } from '@/utils/wardrobeDuplicateMatch';
+import { DEDUPE_COPY } from '@/utils/wardrobeDuplicateMatch';
 
 export type DuplicateComparisonProps = {
   visible: boolean;
@@ -89,16 +90,21 @@ export function DuplicateComparisonSheet({
   const insets = useSafeAreaInsets();
   const primary = matches[0];
   const isSimilar = type === 'similar_item';
+  const isConflict = type === 'classification_conflict';
   const heading = title
     || (isSimilar
-      ? (t('wardrobe.similarItemTitle') || 'Similar item in your wardrobe')
-      : (t('wardrobe.alreadyHaveThis') || 'Looks like you already have this'));
+      ? (t('wardrobe.isThisDifferentItem') || DEDUPE_COPY.probable)
+      : isConflict
+        ? (t('wardrobe.looksFamiliar') || DEDUPE_COPY.conflict)
+        : (t('wardrobe.alreadyHaveThis') || DEDUPE_COPY.hard));
   const body = message
     || primary?.message
     || (isSimilar
-      ? (t('wardrobe.similarItemMessage') || 'Close, but not the same piece — you can still add it.')
-      : (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to something you already own.')
-        .replace('{names}', primary?.name || 'an existing item'));
+      ? (t('wardrobe.similarItemMessage') || 'Close, but not the same piece — add it if it is a different item.')
+      : isConflict
+        ? (t('wardrobe.classificationConflictMessage') || 'This photo looks like something you already own, even if the category label disagrees.')
+        : (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to something you already own.')
+          .replace('{names}', primary?.name || 'an existing item'));
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -108,7 +114,7 @@ export function DuplicateComparisonSheet({
             <ThemedText type="body" style={{ color: theme.link }}>{t('common.cancel') || 'Cancel'}</ThemedText>
           </Pressable>
           <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-            {isSimilar ? 'Similar' : 'Duplicate'}
+            {isSimilar ? 'Similar' : isConflict ? 'Familiar' : 'Duplicate'}
           </ThemedText>
           <View style={{ width: 56 }} />
         </View>
@@ -177,34 +183,64 @@ export function DuplicateComparisonSheet({
         </ScrollView>
 
         <View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.md, borderTopColor: theme.border }]}>
-          {primary && onViewExisting ? (
-            <Pressable
-              onPress={() => onViewExisting(primary)}
-              style={[styles.secondaryBtn, { borderColor: theme.border }]}
-            >
-              <ThemedText type="body">{t('wardrobe.viewExisting') || 'View existing'}</ThemedText>
-            </Pressable>
-          ) : null}
-
           {isSimilar ? (
-            <Pressable
-              onPress={onContinue || onClose}
-              style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
-            >
-              <ThemedText type="body" style={styles.primaryBtnText}>
-                {t('common.continue') || t('wardrobe.addItem') || 'Continue & add'}
-              </ThemedText>
-            </Pressable>
-          ) : allowForceAdd && onAddAnyway ? (
-            <Pressable
-              onPress={onAddAnyway}
-              style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
-            >
-              <ThemedText type="body" style={styles.primaryBtnText}>
-                {t('common.addAnyway') || 'Add Anyway'}
-              </ThemedText>
-            </Pressable>
-          ) : null}
+            <>
+              <Pressable
+                onPress={onClose}
+                style={[styles.secondaryBtn, { borderColor: theme.border }]}
+              >
+                <ThemedText type="body">{t('wardrobe.keepExisting') || 'Keep existing'}</ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={onContinue || onAddAnyway || onClose}
+                style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+              >
+                <ThemedText type="body" style={styles.primaryBtnText}>
+                  {t('wardrobe.addAsDifferentItem') || 'Add as a different item'}
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : isConflict ? (
+            <>
+              <Pressable
+                onPress={() => (primary && onViewExisting ? onViewExisting(primary) : onClose())}
+                style={[styles.secondaryBtn, { borderColor: theme.border }]}
+              >
+                <ThemedText type="body">{t('wardrobe.useExisting') || 'Use existing'}</ThemedText>
+              </Pressable>
+              {(onAddAnyway || onContinue) ? (
+                <Pressable
+                  onPress={onAddAnyway || onContinue}
+                  style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+                >
+                  <ThemedText type="body" style={styles.primaryBtnText}>
+                    {t('wardrobe.addSeparately') || 'Add separately'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {primary && onViewExisting ? (
+                <Pressable
+                  onPress={() => onViewExisting(primary)}
+                  style={[styles.secondaryBtn, { borderColor: theme.border }]}
+                >
+                  <ThemedText type="body">{t('wardrobe.viewExisting') || 'View existing'}</ThemedText>
+                </Pressable>
+              ) : null}
+              {allowForceAdd && onAddAnyway ? (
+                <Pressable
+                  onPress={onAddAnyway}
+                  style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+                >
+                  <ThemedText type="body" style={styles.primaryBtnText}>
+                    {t('common.addAnyway') || 'Add anyway'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+            </>
+          )}
         </View>
       </View>
     </Modal>

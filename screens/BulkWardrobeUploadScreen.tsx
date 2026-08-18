@@ -709,7 +709,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           decision: r.decision,
           similarMatches: r.similarMatches,
         });
-        if (decision.type === 'duplicate' || decision.type === 'already_owned') {
+        if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'classification_conflict') {
           const matches = (decision.matches || r.matches || []) as Array<{
             matchScope?: string;
             matchedCandidateIndex?: number;

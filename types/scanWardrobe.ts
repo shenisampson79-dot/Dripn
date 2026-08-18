@@ -12,7 +12,7 @@ export type ScanSessionItem = {
   formality?: number;
   confidence: number;
   bbox?: [number, number, number, number] | null;
-  sceneCrop?: string | null;
+  sourceImageId?: string | null;
   classified?: {
     subtype?: string | null;
     lane?: string | null;

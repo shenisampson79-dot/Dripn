@@ -66,8 +66,11 @@ import {
   saveLastDecisionContinuity,
 } from '@/utils/decisionContinuity';
 import {
+  decisionFromLocalMatches,
   findLocalWardrobeDuplicates,
   normalizeDuplicateDecision,
+  overrideIdsFromMatches,
+  scanItemDedupeBind,
   type NormalizedDuplicateDecision,
 } from '@/utils/wardrobeDuplicateMatch';
 import {
@@ -107,6 +110,13 @@ function sessionItemToWardrobeItem(item: ScanSessionItem): WardrobeItem {
     isFavorite: false,
     createdAt: '',
     updatedAt: '',
+  };
+}
+
+function sessionItemToDupeCandidate(item: ScanSessionItem, scanSessionId?: string | null) {
+  return {
+    ...sessionItemToWardrobeItem(item),
+    ...scanItemDedupeBind(item, scanSessionId),
   };
 }
 
@@ -317,6 +327,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       }
       const incoming = (result.items || []).map((item, index) => ({
         ...item,
+        sourceImageId: result.sessionId || item.sourceImageId,
         // Keep tempIds unique across appended photos
         tempId: append
           ? `${result.sessionId || 'scan'}_${Date.now()}_${index}_${item.tempId || index}`
@@ -616,7 +627,11 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     navigation.goBack();
   }, [navigation]);
 
-  const persistItems = async (itemsToSave: ScanSessionItem[], allowDuplicates = false) => {
+  const persistItems = async (
+    itemsToSave: ScanSessionItem[],
+    allowDuplicates = false,
+    overrideAgainst?: string[],
+  ) => {
     setIsSaving(true);
     try {
       const payload = itemsToSave.map((item) => ({
@@ -629,6 +644,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         seasons: ['all-season'] as const,
         occasions: ['everyday'] as const,
         isFavorite: false,
+        ...scanItemDedupeBind(item, sessionId),
+        dedupeOverrideAgainst: overrideAgainst,
       }));
       await addItemsBatch(payload, { allowDuplicates });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -659,19 +676,33 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         color: item.color,
         brand: item.brand || undefined,
         imageBase64: item.sceneCrop || undefined,
+        sourceCropId: item.tempId,
+        cropId: item.tempId,
+        scanSessionId: sessionId || undefined,
+        captureSessionId: sessionId || undefined,
+        sourceImageId: item.sourceImageId || undefined,
       }));
       const serverDupe = await apiService.checkWardrobeDuplicates(dupePayload);
-      const firstHit = serverDupe.results?.find((r) => r.isDuplicate || r.type === 'duplicate' || r.type === 'already_owned');
-      if (firstHit?.decision) {
+      const firstHit = serverDupe.results?.find((r) => {
+        const t = r.type || r.decision?.type;
+        return r.isDuplicate || t === 'duplicate' || t === 'already_owned' || t === 'similar_item' || t === 'classification_conflict';
+      });
+      if (firstHit) {
         setDupeSheet({
           visible: true,
-          decision: normalizeDuplicateDecision(firstHit.decision),
+          decision: normalizeDuplicateDecision({
+            ...firstHit,
+            type: firstHit.type || firstHit.decision?.type,
+            decision: firstHit.decision,
+            similarMatches: firstHit.similarMatches,
+            conflictMatches: (firstHit as { conflictMatches?: unknown[] }).conflictMatches,
+          }),
           pendingItems: confirmedItems,
         });
         return;
       }
       const localMatches = confirmedItems.flatMap((item) =>
-        findLocalWardrobeDuplicates(sessionItemToWardrobeItem(item), savedWardrobe).map((m) => ({
+        findLocalWardrobeDuplicates(sessionItemToDupeCandidate(item, sessionId), savedWardrobe).map((m) => ({
           ...m,
           matchedCandidateIndex: confirmedItems.indexOf(item),
         })),
@@ -679,30 +710,21 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       if (localMatches.length > 0) {
         setDupeSheet({
           visible: true,
-          decision: normalizeDuplicateDecision({
-            type: 'duplicate',
-            isDuplicate: true,
-            matches: localMatches,
-            message: 'Some scanned items look like pieces already in your wardrobe.',
-          }),
+          decision: decisionFromLocalMatches(localMatches),
           pendingItems: confirmedItems,
         });
         return;
       }
       await persistItems(confirmedItems);
     } catch {
-      // Offline: still block obvious local attribute duplicates.
+      // Offline: still block obvious local duplicates.
       const localMatches = confirmedItems.flatMap((item) =>
-        findLocalWardrobeDuplicates(sessionItemToWardrobeItem(item), savedWardrobe),
+        findLocalWardrobeDuplicates(sessionItemToDupeCandidate(item, sessionId), savedWardrobe),
       );
       if (localMatches.length > 0) {
         setDupeSheet({
           visible: true,
-          decision: normalizeDuplicateDecision({
-            type: 'duplicate',
-            isDuplicate: true,
-            matches: localMatches,
-          }),
+          decision: decisionFromLocalMatches(localMatches),
           pendingItems: confirmedItems,
         });
         return;
@@ -1141,11 +1163,19 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         onClose={() => setDupeSheet((s) => ({ ...s, visible: false }))}
         onAddAnyway={async () => {
           setDupeSheet((s) => ({ ...s, visible: false }));
-          await persistItems(dupeSheet.pendingItems, true);
+          await persistItems(
+            dupeSheet.pendingItems,
+            true,
+            overrideIdsFromMatches(dupeSheet.decision.matches),
+          );
         }}
         onContinue={async () => {
           setDupeSheet((s) => ({ ...s, visible: false }));
-          await persistItems(dupeSheet.pendingItems, true);
+          await persistItems(
+            dupeSheet.pendingItems,
+            true,
+            overrideIdsFromMatches(dupeSheet.decision.matches),
+          );
         }}
       />
     </View>
