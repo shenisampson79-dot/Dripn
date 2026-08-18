@@ -1,7 +1,12 @@
 /**
  * Score gate for the Live HUD.
  *
- * First publish: a high-confidence complete Cloud read may land immediately.
+ * First publish: a high-confidence complete Cloud read may land immediately
+ * on top+bottom (or dress) — do NOT wait for shoes. If footwear is still
+ * unresolved, the number is approximate (~82), not a withheld dash. When
+ * shoes (or explicit cropped/barefoot/none) resolve, drop ~ and adopt a new
+ * number atomically if identity changed. Never return to "—".
+ *
  * Do NOT wait for BELIEF_PROVEN / slot settle on that first number — Cloud is
  * already ~5s, and waiting for belief lock pushed the badge to ~12s. Belief may
  * keep running in the background. After a number is showing, hold it until a
@@ -52,6 +57,11 @@ export type LiveScoreGate = {
   heldSince: number | null;
   /** Identity key the currently shown score was computed for. */
   scoredIdentityKey: string | null;
+  /**
+   * HUD must prefix ~ until footwear is a stable answer (named shoes, or
+   * explicit cropped / barefoot / none). Sticky false once resolved.
+   */
+  approximate: boolean;
 };
 
 export type LiveIdentitySample = {
@@ -76,7 +86,55 @@ export function createLiveScoreGate(): LiveScoreGate {
     signature: null,
     heldSince: null,
     scoredIdentityKey: null,
+    approximate: false,
   };
+}
+
+/**
+ * Footwear is a stable scoring answer — named shoes, or an explicit
+ * cropped / barefoot / none. Missing shoes on a fast top+bottom Cloud read
+ * is unresolved, not a final "none".
+ */
+export function isLiveFootwearResolved(opts: {
+  shoeSubtype?: string | null;
+  cropped?: boolean;
+  searching?: boolean;
+  barefootConfirmed?: boolean;
+}): boolean {
+  if (opts.cropped) return true;
+  if (opts.barefootConfirmed) return true;
+  const shoe = String(opts.shoeSubtype || '').toLowerCase().trim();
+  if (opts.searching) return false;
+  if (!shoe || shoe === 'searching') return false;
+  return true;
+}
+
+/**
+ * ~ stays until footwear resolves; once the marker drops it must not return
+ * just because a later frame is Searching.
+ *
+ * Identity shift + hold (shoes just arrived, score not yet adopted) keeps ~
+ * so the HUD never paints a false-exact number, then swaps ~82 → 78 atomically.
+ */
+export function nextLiveScoreApproximation(args: {
+  shown: number | null;
+  previouslyApproximate: boolean;
+  footwearResolved: boolean;
+  identityShifted?: boolean;
+  adopting?: boolean;
+}): boolean {
+  if (args.shown != null && !args.previouslyApproximate) return false;
+  if (args.adopting) return !args.footwearResolved;
+  if (args.footwearResolved && !args.identityShifted) return false;
+  if (args.shown == null) return !args.footwearResolved;
+  return args.previouslyApproximate;
+}
+
+function liveFootwearResolvedFromIdentityKey(identityKey?: string | null): boolean {
+  if (!identityKey) return false;
+  const shoe = String(identityKey).split('|')[1] || '';
+  if (!shoe || shoe === 'none' || shoe === 'searching') return false;
+  return true;
 }
 
 /**
@@ -504,6 +562,11 @@ export function gateLiveScore(
      * when belief is not yet settled (BELIEF_PROVEN not required).
      */
     cloudComplete?: boolean;
+    /**
+     * Footwear is a stable answer (named shoes / cropped / barefoot / none).
+     * First top+bottom publish without this stays approximate (~N).
+     */
+    footwearResolved?: boolean;
   },
 ): { gate: LiveScoreGate; score: number | null } {
   let value = Number(next);
@@ -527,6 +590,24 @@ export function gateLiveScore(
   const heldSince = gate.heldSince ?? opts.now;
   const heldMs = opts.now - heldSince;
   const identityKey = opts.identityKey || null;
+  const footwearResolved = opts.footwearResolved
+    ?? liveFootwearResolvedFromIdentityKey(identityKey);
+  const coreOf = (key: string | null | undefined): string => {
+    const raw = String(key || '');
+    if (!raw) return '';
+    // full key is bottom|shoe|pieceSet — core is bottom|shoe
+    const parts = raw.split('|');
+    return parts.length >= 2 ? `${parts[0]}|${parts[1]}` : raw;
+  };
+  const scoredCore = coreOf(gate.scoredIdentityKey);
+  const nextCore = coreOf(identityKey);
+  const coreDrift = Boolean(scoredCore && nextCore && scoredCore !== nextCore);
+  const approxOpts = {
+    shown: gate.shown,
+    previouslyApproximate: gate.approximate,
+    footwearResolved,
+    identityShifted: coreDrift,
+  };
 
   const adopt = (): { gate: LiveScoreGate; score: number | null } => ({
     gate: {
@@ -535,6 +616,7 @@ export function gateLiveScore(
       signature: opts.signature,
       heldSince: null,
       scoredIdentityKey: identityKey ?? gate.scoredIdentityKey,
+      approximate: nextLiveScoreApproximation({ ...approxOpts, adopting: true }),
     },
     score: value,
   });
@@ -545,6 +627,7 @@ export function gateLiveScore(
       signature: opts.signature,
       heldSince,
       scoredIdentityKey: gate.scoredIdentityKey,
+      approximate: nextLiveScoreApproximation({ ...approxOpts, adopting: false }),
     },
     score: gate.shown,
   });
@@ -570,16 +653,6 @@ export function gateLiveScore(
   // HOLD the published number while Cloud searches shoes or athletic↔sweat
   // shorts flicker. Blanking 78 → "—" is a regression. Adopt a new number
   // only when the next identity is corroborated (settled / locked / Cloud).
-  const coreOf = (key: string | null | undefined): string => {
-    const raw = String(key || '');
-    if (!raw) return '';
-    // full key is bottom|shoe|pieceSet — core is bottom|shoe
-    const parts = raw.split('|');
-    return parts.length >= 2 ? `${parts[0]}|${parts[1]}` : raw;
-  };
-  const scoredCore = coreOf(gate.scoredIdentityKey);
-  const nextCore = coreOf(identityKey);
-  const coreDrift = Boolean(scoredCore && nextCore && scoredCore !== nextCore);
   const signatureDrift = Boolean(
     gate.signature
     && opts.signature
@@ -594,7 +667,11 @@ export function gateLiveScore(
   // Identity still thrashing (same core): keep the last good number.
   if (!opts.settled) {
     return {
-      gate: { ...gate, heldSince: null },
+      gate: {
+        ...gate,
+        heldSince: null,
+        approximate: nextLiveScoreApproximation({ ...approxOpts, adopting: false }),
+      },
       score: gate.shown,
     };
   }
@@ -621,20 +698,21 @@ export function gateLiveScore(
 }
 
 /**
- * How the Live HUD should express a gated score. Medium certainty keeps the
- * numeric value for logic but presents it as approximate (~84) so users do not
- * read a soft judgment as a hard claim — then feel the system "got worse"
- * when certainty rises and the exact number lands nearby.
+ * How the Live HUD should express a gated score. Medium certainty (top still
+ * drifting) or unresolved footwear keeps the numeric value for logic but
+ * presents it as approximate (~84). Footwear approximate is independent of
+ * judgment certainty so headlines are not rewritten to "Settling in".
  */
 export function presentLiveScore(
   score: number | null | undefined,
   confidence: LiveJudgmentCertainty | 'high' | 'medium' = 'high',
+  opts?: { approximate?: boolean },
 ): { display: string; numeric: number | null; soft: boolean } {
   if (score == null || !Number.isFinite(Number(score))) {
     return { display: '—', numeric: null, soft: false };
   }
   const n = Math.round(Number(score));
-  if (confidence === 'medium') {
+  if (confidence === 'medium' || opts?.approximate) {
     return { display: `~${n}`, numeric: n, soft: true };
   }
   return { display: String(n), numeric: n, soft: false };

@@ -51,6 +51,11 @@ export type LiveFeedback = {
    * does not overclaim while top/layer still settles.
    */
   confidenceLevel?: 'high' | 'medium';
+  /**
+   * Footwear is not yet a stable answer. HUD prefixes ~ even at high
+   * judgment certainty so the first top+bottom score is not a false lock.
+   */
+  scoreApproximate?: boolean;
   colourHarmony?: string | null;
   issues: string[];
   hints: string[];

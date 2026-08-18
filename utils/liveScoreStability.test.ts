@@ -19,6 +19,8 @@ import {
   pushLiveIdentitySample,
   createCertaintySmoothState,
   smoothLiveCertainty,
+  isLiveFootwearResolved,
+  nextLiveScoreApproximation,
   LIVE_FIRST_SCORE_MAX_HOLD_MS,
   LIVE_FORCE_PUBLISH_MS,
   LIVE_IDENTITY_CHANGE_FRAMES,
@@ -27,6 +29,7 @@ import {
   LIVE_PARTIAL_SCORE_CAP,
   LIVE_SCORE_MAX_HOLD_MS,
 } from '@/utils/liveScoreStability';
+import { scoreShoeStyle, shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 
 const OUTFIT = liveScoreSignature([
   { category: 'tops', subcategory: 't-shirt', color: 'white' },
@@ -504,6 +507,12 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     numeric: 84,
     soft: true,
   });
+  assert.deepEqual(presentLiveScore(82, 'high', { approximate: true }), {
+    display: '~82',
+    numeric: 82,
+    soft: true,
+  });
+  assert.equal(presentLiveScore(78, 'high', { approximate: false }).display, '78');
   assert.equal(presentLiveScore(null, 'medium').display, '—');
 }
 
@@ -587,15 +596,21 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     { category: 'bottoms', subcategory: 'athletic_shorts', color: 'black' },
   ]);
   let gate = createLiveScoreGate();
-  const first = gateLiveScore(gate, 78, {
+  const first = gateLiveScore(gate, 82, {
     signature: topBottom,
     now: 1000,
     settled: false,
     identityLocked: false,
     cloudComplete: true,
     identityKey: 'athletic_shorts|none',
+    footwearResolved: false,
   });
-  assert.equal(first.score, 78, 'first publish on top+bottom without shoes');
+  assert.equal(first.score, 82, 'first publish on top+bottom without shoes');
+  assert.equal(first.gate.approximate, true, 'unresolved footwear is approximate');
+  assert.equal(
+    presentLiveScore(first.score, 'high', { approximate: first.gate.approximate }).display,
+    '~82',
+  );
   gate = first.gate;
   const searching = gateLiveScore(gate, 64, {
     signature: liveScoreSignature([
@@ -607,9 +622,167 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     identityLocked: false,
     cloudComplete: false,
     identityKey: 'sweat_shorts|none',
+    footwearResolved: false,
   });
-  assert.equal(searching.score, 78, 'Searching shoes / athletic↔sweat must not blank 78');
-  assert.equal(searching.gate.shown, 78);
+  assert.equal(searching.score, 82, 'Searching shoes / athletic↔sweat must not blank 82');
+  assert.equal(searching.gate.shown, 82);
+  assert.equal(searching.gate.approximate, true, 'Searching keeps ~ until footwear resolves');
+  assert.notEqual(
+    presentLiveScore(searching.score, 'high', { approximate: searching.gate.approximate }).display,
+    '—',
+    'Searching frames never return to a dash',
+  );
+}
+
+// Shoes arriving drop ~ atomically; loafers vs trainers can change the number.
+{
+  const topBottom = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'white' },
+    { category: 'bottoms', subcategory: 'trousers', color: 'navy' },
+  ]);
+  let gate = createLiveScoreGate();
+  const first = gateLiveScore(gate, 82, {
+    signature: topBottom,
+    now: 1000,
+    cloudComplete: true,
+    identityKey: 'trousers|none',
+    footwearResolved: false,
+  });
+  assert.equal(
+    presentLiveScore(first.score, 'high', { approximate: first.gate.approximate }).display,
+    '~82',
+  );
+  gate = first.gate;
+
+  const pendingShoes = gateLiveScore(gate, 78, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'white' },
+      { category: 'bottoms', subcategory: 'trousers', color: 'navy' },
+      { category: 'shoes', subcategory: 'loafers', color: 'brown' },
+    ]),
+    now: 2000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: false,
+    identityKey: 'trousers|loafers',
+    footwearResolved: true,
+  });
+  assert.equal(pendingShoes.score, 82, 'uncorroborated loafers hold ~82');
+  assert.equal(pendingShoes.gate.approximate, true, '~ stays until the new score adopts');
+  assert.notEqual(
+    presentLiveScore(pendingShoes.score, 'high', { approximate: pendingShoes.gate.approximate }).display,
+    '—',
+  );
+
+  const loafers = gateLiveScore(pendingShoes.gate, 78, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'white' },
+      { category: 'bottoms', subcategory: 'trousers', color: 'navy' },
+      { category: 'shoes', subcategory: 'loafers', color: 'brown' },
+    ]),
+    now: 2500,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'trousers|loafers',
+    footwearResolved: true,
+  });
+  assert.equal(loafers.score, 78, 'loafers replace ~82 atomically');
+  assert.equal(loafers.gate.approximate, false);
+  assert.equal(
+    presentLiveScore(loafers.score, 'high', { approximate: loafers.gate.approximate }).display,
+    '78',
+  );
+
+  const trainers = gateLiveScore(loafers.gate, 64, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'white' },
+      { category: 'bottoms', subcategory: 'trousers', color: 'navy' },
+      { category: 'shoes', subcategory: 'sneakers', color: 'white' },
+    ]),
+    now: 4000,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'trousers|sneakers',
+    footwearResolved: true,
+  });
+  assert.equal(trainers.score, 64, 'trainers are a different scoring identity');
+  assert.equal(trainers.gate.approximate, false, '~ does not return after footwear resolved');
+  assert.notEqual(trainers.score, loafers.score);
+  const loaferDelta = shoeStyleScoreDelta(scoreShoeStyle({
+    subtype: 'loafers',
+    bottomKind: 'trousers',
+    occasionType: 'work',
+  }));
+  const trainerDelta = shoeStyleScoreDelta(scoreShoeStyle({
+    subtype: 'sneakers',
+    bottomKind: 'trousers',
+    occasionType: 'work',
+  }));
+  assert.notEqual(
+    loaferDelta,
+    trainerDelta,
+    'loafers vs trainers change the footwear contribution',
+  );
+  assert.notEqual(
+    presentLiveScore(trainers.score, 'high', { approximate: trainers.gate.approximate }).display,
+    '—',
+  );
+
+  const searchingAfter = gateLiveScore(trainers.gate, 50, {
+    signature: topBottom,
+    now: 5000,
+    settled: false,
+    cloudComplete: false,
+    identityKey: 'trousers|none',
+    footwearResolved: false,
+  });
+  assert.equal(searchingAfter.score, 64, 'later Searching frames keep the last exact score');
+  assert.equal(searchingAfter.gate.approximate, false);
+}
+
+{
+  assert.equal(isLiveFootwearResolved({ searching: true }), false);
+  assert.equal(isLiveFootwearResolved({ cropped: true }), true);
+  assert.equal(isLiveFootwearResolved({ shoeSubtype: 'loafers' }), true);
+  assert.equal(isLiveFootwearResolved({ barefootConfirmed: true }), true);
+  assert.equal(isLiveFootwearResolved({ shoeSubtype: 'searching', searching: true }), false);
+
+  const cropped = gateLiveScore(createLiveScoreGate(), 80, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'black' },
+      { category: 'bottoms', subcategory: 'shorts', color: 'black' },
+    ]),
+    now: 1000,
+    cloudComplete: true,
+    identityKey: 'shorts|none',
+    footwearResolved: true,
+  });
+  assert.equal(cropped.gate.approximate, false, 'explicit cropped/none is a stable answer');
+  assert.equal(presentLiveScore(cropped.score, 'high', { approximate: false }).display, '80');
+  assert.equal(
+    nextLiveScoreApproximation({
+      shown: 82,
+      previouslyApproximate: true,
+      footwearResolved: true,
+      identityShifted: true,
+      adopting: true,
+    }),
+    false,
+    'adopted shoes drop ~',
+  );
+  assert.equal(
+    nextLiveScoreApproximation({
+      shown: 82,
+      previouslyApproximate: true,
+      footwearResolved: true,
+      identityShifted: true,
+      adopting: false,
+    }),
+    true,
+    'hold while shoes arrive keeps ~ until adopt',
+  );
 }
 
 console.log('liveScoreStability.test.ts: all passed');

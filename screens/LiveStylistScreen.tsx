@@ -110,6 +110,7 @@ import {
   pushLiveIdentitySample,
   smoothLiveCertainty,
   createCertaintySmoothState,
+  isLiveFootwearResolved,
   LIVE_CERTAINTY_UPGRADE_STREAK,
   type LiveIdentitySample,
 } from '@/utils/liveScoreStability';
@@ -801,11 +802,25 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       nowMs,
     );
     certaintySmoothRef.current = smoothed.state;
-    // First Cloud complete read is already high-confidence — do not present
-    // "~78 approx / Settling in" while identity frames catch up.
+    // First Cloud complete read may land before shoes. Keep judgment certainty
+    // high so the headline stays (not "Settling in"); ~ is a separate flag.
     const certainty = cloudComplete && scoreGateRef.current.shown == null
       ? 'high' as const
       : smoothed.certainty;
+    const feetCropped = Boolean(footZone?.cropped || footZoneMem?.cropped);
+    const barefootConfirmed = Boolean(
+      searchingBarefootTimeout
+      || memNow < (detectionMemoryRef.current.footwearBlockedUntil || 0)
+      || detectionMemoryRef.current.lastFootwearCandidates?.some(
+        (c) => c.rejectReason === 'barefoot',
+      ),
+    );
+    const footwearResolved = isLiveFootwearResolved({
+      shoeSubtype: beliefSlots?.footwear?.subcategory || null,
+      cropped: feetCropped,
+      searching: Boolean(!beliefSlots?.footwear && !feetCropped && !barefootConfirmed),
+      barefootConfirmed,
+    });
     // Core = bottom + shoe/barefoot only. Top/layer flicker must not block publish.
     const coreFilled = Boolean(
       beliefSlots?.bottom
@@ -828,11 +843,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         // Always pass key so athletic↔chino / loafers on/off can invalidate.
         identityKey: fullKey || coreKey || null,
         certainty,
+        footwearResolved,
       },
     );
     scoreGateRef.current = gated.gate;
     next.score = gated.score;
     next.confidenceLevel = certainty === 'high' ? 'high' : 'medium';
+    next.scoreApproximate = gated.score != null ? gated.gate.approximate : undefined;
 
     // Freeze the arbitrated outfit into one truth object. Score is already
     // gated; coaching only injects names — neither recomputes meaning here.
@@ -862,6 +879,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
     // After first publish, hold score/headline. Do not blank on athletic↔sweat
     // shorts or Searching shoes — gateLiveScore adopts only when corroborated.
+    // Unresolved footwear keeps ~N; resolved shoes/cropped/none drop ~.
 
     // Published truth is the only garment-name source for HUD copy.
     if (next.coaching) {
@@ -889,6 +907,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // Never blank a number already on screen (Searching shoes / subtype flicker).
     if (next.score == null && previousFeedbackRef.current?.score != null) {
       next.score = previousFeedbackRef.current.score;
+      if (next.scoreApproximate == null) {
+        next.scoreApproximate = previousFeedbackRef.current.scoreApproximate;
+      }
       if (!next.coaching?.headline && previousFeedbackRef.current.coaching) {
         next.coaching = previousFeedbackRef.current.coaching;
       }
@@ -944,15 +965,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // A settled outfit changes nothing else, so the frame that finally releases
     // the held score must repaint on its own or the badge keeps showing a dash.
     const scoreRevealed = previousFeedbackRef.current?.score == null && next.score != null;
+    const scoreChanged = previousFeedbackRef.current?.score !== next.score;
+    const approxChanged = previousFeedbackRef.current?.scoreApproximate !== next.scoreApproximate;
 
     if (
       res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged
-      || beliefChanged || scoreRevealed
+      || beliefChanged || scoreRevealed || scoreChanged || approxChanged
     ) {
       previousFeedbackRef.current = next;
       // Flush coaching when belief labels change — boxes and copy must stay in sync
       const shouldPaint = !hadFeedback || !serverStable || scoreJump || !withinHold
         || coachChanged || piecesChanged || beliefChanged || scoreRevealed
+        || scoreChanged || approxChanged
         || Boolean(res.feedbackChanged);
       if (shouldPaint) {
         setFeedback(next);
@@ -971,6 +995,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       score: next.score,
       itemCount: res.itemCount,
       confidenceLevel: next.confidenceLevel,
+      scoreApproximate: next.scoreApproximate,
     };
   }, [beliefSignature, occasionType, publishDebug]);
 
@@ -1447,6 +1472,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         const scoreLabel = presentLiveScore(
           shownScore,
           previousFeedbackRef.current?.confidenceLevel || 'high',
+          { approximate: previousFeedbackRef.current?.scoreApproximate },
         ).display;
         const n = previousItemsRef.current.length;
         setStatusNote(
@@ -1494,6 +1520,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         painted?.confidenceLevel
           || previousFeedbackRef.current?.confidenceLevel
           || 'high',
+        {
+          approximate: painted?.scoreApproximate
+            ?? previousFeedbackRef.current?.scoreApproximate,
+        },
       ).display;
       setStatusNote(
         res.itemCount
@@ -1640,6 +1670,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           }))),
           heldSince: null,
           scoredIdentityKey: warmIdentity,
+          approximate: false,
         };
       }
       suspectAskedRef.current = new Set<string>();
@@ -1654,6 +1685,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ? {
           score: warm.truth.score,
           confidenceLevel: warm.truth.confidenceLevel || 'high',
+          scoreApproximate: false,
           issues: [],
           hints: [],
           suggestions: [],
@@ -2035,7 +2067,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ?? null;
       setStatusNote(
         res.itemCount
-          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${presentLiveScore(stillScore).display}`
+          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${presentLiveScore(
+            stillScore,
+            previousFeedbackRef.current?.confidenceLevel || 'high',
+            { approximate: scoreGateRef.current.approximate },
+          ).display}`
           : 'Still scan done',
       );
       try {

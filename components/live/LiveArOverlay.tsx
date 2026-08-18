@@ -113,6 +113,7 @@ export function LiveArOverlay({
   const scorePresentation = presentLiveScore(
     feedback?.score,
     feedback?.confidenceLevel || 'high',
+    { approximate: feedback?.scoreApproximate },
   );
 
   if (width <= 0 || height <= 0) return null;
