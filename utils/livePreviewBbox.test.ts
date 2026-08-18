@@ -35,6 +35,9 @@ import {
   const top = mapNormalizedBboxToPreview([0.2, 0.12, 0.5, 0.28], fit);
   const naiveY = 0.12 * previewH;
   assert.ok(top.y < naiveY, 'cover Y sits higher than naive stretch (not on legs/feet)');
+  const shorts = mapNormalizedBboxToPreview([0.28, 0.42, 0.38, 0.22], fit);
+  const shortsBottom = shorts.y + shorts.h;
+  assert.ok(shortsBottom < previewH * 0.85, 'shorts box must not sit on feet under cover crop');
 }
 
 // Landscape source on portrait preview (cover): crop sides, Y fills preview.

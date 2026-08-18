@@ -14,6 +14,7 @@ import {
   liveScoreSignature,
   liveSlotWeightedStability,
   liveTopIsConsistent,
+  normalizeLiveShoeIdentity,
   presentLiveScore,
   pushLiveIdentitySample,
   createCertaintySmoothState,
@@ -104,6 +105,17 @@ assert.equal(
   );
   assert.equal(
     isHighConfidenceCompleteCloudRead({
+      source: 'cloud_vision',
+      items: [
+        { category: 'tops', subcategory: 't-shirt', name: 'Black T-Shirt', confidence: 0.95 },
+        { category: 'bottoms', subcategory: 'sweat_shorts', name: 'Black Sweat Shorts', confidence: 0.9 },
+      ],
+    }),
+    true,
+    'top+bottom without shoes is a complete first publish',
+  );
+  assert.equal(
+    isHighConfidenceCompleteCloudRead({
       source: 'on_device_yolo',
       items: [
         { category: 'tops', subcategory: 't-shirt', name: 'White T-Shirt', confidence: 0.95 },
@@ -190,7 +202,7 @@ assert.equal(
   assert.equal(out.score, 55, 'signature + core drift adopts the new score');
 }
 
-// Unsettled athletic→chino flip: clear the frozen lie (dash) until re-settle.
+// Unsettled athletic→chino flip: HOLD the published number until corroborated.
 {
   let gate = createLiveScoreGate();
   gate = gateLiveScore(gate, 98, {
@@ -211,8 +223,8 @@ assert.equal(
     settled: false,
     identityKey: 'chino_shorts|barefoot',
   });
-  assert.equal(flipped.score, null, 'core drift while unsettled clears frozen score');
-  assert.equal(flipped.gate.shown, null);
+  assert.equal(flipped.score, 98, 'unsettled core drift holds last published score');
+  assert.equal(flipped.gate.shown, 98);
 }
 
 // Identity version change: wrong early score must yield to the corrected lock.
@@ -549,11 +561,14 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
 
 // Barefoot is a lockable shoe identity — bottom + barefoot can settle without footwear belief.
 {
+  assert.equal(normalizeLiveShoeIdentity(null), 'none');
+  assert.equal(normalizeLiveShoeIdentity('searching'), 'none');
+  assert.equal(normalizeLiveShoeIdentity('barefoot'), 'none');
   let buf: ReturnType<typeof pushLiveIdentitySample> = [];
   for (let i = 0; i < 3; i += 1) {
     buf = pushLiveIdentitySample(buf, confident('shorts', 'barefoot'));
   }
-  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'shorts|barefoot|none');
+  assert.equal(liveIdentityKey(buf[buf.length - 1]), 'shorts|none|none');
   assert.equal(liveIdentityIsConsistent(buf), true, 'barefoot identity locks');
   assert.equal(
     liveOutfitReadyToScore({
@@ -563,6 +578,38 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     true,
     'barefoot outfits score with bottom alone settled',
   );
+}
+
+// First Cloud top+bottom publishes immediately; later Searching-shoes frames HOLD.
+{
+  const topBottom = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'black' },
+    { category: 'bottoms', subcategory: 'athletic_shorts', color: 'black' },
+  ]);
+  let gate = createLiveScoreGate();
+  const first = gateLiveScore(gate, 78, {
+    signature: topBottom,
+    now: 1000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: true,
+    identityKey: 'athletic_shorts|none',
+  });
+  assert.equal(first.score, 78, 'first publish on top+bottom without shoes');
+  gate = first.gate;
+  const searching = gateLiveScore(gate, 64, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'black' },
+      { category: 'bottoms', subcategory: 'sweat_shorts', color: 'black' },
+    ]),
+    now: 4000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: false,
+    identityKey: 'sweat_shorts|none',
+  });
+  assert.equal(searching.score, 78, 'Searching shoes / athletic↔sweat must not blank 78');
+  assert.equal(searching.gate.shown, 78);
 }
 
 console.log('liveScoreStability.test.ts: all passed');

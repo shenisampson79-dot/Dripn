@@ -9,8 +9,12 @@ import type { LiveOutfitTruth, LiveTruthItem } from '@/utils/liveOutfitTruth';
 import {
   adoptCloudIdentityIntoBelief,
   blankProvisionalHeadlineAfterScore,
+  customerBoxesFromPublishedTruth,
   detectionsForCustomerPaint,
+  filterPublishedCustomerBoxes,
   hasPublishedLiveCore,
+  isFootwearPaintBlocked,
+  LIVE_CUSTOMER_BOXES_ENABLED,
   LIVE_YOLO_ENABLED,
   liveCloudPathBlockedByYoloProof,
   mapYoloBoxesOntoPublishedTruth,
@@ -180,6 +184,32 @@ function yolo(
     detectionsForCustomerPaint(raw, truth()),
     [],
     'launch: no YOLO-driven boxes after Cloud either',
+  );
+}
+
+{
+  assert.equal(LIVE_CUSTOMER_BOXES_ENABLED, false, 'launch: hide misaligned customer boxes');
+  assert.deepEqual(
+    customerBoxesFromPublishedTruth(truth({ footwear: null })),
+    [],
+    'launch: published Cloud identity still paints no boxes',
+  );
+  assert.equal(isFootwearPaintBlocked({ searching: true }), true);
+  assert.equal(isFootwearPaintBlocked({ cropped: true, footwearName: 'White Sneakers' }), true);
+  assert.equal(isFootwearPaintBlocked({}), true, 'shoes None blocks footwear box');
+  const filtered = filterPublishedCustomerBoxes([
+    yolo('Black T-Shirt', [0.25, 0.12, 0.4, 0.28], { category: 'tops', subcategory: 't-shirt' }),
+    yolo('Black Athletic Shorts', [0.3, 0.72, 0.35, 0.22], {
+      category: 'bottoms',
+      subcategory: 'athletic_shorts',
+    }),
+    yolo('White Sneakers', [0.34, 0.86, 0.26, 0.1], { category: 'shoes', subcategory: 'sneakers' }),
+  ], { cropped: true, searchingFootwear: true, footwearPublished: false });
+  assert.equal(filtered.some((d) => /sneaker|shoe/i.test(d.name)), false, 'no shoes bbox when cropped/searching');
+  assert.equal(
+    filtered.some((d) => /athletic shorts/i.test(d.name)),
+    false,
+    'never label feet as shorts',
   );
 }
 

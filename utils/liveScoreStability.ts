@@ -156,13 +156,31 @@ export function liveIdentityKey(sample: LiveIdentitySample | null | undefined): 
   return `${core}|${pieces}`;
 }
 
+/**
+ * Barefoot / cropped / still-searching footwear is one identity — not a missing
+ * slot that should block first publish or blank a held score.
+ */
+export function normalizeLiveShoeIdentity(shoeSubtype?: string | null): string {
+  const s = String(shoeSubtype || '').toLowerCase().trim();
+  if (
+    !s
+    || s === 'none'
+    || s === 'bare'
+    || s === 'barefoot'
+    || s === 'searching'
+    || s === 'cropped'
+  ) {
+    return 'none';
+  }
+  return s;
+}
+
 /** Core identity for first-score settle — bottom subtype + shoe (tolerate upper flicker). */
 export function liveCoreIdentityKey(sample: LiveIdentitySample | null | undefined): string {
   if (!sample) return '';
   const bottom = String(sample.bottomKind || '').toLowerCase();
-  const shoe = String(sample.shoeSubtype || '').toLowerCase();
-  if (!bottom || !shoe) return '';
-  return `${bottom}|${shoe}`;
+  if (!bottom) return '';
+  return `${bottom}|${normalizeLiveShoeIdentity(sample.shoeSubtype)}`;
 }
 
 function sampleSlotConfidence(sample: LiveIdentitySample): number {
@@ -198,11 +216,11 @@ export function liveIdentityIsConsistent(
   const last = buf.slice(-need);
   if (last.length < need) return false;
   const bottom0 = String(last[0].bottomKind || '').toLowerCase();
-  const shoe0 = String(last[0].shoeSubtype || '').toLowerCase();
-  if (!bottom0 || !shoe0) return false;
+  const shoe0 = normalizeLiveShoeIdentity(last[0].shoeSubtype);
+  if (!bottom0) return false;
   const same = last.every(
     (f) => String(f.bottomKind || '').toLowerCase() === bottom0
-      && String(f.shoeSubtype || '').toLowerCase() === shoe0,
+      && normalizeLiveShoeIdentity(f.shoeSubtype) === shoe0,
   );
   if (!same) return false;
   const avgConf = last.reduce((sum, f) => sum + sampleSlotConfidence(f), 0) / need;
@@ -443,7 +461,9 @@ export function isHighConfidenceCompleteCloudRead(args: {
   }> | null;
   completeness?: string | null;
 }): boolean {
-  if (!/cloud_vision|hybrid/i.test(String(args.source || ''))) return false;
+  const source = String(args.source || '');
+  if (/yolo|on_device/i.test(source) && !/hybrid|cloud/i.test(source)) return false;
+  if (!/cloud_vision|hybrid|vision/i.test(source)) return false;
   const items = (args.items || []).filter(
     (it) => Number(it.confidence) >= LIVE_CLOUD_COMPLETE_MIN_CONF,
   );
@@ -547,8 +567,9 @@ export function gateLiveScore(
   }
 
   // --- After a score is showing ---
-  // Core / signature drift MUST invalidate a frozen score. Freezing ~98 while
-  // bottoms flip athletic↔chino (settled=false) is worse than a brief dash.
+  // HOLD the published number while Cloud searches shoes or athletic↔sweat
+  // shorts flicker. Blanking 78 → "—" is a regression. Adopt a new number
+  // only when the next identity is corroborated (settled / locked / Cloud).
   const coreOf = (key: string | null | undefined): string => {
     const raw = String(key || '');
     if (!raw) return '';
@@ -566,18 +587,8 @@ export function gateLiveScore(
   );
 
   if (coreDrift || signatureDrift) {
-    if (opts.settled || opts.identityLocked) return adopt();
-    // Clear the lie immediately — resettle on the new identity.
-    return {
-      gate: {
-        shown: null,
-        pending: value,
-        signature: opts.signature,
-        heldSince: opts.now,
-        scoredIdentityKey: null,
-      },
-      score: null,
-    };
+    if (opts.settled || opts.identityLocked || opts.cloudComplete) return adopt();
+    return hold();
   }
 
   // Identity still thrashing (same core): keep the last good number.

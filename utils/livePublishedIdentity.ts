@@ -85,6 +85,93 @@ export function blankProvisionalHeadlineAfterScore(
 }
 
 /**
+ * Launch: hide customer boxes. Cloud geometry does not sit on garments without
+ * a camera/orientation rewrite (shirt on face/neck, shorts on shins/feet).
+ * Wrong boxes are worse than none. Re-enable only after mapping is proven.
+ */
+export const LIVE_CUSTOMER_BOXES_ENABLED = false;
+
+const FOOTWEAR_ZONE_Y = 0.78;
+
+export function isNonFootwearGarmentLabel(raw: string | null | undefined): boolean {
+  const blob = String(raw || '').toLowerCase();
+  if (!blob) return false;
+  if (/shoe|boot|sneaker|loafer|sandal|heel|mule|trainer|clog|flip/.test(blob)) return false;
+  return /short|trouser|jean|skirt|pant|chino|shirt|hoodie|dress|jacket|coat/.test(blob);
+}
+
+export function isFootwearPaintBlocked(opts: {
+  footwearName?: string | null;
+  cropped?: boolean;
+  searching?: boolean;
+}): boolean {
+  if (opts.cropped || opts.searching) return true;
+  if (!opts.footwearName) return true;
+  return isNonFootwearGarmentLabel(opts.footwearName);
+}
+
+/**
+ * Drop shoes boxes when footwear is None / cropped / Searching, and never
+ * paint a shorts (or other garment) label on the feet.
+ */
+export function filterPublishedCustomerBoxes(
+  boxes: OnDeviceDetection[],
+  opts: {
+    cropped?: boolean;
+    searchingFootwear?: boolean;
+    footwearPublished?: boolean;
+  } = {},
+): OnDeviceDetection[] {
+  const shoesBlocked = isFootwearPaintBlocked({
+    footwearName: opts.footwearPublished ? 'published' : null,
+    cropped: opts.cropped,
+    searching: opts.searchingFootwear,
+  }) || !opts.footwearPublished;
+  return (boxes || []).filter((box) => {
+    const blob = `${box.name || ''} ${box.category || ''} ${box.subcategory || ''}`.toLowerCase();
+    const cy = bboxCenterY(box.bbox);
+    const y2 = (Number(box.bbox?.[1]) || 0) + (Number(box.bbox?.[3]) || 0);
+    const isShoe = cloudRole(box) === 'footwear' || /shoe|boot|sneaker|loafer|footwear/.test(blob);
+    if (isShoe && shoesBlocked) return false;
+    if (isNonFootwearGarmentLabel(box.name) && (cy >= FOOTWEAR_ZONE_Y || y2 > 0.88)) {
+      return false;
+    }
+    return Boolean(sanitizeLiveBoxLabel(box.name));
+  });
+}
+
+/**
+ * Cosmetics from published Cloud identity only. Launch returns [].
+ */
+export function customerBoxesFromPublishedTruth(
+  truth: LiveOutfitTruth | null | undefined,
+  opts: { cropped?: boolean; searchingFootwear?: boolean } = {},
+): OnDeviceDetection[] {
+  if (!LIVE_CUSTOMER_BOXES_ENABLED) return [];
+  if (!hasPublishedLiveCore(truth) || !truth) return [];
+  const slots: OnDeviceDetection[] = [];
+  if (truth.top && !isDressItem(truth.top)) {
+    slots.push(detectionFromPublished(truth.top, 'pub_top', truth.top.bbox));
+  }
+  if (truth.layer) {
+    slots.push(detectionFromPublished(truth.layer, 'pub_layer', truth.layer.bbox));
+  }
+  if (truth.bottom) {
+    slots.push(detectionFromPublished(truth.bottom, 'pub_bottom', truth.bottom.bbox));
+  } else if (isDressItem(truth.top) && truth.top) {
+    slots.push(detectionFromPublished(truth.top, 'pub_dress', truth.top.bbox));
+  }
+  if (truth.footwear && !isNonFootwearGarmentLabel(truth.footwear.name)) {
+    slots.push(detectionFromPublished(truth.footwear, 'pub_footwear', truth.footwear.bbox));
+  }
+  return filterPublishedCustomerBoxes(slots, {
+    cropped: opts.cropped,
+    searchingFootwear: opts.searchingFootwear,
+    footwearPublished: Boolean(truth.footwear && !isNonFootwearGarmentLabel(truth.footwear.name)),
+  });
+}
+
+/**
  * Customer overlay boxes. Launch: YOLO is off, so this returns no boxes.
  * If re-enabled, map geometry onto published Cloud names — never YOLO labels.
  */

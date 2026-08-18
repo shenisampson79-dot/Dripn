@@ -54,7 +54,6 @@ import {
   hasMeaningfulLiveSceneChange,
 } from '@/utils/liveFrameHash';
 import {
-  encodeImageToJpegBase64,
   encodeRgbaToJpegBase64,
   hashRgbaFrame,
   imageToLiveRgba,
@@ -79,8 +78,10 @@ import { renderCopyFromPublishedTruth } from '@/utils/livePublishedCopy';
 import {
   adoptCloudIdentityIntoBelief,
   blankProvisionalHeadlineAfterScore,
+  customerBoxesFromPublishedTruth,
   detectionsForCustomerPaint,
   hasPublishedLiveCore,
+  isProvisionalLiveHeadline,
   LIVE_YOLO_ENABLED,
   liveCloudPathBlockedByYoloProof,
   mapYoloBoxesOntoPublishedTruth,
@@ -117,7 +118,6 @@ import {
   buildOutfitTruth,
   canWarmStartTruth,
   stashWarmTruth,
-  truthMateriallyChanged,
   type LiveOutfitTruth,
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
@@ -202,6 +202,8 @@ const CLOUD_LAYER_VERIFY_MS = 12000;
 /** Event-triggered cloud checks are throttled even when the scene keeps moving. */
 /** ~3s keeps jacket put-on responsive without cloud-per-frame spend. */
 const CLOUD_SCENE_EVENT_COOLDOWN_MS = 3000;
+/** While first score is still unpublished, retry Cloud quickly — do not wait 3s. */
+const CLOUD_FIRST_PUBLISH_RETRY_MS = 400;
 const CLOUD_SCENE_EVENT_FRAMES = 2;
 /**
  * Self-contradicting reads escalate on the next frame. This is bounded by asking
@@ -443,6 +445,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
   /** First Cloud JPEG must not wait on YOLO proof / detections. */
   const firstCloudSentRef = useRef(false);
+  /** frame-proof → Cloud request → Cloud response → first score (ms). */
+  const liveTimingRef = useRef<{
+    provenAt: number;
+    cloudReqAt: number;
+    cloudResAt: number;
+    publishedAt: number;
+  }>({ provenAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 });
   /** Suspect signatures already escalated — ask Vision once, not every frame. */
   const suspectAskedRef = useRef(new Set<string>());
 
@@ -609,8 +618,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         && hasTop
         && hasBottom
         && !hasShoe
-        && footZone
-        && !footZone.cropped,
+        && !(footZone?.cropped),
       );
       const stabilized = updateLiveBelief(raw, detectionMemoryRef.current, {
         decisions: decisionLogRef.current,
@@ -651,7 +659,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         });
       }
       previousItemsRef.current = painted;
-      setItems(painted);
       publishDebug({
         frameDetections: raw,
         source: String(res.source || 'cloud_vision'),
@@ -672,7 +679,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (held.detections.length) {
         const painted = detectionsToLiveItems(held.detections, previousItemsRef.current);
         previousItemsRef.current = painted;
-        setItems(painted);
       }
       publishDebug({
         frameDetections: [],
@@ -707,18 +713,30 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } else {
       noFootwearSinceRef.current = 0;
     }
+    const cloudComplete = isHighConfidenceCompleteCloudRead({
+      source: res.source,
+      items: res.items,
+      completeness: next.completeness,
+    });
     const searchingBarefootTimeout = Boolean(
       !beliefSlots?.footwear
       && beliefSlots?.bottom
       && noFootwearSinceRef.current
       && (memNow - noFootwearSinceRef.current) >= SEARCHING_BAREFOOT_MS,
     );
+    // Cloud already named top+bottom with no shoes — do not wait 2.5s (or YOLO
+    // foot-zone) before first score. Cropped/searching footwear must not delay.
+    const cloudBarefoot = Boolean(
+      cloudComplete
+      && !beliefSlots?.footwear
+      && (beliefSlots?.bottom || beliefSlots?.top),
+    );
     // No footwear belief + feet not cropped → barefoot identity (unlocks score/labels).
-    // Without this, barefoot outfits stay on "—" forever even when top+bottom lock.
     const barefootIdentity = Boolean(
       !beliefSlots?.footwear
       && (
-        memNow < (detectionMemoryRef.current.footwearBlockedUntil || 0)
+        cloudBarefoot
+        || memNow < (detectionMemoryRef.current.footwearBlockedUntil || 0)
         || searchingBarefootTimeout
         || (footZoneMem && !footZoneMem.cropped)
         || detectionMemoryRef.current.lastFootwearCandidates?.some(
@@ -783,11 +801,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       nowMs,
     );
     certaintySmoothRef.current = smoothed.state;
-    const cloudComplete = isHighConfidenceCompleteCloudRead({
-      source: res.source,
-      items: res.items,
-      completeness: next.completeness,
-    });
     // First Cloud complete read is already high-confidence — do not present
     // "~78 approx / Settling in" while identity frames catch up.
     const certainty = cloudComplete && scoreGateRef.current.shown == null
@@ -836,25 +849,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (mountedRef.current) setLabelsReady(true);
     }
 
-    // SSOT: material outfit change (e.g. athletic↔chino) invalidates stale judgment.
-    // First snapshot (no prev) is not a change — clearing here undid Cloud first-publish.
-    if (
-      prevTruth
-      && truthMateriallyChanged(prevTruth, truth)
-      && !settled
-      && !cloudComplete
-      && next.score != null
-    ) {
-      next.score = null;
-      scoreGateRef.current = {
-        ...scoreGateRef.current,
-        shown: null,
-        pending: null,
-        scoredIdentityKey: null,
-        heldSince: null,
-        signature: truth.signature,
-      };
+    const searchingFootwear = Boolean(
+      !truth.footwear
+      && !barefootIdentity
+    );
+    if (mountedRef.current) {
+      setItems(customerBoxesFromPublishedTruth(truth, {
+        cropped: Boolean(footZone?.cropped || footZoneMem?.cropped),
+        searchingFootwear,
+      }));
     }
+
+    // After first publish, hold score/headline. Do not blank on athletic↔sweat
+    // shorts or Searching shoes — gateLiveScore adopts only when corroborated.
 
     // Published truth is the only garment-name source for HUD copy.
     if (next.coaching) {
@@ -870,13 +877,38 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         ...next.coaching,
         headline: blankProvisionalHeadlineAfterScore(next.coaching.headline, next.score),
       };
+      if (next.score != null) {
+        const h = next.coaching.headline;
+        const prevH = previousFeedbackRef.current?.coaching?.headline;
+        if ((!h || isProvisionalLiveHeadline(h)) && prevH && !isProvisionalLiveHeadline(prevH)) {
+          next.coaching = { ...next.coaching, headline: prevH };
+        }
+      }
     }
     // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
-    if (next.score == null) {
+    // Never blank a number already on screen (Searching shoes / subtype flicker).
+    if (next.score == null && previousFeedbackRef.current?.score != null) {
+      next.score = previousFeedbackRef.current.score;
+      if (!next.coaching?.headline && previousFeedbackRef.current.coaching) {
+        next.coaching = previousFeedbackRef.current.coaching;
+      }
+    } else if (next.score == null) {
       next.coaching = gateLiveJudgment(next.coaching, null) || next.coaching;
       next.hints = [];
       next.suggestions = [];
       next.confidenceLevel = undefined;
+    }
+
+    if (
+      next.score != null
+      && liveTimingRef.current.publishedAt === 0
+      && liveTimingRef.current.provenAt > 0
+    ) {
+      liveTimingRef.current.publishedAt = Date.now();
+      const t = liveTimingRef.current;
+      void liveStartCrumb(
+        `LIVE_TIMING proven→req=${t.cloudReqAt - t.provenAt}ms req→res=${t.cloudResAt - t.cloudReqAt}ms res→publish=${t.publishedAt - t.cloudResAt}ms proven→publish=${t.publishedAt - t.provenAt}ms`,
+      );
     }
 
     const holdMs = next.ui?.holdMs ?? 1000;
@@ -1034,6 +1066,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         setYoloStatusNote(`DBG: PIPELINE_PROOF ${n}/${PIPELINE_PROOF_STREAK}`);
         if (n >= PIPELINE_PROOF_STREAK) {
           pipelineProvenRef.current = true;
+          liveTimingRef.current.provenAt = Date.now();
           void liveStartCrumb('PIPELINE_PROVEN');
           setYoloStatusNote('DBG: PIPELINE_PROVEN');
           setStatusNote(
@@ -1255,11 +1288,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       let jpegBase64: string | null = null;
       const ensureJpeg = () => {
         if (!jpegBase64) {
-          try {
-            jpegBase64 = encodeImageToJpegBase64(image, 55);
-          } catch {
-            jpegBase64 = encodeRgbaToJpegBase64(rgba, width, height, 55);
-          }
+          jpegBase64 = encodeRgbaToJpegBase64(rgba, width, height, 55);
         }
         return jpegBase64;
       };
@@ -1402,7 +1431,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       } else if (!firstCloudDue) {
         const published = hasPublishedLiveCore(outfitTruthRef.current);
-        const waitMs = published ? CLOUD_LAYER_VERIFY_MS : CLOUD_SCENE_EVENT_COOLDOWN_MS;
+        const waitMs = published ? CLOUD_LAYER_VERIFY_MS : CLOUD_FIRST_PUBLISH_RETRY_MS;
         if (Date.now() - lastCloudFillAtRef.current >= waitMs) {
           payload.imageBase64 = ensureJpeg();
           payload.cloudFill = true;
@@ -1432,8 +1461,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
 
       void liveStartCrumb('cloud.request');
+      liveTimingRef.current.cloudReqAt = Date.now();
       const res = await apiService.liveScanFrame(payload);
-      void liveStartCrumb('cloud.response');
+      liveTimingRef.current.cloudResAt = Date.now();
+      void liveStartCrumb(
+        `cloud.response dt=${liveTimingRef.current.cloudResAt - liveTimingRef.current.cloudReqAt}ms`,
+      );
       if (!res.success) {
         if (payload.cloudFillReason === 'first_publish') firstCloudSentRef.current = false;
         void liveStartCrumb(`ANALYSIS_FAILURE cloud:${res.message || 'scan_failed'}`);
@@ -1637,7 +1670,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       warmTruthRef.current = null;
       setLabelsReady(Boolean(sample));
       setFeedback(previousFeedbackRef.current);
-      paintBeliefItems(warm.truth.seedDetections || []);
+      setItems(customerBoxesFromPublishedTruth(warm.truth, {}));
       setDebugSnapshot(emptyDebugSnapshot('live_warm'));
     } else {
       detectionMemoryRef.current = createLiveBeliefMemory();
@@ -1657,6 +1690,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       filledOnceRef.current = {};
       outfitTruthRef.current = null;
       firstCloudSentRef.current = false;
+      liveTimingRef.current = { provenAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 };
       previousItemsRef.current = [];
       previousFeedbackRef.current = null;
       recentLayerTipIdsRef.current = [];
@@ -1666,7 +1700,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setFeedback(null);
       setDebugSnapshot(emptyDebugSnapshot('live'));
     }
-  }, [paintBeliefItems]);
+  }, []);
 
   const enterCameraError = useCallback((message: string) => {
     stopSamplingLoop();

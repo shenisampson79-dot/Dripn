@@ -33,6 +33,13 @@ function isDressItem(item: LiveTruthItem | null | undefined): boolean {
   return /\bdress\b/.test(blob) || /dresses/.test(blob);
 }
 
+function isNonFootwearName(raw: string | null | undefined): boolean {
+  const blob = String(raw || '').toLowerCase();
+  if (!blob) return false;
+  if (/shoe|boot|sneaker|loafer|sandal|heel|mule|trainer|clog|flip/.test(blob)) return false;
+  return /short|trouser|jean|skirt|pant|chino|shirt|hoodie|dress|jacket|coat/.test(blob);
+}
+
 export function publishedTruthNames(truth: LiveOutfitTruth): PublishedTruthNames {
   const dressItem = isDressItem(truth.bottom)
     ? truth.bottom
@@ -45,7 +52,9 @@ export function publishedTruthNames(truth: LiveOutfitTruth): PublishedTruthNames
   const bottom = truth.bottom && truth.bottom !== dressItem
     ? (truth.bottom.name || undefined)
     : undefined;
-  const shoes = truth.footwear?.name || undefined;
+  const shoes = truth.footwear?.name && !isNonFootwearName(truth.footwear.name)
+    ? truth.footwear.name
+    : undefined;
   const listed = [onePiece, layer, top, bottom, shoes].filter(
     (n): n is string => Boolean(n && String(n).trim()),
   );

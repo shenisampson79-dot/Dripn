@@ -344,4 +344,28 @@ assert.equal(
   assert.equal(truth.layer, null, 'clears duplicate layer');
 }
 
+// Shorts must never freeze into the footwear slot.
+{
+  const shorts = {
+    name: 'Black Athletic Shorts',
+    category: 'bottoms',
+    subcategory: 'athletic_shorts',
+    color: 'black',
+    confidence: 0.92,
+    stability: 0.8,
+    kind: 'shoes' as const,
+    bbox: [0.34, 0.86, 0.26, 0.1] as [number, number, number, number],
+    lastSeenAt: 1000,
+    lastChangedAt: 1000,
+  };
+  const truth = buildOutfitTruth({
+    belief: belief({
+      footwear: shorts,
+    }),
+    feedback: { score: 78, issues: [], hints: [], suggestions: [] },
+    now: 1000,
+  });
+  assert.equal(truth.footwear, null, 'shorts published as shoes are dropped');
+}
+
 console.log('liveOutfitTruth.test.ts: all passed');

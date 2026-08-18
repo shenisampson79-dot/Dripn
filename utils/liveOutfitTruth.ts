@@ -108,6 +108,18 @@ export function sanitizeTruthItem(item: LiveTruthItem | null): LiveTruthItem | n
   return item;
 }
 
+/** Shorts / shirts must never freeze into the footwear slot. */
+function sanitizeFootwearItem(item: LiveTruthItem | null): LiveTruthItem | null {
+  const next = sanitizeTruthItem(item);
+  if (!next) return null;
+  const blob = `${next.name} ${next.subcategory || ''} ${next.category || ''}`.toLowerCase();
+  if (/shoe|boot|sneaker|loafer|sandal|heel|mule|trainer|clog|flip/.test(blob)) return next;
+  if (/short|trouser|jean|skirt|pant|chino|shirt|hoodie|dress|jacket|coat/.test(blob)) {
+    return null;
+  }
+  return next;
+}
+
 /**
  * Continuity clamp: a louder stranger on one slot does not replace the held
  * garment unless confidence clears the gap. Per-slot — a real top change must
@@ -244,7 +256,7 @@ export function buildOutfitTruth(args: {
       ? itemFromBelief(belief.bottom)
       : itemFromBelief(belief?.bottom),
   );
-  let footwear = sanitizeTruthItem(itemFromBelief(belief?.footwear));
+  let footwear = sanitizeFootwearItem(itemFromBelief(belief?.footwear));
 
   top = clampTruthContinuity(top, prev?.top);
   layer = clampTruthContinuity(layer, prev?.layer);

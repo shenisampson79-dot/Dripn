@@ -89,6 +89,22 @@ function truth(partial: Partial<LiveOutfitTruth> = {}): LiveOutfitTruth {
   );
 }
 
+// Shorts published as shoes must not appear as footwear copy.
+{
+  const out = renderCopyFromPublishedTruth({
+    headline: 'Sport-ready',
+    summary: 'White T-Shirt and Black Athletic Shorts and Black Athletic Shorts work well together.',
+    summaryTemplate: '{top} and {bottom} work well together and {shoes} ground the look.',
+    bullets: ['Black Athletic Shorts finish the look'],
+  }, truth({
+    footwear: item('Black Athletic Shorts', 'shoes', 'sneakers'),
+  }));
+  assert.doesNotMatch(out?.summary || '', /ground the look/i);
+  assert.equal(publishedTruthNames(truth({
+    footwear: item('Black Athletic Shorts', 'shoes', 'sneakers'),
+  })).shoes, undefined);
+}
+
 // No template: synthesize from published names, still ignore raw Cloud.
 {
   const out = renderCopyFromPublishedTruth({
