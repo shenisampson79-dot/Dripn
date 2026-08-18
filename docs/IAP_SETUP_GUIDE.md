@@ -20,8 +20,8 @@ Complete setup guide for all **11** in-app purchase products used by Dripn (Styl
 | 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
 | 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
 | 9 | `com.dripn.voice.weekend_unlimited` | Consumable | 2-Day Unlimited | Unlimited voice for 48 hours — buy any day | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
-| 10 | `com.dripn.ai.topup.300` | Consumable | AI Top-Up | 300 extra Live and chat credits | **£5.99** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up pack (`standard`) |
-| 11 | `com.dripn.ai.topup.600` | Consumable | AI Top-Up Plus | 600 extra Live and chat credits | **£10.99** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up Plus pack (`plus`) |
+| 10 | `com.dripn.ai.topup.300` | Consumable | AI Top-Up | 300 extra Live and chat credits | **set in ASC price schedule** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up pack (`standard`) |
+| 11 | `com.dripn.ai.topup.600` | Consumable | AI Top-Up Plus | 600 extra Live and chat credits | **set in ASC price schedule** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up Plus pack (`plus`) |
 
 ### Price sources (server code)
 
@@ -90,10 +90,47 @@ Copy into each **Consumable** product's localization fields:
 **`com.dripn.ai.topup.300`**
 - Display name: `AI Top-Up` (9 chars)
 - Description: `300 extra Live and chat credits` (32 chars)
+- Price: set in ASC price schedule (do not invent $ / £ in the app)
 
 **`com.dripn.ai.topup.600`**
 - Display name: `AI Top-Up Plus` (14 chars)
 - Description: `600 extra Live and chat credits` (32 chars)
+- Price: set in ASC price schedule (do not invent $ / £ in the app)
+
+### Launch paste-ready — AI Top-Up (locked IDs; do not use `small` / `large`)
+
+**Do not create** `com.dripn.ai.topup.small` or `com.dripn.ai.topup.large`. Product IDs are permanent.
+
+#### Pack 1
+- Type: Consumable
+- Reference name: `AI Top-Up 300`
+- Product ID: `com.dripn.ai.topup.300`
+- English display name: `AI Top-Up`
+- Description: `300 extra Live and chat credits`
+- Price: set in ASC price schedule
+
+#### Pack 2
+- Type: Consumable
+- Reference name: `AI Top-Up Plus 600`
+- Product ID: `com.dripn.ai.topup.600`
+- English display name: `AI Top-Up Plus`
+- Description: `600 extra Live and chat credits`
+- Price: set in ASC price schedule
+
+#### Review notes (both packs)
+
+```
+Consumable credit packs for extra Live camera styling and stylist chat. Credits are added to the signed-in Dripn account after Apple / RevenueCat confirms the transaction. These packs do not unlock unlimited usage and are not restored by Restore Purchases — the balance lives on the Dripn account.
+```
+
+#### RevenueCat
+1. Import the **exact** Apple product IDs above (`com.dripn.ai.topup.300` / `.600`).
+2. Do **not** attach them to `personal_stylist` or `stylist_unlimited` (or any other subscription entitlement).
+3. Optional: add packages to the current offering. Not required — the app purchases by product ID.
+4. Optional offering identifier `ai_topups` is dashboard-only; do not change the client to fetch a new offering.
+
+#### Restore Purchases
+Restore must **not** re-grant these packs. Apple does not restore consumables. Extra AI credits live on the Dripn account (`purchased_ai_credits`). After reinstall, the user signs in and the server balance is used.
 
 > **Legacy voice IDs** (`credits_10`, `credits_40`, `credits_80`, `credits_150`, `credits_25`, `credits_50`, `credits_100`) remain honoured server-side for existing purchases. Create the three canonical IDs above in ASC for new submissions.
 
@@ -179,6 +216,23 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 2. Add review screenshot from **AI Stylist → Voice mode** → Buy credits modal.
 
+### C2. Create 2 consumable AI top-up products
+
+1. **In-App Purchases** → **+** → **Consumable**.
+
+| Product ID | Reference name | Display name | What user gets | Price |
+|------------|----------------|--------------|----------------|-------|
+| `com.dripn.ai.topup.300` | AI Top-Up 300 | AI Top-Up | +300 Live and chat credits | set in ASC price schedule |
+| `com.dripn.ai.topup.600` | AI Top-Up Plus 600 | AI Top-Up Plus | +600 Live and chat credits | set in ASC price schedule |
+
+2. Add localized descriptions from §1 AI top-up paste blocks. Do **not** use “unlimited”.
+3. Add review screenshot from **SubscriptionScreen** AI Top-Up cards.
+4. **Review notes** (paste into both products):
+
+```
+Consumable credit packs for extra Live camera styling and stylist chat. Credits are added to the signed-in Dripn account after Apple / RevenueCat confirms the transaction. These packs do not unlock unlimited usage and are not restored by Restore Purchases — the balance lives on the Dripn account.
+```
+
 ### D. Localization & pricing notes
 
 - Add at least **English (U.K.)** localization for every product (name + description).
@@ -248,7 +302,7 @@ RevenueCat → **Entitlements** → create exactly these four:
 | `dfy_lite` | DFY Travel Capsule (one-time) |
 | `dfy_core` | DFY Full Wardrobe Setup (one-time) |
 
-Voice consumables get **no entitlement**.
+Voice consumables and AI top-up consumables get **no entitlement**. Do **not** attach `com.dripn.ai.topup.300` / `.600` to `personal_stylist` or `stylist_unlimited`.
 
 ### C. Map products to entitlements
 
@@ -265,6 +319,8 @@ RevenueCat → **Products** → for each App Store product, attach the entitleme
 | `com.dripn.voice.boost.30` | *(none — consumable)* |
 | `com.dripn.voice.pro.80` | *(none)* |
 | `com.dripn.voice.weekend_unlimited` | *(none — sets 48h unlimited on server)* |
+| `com.dripn.ai.topup.300` | *(none — consumable; +300 AI credits on Dripn account)* |
+| `com.dripn.ai.topup.600` | *(none — consumable; +600 AI credits on Dripn account)* |
 
 ### D. Create offering(s)
 
@@ -287,9 +343,11 @@ The app reads **`offerings.current`** and matches packages by **product identifi
 | `voice_pro` | `com.dripn.voice.pro.80` |
 | `voice_weekend` | `com.dripn.voice.weekend_unlimited` |
 
+Optional (not required): also add AI top-up packages to the **current** offering so `purchasePackage` can find them. The app purchases by **product ID** (`purchaseStoreProduct` fallback), so a separate `ai_topups` offering is **not** required.
+
 3. Mark this offering as **Current**.
 
-> **Note:** Subscriptions **must** be in the current offering or `purchaseSubscription()` throws. DFY and voice can fall back to `purchaseStoreProduct()`, but putting all 9 in the default offering is simplest.
+> **Note:** Subscriptions **must** be in the current offering or `purchaseSubscription()` throws. DFY, voice, and AI top-ups can fall back to `purchaseStoreProduct()`. Putting subscriptions in the default offering is required; putting consumables there is optional convenience.
 
 **Optional separate `dfy` offering:** Not required by code — the app only uses `offerings.current`. A separate offering is fine for dashboard organization if you still set one offering as Current with all needed products.
 
@@ -386,7 +444,7 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 | **Subscriptions** — open SubscriptionScreen | App Store price strings load; purchase succeeds; `POST /api/subscription/apple/sync` updates tier |
 | **DFY** — DFYComparisonScreen | Prices load; purchase unlocks lite/core; `POST /api/dfy/apple/sync` returns `tier: lite` or `core` |
 | **Voice** — AI Stylist → Voice mode → Buy credits | 4 packs with prices; purchase adds credits; `POST /api/voice/apple/sync` returns `creditsAdded` |
-| **Restore Purchases** (SubscriptionScreen / DFY) | Subscriptions + DFY non-consumables restore; voice consumables do **not** restore (balance is server-side) |
+| **Restore Purchases** (SubscriptionScreen / DFY) | Subscriptions + DFY non-consumables restore; voice and AI Top-Up consumables do **not** restore (balance is on the Dripn account) |
 | **Webhook** | RevenueCat dashboard → Webhooks → send test event; server logs `[RevenueCat Webhook] Received event:` |
 
 ### Server sync routes (reference)
@@ -413,7 +471,7 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 | `REVENUECAT_WEBHOOK_SECRET` mismatch | Webhook 401 Unauthorized | Match bearer token in RevenueCat and Render env |
 | Missing `REVENUECAT_REST_API_KEY` on server | Validation skipped in dev; purchases may fail validation in prod | Set secret REST API key on Dripn-Server |
 | Public vs secret key swapped | SDK configure fails or security risk | `appl_` in app, `sk_` on server only |
-| Expecting Restore to re-grant voice credits | Credits missing after reinstall | Normal — consumables aren't restored; balance comes from `GET /api/voice-credits/balance` |
+| Expecting Restore to re-grant voice or AI Top-Up credits | Credits missing after reinstall | Normal — consumables aren't restored; AI balance lives on the Dripn account (`purchased_ai_credits`) |
 | IAPs not attached to app version at submit | IAPs stuck "Missing Metadata" or not reviewable | Attach all 10 to the App Store version before submit |
 | Creating legacy product IDs (`voice.10`, `dfy.styling_sprint`) | App won't find them | Use only the 9 canonical IDs |
 | Confusing `personal_stylist` product with legacy £14.99 Stripe plan | Wrong price tier in App Store | Personal Stylist IAP = **£9.99** (`style_chat` plan) |

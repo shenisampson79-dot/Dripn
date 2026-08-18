@@ -103,11 +103,15 @@ export function aiAllowanceSubscriptionParams(
   source: string,
 ): { source: string; asPaywall: true; scrollToAiTopUp: boolean; highlightPlan?: string } {
   const paywall = getAiAllowancePaywallCopy(tier);
+  const normalized = normalizeSubscriptionTier(tier);
   return {
     source,
     asPaywall: true,
     scrollToAiTopUp: paywall.primaryAction === 'topup',
-    highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
+    highlightPlan:
+      paywall.primaryAction === 'upgrade'
+        ? (normalized === 'personal_stylist' ? 'stylist_unlimited' : 'personal_stylist')
+        : undefined,
   };
 }
 

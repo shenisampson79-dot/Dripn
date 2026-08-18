@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
 
@@ -77,7 +78,9 @@ function getFaqData(t: (key: string) => string): FAQCategory[] {
         { id: 's3', question: t('help.faq.s3.question'), answer: t('help.faq.s3.answer') },
         { id: 's4', question: t('help.faq.s4.question'), answer: t('help.faq.s4.answer') },
         { id: 's5', question: t('help.faq.s5.question'), answer: t('help.faq.s5.answer') },
-        { id: 's6', question: t('help.faq.s6.question'), answer: t('help.faq.s6.answer') },
+        ...(!FEATURE_FLAGS.hideDfyPurchaseUi
+          ? [{ id: 's6', question: t('help.faq.s6.question'), answer: t('help.faq.s6.answer') }]
+          : []),
       ],
     },
     {

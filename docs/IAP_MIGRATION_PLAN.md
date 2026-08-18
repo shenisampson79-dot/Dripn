@@ -91,7 +91,7 @@ Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
 
 ### Consumables vs Restore Purchases
 
-Apple **does not restore consumables** via Restore Purchases. Voice credits live on the **server account** (`voice_credits.purchased_credits`). After login, balance syncs from `GET /api/voice-credits/balance`. Duplicate grants are prevented by unique `apple_transaction_id` in `voice_credit_purchases`.
+Apple **does not restore consumables** via Restore Purchases. Voice credits live on the **server account** (`voice_credits.purchased_credits`). AI Top-Up credits live on **`users.purchased_ai_credits`**. After login, balances sync from the server. Duplicate grants are prevented by unique `apple_transaction_id` (`voice_credit_purchases` / `ai_topup_purchases`). Do **not** re-grant AI Top-Up packs from Restore Purchases.
 
 ### App Store Connect — create these products
 

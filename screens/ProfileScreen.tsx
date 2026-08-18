@@ -15,6 +15,7 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -882,9 +883,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
               {t('profile.trips') || 'Trips'}
             </ThemedText>
-            <Pressable onPress={handlePlanNewTrip} hitSlop={12} style={styles.stylePlanEditButton}>
-              <Feather name="plus" size={18} color="rgba(255,255,255,0.75)" />
-            </Pressable>
+            {!FEATURE_FLAGS.hideDfyPurchaseUi ? (
+              <Pressable onPress={handlePlanNewTrip} hitSlop={12} style={styles.stylePlanEditButton}>
+                <Feather name="plus" size={18} color="rgba(255,255,255,0.75)" />
+              </Pressable>
+            ) : null}
           </View>
           <View style={styles.stylePlansList}>
             {travelTrips.map((trip) => (
@@ -919,7 +922,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             ))}
           </View>
         </View>
-      ) : !loadingTravelTrips ? (
+      ) : !FEATURE_FLAGS.hideDfyPurchaseUi && !loadingTravelTrips ? (
         <View style={styles.stylePlansSection}>
           <View style={styles.savedOutfitsSectionHeader}>
             <Feather name="briefcase" size={18} color={LUXURY_COLORS.gold} />

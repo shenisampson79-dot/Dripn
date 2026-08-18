@@ -293,15 +293,21 @@ Description: Unlimited voice for 48 hours — buy any day
 
 Display names must match in-app copy exactly.
 
-### `com.dripn.ai.topup.300` — £5.99
+### `com.dripn.ai.topup.300` — price set in ASC price schedule
 
 - **Display name:** `AI Top-Up` **(9 chars)**
 - **Description:** `300 extra Live and chat credits` **(32 chars)**
 
-### `com.dripn.ai.topup.600` — £10.99
+### `com.dripn.ai.topup.600` — price set in ASC price schedule
 
 - **Display name:** `AI Top-Up Plus` **(14 chars)**
 - **Description:** `600 extra Live and chat credits` **(32 chars)**
+
+**Review notes (both packs):**
+
+```
+Consumable credit packs for extra Live camera styling and stylist chat. Credits are added to the signed-in Dripn account after Apple / RevenueCat confirms the transaction. These packs do not unlock unlimited usage and are not restored by Restore Purchases — the balance lives on the Dripn account.
+```
 
 ```
 com.dripn.ai.topup.300

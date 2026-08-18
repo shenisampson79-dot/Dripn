@@ -60,4 +60,9 @@ const freeParams = aiAllowanceSubscriptionParams('free', 'sanity-check');
 assert.equal(freeParams.scrollToAiTopUp, false);
 assert.equal(freeParams.highlightPlan, 'personal_stylist');
 
+const personalParams = aiAllowanceSubscriptionParams('personal_stylist', 'live');
+assert.equal(personalParams.scrollToAiTopUp, false);
+assert.equal(personalParams.highlightPlan, 'stylist_unlimited');
+assert.equal(personalParams.asPaywall, true);
+
 console.log('aiBudgetError.test.ts: all passed');

@@ -21,6 +21,7 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
   type AiTopUpPackId,
+  APPLE_AI_TOPUP_CATALOG,
   aiTopUpProductIdFor,
   creditsForAiTopUpProductId,
   displayNameForAiTopUpProductId,
@@ -112,6 +113,15 @@ export interface VoiceCreditPriceInfo {
   weekendUnlimited?: boolean;
 }
 
+export interface AiTopUpPriceInfo {
+  packId: AiTopUpPackId;
+  productId: string;
+  credits: number;
+  displayName: string;
+  priceString: string;
+  currencyCode?: string | null;
+}
+
 export interface AppleIAPService {
   isAvailable(): boolean;
   isConfigured(): boolean;
@@ -119,6 +129,7 @@ export interface AppleIAPService {
   getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]>;
   getDFYPrices(): Promise<DFYPriceInfo[]>;
   getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]>;
+  getAiTopUpPrices(): Promise<AiTopUpPriceInfo[]>;
   purchaseSubscription(tier: IAPSubscriptionTier, interval: SubscriptionInterval): Promise<CustomerInfo>;
   purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo>;
   purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo>;
@@ -420,6 +431,50 @@ class RevenueCatAppleIAPService implements AppleIAPService {
         priceString: safe.priceString,
         currencyCode: safe.currencyCode,
         weekendUnlimited,
+      });
+    }
+
+    return results;
+  }
+
+  async getAiTopUpPrices(): Promise<AiTopUpPriceInfo[]> {
+    if (!this.isAvailable()) return [];
+    if (this.configurePromise) await this.configurePromise;
+    if (!this.isConfigured()) return [];
+
+    await this.syncCurrencyAuthorityFromStore();
+
+    const productIds = Object.values(APPLE_AI_TOPUP_PRODUCT_IDS);
+    const storeProducts = await Purchases.getProducts(productIds);
+    const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
+    const results: AiTopUpPriceInfo[] = [];
+
+    for (const packId of Object.keys(APPLE_AI_TOPUP_PRODUCT_IDS) as AiTopUpPackId[]) {
+      const productId = aiTopUpProductIdFor(packId);
+      const storeProduct = productById.get(productId);
+      if (!storeProduct?.priceString) continue;
+
+      const currencyCode = storeProduct.currencyCode ?? null;
+      currencyService.notePaymentCurrency(currencyCode);
+
+      const safe = currencyService.safeStorekitPrice(
+        {
+          priceString: storeProduct.priceString,
+          currencyCode,
+          price: storeProduct.price,
+        },
+        currencyService.getSessionCurrency(),
+      );
+      if (!safe) continue;
+
+      const mapped = APPLE_AI_TOPUP_CATALOG[productId];
+      results.push({
+        packId,
+        productId,
+        credits: mapped?.credits ?? 0,
+        displayName: mapped?.displayName ?? packId,
+        priceString: safe.priceString,
+        currencyCode: safe.currencyCode,
       });
     }
 

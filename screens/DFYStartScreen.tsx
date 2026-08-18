@@ -77,6 +77,15 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const [pendingAfterName, setPendingAfterName] = useState<(() => void) | null>(null);
   const useAppleIAP = shouldUseAppleIAP();
 
+  useEffect(() => {
+    if (!FEATURE_FLAGS.hideDfyPurchaseUi) return;
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('Subscription');
+    }
+  }, [navigation]);
+
   const promptPackageNameThen = async (tier: DFYTier, continueFn: () => void) => {
     try {
       // Give the server a moment to archive/create the package after generate

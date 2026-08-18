@@ -27,6 +27,7 @@ import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 import { ALL_COUNTRIES } from "@/constants/countries";
 import { filterCountriesBySearch, getLocalizedCountryName } from "@/utils/countryLocalization";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
 import { isStaffUser } from "@/utils/staffAccess";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
@@ -698,7 +699,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const hasLiteAccess = dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess;
   const hasTravelCapsuleBenefit = getDfyBenefitForSubscription(user?.subscriptionTier) === 'styling_sprint';
-  const showTravelCapsuleSettings = hasLiteAccess || hasTravelCapsuleBenefit || !!travelPlan;
+  const showTravelCapsuleSettings = FEATURE_FLAGS.hideDfyPurchaseUi
+    ? !!travelPlan
+    : (hasLiteAccess || hasTravelCapsuleBenefit || !!travelPlan);
 
   const travelCapsuleSubtitle = travelPlan?.destination && !isPlaceholderDestination(travelPlan.destination)
     ? (t('settings.travelCapsule.subtitle') || '{destination} · {startDate} – {endDate}')

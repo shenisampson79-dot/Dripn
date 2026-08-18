@@ -284,6 +284,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [winbackOffer50, setWinbackOffer50] = useState(false);
   const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
   const [devTestingMode, setDevTestingMode] = useState(false);
+  const [aiTopUpPrices, setAiTopUpPrices] = useState<Partial<Record<AiTopUpPackId, string>>>({});
   const useAppleIAP = shouldUseAppleIAP();
 
   const applyCatalogPrices = useCallback(() => {
@@ -341,6 +342,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           // Warm StoreKit + note storefront (reinforces UK) — discard price overlays.
           await appleIAPService.getSubscriptionPrices();
           await appleIAPService.getDFYPrices();
+          const topUp = await appleIAPService.getAiTopUpPrices();
+          if (!cancelled) {
+            const next: Partial<Record<AiTopUpPackId, string>> = {};
+            for (const row of topUp) {
+              next[row.packId] = row.priceString;
+            }
+            setAiTopUpPrices(next);
+          }
         } catch (error) {
           console.warn('[Subscription] Apple IAP price load failed:', error);
         }
@@ -692,13 +701,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             {
               id: 'standard' as AiTopUpPackId,
               name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
-              price: '£5.99',
+              price: aiTopUpPrices.standard || '—',
               detail: t('subscription.aiTopUp.standardDetail') || '300 AI credits',
             },
             {
               id: 'plus' as AiTopUpPackId,
               name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
-              price: '£10.99',
+              price: aiTopUpPrices.plus || '—',
               detail: t('subscription.aiTopUp.plusDetail') || '600 AI credits',
               bestValue: true,
             },
@@ -861,6 +870,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const iapReady = await appleIAPService.configure(user.id);
       if (!iapReady) throw new Error(IAP_UNAVAILABLE_MESSAGE);
       const customerInfo = await appleIAPService.restorePurchases();
+      // Restore subscriptions + DFY non-consumables only.
+      // AI Top-Up / voice consumables are NOT restored — balances live on the Dripn account.
       const subscriptionPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
       const dfyPayload = serializeDfyCustomerInfoForSync(customerInfo);
 

@@ -31,6 +31,8 @@ assert.equal(plus?.displayName, 'AI Top-Up Plus');
 
 assert.equal(isAiTopUpProductId('com.dripn.ai.topup.300'), true);
 assert.equal(isAiTopUpProductId('com.dripn.ai.topup.600'), true);
+assert.equal(isAiTopUpProductId('com.dripn.ai.topup.small'), false);
+assert.equal(isAiTopUpProductId('com.dripn.ai.topup.large'), false);
 assert.equal(isAiTopUpProductId('com.dripn.voice.boost.30'), false);
 assert.equal(creditsForAiTopUpProductId('com.dripn.voice.boost.30'), null);
 assert.equal(displayNameForAiTopUpProductId('com.dripn.personal_stylist.monthly'), null);
