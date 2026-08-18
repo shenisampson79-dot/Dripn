@@ -101,4 +101,25 @@ function truth(partial: Partial<LiveOutfitTruth> = {}): LiveOutfitTruth {
   assert.doesNotMatch(out?.summary || '', /sweatpants|loafer|cloud/i);
 }
 
+// Published colour wins — grey shorts must not render as black.
+{
+  const grey = truth({
+    bottom: item('Grey Athletic Shorts', 'bottoms', 'athletic_shorts'),
+    footwear: null,
+    score: 78,
+  });
+  const out = renderCopyFromPublishedTruth({
+    headline: 'Sport-ready',
+    summary: 'Black t-shirt and black athletic shorts keep to a consistent colour direction.',
+    summaryTemplate: '{top} and {bottom} keep to a consistent colour direction.',
+    bullets: [
+      'A slim backpack would keep the carry casual and practical',
+      'A slim backpack would keep the carry casual and practical',
+    ],
+  }, grey);
+  assert.match(out?.summary || '', /grey athletic shorts/i);
+  assert.doesNotMatch(out?.summary || '', /black athletic shorts/i);
+  assert.equal((out?.bullets || []).length, 1, 'duplicate bullets collapse');
+}
+
 console.log('livePublishedCopy.test.ts: all passed');

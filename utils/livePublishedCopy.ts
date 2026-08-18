@@ -181,10 +181,17 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
     summary = synthesizePublishedSummary(truth, names);
   }
 
+  const seen = new Set<string>();
   const bullets = (Array.isArray(coaching.bullets) ? coaching.bullets : [])
     .map((b) => String(b || '').trim())
     .filter(Boolean)
     .filter((b) => textUsesOnlyPublishedNames(b, names))
+    .filter((b) => {
+      const key = b.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .slice(0, 2);
 
   return polishUkCoaching({

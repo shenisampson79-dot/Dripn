@@ -118,6 +118,8 @@ export const FORBIDDEN_VISIBLE_PATTERNS: RegExp[] = [
   /thermalWeight/i,
   /BELIEF_PROVEN/i,
   /YOLO_PROVEN/i,
+  /REJECT\s*:?\s*skin_overlap/i,
+  /\bskin_overlap\b/i,
   /prompt:/i,
   /workplace dress code from settings/i,
   /keep one clear style lane/i,

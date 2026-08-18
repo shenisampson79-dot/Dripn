@@ -77,6 +77,14 @@ import {
 } from '@/utils/liveBeliefDebug';
 import { shoeStyleScoreDelta } from '@/utils/liveFootwearGate';
 import { renderCopyFromPublishedTruth } from '@/utils/livePublishedCopy';
+import {
+  adoptCloudIdentityIntoBelief,
+  hasPublishedLiveCore,
+  liveCloudPathBlockedByYoloProof,
+  mapYoloBoxesOntoPublishedTruth,
+  sanitizeLiveBoxLabel,
+  sanitizeLiveUserHudText,
+} from '@/utils/livePublishedIdentity';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
 import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -160,8 +168,8 @@ const FRAME_WIDTH = 640;
 /**
  * Live milestones (reintroduce one layer at a time):
  *   M1 camera→RGBA ✅ frozen — do not redesign VisionCamera / Image ownership
- *   M2b YOLO detector-internal diag ✅ proof gate then continue
- *   M3 cloud → belief → score — first Cloud complete read may publish immediately
+ *   M2b YOLO detector-internal diag — must NOT block first Cloud publish
+ *   M3 cloud → belief → score — first Cloud complete read publishes immediately
  *
  * bodyGuards:false / low conf are DIAGNOSTIC ONLY (paint + counts). Production
  * filter stack is still reported separately in DBG.
@@ -169,8 +177,9 @@ const FRAME_WIDTH = 640;
 const LIVE_REQUIRE_PIPELINE_PROOF = true;
 const LIVE_PIPELINE_PROOF_ONLY = false; // M1 passed — allow YOLO layer
 const PIPELINE_PROOF_STREAK = 3;
-const LIVE_REQUIRE_YOLO_PROOF = true;
-const LIVE_YOLO_PROOF_ONLY = false; // M3 unfrozen — Cloud/belief/score after YOLO proof
+/** YOLO proof is diagnostic only — waiting here pushed first score to ~17s. */
+const LIVE_REQUIRE_YOLO_PROOF = false;
+const LIVE_YOLO_PROOF_ONLY = false;
 const YOLO_PROOF_STREAK = 3;
 /** Keep REF JPEG result on the status line long enough to screenshot. */
 const YOLO_REF_STICKY_MS = 4500;
@@ -234,7 +243,7 @@ function detectionsToLiveItems(
     return {
       tempId: d.trackId || prev?.tempId || `belief_${i}`,
       trackId: d.trackId || prev?.trackId || `belief_${i}`,
-      name: d.name || d.category,
+      name: sanitizeLiveBoxLabel(d.name || '') || sanitizeLiveBoxLabel(d.category) || d.category,
       category: d.category,
       subcategory: d.subcategory || null,
       // Belief owns colour — never keep a stale prev colour when belief cleared it.
@@ -434,6 +443,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const outfitTruthRef = useRef<LiveOutfitTruth | null>(null);
   const warmTruthRef = useRef<WarmTruthStash | null>(null);
   const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
+  /** First Cloud JPEG must not wait on YOLO proof / detections. */
+  const firstCloudSentRef = useRef(false);
   /** Suspect signatures already escalated — ask Vision once, not every frame. */
   const suspectAskedRef = useRef(new Set<string>());
 
@@ -587,7 +598,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // Always run server/cloud labels through belief — never paint raw frame truth.
     // Cloud path intentionally skips client hybrid; updateLiveBelief is the single mutation entry.
     if (res.items?.length) {
-      const raw = liveItemsToDetections(res.items);
+      const cloudish = /cloud_vision|hybrid/i.test(String(res.source || ''));
+      const raw = liveItemsToDetections(res.items).map((d) => (
+        cloudish ? { ...d, source: d.source || String(res.source || 'cloud_vision') } : d
+      ));
       const hasShoe = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'footwear');
       const hasTop = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'top');
       const hasBottom = raw.some((d) => roleOfCategory(d.category, d.subcategory) === 'bottom');
@@ -607,7 +621,37 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         forceClearFootwear: visionExplicitBarefoot,
       });
       detectionMemoryRef.current = stabilized.memory;
-      const painted = detectionsToLiveItems(stabilized.detections, res.items);
+      if (cloudish && detectionMemoryRef.current.belief) {
+        const adopted = adoptCloudIdentityIntoBelief(
+          detectionMemoryRef.current.belief,
+          res.items,
+        );
+        if (adopted) detectionMemoryRef.current = {
+          ...detectionMemoryRef.current,
+          belief: adopted,
+        };
+      }
+      const adoptedBelief = detectionMemoryRef.current.belief;
+      let painted = detectionsToLiveItems(stabilized.detections, res.items);
+      if (cloudish && adoptedBelief) {
+        painted = painted.map((it) => {
+          const blob = `${it.category} ${it.subcategory || ''} ${it.name || ''}`.toLowerCase();
+          const slot = /short|trouser|jean|skirt|pant/.test(blob)
+            ? adoptedBelief.bottom
+            : /shoe|boot|sneaker|loafer|footwear/.test(blob)
+              ? adoptedBelief.footwear
+              : /jacket|blazer|coat|hoodie|overshirt/.test(blob)
+                ? (adoptedBelief.layer || adoptedBelief.top)
+                : (adoptedBelief.top || adoptedBelief.layer);
+          if (!slot?.name) return it;
+          return {
+            ...it,
+            name: slot.name,
+            subcategory: slot.subcategory || it.subcategory,
+            color: slot.color || it.color,
+          };
+        });
+      }
       previousItemsRef.current = painted;
       setItems(painted);
       publishDebug({
@@ -755,17 +799,21 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       nowMs,
     );
     certaintySmoothRef.current = smoothed.state;
-    const certainty = smoothed.certainty;
-    // Core = bottom + shoe/barefoot only. Top/layer flicker must not block publish.
-    const coreFilled = Boolean(
-      beliefSlots?.bottom
-      && (beliefSlots?.footwear || barefootIdentity),
-    );
     const cloudComplete = isHighConfidenceCompleteCloudRead({
       source: res.source,
       items: res.items,
       completeness: next.completeness,
     });
+    // First Cloud complete read is already high-confidence — do not present
+    // "~78 approx / Settling in" while identity frames catch up.
+    const certainty = cloudComplete && scoreGateRef.current.shown == null
+      ? 'high' as const
+      : smoothed.certainty;
+    // Core = bottom + shoe/barefoot only. Top/layer flicker must not block publish.
+    const coreFilled = Boolean(
+      beliefSlots?.bottom
+      && (beliefSlots?.footwear || barefootIdentity),
+    );
     const gated = gateLiveScore(
       scoreGateRef.current,
       next.score,
@@ -1020,8 +1068,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         hash: hashRgbaFrame(rgba, width, height),
       };
 
-      // ── Milestone 2b: detector-internal YOLO diag (no cloud/belief/score) ─
-      if (LIVE_REQUIRE_YOLO_PROOF || LIVE_YOLO_PROOF_ONLY) {
+      // ── Milestone 2b: detector-internal YOLO diag (never blocks first Cloud) ─
+      if (liveCloudPathBlockedByYoloProof({
+        requireYoloProof: LIVE_REQUIRE_YOLO_PROOF,
+        yoloProofOnly: LIVE_YOLO_PROOF_ONLY,
+        yoloProven: yoloProvenRef.current,
+      })) {
         if (Date.now() < yoloEnabledAtRef.current) {
           setStatusNote('Camera OK — proving YOLO…');
           setYoloStatusNote('DBG: YOLO warmup');
@@ -1181,9 +1233,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       if (mountedRef.current) setIsBusy(true);
 
+      const firstCloudDue = !firstCloudSentRef.current;
+
       let onDevice: Awaited<ReturnType<typeof detectGarmentsFromRgba>> = null;
-      // Brief camera settle, then YOLO.
-      if (Date.now() >= yoloEnabledAtRef.current) {
+      // First publish is Cloud JPEG — do not spend the 5s budget waiting on YOLO.
+      if (!firstCloudDue && Date.now() >= yoloEnabledAtRef.current) {
         try {
           onDevice = await detectGarmentsFromRgba(rgba, width, height);
         } catch (yoloErr) {
@@ -1218,13 +1272,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         return jpegBase64;
       };
 
-      if (onDevice?.length) {
+      if (firstCloudDue) {
+        payload.imageBase64 = ensureJpeg();
+        payload.cloudFill = true;
+        payload.cloudFillReason = 'first_publish';
+        firstCloudSentRef.current = true;
+        lastCloudFillAtRef.current = Date.now();
+      } else if (onDevice?.length) {
         const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
         const footZoneEarly = getLastOnDeviceFootZone();
         const { detections: corrected, pipeline } = correctOnDeviceDetections(onDevice, {
           id: frameHash,
           context: occasionType,
-          // Recover shoes when foot zone is visible — never invent on cropped thighs
           hybrid: {
             rematerializeBottom: false,
             inferMissingFootwear: Boolean(footZoneEarly?.visible),
@@ -1242,60 +1301,76 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           );
           return;
         }
-        // Temporal memory — hold top/bottom across flaky frames (no restart needed)
         const footZone = getLastOnDeviceFootZone();
-        const stabilized = updateLiveBelief(corrected, detectionMemoryRef.current, {
-          decisions: decisionLogRef.current,
-          bottomBandBrightness: footZone?.brightness,
-          occasionType,
-        });
-        detectionMemoryRef.current = stabilized.memory;
-        payload.detections = stabilized.detections;
-        payload.detectorSource = 'yolo';
-        payload.sceneType = 'worn';
-        payload.frameCropped = stabilized.cropped;
-        if (stabilized.memory?.belief?.torsoState) {
-          payload.torsoState = stabilized.memory.belief.torsoState;
+        const lockedIdentity = hasPublishedLiveCore(outfitTruthRef.current);
+        const mapped = lockedIdentity && outfitTruthRef.current
+          ? mapYoloBoxesOntoPublishedTruth(corrected, outfitTruthRef.current)
+          : corrected;
+        if (lockedIdentity) {
+          payload.detections = mapped;
+          payload.detectorSource = 'yolo';
+          payload.sceneType = 'worn';
+          payload.frameCropped = Boolean(footZone?.cropped);
+          paintBeliefItems(mapped);
+          publishDebug({
+            frameDetections: mapped,
+            source: 'on_device_yolo',
+            cropped: Boolean(footZone?.cropped),
+          });
+        } else {
+          const stabilized = updateLiveBelief(corrected, detectionMemoryRef.current, {
+            decisions: decisionLogRef.current,
+            bottomBandBrightness: footZone?.brightness,
+            occasionType,
+          });
+          detectionMemoryRef.current = stabilized.memory;
+          payload.detections = stabilized.detections;
+          payload.detectorSource = 'yolo';
+          payload.sceneType = 'worn';
+          payload.frameCropped = stabilized.cropped;
+          if (stabilized.memory?.belief?.torsoState) {
+            payload.torsoState = stabilized.memory.belief.torsoState;
+          }
+          const repairs = [
+            ...(pipeline?.repairs || []),
+            ...stabilized.repairs,
+          ];
+          if (repairs.length) {
+            payload.pipelineRepairs = repairs;
+            payload.pipelineConfidence = pipeline?.confidence;
+          }
+          paintBeliefItems(stabilized.detections);
+          publishDebug({
+            frameDetections: onDevice,
+            source: 'on_device_yolo',
+            cropped: stabilized.cropped,
+            mutations: stabilized.mutations,
+          });
         }
-        const repairs = [
-          ...(pipeline?.repairs || []),
-          ...stabilized.repairs,
-        ];
-        if (repairs.length) {
-          payload.pipelineRepairs = repairs;
-          payload.pipelineConfidence = pipeline?.confidence;
-        }
-        // Paint boxes from belief immediately — don't wait on the network round-trip
-        paintBeliefItems(stabilized.detections);
-        publishDebug({
-          frameDetections: onDevice,
-          source: 'on_device_yolo',
-          cropped: stabilized.cropped,
-          mutations: stabilized.mutations,
-        });
 
-        const belief = stabilized.memory.belief;
+        const belief = detectionMemoryRef.current.belief;
         const missingTop = !belief?.top && !belief?.layer;
         const missingShoes = !belief?.footwear && Boolean(footZone?.visible);
-        const sparse = stabilized.detections.length < 2;
-        const incomplete = missingTop || missingShoes || sparse;
+        const sparse = (payload.detections as unknown[] | undefined)?.length
+          ? (payload.detections as unknown[]).length < 2
+          : true;
+        const incomplete = !lockedIdentity && (missingTop || missingShoes || sparse);
         const baseline = cloudSceneBaselineRef.current;
         if (!baseline.detections.length) {
           cloudSceneBaselineRef.current = {
-            detections: corrected,
+            detections: mapped,
             frameHash,
           };
         }
         const sceneChanged = hasMeaningfulLiveSceneChange(
           baseline.detections,
-          corrected,
+          mapped,
           baseline.frameHash,
           frameHash,
         );
         sceneChangeStreakRef.current = sceneChanged
           ? sceneChangeStreakRef.current + 1
           : 0;
-        // Missing top/shoes → fill after 2s; otherwise sparse frames after 4s
         const fillMs = (missingTop || missingShoes) ? 2000 : 4000;
         const cloudFillReady = Date.now() - lastCloudFillAtRef.current >= fillMs;
         const sceneEventReady =
@@ -1303,9 +1378,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         const sceneEventDue =
           sceneChangeStreakRef.current >= CLOUD_SCENE_EVENT_FRAMES && sceneEventReady;
         const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= CLOUD_LAYER_VERIFY_MS;
-        // A read that contradicts itself (shorts label on a full-leg box, no
-        // defensible colour) escalates now instead of waiting for a verify pass.
-        const suspect = detectSuspectLiveRead(stabilized.detections);
+        const suspect = detectSuspectLiveRead(lockedIdentity ? mapped : corrected);
         const suspectDue = Boolean(
           suspect
           && !suspectAskedRef.current.has(suspect.signature)
@@ -1328,18 +1401,36 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           lastCloudFillAtRef.current = Date.now();
           sceneChangeStreakRef.current = 0;
           cloudSceneBaselineRef.current = {
-            detections: corrected,
+            detections: mapped,
             frameHash,
           };
         }
-      } else {
+      } else if (!firstCloudDue) {
         payload.imageBase64 = ensureJpeg();
+      }
+
+      if (!payload.imageBase64 && hasPublishedLiveCore(outfitTruthRef.current)) {
+        lastHashRef.current = frameHash;
+        analysisSucceededRef.current = true;
+        const shownScore = scoreGateRef.current.shown;
+        const scoreLabel = presentLiveScore(
+          shownScore,
+          previousFeedbackRef.current?.confidenceLevel || 'high',
+        ).display;
+        const n = previousItemsRef.current.length;
+        setStatusNote(
+          n
+            ? `${n} piece${n === 1 ? '' : 's'} · ${scoreLabel}`
+            : 'No garments yet — hold steadier',
+        );
+        return;
       }
 
       void liveStartCrumb('cloud.request');
       const res = await apiService.liveScanFrame(payload);
       void liveStartCrumb('cloud.response');
       if (!res.success) {
+        if (payload.cloudFillReason === 'first_publish') firstCloudSentRef.current = false;
         void liveStartCrumb(`ANALYSIS_FAILURE cloud:${res.message || 'scan_failed'}`);
         setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE cloud`);
         if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
@@ -1373,6 +1464,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       );
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
+      if (!analysisSucceededRef.current) firstCloudSentRef.current = false;
       const msg = error instanceof Error ? error.message : 'Frame failed';
       void liveStartCrumb(`ANALYSIS_FAILURE ${msg}`);
       void liveStartCrumb(`frame.error ${msg}`);
@@ -1559,6 +1651,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       suspectAskedRef.current = new Set<string>();
       filledOnceRef.current = {};
       outfitTruthRef.current = null;
+      firstCloudSentRef.current = false;
       previousItemsRef.current = [];
       previousFeedbackRef.current = null;
       recentLayerTipIdsRef.current = [];
@@ -1691,6 +1784,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       yoloRefVerdictRef.current = null;
       yoloLiveVerdictRef.current = null;
       yoloRefStickyUntilRef.current = 0;
+      firstCloudSentRef.current = false;
       lastHashRef.current = null;
 
       // 3) Mount + wait for ready (hard timeout)
@@ -2117,7 +2211,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               ellipsizeMode="tail"
               style={{ color: 'rgba(255,255,255,0.75)' }}
             >
-              {sourceLabel} · {statusNote}
+              {sourceLabel} · {sanitizeLiveUserHudText(statusNote) || 'Live'}
             </ThemedText>
           </Pressable>
           {beliefDebugAllowed ? (
@@ -2136,6 +2230,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           ) : null}
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
+        {beliefDebugAllowed && showBeliefDebug ? (
         <View style={styles.dbgLine}>
           <ThemedText
             type="caption"
@@ -2146,6 +2241,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
             {yoloStatusNote}
           </ThemedText>
         </View>
+        ) : null}
 
         <View style={styles.actions}>
           <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>
