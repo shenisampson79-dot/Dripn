@@ -2,6 +2,7 @@
  * Live regression suite — named invariants from real failure modes.
  * Absolute fails must never regress.
  *
+ * Garment-belief cases. Launch gate (L1–L6) is utils/livePermanentRegression.test.ts
  * Run: npx tsx utils/liveRegression.test.ts
  * Or:  npm run verify:live-regression
  */
