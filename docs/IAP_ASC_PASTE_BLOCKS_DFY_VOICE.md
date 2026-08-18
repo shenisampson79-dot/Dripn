@@ -293,7 +293,7 @@ Description: Unlimited voice for 48 hours — buy any day
 
 Display names must match in-app copy exactly.
 
-### `com.dripn.ai.topup.300` — price set in ASC price schedule
+### `com.dripn.ai.topup` — price set in ASC price schedule
 
 - **Display name:** `AI Top-Up` **(9 chars)**
 - **Description:** `300 extra Live and chat credits` **(32 chars)**
@@ -310,7 +310,7 @@ Consumable credit packs for extra Live camera styling and stylist chat. Credits 
 ```
 
 ```
-com.dripn.ai.topup.300
+com.dripn.ai.topup
 Display name: AI Top-Up
 Description: 300 extra Live and chat credits
 

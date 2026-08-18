@@ -20,7 +20,7 @@ Complete setup guide for all **11** in-app purchase products used by Dripn (Styl
 | 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
 | 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
 | 9 | `com.dripn.voice.weekend_unlimited` | Consumable | 2-Day Unlimited | Unlimited voice for 48 hours — buy any day | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
-| 10 | `com.dripn.ai.topup.300` | Consumable | AI Top-Up | 300 extra Live and chat credits | **set in ASC price schedule** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up pack (`standard`) |
+| 10 | `com.dripn.ai.topup` | Consumable | AI Top-Up | 300 extra Live and chat credits | **set in ASC price schedule** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up pack (`standard`) |
 | 11 | `com.dripn.ai.topup.600` | Consumable | AI Top-Up Plus | 600 extra Live and chat credits | **set in ASC price schedule** | — | **consumable — no entitlement** | **SubscriptionScreen** — AI Top-Up Plus pack (`plus`) |
 
 ### Price sources (server code)
@@ -87,7 +87,7 @@ Copy into each **Consumable** product's localization fields:
 
 Copy into each **Consumable** product's localization fields:
 
-**`com.dripn.ai.topup.300`**
+**`com.dripn.ai.topup`**
 - Display name: `AI Top-Up` (9 chars)
 - Description: `300 extra Live and chat credits` (32 chars)
 - Price: set in ASC price schedule (do not invent $ / £ in the app)
@@ -104,7 +104,7 @@ Copy into each **Consumable** product's localization fields:
 #### Pack 1
 - Type: Consumable
 - Reference name: `AI Top-Up 300`
-- Product ID: `com.dripn.ai.topup.300`
+- Product ID: `com.dripn.ai.topup`
 - English display name: `AI Top-Up`
 - Description: `300 extra Live and chat credits`
 - Price: set in ASC price schedule
@@ -124,7 +124,7 @@ Consumable credit packs for extra Live camera styling and stylist chat. Credits 
 ```
 
 #### RevenueCat
-1. Import the **exact** Apple product IDs above (`com.dripn.ai.topup.300` / `.600`).
+1. Import the **exact** Apple product IDs above (`com.dripn.ai.topup` / `com.dripn.ai.topup.600`).
 2. Do **not** attach them to `personal_stylist` or `stylist_unlimited` (or any other subscription entitlement).
 3. Optional: add packages to the current offering. Not required — the app purchases by product ID.
 4. Optional offering identifier `ai_topups` is dashboard-only; do not change the client to fetch a new offering.
@@ -222,7 +222,7 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Reference name | Display name | What user gets | Price |
 |------------|----------------|--------------|----------------|-------|
-| `com.dripn.ai.topup.300` | AI Top-Up 300 | AI Top-Up | +300 Live and chat credits | set in ASC price schedule |
+| `com.dripn.ai.topup` | AI Top-Up 300 | AI Top-Up | +300 Live and chat credits | set in ASC price schedule |
 | `com.dripn.ai.topup.600` | AI Top-Up Plus 600 | AI Top-Up Plus | +600 Live and chat credits | set in ASC price schedule |
 
 2. Add localized descriptions from §1 AI top-up paste blocks. Do **not** use “unlimited”.
@@ -302,7 +302,7 @@ RevenueCat → **Entitlements** → create exactly these four:
 | `dfy_lite` | DFY Travel Capsule (one-time) |
 | `dfy_core` | DFY Full Wardrobe Setup (one-time) |
 
-Voice consumables and AI top-up consumables get **no entitlement**. Do **not** attach `com.dripn.ai.topup.300` / `.600` to `personal_stylist` or `stylist_unlimited`.
+Voice consumables and AI top-up consumables get **no entitlement**. Do **not** attach `com.dripn.ai.topup` / `com.dripn.ai.topup.600` to `personal_stylist` or `stylist_unlimited`.
 
 ### C. Map products to entitlements
 
@@ -319,7 +319,7 @@ RevenueCat → **Products** → for each App Store product, attach the entitleme
 | `com.dripn.voice.boost.30` | *(none — consumable)* |
 | `com.dripn.voice.pro.80` | *(none)* |
 | `com.dripn.voice.weekend_unlimited` | *(none — sets 48h unlimited on server)* |
-| `com.dripn.ai.topup.300` | *(none — consumable; +300 AI credits on Dripn account)* |
+| `com.dripn.ai.topup` | *(none — consumable; +300 AI credits on Dripn account)* |
 | `com.dripn.ai.topup.600` | *(none — consumable; +600 AI credits on Dripn account)* |
 
 ### D. Create offering(s)
@@ -496,6 +496,6 @@ Voice (consumable — server credits or 48h unlimited, no entitlement):
   Legacy: credits_10/40/80/150, credits_25/50/100, voice.10/.30/.60 still honoured
 
 AI meter top-up (consumable — extra budget cents, no entitlement, no legacy aliases):
-  com.dripn.ai.topup.300            →  +300 AI credits  (display: AI Top-Up)
+  com.dripn.ai.topup                →  +300 AI credits  (display: AI Top-Up)
   com.dripn.ai.topup.600            →  +600 AI credits  (display: AI Top-Up Plus)
 ```

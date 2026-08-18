@@ -5,7 +5,7 @@
  */
 
 export const APPLE_AI_TOPUP_PRODUCT_IDS = {
-  standard: 'com.dripn.ai.topup.300',
+  standard: 'com.dripn.ai.topup',
   plus: 'com.dripn.ai.topup.600',
 } as const;
 
@@ -18,7 +18,7 @@ export type AiTopUpCatalogEntry = {
 };
 
 export const APPLE_AI_TOPUP_CATALOG: Record<string, AiTopUpCatalogEntry> = {
-  'com.dripn.ai.topup.300': {
+  'com.dripn.ai.topup': {
     packId: 'standard',
     credits: 300,
     displayName: 'AI Top-Up',
