@@ -318,7 +318,8 @@ export function gateFootwearDetections(
   // Only true skin-dominant feet veto footwear. skin_unknown is "can't tell" — not barefoot.
   const barefootEvidence = candidates.some((c) => c.rejectReason === 'barefoot');
 
-  // Off-body / floor shoes: lateral to top+bottom centers (no pose keypoints yet).
+  // Off-body / floor shoes: lateral to the outfit, or sitting in front of
+  // the wearer (below the bottom-garment hem) — no pose keypoints / YOLO.
   const bodyBboxes = detections
     .filter((d) => {
       const blob = `${d.category} ${d.subcategory || ''}`.toLowerCase();
@@ -354,6 +355,10 @@ export function gateFootwearDetections(
     .map((c, i) => ({ c, d: shoeLike[i] }))
     .filter((x) => x.c.valid)
     .sort((a, b) => {
+      // Worn (ankle-attached) beats a second pair on the floor, even if louder.
+      const aWorn = wornAttachmentScore(a.d.bbox as BBoxTuple, bodyBboxes);
+      const bWorn = wornAttachmentScore(b.d.bbox as BBoxTuple, bodyBboxes);
+      if (Math.abs(aWorn - bWorn) > 0.08) return bWorn - aWorn;
       // Hierarchy: boat/deck labels beat coarse trainers/boots when both are valid.
       const aBoat = /boat|deck|topsider|sperry/i.test(`${a.d.name || ''} ${a.d.subcategory || ''}`) ? 1 : 0;
       const bBoat = /boat|deck|topsider|sperry/i.test(`${b.d.name || ''} ${b.d.subcategory || ''}`) ? 1 : 0;
@@ -443,7 +448,7 @@ function rejectReasonLabel(reason: FootwearRejectReason, skin: number | null): s
   if (reason === 'outside_footwear_zone') return 'outside footwear zone';
   if (reason === 'invalid_shape') return 'not shoe-like shape';
   if (reason === 'low_confidence') return 'low confidence';
-  if (reason === 'off_body') return 'off-body / floor shoe (lateral to outfit)';
+  if (reason === 'off_body') return 'off-body / floor shoe (not on the wearer)';
   return 'not labeled footwear';
 }
 
@@ -452,9 +457,43 @@ function bboxCenterX(bbox: BBoxTuple): number {
   return bbox[0] + bbox[2] / 2;
 }
 
+/** Gap from bottom-garment hem to shoe top. Worn pairs sit just under the hem. */
+export const FLOOR_SHOE_HEM_GAP = 0.12;
+
+export function hemToShoeGap(shoeBbox: BBoxTuple, bodyBboxes: BBoxTuple[]): number | null {
+  if (!bodyBboxes.length) return null;
+  const lowest = bodyBboxes.reduce((a, b) => ((a[1] + a[3] >= b[1] + b[3]) ? a : b));
+  return shoeBbox[1] - (lowest[1] + lowest[3]);
+}
+
 /**
- * Shoes a yard away sit laterally in the frame while feet stay under the body.
- * Without pose keypoints, outfit centers (top/bottom) are the body proxy.
+ * Higher = more likely on-foot. Floor pairs in front of the camera sit farther
+ * below the shorts/trouser hem than shoes attached at the ankle.
+ */
+export function wornAttachmentScore(shoeBbox: BBoxTuple, bodyBboxes: BBoxTuple[]): number {
+  const gap = hemToShoeGap(shoeBbox, bodyBboxes);
+  if (gap == null) return 0;
+  if (gap > FLOOR_SHOE_HEM_GAP) return -gap;
+  if (gap < -0.08) return 0.2;
+  return 1 - Math.abs(gap);
+}
+
+/**
+ * Coarse Cloud labels ("Black Shoes", "Black Running Shoes") must not replace a
+ * locked loafer/oxford identity. Named trainers/sneakers still may.
+ */
+export function isCoarseFootwearLabel(name?: string | null): boolean {
+  const n = String(name || '').trim().toLowerCase();
+  if (!n) return true;
+  if (/loafer|oxford|derby|brogue|boot|sneaker|trainer|sandal|flip|slide|clog|mule|boat|deck|heel/.test(n)) {
+    return false;
+  }
+  return /(?:^|\s)(?:running\s+)?shoes?$/.test(n);
+}
+
+/**
+ * Shoes a yard away sit laterally OR in front of the wearer (below the hem)
+ * while worn footwear stays under the body. Outfit boxes are the body proxy.
  */
 export function isOffBodyFootwear(
   shoeBbox: BBoxTuple,
@@ -464,7 +503,9 @@ export function isOffBodyFootwear(
   if (!bodyBboxes.length) return false;
   const shoeCx = bboxCenterX(shoeBbox);
   const bodyCx = bodyBboxes.reduce((sum, b) => sum + bboxCenterX(b), 0) / bodyBboxes.length;
-  return Math.abs(shoeCx - bodyCx) > maxLateral;
+  if (Math.abs(shoeCx - bodyCx) > maxLateral) return true;
+  const gap = hemToShoeGap(shoeBbox, bodyBboxes);
+  return gap != null && gap > FLOOR_SHOE_HEM_GAP;
 }
 
 function capitalize(s: string): string {
@@ -539,9 +580,19 @@ export function stabilizeShoeSubtype(
   next: ShoeSubtype,
   confidence: number,
   prevConfidence?: number | null,
+  opts?: { nextName?: string | null },
 ): ShoeSubtype {
   if (!prev) return next;
   if (prev === next) return prev;
+  // A generic "black shoes" / "running shoes" read from a second pair in frame
+  // must not coarsen locked loafers. Named trainers still unlock on put-on.
+  if (
+    prev === 'loafers'
+    && next === 'sneakers'
+    && isCoarseFootwearLabel(opts?.nextName)
+  ) {
+    return prev;
+  }
   // Known detector confusion — hold unless near-certain. Sustained disagreement
   // across frames in liveLayeringIntelligence still switches the belief.
   if (isConfusableShoeFlip(prev, next) && confidence < CONFUSABLE_FLIP_UNLOCK) {

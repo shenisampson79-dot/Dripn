@@ -21,6 +21,7 @@ import {
   smoothLiveCertainty,
   isLiveFootwearResolved,
   nextLiveScoreApproximation,
+  shouldHoldLivePublishedCopy,
   LIVE_FIRST_SCORE_MAX_HOLD_MS,
   LIVE_FORCE_PUBLISH_MS,
   LIVE_IDENTITY_CHANGE_FRAMES,
@@ -503,9 +504,9 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     soft: false,
   });
   assert.deepEqual(presentLiveScore(84, 'medium'), {
-    display: '~84',
+    display: '84',
     numeric: 84,
-    soft: true,
+    soft: false,
   });
   assert.deepEqual(presentLiveScore(82, 'high', { approximate: true }), {
     display: '~82',
@@ -513,6 +514,7 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     soft: true,
   });
   assert.equal(presentLiveScore(78, 'high', { approximate: false }).display, '78');
+  assert.equal(presentLiveScore(96, 'medium', { approximate: false }).display, '96');
   assert.equal(presentLiveScore(null, 'medium').display, '—');
 }
 
@@ -783,6 +785,98 @@ assert.equal(liveBeliefIsSettled([]), false, 'an empty belief is not settled');
     true,
     'hold while shoes arrive keeps ~ until adopt',
   );
+}
+
+assert.equal(normalizeLiveShoeIdentity('trainers'), 'sneakers');
+assert.equal(normalizeLiveShoeIdentity('trainer'), 'sneakers');
+assert.equal(normalizeLiveShoeIdentity('sneakers'), 'sneakers');
+assert.equal(
+  liveCoreIdentityKey({ bottomKind: 'shorts', shoeSubtype: 'trainers' }),
+  liveCoreIdentityKey({ bottomKind: 'shorts', shoeSubtype: 'sneakers' }),
+  'trainers and sneakers are one scoring identity',
+);
+
+// QA 18 Aug: loafers → trainers must adopt the new Cloud number immediately,
+// even while shoes are STABLE (not 0.85-settled). Never keep 48 next to a
+// trainers summary.
+{
+  const loafersSig = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'black' },
+    { category: 'bottoms', subcategory: 'sweat_shorts', color: 'black' },
+    { category: 'shoes', subcategory: 'loafers', color: 'black' },
+  ]);
+  const trainersSig = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'black' },
+    { category: 'bottoms', subcategory: 'sweat_shorts', color: 'black' },
+    { category: 'shoes', subcategory: 'trainers', color: 'white' },
+  ]);
+  let gate = createLiveScoreGate();
+  const loafers = gateLiveScore(gate, 48, {
+    signature: loafersSig,
+    now: 1000,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|loafers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(loafers.score, 48);
+  assert.equal(loafers.gate.approximate, false);
+
+  const trainers = gateLiveScore(loafers.gate, 96, {
+    signature: trainersSig,
+    now: 2500,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|sneakers|t:t-shirt',
+    footwearResolved: true,
+    certainty: 'medium',
+  });
+  assert.equal(trainers.score, 96, 'loafers→trainers Cloud read adopts 96, not held 48');
+  assert.equal(trainers.gate.approximate, false, 'resolved trainers drop ~');
+  assert.equal(
+    presentLiveScore(trainers.score, 'medium', { approximate: trainers.gate.approximate }).display,
+    '96',
+  );
+  assert.equal(
+    shouldHoldLivePublishedCopy({
+      adoptedScore: trainers.score,
+      scoredIdentityKey: trainers.gate.scoredIdentityKey,
+      nextIdentityKey: 'sweat_shorts|sneakers|t:t-shirt',
+    }),
+    false,
+    'adopted trainers score publishes trainers copy',
+  );
+  assert.equal(
+    shouldHoldLivePublishedCopy({
+      adoptedScore: 48,
+      scoredIdentityKey: 'sweat_shorts|loafers|t:t-shirt',
+      nextIdentityKey: 'sweat_shorts|sneakers|t:t-shirt',
+    }),
+    true,
+    'held loafers-48 must not paint trainers copy',
+  );
+
+  // Same trainers identity, still not slot-settled: later Cloud 96 must not freeze.
+  const later = gateLiveScore(createLiveScoreGate(), 48, {
+    signature: trainersSig,
+    now: 1000,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|sneakers|t:t-shirt',
+    footwearResolved: true,
+  });
+  const rescore = gateLiveScore(later.gate, 96, {
+    signature: trainersSig,
+    now: 4000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|sneakers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(rescore.score, 96, 'unsettled same-identity Cloud complete must rescore');
+  assert.equal(rescore.gate.approximate, false);
 }
 
 console.log('liveScoreStability.test.ts: all passed');

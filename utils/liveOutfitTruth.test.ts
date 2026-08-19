@@ -368,4 +368,27 @@ assert.equal(
   assert.equal(truth.footwear, null, 'shorts published as shoes are dropped');
 }
 
+{
+  const base = buildOutfitTruth({
+    belief: belief(),
+    feedback: { score: 78, issues: [], hints: [], suggestions: [] },
+    now: 1000,
+  });
+  const below = alignCoachingToTruth({
+    headline: 'Mixed directions',
+    summary: 'ok',
+    bullets: [],
+    hasConflict: false,
+  }, { ...base, hasConflict: false, score: 78, lane: 'athleisure' });
+  assert.doesNotMatch(below?.headline || '', /sport-ready/i, 'Sport-ready illegal below 80');
+
+  const ready = alignCoachingToTruth({
+    headline: 'Mixed directions',
+    summary: 'ok',
+    bullets: [],
+    hasConflict: false,
+  }, { ...base, hasConflict: false, score: 82, lane: 'athleisure' });
+  assert.equal(ready?.headline, 'Sport-ready');
+}
+
 console.log('liveOutfitTruth.test.ts: all passed');

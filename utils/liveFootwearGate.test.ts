@@ -412,4 +412,56 @@ assert.ok(gatedName.nameEnriched || gatedName.name?.includes('Brown'), 'same-sub
   assert.ok(g.candidates.some((c) => c.rejectReason === 'off_body'));
 }
 
+// In-scene trainers in front of the wearer must not override worn loafers.
+{
+  const wornLoafers: OnDeviceDetection = {
+    name: 'Black Loafers',
+    category: 'shoes',
+    subcategory: 'loafers',
+    color: 'black',
+    confidence: 0.93,
+    bbox: [0.38, 0.78, 0.24, 0.10],
+    skinRatio: 0.06,
+  };
+  const floorTrainers: OnDeviceDetection = {
+    name: 'White Trainers',
+    category: 'shoes',
+    subcategory: 'sneakers',
+    color: 'white',
+    confidence: 1,
+    bbox: [0.36, 0.91, 0.28, 0.08],
+    skinRatio: 0.04,
+  };
+  const both = gateFootwearDetections([top, shorts, wornLoafers, floorTrainers], {
+    now: 10000,
+    bottomBandBrightness: 0.3,
+  });
+  assert.equal(both.accepted?.name, 'Black Loafers', 'worn loafers beat floor trainers');
+  assert.ok(both.candidates.some((c) => c.rejectReason === 'off_body' && /trainer/i.test(c.label)));
+
+  const onlyFloor = gateFootwearDetections([top, shorts, floorTrainers], {
+    now: 11000,
+    bottomBandBrightness: 0.3,
+  });
+  assert.equal(onlyFloor.accepted, null, 'detached in-front trainers are not worn');
+}
+
+{
+  assert.equal(
+    stabilizeShoeSubtype('loafers', 'sneakers', 0.99, 0.93, { nextName: 'Black Shoes' }),
+    'loafers',
+    'generic black shoes must not coarsen loafers',
+  );
+  assert.equal(
+    stabilizeShoeSubtype('loafers', 'sneakers', 0.99, 0.93, { nextName: 'Black Running Shoes' }),
+    'loafers',
+    'running-shoes label is still coarse vs loafers',
+  );
+  assert.equal(
+    stabilizeShoeSubtype('loafers', 'sneakers', 0.99, 0.93, { nextName: 'White Trainers' }),
+    'sneakers',
+    'named trainers still unlock a real put-on',
+  );
+}
+
 console.log('liveFootwearGate.test.ts: all passed');

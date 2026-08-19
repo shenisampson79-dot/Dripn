@@ -230,7 +230,26 @@ export function normalizeLiveShoeIdentity(shoeSubtype?: string | null): string {
   ) {
     return 'none';
   }
+  // Vision flips trainers ↔ sneakers; that is one footwear identity.
+  if (/^(sneakers?|trainers?|runners?)$/.test(s)) return 'sneakers';
   return s;
+}
+
+/**
+ * When the gate still holds the previous number, customer copy must stay on
+ * that scored identity. Publishing "white trainers" next to a loafers-48 is
+ * the QA 18 Aug desync.
+ */
+export function shouldHoldLivePublishedCopy(args: {
+  adoptedScore: number | null;
+  scoredIdentityKey: string | null;
+  nextIdentityKey: string | null;
+}): boolean {
+  if (args.adoptedScore == null || !Number.isFinite(Number(args.adoptedScore))) {
+    return false;
+  }
+  if (!args.scoredIdentityKey || !args.nextIdentityKey) return false;
+  return args.scoredIdentityKey !== args.nextIdentityKey;
 }
 
 /** Core identity for first-score settle — bottom subtype + shoe (tolerate upper flicker). */
@@ -574,18 +593,6 @@ export function gateLiveScore(
     return { gate, score: gate.shown };
   }
 
-  // Medium certainty: keep the badge calm while upper-body labels settle.
-  if (
-    opts.certainty === 'medium'
-    && gate.shown != null
-    && Number.isFinite(gate.shown)
-  ) {
-    value = Math.max(
-      gate.shown - LIVE_PARTIAL_SCORE_CAP,
-      Math.min(gate.shown + LIVE_PARTIAL_SCORE_CAP, value),
-    );
-  }
-
   const sameOutfit = gate.signature === opts.signature;
   const heldSince = gate.heldSince ?? opts.now;
   const heldMs = opts.now - heldSince;
@@ -602,12 +609,33 @@ export function gateLiveScore(
   const scoredCore = coreOf(gate.scoredIdentityKey);
   const nextCore = coreOf(identityKey);
   const coreDrift = Boolean(scoredCore && nextCore && scoredCore !== nextCore);
+  const signatureDrift = Boolean(
+    gate.signature
+    && opts.signature
+    && gate.signature !== opts.signature,
+  );
   const approxOpts = {
     shown: gate.shown,
     previouslyApproximate: gate.approximate,
     footwearResolved,
     identityShifted: coreDrift,
   };
+
+  // Medium certainty: keep the badge calm while upper-body labels settle.
+  // Identity changes (loafers → trainers) must NOT be capped to ±3 — that
+  // left 48 on screen while the summary already named the new shoes.
+  if (
+    opts.certainty === 'medium'
+    && gate.shown != null
+    && Number.isFinite(gate.shown)
+    && !coreDrift
+    && !signatureDrift
+  ) {
+    value = Math.max(
+      gate.shown - LIVE_PARTIAL_SCORE_CAP,
+      Math.min(gate.shown + LIVE_PARTIAL_SCORE_CAP, value),
+    );
+  }
 
   const adopt = (): { gate: LiveScoreGate; score: number | null } => ({
     gate: {
@@ -653,27 +681,18 @@ export function gateLiveScore(
   // HOLD the published number while Cloud searches shoes or athletic↔sweat
   // shorts flicker. Blanking 78 → "—" is a regression. Adopt a new number
   // only when the next identity is corroborated (settled / locked / Cloud).
-  const signatureDrift = Boolean(
-    gate.signature
-    && opts.signature
-    && gate.signature !== opts.signature,
-  );
-
   if (coreDrift || signatureDrift) {
     if (opts.settled || opts.identityLocked || opts.cloudComplete) return adopt();
     return hold();
   }
 
-  // Identity still thrashing (same core): keep the last good number.
+  // Same core: a complete Cloud read (or locked identity) of this outfit must
+  // be allowed to replace the held number. Shoes STABLE-but-not-0.85 used to
+  // freeze loafers-48 under a trainers summary until a later round.
   if (!opts.settled) {
-    return {
-      gate: {
-        ...gate,
-        heldSince: null,
-        approximate: nextLiveScoreApproximation({ ...approxOpts, adopting: false }),
-      },
-      score: gate.shown,
-    };
+    if (opts.cloudComplete || opts.identityLocked) return adopt();
+    if (heldMs >= LIVE_SCORE_MAX_HOLD_MS) return adopt();
+    return hold();
   }
 
   // New stable identity version — invalidate the frozen score and adopt.
@@ -698,21 +717,22 @@ export function gateLiveScore(
 }
 
 /**
- * How the Live HUD should express a gated score. Medium certainty (top still
- * drifting) or unresolved footwear keeps the numeric value for logic but
- * presents it as approximate (~84). Footwear approximate is independent of
- * judgment certainty so headlines are not rewritten to "Settling in".
+ * How the Live HUD should express a gated score.
+ *
+ * ~ / "approx" is footwear-unresolved only. Medium certainty (top still
+ * drifting) must not re-paint a tilde after shoes have resolved — that left
+ * ~96 on trainers for the rest of the QA 18 Aug session.
  */
 export function presentLiveScore(
   score: number | null | undefined,
-  confidence: LiveJudgmentCertainty | 'high' | 'medium' = 'high',
+  _confidence: LiveJudgmentCertainty | 'high' | 'medium' = 'high',
   opts?: { approximate?: boolean },
 ): { display: string; numeric: number | null; soft: boolean } {
   if (score == null || !Number.isFinite(Number(score))) {
     return { display: '—', numeric: null, soft: false };
   }
   const n = Math.round(Number(score));
-  if (confidence === 'medium' || opts?.approximate) {
+  if (opts?.approximate) {
     return { display: `~${n}`, numeric: n, soft: true };
   }
   return { display: String(n), numeric: n, soft: false };

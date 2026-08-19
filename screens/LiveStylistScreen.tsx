@@ -111,6 +111,7 @@ import {
   smoothLiveCertainty,
   createCertaintySmoothState,
   isLiveFootwearResolved,
+  shouldHoldLivePublishedCopy,
   LIVE_CERTAINTY_UPGRADE_STREAK,
   type LiveIdentitySample,
 } from '@/utils/liveScoreStability';
@@ -122,7 +123,7 @@ import {
   type LiveOutfitTruth,
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
-import { enforceLiveOutcomeContract } from '@/utils/liveOutcomeContract';
+import { enforceLiveOutcomeContract, headlineFromScore } from '@/utils/liveOutcomeContract';
 
 /** Hard ceiling for camera mount/ready — never leave "warming" forever. */
 const CAMERA_READY_TIMEOUT_MS = 8000;
@@ -446,13 +447,14 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const filledOnceRef = useRef<{ top?: boolean; layer?: boolean; bottom?: boolean }>({});
   /** First Cloud JPEG must not wait on YOLO proof / detections. */
   const firstCloudSentRef = useRef(false);
-  /** frame-proof → Cloud request → Cloud response → first score (ms). */
+  /** frame-proof → JPEG → Cloud request → Cloud response → first score (ms). */
   const liveTimingRef = useRef<{
     provenAt: number;
+    jpegAt: number;
     cloudReqAt: number;
     cloudResAt: number;
     publishedAt: number;
-  }>({ provenAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 });
+  }>({ provenAt: 0, jpegAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 });
   /** Suspect signatures already escalated — ask Vision once, not every frame. */
   const suspectAskedRef = useRef(new Set<string>());
 
@@ -848,8 +850,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     );
     scoreGateRef.current = gated.gate;
     next.score = gated.score;
-    next.confidenceLevel = certainty === 'high' ? 'high' : 'medium';
+    // Footwear resolved → exact badge. Do not map unsettled/none certainty to
+    // medium for the HUD — that re-painted ~ after trainers were identified.
+    const hudCertainty = (
+      gated.score != null && footwearResolved && !gated.gate.approximate
+    ) ? 'high' as const : (certainty === 'high' ? 'high' as const : 'medium' as const);
+    next.confidenceLevel = hudCertainty;
     next.scoreApproximate = gated.score != null ? gated.gate.approximate : undefined;
+
+    const holdPublishedCopy = shouldHoldLivePublishedCopy({
+      adoptedScore: gated.score,
+      scoredIdentityKey: gated.gate.scoredIdentityKey,
+      nextIdentityKey: fullKey || coreKey,
+    });
 
     // Freeze the arbitrated outfit into one truth object. Score is already
     // gated; coaching only injects names — neither recomputes meaning here.
@@ -880,12 +893,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // After first publish, hold score/headline. Do not blank on athletic↔sweat
     // shorts or Searching shoes — gateLiveScore adopts only when corroborated.
     // Unresolved footwear keeps ~N; resolved shoes/cropped/none drop ~.
+    // If the number still describes the previous identity (loafers-48), keep
+    // that copy until the trainers score adopts — never mix new names + old score.
 
     // Published truth is the only garment-name source for HUD copy.
-    if (next.coaching) {
+    if (holdPublishedCopy && previousFeedbackRef.current?.coaching) {
+      next.coaching = previousFeedbackRef.current.coaching;
+    } else if (next.coaching) {
       next.coaching = alignCoachingToTruth(next.coaching, truth) || next.coaching;
       next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
-        certainty: certainty === 'none' ? 'medium' : certainty,
+        certainty: hudCertainty,
       }) || next.coaching;
       next.coaching = renderCopyFromPublishedTruth(next.coaching, {
         ...truth,
@@ -897,9 +914,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       };
       if (next.score != null) {
         const h = next.coaching.headline;
-        const prevH = previousFeedbackRef.current?.coaching?.headline;
-        if ((!h || isProvisionalLiveHeadline(h)) && prevH && !isProvisionalLiveHeadline(prevH)) {
-          next.coaching = { ...next.coaching, headline: prevH };
+        if (!h || isProvisionalLiveHeadline(h)) {
+          next.coaching = {
+            ...next.coaching,
+            headline: headlineFromScore(Number(next.score), next.coaching.styleLane),
+          };
         }
       }
     }
@@ -927,8 +946,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     ) {
       liveTimingRef.current.publishedAt = Date.now();
       const t = liveTimingRef.current;
+      const jpegAt = t.jpegAt || t.cloudReqAt;
       void liveStartCrumb(
-        `LIVE_TIMING proven→req=${t.cloudReqAt - t.provenAt}ms req→res=${t.cloudResAt - t.cloudReqAt}ms res→publish=${t.publishedAt - t.cloudResAt}ms proven→publish=${t.publishedAt - t.provenAt}ms`,
+        `LIVE_TIMING proof→jpeg=${jpegAt - t.provenAt}ms jpeg→req=${t.cloudReqAt - jpegAt}ms req→res=${t.cloudResAt - t.cloudReqAt}ms res→publish=${t.publishedAt - t.cloudResAt}ms proof→publish=${t.publishedAt - t.provenAt}ms`,
       );
     }
 
@@ -1314,6 +1334,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const ensureJpeg = () => {
         if (!jpegBase64) {
           jpegBase64 = encodeRgbaToJpegBase64(rgba, width, height, 55);
+          if (!liveTimingRef.current.jpegAt) {
+            liveTimingRef.current.jpegAt = Date.now();
+          }
         }
         return jpegBase64;
       };
@@ -1727,7 +1750,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       filledOnceRef.current = {};
       outfitTruthRef.current = null;
       firstCloudSentRef.current = false;
-      liveTimingRef.current = { provenAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 };
+      liveTimingRef.current = { provenAt: 0, jpegAt: 0, cloudReqAt: 0, cloudResAt: 0, publishedAt: 0 };
       previousItemsRef.current = [];
       previousFeedbackRef.current = null;
       recentLayerTipIdsRef.current = [];

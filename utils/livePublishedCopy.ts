@@ -6,6 +6,10 @@
  */
 
 import type { LiveCoaching } from '@/types/liveStylist';
+import {
+  adviseLegwearFromPublishedTruth,
+  mergeLegwearBullet,
+} from '@/utils/legwearAdvisory';
 import { sentenceCaseGarmentName } from '@/utils/liveLayeringIntelligence';
 import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import { scoreToBand } from '@/utils/liveOutcomeContract';
@@ -13,6 +17,9 @@ import type { LiveOutfitTruth, LiveTruthItem } from '@/utils/liveOutfitTruth';
 
 export const FOOTWEAR_COPY_RE =
   /\b(shoes?|footwear|sneakers?|trainers?|boots?|loafers?|sandals?|flip[\s-]?flops?|clogs?|boat\s*shoes?|deck\s*shoes?|heels?|mules?|slides?)\b/i;
+
+const DRESSY_SHOE_RE = /loafer|oxford|derby|brogue|dress\s*shoe/;
+const ATHLETIC_BOTTOM_RE = /athletic|gym|sweat|jersey|sport/;
 
 const GARMENT_TOKEN_RE =
   /\b(shirts?|tees?|t-shirts?|hoodies?|jackets?|blazers?|coats?|shorts?|trousers?|jeans?|chinos?|sweatpants?|joggers?|leggings?|dresses?|shoes?|boots?|loafers?|trainers?|sneakers?|sandals?|clogs?|tops?|polos?|blouses?)\b/gi;
@@ -166,6 +173,28 @@ export function textUsesOnlyPublishedNames(
 }
 
 /**
+ * Athletic/casual bottoms + smart loafers is a footwear clash — not tee vs shorts.
+ */
+export function publishedFootwearFormalityClash(
+  truth: LiveOutfitTruth,
+  names: PublishedTruthNames,
+): boolean {
+  const shoes = `${names.shoes || ''} ${truth.footwear?.subcategory || ''}`.toLowerCase();
+  const bottom = `${names.bottom || ''} ${truth.bottom?.subcategory || ''}`.toLowerCase();
+  if (!DRESSY_SHOE_RE.test(shoes)) return false;
+  if (!(/short/.test(bottom) && ATHLETIC_BOTTOM_RE.test(bottom))) return false;
+  const score = Number(truth.score);
+  const band = Number.isFinite(score) ? scoreToBand(score) : 'mixed';
+  return Boolean(truth.hasConflict) || band === 'weak' || band === 'mixed';
+}
+
+function footwearFormalitySummary(names: PublishedTruthNames): string {
+  const shoes = sentenceCaseGarmentName(String(names.shoes || ''), true);
+  const bottom = sentenceCaseGarmentName(String(names.bottom || ''));
+  return `${shoes} sit awkwardly with ${bottom}.`;
+}
+
+/**
  * Bind visible copy to the published truth object. Last garment-name writer
  * before paint — Cloud/YOLO prose must not leak through.
  */
@@ -183,8 +212,21 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
   }
 
   const names = publishedTruthNames(truth);
-  let summary = fillPublishedTemplate(String(coaching.summaryTemplate || ''), names)
+  const template = String(coaching.summaryTemplate || '');
+  let summary = fillPublishedTemplate(template, names)
     || synthesizePublishedSummary(truth, names);
+
+  if (publishedFootwearFormalityClash(truth, names) && names.shoes && names.bottom) {
+    const namesShoes = /\{shoes\}/.test(template);
+    const praisesPalette = /colour direction|palette stays|keep to a consistent|work well together/i.test(
+      summary || '',
+    );
+    const blamesTopVsBottom = /conflicts with|pull in different directions/i.test(summary || '')
+      && !FOOTWEAR_COPY_RE.test(summary || '');
+    if (!namesShoes || praisesPalette || blamesTopVsBottom || !summary) {
+      summary = footwearFormalitySummary(names);
+    }
+  }
 
   if (summary && !names.shoes && FOOTWEAR_COPY_RE.test(summary)) {
     summary = synthesizePublishedSummary(truth, names);
@@ -196,16 +238,22 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
     .filter(Boolean)
     .filter((b) => textUsesOnlyPublishedNames(b, names))
     .filter((b) => {
+      if (!publishedFootwearFormalityClash(truth, names)) return true;
+      return !/palette|colour direction|relaxed and casual|keeps the look relaxed/i.test(b);
+    })
+    .filter((b) => {
       const key = b.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
-    })
-    .slice(0, 2);
+    });
+
+  const advisory = adviseLegwearFromPublishedTruth(truth);
+  const merged = mergeLegwearBullet(bullets, advisory).slice(0, 2);
 
   return polishUkCoaching({
     ...coaching,
     summary: polishUkLiveLabel(summary),
-    bullets: bullets.map((b) => polishUkLiveLabel(b)),
+    bullets: merged.map((b) => polishUkLiveLabel(b)),
   }) as T;
 }

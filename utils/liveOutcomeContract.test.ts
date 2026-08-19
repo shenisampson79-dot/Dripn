@@ -129,4 +129,16 @@ assert.match(softenOutcomeTone('Looking good', 'medium'), /Settling in/);
 assert.match(softenOutcomeTone('Looking solid', 'medium'), /Settling in/);
 assert.equal(softenOutcomeTone('Looking good', 'high'), 'Looking good');
 
+{
+  const out = enforceLiveOutcomeContract({
+    headline: 'Sport-ready',
+    summary: 'The palette stays consistent across grey t-shirt and black athletic shorts.',
+    bullets: [],
+    hasConflict: false,
+    styleLane: 'athleisure',
+  }, 78);
+  assert.doesNotMatch(out?.headline || '', /sport-ready/i);
+  assert.match(out?.headline || '', /nice balance/i);
+}
+
 console.log('liveOutcomeContract.test.ts: all passed');

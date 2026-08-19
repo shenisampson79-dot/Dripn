@@ -81,7 +81,7 @@ export function createDetectionMemory(): DetectionMemory {
 
 export function roleOfCategory(category: string, subcategory?: string): OutfitRole {
   const blob = `${category || ''} ${subcategory || ''}`.toLowerCase();
-  if (/shoe|boot|sneaker|loafer|footwear|heel|sandal|mule|oxford|boat|deck|topsider/.test(blob)) {
+  if (/shoe|boot|sneaker|trainer|loafer|footwear|heel|sandal|mule|oxford|boat|deck|topsider/.test(blob)) {
     return 'footwear';
   }
   if (/bottom|trouser|jean|short|skirt|pant/.test(blob)) return 'bottom';

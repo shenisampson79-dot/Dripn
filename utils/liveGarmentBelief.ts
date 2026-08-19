@@ -1923,6 +1923,7 @@ export function applyOutfitBelief(
         shoeObs.subcategory as ShoeSubtype,
         shoeObs.confidence,
         state.footwear.confidence,
+        { nextName: shoeObs.name },
       );
       const shoeFused = resolveFusedIdentity(
         {

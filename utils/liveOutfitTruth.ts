@@ -16,8 +16,10 @@
  */
 
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
-import type { LiveCoaching, LiveFeedback } from '@/types/liveStylist';
+import type { LiveCoaching, LiveFeedback, LiveLegwear } from '@/types/liveStylist';
+import { parseLiveLegwear } from '@/utils/legwearAdvisory';
 import type { GarmentBelief, OutfitBeliefState } from '@/utils/liveGarmentBelief';
+import { headlineFromScore } from '@/utils/liveOutcomeContract';
 import { liveBeliefIsSettled } from '@/utils/liveScoreStability';
 
 /** Keep last stable truth this long after Stop so restart does not cold-boot. */
@@ -47,6 +49,10 @@ export type LiveOutfitTruth = {
   layer: LiveTruthItem | null;
   bottom: LiveTruthItem | null;
   footwear: LiveTruthItem | null;
+  /**
+   * Optional Cloud/Vision hosiery. Copy-only — excluded from signature/score.
+   */
+  legwear?: LiveLegwear | null;
   lane: string | null;
   /** Gated score already decided upstream — never recomputed here. */
   score: number | null;
@@ -299,6 +305,8 @@ export function buildOutfitTruth(args: {
     layer,
     bottom,
     footwear,
+    // Copy-only. Not in truthSignature — must not invalidate score/identity.
+    legwear: parseLiveLegwear(feedback?.legwear) || null,
     lane: coaching?.styleLane || null,
     score: score == null ? null : Number(score),
     hasConflict,
@@ -331,14 +339,12 @@ export function alignCoachingToTruth<T extends LiveCoaching>(
     nextBullets = bullets.filter((b) => !TENSION_BULLET_RE.test(String(b)));
   }
   let headline = coaching.headline;
-  // Sticky Mixed directions after conflict clears — rewrite to lane/band tone.
+  // Sticky Mixed directions after conflict clears — score owns Sport-ready (≥80).
   if (!truth.hasConflict && /mixed directions?/i.test(String(headline || ''))) {
     const score = Number(truth.score);
-    if (Number.isFinite(score) && score >= 90) headline = 'Polished';
-    else if (Number.isFinite(score) && score >= 80) headline = 'Looking good';
-    else if (truth.lane === 'athleisure') headline = 'Sport-ready';
-    else if (truth.lane === 'smart_casual') headline = 'Smart casual';
-    else headline = 'Looking good';
+    headline = Number.isFinite(score)
+      ? headlineFromScore(score, truth.lane)
+      : 'Looking good';
   }
   return {
     ...coaching,

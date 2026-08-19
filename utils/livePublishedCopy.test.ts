@@ -138,4 +138,41 @@ function truth(partial: Partial<LiveOutfitTruth> = {}): LiveOutfitTruth {
   assert.equal((out?.bullets || []).length, 1, 'duplicate bullets collapse');
 }
 
+// Athletic shorts + loafers: name the footwear clash, not tee vs shorts / palette praise.
+{
+  const clash = truth({
+    top: item('Grey T-Shirt', 'tops', 't-shirt'),
+    bottom: item('Black Athletic Shorts', 'bottoms', 'athletic_shorts'),
+    footwear: item('Black Loafers', 'shoes', 'loafers'),
+    score: 47,
+    hasConflict: true,
+    signature: 't-shirt|athletic_shorts|loafers',
+  });
+  const out = renderCopyFromPublishedTruth({
+    headline: 'Needs a tweak',
+    summary: 'The direction of grey t-shirt conflicts with black athletic shorts.',
+    summaryTemplate: 'The direction of {top} conflicts with {bottom}.',
+    bullets: [
+      'Garment subtypes clash — lanes or pairing rules conflict',
+      'Mixes athleisure with smart casual — different style worlds',
+    ],
+  }, clash);
+  assert.match(out?.summary || '', /loafer/i);
+  assert.match(out?.summary || '', /athletic shorts/i);
+  assert.doesNotMatch(out?.summary || '', /direction of grey t-shirt conflicts/i);
+
+  const palette = renderCopyFromPublishedTruth({
+    headline: 'Needs a tweak',
+    summary: 'The palette stays consistent across grey t-shirt and black athletic shorts.',
+    summaryTemplate: 'The palette stays consistent across {top} and {bottom}.',
+    bullets: ['Keeps the look relaxed and casual'],
+  }, clash);
+  assert.match(palette?.summary || '', /loafer/i);
+  assert.doesNotMatch(palette?.summary || '', /palette stays|colour direction/i);
+  assert.equal(
+    (palette?.bullets || []).some((b) => /relaxed and casual/i.test(b)),
+    false,
+  );
+}
+
 console.log('livePublishedCopy.test.ts: all passed');

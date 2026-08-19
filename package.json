@@ -39,7 +39,7 @@
     "verify:pipeline-wire": "npx tsx utils/yoloToPipelineCandidates.test.ts",
     "verify:hybrid-detection": "npx tsx utils/hybridDetectionLayer.test.ts",
     "test:live-regression": "npx tsx utils/livePermanentRegression.test.ts",
-    "verify:live-regression": "npm run test:live-regression && npx tsx utils/liveRegression.test.ts",
+    "verify:live-regression": "npm run test:live-regression && npx tsx utils/liveRegression.test.ts && npx tsx utils/legwearAdvisory.test.ts",
     "verify:fashion-color": "npx tsx utils/fashionColorTaxonomy.test.ts",
     "verify:dual-style-signals": "npx tsx utils/dualStyleSignals.test.ts",
     "verify:feedback-brain": "npx tsx utils/outfitFeedbackBrain.test.ts",

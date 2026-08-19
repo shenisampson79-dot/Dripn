@@ -2,6 +2,27 @@ import type { ScanSessionItem } from '@/types/scanWardrobe';
 
 export type LiveDetectorSource = 'cloud_vision' | 'on_device' | 'on_device_yolo' | 'stub';
 
+/** Live copy only — never a scoring input. Activate advisory at this floor. */
+export const LIVE_LEGWEAR_MIN_CONFIDENCE = 0.80;
+
+export type LiveLegwearType = 'socks' | 'tights' | 'stockings' | 'hosiery' | 'none' | 'unknown';
+export type LiveLegwearStyle =
+  | 'athletic'
+  | 'dress'
+  | 'casual'
+  | 'sheer'
+  | 'opaque'
+  | 'patterned'
+  | 'unknown';
+
+/** Cloud/Vision optional hosiery read. Absent unless positively identified. */
+export type LiveLegwear = {
+  type: LiveLegwearType;
+  colour?: string | null;
+  style?: LiveLegwearStyle;
+  confidence: number;
+};
+
 export type LiveTrackedItem = ScanSessionItem & {
   trackId: string;
   suggestion?: string | null;
@@ -47,8 +68,8 @@ export type LiveFeedback = {
   /** null while the score is still being corroborated — HUD shows a dash. */
   score: number | null;
   /**
-   * high = exact number OK; medium = show soft expression (~84) so the badge
-   * does not overclaim while top/layer still settles.
+   * high = exact number OK; medium = soften copy while top/layer settles.
+   * Does NOT paint ~ — that flag is scoreApproximate (footwear unresolved).
    */
   confidenceLevel?: 'high' | 'medium';
   /**
@@ -72,6 +93,8 @@ export type LiveFeedback = {
   personalColourApplied?: boolean;
   coaching?: LiveCoaching;
   ui?: LiveFeedbackUi;
+  /** Copy-only Vision hosiery/socks. Never fed to the Live score path. */
+  legwear?: LiveLegwear | null;
 };
 
 export type LiveShopHint = {

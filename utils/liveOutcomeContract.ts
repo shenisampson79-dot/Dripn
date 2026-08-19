@@ -33,7 +33,7 @@ const LAYERING_PRAISE_RE =
 const HEADLINE_FORBIDDEN: Record<LiveOutcomeBand, RegExp> = {
   weak: /polished|looks sharp|looking good|nice balance|sport-ready|smart casual|casual and easy|street-focused/i,
   mixed: /polished|looks sharp|looking good|sport-ready|smart casual|casual and easy/i,
-  good: /mixed (?:weights|directions)|needs a tweak|disjoint|getting a read/i,
+  good: /mixed (?:weights|directions)|needs a tweak|disjoint|getting a read|sport-ready/i,
   strong: /mixed (?:weights|directions)|needs a tweak|almost there|getting a read|one piece|waiting on pieces/i,
 };
 

@@ -29,6 +29,7 @@ import {
   gateLiveScore,
   isHighConfidenceCompleteCloudRead,
   presentLiveScore,
+  shouldHoldLivePublishedCopy,
 } from '@/utils/liveScoreStability';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -407,6 +408,8 @@ runLevel('L2', () => {
   assert.match(screenSrc, /cloudFillReason = 'first_publish'/);
   assert.match(screenSrc, /LIVE_YOLO_ENABLED && liveCloudPathBlockedByYoloProof/);
   assert.match(screenSrc, /LIVE_YOLO_ENABLED && !firstCloudDue/);
+  assert.match(screenSrc, /shouldHoldLivePublishedCopy/);
+  assert.match(screenSrc, /proof→jpeg=/);
   assert.doesNotMatch(screenSrc, /if\s*\(\s*yoloProvenRef\.current\s*\)[\s\S]{0,180}firstCloudDue/);
   assert.doesNotMatch(screenSrc, /BELIEF_PROVEN[\s\S]{0,80}firstCloudDue/);
   assert.equal(sim.jpegReady, true);
@@ -490,6 +493,46 @@ runLevel('L4', () => {
   assert.ok(neverBlanked(hist), 'history never 78 → null → 78');
   assert.ok(neverBlanked(sim.history), 'sim history never blanked after publish');
   assert.equal(sim.history.includes(null), false);
+
+  // QA 18 Aug: identity change loafers → trainers updates the number atomically
+  // and drops ~ once footwear is resolved.
+  let shoeGate = createLiveScoreGate();
+  const loaferPub = gateLiveScore(shoeGate, 48, {
+    signature: 't-shirt|sweat_shorts|loafers',
+    now: 8000,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|loafers',
+    footwearResolved: true,
+  });
+  shoeGate = loaferPub.gate;
+  hist.push(loaferPub.score);
+  assert.equal(loaferPub.gate.approximate, false);
+  const trainerPub = gateLiveScore(shoeGate, 96, {
+    signature: 't-shirt|sweat_shorts|trainers',
+    now: 9000,
+    settled: false,
+    identityLocked: false,
+    cloudComplete: true,
+    identityKey: 'sweat_shorts|sneakers',
+    footwearResolved: true,
+  });
+  hist.push(trainerPub.score);
+  assert.equal(trainerPub.score, 96, 'trainers Cloud score replaces loafers-48');
+  assert.notEqual(trainerPub.score, loaferPub.score);
+  assert.equal(trainerPub.gate.approximate, false, 'resolved trainers clear ~');
+  assert.equal(
+    presentLiveScore(trainerPub.score, 'medium', { approximate: trainerPub.gate.approximate }).display,
+    '96',
+  );
+  assert.equal(
+    shouldHoldLivePublishedCopy({
+      adoptedScore: trainerPub.score,
+      scoredIdentityKey: trainerPub.gate.scoredIdentityKey,
+      nextIdentityKey: 'sweat_shorts|sneakers',
+    }),
+    false,
+  );
+  assert.ok(neverBlanked(hist), 'loafers→trainers never blanked');
 });
 
 runLevel('L5', () => {
