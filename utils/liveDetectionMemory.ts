@@ -234,6 +234,8 @@ export function applyDetectionMemory(
       now,
       bottomBandBrightness: opts?.bottomBandBrightness,
       decisions,
+      heldFootwearBbox: (memory.belief?.footwear?.bbox as BBoxTuple | undefined) || null,
+      heldFootwearName: memory.belief?.footwear?.name || null,
     },
   );
 

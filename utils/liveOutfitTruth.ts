@@ -143,6 +143,44 @@ export function clampTruthContinuity(
   return next;
 }
 
+function footwearFamily(item: LiveTruthItem | null | undefined): string {
+  const blob = `${item?.name || ''} ${item?.subcategory || ''}`.toLowerCase();
+  if (/loafer|oxford|derby|brogue/.test(blob)) return 'loafers';
+  if (/trainer|sneaker|runner/.test(blob)) return 'sneakers';
+  if (/\bboots?\b|chelsea/.test(blob)) return 'boots';
+  if (/sandal|flip|slide/.test(blob)) return 'open';
+  return blob;
+}
+
+/**
+ * Footwear may change on the feet at the same confidence (1.0 → 1.0). The
+ * generic continuity gap would freeze loafers after a confirmed trainer put-on.
+ * Coarse floor-pair labels still hold the published worn identity.
+ */
+export function clampFootwearTruthContinuity(
+  next: LiveTruthItem | null,
+  prev: LiveTruthItem | null | undefined,
+): LiveTruthItem | null {
+  if (!next) return null;
+  if (!prev?.name) return next;
+  if (next.name.toLowerCase() === prev.name.toLowerCase()) return next;
+  const prevFam = footwearFamily(prev);
+  const nextFam = footwearFamily(next);
+  const nextConf = Number(next.confidence);
+  const namedSwap =
+    prevFam !== nextFam
+    && (prevFam === 'loafers' || nextFam === 'loafers' || prevFam === 'sneakers' || nextFam === 'sneakers')
+    && nextConf >= 0.85
+    && !/^(?:black|white|brown|grey|gray)?\s*(?:casual\s+)?(?:leather\s+)?shoes?$/i.test(
+      String(next.name || '').trim(),
+    );
+  if (namedSwap) return next;
+  if (prevFam === 'loafers' && /(?:casual\s+)?(?:leather\s+)?shoes?$/i.test(String(next.name || ''))) {
+    return prev;
+  }
+  return clampTruthContinuity(next, prev);
+}
+
 function detectionFromTruthItem(
   item: LiveTruthItem | null,
   trackId: string,
@@ -267,7 +305,7 @@ export function buildOutfitTruth(args: {
   top = clampTruthContinuity(top, prev?.top);
   layer = clampTruthContinuity(layer, prev?.layer);
   bottom = clampTruthContinuity(bottom, prev?.bottom);
-  footwear = clampTruthContinuity(footwear, prev?.footwear);
+  footwear = clampFootwearTruthContinuity(footwear, prev?.footwear);
 
   // Top and layer must never hold the same garment (blazer/trench duplicate).
   if (top?.name && layer?.name) {

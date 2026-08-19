@@ -879,4 +879,33 @@ assert.equal(
   assert.equal(rescore.gate.approximate, false);
 }
 
+{
+  let gate = createLiveScoreGate();
+  const loafersSig = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'grey' },
+    { category: 'bottoms', subcategory: 'athletic_shorts', color: 'navy' },
+    { category: 'shoes', subcategory: 'loafers', color: 'black' },
+  ]);
+  const held = gateLiveScore(gate, 47, {
+    signature: loafersSig,
+    now: 1000,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'athletic_shorts|loafers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(held.score, 47);
+  const inflated = gateLiveScore(held.gate, 82, {
+    signature: loafersSig,
+    now: 2500,
+    settled: false,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'athletic_shorts|loafers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(inflated.score, 47, 'floor-trainer Cloud 82 must not replace held loafers clash');
+}
+
 console.log('liveScoreStability.test.ts: all passed');

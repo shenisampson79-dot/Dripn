@@ -28,6 +28,7 @@ import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import {
   stabilizeShoeSubtype,
   applyGatedShoeFusion,
+  isCoarseFootwearLabel,
   type ShoeSubtype,
 } from '@/utils/liveFootwearGate';
 
@@ -1939,15 +1940,25 @@ export function applyOutfitBelief(
       );
       const gated = applyGatedShoeFusion({
         lockedSubtype: locked,
-        belief: footwear,
+        belief: state.footwear,
         observation: shoeObs,
         fused: shoeFused,
       });
-      if (gated.subcategory !== footwear.subcategory || gated.nameEnriched) {
+      const keepLoaferName =
+        locked === 'loafers'
+        && isCoarseFootwearLabel(shoeObs.name);
+      const nextName = keepLoaferName
+        ? (state.footwear.name || footwear.name)
+        : (gated.name || footwear.name);
+      if (
+        gated.subcategory !== footwear.subcategory
+        || gated.nameEnriched
+        || nextName !== footwear.name
+      ) {
         footwear = {
           ...footwear,
           subcategory: gated.subcategory,
-          name: gated.name || footwear.name,
+          name: nextName,
           ...(gated.nameEnriched || gated.subcategory !== state.footwear.subcategory
             ? { lastChangedAt: now }
             : {}),

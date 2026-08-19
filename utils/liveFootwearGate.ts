@@ -283,6 +283,9 @@ export function gateFootwearDetections(
     now?: number;
     bottomBandBrightness?: number | null;
     decisions?: BeliefDecision[];
+    /** Last published/worn shoe box — floor pairs in front of the toes compare against this. */
+    heldFootwearBbox?: BBoxTuple | null;
+    heldFootwearName?: string | null;
   },
 ): FootwearGateResult {
   const now = opts?.now ?? Date.now();
@@ -329,11 +332,24 @@ export function gateFootwearDetections(
     .map((d) => d.bbox as BBoxTuple)
     .filter(Boolean);
 
+  const heldBbox = opts?.heldFootwearBbox && opts.heldFootwearBbox.length === 4
+    ? opts.heldFootwearBbox
+    : null;
+  const heldName = opts?.heldFootwearName || null;
+
   for (let i = 0; i < candidates.length; i += 1) {
     const c = candidates[i];
     if (!c.valid) continue;
     const shoeBbox = shoeLike[i]?.bbox as BBoxTuple | undefined;
-    if (shoeBbox && isOffBodyFootwear(shoeBbox, bodyBboxes)) {
+    if (!shoeBbox) continue;
+    if (isOffBodyFootwear(shoeBbox, bodyBboxes)) {
+      c.valid = false;
+      c.rejectReason = 'off_body';
+      continue;
+    }
+    // A second pair on the carpet in front of the toes shares X with the body
+    // and sits in the footwear band — hem-gap alone cannot reject it.
+    if (heldBbox && isFloorPairInFrontOfWorn(shoeBbox, heldBbox)) {
       c.valid = false;
       c.rejectReason = 'off_body';
     }
@@ -351,6 +367,37 @@ export function gateFootwearDetections(
     }
   }
 
+  const validShoes = candidates
+    .map((c, i) => ({ c, d: shoeLike[i] }))
+    .filter((x) => x.c.valid && x.d);
+
+  // Dual footwear around the feet: hold last confirmed worn. Refuse a family
+  // swap until a single corroborated on-foot candidate remains (put-on).
+  const heldFam = footwearConflictFamily(heldName);
+  if (validShoes.length >= 2 && heldFam) {
+    for (const peer of validShoes) {
+      const fam = footwearConflictFamily(peer.d.name, peer.d.subcategory);
+      if (fam && fam !== heldFam) {
+        peer.c.valid = false;
+        peer.c.rejectReason = 'off_body';
+      }
+    }
+  } else if (validShoes.length >= 2) {
+    const ranked = [...validShoes].sort((a, b) => {
+      const aWorn = wornAttachmentScore(a.d.bbox as BBoxTuple, bodyBboxes);
+      const bWorn = wornAttachmentScore(b.d.bbox as BBoxTuple, bodyBboxes);
+      if (Math.abs(aWorn - bWorn) > 0.04) return bWorn - aWorn;
+      return 0;
+    });
+    const winner = ranked[0]!;
+    for (const peer of ranked.slice(1)) {
+      if (isFloorPairInFrontOfWorn(peer.d.bbox as BBoxTuple, winner.d.bbox as BBoxTuple)) {
+        peer.c.valid = false;
+        peer.c.rejectReason = 'off_body';
+      }
+    }
+  }
+
   const best = candidates
     .map((c, i) => ({ c, d: shoeLike[i] }))
     .filter((x) => x.c.valid)
@@ -358,16 +405,34 @@ export function gateFootwearDetections(
       // Worn (ankle-attached) beats a second pair on the floor, even if louder.
       const aWorn = wornAttachmentScore(a.d.bbox as BBoxTuple, bodyBboxes);
       const bWorn = wornAttachmentScore(b.d.bbox as BBoxTuple, bodyBboxes);
-      if (Math.abs(aWorn - bWorn) > 0.08) return bWorn - aWorn;
+      if (Math.abs(aWorn - bWorn) > 0.04) return bWorn - aWorn;
       // Hierarchy: boat/deck labels beat coarse trainers/boots when both are valid.
       const aBoat = /boat|deck|topsider|sperry/i.test(`${a.d.name || ''} ${a.d.subcategory || ''}`) ? 1 : 0;
       const bBoat = /boat|deck|topsider|sperry/i.test(`${b.d.name || ''} ${b.d.subcategory || ''}`) ? 1 : 0;
       if (aBoat !== bBoat) return bBoat - aBoat;
+      const aSpecific = isCoarseFootwearLabel(a.d.name) ? 0 : 1;
+      const bSpecific = isCoarseFootwearLabel(b.d.name) ? 0 : 1;
+      if (aSpecific !== bSpecific) return bSpecific - aSpecific;
       return b.c.confidence - a.c.confidence;
     })[0];
 
   if (!best) {
     return { accepted: null, candidates, zone, decisions, barefootEvidence };
+  }
+
+  if (
+    heldName
+    && /loafer/i.test(heldName)
+    && isCoarseFootwearLabel(best.d.name)
+    && heldBbox
+    && !isFloorPairInFrontOfWorn(best.d.bbox as BBoxTuple, heldBbox)
+  ) {
+    // Same ankle region, Cloud coarsened because a trainer entered the frame.
+    best.d = {
+      ...best.d,
+      name: heldName,
+      subcategory: 'loafers',
+    };
   }
 
   // Prefer a boat label from any valid candidate when the winner was remapped coarse.
@@ -466,16 +531,58 @@ export function hemToShoeGap(shoeBbox: BBoxTuple, bodyBboxes: BBoxTuple[]): numb
   return shoeBbox[1] - (lowest[1] + lowest[3]);
 }
 
+function bboxArea(bbox: BBoxTuple): number {
+  return Math.max(0, bbox[2]) * Math.max(0, bbox[3]);
+}
+
+function lowestHem(bodyBboxes: BBoxTuple[]): number | null {
+  if (!bodyBboxes.length) return null;
+  const lowest = bodyBboxes.reduce((a, b) => ((a[1] + a[3] >= b[1] + b[3]) ? a : b));
+  return lowest[1] + lowest[3];
+}
+
 /**
- * Higher = more likely on-foot. Floor pairs in front of the camera sit farther
- * below the shorts/trouser hem than shoes attached at the ankle.
+ * Higher = more likely on-foot. Athletic shorts leave a large hem→shoe gap
+ * (visible socks), so ankle-band + size beat raw hem distance. Floor pairs
+ * in front of the camera are larger and sit lower in the frame.
  */
 export function wornAttachmentScore(shoeBbox: BBoxTuple, bodyBboxes: BBoxTuple[]): number {
+  const hem = lowestHem(bodyBboxes);
+  const shoeTop = shoeBbox[1];
+  const shoeBottom = shoeBbox[1] + shoeBbox[3];
+  const area = bboxArea(shoeBbox);
+  const shortsLike = hem != null && hem < 0.78;
+  if (shortsLike) {
+    const ankleScore = 1 - Math.min(1, Math.abs(shoeTop - 0.84) / 0.22);
+    const floorPen = Math.max(0, shoeBottom - 0.96) * 8 + Math.max(0, area - 0.032) * 12;
+    return ankleScore - floorPen;
+  }
   const gap = hemToShoeGap(shoeBbox, bodyBboxes);
-  if (gap == null) return 0;
+  if (gap == null) {
+    return 1 - Math.min(1, Math.abs(shoeTop - 0.86) / 0.2) - Math.max(0, area - 0.035) * 8;
+  }
   if (gap > FLOOR_SHOE_HEM_GAP) return -gap;
   if (gap < -0.08) return 0.2;
   return 1 - Math.abs(gap);
+}
+
+/**
+ * Identity family for dual-candidate hold. Label/subtype only — no geometry.
+ */
+export function footwearConflictFamily(
+  name?: string | null,
+  subcategory?: string | null,
+): string | null {
+  const blob = `${name || ''} ${subcategory || ''}`.toLowerCase();
+  if (!blob.trim()) return null;
+  if (/loafer|oxford|derby|brogue/.test(blob)) return 'loafers';
+  if (/sneaker|trainer|runner/.test(blob)) return 'sneakers';
+  if (/boat|deck|topsider|sperry/.test(blob)) return 'boat_shoes';
+  if (/\bboots?\b|chelsea/.test(blob)) return 'boots';
+  if (/flip.?flop|thong/.test(blob)) return 'flip_flops';
+  if (/\bslides?\b|\bclogs?\b|\bmules?\b/.test(blob)) return 'slides';
+  if (/sandal/.test(blob)) return 'sandals';
+  return null;
 }
 
 /**
@@ -488,12 +595,38 @@ export function isCoarseFootwearLabel(name?: string | null): boolean {
   if (/loafer|oxford|derby|brogue|boot|sneaker|trainer|sandal|flip|slide|clog|mule|boat|deck|heel/.test(n)) {
     return false;
   }
-  return /(?:^|\s)(?:running\s+)?shoes?$/.test(n);
+  if (/\bcasual\s+shoes?\b/.test(n)) return true;
+  return /(?:^|\s)(?:running\s+)?(?:leather\s+)?shoes?$/.test(n);
+}
+
+/**
+ * Trainers on the carpet in front of the toes: larger, lower, same column as
+ * the worn pair. A put-on swap occupies the same ankle region at similar size.
+ */
+export function isFloorPairInFrontOfWorn(
+  challenger: BBoxTuple,
+  worn: BBoxTuple,
+): boolean {
+  const cCx = bboxCenterX(challenger);
+  const wCx = bboxCenterX(worn);
+  if (Math.abs(cCx - wCx) > 0.22) return false;
+  const cArea = bboxArea(challenger);
+  const wArea = Math.max(bboxArea(worn), 0.008);
+  const cTop = challenger[1];
+  const wTop = worn[1];
+  const cBottom = challenger[1] + challenger[3];
+  const wBottom = worn[1] + worn[3];
+  const extendsLower = cBottom > wBottom + 0.03 || cTop > wTop + 0.035;
+  const bigger = cArea > wArea * 1.22;
+  if (bigger && extendsLower) return true;
+  if (extendsLower && cBottom >= 0.965 && cArea >= wArea) return true;
+  return false;
 }
 
 /**
  * Shoes a yard away sit laterally OR in front of the wearer (below the hem)
  * while worn footwear stays under the body. Outfit boxes are the body proxy.
+ * Athletic shorts hems sit mid-thigh — do not treat that gap as off-body.
  */
 export function isOffBodyFootwear(
   shoeBbox: BBoxTuple,
@@ -504,6 +637,17 @@ export function isOffBodyFootwear(
   const shoeCx = bboxCenterX(shoeBbox);
   const bodyCx = bodyBboxes.reduce((sum, b) => sum + bboxCenterX(b), 0) / bodyBboxes.length;
   if (Math.abs(shoeCx - bodyCx) > maxLateral) return true;
+  const hem = lowestHem(bodyBboxes);
+  const shortsLike = hem != null && hem < 0.78;
+  if (shortsLike) {
+    const shoeTop = shoeBbox[1];
+    const shoeBottom = shoeBbox[1] + shoeBbox[3];
+    const area = bboxArea(shoeBbox);
+    // Isolated floor pair in front of the toes: sits below the ankle band
+    // and/or is a large camera-forward blob. Worn trainers sit higher.
+    return (shoeTop > 0.88 && shoeBottom >= 0.96)
+      || (area > 0.036 && shoeBottom >= 0.97 && shoeTop > 0.85);
+  }
   const gap = hemToShoeGap(shoeBbox, bodyBboxes);
   return gap != null && gap > FLOOR_SHOE_HEM_GAP;
 }

@@ -258,11 +258,60 @@ function bullet(t: LiveOutfitTruth, legwear: LiveLegwear | null | undefined) {
   }, clash);
   assert.match(out?.summary || '', /sit awkwardly/i);
   const joined = (out?.bullets || []).join(' ');
-  assert.match(joined, /sports socks/i);
+  assert.doesNotMatch(joined, /trousers/i, 'must not say trousers when published bottom is shorts');
   assert.equal(
     (out?.bullets || []).filter((b) => /socks?|tights|hosiery/i.test(b)).length,
-    1,
+    0,
+    'shorts vs loafers clash already owns the story — no sock/trousers bullet',
   );
+}
+
+// White athletic socks + athletic shorts + loafers: never a trousers transition.
+{
+  const line = bullet(truth({
+    top: item('Grey T-Shirt', 'tops', 't-shirt', 'grey'),
+    bottom: item('Navy Athletic Shorts', 'bottoms', 'athletic_shorts', 'navy'),
+    footwear: item('Black Loafers', 'shoes', 'loafers', 'black'),
+    lane: 'casual',
+    score: 47,
+    hasConflict: true,
+  }), {
+    type: 'socks',
+    style: 'casual',
+    colour: 'white',
+    confidence: 0.9,
+  });
+  assert.equal(line, null, 'white socks vs navy shorts must not invent trousers copy');
+}
+
+// After published shoes = trainers, loafers sock copy is gone.
+{
+  const trainers = truth({
+    top: item('Grey T-Shirt', 'tops', 't-shirt', 'grey'),
+    bottom: item('Black Athletic Shorts', 'bottoms', 'athletic_shorts', 'black'),
+    footwear: item('White Trainers', 'shoes', 'trainers', 'white'),
+    lane: 'athleisure',
+    score: 85,
+    hasConflict: false,
+    signature: 't-shirt|athletic_shorts|trainers',
+    legwear: {
+      type: 'socks',
+      style: 'athletic',
+      colour: 'white',
+      confidence: 0.92,
+    },
+  });
+  const out = renderCopyFromPublishedTruth({
+    headline: 'Sport-ready',
+    summary: 'stale loafers',
+    summaryTemplate: '{top} and {bottom} keep to a consistent colour direction.',
+    bullets: [
+      'The sports socks make the loafers feel more casual; finer dress socks would keep the smart direction cleaner.',
+    ],
+  }, trainers);
+  const joined = (out?.bullets || []).join(' ');
+  assert.doesNotMatch(joined, /loafer/i);
+  assert.equal(bullet(trainers, trainers.legwear), null);
 }
 
 console.log('legwearAdvisory.test.ts: all passed');

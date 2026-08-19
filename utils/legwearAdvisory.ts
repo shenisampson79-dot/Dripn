@@ -169,6 +169,24 @@ export function resolveLiveLegwear(
   return parseLiveLegwear(dedicated) || extractLegwearFromItems(items);
 }
 
+function publishedBottomKind(bottomBlob: string): 'shorts' | 'skirt' | 'dress' | 'trousers' | 'other' {
+  if (/\bshorts?\b/.test(bottomBlob)) return 'shorts';
+  if (/\bskirt\b/.test(bottomBlob)) return 'skirt';
+  if (/\bdress\b/.test(bottomBlob) && !/dress\s*shirt/.test(bottomBlob)) return 'dress';
+  if (/trouser|chino|pant|jean/.test(bottomBlob)) return 'trousers';
+  return 'other';
+}
+
+function sockColourTransitionLine(bottomKind: ReturnType<typeof publishedBottomKind>): string | null {
+  if (bottomKind === 'shorts' || bottomKind === 'skirt' || bottomKind === 'dress') {
+    return null;
+  }
+  if (bottomKind === 'trousers') {
+    return 'A sock colour closer to the trousers would create a cleaner transition into the shoes.';
+  }
+  return 'A sock colour closer to the bottoms would create a cleaner transition into the shoes.';
+}
+
 function isAthleticSocks(legwear: LiveLegwear): boolean {
   if (legwear.type !== 'socks') return false;
   const blob = `${legwear.style} ${legwear.colour || ''}`;
@@ -288,6 +306,7 @@ export function adviseLegwear(input: LegwearAdvisoryInput): string | null {
 
   const shoesBlob = itemBlob(input.truth.footwear);
   const bottomBlob = itemBlob(input.truth.bottom);
+  const bottomKind = publishedBottomKind(bottomBlob);
   const loafers = publishedShoesAreLoafers(input.truth);
   const sportLook = isSportswearLook(input.truth, input.occasion);
   const tailored = isTailoredLook(input.truth);
@@ -302,7 +321,29 @@ export function adviseLegwear(input: LegwearAdvisoryInput): string | null {
     return null;
   }
 
-  if (isAthleticSocks(legwear) && dressyShoes && !sportLook && !athleticShoes) {
+  // Silence by default: sports socks + shorts are ordinary, not a sock story.
+  if (isAthleticSocks(legwear) && bottomKind === 'shorts') {
+    return null;
+  }
+
+  // Published trainers: never leftover loafer/dress-sock copy.
+  if (athleticShoes && !loafers) {
+    if (isAthleticSocks(legwear) && sportLook) return null;
+  }
+
+  // Athletic shorts + loafers: the clash is shorts vs shoes.
+  if (bottomKind === 'shorts' && (loafers || dressyShoes) && !athleticShoes) {
+    return null;
+  }
+  if (
+    input.truth.hasConflict
+    && bottomKind === 'shorts'
+    && loafers
+  ) {
+    return null;
+  }
+
+  if (isAthleticSocks(legwear) && dressyShoes && !sportLook && !athleticShoes && bottomKind === 'trousers') {
     if (loafers) {
       return 'The sports socks make the loafers feel more casual; finer dress socks would keep the smart direction cleaner.';
     }
@@ -355,8 +396,9 @@ export function adviseLegwear(input: LegwearAdvisoryInput): string | null {
     && !sportLook
     && coloursClash(legwear.colour, input.truth.bottom?.color || input.truth.bottom?.name)
     && (dressyShoes || tailored)
+    && bottomKind === 'trousers'
   ) {
-    return 'A sock colour closer to the trousers would create a cleaner transition into the shoes.';
+    return sockColourTransitionLine(bottomKind);
   }
 
   return null;

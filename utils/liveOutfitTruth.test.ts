@@ -391,4 +391,54 @@ assert.equal(
   assert.equal(ready?.headline, 'Sport-ready');
 }
 
+{
+  const loafers = {
+    name: 'Black Loafers',
+    category: 'shoes',
+    subcategory: 'loafers',
+    color: 'black',
+    confidence: 1,
+    stability: 0.9,
+    kind: 'shoes' as const,
+    bbox: [0.38, 0.82, 0.22, 0.1] as [number, number, number, number],
+    lastSeenAt: 1000,
+    lastChangedAt: 1000,
+  };
+  const prev = buildOutfitTruth({
+    belief: belief({ footwear: loafers }),
+    feedback: { score: 47, issues: [], hints: [], suggestions: [] },
+    now: 1000,
+  });
+  const coarsened = buildOutfitTruth({
+    belief: belief({
+      footwear: {
+        ...loafers,
+        name: 'Black Casual Shoes',
+        subcategory: 'sneakers',
+      },
+    }),
+    feedback: { score: 47, issues: [], hints: [], suggestions: [] },
+    prev,
+    now: 2000,
+  });
+  assert.match(coarsened.footwear?.name || '', /loafer/i, 'coarse floor-pair label must not publish');
+
+  const swapped = buildOutfitTruth({
+    belief: belief({
+      footwear: {
+        ...loafers,
+        name: 'White Trainers',
+        subcategory: 'sneakers',
+        color: 'white',
+        lastChangedAt: 3000,
+        lastSeenAt: 3000,
+      },
+    }),
+    feedback: { score: 85, issues: [], hints: [], suggestions: [] },
+    prev,
+    now: 3000,
+  });
+  assert.match(swapped.footwear?.name || '', /trainer/i, 'confirmed worn trainers publish immediately');
+}
+
 console.log('liveOutfitTruth.test.ts: all passed');

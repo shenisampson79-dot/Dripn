@@ -464,4 +464,63 @@ assert.ok(gatedName.nameEnriched || gatedName.name?.includes('Brown'), 'same-sub
   );
 }
 
+// Floor trainers directly in front of the feet (same X, near worn region).
+{
+  const athleticShorts: OnDeviceDetection = {
+    name: 'Navy Athletic Shorts',
+    category: 'bottoms',
+    subcategory: 'athletic_shorts',
+    color: 'navy',
+    confidence: 0.95,
+    bbox: [0.28, 0.48, 0.44, 0.18],
+  };
+  const wornLoafers: OnDeviceDetection = {
+    name: 'Black Loafers',
+    category: 'shoes',
+    subcategory: 'loafers',
+    color: 'black',
+    confidence: 0.93,
+    bbox: [0.38, 0.82, 0.22, 0.10],
+    skinRatio: 0.06,
+  };
+  const floorInFront: OnDeviceDetection = {
+    name: 'White Trainers',
+    category: 'shoes',
+    subcategory: 'sneakers',
+    color: 'white',
+    confidence: 1,
+    bbox: [0.36, 0.86, 0.32, 0.13],
+    skinRatio: 0.04,
+  };
+  const dual = gateFootwearDetections([top, athleticShorts, wornLoafers, floorInFront], {
+    now: 12000,
+    bottomBandBrightness: 0.3,
+    heldFootwearBbox: wornLoafers.bbox as [number, number, number, number],
+    heldFootwearName: 'Black Loafers',
+  });
+  assert.match(String(dual.accepted?.name), /loafer/i, 'conflict holds last confirmed worn loafers');
+  assert.doesNotMatch(String(dual.accepted?.name), /casual shoes/i);
+
+  const stolen = gateFootwearDetections([top, athleticShorts, floorInFront], {
+    now: 13000,
+    bottomBandBrightness: 0.3,
+    heldFootwearBbox: wornLoafers.bbox as [number, number, number, number],
+    heldFootwearName: 'Black Loafers',
+  });
+  assert.equal(stolen.accepted, null, 'floor pair in front of held loafers is not worn');
+
+  const coarse = gateFootwearDetections([top, athleticShorts, {
+    ...wornLoafers,
+    name: 'Black Casual Shoes',
+    subcategory: 'sneakers',
+    confidence: 1,
+  }], {
+    now: 14000,
+    bottomBandBrightness: 0.3,
+    heldFootwearBbox: wornLoafers.bbox as [number, number, number, number],
+    heldFootwearName: 'Black Loafers',
+  });
+  assert.match(String(coarse.accepted?.name), /loafer/i, 'must not coarsen loafers from a nearby trainer');
+}
+
 console.log('liveFootwearGate.test.ts: all passed');

@@ -260,6 +260,18 @@ export function liveCoreIdentityKey(sample: LiveIdentitySample | null | undefine
   return `${bottom}|${normalizeLiveShoeIdentity(sample.shoeSubtype)}`;
 }
 
+/** Floor-trainer Cloud scores must not paint Sport-ready while loafers are still the scored identity. */
+export function isSportReadyInflationOnHeldLoafers(
+  identityKey: string | null,
+  shown: number | null,
+  next: number,
+): boolean {
+  const shoe = normalizeLiveShoeIdentity(String(identityKey || '').split('|')[1] || '');
+  if (shoe !== 'loafers') return false;
+  if (shown == null || !Number.isFinite(shown)) return false;
+  return shown < 65 && next >= 80;
+}
+
 function sampleSlotConfidence(sample: LiveIdentitySample): number {
   const bottom = Number(sample.bottomConfidence);
   const shoe = Number(sample.shoeConfidence);
@@ -614,6 +626,11 @@ export function gateLiveScore(
     && opts.signature
     && gate.signature !== opts.signature,
   );
+  const floorPairInflation = !coreDrift && isSportReadyInflationOnHeldLoafers(
+    gate.scoredIdentityKey || identityKey,
+    gate.shown,
+    value,
+  );
   const approxOpts = {
     shown: gate.shown,
     previouslyApproximate: gate.approximate,
@@ -681,6 +698,8 @@ export function gateLiveScore(
   // HOLD the published number while Cloud searches shoes or athletic↔sweat
   // shorts flicker. Blanking 78 → "—" is a regression. Adopt a new number
   // only when the next identity is corroborated (settled / locked / Cloud).
+  // Floor trainers in frame must not inflate a loafers clash into Sport-ready.
+  if (floorPairInflation) return hold();
   if (coreDrift || signatureDrift) {
     if (opts.settled || opts.identityLocked || opts.cloudComplete) return adopt();
     return hold();
