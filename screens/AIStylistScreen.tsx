@@ -304,6 +304,53 @@ function looksLikeBuyCompareAsk(text: string): boolean {
   );
 }
 
+/** Thin refine follow-ups → same createWardrobeOutfit tool (not cold LLM chat). */
+function isWardrobeOutfitRefineAsk(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  return (
+    /\b(swap|change|different|other)\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
+    || /\b(shoe|shoes|trainer|trainers|boot|boots)\b.{0,16}\b(swap|change|different|other)\b/i.test(t)
+    || /\bmake it (smarter|dressier|sharper|smarter looking|more smart|more formal|better)\b/i.test(t)
+    || /\b(smarter|dressier|sharper)\b/i.test(t)
+    || /\bdifferent (outfit|look)\b/i.test(t)
+    || /\btry (again|another|something else)\b/i.test(t)
+  );
+}
+
+function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== 'assistant') continue;
+    const pieces = msg.wardrobeVisual?.pieces;
+    if (Array.isArray(pieces) && pieces.length) {
+      const ids = pieces
+        .map((p) => (p as { wardrobeItemId?: string | number; id?: string | number })?.wardrobeItemId
+          ?? (p as { id?: string | number })?.id)
+        .filter((id) => id != null && String(id).trim())
+        .map(String);
+      if (ids.length) return ids;
+    }
+    const lookIds = msg.looks?.[0]?.itemIds;
+    if (Array.isArray(lookIds) && lookIds.length) {
+      return lookIds.map(String);
+    }
+  }
+  return [];
+}
+
+function extractPriorOutfitOccasion(messages: ChatMessage[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== 'assistant') continue;
+    const occ = (msg as ChatMessage & { outfitOccasion?: string }).outfitOccasion
+      || msg.outfitSuggestion?.occasion
+      || msg.outfitVisualSuggestion?.occasion;
+    if (typeof occ === 'string' && occ.trim()) return occ.trim();
+  }
+  return null;
+}
+
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
   if (!raw || typeof raw !== 'object') return null;
 
@@ -3018,9 +3065,11 @@ export default function AIStylistScreen() {
         /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(text.trim())
         || /\bwhat (should|can|do) i wear\b/i.test(text.trim())
         || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(text.trim());
+      const priorItemIds = extractPriorWardrobeItemIds(updatedMessages);
+      const isRefineOutfitAsk = isWardrobeOutfitRefineAsk(text.trim()) && priorItemIds.length > 0;
 
-      // Create-outfit → same server createWardrobeOutfit() as Today's Outfit (not resilient LLM chat).
-      if (isCreateOutfitAsk && !attachedUris.length) {
+      // Create / refine → same server createWardrobeOutfit() as Today's Outfit (not resilient LLM chat).
+      if ((isCreateOutfitAsk || isRefineOutfitAsk) && !attachedUris.length) {
         const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
           stylistId: stylist.id,
           userMessage: text.trim(),
@@ -3030,13 +3079,16 @@ export default function AIStylistScreen() {
             name: user?.name,
             subscriptionTier: user?.subscriptionTier,
           },
+          occasion: isRefineOutfitAsk ? extractPriorOutfitOccasion(updatedMessages) : undefined,
+          priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
+          source: 'wardrobe',
         });
         if (!outfitResponse.content || !outfitResponse.content.trim()) {
           throw new Error('Empty response from backend');
         }
         const assistantMessage = (() => {
           try {
-            return attachWardrobeVisualToMessage(
+            const attached = attachWardrobeVisualToMessage(
               {
                 id: `msg_${Date.now()}_assistant`,
                 role: 'assistant',
@@ -3050,12 +3102,19 @@ export default function AIStylistScreen() {
               wardrobeItems,
               user?.subscriptionTier,
             );
+            if (outfitResponse.occasion) {
+              (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion = outfitResponse.occasion;
+            }
+            return attached;
           } catch {
             return {
               id: `msg_${Date.now()}_assistant`,
               role: 'assistant' as const,
               content: outfitResponse.content,
               timestamp: new Date().toISOString(),
+              ...(outfitResponse.occasion
+                ? { outfitOccasion: outfitResponse.occasion }
+                : {}),
             };
           }
         })();

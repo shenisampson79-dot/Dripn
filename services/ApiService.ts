@@ -2329,6 +2329,14 @@ class ApiService {
     userMessage: string;
     wardrobeItems?: Array<Record<string, unknown>>;
     userProfile?: Record<string, unknown>;
+    occasion?: string | null;
+    weather?: Record<string, unknown> | null;
+    workDressCode?: string | null;
+    dateKey?: string | null;
+    lockedItems?: Array<string | number>;
+    excludedItems?: Array<string | number>;
+    priorItemIds?: Array<string | number>;
+    source?: string;
   }): Promise<{
     content: string;
     wardrobeVisual?: unknown;
@@ -2336,6 +2344,9 @@ class ApiService {
     visualAuthority?: 'server' | null;
     path?: string;
     service?: string;
+    occasion?: string | null;
+    refine?: string | null;
+    itemIds?: string[];
     elapsedMs?: number;
   }> {
     void this.wakeBackend().catch(() => {});
@@ -2347,6 +2358,9 @@ class ApiService {
       visualAuthority?: string;
       path?: string;
       service?: string;
+      occasion?: string | null;
+      refine?: string | null;
+      itemIds?: string[];
       elapsedMs?: number;
     }>('/api/chat/outfit-from-wardrobe', {
       method: 'POST',
@@ -2356,6 +2370,14 @@ class ApiService {
         message: data.userMessage,
         wardrobeItems: data.wardrobeItems || [],
         userProfile: data.userProfile || undefined,
+        occasion: data.occasion || undefined,
+        weather: data.weather || undefined,
+        workDressCode: data.workDressCode || undefined,
+        dateKey: data.dateKey || undefined,
+        lockedItems: data.lockedItems || undefined,
+        excludedItems: data.excludedItems || undefined,
+        priorItemIds: data.priorItemIds || undefined,
+        source: data.source || 'wardrobe',
       }),
     });
     return {
@@ -2365,6 +2387,9 @@ class ApiService {
       visualAuthority: result.visualAuthority === 'server' ? 'server' : null,
       path: result.path,
       service: result.service,
+      occasion: result.occasion ?? null,
+      refine: result.refine ?? null,
+      itemIds: Array.isArray(result.itemIds) ? result.itemIds.map(String) : undefined,
       elapsedMs: result.elapsedMs,
     };
   }
