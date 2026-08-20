@@ -3014,6 +3014,58 @@ export default function AIStylistScreen() {
       console.log('Calling backend API with message:', text.trim());
       
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
+      const isCreateOutfitAsk =
+        /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(text.trim())
+        || /\bwhat (should|can|do) i wear\b/i.test(text.trim())
+        || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(text.trim());
+
+      // Create-outfit → same server createWardrobeOutfit() as Today's Outfit (not resilient LLM chat).
+      if (isCreateOutfitAsk && !attachedUris.length) {
+        const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
+          stylistId: stylist.id,
+          userMessage: text.trim(),
+          wardrobeItems: wardrobeContext,
+          userProfile: {
+            gender: mappedGenderText,
+            name: user?.name,
+            subscriptionTier: user?.subscriptionTier,
+          },
+        });
+        if (!outfitResponse.content || !outfitResponse.content.trim()) {
+          throw new Error('Empty response from backend');
+        }
+        const assistantMessage = (() => {
+          try {
+            return attachWardrobeVisualToMessage(
+              {
+                id: `msg_${Date.now()}_assistant`,
+                role: 'assistant',
+                content: outfitResponse.content,
+                timestamp: new Date().toISOString(),
+                visualAuthority: 'server',
+                hasOutfitRecommendation: outfitResponse.hasOutfitRecommendation,
+              },
+              text.trim(),
+              outfitResponse as any,
+              wardrobeItems,
+              user?.subscriptionTier,
+            );
+          } catch {
+            return {
+              id: `msg_${Date.now()}_assistant`,
+              role: 'assistant' as const,
+              content: outfitResponse.content,
+              timestamp: new Date().toISOString(),
+            };
+          }
+        })();
+        const finalMessages = [...updatedMessages, assistantMessage];
+        setMessages(finalMessages);
+        setIsTyping(false);
+        await saveChatHistory(finalMessages);
+        setTimeout(() => scrollChatToEnd(true), 100);
+        return;
+      }
       
       // Try to get location for weather-aware recommendations (non-blocking, 3s max)
       let locationData: { lat?: number; lon?: number; location?: string } = {};
@@ -3100,20 +3152,32 @@ export default function AIStylistScreen() {
         setDetectedMood(response.mood.mood);
       }
       
-      const assistantMessage = attachWardrobeVisualToMessage(
-        {
-          id: `msg_${Date.now()}_assistant`,
-          role: 'assistant',
-          content: response.content,
-          timestamp: new Date().toISOString(),
-          visualAuthority: response.visualAuthority === 'server' ? 'server' : undefined,
-          hasOutfitRecommendation: response.hasOutfitRecommendation,
-        },
-        text.trim(),
-        response,
-        wardrobeItems,
-        user?.subscriptionTier,
-      );
+      const assistantMessage = (() => {
+        try {
+          return attachWardrobeVisualToMessage(
+            {
+              id: `msg_${Date.now()}_assistant`,
+              role: 'assistant',
+              content: response.content,
+              timestamp: new Date().toISOString(),
+              visualAuthority: response.visualAuthority === 'server' ? 'server' : undefined,
+              hasOutfitRecommendation: response.hasOutfitRecommendation,
+            },
+            text.trim(),
+            response,
+            wardrobeItems,
+            user?.subscriptionTier,
+          );
+        } catch (attachErr) {
+          console.warn('[StylistChat] attachWardrobeVisual soft-fail:', attachErr);
+          return {
+            id: `msg_${Date.now()}_assistant`,
+            role: 'assistant' as const,
+            content: response.content,
+            timestamp: new Date().toISOString(),
+          };
+        }
+      })();
       
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
@@ -3134,6 +3198,15 @@ export default function AIStylistScreen() {
     } catch (error: any) {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       console.log('Error message:', error?.message);
+      const failureClass =
+        /took too long|INTERNAL_TIMEOUT|timed?\s*out/i.test(String(error?.message || ''))
+          ? 'LLM_TIMEOUT'
+          : /5\d{2}|server error|empty response/i.test(String(error?.message || ''))
+            ? 'SERVER_5XX'
+            : /network|offline|failed to fetch/i.test(String(error?.message || ''))
+              ? 'NETWORK'
+              : 'UNKNOWN';
+      console.log('[StylistChat] failureClass=', failureClass);
 
       const isMale = stylist.id === 'max';
       const isAce = stylist.id === 'ace';
@@ -3159,6 +3232,16 @@ export default function AIStylistScreen() {
           : isAce
             ? "There was a brief server issue on my end. Please try again in a moment."
             : "My styling brain hiccupped on the server side, darling. Give it another try in just a moment.";
+      } else if (
+        /\b(create|build|put together|make)\b.{0,40}\b(outfit|look)\b/i.test(String(lastOutboundPromptRef.current || text || ''))
+        || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(String(lastOutboundPromptRef.current || text || ''))
+      ) {
+        // Wardrobe create-outfit: never leave the user on a opaque persona snag.
+        errorContent = isMale
+          ? "I couldn't lock a look from your wardrobe just now. Try once more — or name a piece you want to wear and I'll rebuild around it."
+          : isAce
+            ? "I couldn't lock a look from your wardrobe just now. Try once more, or name a piece to build around."
+            : "I couldn't lock a look from your wardrobe just now, gorgeous. Try once more — or name a piece you want to wear and I'll rebuild around it.";
       } else {
         errorContent = isMale
           ? "Hey, I hit a snag answering that. Give it another shot in a moment — I'll be right here."

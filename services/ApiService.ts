@@ -2157,8 +2157,9 @@ class ApiService {
       }
     }
     
-    // Use resilient endpoint that works with or without authentication
-    // This endpoint provides automatic guest fallback with real AI
+    // Do not block chat on Render wake — fire-and-forget so create-outfit isn't stuck 20–60s.
+    void this.wakeBackend().catch(() => {});
+
     const result = await this.request<{
       response?: string;
       content?: string;
@@ -2235,7 +2236,8 @@ class ApiService {
     }>('/api/chat/resilient', {
       method: 'POST',
       headers,
-      timeout: 90000,
+      // General chat: allow cold-start headroom. Create-outfit uses sendWardrobeOutfitFromChat.
+      timeout: 60000,
       body: JSON.stringify({
         ...rest,
         stylist: stylistId,
@@ -2314,6 +2316,56 @@ class ApiService {
       responseType: result.responseType,
       lookCount: result.lookCount,
       looks: Array.isArray(result.looks) ? result.looks : undefined,
+    };
+  }
+
+  /**
+   * Chat create-outfit from wardrobe — thin client for POST /api/chat/outfit-from-wardrobe.
+   * Server uses the same createWardrobeOutfit() as Today's Outfit (/api/stylist/generate).
+   * Do not invent another Ivy-only client route.
+   */
+  async sendWardrobeOutfitFromChat(data: {
+    stylistId: string;
+    userMessage: string;
+    wardrobeItems?: Array<Record<string, unknown>>;
+    userProfile?: Record<string, unknown>;
+  }): Promise<{
+    content: string;
+    wardrobeVisual?: unknown;
+    hasOutfitRecommendation?: boolean;
+    visualAuthority?: 'server' | null;
+    path?: string;
+    service?: string;
+    elapsedMs?: number;
+  }> {
+    void this.wakeBackend().catch(() => {});
+    const result = await this.request<{
+      response?: string;
+      content?: string;
+      wardrobeVisual?: unknown;
+      hasOutfitRecommendation?: boolean;
+      visualAuthority?: string;
+      path?: string;
+      service?: string;
+      elapsedMs?: number;
+    }>('/api/chat/outfit-from-wardrobe', {
+      method: 'POST',
+      timeout: 15000,
+      body: JSON.stringify({
+        stylist: data.stylistId,
+        message: data.userMessage,
+        wardrobeItems: data.wardrobeItems || [],
+        userProfile: data.userProfile || undefined,
+      }),
+    });
+    return {
+      content: result.response || result.content || '',
+      wardrobeVisual: result.wardrobeVisual ?? null,
+      hasOutfitRecommendation: result.hasOutfitRecommendation,
+      visualAuthority: result.visualAuthority === 'server' ? 'server' : null,
+      path: result.path,
+      service: result.service,
+      elapsedMs: result.elapsedMs,
     };
   }
 
@@ -2684,6 +2736,7 @@ class ApiService {
     stylistId: string;
     message: string;
     generateVoice?: boolean;
+    voiceRequestId?: string;
     voiceSettings?: { accent?: string; voiceRange?: string };
     accent?: string;
     voiceRange?: string;
@@ -3501,6 +3554,7 @@ class ApiService {
     accent?: string;
     voiceRange?: string;
     language?: string;
+    voiceRequestId?: string;
   }) {
     return this.request<{
       success: boolean;
