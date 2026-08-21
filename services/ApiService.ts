@@ -2364,7 +2364,7 @@ class ApiService {
       elapsedMs?: number;
     }>('/api/chat/outfit-from-wardrobe', {
       method: 'POST',
-      timeout: 15000,
+      timeout: 45000,
       body: JSON.stringify({
         stylist: data.stylistId,
         message: data.userMessage,

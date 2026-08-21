@@ -247,6 +247,8 @@ interface ChatMessage {
     occasion: string;
     reason: string;
   };
+  /** Occasion slug from wardrobe create-outfit / refine (for follow-up locks). */
+  outfitOccasion?: string;
   wardrobeVisual?: WardrobeVisualPayload | null;
   outfitVisualSuggestion?: {
     source: 'generated';
@@ -315,6 +317,36 @@ function isWardrobeOutfitRefineAsk(text: string): boolean {
     || /\b(smarter|dressier|sharper)\b/i.test(t)
     || /\bdifferent (outfit|look)\b/i.test(t)
     || /\btry (again|another|something else)\b/i.test(t)
+  );
+}
+
+/**
+ * Multi-day / celebrity / style-reference asks need conversational chat, not the
+ * single-look wardrobe solver (chips + createWardrobeOutfit are one complete look).
+ */
+function isMultiLookOrStyleReferenceAsk(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  return (
+    /\b(for|each|every)\s+(day|night|morning)\b/i.test(t)
+    || /\b\d+\s+days?\b/i.test(t)
+    || /\b(three|3|four|4|five|5|seven|7|week)\b.{0,24}\b(day|days|outfits?|looks?)\b/i.test(t)
+    || /\b(outfits?|looks?)\b.{0,24}\b(for|each|every)\b.{0,16}\b(day|days)\b/i.test(t)
+    || /\bdress me like\b|\bstyle me like\b|\bin the style of\b/i.test(t)
+    || /\blike\s+[A-Z][A-Za-z0-9.'’\-]+(?:\s+[A-Z][A-Za-z0-9.'’\-]+){0,3}\b/.test(t)
+  );
+}
+
+/** Single wearable look from wardrobe — same job as Occasion chips / Today's Outfit. */
+function isSingleLookWardrobeCreateAsk(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t || isMultiLookOrStyleReferenceAsk(t)) return false;
+  return (
+    /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(t)
+    || /\bwhat (should|can|do) i wear\b/i.test(t)
+    || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(t)
+    || /\boutfit for (today|tonight|tomorrow)\b/i.test(t)
+    || /\bwear today\b|\blook for today\b/i.test(t)
   );
 }
 
@@ -3061,32 +3093,73 @@ export default function AIStylistScreen() {
       console.log('Calling backend API with message:', text.trim());
       
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
-      const isCreateOutfitAsk =
-        /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(text.trim())
-        || /\bwhat (should|can|do) i wear\b/i.test(text.trim())
-        || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(text.trim());
+      const trimmedAsk = text.trim();
       const priorItemIds = extractPriorWardrobeItemIds(updatedMessages);
-      const isRefineOutfitAsk = isWardrobeOutfitRefineAsk(text.trim()) && priorItemIds.length > 0;
+      const isRefineOutfitAsk = isWardrobeOutfitRefineAsk(trimmedAsk) && priorItemIds.length > 0;
+      const isSingleLookCreate = isSingleLookWardrobeCreateAsk(trimmedAsk);
 
-      // Create / refine → same server createWardrobeOutfit() as Today's Outfit (not resilient LLM chat).
-      if ((isCreateOutfitAsk || isRefineOutfitAsk) && !attachedUris.length) {
-        const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
-          stylistId: stylist.id,
-          userMessage: text.trim(),
-          wardrobeItems: wardrobeContext,
-          userProfile: {
-            gender: mappedGenderText,
-            name: user?.name,
-            subscriptionTier: user?.subscriptionTier,
-          },
-          occasion: isRefineOutfitAsk ? extractPriorOutfitOccasion(updatedMessages) : undefined,
-          priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
-          source: 'wardrobe',
-        });
-        if (!outfitResponse.content || !outfitResponse.content.trim()) {
-          throw new Error('Empty response from backend');
+      // Single-look create → same local allocator path as Occasion chips (known-good since mid-Aug).
+      // Multi-day / celebrity-style asks fall through to ordinary Stylist Chat (LLM).
+      // Thin refine still uses server createWardrobeOutfit with priorItemIds.
+      if ((isSingleLookCreate || isRefineOutfitAsk) && !attachedUris.length) {
+        let assistantMessage: ChatMessage | null = null;
+
+        if (isSingleLookCreate && !isRefineOutfitAsk) {
+          try {
+            const priorOutfits = updatedMessages
+              .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
+              .slice(-5)
+              .map((m) => m.outfitSuggestion!.items);
+            const generated = await generateWardrobeOutfit({
+              occasionType: 'casual_day',
+              wardrobeItems,
+              stylistId: stylist.id,
+              saveToCalendar: false,
+              user,
+              priorOutfits,
+              skipDecorate: true,
+            });
+            const content = generated.stylistMessage
+              || "Here's a look from pieces you already own.";
+            const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
+            const cappedVisual = wardrobeVisual
+              ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
+              : null;
+            assistantMessage = {
+              id: `msg_${Date.now()}_assistant`,
+              role: 'assistant',
+              content,
+              timestamp: new Date().toISOString(),
+              wardrobeVisual: cappedVisual ?? undefined,
+              visualAuthority: 'server',
+              hasOutfitRecommendation: Boolean(generated.items.length),
+              outfitSuggestion: generated.items.length
+                ? { items: generated.items, occasion: 'Casual day', reason: '' }
+                : undefined,
+              outfitOccasion: 'casual_day',
+            };
+          } catch (localErr) {
+            console.warn('[StylistChat] local create-outfit failed, trying server createWardrobeOutfit:', localErr);
+          }
         }
-        const assistantMessage = (() => {
+
+        if (!assistantMessage) {
+          const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
+            stylistId: stylist.id,
+            userMessage: trimmedAsk,
+            wardrobeItems: wardrobeContext,
+            userProfile: {
+              gender: mappedGenderText,
+              name: user?.name,
+              subscriptionTier: user?.subscriptionTier,
+            },
+            occasion: isRefineOutfitAsk ? extractPriorOutfitOccasion(updatedMessages) : undefined,
+            priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
+            source: 'wardrobe',
+          });
+          if (!outfitResponse.content || !outfitResponse.content.trim()) {
+            throw new Error('Empty response from backend');
+          }
           try {
             const attached = attachWardrobeVisualToMessage(
               {
@@ -3097,7 +3170,7 @@ export default function AIStylistScreen() {
                 visualAuthority: 'server',
                 hasOutfitRecommendation: outfitResponse.hasOutfitRecommendation,
               },
-              text.trim(),
+              trimmedAsk,
               outfitResponse as any,
               wardrobeItems,
               user?.subscriptionTier,
@@ -3105,11 +3178,11 @@ export default function AIStylistScreen() {
             if (outfitResponse.occasion) {
               (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion = outfitResponse.occasion;
             }
-            return attached;
+            assistantMessage = attached;
           } catch {
-            return {
+            assistantMessage = {
               id: `msg_${Date.now()}_assistant`,
-              role: 'assistant' as const,
+              role: 'assistant',
               content: outfitResponse.content,
               timestamp: new Date().toISOString(),
               ...(outfitResponse.occasion
@@ -3117,7 +3190,8 @@ export default function AIStylistScreen() {
                 : {}),
             };
           }
-        })();
+        }
+
         const finalMessages = [...updatedMessages, assistantMessage];
         setMessages(finalMessages);
         setIsTyping(false);
