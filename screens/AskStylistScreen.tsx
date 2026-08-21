@@ -639,7 +639,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
           const pieces = sanitizeOutfitPieces(
             isFallbackResult
               ? (apiResult.outfitPieces || localPieces || [])
-              : (localPieces || apiResult.outfitPieces || []),
+              : (apiResult.outfitPieces || localPieces || []),
           );
           return pieces.length > 0 ? pieces : null;
         })(),

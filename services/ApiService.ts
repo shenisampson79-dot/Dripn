@@ -2761,15 +2761,28 @@ class ApiService {
     return this.request<{
       success: boolean;
       engineVersion?: string;
+      service?: string;
       intent?: string;
       stylistId?: string;
       dateKey?: string;
       occasionType?: string;
       dressFor?: string | null;
+      itemIds?: string[];
+      acceptedItemIds?: string[];
+      renderedCardItemIds?: string[];
+      proseReferencedItemIds?: string[];
+      items?: Array<Record<string, unknown>>;
+      hydratedItems?: Array<Record<string, unknown>>;
+      stylistMessage?: string;
+      vibeLabel?: string;
+      why?: string[];
+      evaluator?: Record<string, unknown> | null;
+      pipelineTrace?: Record<string, unknown>;
       outfit?: {
         id: string;
         dateKey: string;
         itemIds: string[];
+        acceptedItemIds?: string[];
         occasionType: string;
         stylistMessage?: string;
         vibeLabel?: string;
@@ -2793,7 +2806,6 @@ class ApiService {
           imageUrl?: string | null;
         }>;
       };
-      why?: string[];
       scores?: Record<string, unknown> | null;
       diversity?: {
         historyCount?: number;

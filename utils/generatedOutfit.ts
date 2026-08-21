@@ -22,8 +22,16 @@ import {
 } from '@/utils/hydrateGeneratedOutfitItems';
 import { buildDeterministicOutfitExplain } from '@/utils/buildDeterministicOutfitExplain';
 import { resolveWeatherForAllocator } from '@/utils/weatherOuterwear';
+import { presentCanonicalOutfit, canonicalItemIds } from '@/utils/outfitCompatibilityGuard';
 
 export { hydrateGeneratedOutfitItems, type GeneratedOutfitApiItem };
+
+/**
+ * Offline / internal helper only — must NOT be the primary publish path.
+ * Canonical publish goes through server createWardrobeOutfit.
+ * @deprecated Do not call for customer-facing publish; use generateWardrobeOutfit (server-first).
+ */
+export const allocateSingleDayOutfitInternal = allocateSingleDayOutfit;
 
 async function getTodaysOutfitPrefsSafe() {
   try {
@@ -38,12 +46,17 @@ export type GeneratedOutfitDisplay = {
   stylistMessage?: string;
   vibeLabel?: string;
   allocationMode?: string;
+  acceptedItemIds?: string[];
+  renderedCardItemIds?: string[];
+  service?: string;
 };
 
 export function resolveGeneratedOutfitItemIds(
   result: {
     outfit?: { items?: Array<{ id?: string | number }> };
     hydratedItems?: Array<{ id?: string | number }>;
+    acceptedItemIds?: Array<string | number>;
+    itemIds?: Array<string | number>;
   },
   wardrobeItems: WardrobeItem[],
   occasionType?: OutfitOccasionId | 'todays_look',
@@ -54,6 +67,13 @@ export function resolveGeneratedOutfitItemIds(
       .map((row) => String(row.id))
       .filter((id) => wardrobeIds.has(id));
 
+  const fromAccepted = (result.acceptedItemIds || result.itemIds || [])
+    .map(String)
+    .filter((id) => wardrobeIds.has(id));
+  if (fromAccepted.length) {
+    return orderItemIdsByVisualOrder(fromAccepted, wardrobeItems);
+  }
+
   const fromHydrated = pickIds(result.hydratedItems);
   const rawIds = fromHydrated.length > 0 ? fromHydrated : pickIds(result.outfit?.items);
   return orderItemIdsByVisualOrder(
@@ -62,31 +82,51 @@ export function resolveGeneratedOutfitItemIds(
   );
 }
 
-function displayFromAllocation(
-  allocated: Extract<ReturnType<typeof allocateSingleDayOutfit>, { ok: true }>,
+function displayFromServerItems(
+  items: WardrobeItem[],
   opts?: {
     weather?: { temperature: number; condition: string } | null;
     userAsk?: string | null;
+    occasionType?: string;
+    stylistMessage?: string;
+    vibeLabel?: string;
+    acceptedItemIds?: string[];
+    service?: string;
   },
 ): GeneratedOutfitDisplay {
+  const frozen = presentCanonicalOutfit(items, {
+    occasion: opts?.occasionType || 'casual_day',
+    source: 'client_canonical',
+  });
+  const acceptedItemIds = frozen
+    ? canonicalItemIds(frozen)
+    : items.map((i) => String(i.id));
+  const ordered = sortOutfitItemsByVisualOrder(
+    items.filter((i) => acceptedItemIds.includes(String(i.id))),
+  );
   const explain = buildDeterministicOutfitExplain({
-    items: allocated.items,
-    occasionType: allocated.occasionType,
+    items: ordered,
+    occasionType: (opts?.occasionType || 'casual_day') as OutfitOccasionId,
     weather: opts?.weather || null,
     userAsk: opts?.userAsk || null,
   });
-  const label = allocated.occasionType.replace(/_/g, ' ');
+  const label = String(opts?.occasionType || 'casual_day').replace(/_/g, ' ');
   return {
-    items: sortOutfitItemsByVisualOrder(allocated.items),
-    vibeLabel: label,
-    stylistMessage: explain || undefined,
-    allocationMode: allocated.mode,
+    items: ordered,
+    vibeLabel: opts?.vibeLabel || label,
+    stylistMessage: opts?.stylistMessage || explain || undefined,
+    allocationMode: 'createWardrobeOutfit',
+    acceptedItemIds,
+    renderedCardItemIds: acceptedItemIds,
+    service: opts?.service || 'createWardrobeOutfit',
   };
 }
 
 /**
- * Constraint-first wardrobe outfit generation.
- * Allocator picks inventory; API may only decorate copy (and is never trusted to invent items).
+ * Canonical client entry for wardrobe outfit generation.
+ * Always prefers server createWardrobeOutfit (/api/stylist/generate or chat outfit).
+ * Local allocateSingleDayOutfit is demoted to offline-only emergency and cannot
+ * publish independently when the server is reachable.
  */
 export async function generateWardrobeOutfit(params: {
   occasionType: OutfitOccasionId | 'todays_look';
@@ -100,7 +140,7 @@ export async function generateWardrobeOutfit(params: {
   excludeItemIds?: string[];
   /** Recent outfits to diversify against (stylist regenerations). */
   priorOutfits?: WardrobeItem[][];
-  /** Local allocator only — skip slow API decorate (Today's outfit, quick chips). */
+  /** @deprecated Ignored — server is always primary; local only on hard offline. */
   skipDecorate?: boolean;
   workDressCode?: WorkDressCode | null;
   brandInspiration?: string | null;
@@ -108,24 +148,25 @@ export async function generateWardrobeOutfit(params: {
   userAsk?: string | null;
   /** Optional lat for calendar-season heavy-layer fallback when weather is null. */
   weatherLat?: number | null;
-}): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
+  /** Force offline local path (tests / true offline). */
+  forceOffline?: boolean;
+}): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateStylistOutfit>> }> {
   const {
     occasionType,
     wardrobeItems,
     stylistId,
-    saveToCalendar,
-    calendarDate,
     user,
     onboardingProfile,
     weather,
     excludeItemIds,
     priorOutfits,
-    skipDecorate = false,
     userAsk,
     weatherLat,
+    forceOffline = false,
   } = params;
 
   void hydrateOutfitFeedbackBrain();
+  void params.skipDecorate;
 
   let workDressCode = params.workDressCode ?? null;
   let brandInspiration = params.brandInspiration ?? null;
@@ -150,7 +191,82 @@ export async function generateWardrobeOutfit(params: {
   const resolvedWeather = resolveWeatherForAllocator(weather || null, {
     lat: weatherLat ?? null,
   });
+  const occasionForApi = normalizeAllocatorOccasion(occasionType);
+  const regional = resolveRegionalStyleContext(user, onboardingProfile);
+  const priorIdLists = (priorOutfits || []).map((look) =>
+    look.map((i) => String(i.id)),
+  );
 
+  // --- Canonical server path ---
+  if (!forceOffline) {
+    try {
+      const result = await apiService.generateStylistOutfit({
+        intent: occasionType === 'todays_look' ? 'today' : 'chat',
+        occasionType: occasionForApi,
+        weather: resolvedWeather
+          ? {
+              temperature: resolvedWeather.temperature,
+              condition: resolvedWeather.condition,
+            }
+          : null,
+        stylistId,
+        localItems: wardrobeItems.map((i) => ({
+          id: i.id,
+          name: i.name,
+          category: i.category,
+          color: i.color,
+          brand: i.brand,
+          subcategory: i.subcategory,
+          imageUri: i.imageUri,
+        })),
+        excludeItemIds,
+        priorOutfits: priorIdLists,
+        recentOutfits: priorIdLists,
+        environment: {
+          weather: resolvedWeather || undefined,
+          occasion: occasionForApi,
+          dressCode: workDressCode || undefined,
+          countryCode: regional.countryCode || undefined,
+        },
+      });
+
+      if (result?.success && (result.items?.length || result.itemIds?.length || result.outfit)) {
+        const ids = resolveGeneratedOutfitItemIds(
+          {
+            acceptedItemIds: result.acceptedItemIds || result.itemIds,
+            itemIds: result.itemIds,
+            outfit: result.outfit,
+            hydratedItems: result.items || result.hydratedItems,
+          },
+          wardrobeItems,
+          occasionType,
+        );
+        const byId = new Map(wardrobeItems.map((i) => [String(i.id), i]));
+        const items = ids.map((id) => byId.get(id)).filter(Boolean) as WardrobeItem[];
+        if (items.length >= 3) {
+          return {
+            ...displayFromServerItems(items, {
+              weather: resolvedWeather as { temperature: number; condition: string } | null,
+              userAsk,
+              occasionType: occasionForApi,
+              stylistMessage: result.stylistMessage || result.why?.[0],
+              vibeLabel: result.vibeLabel,
+              acceptedItemIds: ids,
+              service: result.service || 'createWardrobeOutfit',
+            }),
+            raw: result,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[generateWardrobeOutfit] Server createWardrobeOutfit failed; offline demoted path only:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  // --- Demoted offline emergency (cannot publish independently when server works) ---
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
     occasionType,
@@ -165,66 +281,14 @@ export async function generateWardrobeOutfit(params: {
     throw new Error(allocated.message || 'Could not build a complete outfit from your wardrobe.');
   }
 
-  const base = displayFromAllocation(allocated, {
+  const offline = displayFromServerItems(allocated.items, {
     weather: resolvedWeather as { temperature: number; condition: string } | null,
     userAsk,
+    occasionType: allocated.occasionType,
   });
-  if (skipDecorate) {
-    return base;
-  }
-
-  const regional = resolveRegionalStyleContext(user, onboardingProfile);
-  const occasionForApi = normalizeAllocatorOccasion(occasionType);
-
-  // Optional decorate: ask API for stylist voice only, constrained to allocated items
-  try {
-    const result = await apiService.generateOutfit({
-      occasionType: occasionForApi as Parameters<typeof apiService.generateOutfit>[0]['occasionType'],
-      stylistId,
-      saveToCalendar,
-      calendarDate,
-      weather: resolvedWeather || undefined,
-      countryCode: regional.countryCode || undefined,
-      preferredStyles: regional.styleTags,
-      // Pass ONLY allocated pieces so the server cannot invent substitutes
-      localItems: allocated.items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        category: i.category,
-        color: i.color,
-        imageUri: i.imageUri,
-      })),
-      excludeItemIds: wardrobeItems
-        .map((i) => String(i.id))
-        .filter((id) => !allocated.itemIds.includes(id)),
-      contextNotes:
-        `CONSTRAINT ENGINE already selected these exact item IDs: ${allocated.itemIds.join(', ')}. ` +
-        `Use ONLY these items (they are the full wardrobe for this request). ` +
-        `Return them unchanged. Write stylistMessage + vibeLabel only — do not substitute pieces.`,
-    });
-
-    if (result.success) {
-      const decorated =
-        result.stylistMessage
-        || result.outfit?.stylistMessage
-        || '';
-      // Prefer grounded deterministic explain over generic "pieces you already own" decorate.
-      const useDecorated = decorated
-        && !/pieces you already own/i.test(decorated)
-        && !/^here'?s a .+ look from/i.test(decorated);
-      return {
-        ...base,
-        raw: result,
-        stylistMessage: useDecorated ? decorated : (base.stylistMessage || decorated),
-        vibeLabel: result.vibeLabel || result.outfit?.vibe || base.vibeLabel,
-      };
-    }
-  } catch (error) {
-    console.warn(
-      '[generateWardrobeOutfit] Decorate call failed; keeping allocator outfit:',
-      error instanceof Error ? error.message : error,
-    );
-  }
-
-  return base;
+  return {
+    ...offline,
+    allocationMode: 'offline_demoted_allocator',
+    service: 'offline_demoted',
+  };
 }
