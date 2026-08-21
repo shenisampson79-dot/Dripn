@@ -11,10 +11,17 @@ import {
 import type { WeatherLike } from '@/utils/weatherOuterwear';
 import { parseWeatherTempC } from '@/utils/weatherOuterwear';
 
-function rolePhrase(item: WardrobeItem): string {
-  const name = String(item.name || item.category || 'piece').trim();
-  const short = name.length > 36 ? `${name.slice(0, 34)}…` : name;
-  return short;
+/** Smart shorten — never mid-word cut on shirt/boots/trousers. */
+function smartShortenName(raw: string, max = 42): string {
+  const name = String(raw || '').trim();
+  if (!name || name.length <= max) return name;
+  const cut = name.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  if (lastSpace >= Math.floor(max * 0.55)) {
+    return `${cut.slice(0, lastSpace).trim()}…`;
+  }
+  // Prefer dropping a trailing fragment rather than "t-s…" / "ankle b…"
+  return `${cut.replace(/[\s\-–—]+[^\s\-–—]*$/, '').trim() || cut.slice(0, max - 1)}…`;
 }
 
 function pickRole(
@@ -25,8 +32,8 @@ function pickRole(
 }
 
 /**
- * Short, deterministic card footer — occasion + weather + item roles.
- * No LLM hang; omit empty filler rather than repeating a generic line.
+ * Short GQ-style card footer — occasion + weather why.
+ * Items live on the card; do not inventory-dump or append "why these:".
  */
 export function buildDeterministicOutfitExplain(params: {
   items: WardrobeItem[];
@@ -43,50 +50,40 @@ export function buildDeterministicOutfitExplain(params: {
       ? "today's look"
       : getOccasionLabel(occasion as OutfitOccasionId).toLowerCase();
 
-  const top = pickRole(items, isTopItem);
-  const bottom = pickRole(items, isBottomItem);
-  const shoes = pickRole(items, isShoesItem);
-  const outer = pickRole(items, isOuterwearItem);
-  const accessory = pickRole(items, isAccessoryItem);
-
-  const parts: string[] = [];
-  if (top && bottom) {
-    parts.push(`${rolePhrase(top)} with ${rolePhrase(bottom)}`);
-  } else if (top) {
-    parts.push(rolePhrase(top));
-  } else if (bottom) {
-    parts.push(rolePhrase(bottom));
-  }
-  if (shoes) parts.push(`${rolePhrase(shoes)} underfoot`);
-  if (outer) parts.push(`${rolePhrase(outer)} on top`);
-  else if (accessory) parts.push(`${rolePhrase(accessory)} to finish`);
-
-  const mix = parts.slice(0, 3).join(', ');
   const tempC = parseWeatherTempC(params.weather || null);
   const weatherBit =
     tempC != null
       ? tempC >= 22
-        ? ' kept light for the warm weather'
+        ? ' Light enough for the warm weather.'
         : tempC <= 10
-          ? ' with enough warmth for the chill'
-          : ` tuned for about ${tempC}°`
+          ? ' Enough warmth for the chill.'
+          : ` Tuned for about ${tempC}°.`
       : '';
 
   const ask = String(params.userAsk || '').toLowerCase();
   let why = '';
   if (/\b(dinner|nice|restaurant|evening)\b/.test(ask) || occasion === 'evening_out' || occasion === 'date_night') {
-    why = ' — elevated enough for dinner without overdoing it';
-  } else if (/\b(pub|friends|casual)\b/.test(ask) || occasion === 'casual_day' || occasion === 'weekend') {
-    why = ' — easy and social, still intentional';
+    why = `Quiet elevation for ${label} — polished without reading formal.`;
+  } else if (/\b(gym|workout|training)\b/.test(ask) || occasion === 'gym') {
+    why = 'Built for moving — technical pieces that still look considered.';
+  } else if (/\b(pub|friends|casual|today)\b/.test(ask) || occasion === 'casual_day' || occasion === 'weekend') {
+    why = `Easy for ${label}, still intentional.`;
   } else if (occasion === 'work_outfit') {
-    why = ' — clean enough for the room';
+    why = 'Clean enough for the room without overstating it.';
   } else if (occasion === 'smart_casual') {
-    why = ' — smart-casual balance from what you own';
+    why = 'Smart-casual balance from pieces you already own.';
+  } else {
+    why = `A coherent read for ${label}.`;
   }
 
-  if (!mix) {
-    return `Chosen for ${label}${weatherBit}${why || ' from pieces that fit the brief'}.`.trim();
-  }
+  // Optional one-name anchor when a single hero piece stands out — never a full inventory list.
+  const top = pickRole(items, isTopItem);
+  const shoes = pickRole(items, isShoesItem);
+  const outer = pickRole(items, isOuterwearItem);
+  const hero = outer || top || shoes || pickRole(items, isBottomItem) || pickRole(items, isAccessoryItem);
+  const heroBit = hero
+    ? ` Anchored by ${smartShortenName(String(hero.name || hero.category || 'your pieces'))}.`
+    : '';
 
-  return `${mix[0].toUpperCase()}${mix.slice(1)} — why these: they fit ${label}${weatherBit}${why}.`;
+  return `${why}${weatherBit}${heroBit}`.replace(/\s+/g, ' ').trim();
 }

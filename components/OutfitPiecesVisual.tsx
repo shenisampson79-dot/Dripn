@@ -485,23 +485,25 @@ export function OutfitPiecesVisual({
 
         {accessories.map((layer, index) => {
           const isProcessedLayer = itemHasProcessedCutout(layer.item);
-          const layerBg = isProcessedLayer
-            ? wardrobeProcessedTileBackground()
-            : wardrobeTileBackground(isDark);
+          // Transparent float — white tote tiles were covering adjacent top arms.
+          const layerBg = 'transparent';
           const accessoryWidthPct = `${Math.round(layerWidth('accessory') * 100)}%` as DimensionValue;
           return (
             <View
               key={layer.key}
               style={[
                 styles.accessoryFloat,
-                layerFrameStyle(isProcessedLayer),
                 {
+                  backgroundColor: 'transparent',
+                  borderRadius: 0,
+                  borderWidth: 0,
+                  overflow: 'visible' as const,
                   width: large ? accessoryWidthPct : effectiveCanvasWidth * layerWidth('accessory'),
-                  maxWidth: large ? '44%' : undefined,
+                  maxWidth: large ? '38%' : undefined,
                   height: layerHeight('accessory'),
                   top: getAccessoryTop(index),
-                  right: 0,
-                  zIndex: stack.length + 20 + index,
+                  right: large ? 4 : 0,
+                  zIndex: 2 + index,
                 },
               ]}
             >

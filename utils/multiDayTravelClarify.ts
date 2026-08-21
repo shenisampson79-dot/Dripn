@@ -76,10 +76,40 @@ export function parseMultiDayTravelSlots(
   const t = String(text || '').trim();
   if (!t) return slots;
 
+  // Numbered batch: "1. Rome 2. Mix 3. August 23 4. walking"
+  const numbered = [...t.matchAll(/(?:^|\n|\s)(\d+)[\).:\-]\s*([^\n\d]+?)(?=(?:\s*\d+[\).:\-])|$)/g)];
+  if (numbered.length >= 2) {
+    const order: Array<keyof MultiDayTravelSlots> = ['destination', 'tripType', 'datesOrSeason', 'occasions'];
+    for (const m of numbered) {
+      const idx = Math.max(0, Number(m[1]) - 1);
+      const value = String(m[2] || '').trim().replace(/[.,;]+$/, '');
+      if (!value || idx >= order.length) continue;
+      const key = order[idx];
+      if (key === 'destination' && value.length >= 2 && value.length <= 48) {
+        slots.destination = value.replace(/^(to|in|for)\s+/i, '');
+      } else if (key === 'tripType') {
+        if (/\b(mix|mixed|both|business and leisure|work and play)\b/i.test(value)) slots.tripType = 'mixed';
+        else if (/\b(business|work)\b/i.test(value)) slots.tripType = 'business';
+        else if (/\b(leisure|pleasure|holiday|vacation)\b/i.test(value)) slots.tripType = 'leisure';
+      } else if (key === 'datesOrSeason') {
+        slots.datesOrSeason = value;
+      } else if (key === 'occasions') {
+        if (/\b(no dinners?|no dress codes?|nothing special|none|just casual|walking|sightseeing|explore)\b/i.test(value)) {
+          slots.occasionsExplicitNone = true;
+          slots.occasions = /walking|sightseeing|explore/i.test(value) ? value : 'none';
+        } else {
+          slots.occasions = value;
+          slots.occasionsExplicitNone = false;
+        }
+      }
+    }
+  }
+
   const dayCount = extractDayCount(t);
   if (dayCount != null) slots.dayCount = dayCount;
 
-  if (/\b(mixed|mix of both|business and leisure|work and play)\b/i.test(t)) {
+  if (/\b(mixed|mix of both|business and leisure|work and play)\b/i.test(t)
+    || /(?:^|[\n,;])\s*mix\s*(?:$|[\n,;])/i.test(t)) {
     slots.tripType = 'mixed';
   } else if (/\b(business|work trip|client|conference|meetings?)\b/i.test(t)) {
     slots.tripType = 'business';
@@ -87,14 +117,18 @@ export function parseMultiDayTravelSlots(
     slots.tripType = 'leisure';
   }
 
-  if (/\b(no dinners?|no dress codes?|nothing special|none|no major occasions?|just casual)\b/i.test(t)) {
-    slots.occasionsExplicitNone = true;
-    slots.occasions = slots.occasions || 'none';
+  if (/\b(no dinners?|no dress codes?|nothing special|none|no major occasions?|just casual)\b/i.test(t)
+    || /\b(mostly\s+)?walking\b/i.test(t)
+    || /\bsightseeing\b/i.test(t)) {
+    if (!slots.occasions || slots.occasionsExplicitNone || /\b(none|walking|sightseeing)\b/i.test(t)) {
+      slots.occasionsExplicitNone = true;
+      slots.occasions = slots.occasions && slots.occasions !== 'none' ? slots.occasions : 'none';
+    }
   } else {
     const occBits: string[] = [];
     if (/\b(dinner|restaurant|somewhere nice|evening out)\b/i.test(t)) occBits.push('dinner');
     if (/\b(wedding|ceremony)\b/i.test(t)) occBits.push('wedding');
-    if (/\b(black\s*tie|cocktail|formal)\b/i.test(t)) occBits.push('formal');
+    if (/\b(black\s*tie|cocktail|formal)\b/i.test(t) && !/\bnot\s+formal\b/i.test(t)) occBits.push('formal');
     if (/\b(client dinner|work dinner|business dinner)\b/i.test(t)) occBits.push('work_dinner');
     if (occBits.length) {
       slots.occasions = occBits.join(', ');
@@ -103,27 +137,27 @@ export function parseMultiDayTravelSlots(
   }
 
   const season = t.match(/\b(spring|summer|autumn|fall|winter)\b/i);
-  const dateSpan = t.match(/\b(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/i);
+  const dateSpan = t.match(/\b(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?|\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*|(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{2,4})?)\b/i);
   const relative = t.match(/\b(next\s+week|this\s+weekend|next\s+weekend)\b/i);
-  if (season) slots.datesOrSeason = season[1].toLowerCase();
-  else if (dateSpan) slots.datesOrSeason = dateSpan[0];
+  if (dateSpan) slots.datesOrSeason = dateSpan[0];
+  else if (season) slots.datesOrSeason = season[1].toLowerCase();
   else if (relative) slots.datesOrSeason = relative[0];
   else {
-    const m = t.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
+    const m = t.match(/\b((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{2,4})?|(?:january|february|march|april|may|june|july|august|september|october|november|december))\b/i);
     if (m) slots.datesOrSeason = m[1].toLowerCase();
   }
 
   if (!slots.destination) {
     const headed = t.match(/\b(?:in|to|for|heading(?:\s+to)?|visiting|going(?:\s+to)?)\s+([A-Z][A-Za-zÀ-ÿ'’\-]+(?:\s+[A-Z][A-Za-zÀ-ÿ'’\-]+){0,2})\b/);
-    if (headed && !/^(Business|Leisure|Mixed|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Summer|Winter|Spring|Autumn|Fall)\b/i.test(headed[1])) {
+    if (headed && !/^(Business|Leisure|Mixed|Mix|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Summer|Winter|Spring|Autumn|Fall|August|Walking)\b/i.test(headed[1])) {
       slots.destination = headed[1].trim();
     } else {
-      const firstChunk = t.split(/[,;\n]/)[0]?.trim();
+      const firstChunk = t.split(/[,;\n]/)[0]?.trim().replace(/^\d+[\).:\-]\s*/, '');
       if (
         firstChunk
         && firstChunk.length >= 2
         && firstChunk.length <= 48
-        && !/\b(business|leisure|mixed|dinner|none|days?|outfit)\b/i.test(firstChunk)
+        && !/\b(business|leisure|mixed|mix|dinner|none|days?|outfit|walking)\b/i.test(firstChunk)
         && /^[A-Za-zÀ-ÿ]/.test(firstChunk)
         && (/^[A-Z]/.test(firstChunk) || /\b(spain|france|italy|uk|usa|portugal|greece|germany|nyc|london|paris|rome|berlin|madrid|lisbon|amsterdam|dublin|edinburgh)\b/i.test(firstChunk))
       ) {

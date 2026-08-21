@@ -2339,6 +2339,7 @@ class ApiService {
     lockedItems?: Array<string | number>;
     excludedItems?: Array<string | number>;
     priorItemIds?: Array<string | number>;
+    recentOutfits?: Array<Array<string | number>>;
     source?: string;
   }): Promise<{
     content: string;
@@ -2383,6 +2384,7 @@ class ApiService {
         lockedItems: data.lockedItems || undefined,
         excludedItems: data.excludedItems || undefined,
         priorItemIds: data.priorItemIds || undefined,
+        recentOutfits: data.recentOutfits || undefined,
         source: data.source || 'wardrobe',
       }),
     });

@@ -13,12 +13,17 @@ export function inferOutfitOccasionFromAsk(
 
   if (/\b(gym|workout|training|run|exercise)\b/.test(t)) return 'gym';
 
+  // "stylish not formal" must not map to formal_event
+  if (/\bnot\s+formal\b|\bnon-?formal\b|\bstylish\b/.test(t) && /\b(dinner|evening|elevated)\b/.test(t)) {
+    return 'evening_out';
+  }
+
   // Dinner / evening elevation — even when "casual" is also mentioned.
   if (
     /\b(dinner|date night|date-night|anniversary|cocktail|theatre|theater|opera)\b/.test(t)
     || /\b(somewhere|place)\s+nice\b/.test(t)
     || /\bnice\s+(dinner|evening|restaurant|place)\b/.test(t)
-    || /\b(smart|dressy|elevated|polished)\b.{0,40}\b(casual|dinner|evening|night)\b/.test(t)
+    || /\b(smart|dressy|elevated|polished|stylish)\b.{0,40}\b(casual|dinner|evening|night)\b/.test(t)
     || /\bcasual\b.{0,40}\b(nice|dinner|restaurant|evening)\b/.test(t)
   ) {
     if (/\b(date|romantic|anniversary)\b/.test(t)) return 'date_night';
