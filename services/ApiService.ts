@@ -2331,6 +2331,9 @@ class ApiService {
     userProfile?: Record<string, unknown>;
     occasion?: string | null;
     weather?: Record<string, unknown> | null;
+    lat?: number | null;
+    lon?: number | null;
+    location?: string | null;
     workDressCode?: string | null;
     dateKey?: string | null;
     lockedItems?: Array<string | number>;
@@ -2372,6 +2375,9 @@ class ApiService {
         userProfile: data.userProfile || undefined,
         occasion: data.occasion || undefined,
         weather: data.weather || undefined,
+        lat: data.lat ?? undefined,
+        lon: data.lon ?? undefined,
+        location: data.location || undefined,
         workDressCode: data.workDressCode || undefined,
         dateKey: data.dateKey || undefined,
         lockedItems: data.lockedItems || undefined,
@@ -2390,6 +2396,86 @@ class ApiService {
       occasion: result.occasion ?? null,
       refine: result.refine ?? null,
       itemIds: Array.isArray(result.itemIds) ? result.itemIds.map(String) : undefined,
+      elapsedMs: result.elapsedMs,
+    };
+  }
+
+  /**
+   * Multi-day travel clarify + generate — POST /api/chat/multi-day-outfits.
+   * Pass travelSlots from the clarify turn; server generates only when slots are READY.
+   */
+  async sendMultiDayOutfitsFromChat(data: {
+    stylistId: string;
+    userMessage: string;
+    travelSlots?: Record<string, unknown> | null;
+    wardrobeItems?: Array<Record<string, unknown>>;
+    userProfile?: Record<string, unknown>;
+    weather?: Record<string, unknown> | null;
+    lat?: number | null;
+    lon?: number | null;
+  }): Promise<{
+    content: string;
+    hasOutfitRecommendation?: boolean;
+    travelClarify?: {
+      flow?: string;
+      state?: string;
+      slots?: Record<string, unknown>;
+    } | null;
+    responseType?: string;
+    lookCount?: number;
+    looks?: Array<{
+      role?: string | null;
+      roleLabel?: string | null;
+      label?: string | null;
+      reason?: string | null;
+      itemIds?: Array<string | number>;
+    }>;
+    path?: string;
+    elapsedMs?: number;
+  }> {
+    void this.wakeBackend().catch(() => {});
+    const result = await this.request<{
+      response?: string;
+      content?: string;
+      hasOutfitRecommendation?: boolean;
+      travelClarify?: {
+        flow?: string;
+        state?: string;
+        slots?: Record<string, unknown>;
+      } | null;
+      responseType?: string;
+      lookCount?: number;
+      looks?: Array<{
+        role?: string | null;
+        roleLabel?: string | null;
+        label?: string | null;
+        reason?: string | null;
+        itemIds?: Array<string | number>;
+      }>;
+      path?: string;
+      elapsedMs?: number;
+    }>('/api/chat/multi-day-outfits', {
+      method: 'POST',
+      timeout: 60000,
+      body: JSON.stringify({
+        stylist: data.stylistId,
+        message: data.userMessage,
+        travelSlots: data.travelSlots || undefined,
+        wardrobeItems: data.wardrobeItems || [],
+        userProfile: data.userProfile || undefined,
+        weather: data.weather || undefined,
+        lat: data.lat ?? undefined,
+        lon: data.lon ?? undefined,
+      }),
+    });
+    return {
+      content: result.response || result.content || '',
+      hasOutfitRecommendation: result.hasOutfitRecommendation,
+      travelClarify: result.travelClarify ?? null,
+      responseType: result.responseType,
+      lookCount: result.lookCount,
+      looks: result.looks,
+      path: result.path,
       elapsedMs: result.elapsedMs,
     };
   }

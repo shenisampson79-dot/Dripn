@@ -107,6 +107,17 @@ import { buildRankedLookCards } from '@/utils/rankedMultiLook';
 import { buildStyleSession, type StyleSession } from '@/utils/chatWearTargetDate';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import {
+  inferOutfitOccasionFromAsk,
+  raiseOccasionForRefine,
+} from '@/utils/inferOutfitOccasionFromAsk';
+import {
+  advanceMultiDayTravelClarify,
+  emptyMultiDaySlots,
+  isMultiDayTravelOutfitAsk,
+  multiDayClarifyCopy,
+  type MultiDayTravelSlots,
+} from '@/utils/multiDayTravelClarify';
 import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
@@ -249,6 +260,13 @@ interface ChatMessage {
   };
   /** Occasion slug from wardrobe create-outfit / refine (for follow-up locks). */
   outfitOccasion?: string;
+  /** Multi-day travel clarify slots (pending until READY → generate). */
+  travelClarify?: {
+    flow: string;
+    state: string;
+    slots: MultiDayTravelSlots;
+    missing?: string[];
+  } | null;
   wardrobeVisual?: WardrobeVisualPayload | null;
   outfitVisualSuggestion?: {
     source: 'generated';
@@ -317,24 +335,74 @@ function isWardrobeOutfitRefineAsk(text: string): boolean {
     || /\b(smarter|dressier|sharper)\b/i.test(t)
     || /\bdifferent (outfit|look)\b/i.test(t)
     || /\btry (again|another|something else)\b/i.test(t)
+    || /\b(don'?t like|do not like|not appropriate|another option|another look|give me another|something different)\b/i.test(t)
+    || /\b(reject|hate)\b.{0,24}\b(outfit|look)\b/i.test(t)
   );
 }
 
 /**
- * Multi-day / celebrity / style-reference asks need conversational chat, not the
- * single-look wardrobe solver (chips + createWardrobeOutfit are one complete look).
+ * Multi-day / travel packing / celebrity / style-reference asks need conversational chat,
+ * not the single-look wardrobe solver (chips + createWardrobeOutfit are one complete look).
  */
 function isMultiLookOrStyleReferenceAsk(text: string): boolean {
   const t = String(text || '').trim();
   if (!t) return false;
   return (
-    /\b(for|each|every)\s+(day|night|morning)\b/i.test(t)
-    || /\b\d+\s+days?\b/i.test(t)
-    || /\b(three|3|four|4|five|5|seven|7|week)\b.{0,24}\b(day|days|outfits?|looks?)\b/i.test(t)
-    || /\b(outfits?|looks?)\b.{0,24}\b(for|each|every)\b.{0,16}\b(day|days)\b/i.test(t)
+    isMultiDayTravelOutfitAsk(t)
     || /\bdress me like\b|\bstyle me like\b|\bin the style of\b/i.test(t)
     || /\blike\s+[A-Z][A-Za-z0-9.'’\-]+(?:\s+[A-Z][A-Za-z0-9.'’\-]+){0,3}\b/.test(t)
   );
+}
+
+function findPendingTravelClarify(messages: ChatMessage[]): MultiDayTravelSlots | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== 'assistant') continue;
+    if (msg.travelClarify?.slots && msg.travelClarify.state !== 'DONE') {
+      return msg.travelClarify.slots;
+    }
+    // Stop at prior completed plan or unrelated assistant turn without travel state
+    if (msg.travelClarify?.state === 'DONE') return null;
+    if (msg.hasOutfitRecommendation || msg.wardrobeVisual) return null;
+  }
+  return null;
+}
+
+async function fetchWeatherForOutfitCreate(timeoutMs = 3000): Promise<{
+  weather: { temperature: number; condition: string } | null;
+  lat: number | null;
+}> {
+  try {
+    const permission = await weatherService.checkPermissionStatus();
+    if (!permission.granted) {
+      try {
+        await weatherService.requestPermission();
+      } catch {
+        /* optional */
+      }
+    }
+    const current = await Promise.race([
+      weatherService.getWeatherForOutfits(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+    if (current && typeof (current as { temperature?: number }).temperature === 'number') {
+      const w = current as { temperature: number; condition: string; location?: string };
+      let lat: number | null = null;
+      try {
+        const coords = await weatherService.getLocationCoords();
+        lat = coords?.lat ?? null;
+      } catch {
+        lat = null;
+      }
+      return {
+        weather: { temperature: w.temperature, condition: String(w.condition || 'clear') },
+        lat,
+      };
+    }
+  } catch {
+    /* non-blocking */
+  }
+  return { weather: null, lat: null };
 }
 
 /** Single wearable look from wardrobe — same job as Occasion chips / Today's Outfit. */
@@ -3096,35 +3164,151 @@ export default function AIStylistScreen() {
       const trimmedAsk = text.trim();
       const priorItemIds = extractPriorWardrobeItemIds(updatedMessages);
       const isRefineOutfitAsk = isWardrobeOutfitRefineAsk(trimmedAsk) && priorItemIds.length > 0;
+      const isMultiDayTravelAsk = isMultiDayTravelOutfitAsk(trimmedAsk);
+      const pendingTravelSlots = findPendingTravelClarify(updatedMessages);
       const isSingleLookCreate = isSingleLookWardrobeCreateAsk(trimmedAsk);
 
-      // Single-look create → same local allocator path as Occasion chips (known-good since mid-Aug).
-      // Multi-day / celebrity-style asks fall through to ordinary Stylist Chat (LLM).
-      // Thin refine still uses server createWardrobeOutfit with priorItemIds.
+      // Multi-day / travel: first-class clarify → generate (never single-look chip soft-fail).
+      if ((isMultiDayTravelAsk || pendingTravelSlots) && !attachedUris.length) {
+        const advanced = advanceMultiDayTravelClarify({
+          query: trimmedAsk,
+          priorSlots: pendingTravelSlots || emptyMultiDaySlots(),
+          stylistId: stylist.id,
+        });
+
+        if (advanced.state !== 'READY') {
+          const clarifyMsg: ChatMessage = {
+            id: `msg_${Date.now()}_assistant`,
+            role: 'assistant',
+            content: advanced.clarifyCopy || multiDayClarifyCopy(stylist.id, advanced.slots),
+            timestamp: new Date().toISOString(),
+            travelClarify: {
+              flow: advanced.flow,
+              state: advanced.state,
+              slots: advanced.slots,
+              missing: advanced.missing,
+            },
+          };
+          const finalMessages = [...updatedMessages, clarifyMsg];
+          setMessages(finalMessages);
+          setIsTyping(false);
+          await saveChatHistory(finalMessages);
+          setTimeout(() => scrollChatToEnd(true), 100);
+          return;
+        }
+
+        // Slots ready → generate day looks via multi-day outfit tool (destination weather).
+        try {
+          const weatherSnap = await fetchWeatherForOutfitCreate(3000);
+          const clientRows = (wardrobeItems || []).slice(0, 120).map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            subcategory: item.subcategory,
+            color: item.color,
+            brand: item.brand,
+            imageUri: item.imageUri,
+            imageUrl: item.imageUri,
+          }));
+          const multi = await apiService.sendMultiDayOutfitsFromChat({
+            stylistId: stylist.id,
+            userMessage: trimmedAsk,
+            travelSlots: advanced.slots,
+            wardrobeItems: clientRows,
+            weather: weatherSnap.weather,
+            lat: weatherSnap.lat,
+            userProfile: user
+              ? { id: user.id, gender: user.gender, countryCode: (user as { countryCode?: string }).countryCode }
+              : undefined,
+          });
+          const assistantMessage: ChatMessage = {
+            id: `msg_${Date.now()}_assistant`,
+            role: 'assistant',
+            content: multi.content || "Here's your day-by-day plan from pieces you already own.",
+            timestamp: new Date().toISOString(),
+            travelClarify: multi.travelClarify
+              ? {
+                  flow: String(multi.travelClarify.flow || 'multi_day_travel_clarify'),
+                  state: String(multi.travelClarify.state || 'DONE'),
+                  slots: (multi.travelClarify.slots as MultiDayTravelSlots) || advanced.slots,
+                }
+              : { flow: 'multi_day_travel_clarify', state: 'DONE', slots: advanced.slots },
+            responseType: multi.responseType || 'multi',
+            lookCount: multi.lookCount,
+            looks: multi.looks,
+            hasOutfitRecommendation: Boolean(multi.hasOutfitRecommendation),
+            visualAuthority: 'server',
+          };
+          const finalMessages = [...updatedMessages, assistantMessage];
+          setMessages(finalMessages);
+          setIsTyping(false);
+          await saveChatHistory(finalMessages);
+          setTimeout(() => scrollChatToEnd(true), 100);
+          return;
+        } catch (multiErr) {
+          console.warn('[StylistChat] multi-day generate failed:', multiErr);
+          const failMsg: ChatMessage = {
+            id: `msg_${Date.now()}_assistant`,
+            role: 'assistant',
+            content:
+              "I have the trip details but couldn't lock day looks just now. Try again in a moment — or add a few more tops, bottoms, and shoes.",
+            timestamp: new Date().toISOString(),
+            travelClarify: {
+              flow: 'multi_day_travel_clarify',
+              state: 'READY',
+              slots: advanced.slots,
+            },
+          };
+          const finalMessages = [...updatedMessages, failMsg];
+          setMessages(finalMessages);
+          setIsTyping(false);
+          await saveChatHistory(finalMessages);
+          setTimeout(() => scrollChatToEnd(true), 100);
+          return;
+        }
+      }
+
+      // Single-look create / thin refine → same local allocator path as Occasion chips.
+      // Celebrity-style asks fall through to ordinary Stylist Chat (LLM).
       if ((isSingleLookCreate || isRefineOutfitAsk) && !attachedUris.length) {
         let assistantMessage: ChatMessage | null = null;
+        const weatherSnap = await fetchWeatherForOutfitCreate(3000);
 
-        if (isSingleLookCreate && !isRefineOutfitAsk) {
+        if (isRefineOutfitAsk) {
           try {
+            const priorOccasion = extractPriorOutfitOccasion(updatedMessages);
+            const occasionType = raiseOccasionForRefine(priorOccasion, trimmedAsk);
             const priorOutfits = updatedMessages
               .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
               .slice(-5)
               .map((m) => m.outfitSuggestion!.items);
+            const priorItems = priorOutfits[priorOutfits.length - 1] || [];
+            const softExclude = priorItems
+              .filter((item) => {
+                const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
+                return /\b(cargo|short|boot|athletic|sport|track|trainer|fleece)\b/.test(blob);
+              })
+              .map((item) => String(item.id));
             const generated = await generateWardrobeOutfit({
-              occasionType: 'casual_day',
+              occasionType,
               wardrobeItems,
               stylistId: stylist.id,
               saveToCalendar: false,
               user,
               priorOutfits,
+              excludeItemIds: softExclude.length ? softExclude : priorItemIds.slice(0, 2),
+              weather: weatherSnap.weather,
+              weatherLat: weatherSnap.lat,
+              userAsk: trimmedAsk,
               skipDecorate: true,
             });
             const content = generated.stylistMessage
-              || "Here's a look from pieces you already own.";
+              || "Here's another option from pieces you already own.";
             const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
             const cappedVisual = wardrobeVisual
               ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
               : null;
+            const label = getOccasionLabel(occasionType);
             assistantMessage = {
               id: `msg_${Date.now()}_assistant`,
               role: 'assistant',
@@ -3134,9 +3318,51 @@ export default function AIStylistScreen() {
               visualAuthority: 'server',
               hasOutfitRecommendation: Boolean(generated.items.length),
               outfitSuggestion: generated.items.length
-                ? { items: generated.items, occasion: 'Casual day', reason: '' }
+                ? { items: generated.items, occasion: label, reason: '' }
                 : undefined,
-              outfitOccasion: 'casual_day',
+              outfitOccasion: occasionType,
+            };
+          } catch (refineErr) {
+            console.warn('[StylistChat] local refine failed, trying server createWardrobeOutfit:', refineErr);
+          }
+        } else if (isSingleLookCreate) {
+          try {
+            const occasionType = inferOutfitOccasionFromAsk(trimmedAsk, 'casual_day');
+            const priorOutfits = updatedMessages
+              .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
+              .slice(-5)
+              .map((m) => m.outfitSuggestion!.items);
+            const generated = await generateWardrobeOutfit({
+              occasionType,
+              wardrobeItems,
+              stylistId: stylist.id,
+              saveToCalendar: false,
+              user,
+              priorOutfits,
+              weather: weatherSnap.weather,
+              weatherLat: weatherSnap.lat,
+              userAsk: trimmedAsk,
+              skipDecorate: true,
+            });
+            const content = generated.stylistMessage
+              || "Here's a look from pieces you already own.";
+            const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
+            const cappedVisual = wardrobeVisual
+              ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
+              : null;
+            const label = getOccasionLabel(occasionType);
+            assistantMessage = {
+              id: `msg_${Date.now()}_assistant`,
+              role: 'assistant',
+              content,
+              timestamp: new Date().toISOString(),
+              wardrobeVisual: cappedVisual ?? undefined,
+              visualAuthority: 'server',
+              hasOutfitRecommendation: Boolean(generated.items.length),
+              outfitSuggestion: generated.items.length
+                ? { items: generated.items, occasion: label, reason: '' }
+                : undefined,
+              outfitOccasion: occasionType,
             };
           } catch (localErr) {
             console.warn('[StylistChat] local create-outfit failed, trying server createWardrobeOutfit:', localErr);
@@ -3144,6 +3370,9 @@ export default function AIStylistScreen() {
         }
 
         if (!assistantMessage) {
+          const occasionForServer = isRefineOutfitAsk
+            ? raiseOccasionForRefine(extractPriorOutfitOccasion(updatedMessages), trimmedAsk)
+            : inferOutfitOccasionFromAsk(trimmedAsk, 'casual_day');
           const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
             stylistId: stylist.id,
             userMessage: trimmedAsk,
@@ -3153,7 +3382,9 @@ export default function AIStylistScreen() {
               name: user?.name,
               subscriptionTier: user?.subscriptionTier,
             },
-            occasion: isRefineOutfitAsk ? extractPriorOutfitOccasion(updatedMessages) : undefined,
+            occasion: occasionForServer,
+            weather: weatherSnap.weather,
+            lat: weatherSnap.lat,
             priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
             source: 'wardrobe',
           });
@@ -3175,8 +3406,9 @@ export default function AIStylistScreen() {
               wardrobeItems,
               user?.subscriptionTier,
             );
-            if (outfitResponse.occasion) {
-              (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion = outfitResponse.occasion;
+            if (outfitResponse.occasion || occasionForServer) {
+              (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion =
+                outfitResponse.occasion || occasionForServer;
             }
             assistantMessage = attached;
           } catch {
@@ -3185,8 +3417,8 @@ export default function AIStylistScreen() {
               role: 'assistant',
               content: outfitResponse.content,
               timestamp: new Date().toISOString(),
-              ...(outfitResponse.occasion
-                ? { outfitOccasion: outfitResponse.occasion }
+              ...(outfitResponse.occasion || occasionForServer
+                ? { outfitOccasion: outfitResponse.occasion || occasionForServer }
                 : {}),
             };
           }
@@ -3366,6 +3598,14 @@ export default function AIStylistScreen() {
             ? "There was a brief server issue on my end. Please try again in a moment."
             : "My styling brain hiccupped on the server side, darling. Give it another try in just a moment.";
       } else if (
+        isMultiLookOrStyleReferenceAsk(String(lastOutboundPromptRef.current || text || ''))
+      ) {
+        errorContent = isMale
+          ? "I couldn't finish mapping those days just now. Tell me where you're heading and whether it's business or leisure — then I'll rebuild day-by-day."
+          : isAce
+            ? "I couldn't finish that travel plan just now. Share destination and business vs leisure, and I'll try again."
+            : "I couldn't finish mapping those days just now, gorgeous. Tell me where you're heading and whether it's business or pleasure — then I'll rebuild day-by-day.";
+      } else if (
         /\b(create|build|put together|make)\b.{0,40}\b(outfit|look)\b/i.test(String(lastOutboundPromptRef.current || text || ''))
         || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(String(lastOutboundPromptRef.current || text || ''))
       ) {
@@ -3375,6 +3615,14 @@ export default function AIStylistScreen() {
           : isAce
             ? "I couldn't lock a look from your wardrobe just now. Try once more, or name a piece to build around."
             : "I couldn't lock a look from your wardrobe just now, gorgeous. Try once more — or name a piece you want to wear and I'll rebuild around it.";
+      } else if (
+        isWardrobeOutfitRefineAsk(String(lastOutboundPromptRef.current || text || ''))
+      ) {
+        errorContent = isMale
+          ? "I couldn't lock another option just now. Try once more — or tell me which piece to keep."
+          : isAce
+            ? "I couldn't lock another option just now. Please try again, or name a piece to keep."
+            : "I couldn't lock another option just now, gorgeous. Try once more — or tell me which piece to keep.";
       } else {
         errorContent = isMale
           ? "Hey, I hit a snag answering that. Give it another shot in a moment — I'll be right here."

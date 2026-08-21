@@ -1,6 +1,10 @@
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { classifyItem } from '@/utils/outfitClashRules';
+import {
+  elevatedCandidateBanReason,
+  isChunkyOutdoorBoot,
+} from '@/utils/occasionFormalityBands';
 
 type EditorialItem = Pick<WardrobeItem, 'name' | 'category'> & {
   subcategory?: string | null;
@@ -55,15 +59,34 @@ const SOCIAL_OR_PROFESSIONAL = new Set<OutfitOccasionId | 'todays_look'>([
 export function passesEditorialOccasionGate(
   item: EditorialItem,
   occasion: OutfitOccasionId | 'todays_look' | undefined,
+  options?: { weather?: { temperature?: number; temp?: number } | null },
 ): boolean {
   if (!occasion || occasion === 'custom') return true;
   if (isSleepwear(item)) return false;
   if (isBeachwear(item)) return false;
+  // Formality-band filter (nice dinner contract) before legacy checks
+  if (elevatedCandidateBanReason(item, occasion, { weather: options?.weather ?? null })) {
+    return false;
+  }
   if (SOCIAL_OR_PROFESSIONAL.has(occasion) && isActive(item)) return false;
   if (occasion === 'work_outfit' && (isCasualLoungewear(item) || isAthleticFootwear(item) || isActive(item))) {
     return false;
   }
   if (occasion === 'evening_out' && (isCasualLoungewear(item) || isActive(item))) return false;
+  if (
+    (occasion === 'evening_out' || occasion === 'date_night' || occasion === 'smart_casual')
+    && /\bcargo\s*shorts?\b/.test(itemText(item))
+  ) {
+    return false;
+  }
+  if (
+    (occasion === 'evening_out' || occasion === 'date_night')
+    && (item.category === 'outerwear' || /jacket|coat/.test(itemText(item)))
+    && /\b(athletic|sports?|track|windbreaker|training)\b/.test(itemText(item))
+    && !/\b(blazer|suit|tailored)\b/.test(itemText(item))
+  ) {
+    return false;
+  }
   if (occasion === 'smart_casual' && /\b(hoodies?|hooded sweat|joggers?|sweatpants?|track pants?)\b/.test(itemText(item))) {
     return false;
   }
@@ -76,9 +99,10 @@ export function passesEditorialOccasionGate(
 export function outfitMeetsOccasionStandard(
   items: EditorialItem[],
   occasion: OutfitOccasionId | 'todays_look',
+  options?: { weather?: { temperature?: number; temp?: number } | null },
 ): boolean {
   if (!items.length) return false;
-  if (!items.every((item) => passesEditorialOccasionGate(item, occasion))) return false;
+  if (!items.every((item) => passesEditorialOccasionGate(item, occasion, options))) return false;
 
   const signals = items.map((item) => classifyItem(item as WardrobeItem));
   const minTier = Math.min(...signals.map((s) => s.formalityTier));
@@ -99,10 +123,20 @@ export function outfitMeetsOccasionStandard(
   if (occasion === 'smart_casual') {
     if (hasAthletic) return false;
     if (signals.some((s) => s.isHoodie || s.isJoggers || s.isAthleticBottom)) return false;
+    if (items.some((item) => /\bcargo\s*shorts?\b/i.test(itemText(item)))) return false;
+    if (items.some((item) => isChunkyOutdoorBoot(item))) return false;
   }
 
   if (occasion === 'evening_out' || occasion === 'date_night') {
     if (hasAthletic || signals.some((s) => s.isHoodie || s.isJoggers)) return false;
+    if (items.some((item) => /\bcargo\s*shorts?\b/i.test(itemText(item)))) return false;
+    if (items.some((item) => isChunkyOutdoorBoot(item))) return false;
+    if (items.some((item) => {
+      const t = itemText(item);
+      return (item.category === 'outerwear' || /jacket/.test(t))
+        && /\b(athletic|sports?|track|windbreaker|training)\b/.test(t)
+        && !/\b(blazer|suit|tailored)\b/.test(t);
+    })) return false;
   }
 
   return true;

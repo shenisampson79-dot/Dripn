@@ -315,3 +315,43 @@ export function weatherOuterwearScoreAdjustment(
   }
   return policy.softOuterwearPenalty || 0;
 }
+
+/**
+ * When live weather is unavailable, still avoid season-wrong heavy layers.
+ * Does NOT invent cold requiring coats — only warm-season heavy blocks.
+ */
+export function calendarSeasonWeatherHint(
+  now: Date = new Date(),
+  lat?: number | null,
+): WeatherLike | null {
+  const month = now.getMonth(); // 0–11
+  const southern = typeof lat === 'number' && Number.isFinite(lat) && lat < 0;
+  const m = southern ? (month + 6) % 12 : month;
+  // NH Jun–Aug (5–7) → warm enough to hard-block heavy fleece
+  if (m >= 5 && m <= 7) {
+    return {
+      temperature: 23,
+      condition: 'clear',
+      source: 'calendar_season',
+    };
+  }
+  // May / Sep transitional — still block heavy
+  if (m === 4 || m === 8) {
+    return {
+      temperature: 20,
+      condition: 'clear',
+      source: 'calendar_season',
+    };
+  }
+  return null;
+}
+
+/** Prefer live weather; fall back to calendar warm-season hint only. */
+export function resolveWeatherForAllocator(
+  weather?: WeatherLike | null,
+  opts?: { now?: Date; lat?: number | null },
+): WeatherLike | null {
+  const live = normalizeWeatherForAllocator(weather);
+  if (live) return live;
+  return calendarSeasonWeatherHint(opts?.now, opts?.lat ?? null);
+}

@@ -712,6 +712,33 @@ export const CLASH_RULES: Array<{
     when: (ctx) => ctx.any('isAthleticTop') && ctx.any('isBoots'),
   },
   {
+    id: 'cargo_shorts_chunky_boots',
+    penalty: 86,
+    hint: 'Cargo shorts with chunky / combat boots — utility pair that undercuts dinner or smart-casual',
+    severity: 'major',
+    when: (ctx) => {
+      const hasCargoShorts = ctx.signals.some((s) => s.subtype === 'cargo_shorts')
+        || /\bcargo\s*shorts?\b/i.test(ctx.text);
+      const chunkyBoots = ctx.any('isCombatBoots')
+        || (ctx.any('isBoots') && !ctx.any('isDressyBoots') && !ctx.any('isChelseaBoots')
+          && /\b(chunky|combat|hiking|work\s*boot|timberland|doc\b|marten)\b/i.test(ctx.text));
+      return hasCargoShorts && chunkyBoots;
+    },
+  },
+  {
+    id: 'cargo_shorts_dressy_evening',
+    penalty: 84,
+    hint: 'Cargo shorts are too utility for dinner / evening — prefer trousers or tailored shorts',
+    severity: 'major',
+    when: (ctx) => {
+      const occ = String(ctx.occasion || '').toLowerCase();
+      const dressy = /dinner|evening|date|smart_casual|smart-casual|party|restaurant/.test(occ);
+      if (!dressy) return false;
+      return ctx.signals.some((s) => s.subtype === 'cargo_shorts')
+        || /\bcargo\s*shorts?\b/i.test(ctx.text);
+    },
+  },
+  {
     id: 'athletic_heels',
     penalty: 78,
     hint: 'Athletic wear + heels clash',

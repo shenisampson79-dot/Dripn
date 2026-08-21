@@ -940,6 +940,8 @@ export function normalizeAllocatorOccasion(
     event: 'evening_out',
     event_outfit: 'evening_out',
     evening: 'evening_out',
+    evening_out: 'evening_out',
+    dinner: 'evening_out',
     party: 'evening_out',
     formal: 'evening_out',
     formal_event: 'evening_out',

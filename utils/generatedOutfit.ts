@@ -1,8 +1,8 @@
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
-import type { WardrobeItem, ClothingCategory } from '@/contexts/WardrobeContext';
+import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import type { UserProfile } from '@/contexts/AuthContext';
 import type { OnboardingProfile } from '@/services/OnboardingProfileService';
-import { completeOutfitItemIds, MIN_OUTFIT_ITEMS } from '@/utils/completeOutfit';
+import { completeOutfitItemIds } from '@/utils/completeOutfit';
 import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import {
@@ -20,6 +20,8 @@ import {
   hydrateGeneratedOutfitItems,
   type GeneratedOutfitApiItem,
 } from '@/utils/hydrateGeneratedOutfitItems';
+import { buildDeterministicOutfitExplain } from '@/utils/buildDeterministicOutfitExplain';
+import { resolveWeatherForAllocator } from '@/utils/weatherOuterwear';
 
 export { hydrateGeneratedOutfitItems, type GeneratedOutfitApiItem };
 
@@ -62,12 +64,22 @@ export function resolveGeneratedOutfitItemIds(
 
 function displayFromAllocation(
   allocated: Extract<ReturnType<typeof allocateSingleDayOutfit>, { ok: true }>,
+  opts?: {
+    weather?: { temperature: number; condition: string } | null;
+    userAsk?: string | null;
+  },
 ): GeneratedOutfitDisplay {
+  const explain = buildDeterministicOutfitExplain({
+    items: allocated.items,
+    occasionType: allocated.occasionType,
+    weather: opts?.weather || null,
+    userAsk: opts?.userAsk || null,
+  });
   const label = allocated.occasionType.replace(/_/g, ' ');
   return {
     items: sortOutfitItemsByVisualOrder(allocated.items),
     vibeLabel: label,
-    stylistMessage: `Here's a ${label} look from pieces you already own.`,
+    stylistMessage: explain || undefined,
     allocationMode: allocated.mode,
   };
 }
@@ -92,6 +104,10 @@ export async function generateWardrobeOutfit(params: {
   skipDecorate?: boolean;
   workDressCode?: WorkDressCode | null;
   brandInspiration?: string | null;
+  /** Original user ask — grounds deterministic card footer. */
+  userAsk?: string | null;
+  /** Optional lat for calendar-season heavy-layer fallback when weather is null. */
+  weatherLat?: number | null;
 }): Promise<GeneratedOutfitDisplay & { raw?: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
   const {
     occasionType,
@@ -105,6 +121,8 @@ export async function generateWardrobeOutfit(params: {
     excludeItemIds,
     priorOutfits,
     skipDecorate = false,
+    userAsk,
+    weatherLat,
   } = params;
 
   void hydrateOutfitFeedbackBrain();
@@ -129,13 +147,17 @@ export async function generateWardrobeOutfit(params: {
     }
   }
 
+  const resolvedWeather = resolveWeatherForAllocator(weather || null, {
+    lat: weatherLat ?? null,
+  });
+
   const allocated = allocateSingleDayOutfit({
     wardrobe: wardrobeItems,
     occasionType,
     excludeItemIds,
     laundryProfile: laundryProfileFromUser(user),
     priorOutfits,
-    weather: weather || null,
+    weather: resolvedWeather,
     workDressCode,
     brandInspiration,
   });
@@ -143,7 +165,10 @@ export async function generateWardrobeOutfit(params: {
     throw new Error(allocated.message || 'Could not build a complete outfit from your wardrobe.');
   }
 
-  const base = displayFromAllocation(allocated);
+  const base = displayFromAllocation(allocated, {
+    weather: resolvedWeather as { temperature: number; condition: string } | null,
+    userAsk,
+  });
   if (skipDecorate) {
     return base;
   }
@@ -158,7 +183,7 @@ export async function generateWardrobeOutfit(params: {
       stylistId,
       saveToCalendar,
       calendarDate,
-      weather: weather || undefined,
+      weather: resolvedWeather || undefined,
       countryCode: regional.countryCode || undefined,
       preferredStyles: regional.styleTags,
       // Pass ONLY allocated pieces so the server cannot invent substitutes
@@ -179,13 +204,18 @@ export async function generateWardrobeOutfit(params: {
     });
 
     if (result.success) {
+      const decorated =
+        result.stylistMessage
+        || result.outfit?.stylistMessage
+        || '';
+      // Prefer grounded deterministic explain over generic "pieces you already own" decorate.
+      const useDecorated = decorated
+        && !/pieces you already own/i.test(decorated)
+        && !/^here'?s a .+ look from/i.test(decorated);
       return {
         ...base,
         raw: result,
-        stylistMessage:
-          result.stylistMessage
-          || result.outfit?.stylistMessage
-          || base.stylistMessage,
+        stylistMessage: useDecorated ? decorated : (base.stylistMessage || decorated),
         vibeLabel: result.vibeLabel || result.outfit?.vibe || base.vibeLabel,
       };
     }
