@@ -35,8 +35,10 @@ export type QuickAddTagDraft = {
   imageUri: string;
   name: string;
   category: ClothingCategory;
+  subcategory?: string;
   color: ClothingColor;
   brand?: string;
+  material?: string;
   size?: string;
   notes?: string;
   style?: ClothingOccasion | string;

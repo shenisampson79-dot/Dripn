@@ -235,6 +235,7 @@ export function resolveQuickAddCategory(args: {
 
 export function pickVisionFields(analysis: any): {
   category: string | null;
+  subcategory?: string;
   color: string | null;
   confidence: number;
   brand?: string;
@@ -262,6 +263,12 @@ export function pickVisionFields(analysis: any): {
     || analysis?.category
     || null;
 
+  const subcategory =
+    nested?.subcategory
+    || main?.subcategory
+    || analysis?.subcategory
+    || null;
+
   const color =
     main?.color
     || nested?.color
@@ -281,6 +288,7 @@ export function pickVisionFields(analysis: any): {
 
   return {
     category: category ? String(category) : null,
+    subcategory: subcategory ? String(subcategory) : undefined,
     color: color ? String(color) : null,
     confidence: Number.isFinite(confidence) ? confidence : 0,
     brand: main?.brand || nested?.brand ? String(main?.brand || nested?.brand) : undefined,

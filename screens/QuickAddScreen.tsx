@@ -21,6 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,7 @@ import {
   ClothingSeason,
   useWardrobe,
 } from '@/contexts/WardrobeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 import { apiService } from '@/services/ApiService';
@@ -49,6 +51,7 @@ import {
   detectGarmentsOnDeviceHybrid,
   SINGLE_ITEM_HYBRID_OPTS,
 } from '@/utils/onDeviceHybridDetect';
+import { isBeliefDebugAllowed, isQuickAddAutocaptureAllowed } from '@/utils/staffAccess';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
 import { normalizeWardrobeCategory } from '@/utils/wardrobeCategories';
 import {
@@ -67,6 +70,7 @@ import {
   QuickAddCaptureController,
   bboxFromTuple,
   guideFromLayout,
+  type QuickAddAuditSample,
   type QuickAddCaptureUi,
   type QuickAddYoloDetection,
 } from '@/utils/quickAddAutoCapture';
@@ -83,11 +87,37 @@ const HOLD_AMBER = '#FFC107';
 /** takePicture sampling is heavy — keep interval roomy so YOLO can finish. */
 const SAMPLE_MS = 850;
 const SAMPLE_WIDTH = 640;
-/** Ready → snap when the 3-2-1 countdown reaches 1 (no extra second, no amber re-lock). */
+/** Ready → 3-2-1 countdown; each digit gets a full second, then snap after "1". */
 const COUNTDOWN_TICK_MS = 1000;
 const COUNTDOWN_START = 3;
 /** Lower than default parse threshold so boots/shoes still register in-frame. */
 const QUICK_ADD_YOLO_CONF = 0.14;
+/** Staff diagnostic ring — ~40 samples ≈ 34s @ 850ms. */
+const QUICK_ADD_TRACE_MAX = 48;
+
+function formatQuickAddTraceRow(audit: QuickAddAuditSample): Record<string, unknown> {
+  return {
+    timestamp: audit.ts,
+    detectionCount: audit.detectionCount,
+    detectedClass: audit.detectedClass,
+    confidence: Number(audit.confidence.toFixed(3)),
+    bbox: audit.bbox,
+    iouVsPrevious: audit.iouVsPrevious == null ? null : Number(audit.iouVsPrevious.toFixed(3)),
+    coverage: Number(audit.coverage.toFixed(3)),
+    rawReady: audit.rawReady,
+    ghostMiss: audit.ghostMiss,
+    timeSinceLastRealDetectionMs: audit.timeSinceLastRealDetectionMs,
+    readySamples: audit.greenStableSamples,
+    greenHitRate: Number(audit.greenHitRate.toFixed(3)),
+    advancedUi: audit.advancedUi,
+    hint: audit.hint,
+    startCountdown: audit.startCountdown,
+    rawFlags: audit.rawFlags,
+    visionInSampleLoop: audit.visionInSampleLoop,
+    visionLabel: null,
+    visionConfidence: null,
+  };
+}
 
 type Step = 'camera' | 'processing' | 'result';
 type ConfidenceBand = 'high' | 'medium' | 'low';
@@ -124,6 +154,10 @@ function bandFromScores(detConf?: number, analysisConf?: number): ConfidenceBand
 
 export default function QuickAddScreen({ navigation }: Props) {
   const { t } = useTranslations();
+  const { user } = useAuth();
+  const beliefDebug = isBeliefDebugAllowed(__DEV__, user);
+  /** Launch: customers get manual shutter only; staff/dev keep READY path + traces. */
+  const autocaptureEnabled = isQuickAddAutocaptureAllowed(__DEV__, user);
   const insets = useSafeAreaInsets();
   const { addItem, items: wardrobeItems } = useWardrobe();
   const [permission, requestPermission] = useCameraPermissions();
@@ -140,22 +174,45 @@ export default function QuickAddScreen({ navigation }: Props) {
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownArmedRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const traceBufferRef = useRef<QuickAddAuditSample[]>([]);
 
   const [step, setStep] = useState<Step>('camera');
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [torch, setTorch] = useState(false);
-  const [hint, setHint] = useState('Centre the garment in the box — it can fill the screen');
+  const [hint, setHint] = useState('Centre the garment in the box — tap Capture');
   const [frameUi, setFrameUi] = useState<QuickAddCaptureUi>('idle');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [captureThumb, setCaptureThumb] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [traceCount, setTraceCount] = useState(0);
+  const [lastTraceSummary, setLastTraceSummary] = useState('');
   const [dupeSheet, setDupeSheet] = useState<{
     visible: boolean;
     decision: NormalizedDuplicateDecision;
   }>({ visible: false, decision: { type: 'ok', matches: [], isDuplicate: false } });
 
   stepRef.current = step;
+
+  const copyQuickAddTrace = useCallback(async () => {
+    const rows = traceBufferRef.current.map(formatQuickAddTraceRow);
+    const payload = JSON.stringify(
+      {
+        capturedAt: new Date().toISOString(),
+        sampleCount: rows.length,
+        note: 'READY sample loop = YOLO + on-device hybrid only; visionInSampleLoop always false',
+        samples: rows,
+      },
+      null,
+      2,
+    );
+    try {
+      await Clipboard.setStringAsync(payload);
+      Alert.alert('Quick Add trace', `Copied ${rows.length} samples to clipboard.`);
+    } catch {
+      Alert.alert('Quick Add trace', 'Could not copy — try again.');
+    }
+  }, []);
 
   useEffect(() => {
     if (!permission?.granted) void requestPermission();
@@ -202,6 +259,7 @@ export default function QuickAddScreen({ navigation }: Props) {
     const color = asColor(vision.color);
     const brand = vision.brand;
     const material = vision.material;
+    const subcategory = vision.subcategory;
     const seasons = resolveSeasonChips(vision.seasons || []) as ClothingSeason[];
     const occasions = resolveOccasionChips(vision.occasions || []) as ClothingOccasion[];
     const style = occasions[0] || 'everyday';
@@ -226,6 +284,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       imageBase64,
       name,
       category,
+      subcategory,
       color,
       brand,
       material,
@@ -310,7 +369,11 @@ export default function QuickAddScreen({ navigation }: Props) {
             onPress: () => {
               setCaptureThumb(null);
               setStep('camera');
-              setHint('Centre the garment in the box — it can fill the screen');
+              setHint(
+                isQuickAddAutocaptureAllowed(__DEV__, user)
+                  ? 'Centre the garment in the box — it can fill the screen'
+                  : 'Centre the garment in the box — tap Capture',
+              );
               controllerRef.current.reset();
             },
           },
@@ -319,11 +382,15 @@ export default function QuickAddScreen({ navigation }: Props) {
       );
       setStep('camera');
       setCaptureThumb(null);
-      setHint('Centre the garment in the box — it can fill the screen');
+      setHint(
+        isQuickAddAutocaptureAllowed(__DEV__, user)
+          ? 'Centre the garment in the box — it can fill the screen'
+          : 'Centre the garment in the box — tap Capture',
+      );
     } finally {
       capturingRef.current = false;
     }
-  }, [navigation, t]);
+  }, [navigation, t, user]);
 
   const clearCountdown = useCallback(() => {
     if (countdownTimerRef.current) {
@@ -334,11 +401,15 @@ export default function QuickAddScreen({ navigation }: Props) {
     setCountdown(null);
   }, []);
 
+  const cameraHint = autocaptureEnabled
+    ? 'Centre the garment in the box — it can fill the screen'
+    : 'Centre the garment in the box — tap Capture';
+
   const handleCapture = useCallback(async (detection?: QuickAddYoloDetection | null) => {
     if (!cameraRef.current || stepRef.current !== 'camera' || capturingRef.current) return;
     // Lock before shutter so in-flight YOLO samples cannot paint amber.
     capturingRef.current = true;
-    setFrameUi('ready');
+    if (autocaptureEnabled) setFrameUi('ready');
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
@@ -365,10 +436,10 @@ export default function QuickAddScreen({ navigation }: Props) {
       clearCountdown();
       setCaptureThumb(null);
       setFrameUi('idle');
-      setHint('Centre the garment in the box — it can fill the screen');
+      setHint(cameraHint);
       Alert.alert('Camera', 'Could not take photo. Try again.');
     }
-  }, [clearCountdown, processCapturedUri]);
+  }, [autocaptureEnabled, cameraHint, clearCountdown, processCapturedUri]);
 
   const handleCaptureRef = useRef(handleCapture);
   handleCaptureRef.current = handleCapture;
@@ -384,12 +455,12 @@ export default function QuickAddScreen({ navigation }: Props) {
     let n = COUNTDOWN_START;
     countdownTimerRef.current = setInterval(() => {
       n -= 1;
-      if (n <= 1) {
+      if (n <= 0) {
         if (countdownTimerRef.current) {
           clearInterval(countdownTimerRef.current);
           countdownTimerRef.current = null;
         }
-        // Fire on 1 — stay green; do not wait for 0 or a second stability lock.
+        // Full second on "1" finished — stay green and snap (no amber re-lock).
         setCountdown(1);
         setHint('Locked — capturing…');
         setFrameUi('ready');
@@ -405,7 +476,9 @@ export default function QuickAddScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    const shouldPulse = frameUi === 'ready' || frameUi === 'hold' || countdown != null;
+    const shouldPulse =
+      autocaptureEnabled
+      && (frameUi === 'ready' || frameUi === 'hold' || countdown != null);
     if (!shouldPulse) {
       pulseAnim.setValue(1);
       return undefined;
@@ -422,13 +495,24 @@ export default function QuickAddScreen({ navigation }: Props) {
       loop.stop();
       pulseAnim.setValue(1);
     };
-  }, [frameUi, countdown, pulseAnim]);
+  }, [autocaptureEnabled, frameUi, countdown, pulseAnim]);
 
   useEffect(() => () => clearCountdown(), [clearCountdown]);
 
+  useEffect(() => {
+    if (!autocaptureEnabled) {
+      clearCountdown();
+      setFrameUi('idle');
+      setHint('Centre the garment in the box — tap Capture');
+      lastFrameUiRef.current = 'idle';
+      lastBestRef.current = null;
+    }
+  }, [autocaptureEnabled, clearCountdown]);
+
   const sampleForAutoCapture = useCallback(async () => {
     if (
-      !yoloStatus.available
+      !autocaptureEnabled
+      || !yoloStatus.available
       || !cameraRef.current
       || stepRef.current !== 'camera'
       || inFlightRef.current
@@ -469,7 +553,19 @@ export default function QuickAddScreen({ navigation }: Props) {
         bbox: bboxFromTuple(d.bbox),
       }));
 
-      const { best, eval: evaluation, armed, cancelCountdown } = controllerRef.current.onFrame(detections);
+      const { best, eval: evaluation, armed, cancelCountdown, audit } =
+        controllerRef.current.onFrame(detections);
+      if (beliefDebug) {
+        const row = formatQuickAddTraceRow(audit);
+        console.log('[QuickAddTrace]', JSON.stringify(row));
+        const buf = traceBufferRef.current;
+        buf.push(audit);
+        while (buf.length > QUICK_ADD_TRACE_MAX) buf.shift();
+        setTraceCount(buf.length);
+        setLastTraceSummary(
+          `${audit.advancedUi} conf=${audit.confidence.toFixed(2)} raw=${audit.rawReady ? 'Y' : 'N'} ghost=${audit.ghostMiss ? 'Y' : 'N'} n=${audit.greenStableSamples}`,
+        );
+      }
       if (best) lastBestRef.current = best;
       const now = Date.now();
       if (now - lastUiHintAt.current > 80) {
@@ -499,15 +595,28 @@ export default function QuickAddScreen({ navigation }: Props) {
     } finally {
       inFlightRef.current = false;
     }
-  }, [clearCountdown, startCountdown, yoloStatus.available]);
+  }, [beliefDebug, autocaptureEnabled, clearCountdown, startCountdown, yoloStatus.available]);
 
   useEffect(() => {
-    if (step !== 'camera' || !permission?.granted || !yoloStatus.available) return undefined;
+    if (
+      !autocaptureEnabled
+      || step !== 'camera'
+      || !permission?.granted
+      || !yoloStatus.available
+    ) {
+      return undefined;
+    }
     const id = setInterval(() => {
       void sampleForAutoCapture();
     }, SAMPLE_MS);
     return () => clearInterval(id);
-  }, [step, permission?.granted, yoloStatus.available, sampleForAutoCapture]);
+  }, [
+    autocaptureEnabled,
+    step,
+    permission?.granted,
+    yoloStatus.available,
+    sampleForAutoCapture,
+  ]);
 
   const handleGallery = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -540,8 +649,10 @@ export default function QuickAddScreen({ navigation }: Props) {
         const check = await apiService.checkWardrobeDuplicates([{
           name: draft.name,
           category: draft.category,
+          subcategory: draft.subcategory,
           color: draft.color,
           brand: draft.brand,
+          material: draft.material,
           imageBase64: draft.imageBase64,
         }]);
         const first = check?.results?.[0];
@@ -589,6 +700,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       const saved = await addItem({
         name: draft.name,
         category: draft.category,
+        subcategory: draft.subcategory,
         color: draft.color,
         brand: draft.brand,
         material: draft.material,
@@ -674,7 +786,7 @@ export default function QuickAddScreen({ navigation }: Props) {
           onClose={() => {
             setDraft(null);
             setCaptureThumb(null);
-            setHint('Centre the garment in the box — it can fill the screen');
+            setHint(cameraHint);
             setFrameUi('idle');
             controllerRef.current.reset();
             lastBestRef.current = null;
@@ -688,7 +800,7 @@ export default function QuickAddScreen({ navigation }: Props) {
                 onPress: () => {
                   setDraft(null);
                   setCaptureThumb(null);
-                  setHint('Centre the garment in the box — it can fill the screen');
+                  setHint(cameraHint);
                   setStep('camera');
                   controllerRef.current.reset();
                   lastBestRef.current = null;
@@ -742,8 +854,8 @@ export default function QuickAddScreen({ navigation }: Props) {
     );
   }
 
-  const showHold = frameUi === 'hold' || frameUi === 'struggling';
-  const showReady = frameUi === 'ready';
+  const showHold = autocaptureEnabled && (frameUi === 'hold' || frameUi === 'struggling');
+  const showReady = autocaptureEnabled && frameUi === 'ready';
   const frameArmed = showHold || showReady;
 
   return (
@@ -778,15 +890,33 @@ export default function QuickAddScreen({ navigation }: Props) {
           <View style={{ alignItems: 'center' }}>
             <ThemedText type="body" style={styles.title}>Quick Add</ThemedText>
             <ThemedText type="caption" style={styles.subtitle}>
-              {yoloStatus.available
-                ? 'Centre in the box (overflow OK) · white → amber → green'
-                : 'Centre garment in the box · overflow OK · snap anytime'}
+              {autocaptureEnabled
+                ? (yoloStatus.available
+                  ? 'Centre in the box (overflow OK) · white → amber → green'
+                  : 'Centre garment in the box · overflow OK · snap anytime')
+                : 'Centre garment in the box · overflow OK · tap Capture'}
             </ThemedText>
           </View>
           <Pressable onPress={() => setTorch((v) => !v)} hitSlop={10} style={styles.iconBtn}>
             <Feather name={torch ? 'zap' : 'zap-off'} size={20} color="#FFF" />
           </Pressable>
         </View>
+        {beliefDebug && autocaptureEnabled ? (
+          <View style={styles.traceBar}>
+            <ThemedText type="caption" style={styles.traceSummary} numberOfLines={1}>
+              {traceCount > 0 ? lastTraceSummary : 'Trace armed — samples appear after YOLO ticks'}
+            </ThemedText>
+            <Pressable
+              onPress={() => void copyQuickAddTrace()}
+              style={styles.traceCopyBtn}
+              hitSlop={8}
+            >
+              <ThemedText type="caption" style={styles.traceCopyText}>
+                Copy {traceCount}
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
       </LinearGradient>
 
       <View
@@ -807,7 +937,7 @@ export default function QuickAddScreen({ navigation }: Props) {
             { transform: [{ scale: pulseAnim }] },
           ]}
         >
-          {countdown != null ? (
+          {autocaptureEnabled && countdown != null ? (
             <ThemedText type="h2" style={styles.countdownText}>{countdown}</ThemedText>
           ) : null}
         </Animated.View>
@@ -875,6 +1005,26 @@ const styles = StyleSheet.create({
   },
   title: { color: '#FFF', fontWeight: '700', fontSize: 17 },
   subtitle: { color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  traceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: 8,
+  },
+  traceSummary: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  traceCopyBtn: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  traceCopyText: { color: '#FFF', fontWeight: '600', fontSize: 12 },
   overlayCenter: {
     position: 'absolute',
     left: 0,

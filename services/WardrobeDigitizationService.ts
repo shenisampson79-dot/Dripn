@@ -7,10 +7,12 @@ import { DEFAULT_CHAT_MODEL, DEFAULT_VISION_MODEL } from '@/constants/aiModels';
 import { normalizeWardrobeCategory } from '@/utils/wardrobeCategories';
 import { resolveDetectedGarmentName } from '@/utils/wardrobeItemName';
 import { reconcileWardrobeLabel } from '@/utils/wardrobeTruthReconciliation';
+import { isAiBudgetError, wardrobeAnalyzeBudgetFailure } from '@/utils/aiBudgetError';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function isRetryableAnalyzeError(message: string): boolean {
+function isRetryableAnalyzeError(message: string, err?: unknown): boolean {
+  if (isAiBudgetError(err ?? { message })) return false;
   return /429|503|502|504|408|busy|network|failed to fetch|abort|ECONNRESET|ETIMEDOUT/i.test(message);
 }
 
@@ -23,7 +25,7 @@ async function analyzeGarmentWithRetry(imageUri: string): Promise<any> {
       const result = await apiService.analyzeGarmentByUri(imageUri);
       if (result?.success === false) {
         lastError = result.message || 'Analysis failed';
-        if (isRetryableAnalyzeError(lastError) && attempt < maxAttempts - 1) {
+        if (isRetryableAnalyzeError(lastError, result) && attempt < maxAttempts - 1) {
           await sleep(2000 * (attempt + 1));
           continue;
         }
@@ -32,7 +34,7 @@ async function analyzeGarmentWithRetry(imageUri: string): Promise<any> {
       return result;
     } catch (error: any) {
       lastError = error?.message || String(error);
-      if (isRetryableAnalyzeError(lastError) && attempt < maxAttempts - 1) {
+      if (isRetryableAnalyzeError(lastError, error) && attempt < maxAttempts - 1) {
         await sleep(2000 * (attempt + 1));
         continue;
       }
@@ -43,8 +45,23 @@ async function analyzeGarmentWithRetry(imageUri: string): Promise<any> {
   throw new Error(lastError || 'Analysis failed');
 }
 
-export function describeBulkAnalyzeFailure(error?: string | null): { title: string; message: string } {
+export type BulkAnalyzeFailureDescription = {
+  title: string;
+  message: string;
+  isBudgetExhausted?: boolean;
+  primaryLabel?: string;
+  primaryAction?: 'upgrade' | 'topup' | 'dismiss';
+};
+
+export function describeBulkAnalyzeFailure(
+  error?: string | null,
+  opts?: { tier?: string | null },
+): BulkAnalyzeFailureDescription {
   const msg = String(error || '');
+
+  if (isAiBudgetError(msg) || isAiBudgetError({ message: msg })) {
+    return wardrobeAnalyzeBudgetFailure(opts?.tier);
+  }
 
   if (/401|403|unauthorized|not authenticated|sign in/i.test(msg)) {
     return {
@@ -112,9 +129,11 @@ export interface EnhancedImageResult {
 export interface DetectedGarment {
   boundingBox?: { x: number; y: number; width: number; height: number };
   category: ClothingCategory;
+  subcategory?: string;
   color: ClothingColor;
   suggestedName: string;
   brand?: string;
+  material?: string;
   seasons: ClothingSeason[];
   occasions: ClothingOccasion[];
   confidence: number;
@@ -653,9 +672,11 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
           name: reconciled.name,
           subcategory: subcategoryHint,
         }),
+        subcategory: subcategoryHint || undefined,
         color: mappedColor,
         suggestedName: reconciled.suggestedName,
         brand: data.brand || undefined,
+        material: data.material || undefined,
         seasons: (data.seasons || ['all-season']).filter((s: string) => 
           validSeasons.includes(s as ClothingSeason)
         ) as ClothingSeason[],
@@ -699,17 +720,25 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     
     // Absolute last resort - return error so user knows analysis failed
     console.log('[BulkScan] All analysis methods failed. API error was:', apiErrorMessage);
+    const isBudgetError = isAiBudgetError(apiErrorMessage);
     const isQuotaError =
-      apiErrorMessage.includes('quota') ||
-      apiErrorMessage.includes('billing') ||
-      apiErrorMessage.includes('insufficient_quota');
+      !isBudgetError &&
+      (apiErrorMessage.includes('quota') ||
+        apiErrorMessage.includes('billing') ||
+        apiErrorMessage.includes('insufficient_quota'));
     const isAuthError = /401|403|unauthorized|not authenticated/i.test(apiErrorMessage);
     return {
       success: false,
       detectedItems: [],
       totalItemsFound: 0,
       processingTime: Date.now() - startTime,
-      error: isQuotaError ? 'QUOTA_EXCEEDED' : isAuthError ? 'AUTH_REQUIRED' : 'ANALYSIS_FAILED',
+      error: isBudgetError
+        ? 'MONTHLY_BUDGET'
+        : isQuotaError
+          ? 'QUOTA_EXCEEDED'
+          : isAuthError
+            ? 'AUTH_REQUIRED'
+            : 'ANALYSIS_FAILED',
       errorDetail: apiErrorMessage || undefined,
     };
   } catch (error: any) {
@@ -775,9 +804,11 @@ function mapBatchRowToDetectedGarment(
 
   return {
     category: finalCategory,
+    subcategory: subcategoryHint ? String(subcategoryHint) : undefined,
     color: mappedColor,
     suggestedName,
     brand: row.brand || undefined,
+    material: row.material || undefined,
     seasons: seasonsArr
       .map((s) => String(s).toLowerCase().replace('all season', 'all-season'))
       .filter((s) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[],
@@ -868,8 +899,10 @@ export async function scanBulkImagesBatch(imageUris: string[]): Promise<{
     if (!row?.success) {
       const errMsg = row?.error || response?.message || 'Analysis failed';
       let errorCode: string | undefined;
-      if (/quota|billing|insufficient/i.test(errMsg)) errorCode = 'QUOTA_EXCEEDED';
-      if (/401|403|unauthorized/i.test(errMsg)) errorCode = 'AUTH_REQUIRED';
+      if (isAiBudgetError({ message: errMsg, error: row?.error, errorCode: row?.errorCode })) {
+        errorCode = 'MONTHLY_BUDGET';
+      } else if (/quota|billing|insufficient/i.test(errMsg)) errorCode = 'QUOTA_EXCEEDED';
+      else if (/401|403|unauthorized/i.test(errMsg)) errorCode = 'AUTH_REQUIRED';
       return { imageUri, garment: null as DetectedGarment | null, error: errMsg, errorCode };
     }
 

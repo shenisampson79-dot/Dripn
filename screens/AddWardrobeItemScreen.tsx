@@ -50,6 +50,9 @@ import {
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { describeBulkAnalyzeFailure, getPhotoTips } from "@/services/WardrobeDigitizationService";
+import { aiAllowanceSubscriptionParams } from "@/utils/aiBudgetError";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getClothingUploadComparisons } from "@/constants/uploadGuideExamples";
 import * as FileSystem from "expo-file-system/legacy";
 import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
@@ -126,6 +129,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const insets = useSafeAreaInsets();
   const { addItem, items } = useWardrobe();
   const { user } = useAuth();
+  const { tier } = useSubscription();
   const [onboardingProfile, setOnboardingProfile] = useState<Awaited<ReturnType<typeof onboardingProfileService.getProfile>> | null>(null);
 
   useEffect(() => {
@@ -576,11 +580,25 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       }
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const failure = describeBulkAnalyzeFailure(error?.message);
-      Alert.alert(
-        failure.title,
-        failure.message || "Failed to analyze image. Please try again or fill in details manually.",
-      );
+      const failure = describeBulkAnalyzeFailure(error?.message, { tier });
+      if (failure.isBudgetExhausted) {
+        Alert.alert(failure.title, failure.message, [
+          {
+            text: failure.primaryLabel || t('common.upgrade') || 'See plans',
+            onPress: () =>
+              navigateToSubscription(
+                navigation,
+                aiAllowanceSubscriptionParams(tier, 'add_wardrobe_item'),
+              ),
+          },
+          { text: failure.secondaryLabel || t('common.cancel'), style: 'cancel' },
+        ]);
+      } else {
+        Alert.alert(
+          failure.title,
+          failure.message || "Failed to analyze image. Please try again or fill in details manually.",
+        );
+      }
     } finally {
       setIsAnalyzing(false);
     }

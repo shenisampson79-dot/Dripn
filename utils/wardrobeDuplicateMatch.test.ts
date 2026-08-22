@@ -22,6 +22,8 @@ import {
   hammingDistanceHex,
   IMAGE_SIM_HARD,
   IMAGE_SIM_PROBABLE,
+  CLIP_HARD,
+  CLIP_POSSIBLE,
   LAUNCH_DEDUPE_CONTRACT,
   normalizeDuplicateDecision,
   sameScanExactCrop,
@@ -40,14 +42,18 @@ console.log('=== Client wardrobe duplicate match ===\n');
     [...LAUNCH_DEDUPE_CONTRACT.priority],
     [
       'same_source_scan',
-      'perceptual_image_similarity',
-      'normalized_garment_identity_support',
+      'clip_visual_embedding',
+      'structural_garment_type',
+      'dhash_near_identical_only',
       'colour_material_brand_support',
+      'semantic_appearance_support_only',
     ],
   );
   assertEq(LAUNCH_DEDUPE_CONTRACT.imageSimHard, IMAGE_SIM_HARD, 'hard threshold');
+  assertEq(LAUNCH_DEDUPE_CONTRACT.clipHard, CLIP_HARD, 'clip hard');
   assertEq(LAUNCH_DEDUPE_CONTRACT.neverMergeOnNameOnly, true, 'no name merge');
   assertEq(LAUNCH_DEDUPE_CONTRACT.neverSubstringCategory, true, 'no substring category');
+  assertEq(LAUNCH_DEDUPE_CONTRACT.neverClipAloneHard, true, 'never clip alone');
   assertEq(garmentFamily('formal'), 'outerwear', 'formal family');
   assertEq(garmentFamily('shoes'), 'footwear', 'shoes family');
   assertEq(categoriesCompatible('outerwear', 'formal'), true, 'blazer/jacket family');
@@ -138,9 +144,9 @@ console.log('✓ D1 exact same image twice → BLOCK');
     { name: 'Grey Jacket', category: 'outerwear', imagePhash: angled },
     { name: 'Cavani Grey Blazer', category: 'formal', imagePhash: SAME },
   );
-  d('D3', scored, { warn: true });
-  assert.ok(scored.imageSimilarity != null && scored.imageSimilarity >= IMAGE_SIM_PROBABLE && scored.imageSimilarity < IMAGE_SIM_HARD, 'D3 band');
-  console.log('✓ D3 slight angle → WARN');
+  d('D3', scored, { allow: true, reason: 'distinct_image' });
+  assert.ok(scored.imageSimilarity != null && scored.imageSimilarity >= IMAGE_SIM_PROBABLE && scored.imageSimilarity < IMAGE_SIM_HARD, 'D3 dHash mid-band');
+  console.log('✓ D3 slight angle without CLIP → ALLOW (CLIP gates possible)');
 }
 
 d('D4', scoreLocalDuplicateMatch(
@@ -198,8 +204,8 @@ console.log('✓ D11 cotton vs linen same image → WARN');
 d('D12', scoreLocalDuplicateMatch(
   { name: 'Athletic shorts', category: 'activewear_bottoms', imagePhash: hexWithHammingDistance(SAME, 12) },
   { name: 'Sweat shorts', category: 'bottoms', imagePhash: SAME },
-), { warn: true });
-console.log('✓ D12 athletic vs sweat shorts → WARN');
+), { allow: true });
+console.log('✓ D12 athletic vs sweat shorts mid-band without CLIP → ALLOW');
 
 {
   const shirt = { name: 'Shirt', category: 'tops', sourceImageId: 'photo_flat', cropId: 'crop_shirt' };
@@ -230,14 +236,14 @@ console.log('✓ D16 two different grey blazers → SAVE BOTH');
 d('D17', scoreLocalDuplicateMatch(
   { name: 'White Tee', category: 'tops', color: 'white', imagePhash: hexWithHammingDistance(SAME, 12) },
   { name: 'White T-shirt', category: 'tops', color: 'white', imagePhash: SAME },
-), { warn: true });
-console.log('✓ D17 two white tees similar → WARN then ALLOW');
+), { allow: true });
+console.log('✓ D17 two white tees mid-band without CLIP → ALLOW');
 
 d('D18', scoreLocalDuplicateMatch(
   { name: 'Nike Air Force 1', category: 'shoes', brand: 'Nike', imagePhash: hexWithHammingDistance(SAME, 12) },
   { name: 'Nike Air Force 1', category: 'shoes', brand: 'Nike', imagePhash: SAME },
-), { warn: true });
-console.log('✓ D18 same-SKU Nike trainers → WARN then ALLOW');
+), { allow: true });
+console.log('✓ D18 same-SKU Nike trainers mid-band without CLIP → ALLOW');
 
 d('D19', scoreLocalDuplicateMatch(
   { name: 'Black Hoodie', category: 'tops', imagePhash: SAME },
@@ -254,18 +260,19 @@ console.log('✓ D20 different name near-identical image → BLOCK');
 d('D21', scoreLocalDuplicateMatch(
   { name: 'Oxford shirt', category: 'tops', imagePhash: hexWithHammingDistance(SAME, 13) },
   { name: 'Oxford shirt', category: 'tops', imagePhash: SAME },
-), { warn: true });
-console.log('✓ D21 folded vs hanging → WARN');
+), { allow: true });
+console.log('✓ D21 folded vs hanging mid-band without CLIP → ALLOW');
 
 d('D22', scoreLocalDuplicateMatch(
   { name: 'Coat', category: 'outerwear', imagePhash: hexWithHammingDistance(SAME, 16) },
   { name: 'Coat', category: 'outerwear', imagePhash: SAME },
-), { warn: true });
+), { allow: true });
+console.log('✓ D22 coat angle mid-band without CLIP → ALLOW');
 d('D22-strong', scoreLocalDuplicateMatch(
   { name: 'Coat', category: 'outerwear', imagePhash: hexWithHammingDistance(SAME, 2) },
   { name: 'Coat', category: 'outerwear', imagePhash: SAME },
 ), { block: true });
-console.log('✓ D22 partial crop → WARN unless very strong');
+console.log('✓ D22-strong near-identical → BLOCK');
 
 d('D23', scoreLocalDuplicateMatch(
   { name: 'Blazer', category: 'outerwear', imagePhash: hexWithHammingDistance(SAME, 2) },

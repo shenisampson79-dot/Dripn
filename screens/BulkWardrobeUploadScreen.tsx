@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -43,7 +43,10 @@ import {
   findLocalWithinBatchDuplicates,
   formatDuplicateNames,
   normalizeDuplicateDecision,
+  type NormalizedDuplicateDecision,
+  type DuplicateMatch,
 } from "@/utils/wardrobeDuplicateMatch";
+import { DuplicateComparisonSheet } from "@/components/wardrobe/DuplicateComparisonSheet";
 import { apiService } from "@/services/ApiService";
 import { convertImageToBase64 } from "@/services/VisionAnalysisService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -58,6 +61,8 @@ import {
   ProductLinkResult,
   describeBulkAnalyzeFailure,
 } from "@/services/WardrobeDigitizationService";
+import { aiAllowanceSubscriptionParams } from "@/utils/aiBudgetError";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { prepareWardrobeImagesFromPickerAssets, rotateWardrobeImage } from "@/utils/wardrobeImageOrientation";
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -91,7 +96,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { limits } = useSubscription();
+  const { limits, tier } = useSubscription();
   const maxBulkBatch = limits.maxBulkUploadBatch;
   const { addItem, addItemsBatch, items: existingItems } = useWardrobe();
   const isMale = user?.gender === 'man';
@@ -114,7 +119,31 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const [editCategory, setEditCategory] = useState<ClothingCategory>("tops");
   const [editColor, setEditColor] = useState<ClothingColor>("black");
 
+  const [similarDupeSheet, setSimilarDupeSheet] = useState<{
+    visible: boolean;
+    item: PendingItem | null;
+    decision: NormalizedDuplicateDecision;
+  }>({
+    visible: false,
+    item: null,
+    decision: { type: 'ok', matches: [], isDuplicate: false },
+  });
+  const similarReviewQueueRef = useRef<Array<{ item: PendingItem; decision: NormalizedDuplicateDecision }>>([]);
+  const similarReviewSaveRef = useRef<PendingItem[] | null>(null);
+
   const photoTips = getPhotoTips();
+
+  const enrichDuplicateMatches = useCallback((matches: DuplicateMatch[]): DuplicateMatch[] => {
+    return matches.map((m) => {
+      const existing = existingItems.find((it) => String(it.id) === String(m.id));
+      return {
+        ...m,
+        name: m.name || existing?.name || 'Wardrobe item',
+        imageUri: m.imageUri || m.imageUrl || existing?.enhancedImageUri || existing?.imageUri,
+        imageUrl: m.imageUrl || existing?.enhancedImageUri || existing?.imageUri,
+      };
+    });
+  }, [existingItems]);
   
   const CATEGORY_OPTIONS: { value: ClothingCategory; label: string }[] = [
     { value: 'tops', label: 'Tops' },
@@ -399,6 +428,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const failedUris: string[] = [];
     let quotaExceeded = false;
     let authRequired = false;
+    let budgetExhausted = false;
     let lastErrorDetail = '';
     setProcessingProgress({ current: 0, total: imageUris.length });
 
@@ -421,6 +451,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
       if (result.error === 'QUOTA_EXCEEDED') quotaExceeded = true;
       if (result.error === 'AUTH_REQUIRED') authRequired = true;
+      if (result.error === 'MONTHLY_BUDGET') budgetExhausted = true;
       if (result.errorDetail) lastErrorDetail = result.errorDetail;
       failedUris.push(imageUri);
       console.log(`[BulkUpload] Analysis failed for image ${index + 1}: ${result.error}`);
@@ -467,6 +498,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
           if (row.errorCode === 'QUOTA_EXCEEDED') quotaExceeded = true;
           if (row.errorCode === 'AUTH_REQUIRED') authRequired = true;
+          if (row.errorCode === 'MONTHLY_BUDGET') budgetExhausted = true;
           if (row.error) lastErrorDetail = row.error;
           failedUris.push(row.imageUri);
           console.log(`[BulkUpload] Batch analysis failed for image ${index + 1}: ${row.error}`);
@@ -521,22 +553,54 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           [{ text: t('common.ok'), style: "cancel" }]
         );
       } else {
-        const failure = describeBulkAnalyzeFailure(lastErrorDetail);
-        Alert.alert(
-          failure.title,
-          failure.message,
-          [
-            { text: t('common.tryAgain'), onPress: () => processBulkImages(imageUris, true) },
-            { text: t('common.cancel'), style: "cancel" },
-          ]
-        );
+        const failure = describeBulkAnalyzeFailure(lastErrorDetail, { tier });
+        if (failure.isBudgetExhausted || budgetExhausted) {
+          Alert.alert(
+            failure.title,
+            failure.message,
+            [
+              {
+                text: failure.primaryLabel || t('common.upgrade') || 'See plans',
+                onPress: () =>
+                  navigateToSubscription(
+                    navigation,
+                    aiAllowanceSubscriptionParams(tier, 'bulk_wardrobe_upload'),
+                  ),
+              },
+              { text: failure.secondaryLabel || t('common.cancel'), style: 'cancel' },
+            ],
+          );
+        } else {
+          Alert.alert(
+            failure.title,
+            failure.message,
+            [
+              { text: t('common.tryAgain'), onPress: () => processBulkImages(imageUris, true) },
+              { text: t('common.cancel'), style: "cancel" },
+            ],
+          );
+        }
       }
     }
     } catch (error: any) {
       console.error('[BulkUpload] Unexpected processing error:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const failure = describeBulkAnalyzeFailure(error?.message || String(error));
-      Alert.alert(failure.title, failure.message);
+      const failure = describeBulkAnalyzeFailure(error?.message || String(error), { tier });
+      if (failure.isBudgetExhausted) {
+        Alert.alert(failure.title, failure.message, [
+          {
+            text: failure.primaryLabel || 'See plans',
+            onPress: () =>
+              navigateToSubscription(
+                navigation,
+                aiAllowanceSubscriptionParams(tier, 'bulk_wardrobe_upload'),
+              ),
+          },
+              { text: failure.secondaryLabel || t('common.cancel'), style: 'cancel' },
+        ]);
+      } else {
+        Alert.alert(failure.title, failure.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -671,7 +735,8 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     let duplicateIds = new Set<string>();
     let similarIds = new Set<string>();
     let duplicateLabelMap: Record<string, string> = {};
-    let similarLabelMap: Record<string, string> = {};
+    const similarDecisionMap: Record<string, NormalizedDuplicateDecision> = {};
+    const duplicateDecisionMap: Record<string, NormalizedDuplicateDecision> = {};
 
     try {
       setIsProcessing(true);
@@ -690,8 +755,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         payloads.push({
           name: item.suggestedName,
           category: item.category,
+          subcategory: item.subcategory,
           color: item.color,
           brand: item.brand,
+          material: item.material,
           imageBase64,
           imageUrl: item.imageUri?.startsWith('http') ? item.imageUri : undefined,
         });
@@ -734,11 +801,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           duplicateIds.add(src.id);
           duplicateLabelMap[src.id] = formatDuplicateNames(decision.matches)
             || (matches[0]?.matchScope === 'batch' ? `${src.suggestedName} (extra in this upload)` : src.suggestedName);
+          duplicateDecisionMap[src.id] = decision;
         } else if (decision.type === 'similar_item') {
           similarIds.add(src.id);
-          similarLabelMap[src.id] = decision.message
-            || formatDuplicateNames(decision.matches)
-            || src.suggestedName;
+          similarDecisionMap[src.id] = decision;
         }
       });
       const seenLegacyKeys = new Set<string>();
@@ -752,6 +818,12 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         }
         duplicateIds.add(src.id);
         duplicateLabelMap[src.id] = `${src.suggestedName} (extra in this upload)`;
+        duplicateDecisionMap[src.id] = {
+          type: 'duplicate',
+          matches: [],
+          isDuplicate: true,
+          message: `${src.suggestedName} (extra in this upload)`,
+        };
       });
     } catch {
       const localBatch = findLocalWithinBatchDuplicates(
@@ -768,6 +840,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         if (row.matches.length === 0) return;
         duplicateIds.add(row.id);
         duplicateLabelMap[row.id] = formatDuplicateNames(row.matches) + ' (in this batch)';
+        duplicateDecisionMap[row.id] = {
+          type: 'duplicate',
+          matches: row.matches,
+          isDuplicate: true,
+        };
       });
       selectedItems.forEach((item) => {
         const local = findLocalWardrobeDuplicates(
@@ -793,6 +870,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           duplicateLabelMap[item.id] = formatDuplicateNames(
             local.length > 0 ? local : [{ name: item.suggestedName }],
           );
+          duplicateDecisionMap[item.id] = {
+            type: 'duplicate',
+            matches: local.length > 0 ? local : [],
+            isDuplicate: true,
+          };
         }
       });
     } finally {
@@ -804,54 +886,48 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const duplicates = selectedItems.filter((item) => duplicateIds.has(item.id));
     const similars = selectedItems.filter((item) => similarIds.has(item.id) && !duplicateIds.has(item.id));
 
-    if (similars.length > 0 && duplicates.length === 0) {
-      const similarNames = similars
-        .map((d) => similarLabelMap[d.id] || d.suggestedName)
-        .join(', ');
-      Alert.alert(
-        t('wardrobe.similarItemTitle') || 'Similar items found',
-        (t('wardrobe.similarItemsBulkMessage')
-          || 'These look similar to what you already have, but not exact duplicates: {names}. They will still be added.')
-          .replace('{names}', similarNames),
-        [
-          { text: t('common.cancel') || 'Cancel', style: 'cancel' },
-          {
-            text: t('common.continue') || 'Continue',
-            onPress: () => { void saveItems(selectedItems, { allowDuplicates: true }); },
-          },
-        ],
-      );
-      return;
-    }
+    const reviewQueue: Array<{ item: PendingItem; decision: NormalizedDuplicateDecision }> = [
+      ...duplicates.map((item) => ({
+        item,
+        decision: duplicateDecisionMap[item.id] ?? {
+          type: 'duplicate' as const,
+          matches: [],
+          isDuplicate: true,
+          message: duplicateLabelMap[item.id]
+            ? `Looks like a copy of: ${duplicateLabelMap[item.id]}`
+            : undefined,
+        },
+      })),
+      ...similars.map((item) => ({
+        item,
+        decision: similarDecisionMap[item.id] ?? {
+          type: 'similar_item' as const,
+          matches: [],
+          isDuplicate: false,
+        },
+      })),
+    ];
 
-    if (duplicates.length > 0) {
-      const duplicateNames = duplicates
-        .map((d) => duplicateLabelMap[d.id] || d.suggestedName)
-        .join(', ');
-      const uniqueCount = selectedItems.length - duplicates.length;
-      Alert.alert(
-        t('wardrobe.alreadyHaveThis') || t('wardrobe.duplicateItemsFound') || 'Duplicates found',
-        (
-          t('wardrobe.duplicateItemsSkipKeepsOne')
-          || 'These look like copies (already in your wardrobe or repeated in this upload): {names}.\n\nSkip duplicates keeps {unique} new item(s). Add anyway saves every copy.'
-        )
-          .replace('{names}', duplicateNames)
-          .replace('{unique}', String(Math.max(0, uniqueCount))),
-        [
-          {
-            text: t('common.skipDuplicates') || 'Skip duplicates',
-            style: 'cancel',
-            onPress: () => {
-              const toSave = selectedItems.filter((item) => !duplicateIds.has(item.id));
-              void saveItems(toSave, { allowDuplicates: false });
-            },
-          },
-          {
-            text: t('common.addAnyway') || t('common.addAll') || 'Add anyway',
-            onPress: () => void saveItems(selectedItems, { allowDuplicates: true }),
-          },
-        ],
+    if (reviewQueue.length > 0) {
+      const flaggedIds = new Set(reviewQueue.map((r) => r.item.id));
+      setPendingItems((prev) =>
+        prev.map((row) => (flaggedIds.has(row.id) ? { ...row, selected: false } : row)),
       );
+
+      similarReviewSaveRef.current = [...selectedItems];
+      similarReviewQueueRef.current = reviewQueue.map((row) => ({
+        item: row.item,
+        decision: {
+          ...row.decision,
+          matches: enrichDuplicateMatches(row.decision.matches),
+        },
+      }));
+      const first = similarReviewQueueRef.current.shift()!;
+      setSimilarDupeSheet({
+        visible: true,
+        item: first.item,
+        decision: first.decision,
+      });
       return;
     }
 
@@ -877,10 +953,12 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         imageUri: item.imageUri ?? '',
         name: item.suggestedName,
         category: item.category,
+        subcategory: item.subcategory,
         color: item.color,
         seasons: (item.seasons.length > 0 ? item.seasons : ['all-season']) as import('@/contexts/WardrobeContext').ClothingSeason[],
         occasions: (item.occasions.length > 0 ? item.occasions : ['everyday']) as import('@/contexts/WardrobeContext').ClothingOccasion[],
         brand: item.brand,
+        material: item.material,
         notes: item.description,
         origin: 'owned' as const,
         sourceUrl: item.sourceUrl,
@@ -909,6 +987,46 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       [{ text: t('common.done'), onPress: () => navigation.goBack() }]
     );
   };
+
+  const advanceSimilarReview = useCallback(async (opts?: { skipCurrentItem?: boolean }) => {
+    if (opts?.skipCurrentItem && similarDupeSheet.item && similarReviewSaveRef.current) {
+      const skipId = similarDupeSheet.item.id;
+      similarReviewSaveRef.current = similarReviewSaveRef.current.filter((i) => i.id !== skipId);
+    }
+
+    const queue = similarReviewQueueRef.current;
+    const savePool = similarReviewSaveRef.current;
+
+    if (!savePool) {
+      setSimilarDupeSheet({
+        visible: false,
+        item: null,
+        decision: { type: 'ok', matches: [], isDuplicate: false },
+      });
+      return;
+    }
+
+    if (queue.length === 0) {
+      similarReviewSaveRef.current = null;
+      setSimilarDupeSheet({
+        visible: false,
+        item: null,
+        decision: { type: 'ok', matches: [], isDuplicate: false },
+      });
+      await saveItems(savePool, { allowDuplicates: true });
+      return;
+    }
+
+    const next = queue.shift()!;
+    setSimilarDupeSheet({
+      visible: true,
+      item: next.item,
+      decision: {
+        ...next.decision,
+        matches: enrichDuplicateMatches(next.decision.matches),
+      },
+    });
+  }, [enrichDuplicateMatches, saveItems, similarDupeSheet.item]);
 
   const renderInputMethodSelector = () => (
     <View>
@@ -1375,7 +1493,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     <Modal
       visible={isProcessing}
       transparent
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
       presentationStyle="overFullScreen"
       onRequestClose={() => {}}
@@ -1428,6 +1546,28 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       {renderEditModal()}
       {renderPhotoTipsModal()}
       {renderProcessingOverlay()}
+      <DuplicateComparisonSheet
+        visible={similarDupeSheet.visible}
+        type={similarDupeSheet.decision.type}
+        candidateImageUri={similarDupeSheet.item?.imageUri}
+        candidateLabel={similarDupeSheet.item?.suggestedName || 'New item'}
+        matches={similarDupeSheet.decision.matches}
+        allowForceAdd
+        onClose={() => { void advanceSimilarReview({ skipCurrentItem: true }); }}
+        onContinue={() => { void advanceSimilarReview(); }}
+        onAddAnyway={() => { void advanceSimilarReview(); }}
+        onViewExisting={(match) => {
+          setSimilarDupeSheet((s) => ({ ...s, visible: false }));
+          const existingId = match?.id;
+          if (existingId != null) {
+            try {
+              (navigation as any).navigate('WardrobeItemDetail', { itemId: String(existingId) });
+            } catch {
+              // non-fatal
+            }
+          }
+        }}
+      />
     </View>
   );
 }

@@ -1,15 +1,14 @@
 /**
  * Client-side wardrobe near-duplicate heuristics (offline / pre-check).
- * Server dHash + embedding is authoritative when online.
+ * Server CLIP + multi-signal identity is authoritative when online.
  *
- * LAUNCH CONTRACT v2 (lockstep with Dripn-Server wardrobeDuplicateDetection.js):
- *   1. Same-scan / same-source (captureSessionId, sourceImageId, cropId)
- *   2. Perceptual image similarity (dHash / embedding)
- *   3. Normalized garment identity as SUPPORT only
- *   4. Colour / material / brand as supporting; disagreement reduces confidence
- *
- * Image identity is primary. Category/name only interpret the match.
- * User has the final say when confidence is ambiguous.
+ * LAUNCH CONTRACT garment-identity-v1 (lockstep with Dripn-Server):
+ *   1. Same-scan / same-source
+ *   2. CLIP visual embedding (online) — never alone for hard
+ *   3. Structural garment type veto
+ *   4. dHash — near-identical photo only
+ *   5. Colour / material / brand support
+ *   6. semanticAppearanceEmbedding — support only
  */
 
 export type DuplicateDecisionType =
@@ -87,6 +86,10 @@ const COLOR_ALIASES: Record<string, string> = {
   navy: 'blue',
   indigo: 'blue',
   cobalt: 'blue',
+  turquoise: 'blue',
+  teal: 'blue',
+  cyan: 'blue',
+  aqua: 'blue',
   burgundy: 'red',
   maroon: 'red',
   crimson: 'red',
@@ -98,15 +101,18 @@ const COLOR_ALIASES: Record<string, string> = {
   'off-white': 'white',
 };
 
-/** Hamming ≤ 8 maps to imageSimilarity >= 0.94 (exact / rembg / compress). */
+/** Hamming ≤ 8 maps to near-identical photo (exact / rembg / compress). */
 export const DHASH_NEAR_DUP = 8;
-/** Hamming 9–16 maps into the probable band (angle / fold / lighting). */
+/** Hamming 9–16 — legacy mid-band; no longer opens similar_item without CLIP. */
 export const DHASH_ANGLE_WARN = 16;
+export const DHASH_SIMILAR = 12;
 /** Beyond this, hashes are treated as distinct garments. */
 export const DHASH_AMBIGUOUS_MAX = 24;
-
 export const IMAGE_SIM_HARD = 0.94;
 export const IMAGE_SIM_PROBABLE = 0.82;
+/** CLIP bands from GARMENT_CLIP_BENCHMARK.md — online path; offline uses dHash near-identical only. */
+export const CLIP_HARD = 0.97;
+export const CLIP_POSSIBLE = 0.90;
 
 export const GARMENT_FAMILIES = Object.freeze({
   top: Object.freeze(['tops', 'activewear_tops', 'sleepwear']),
@@ -119,24 +125,38 @@ export const GARMENT_FAMILIES = Object.freeze({
 
 export const DEDUPE_COPY = Object.freeze({
   hard: 'Looks like you already have this',
+  /** Legacy prompt — do not use as list labels; sheet uses SIMILAR_ITEM_COPY instead. */
   probable: 'Is this a different item?',
   conflict: 'This looks familiar',
 });
 
+/** Lightweight similar-item UX — informational, not a problem state. */
+export const SIMILAR_ITEM_COPY = Object.freeze({
+  title: 'Looks similar to something in your wardrobe',
+  message: 'Compare them below. If this is a different item, add it normally.',
+  primaryLabel: 'Add as different item',
+  secondaryLabel: "Don't add",
+});
+
 export const LAUNCH_DEDUPE_CONTRACT = Object.freeze({
-  version: '2026-08-launch-v2',
+  version: '2026-08-garment-identity-v1',
   priority: Object.freeze([
     'same_source_scan',
-    'perceptual_image_similarity',
-    'normalized_garment_identity_support',
+    'clip_visual_embedding',
+    'structural_garment_type',
+    'dhash_near_identical_only',
     'colour_material_brand_support',
+    'semantic_appearance_support_only',
   ] as const),
+  clipHard: CLIP_HARD,
+  clipPossible: CLIP_POSSIBLE,
   imageSimHard: IMAGE_SIM_HARD,
   imageSimProbable: IMAGE_SIM_PROBABLE,
   dhashNearDup: DHASH_NEAR_DUP,
   dhashAngleWarn: DHASH_ANGLE_WARN,
   families: Object.keys(GARMENT_FAMILIES),
   neverMergeOnNameOnly: true,
+  neverClipAloneHard: true,
   neverSubstringCategory: true,
   neverAutoDeleteExisting: true,
   keepAddAnyway: true,
@@ -507,6 +527,49 @@ export type LocalDuplicateScore = {
 /**
  * Offline mirror of server scoreDuplicateMatch (no embeddings).
  */
+const STRUCTURAL_TYPE_GROUPS: Record<string, readonly string[]> = {
+  tee: ['t-shirt', 'tshirt', 'tee', 'basic_tee', 'crew_neck', 'crew-neck', 'athletic_tee', 'performance_tee'],
+  button_up: ['button-up', 'button_up', 'button-down', 'button_down', 'oxford', 'oxford_shirt', 'dress_shirt', 'dress-shirt', 'chambray'],
+  polo: ['polo', 'polo_shirt'],
+  hoodie: ['hoodie', 'sweatshirt'],
+  blazer: ['blazer', 'sport_coat', 'suit_jacket'],
+  jeans: ['jeans', 'denim'],
+  trousers: ['trousers', 'pants', 'chinos', 'slacks'],
+  shorts: ['shorts', 'short'],
+  sneakers: ['sneakers', 'trainers', 'runners'],
+  boots: ['boots', 'boot', 'chelsea_boots', 'wellington', 'wellies', 'hunter'],
+  loafers: ['loafers', 'loafer', 'derby', 'oxfords', 'brogues'],
+};
+const STRUCTURAL_INCOMPATIBLE_PAIRS: Array<[string, string]> = [
+  ['tee', 'button_up'], ['tee', 'polo'], ['hoodie', 'button_up'], ['blazer', 'hoodie'],
+  ['jeans', 'shorts'], ['trousers', 'shorts'], ['sneakers', 'boots'], ['sneakers', 'loafers'], ['boots', 'loafers'],
+];
+export function structuralTypeGroup(subcategoryOrName?: string | null): string | null {
+  const raw = String(subcategoryOrName || '').toLowerCase().trim().replace(/\s+/g, '_');
+  if (!raw) return null;
+  const hay = raw.replace(/-/g, '_');
+  for (const [group, aliases] of Object.entries(STRUCTURAL_TYPE_GROUPS)) {
+    for (const alias of aliases) {
+      const a = alias.replace(/-/g, '_');
+      if (hay === a || hay.includes(a) || a.includes(hay)) return group;
+    }
+  }
+  return null;
+}
+export function subcategoriesStructurallyIncompatible(
+  a?: string | null,
+  b?: string | null,
+  opts: { nameA?: string | null; nameB?: string | null } = {},
+): boolean {
+  const groupA = structuralTypeGroup(a) || structuralTypeGroup(opts.nameA) || null;
+  const groupB = structuralTypeGroup(b) || structuralTypeGroup(opts.nameB) || null;
+  if (!groupA || !groupB || groupA === groupB) return false;
+  return STRUCTURAL_INCOMPATIBLE_PAIRS.some(([x, y]) => (groupA === x && groupB === y) || (groupA === y && groupB === x));
+}
+
+/**
+ * Offline mirror of server scoreDuplicateMatch (no CLIP — dHash near-identical + structure only).
+ */
 export function scoreLocalDuplicateMatch(
   candidate: WardrobeDupeCandidate,
   existing: WardrobeDupeCandidate,
@@ -516,13 +579,21 @@ export function scoreLocalDuplicateMatch(
   const existHash = existing.imagePhash || existing.dHash || null;
   const hamming = (candHash && existHash) ? hammingDistanceHex(candHash, existHash) : null;
   const sameCat = categoriesCompatible(candidate.category, existing.category);
+  const structuralConflict = subcategoriesStructurallyIncompatible(
+    candidate.subcategory,
+    existing.subcategory,
+    { nameA: candidate.name, nameB: existing.name },
+  );
   const imgSim = dhashToImageSimilarity(hamming);
+  const nearIdenticalPhoto = hamming != null && hamming <= DHASH_NEAR_DUP;
   const exactCrop = sameScanExactCrop(candidate, existing);
   const differentCropSamePhoto = sameSourceDifferentCrop(candidate, existing);
 
   const candColor = normalizeColor(candidate.color);
   const existColor = normalizeColor(existing.color);
-  const colorConflict = Boolean(candColor && existColor && candColor !== existColor);
+  const colorConflict = Boolean(
+    candColor && existColor && candColor !== existColor && candColor !== 'other' && existColor !== 'other',
+  );
   const candMat = String(candidate.material || '').toLowerCase().trim();
   const existMat = String(existing.material || '').toLowerCase().trim();
   const materialConflict = Boolean(candMat && existMat && candMat !== existMat);
@@ -532,6 +603,7 @@ export function scoreLocalDuplicateMatch(
   const existName = String(existing.name || '').trim().toLowerCase();
   const sameName = Boolean(candName && existName && candName === existName);
   const candidateHasCategory = Boolean(normalizeCategory(candidate.category));
+  const identityMissing = !existHash;
 
   const base = {
     hamming,
@@ -544,11 +616,9 @@ export function scoreLocalDuplicateMatch(
   if (hasDedupeOverride(candidate, existing)) {
     return { ...base, isDuplicate: false, type: 'ok', reason: 'user_override', confidence: 'low' };
   }
-
   if (differentCropSamePhoto) {
     return { ...base, isDuplicate: false, type: 'ok', reason: 'same_source_different_crop', confidence: 'low' };
   }
-
   if (exactCrop) {
     return {
       ...base,
@@ -559,15 +629,13 @@ export function scoreLocalDuplicateMatch(
       message: DEDUPE_COPY.hard,
     };
   }
-
-  if (sameName && (imgSim == null || imgSim < IMAGE_SIM_PROBABLE) && hamming != null && hamming > DHASH_AMBIGUOUS_MAX) {
+  if (structuralConflict) {
+    return { ...base, isDuplicate: false, type: 'ok', reason: 'structural_incompatible', confidence: 'low' };
+  }
+  if (sameName && (imgSim == null || imgSim < CLIP_POSSIBLE) && hamming != null && hamming > DHASH_AMBIGUOUS_MAX) {
     return { ...base, isDuplicate: false, type: 'ok', reason: 'same_name_different_visual', confidence: 'low' };
   }
-
-  const hardImage = imgSim != null && imgSim >= IMAGE_SIM_HARD;
-  const probableImage = imgSim != null && imgSim >= IMAGE_SIM_PROBABLE && imgSim < IMAGE_SIM_HARD;
-
-  if (hardImage && candidateHasCategory && !sameCat) {
+  if (nearIdenticalPhoto && candidateHasCategory && !sameCat) {
     return {
       ...base,
       isDuplicate: true,
@@ -577,8 +645,7 @@ export function scoreLocalDuplicateMatch(
       message: DEDUPE_COPY.conflict,
     };
   }
-
-  if (hardImage && sameCat && !metadataConflict) {
+  if (nearIdenticalPhoto && sameCat && !metadataConflict) {
     return {
       ...base,
       isDuplicate: true,
@@ -588,19 +655,167 @@ export function scoreLocalDuplicateMatch(
       message: DEDUPE_COPY.hard,
     };
   }
-
-  if ((hardImage && sameCat && metadataConflict) || (probableImage && sameCat)) {
+  if (nearIdenticalPhoto && sameCat && metadataConflict) {
     return {
       ...base,
       isDuplicate: false,
       type: 'similar_item',
-      reason: metadataConflict ? 'visual_metadata_conflict' : 'visual_probable',
+      reason: 'visual_metadata_conflict',
       confidence: 'medium',
       message: DEDUPE_COPY.probable,
     };
   }
+  if (identityMissing && sameCat && attrScore >= 0.55) {
+    return {
+      ...base,
+      isDuplicate: false,
+      type: 'similar_item',
+      reason: 'identity_evidence_unavailable',
+      confidence: 'low',
+      message: DEDUPE_COPY.probable,
+    };
+  }
+  return {
+    ...base,
+    isDuplicate: false,
+    type: 'ok',
+    reason: imgSim != null ? 'distinct_image' : 'no_match',
+    confidence: 'low',
+  };
+}
 
-  return { ...base, isDuplicate: false, type: 'ok', reason: 'no_match', confidence: 'low' };
+/** Read-only audit: per-feature contributions for why a pair scored as it did. */
+export type DuplicateFeatureBreakdown = {
+  tier: DuplicateDecisionType;
+  reason: string;
+  isDuplicate: boolean;
+  decisiveRule: string;
+  category: {
+    candidate: string;
+    existing: string;
+    familyCandidate: string | null;
+    familyExisting: string | null;
+    compatible: boolean;
+    gate: 'required_for_visual_similar' | 'family_match' | 'mismatch_blocks_attr';
+  };
+  subcategory: { candidate: string; existing: string; match: boolean; contribution: number };
+  color: { candidate: string; existing: string; match: boolean; conflict: boolean; contribution: number };
+  brand: { candidate: string; existing: string; match: boolean; contribution: number };
+  material: { candidate: string; existing: string; conflict: boolean };
+  name: { jaccard: number; contribution: number; exactMatch: boolean };
+  visual: {
+    hamming: number | null;
+    imageSimilarity: number | null;
+    band: 'hard' | 'probable' | 'ambiguous' | 'distinct' | 'none';
+  };
+  attrScore: number;
+  metadataConflict: boolean;
+};
+
+export function breakdownDuplicateMatchFeatures(
+  candidate: WardrobeDupeCandidate,
+  existing: WardrobeDupeCandidate,
+): DuplicateFeatureBreakdown {
+  const scored = scoreLocalDuplicateMatch(candidate, existing);
+  const attrScore = attributeSimilarity(candidate, existing);
+  const candHash = candidate.imagePhash || candidate.dHash || null;
+  const existHash = existing.imagePhash || existing.dHash || null;
+  const hamming = (candHash && existHash) ? hammingDistanceHex(candHash, existHash) : null;
+  const imgSim = dhashToImageSimilarity(hamming);
+  const sameCat = categoriesCompatible(candidate.category, existing.category);
+  const fa = garmentFamily(candidate.category);
+  const fb = garmentFamily(existing.category);
+
+  const candBrand = String(candidate.brand || '').toLowerCase().trim();
+  const existBrand = String(existing.brand || '').toLowerCase().trim();
+  const sameBrand = Boolean(
+    candBrand && existBrand && (candBrand === existBrand || candBrand.includes(existBrand) || existBrand.includes(candBrand)),
+  );
+  const nameJaccard = jaccard(candidate.name, existing.name, sameBrand);
+  const candColor = normalizeColor(candidate.color);
+  const existColor = normalizeColor(existing.color);
+  const sameColor = Boolean(candColor && existColor && (candColor === existColor || candColor.includes(existColor) || existColor.includes(candColor)));
+  const colorConflict = Boolean(candColor && existColor && candColor !== existColor);
+  const sameSub = Boolean(
+    candidate.subcategory && existing.subcategory
+    && normalizeCategory(candidate.subcategory) === normalizeCategory(existing.subcategory),
+  );
+  const candMat = String(candidate.material || '').toLowerCase().trim();
+  const existMat = String(existing.material || '').toLowerCase().trim();
+  const materialConflict = Boolean(candMat && existMat && candMat !== existMat);
+  const metadataConflict = colorConflict || materialConflict;
+
+  let visualBand: DuplicateFeatureBreakdown['visual']['band'] = 'none';
+  if (imgSim != null) {
+    if (imgSim >= IMAGE_SIM_HARD) visualBand = 'hard';
+    else if (imgSim >= IMAGE_SIM_PROBABLE) visualBand = 'probable';
+    else if (hamming != null && hamming <= DHASH_AMBIGUOUS_MAX) visualBand = 'ambiguous';
+    else visualBand = 'distinct';
+  }
+
+  let decisiveRule = scored.reason;
+  if (scored.type === 'similar_item') {
+    if (scored.reason === 'visual_probable') {
+      decisiveRule = `visual dHash band probable (${imgSim?.toFixed(3)}) + same garment family (${fa}) — not duplicate without hard visual`;
+    } else if (scored.reason === 'visual_metadata_conflict') {
+      decisiveRule = `hard/probable visual + colour/material conflict — warn only`;
+    }
+  } else if (scored.type === 'duplicate') {
+    decisiveRule = scored.reason === 'visual_near_duplicate'
+      ? `visual >= ${IMAGE_SIM_HARD} + same family + no metadata conflict`
+      : scored.reason;
+  }
+
+  return {
+    tier: scored.type,
+    reason: scored.reason,
+    isDuplicate: scored.isDuplicate,
+    decisiveRule,
+    category: {
+      candidate: String(candidate.category || ''),
+      existing: String(existing.category || ''),
+      familyCandidate: fa,
+      familyExisting: fb,
+      compatible: sameCat,
+      gate: sameCat ? 'family_match' : 'mismatch_blocks_attr',
+    },
+    subcategory: {
+      candidate: String(candidate.subcategory || ''),
+      existing: String(existing.subcategory || ''),
+      match: sameSub,
+      contribution: sameSub ? 0.12 : 0,
+    },
+    color: {
+      candidate: candColor,
+      existing: existColor,
+      match: sameColor,
+      conflict: colorConflict,
+      contribution: sameColor ? 0.15 : 0,
+    },
+    brand: {
+      candidate: candBrand,
+      existing: existBrand,
+      match: sameBrand,
+      contribution: sameBrand ? 0.12 : 0,
+    },
+    material: { candidate: candMat, existing: existMat, conflict: materialConflict },
+    name: {
+      jaccard: Number(nameJaccard.toFixed(3)),
+      contribution: Number((nameJaccard * 0.4).toFixed(3)),
+      exactMatch: Boolean(
+        String(candidate.name || '').toLowerCase().trim()
+        === String(existing.name || '').toLowerCase().trim()
+        && String(candidate.name || '').trim(),
+      ),
+    },
+    visual: {
+      hamming: hamming === Infinity ? null : hamming,
+      imageSimilarity: imgSim,
+      band: visualBand,
+    },
+    attrScore: Number(attrScore.toFixed(3)),
+    metadataConflict,
+  };
 }
 
 function matchRank(type: DuplicateDecisionType | string | undefined): number {
