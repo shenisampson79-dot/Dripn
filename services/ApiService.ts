@@ -2353,7 +2353,15 @@ class ApiService {
     itemIds?: string[];
     elapsedMs?: number;
   }> {
-    void this.wakeBackend().catch(() => {});
+    // Await a bounded wake so the outfit POST does not race a cold Render and die at 45s.
+    try {
+      await Promise.race([
+        this.wakeBackend(),
+        new Promise((resolve) => setTimeout(resolve, 18000)),
+      ]);
+    } catch {
+      /* proceed — request still attempts */
+    }
     const result = await this.request<{
       response?: string;
       content?: string;
@@ -2368,7 +2376,7 @@ class ApiService {
       elapsedMs?: number;
     }>('/api/chat/outfit-from-wardrobe', {
       method: 'POST',
-      timeout: 45000,
+      timeout: 22000,
       body: JSON.stringify({
         stylist: data.stylistId,
         message: data.userMessage,

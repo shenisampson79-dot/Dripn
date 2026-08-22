@@ -130,6 +130,9 @@ export function parseMultiDayTravelSlots(
     if (/\b(wedding|ceremony)\b/i.test(t)) occBits.push('wedding');
     if (/\b(black\s*tie|cocktail|formal)\b/i.test(t) && !/\bnot\s+formal\b/i.test(t)) occBits.push('formal');
     if (/\b(client dinner|work dinner|business dinner)\b/i.test(t)) occBits.push('work_dinner');
+    if (/\b(business\s+lunch(?:es)?|work\s+lunch(?:es)?|client\s+lunch(?:es)?|business\s+meetings?|work\s+meetings?|client\s+meetings?)\b/i.test(t)) {
+      occBits.push('business_day');
+    }
     if (occBits.length) {
       slots.occasions = occBits.join(', ');
       slots.occasionsExplicitNone = false;
@@ -149,7 +152,8 @@ export function parseMultiDayTravelSlots(
 
   if (!slots.destination) {
     const headed = t.match(/\b(?:in|to|for|heading(?:\s+to)?|visiting|going(?:\s+to)?)\s+([A-Z][A-Za-zÀ-ÿ'’\-]+(?:\s+[A-Z][A-Za-zÀ-ÿ'’\-]+){0,2})\b/);
-    if (headed && !/^(Business|Leisure|Mixed|Mix|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Summer|Winter|Spring|Autumn|Fall|August|Walking)\b/i.test(headed[1])) {
+    const monthBlock = /^(Business|Leisure|Mixed|Mix|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Summer|Winter|Spring|Autumn|Fall|January|February|March|April|May|June|July|August|September|October|November|December|Walking)\b/i;
+    if (headed && !monthBlock.test(headed[1])) {
       slots.destination = headed[1].trim();
     } else {
       const firstChunk = t.split(/[,;\n]/)[0]?.trim().replace(/^\d+[\).:\-]\s*/, '');
@@ -158,8 +162,9 @@ export function parseMultiDayTravelSlots(
         && firstChunk.length >= 2
         && firstChunk.length <= 48
         && !/\b(business|leisure|mixed|mix|dinner|none|days?|outfit|walking)\b/i.test(firstChunk)
+        && !monthBlock.test(firstChunk)
         && /^[A-Za-zÀ-ÿ]/.test(firstChunk)
-        && (/^[A-Z]/.test(firstChunk) || /\b(spain|france|italy|uk|usa|portugal|greece|germany|nyc|london|paris|rome|berlin|madrid|lisbon|amsterdam|dublin|edinburgh)\b/i.test(firstChunk))
+        && (/^[A-Z]/.test(firstChunk) || /\b(spain|france|italy|uk|usa|portugal|greece|germany|nyc|london|paris|rome|berlin|madrid|lisbon|amsterdam|dublin|edinburgh|milan)\b/i.test(firstChunk))
       ) {
         slots.destination = firstChunk.replace(/\.$/, '');
       }
@@ -206,6 +211,9 @@ export function multiDayClarifyCopy(stylistId = 'ivy', slots: MultiDayTravelSlot
     datesOrSeason: 'What dates or season?',
     occasions: 'Any dinners or dress codes (or say none)?',
   };
+  if (missing.length === 1) {
+    return `Almost there — ${labels[missing[0]]}\n\nThen I'll build the day looks.`;
+  }
   const lines = missing.map((k, i) => `${i + 1}. ${labels[k]}`);
   return `Almost there — just need:\n${lines.join('\n')}\n\nThen I'll build the day looks.`;
 }

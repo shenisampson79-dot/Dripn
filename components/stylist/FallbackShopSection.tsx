@@ -86,7 +86,7 @@ export function FallbackShopSection({
   dressCode = 'formal',
   nearbyStores = null,
 }: Props) {
-  const theme = useTheme();
+  const { theme, isDark } = useTheme();
   const rawItems = Array.isArray(missing) ? missing.filter(Boolean) : [];
   const labels = filterSuggestionStringsForUi(
     rawItems.map((i) => i.label || i.name || i.role || 'Upgrade'),
@@ -112,6 +112,13 @@ export function FallbackShopSection({
         const nearby = item.retail?.nearby;
         const nearbyBrands = item.retail?.nearbyByBrand || [];
         const generalNearby = preferredMapsUrl(nearby);
+        // Night mode: never black-on-dark — light chip fill + high-contrast label/icon.
+        const chipFg = isDark ? '#F5F0E8' : LuxuryColors.gold;
+        const chipBg = isDark ? 'rgba(255,255,255,0.12)' : 'transparent';
+        const chipBorder = isDark ? 'rgba(245,240,232,0.45)' : LuxuryColors.gold;
+        const mapFg = isDark ? '#F5F0E8' : theme.text;
+        const mapBorder = isDark ? 'rgba(245,240,232,0.35)' : theme.border;
+        const mapBg = isDark ? 'rgba(255,255,255,0.1)' : 'transparent';
         return (
           <View key={`${title}-${index}`} style={styles.itemBlock}>
             <ThemedText type="body" style={styles.itemTitle}>
@@ -129,11 +136,11 @@ export function FallbackShopSection({
                   <Pressable
                     key={`${p.retailerId || p.retailer}-${p.url}`}
                     onPress={() => openUrl(p.url || p.searchUrl)}
-                    style={[styles.chip, { borderColor: LuxuryColors.gold }]}
+                    style={[styles.chip, { borderColor: chipBorder, backgroundColor: chipBg }]}
                     accessibilityRole="link"
                   >
-                    <Feather name="shopping-bag" size={12} color={LuxuryColors.gold} />
-                    <ThemedText type="small" style={{ color: LuxuryColors.gold }}>
+                    <Feather name="shopping-bag" size={12} color={chipFg} />
+                    <ThemedText type="small" style={{ color: chipFg }}>
                       {p.retailer || 'Shop'}
                     </ThemedText>
                   </Pressable>
@@ -150,20 +157,20 @@ export function FallbackShopSection({
                     <Pressable
                       key={b.brand}
                       onPress={() => openUrl(url)}
-                      style={[styles.chip, { borderColor: theme.border }]}
+                      style={[styles.chip, { borderColor: mapBorder, backgroundColor: mapBg }]}
                     >
-                      <Feather name="map-pin" size={12} color={theme.text} />
-                      <ThemedText type="small">{b.brand} near you</ThemedText>
+                      <Feather name="map-pin" size={12} color={mapFg} />
+                      <ThemedText type="small" style={{ color: mapFg }}>{b.brand} near you</ThemedText>
                     </Pressable>
                   );
                 })}
                 {nearbyBrands.length === 0 && generalNearby ? (
                   <Pressable
                     onPress={() => openUrl(generalNearby)}
-                    style={[styles.chip, { borderColor: theme.border }]}
+                    style={[styles.chip, { borderColor: mapBorder, backgroundColor: mapBg }]}
                   >
-                    <Feather name="map-pin" size={12} color={theme.text} />
-                    <ThemedText type="small">Stores near you</ThemedText>
+                    <Feather name="map-pin" size={12} color={mapFg} />
+                    <ThemedText type="small" style={{ color: mapFg }}>Stores near you</ThemedText>
                   </Pressable>
                 ) : null}
               </View>
@@ -180,19 +187,24 @@ export function FallbackShopSection({
             </ThemedText>
           ) : null}
           <View style={styles.linkRow}>
-            {stores.slice(0, 4).map((s) => (
+            {stores.slice(0, 4).map((s) => {
+              const chipFg = isDark ? '#F5F0E8' : LuxuryColors.gold;
+              const chipBg = isDark ? 'rgba(255,255,255,0.12)' : 'transparent';
+              const chipBorder = isDark ? 'rgba(245,240,232,0.45)' : LuxuryColors.gold;
+              return (
               <Pressable
                 key={`${s.name}-${s.url || s.website}`}
                 onPress={() => openUrl(s.url || s.website)}
-                style={[styles.chip, { borderColor: LuxuryColors.gold }]}
+                style={[styles.chip, { borderColor: chipBorder, backgroundColor: chipBg }]}
                 accessibilityRole="link"
               >
-                <Feather name="shopping-bag" size={12} color={LuxuryColors.gold} />
-                <ThemedText type="small" style={{ color: LuxuryColors.gold }}>
+                <Feather name="shopping-bag" size={12} color={chipFg} />
+                <ThemedText type="small" style={{ color: chipFg }}>
                   {s.name}
                 </ThemedText>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         </View>
       ) : null}

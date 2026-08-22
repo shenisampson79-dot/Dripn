@@ -328,6 +328,17 @@ function looksLikeBuyCompareAsk(text: string): boolean {
 function isWardrobeOutfitRefineAsk(text: string): boolean {
   const t = String(text || '').trim();
   if (!t) return false;
+  if (
+    /\bkeep\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
+    || (
+      /\b(change|swap|different|other|new)\b.{0,40}\b(top|tops|bottom|bottoms|trousers?|pants?|shorts?)\b/i.test(t)
+      && /\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(t)
+      && /\b(keep|same|still)\b/i.test(t)
+    )
+    || /\b(change|swap|different)\b.{0,40}\b(top|tops)\b.{0,24}\b(and|&)\b.{0,16}\b(bottom|bottoms)\b/i.test(t)
+  ) {
+    return true;
+  }
   return (
     /\b(swap|change|different|other)\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
     || /\b(shoe|shoes|trainer|trainers|boot|boots)\b.{0,16}\b(swap|change|different|other)\b/i.test(t)
@@ -337,6 +348,7 @@ function isWardrobeOutfitRefineAsk(text: string): boolean {
     || /\btry (again|another|something else)\b/i.test(t)
     || /\b(don'?t like|do not like|not appropriate|another option|another look|give me another|something different)\b/i.test(t)
     || /\b(reject|hate)\b.{0,24}\b(outfit|look)\b/i.test(t)
+    || /\b(hotter|cooler|warmer|for (?:the )?gym|gym (?:look|outfit)|refine)\b/i.test(t)
   );
 }
 
@@ -3293,11 +3305,37 @@ export default function AIStylistScreen() {
         const hardExcludeShoesBottoms =
           isRefineOutfitAsk
           && /\b(don'?t|do not|never)\b.{0,40}\b(reuse|use|wear|same)\b.{0,40}\b(shoe|shoes|footwear|bottom|bottoms|trousers?|pants?)\b/i.test(trimmedAsk);
+        const keepShoesChangeRest =
+          isRefineOutfitAsk
+          && (
+            /\bkeep\b.{0,24}\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(trimmedAsk)
+            || (
+              /\b(change|swap|different|other|new)\b.{0,40}\b(top|tops|bottom|bottoms)\b/i.test(trimmedAsk)
+              && /\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(trimmedAsk)
+              && /\b(keep|same|still)\b/i.test(trimmedAsk)
+            )
+          );
         const excludeItemIds = hardExcludeShoesBottoms
           ? priorItems
               .filter((item) => {
                 const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
                 return /\b(shoe|boot|trainer|loafer|footwear|ugg|trouser|pant|short|skirt|jean|cargo|chino|bottom)\b/.test(blob);
+              })
+              .map((item) => String(item.id))
+          : keepShoesChangeRest
+            ? priorItems
+                .filter((item) => {
+                  const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
+                  return /\b(trouser|pant|short|skirt|jean|cargo|chino|bottom|top|tee|shirt|tank|blouse|polo|knit|sweater|hoodie)\b/.test(blob)
+                    && !/\b(shoe|boot|trainer|loafer|footwear|ugg)\b/.test(blob);
+                })
+                .map((item) => String(item.id))
+          : undefined;
+        const lockedItems = keepShoesChangeRest
+          ? priorItems
+              .filter((item) => {
+                const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
+                return /\b(shoe|boot|trainer|loafer|footwear|ugg)\b/.test(blob);
               })
               .map((item) => String(item.id))
           : undefined;
@@ -3316,6 +3354,7 @@ export default function AIStylistScreen() {
             weather: weatherSnap.weather,
             lat: weatherSnap.lat,
             priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
+            lockedItems,
             excludedItems: excludeItemIds,
             recentOutfits,
             source: 'wardrobe',

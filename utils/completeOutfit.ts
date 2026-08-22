@@ -72,18 +72,22 @@ export function hasCoreOutfitRoles(items: OutfitItemLike[] = []): boolean {
 
 /** Quarter-zips / athletic pullovers / overshirts — over a base tee when layered. */
 export function isMidLayerItem(item: OutfitItemLike): boolean {
-  const subtype = norm((item as { subcategory?: string; classified?: { subtype?: string } }).classified?.subtype
-    || (item as { subcategory?: string }).subcategory).replace(/\s+/g, '_');
+  const subtype = norm((item as { subcategory?: string; classified?: { subtype?: string }; subtype?: string }).classified?.subtype
+    || (item as { subcategory?: string }).subcategory
+    || (item as { subtype?: string }).subtype).replace(/\s+/g, '_');
+  const requiresBase = (item as { requiresBaseLayer?: boolean }).requiresBaseLayer === true;
   const text = `${norm(item.name)} ${norm((item as { subcategory?: string }).subcategory)} ${subtype}`;
+  if (requiresBase) return true;
   if (
-    ['quarter_zip', 'half_zip', 'athletic_pullover', 'overshirt', 'shacket', 'zip_up_layer'].includes(subtype)
+    ['quarter_zip', 'half_zip', 'athletic_pullover', 'overshirt', 'shacket', 'zip_up_layer', 'mid_layer'].includes(subtype)
   ) {
     return true;
   }
-  if (/\b(quarter[\s_-]?zip|half[\s_-]?zip)\b/.test(text)) return true;
+  if (/\b(quarter[\s_-]?zip|half[\s_-]?zip|1\/4[\s_-]?zip|q[\s_-]?zip)\b/.test(text)) return true;
   if (/\bathletic[\s_-]?pullover\b/.test(text)) return true;
   if (/\b(overshirt|shacket)\b/.test(text)) return true;
   if (/\b(hoodie|hooded)\b/.test(text) && /\b(zip|athletic|tech)\b/.test(text)) return true;
+  if (/\b(pullover|fleece)\b/.test(text) && /\b(zip|quarter|half)\b/.test(text)) return true;
   return false;
 }
 

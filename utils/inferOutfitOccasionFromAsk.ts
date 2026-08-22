@@ -50,6 +50,8 @@ export function raiseOccasionForRefine(
   refineText: string,
 ): OutfitOccasionId {
   const inferred = inferOutfitOccasionFromAsk(refineText, 'smart_casual');
+  // Gym refine must stay gym (hot gym / keep shoes) — never demote to smart_casual.
+  if (inferred === 'gym') return 'gym';
   if (
     inferred === 'evening_out'
     || inferred === 'date_night'
@@ -60,6 +62,7 @@ export function raiseOccasionForRefine(
   }
 
   const priorNorm = String(prior || '').toLowerCase().replace(/\s+/g, '_');
+  if (priorNorm.includes('gym') || priorNorm.includes('workout')) return 'gym';
   if (priorNorm.includes('date')) return 'date_night';
   if (priorNorm.includes('evening') || priorNorm.includes('dinner')) return 'evening_out';
   if (priorNorm.includes('work')) return 'work_outfit';
