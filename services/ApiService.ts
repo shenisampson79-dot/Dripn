@@ -1372,17 +1372,18 @@ class ApiService {
     return Boolean(API_URL);
   }
 
-  async wakeBackend(): Promise<{ success: boolean; wasAsleep: boolean }> {
+  async wakeBackend(options?: { quick?: boolean }): Promise<{ success: boolean; wasAsleep: boolean }> {
     if (!API_URL) {
       return { success: false, wasAsleep: false };
     }
 
-    // Render free tier can take 30–60s to wake; retry with longer timeouts.
-    const attempts = [
-      { timeout: 20000, delayMs: 0 },
-      { timeout: 35000, delayMs: 5000 },
-      { timeout: 50000, delayMs: 8000 },
-    ];
+    // Always-on Render (Starter+): one quick probe for optional cold mitigation — not a 60s wake race.
+    const attempts = options?.quick
+      ? [{ timeout: 3000, delayMs: 0 }]
+      : [
+          { timeout: 8000, delayMs: 0 },
+          { timeout: 12000, delayMs: 2000 },
+        ];
 
     let wasAsleep = false;
     for (let i = 0; i < attempts.length; i++) {
@@ -2352,16 +2353,14 @@ class ApiService {
     refine?: string | null;
     itemIds?: string[];
     elapsedMs?: number;
+    timingSpans?: Record<string, number>;
   }> {
-    // Await a bounded wake so the outfit POST does not race a cold Render and die at 45s.
-    try {
-      await Promise.race([
-        this.wakeBackend(),
-        new Promise((resolve) => setTimeout(resolve, 18000)),
-      ]);
-    } catch {
-      /* proceed — request still attempts */
-    }
+    const timingStart = Date.now();
+    const spans: Record<string, number> = {};
+    // Optional cold mitigation — outfit POST must not depend on a long wake race (Render Starter always-on).
+    void this.wakeBackend({ quick: true }).catch(() => {});
+    spans.wake_fire_and_forget_ms = Date.now() - timingStart;
+    const postStart = Date.now();
     const result = await this.request<{
       response?: string;
       content?: string;
@@ -2376,7 +2375,7 @@ class ApiService {
       elapsedMs?: number;
     }>('/api/chat/outfit-from-wardrobe', {
       method: 'POST',
-      timeout: 22000,
+      timeout: 15000,
       body: JSON.stringify({
         stylist: data.stylistId,
         message: data.userMessage,
@@ -2396,6 +2395,11 @@ class ApiService {
         source: data.source || 'wardrobe',
       }),
     });
+    spans.outfit_post_ms = Date.now() - postStart;
+    spans.total_ms = Date.now() - timingStart;
+    if (__DEV__) {
+      console.log('[OutfitFromChat:timing]', spans, { path: result.path, serverMs: result.elapsedMs });
+    }
     return {
       content: result.response || result.content || '',
       wardrobeVisual: result.wardrobeVisual ?? null,
@@ -2406,7 +2410,8 @@ class ApiService {
       occasion: result.occasion ?? null,
       refine: result.refine ?? null,
       itemIds: Array.isArray(result.itemIds) ? result.itemIds.map(String) : undefined,
-      elapsedMs: result.elapsedMs,
+      elapsedMs: result.elapsedMs ?? spans.total_ms,
+      timingSpans: spans,
     };
   }
 
@@ -2442,12 +2447,14 @@ class ApiService {
     }>;
     path?: string;
     elapsedMs?: number;
+    wardrobeVisual?: unknown;
   }> {
-    void this.wakeBackend().catch(() => {});
+    void this.wakeBackend({ quick: true }).catch(() => {});
     const result = await this.request<{
       response?: string;
       content?: string;
       hasOutfitRecommendation?: boolean;
+      wardrobeVisual?: unknown;
       travelClarify?: {
         flow?: string;
         state?: string;
@@ -2487,6 +2494,7 @@ class ApiService {
       looks: result.looks,
       path: result.path,
       elapsedMs: result.elapsedMs,
+      wardrobeVisual: result.wardrobeVisual ?? null,
     };
   }
 

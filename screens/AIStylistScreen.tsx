@@ -94,6 +94,7 @@ import {
   hydrateWardrobeVisualImagesByIds,
   capWardrobeVisualForAccess,
   inferOutfitCountFromText,
+  matchWardrobeItemsInText,
   normalizeWardrobeVisual,
   splitIntoOutfitSections,
   stripStructuredOutfitMarkers,
@@ -570,6 +571,17 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         reason: typeof look.reason === 'string' ? look.reason : null,
         itemIds: Array.isArray(look.itemIds) ? look.itemIds.map(String) : [],
       }));
+  }
+
+  if (message.travelClarify && typeof message.travelClarify === 'object') {
+    const tc = message.travelClarify as ChatMessage['travelClarify'];
+    if (tc && typeof tc.flow === 'string' && typeof tc.state === 'string') {
+      normalized.travelClarify = {
+        flow: tc.flow,
+        state: tc.state,
+        slots: (tc.slots && typeof tc.slots === 'object') ? tc.slots as MultiDayTravelSlots : undefined,
+      };
+    }
   }
 
   if (message.styleSession && typeof message.styleSession === 'object') {
@@ -3238,7 +3250,7 @@ export default function AIStylistScreen() {
               ? { id: user.id, gender: user.gender, countryCode: (user as { countryCode?: string }).countryCode }
               : undefined,
           });
-          const assistantMessage: ChatMessage = {
+          const assistantMessage: ChatMessage = attachWardrobeVisualToMessage({
             id: `msg_${Date.now()}_assistant`,
             role: 'assistant',
             content: multi.content || "Here's your day-by-day plan from pieces you already own.",
@@ -3254,8 +3266,9 @@ export default function AIStylistScreen() {
             lookCount: multi.lookCount,
             looks: multi.looks,
             hasOutfitRecommendation: Boolean(multi.hasOutfitRecommendation),
-            visualAuthority: 'server',
-          };
+            visualAuthority: multi.wardrobeVisual ? 'server' : null,
+            ...(multi.wardrobeVisual ? { wardrobeVisual: multi.wardrobeVisual as WardrobeVisualPayload } : {}),
+          }, wardrobeItems);
           const finalMessages = [...updatedMessages, assistantMessage];
           setMessages(finalMessages);
           setIsTyping(false);
@@ -3340,6 +3353,17 @@ export default function AIStylistScreen() {
               .map((item) => String(item.id))
           : undefined;
 
+        const dualGarmentAsk = /\b(\w+\s+){0,3}(top|blazer|shirt|tee|tank)\b.{0,16}\b(and|with)\b/i.test(trimmedAsk);
+        const mentionMatches = !isRefineOutfitAsk
+          ? matchWardrobeItemsInText(trimmedAsk, wardrobeItems, 4)
+          : [];
+        const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
+        if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
+          lockedItems = mentionLockIds.slice(0, 2);
+        } else if (mentionLockIds.length && /\b(build around|wear my|using my|with my)\b/i.test(trimmedAsk)) {
+          lockedItems = mentionLockIds;
+        }
+
         try {
           const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
             stylistId: stylist.id,
@@ -3395,11 +3419,14 @@ export default function AIStylistScreen() {
           }
         } catch (chatOutfitErr) {
           console.warn('[StylistChat] server createWardrobeOutfit failed:', chatOutfitErr);
+          const isTimeout = chatOutfitErr instanceof Error
+            && /\b(timeout|timed out|aborted|network)\b/i.test(chatOutfitErr.message);
           assistantMessage = {
             id: `msg_${Date.now()}_assistant`,
             role: 'assistant',
-            content:
-              "I couldn't build a clash-safe look from your wardrobe for that ask just now. Try again in a moment, or name one piece to build around.",
+            content: isTimeout
+              ? "That took longer than expected — try again in a moment. If you're on a slow connection, give it one more go."
+              : "I couldn't land a confident look from your wardrobe for that ask just now. Name one piece to build around, or try again shortly.",
             timestamp: new Date().toISOString(),
           };
         }
