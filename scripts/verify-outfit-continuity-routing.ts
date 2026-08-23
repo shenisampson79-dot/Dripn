@@ -118,23 +118,53 @@ assert.equal(
   'pending_ready',
   'A3 reason pending_ready',
 );
-assert.equal(
-  a3.route === 'outfit-from-wardrobe' ? a3.userMessageForServer : '',
-  ASK_A1,
-  'A3 userMessageForServer is frozen A1 — NOT the short reply',
+assert.ok(
+  a3.route === 'outfit-from-wardrobe'
+    && a3.userMessageForServer.startsWith(ASK_A1)
+    && a3.userMessageForServer.includes('User confirmed piece:')
+    && a3.userMessageForServer.includes(REPLY_A3),
+  'A3 userMessageForServer freezes A1 and appends short reply confirmation',
 );
 assert.notEqual(
   a3.route === 'outfit-from-wardrobe' ? a3.userMessageForServer : '',
   REPLY_A3,
-  'A3 must not send short reply as main userMessage',
+  'A3 must not send short reply alone as main userMessage',
 );
 if (a3.route === 'outfit-from-wardrobe') {
-  assert.ok(a3.lockedItemIds.length >= 2, 'A3 merged locks ≥ 2');
+  assert.ok(a3.lockedItemIds.length >= 1, 'A3 merged at least the confirmed blazer');
   assert.ok(
     a3.lockedItemIds.some((id) => id === '85' || id === String(85)),
     'A3 includes Next blazer id from short reply',
   );
   assert.equal(a3.occasion, 'evening_out');
+}
+
+// Brand lives on brand field, not name — short reply must still resolve
+const brandOnlyWardrobe: WardrobeItem[] = [
+  item({ id: '107', category: 'tops', name: 'Performance Running Top', brand: 'Nike', color: 'black' }),
+  item({ id: '85', category: 'outerwear', name: 'Wool Blazer', brand: 'Next', color: 'black' }),
+];
+const pendingBrand = buildOutfitClarifyFromPartialLock({
+  originalUserMessage: ASK_A1,
+  occasion: 'evening_out',
+  lockedItemIds: ['107'],
+  expectedLockCount: 2,
+});
+const a3Brand = resolveOutfitRoute({
+  userText: REPLY_A3,
+  messages: [
+    { role: 'user', content: ASK_A1 },
+    {
+      role: 'assistant',
+      content: 'Which blazer?',
+      outfitClarify: pendingBrand,
+    },
+  ],
+  wardrobeItems: brandOnlyWardrobe,
+});
+assert.equal(a3Brand.route, 'outfit-from-wardrobe', 'A3 brand-field match → outfit-from-wardrobe');
+if (a3Brand.route === 'outfit-from-wardrobe') {
+  assert.ok(a3Brand.lockedItemIds.includes('85'), 'A3 brand-field resolves Next blazer');
 }
 
 // ── Fixture B — Test 3 class (hard lock, no clarify) ──────────────────────
@@ -218,7 +248,8 @@ console.log(JSON.stringify({
   A3: a3.route === 'outfit-from-wardrobe' ? {
     route: a3.route,
     reason: a3.reason,
-    userMessageFrozen: a3.userMessageForServer === ASK_A1,
+    originalAskPreserved: a3.userMessageForServer.startsWith(ASK_A1),
+    confirmationAppended: a3.userMessageForServer.includes(REPLY_A3),
     locks: a3.lockedItemIds,
   } : a3,
   B1: b1.route,

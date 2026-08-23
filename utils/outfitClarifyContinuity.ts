@@ -32,6 +32,8 @@ export type OutfitClarifyPending = {
   createdAt: string;
   weather?: OutfitClarifyWeatherSnap;
   lat?: number | null;
+  /** How many times we already continued after a short clarify reply (anti-loop). */
+  continuationCount?: number;
 };
 
 export type OutfitRouteDecision =
@@ -199,6 +201,7 @@ export function findPendingOutfitClarify(
     const msg = messages[i];
     if (msg.role !== 'assistant') continue;
     const oc = msg.outfitClarify;
+    // Pending clarify wins even if the bubble also has a visual/recommendation flag.
     if (oc && oc.flow === OUTFIT_LOCK_CLARIFY_FLOW && oc.state !== 'DONE') {
       return { ...oc, lockedItemIds: [...(oc.lockedItemIds || [])] };
     }
@@ -207,6 +210,42 @@ export function findPendingOutfitClarify(
     if (msg.hasOutfitRecommendation || msg.wardrobeVisual) return null;
   }
   return null;
+}
+
+/**
+ * Resolve a short clarify reply against wardrobe — include brand/color in the
+ * match surface so "The black Next blazer" hits brand=Next + name=… Blazer.
+ */
+export function matchClarifyReplyItems(
+  query: string,
+  wardrobeItems: WardrobeItem[],
+  limit = 4,
+): WardrobeItem[] {
+  const primary = matchWardrobeItemsInText(query, wardrobeItems, limit);
+  if (primary.length) return primary;
+
+  const aliased = wardrobeItems.map((item) => ({
+    ...item,
+    name: [item.brand, item.color, item.name].filter(Boolean).join(' '),
+  }));
+  const viaAlias = matchWardrobeItemsInText(query, aliased, limit);
+  if (!viaAlias.length) return [];
+  const byId = new Map(wardrobeItems.map((item) => [String(item.id), item]));
+  return viaAlias
+    .map((hit) => byId.get(String(hit.id)))
+    .filter((item): item is WardrobeItem => Boolean(item));
+}
+
+/** Build server userMessage after clarify — keep original ask, append confirmation. */
+export function buildContinuedOutfitUserMessage(
+  originalUserMessage: string,
+  shortReply: string,
+): string {
+  const original = String(originalUserMessage || '').trim();
+  const reply = String(shortReply || '').trim();
+  if (!original) return reply;
+  if (!reply) return original;
+  return `${original}\n\nUser confirmed piece: ${reply}`;
 }
 
 export function buildOutfitClarifyFromPartialLock(params: {
@@ -251,15 +290,23 @@ export function advanceOutfitClarify(params: {
   pending: OutfitClarifyPending;
 } {
   const prior = params.prior;
-  const matches = matchWardrobeItemsInText(params.query, params.wardrobeItems, 4);
+  const priorIds = prior.lockedItemIds || [];
+  const matches = matchClarifyReplyItems(params.query, params.wardrobeItems, 4);
   const newIds = matches.map((m) => String(m.id)).filter(Boolean);
-  const lockedItemIds = [...new Set([...(prior.lockedItemIds || []), ...newIds])];
+  const lockedItemIds = [...new Set([...priorIds, ...newIds])];
   const expected = Math.max(1, Number(prior.expectedLockCount) || 1);
-  const ready = lockedItemIds.length >= expected;
+  const addedNew = newIds.some((id) => !priorIds.includes(id));
+  // After Ivy asked for a piece, one successful wardrobe match answers the question.
+  const ready =
+    lockedItemIds.length >= expected
+    || (prior.state === 'AWAITING_PIECE' && addedNew);
   const pending: OutfitClarifyPending = {
     ...prior,
     lockedItemIds,
     state: ready ? 'READY' : 'AWAITING_PIECE',
+    continuationCount: ready
+      ? Number(prior.continuationCount || 0) + 1
+      : prior.continuationCount || 0,
   };
   return {
     state: pending.state,
@@ -303,7 +350,11 @@ export function resolveOutfitRoute(params: {
         route: 'outfit-from-wardrobe',
         reason: 'pending_ready',
         pending: { ...advanced.pending, state: 'DONE' },
-        userMessageForServer: pending.originalUserMessage,
+        // Spec: never send the short reply alone — append confirmation to frozen ask.
+        userMessageForServer: buildContinuedOutfitUserMessage(
+          pending.originalUserMessage,
+          text,
+        ),
         lockedItemIds: advanced.lockedItemIds,
         occasion: pending.occasion,
         weather: pending.weather ?? null,

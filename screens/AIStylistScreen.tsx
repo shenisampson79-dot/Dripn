@@ -3452,18 +3452,26 @@ export default function AIStylistScreen() {
           const isPartialLockClarify =
             String(outfitResponse.path || '') === 'partial_lock_clarify'
             || /which (blazer|piece|item)/i.test(outfitResponse.content);
+          // After a short clarify reply we must not re-ask the same question (Test 4 loop).
+          const clarifyLoopBlocked = pendingOutfitReady && isPartialLockClarify;
           try {
             const attached = attachWardrobeVisualToMessage(
               {
                 id: `msg_${Date.now()}_assistant`,
                 role: 'assistant',
-                content: outfitResponse.content,
+                content: clarifyLoopBlocked
+                  ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
+                  : outfitResponse.content,
                 timestamp: new Date().toISOString(),
                 visualAuthority: 'server',
-                hasOutfitRecommendation: outfitResponse.hasOutfitRecommendation,
+                hasOutfitRecommendation: clarifyLoopBlocked
+                  ? false
+                  : outfitResponse.hasOutfitRecommendation,
               },
               serverUserMessage,
-              outfitResponse as any,
+              clarifyLoopBlocked
+                ? { ...outfitResponse, hasOutfitRecommendation: false, wardrobeVisual: null } as any
+                : outfitResponse as any,
               wardrobeItems,
               user?.subscriptionTier,
             );
@@ -3471,16 +3479,23 @@ export default function AIStylistScreen() {
               (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion =
                 outfitResponse.occasion || occasionForServer;
             }
-            if (isPartialLockClarify) {
+            if (isPartialLockClarify && !clarifyLoopBlocked) {
+              // Persist frozen turn-1 ask (not the enriched continued message).
+              const frozenAsk =
+                outfitRoute.route === 'outfit-from-wardrobe'
+                && outfitRoute.reason === 'pending_ready'
+                  ? (outfitRoute.pending?.originalUserMessage
+                    || String(serverUserMessage).split('\n\nUser confirmed piece:')[0] || serverUserMessage)
+                  : serverUserMessage;
               attached.outfitClarify = buildOutfitClarifyFromPartialLock({
-                originalUserMessage: serverUserMessage,
+                originalUserMessage: frozenAsk,
                 occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
                 lockedItemIds: lockedItems || [],
                 weather: weatherSnap.weather,
                 lat: weatherSnap.lat,
               });
             } else {
-              // Publish or structured refuse — clear pending (C7).
+              // Publish, refuse, or blocked clarify loop — clear pending (C7).
               attached.outfitClarify = clearOutfitClarify(
                 outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
               ) || undefined;
@@ -3490,22 +3505,28 @@ export default function AIStylistScreen() {
             assistantMessage = {
               id: `msg_${Date.now()}_assistant`,
               role: 'assistant',
-              content: outfitResponse.content,
+              content: clarifyLoopBlocked
+                ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
+                : outfitResponse.content,
               timestamp: new Date().toISOString(),
               ...(outfitResponse.occasion || occasionForServer
                 ? { outfitOccasion: outfitResponse.occasion || occasionForServer }
                 : {}),
-              ...(isPartialLockClarify
+              ...(isPartialLockClarify && !clarifyLoopBlocked
                 ? {
                     outfitClarify: buildOutfitClarifyFromPartialLock({
-                      originalUserMessage: serverUserMessage,
+                      originalUserMessage: serverUserMessage.split('\n\nUser confirmed piece:')[0] || serverUserMessage,
                       occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
                       lockedItemIds: lockedItems || [],
                       weather: weatherSnap.weather,
                       lat: weatherSnap.lat,
                     }),
                   }
-                : {}),
+                : {
+                    outfitClarify: clearOutfitClarify(
+                      outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
+                    ) || undefined,
+                  }),
             };
           }
         } catch (chatOutfitErr) {
