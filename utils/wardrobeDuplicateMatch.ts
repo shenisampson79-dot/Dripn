@@ -140,6 +140,14 @@ export const SIMILAR_ITEM_COPY = Object.freeze({
   secondaryLabel: "Don't add",
 });
 
+/** Launch conservative mode — multi-signal hint when server returns ok but evidence is weak. */
+export const CONSERVATIVE_LAUNCH_COPY = Object.freeze({
+  title: 'This may already be in your wardrobe',
+  message: 'We found something that looks similar. Compare below — add only if this is a different item.',
+  primaryLabel: 'Add anyway',
+  secondaryLabel: "Don't add",
+});
+
 export const LAUNCH_DEDUPE_CONTRACT = Object.freeze({
   version: '2026-08-garment-identity-v1',
   priority: Object.freeze([
@@ -830,6 +838,98 @@ function matchRank(type: DuplicateDecisionType | string | undefined): number {
  * Local duplicate scan (used offline / before server check).
  * Returns hard BLOCK, classification conflict, and probable WARN hits.
  */
+function colorsCompatible(a?: string | null, b?: string | null): boolean {
+  const ca = normalizeColor(a);
+  const cb = normalizeColor(b);
+  if (!ca || !cb || ca === 'other' || cb === 'other') return false;
+  return ca === cb;
+}
+
+function brandsCompatible(a?: string | null, b?: string | null): boolean {
+  const ca = String(a || '').toLowerCase().trim();
+  const cb = String(b || '').toLowerCase().trim();
+  if (!ca || !cb) return false;
+  return ca === cb || ca.includes(cb) || cb.includes(ca);
+}
+
+/**
+ * Launch conservative duplicate hint — client-only when server returns ok.
+ * Requires multi-signal evidence (brand + colour + structure); never name alone.
+ */
+export function findConservativeLaunchDuplicates(
+  candidate: WardrobeDupeCandidate,
+  wardrobe: Array<
+    WardrobeDupeCandidate & {
+      id: string;
+      imageUri?: string | null;
+      origin?: string | null;
+    }
+  >,
+): WardrobeDupeMatch[] {
+  const matches: WardrobeDupeMatch[] = [];
+  for (const item of wardrobe) {
+    if (item.origin === 'inspiration' || item.origin === 'wishlist') continue;
+    if (
+      subcategoriesStructurallyIncompatible(
+        candidate.subcategory,
+        item.subcategory,
+        { nameA: candidate.name, nameB: item.name },
+      )
+    ) {
+      continue;
+    }
+    const scored = scoreLocalDuplicateMatch(candidate, item);
+    if (scored.type !== 'ok') continue;
+
+    const attrScore = attributeSimilarity(candidate, item);
+    const sameBrand = brandsCompatible(candidate.brand, item.brand);
+    const sameColor = colorsCompatible(candidate.color, item.color);
+    const sameCat = categoriesCompatible(candidate.category, item.category);
+    if (!sameCat) continue;
+
+    const candHash = candidate.imagePhash || candidate.dHash || null;
+    const existHash = item.imagePhash || item.dHash || null;
+    const hamming = (candHash && existHash) ? hammingDistanceHex(candHash, existHash) : null;
+    const ambiguousVisual = hamming != null && hamming > DHASH_NEAR_DUP && hamming <= DHASH_AMBIGUOUS_MAX;
+
+    const groupA = structuralTypeGroup(candidate.subcategory) || structuralTypeGroup(candidate.name);
+    const groupB = structuralTypeGroup(item.subcategory) || structuralTypeGroup(item.name);
+    const sameStructure = Boolean(groupA && groupB && groupA === groupB);
+
+    const nameJaccard = jaccard(candidate.name, item.name, sameBrand);
+    const nameOnly = nameJaccard >= 0.85 && !sameBrand && !ambiguousVisual && attrScore < 0.55;
+    if (nameOnly) continue;
+
+    const multiSignal = sameBrand && sameColor && sameStructure && (ambiguousVisual || attrScore >= 0.58);
+    const brandVisual = sameBrand && ambiguousVisual && sameStructure;
+    if (!multiSignal && !brandVisual) continue;
+
+    matches.push({
+      id: String(item.id),
+      name: item.name || 'Wardrobe item',
+      category: item.category,
+      subcategory: item.subcategory,
+      color: item.color,
+      brand: item.brand,
+      imageUri: item.imageUri,
+      confidence: ambiguousVisual ? 'medium' : 'low',
+      reason: 'conservative_launch_hint',
+      attrScore,
+      hamming,
+      imageSimilarity: dhashToImageSimilarity(hamming),
+      similarityScore: dhashToImageSimilarity(hamming),
+      message: CONSERVATIVE_LAUNCH_COPY.message,
+      tier: 'similar_item',
+      isDuplicate: false,
+      sameScanExactCrop: false,
+      categoryCompatible: sameCat,
+    });
+  }
+  return matches
+    .sort((a, b) => (b.attrScore || 0) - (a.attrScore || 0))
+    .slice(0, 3);
+}
+
 export function findLocalWardrobeDuplicates(
   candidate: WardrobeDupeCandidate,
   wardrobe: Array<

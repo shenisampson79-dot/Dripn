@@ -59,7 +59,9 @@ import {
   resolveSeasonChips,
 } from '@/utils/wardrobeSeasonOccasion';
 import {
+  CONSERVATIVE_LAUNCH_COPY,
   decisionFromLocalMatches,
+  findConservativeLaunchDuplicates,
   findLocalWardrobeDuplicates,
   formatDuplicateNames,
   normalizeDuplicateDecision,
@@ -119,7 +121,8 @@ function formatQuickAddTraceRow(audit: QuickAddAuditSample): Record<string, unkn
   };
 }
 
-type Step = 'camera' | 'processing' | 'result';
+type Step = 'camera' | 'processing' | 'result' | 'saveProgress';
+type SavePhase = 'checking' | 'preparing';
 type ConfidenceBand = 'high' | 'medium' | 'low';
 
 type Props = {
@@ -159,7 +162,7 @@ export default function QuickAddScreen({ navigation }: Props) {
   /** Launch: customers get manual shutter only; staff/dev keep READY path + traces. */
   const autocaptureEnabled = isQuickAddAutocaptureAllowed(__DEV__, user);
   const insets = useSafeAreaInsets();
-  const { addItem, items: wardrobeItems } = useWardrobe();
+  const { addItem, items: wardrobeItems, reloadWardrobe } = useWardrobe();
   const [permission, requestPermission] = useCameraPermissions();
   const yoloStatus = useMemo(() => getOnDeviceYoloStatus(), []);
 
@@ -185,6 +188,7 @@ export default function QuickAddScreen({ navigation }: Props) {
   const [captureThumb, setCaptureThumb] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savePhase, setSavePhase] = useState<SavePhase>('checking');
   const [traceCount, setTraceCount] = useState(0);
   const [lastTraceSummary, setLastTraceSummary] = useState('');
   const [dupeSheet, setDupeSheet] = useState<{
@@ -639,11 +643,29 @@ export default function QuickAddScreen({ navigation }: Props) {
 
   const persistDraft = async (opts?: {
     allowDuplicate?: boolean;
+    onPhase?: (phase: SavePhase) => void;
   }): Promise<{ ok: boolean; item?: { id: string; name?: string }; blockedByDupe?: boolean }> => {
     if (!draft) return { ok: false };
     const allowDuplicate = opts?.allowDuplicate === true;
+    const wardrobePool = wardrobeItems.map((it) => ({
+      id: String(it.id),
+      name: it.name,
+      category: it.category,
+      subcategory: it.subcategory,
+      color: it.color,
+      brand: it.brand,
+      material: it.material,
+      imageUri: it.enhancedImageUri || it.imageUri,
+      origin: it.origin,
+      imagePhash: it.imagePhash,
+      sourceCropId: it.sourceCropId,
+      scanSessionId: it.scanSessionId,
+      sourceImageId: (it as { sourceImageId?: string }).sourceImageId,
+      captureSessionId: it.scanSessionId,
+    }));
 
     if (!allowDuplicate) {
+      opts?.onPhase?.('checking');
       let decision: NormalizedDuplicateDecision = { type: 'ok', matches: [], isDuplicate: false };
       try {
         const check = await apiService.checkWardrobeDuplicates([{
@@ -664,30 +686,41 @@ export default function QuickAddScreen({ navigation }: Props) {
           conflictMatches: (first as { conflictMatches?: unknown[] } | undefined)?.conflictMatches,
         });
       } catch {
-        const localDupes = findLocalWardrobeDuplicates(
+        decision = decisionFromLocalMatches(
+          findLocalWardrobeDuplicates(
+            {
+              name: draft.name,
+              category: draft.category,
+              subcategory: draft.subcategory,
+              color: draft.color,
+              brand: draft.brand,
+              material: draft.material,
+            },
+            wardrobePool,
+          ),
+        );
+      }
+
+      if (decision.type === 'ok') {
+        const conservative = findConservativeLaunchDuplicates(
           {
             name: draft.name,
             category: draft.category,
+            subcategory: draft.subcategory,
             color: draft.color,
             brand: draft.brand,
+            material: draft.material,
           },
-          wardrobeItems.map((it) => ({
-            id: String(it.id),
-            name: it.name,
-            category: it.category,
-            subcategory: it.subcategory,
-            color: it.color,
-            brand: it.brand,
-            imageUri: it.enhancedImageUri || it.imageUri,
-            origin: it.origin,
-            imagePhash: it.imagePhash,
-            sourceCropId: it.sourceCropId,
-            scanSessionId: it.scanSessionId,
-            sourceImageId: (it as { sourceImageId?: string }).sourceImageId,
-            captureSessionId: it.scanSessionId,
-          })),
+          wardrobePool,
         );
-        decision = decisionFromLocalMatches(localDupes);
+        if (conservative.length) {
+          decision = {
+            type: 'similar_item',
+            matches: conservative,
+            isDuplicate: false,
+            message: CONSERVATIVE_LAUNCH_COPY.message,
+          };
+        }
       }
 
       if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'similar_item' || decision.type === 'classification_conflict') {
@@ -696,6 +729,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       }
     }
 
+    opts?.onPhase?.('preparing');
     try {
       const saved = await addItem({
         name: draft.name,
@@ -746,13 +780,26 @@ export default function QuickAddScreen({ navigation }: Props) {
   const handleSave = async (opts?: { allowDuplicate?: boolean }) => {
     if (!draft || saving) return;
     setSaving(true);
+    setSavePhase('checking');
+    setStep('saveProgress');
     try {
-      const { ok, blockedByDupe } = await persistDraft(opts);
-      if (blockedByDupe) return;
-      if (!ok) return;
+      const { ok, blockedByDupe } = await persistDraft({
+        ...opts,
+        onPhase: setSavePhase,
+      });
+      if (blockedByDupe) {
+        setStep('result');
+        return;
+      }
+      if (!ok) {
+        setStep('result');
+        return;
+      }
+      await reloadWardrobe();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
     } catch (error) {
+      setStep('result');
       Alert.alert(
         t('wardrobe.error') || 'Error',
         error instanceof Error ? error.message : 'Could not save item.',
@@ -761,6 +808,20 @@ export default function QuickAddScreen({ navigation }: Props) {
       setSaving(false);
     }
   };
+
+  if (step === 'saveProgress') {
+    return (
+      <View style={[styles.root, styles.centered, { backgroundColor: '#0B0B0B', paddingTop: insets.top }]}>
+        {draft?.imageUri ? (
+          <Image source={{ uri: draft.imageUri }} style={styles.processingThumb} />
+        ) : null}
+        <ActivityIndicator size="large" color={LuxuryColors.gold} />
+        <ThemedText type="body" style={styles.processingText}>
+          {savePhase === 'checking' ? 'Checking your wardrobe…' : 'Preparing your item…'}
+        </ThemedText>
+      </View>
+    );
+  }
 
   if (step === 'processing') {
     return (
@@ -816,6 +877,11 @@ export default function QuickAddScreen({ navigation }: Props) {
         <DuplicateComparisonSheet
           visible={dupeSheet.visible}
           type={dupeSheet.decision.type}
+          title={
+            dupeSheet.decision.message === CONSERVATIVE_LAUNCH_COPY.message
+              ? CONSERVATIVE_LAUNCH_COPY.title
+              : undefined
+          }
           message={
             dupeSheet.decision.message
             || (dupeSheet.decision.type === 'similar_item'

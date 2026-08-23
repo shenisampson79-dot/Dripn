@@ -237,6 +237,126 @@ export function assignLocalOriginalOnly<T extends ImageFields>(
   };
 }
 
+export type WardrobeImageCacheEntry = {
+  imageUri?: string;
+  enhancedImageUri?: string;
+  originalImageUri?: string;
+  imageProcessed?: boolean;
+};
+
+/** Server row + mapped item agree the durable cutout is authoritative. */
+export function isServerAuthoritativeProcessed(
+  mapped: ImageFields,
+  row?: { backgroundRemoved?: boolean; background_removed?: boolean },
+): boolean {
+  return Boolean(
+    mapped.imageProcessed ||
+    row?.backgroundRemoved ||
+    row?.background_removed ||
+    isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
+    isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || ''),
+  );
+}
+
+function localGarmentUri(...candidates: Array<string | null | undefined>): string {
+  for (const uri of candidates) {
+    if (uri && isLikelyLocalGarmentUri(uri)) return uri;
+  }
+  return '';
+}
+
+/**
+ * Hydration merge: stale local Quick Add capture must not override a later durable cutout.
+ */
+export function mergeMappedItemWithImageCache(
+  mapped: ImageFields,
+  cacheEntry: WardrobeImageCacheEntry | undefined,
+  opts: { serverProcessed: boolean; savedLocal?: string },
+): ImageFields {
+  const cacheLocal = localGarmentUri(cacheEntry?.imageUri, cacheEntry?.originalImageUri);
+  const savedLocal = opts.savedLocal || '';
+
+  if (opts.serverProcessed) {
+    const localOriginal = localGarmentUri(cacheLocal, savedLocal, mapped.originalImageUri);
+    return coerceWardrobeDisplayImages(
+      assignLocalOriginalOnly(mapped, localOriginal || undefined),
+    );
+  }
+
+  if (cacheEntry?.imageUri && cacheEntry.imageProcessed) {
+    const cacheOrig = cacheEntry.originalImageUri || '';
+    if (cacheLocal && cacheOrig && cacheEntry.imageUri === cacheOrig) {
+      return coerceWardrobeDisplayImages({
+        ...mapped,
+        originalImageUri: cacheOrig,
+        imageUri: cacheOrig,
+        enhancedImageUri: cacheOrig,
+        imageProcessed: false,
+      });
+    }
+    if (!cacheLocal) {
+      return coerceWardrobeDisplayImages({
+        ...mapped,
+        imageUri: cacheEntry.imageUri,
+        enhancedImageUri: cacheEntry.enhancedImageUri || cacheEntry.imageUri,
+        originalImageUri: cacheEntry.originalImageUri || mapped.originalImageUri,
+        imageProcessed: true,
+      });
+    }
+  }
+
+  if (savedLocal) {
+    return coerceWardrobeDisplayImages({
+      ...mapped,
+      originalImageUri: savedLocal || mapped.originalImageUri,
+      imageUri: savedLocal,
+      enhancedImageUri: savedLocal,
+      imageProcessed: false,
+    });
+  }
+
+  return coerceWardrobeDisplayImages(mapped);
+}
+
+/**
+ * Persisted device cache: processed display wins over local capture when server says cutout exists.
+ */
+export function buildWardrobeImageCacheEntryFromItem(
+  item: ImageFields,
+  existing: WardrobeImageCacheEntry = {},
+  opts?: { proxyUrl?: string | null },
+): WardrobeImageCacheEntry {
+  const localUri = localGarmentUri(
+    existing.originalImageUri,
+    existing.imageUri,
+    item.originalImageUri,
+  );
+
+  const cutoutRemote = [item.enhancedImageUri, item.imageUri].find(
+    (uri) => uri && (isProcessedWardrobeCdnUrl(uri) || isProxyWardrobeImageUri(uri)),
+  );
+  const processedDisplay =
+    cutoutRemote ||
+    (item.imageProcessed && opts?.proxyUrl ? opts.proxyUrl : null) ||
+    (item.imageProcessed && item.id ? buildWardrobeImageProxyUrl(item.id) : null);
+
+  const displayUri =
+    (item.imageProcessed || itemHasProcessedCutout(item))
+      ? (processedDisplay || localUri || existing.imageUri || item.imageUri || '')
+      : (localUri || processedDisplay || existing.imageUri || item.imageUri || '');
+
+  return {
+    ...existing,
+    imageUri: displayUri,
+    enhancedImageUri:
+      (item.imageProcessed || itemHasProcessedCutout(item))
+        ? (processedDisplay || item.enhancedImageUri || displayUri)
+        : (processedDisplay || item.enhancedImageUri || existing.enhancedImageUri || displayUri),
+    originalImageUri: localUri || existing.originalImageUri || item.originalImageUri,
+    imageProcessed: Boolean(item.imageProcessed || existing.imageProcessed),
+  };
+}
+
 export function listWardrobeImageUris(item: ImageFields): string[] {
   const uris: string[] = [];
   const add = (uri?: string | null) => {

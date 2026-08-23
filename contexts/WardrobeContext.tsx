@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
-import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isFalselyMarkedProcessed, isProcessedWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri, coerceWardrobeDisplayImages, assignLocalOriginalOnly, itemHasProcessedCutout } from '@/utils/wardrobeImage';
+import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isFalselyMarkedProcessed, isProcessedWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri, coerceWardrobeDisplayImages, assignLocalOriginalOnly, itemHasProcessedCutout, isServerAuthoritativeProcessed, mergeMappedItemWithImageCache, buildWardrobeImageCacheEntryFromItem } from '@/utils/wardrobeImage';
 import {
   normalizeWardrobeCategoryForGender,
   resolveUserPresentationGender,
@@ -957,74 +957,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
                 const mapped = mapBackendItemToFrontend(row, imageCache, gender);
                 const saved = localById.get(String(row.id));
                 const cacheEntry = imageCache[String(row.id)];
-                const serverProcessed =
-                  mapped.imageProcessed ||
-                  !!row.backgroundRemoved ||
-                  !!row.background_removed ||
-                  isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
-                  isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
-
-                if (cacheEntry?.imageProcessed && cacheEntry.imageUri) {
-                  const cacheLocal = !isRemoteImageUri(cacheEntry.imageUri);
-                  const serverCutout =
-                    isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
-                    isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
-                  if (cacheLocal && (serverCutout || (serverProcessed && mapped.imageUri && isRemoteImageUri(mapped.imageUri)))) {
-                    return {
-                      ...mapped,
-                      originalImageUri:
-                        cacheEntry.originalImageUri
-                        || mapped.originalImageUri
-                        || cacheEntry.imageUri,
-                      imageProcessed: true,
-                    };
-                  }
-                  const cacheOrig = cacheEntry.originalImageUri || '';
-                  if (cacheLocal && cacheOrig && cacheEntry.imageUri === cacheOrig && !serverProcessed) {
-                    return {
-                      ...mapped,
-                      originalImageUri: cacheOrig,
-                      imageUri: cacheOrig,
-                      enhancedImageUri: cacheOrig,
-                      imageProcessed: false,
-                    };
-                  }
-                  return {
-                    ...mapped,
-                    imageUri: cacheEntry.imageUri,
-                    enhancedImageUri: cacheEntry.enhancedImageUri || cacheEntry.imageUri,
-                    originalImageUri: cacheEntry.originalImageUri || mapped.originalImageUri,
-                    imageProcessed: true,
-                  };
-                }
-
-                if (!saved) return mapped;
+                const serverProcessed = isServerAuthoritativeProcessed(mapped, row);
 
                 const savedLocal =
-                  [saved.imageUri, saved.originalImageUri].find(
-                    (uri) => typeof uri === 'string' && uri.length > 0 && !isRemoteImageUri(uri),
-                  ) || '';
+                  saved
+                    ? [saved.imageUri, saved.originalImageUri].find(
+                      (uri) => typeof uri === 'string' && uri.length > 0 && !isRemoteImageUri(uri),
+                    ) || ''
+                    : '';
 
-                if (savedLocal && !serverProcessed && !saved.imageProcessed) {
-                  return {
-                    ...mapped,
-                    originalImageUri: savedLocal || mapped.originalImageUri,
-                    imageUri: savedLocal,
-                    enhancedImageUri: savedLocal,
-                  };
-                }
-
-                if (serverProcessed || saved.imageProcessed) {
-                  return {
-                    ...mapped,
-                    imageProcessed: true,
-                    imageUri: mapped.imageUri || saved.imageUri,
-                    enhancedImageUri: mapped.enhancedImageUri || saved.enhancedImageUri || mapped.imageUri,
-                  };
-                }
-
-                if (mapped.imageUri && !isProxyWardrobeImageUri(mapped.imageUri)) return mapped;
-                return mapped;
+                return mergeMappedItemWithImageCache(mapped, cacheEntry, {
+                  serverProcessed,
+                  savedLocal,
+                });
               } catch (rowErr) {
                 console.warn('[WardrobeContext] skipped backend row', row?.id, rowErr);
                 return null;
@@ -1062,32 +1007,12 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           for (const item of committed) {
             const key = String(item.id);
             const existing = cacheUpdates[key] || {};
-            const localFromOriginal =
-              existing.originalImageUri && !isHttpImageUrl(existing.originalImageUri)
-                ? existing.originalImageUri
-                : null;
-            const localFromImage =
-              existing.imageUri && !isHttpImageUrl(existing.imageUri) ? existing.imageUri : null;
-            const localUri = localFromOriginal || localFromImage || item.originalImageUri || null;
-            const isLocalDisplay =
-              item.imageUri &&
-              typeof item.imageUri === 'string' &&
-              !isRemoteImageUri(item.imageUri);
-            const replicateUri = itemHasProcessedCdnImage(item) ? (item.enhancedImageUri || item.imageUri) : null;
-            const processedDisplay =
-              (isLocalDisplay ? item.imageUri : null) ||
-              replicateUri ||
-              (item.imageProcessed && itemLikelyHasWardrobePhoto(result.items.find((r: any) => String(r.id) === key) || {})
+            const backendRow = result.items.find((r: any) => String(r.id) === key) || {};
+            const proxyUrl =
+              item.imageProcessed && itemLikelyHasWardrobePhoto(backendRow)
                 ? buildWardrobeImageProxyUrl(item.id)
-                : null);
-
-            cacheUpdates[key] = {
-              ...existing,
-              imageUri: localUri || processedDisplay || existing.imageUri,
-              enhancedImageUri: processedDisplay || item.enhancedImageUri || existing.enhancedImageUri,
-              originalImageUri: localUri || existing.originalImageUri || item.originalImageUri,
-              imageProcessed: item.imageProcessed || existing.imageProcessed,
-            };
+                : null;
+            cacheUpdates[key] = buildWardrobeImageCacheEntryFromItem(item, existing, { proxyUrl });
           }
           await setImageCache(cacheUpdates);
           // Cache locally for offline fallback
@@ -1234,12 +1159,21 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           imageProcessed: Boolean(imageProcessed || response.item.backgroundRemoved || serverCutout),
         });
 
-        await updateImageCacheEntry(backendId, {
-          imageUri: newItem.imageUri,
-          enhancedImageUri: newItem.enhancedImageUri,
-          originalImageUri: newItem.originalImageUri,
-          imageProcessed: Boolean(newItem.imageProcessed),
-        });
+        const localOriginal = itemData.originalImageUri || itemData.imageUri;
+        const cacheRow = buildWardrobeImageCacheEntryFromItem(
+          {
+            ...newItem,
+            originalImageUri: localOriginal,
+          },
+          {},
+          {
+            proxyUrl:
+              newItem.imageProcessed && !serverCutout
+                ? buildWardrobeImageProxyUrl(backendId)
+                : null,
+          },
+        );
+        await updateImageCacheEntry(backendId, cacheRow);
 
         const updatedItems = [...itemsRef.current, newItem];
         setItems(updatedItems);

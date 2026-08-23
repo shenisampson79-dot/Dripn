@@ -38,3 +38,43 @@ export function isStaffUser(user: StaffUserLike): boolean {
   if (envStaffEmails().has(email)) return true;
   return false;
 }
+
+/** Live DBG / Vision readout — presentation gate only (__DEV__ or staff). */
+export function isBeliefDebugAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  return !!isDev || isStaffUser(user);
+}
+
+/**
+ * Quick Add READY / amber→green autocapture — staff/dev only for launch.
+ * Customers get manual shutter; preserve code paths for post-launch QA.
+ */
+export function isQuickAddAutocaptureAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  return !!isDev || isStaffUser(user);
+}
+
+/** Today's Outfit launch surface — staff/dev, or explicit env restore for special builds. */
+export function isTodaysOutfitAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  if (!!isDev || isStaffUser(user)) return true;
+  const flag = String(process.env.EXPO_PUBLIC_ENABLE_TODAYS_OUTFIT || '').trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}
+
+/** Live DBG / Vision readout — presentation gate only (__DEV__ or staff). */
+export function isBeliefDebugAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  return !!isDev || isStaffUser(user);
+}
+
+/**
+ * Quick Add READY / amber→green autocapture — staff/dev only for launch.
+ * Customers get manual shutter; preserve code paths for post-launch QA.
+ */
+export function isQuickAddAutocaptureAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  return !!isDev || isStaffUser(user);
+}
+
+/** Today's Outfit launch surface — staff/dev, or explicit env restore for special builds. */
+export function isTodaysOutfitAllowed(isDev: boolean, user: StaffUserLike): boolean {
+  if (!!isDev || isStaffUser(user)) return true;
+  const flag = String(process.env.EXPO_PUBLIC_ENABLE_TODAYS_OUTFIT || '').trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}

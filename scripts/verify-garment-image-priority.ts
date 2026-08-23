@@ -6,9 +6,11 @@ import assert from 'node:assert/strict';
 
 import {
   assignLocalOriginalOnly,
+  buildWardrobeImageCacheEntryFromItem,
   coerceWardrobeDisplayImages,
   isFalselyMarkedProcessed,
   itemHasProcessedCutout,
+  mergeMappedItemWithImageCache,
   resolveWardrobeImageUri,
 } from '../utils/wardrobeImage';
 
@@ -78,6 +80,50 @@ function base(overrides: Record<string, unknown> = {}) {
   assert.equal(isFalselyMarkedProcessed(item), false);
   assert.equal(itemHasProcessedCutout(item), true);
   assert.ok(resolveWardrobeImageUri(item).includes('/api/wardrobe/item-1/image'));
+}
+
+// 6) CLIENT_SELECTS_ORIGINAL: stale local cache must not override durable server cutout
+{
+  const mapped = base({
+    imageUri: cutout,
+    enhancedImageUri: cutout,
+    imageProcessed: true,
+  });
+  const cacheEntry = {
+    imageUri: carpet,
+    enhancedImageUri: carpet,
+    originalImageUri: carpet,
+    imageProcessed: true,
+  };
+  const merged = mergeMappedItemWithImageCache(mapped, cacheEntry, { serverProcessed: true });
+  assert.equal(resolveWardrobeImageUri(merged), cutout);
+  assert.equal(merged.originalImageUri, carpet);
+
+  const cached = buildWardrobeImageCacheEntryFromItem(mapped, cacheEntry);
+  assert.equal(cached.imageUri, cutout);
+  assert.equal(cached.originalImageUri, carpet);
+  assert.equal(cached.imageProcessed, true);
+}
+
+// 7) Flicker guard: re-hydrate after cache write must not revert cutout to carpet
+{
+  const mapped = base({
+    imageUri: cutout,
+    enhancedImageUri: cutout,
+    imageProcessed: true,
+  });
+  const staleCache = {
+    imageUri: carpet,
+    enhancedImageUri: carpet,
+    originalImageUri: carpet,
+    imageProcessed: true,
+  };
+  const first = mergeMappedItemWithImageCache(mapped, staleCache, { serverProcessed: true });
+  assert.equal(resolveWardrobeImageUri(first), cutout);
+  const reCached = buildWardrobeImageCacheEntryFromItem(first, staleCache);
+  const second = mergeMappedItemWithImageCache(mapped, reCached, { serverProcessed: true });
+  assert.equal(resolveWardrobeImageUri(second), cutout);
+  assert.equal(second.originalImageUri, carpet);
 }
 
 console.log('verify-garment-image-priority: ok');
