@@ -248,10 +248,14 @@ export function pickVisionFields(analysis: any): {
   const nested = analysis?.analysis && typeof analysis.analysis === 'object'
     ? analysis.analysis
     : {};
+  const itemBlock = (analysis?.item && typeof analysis.item === 'object')
+    ? analysis.item
+    : (nested?.item && typeof nested.item === 'object' ? nested.item : {});
   const main =
     nested?.mainItem
     || analysis?.clothingAnalysis
     || (nested.category || nested.color ? nested : null)
+    || (itemBlock.category || itemBlock.color ? itemBlock : null)
     || {};
 
   const category =
@@ -291,13 +295,15 @@ export function pickVisionFields(analysis: any): {
     subcategory: subcategory ? String(subcategory) : undefined,
     color: color ? String(color) : null,
     confidence: Number.isFinite(confidence) ? confidence : 0,
-    brand: main?.brand || nested?.brand ? String(main?.brand || nested?.brand) : undefined,
-    material: main?.material || nested?.material
-      ? String(main?.material || nested?.material)
+    brand: (analysis?.brand || itemBlock?.brand || main?.brand || nested?.brand)
+      ? String(analysis?.brand || itemBlock?.brand || main?.brand || nested?.brand)
       : undefined,
-    suggestedName: analysis?.suggestedName || nested?.suggestedName || undefined,
-    seasons: main?.seasons || nested?.seasons,
-    occasions: main?.occasions || nested?.occasions,
+    material: (analysis?.material || itemBlock?.material || main?.material || nested?.material)
+      ? String(analysis?.material || itemBlock?.material || main?.material || nested?.material)
+      : undefined,
+    suggestedName: analysis?.suggestedName || nested?.suggestedName || itemBlock?.name || undefined,
+    seasons: main?.seasons || nested?.seasons || itemBlock?.season,
+    occasions: main?.occasions || nested?.occasions || itemBlock?.occasions,
     description: main?.description || nested?.description || undefined,
   };
 }

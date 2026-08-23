@@ -113,6 +113,8 @@ export const IMAGE_SIM_PROBABLE = 0.82;
 /** CLIP bands from GARMENT_CLIP_BENCHMARK.md — online path; offline uses dHash near-identical only. */
 export const CLIP_HARD = 0.97;
 export const CLIP_POSSIBLE = 0.90;
+/** Multi-signal re-photo rescue floor (server lockstep). */
+export const CLIP_REPHOTO_MIN = 0.86;
 
 export const GARMENT_FAMILIES = Object.freeze({
   top: Object.freeze(['tops', 'activewear_tops', 'sleepwear']),

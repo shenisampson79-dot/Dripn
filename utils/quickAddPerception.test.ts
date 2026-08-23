@@ -9,6 +9,7 @@ import {
   areFundamentallyIncompatible,
   isHangerShape,
   normalizeQuickAddColor,
+  pickVisionFields,
   quickAddMacroRole,
   resolveQuickAddCategory,
 } from './quickAddPerception';
@@ -148,5 +149,31 @@ assert.equal(normalizeQuickAddColor('multicoloured'), 'multicolor');
 assert.equal(normalizeQuickAddColor('weird-chartreuse-glow'), 'other');
 assert.equal(normalizeQuickAddColor(null), 'other');
 assert.equal(normalizeQuickAddColor(''), 'other');
+
+// Resilient scan: brand/material live on top-level + item block, not analysis.mainItem
+const resilientUa = {
+  brand: 'Under Armour',
+  material: 'synthetic',
+  category: 'activewear_tops',
+  color: 'blue',
+  suggestedName: 'Under Armour Aqua Blue Activewear',
+  item: {
+    brand: 'Under Armour',
+    material: 'synthetic',
+    category: 'activewear_tops',
+    color: { primary: 'aqua blue', tag: 'blue' },
+  },
+  analysis: {
+    item: {
+      brand: 'Under Armour',
+      material: 'synthetic',
+      category: 'activewear_tops',
+    },
+    confidence: 0.85,
+  },
+};
+const uaFields = pickVisionFields(resilientUa);
+assert.equal(uaFields.brand, 'Under Armour', 'resilient top-level brand');
+assert.equal(uaFields.material, 'synthetic', 'resilient top-level material');
 
 console.log('quickAddPerception.test.ts: all passed');

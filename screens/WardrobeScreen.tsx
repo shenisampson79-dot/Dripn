@@ -619,15 +619,28 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
       if (result.success) {
         if (result.alreadyProcessed) {
           Alert.alert(t('wardrobe.alreadyClean'), t('wardrobe.alreadyCleanMessage'));
-        } else if (result.imageUrl) {
+        } else if (result.backgroundRemoved === true || result.imageProcessed === true) {
           await reloadWardrobe();
           setSelectedItem((prev) =>
             prev?.id === item.id
-              ? { ...prev, imageUri: result.imageUrl!, enhancedImageUri: result.imageUrl!, imageProcessed: true }
+              ? {
+                  ...prev,
+                  imageUri: result.imageUrl || result.processedImageUrl || prev.imageUri,
+                  enhancedImageUri: result.processedImageUrl || result.imageUrl || prev.enhancedImageUri,
+                  imageProcessed: true,
+                }
               : prev
           );
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(t('common.done'), t('wardrobe.bgRemovedSuccess'));
+        } else if (result.imageUrl) {
+          // Defensive: never celebrate on URL shape alone — server must assert cutout.
+          await reloadWardrobe();
+          Alert.alert(
+            t('common.error') || 'Error',
+            t('wardrobe.failedToRemoveBg')
+              || 'Background removal did not produce a clean cutout. Try again.',
+          );
         }
       }
     } catch (error) {

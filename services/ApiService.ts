@@ -4024,8 +4024,17 @@ class ApiService {
     });
   }
 
-  async reprocessItemBackground(id: string): Promise<{ success: boolean; imageUrl?: string; alreadyProcessed?: boolean }> {
-    return this.request<{ success: boolean; imageUrl?: string; alreadyProcessed?: boolean }>(`/api/wardrobe/${id}/reprocess-background`, {
+  async reprocessItemBackground(id: string): Promise<{
+    success: boolean;
+    imageUrl?: string;
+    processedImageUrl?: string;
+    alreadyProcessed?: boolean;
+    backgroundRemoved?: boolean;
+    providerSucceeded?: boolean;
+    storageSucceeded?: boolean;
+    imageProcessed?: boolean;
+  }> {
+    return this.request(`/api/wardrobe/${id}/reprocess-background`, {
       method: 'POST',
       timeout: 60000,
     });

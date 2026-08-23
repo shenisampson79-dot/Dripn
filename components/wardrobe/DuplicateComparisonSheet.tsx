@@ -15,7 +15,7 @@ import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { DuplicateDecisionType, DuplicateMatch } from '@/utils/wardrobeDuplicateMatch';
-import { DEDUPE_COPY } from '@/utils/wardrobeDuplicateMatch';
+import { DEDUPE_COPY, SIMILAR_ITEM_COPY } from '@/utils/wardrobeDuplicateMatch';
 
 export type DuplicateComparisonProps = {
   visible: boolean;
@@ -61,7 +61,7 @@ function MatchCard({
         <ThemedText type="caption" style={{ color: theme.tabIconDefault }} numberOfLines={2}>
           {[match.color, match.category, match.brand].filter(Boolean).join(' · ')}
         </ThemedText>
-        {match.message ? (
+        {match.message && match.message !== DEDUPE_COPY.probable ? (
           <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 4 }} numberOfLines={3}>
             {match.message}
           </ThemedText>
@@ -93,18 +93,19 @@ export function DuplicateComparisonSheet({
   const isConflict = type === 'classification_conflict';
   const heading = title
     || (isSimilar
-      ? (t('wardrobe.isThisDifferentItem') || DEDUPE_COPY.probable)
+      ? (t('wardrobe.similarItemTitle') || SIMILAR_ITEM_COPY.title)
       : isConflict
         ? (t('wardrobe.looksFamiliar') || DEDUPE_COPY.conflict)
         : (t('wardrobe.alreadyHaveThis') || DEDUPE_COPY.hard));
   const body = message
-    || primary?.message
     || (isSimilar
-      ? (t('wardrobe.similarItemMessage') || 'Close, but not the same piece — add it if it is a different item.')
+      ? (t('wardrobe.similarItemCompareMessage') || SIMILAR_ITEM_COPY.message)
       : isConflict
         ? (t('wardrobe.classificationConflictMessage') || 'This photo looks like something you already own, even if the category label disagrees.')
-        : (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to something you already own.')
-          .replace('{names}', primary?.name || 'an existing item'));
+        : primary?.message && primary.message !== DEDUPE_COPY.probable
+          ? primary.message
+          : (t('wardrobe.alreadyHaveThisMessage') || 'This looks very similar to something you already own.')
+            .replace('{names}', primary?.name || 'an existing item'));
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -189,14 +190,16 @@ export function DuplicateComparisonSheet({
                 onPress={onClose}
                 style={[styles.secondaryBtn, { borderColor: theme.border }]}
               >
-                <ThemedText type="body">{t('wardrobe.keepExisting') || 'Keep existing'}</ThemedText>
+                <ThemedText type="body">
+                  {t('wardrobe.dontAddSimilar') || SIMILAR_ITEM_COPY.secondaryLabel}
+                </ThemedText>
               </Pressable>
               <Pressable
                 onPress={onContinue || onAddAnyway || onClose}
                 style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
               >
                 <ThemedText type="body" style={styles.primaryBtnText}>
-                  {t('wardrobe.addAsDifferentItem') || 'Add as a different item'}
+                  {t('wardrobe.addAsDifferentItem') || SIMILAR_ITEM_COPY.primaryLabel}
                 </ThemedText>
               </Pressable>
             </>
@@ -221,14 +224,14 @@ export function DuplicateComparisonSheet({
             </>
           ) : (
             <>
-              {primary && onViewExisting ? (
-                <Pressable
-                  onPress={() => onViewExisting(primary)}
-                  style={[styles.secondaryBtn, { borderColor: theme.border }]}
-                >
-                  <ThemedText type="body">{t('wardrobe.viewExisting') || 'View existing'}</ThemedText>
-                </Pressable>
-              ) : null}
+              <Pressable
+                onPress={onClose}
+                style={[styles.secondaryBtn, { borderColor: theme.border }]}
+              >
+                <ThemedText type="body">
+                  {t('common.skipDuplicates') || t('wardrobe.skipThisItem') || 'Skip'}
+                </ThemedText>
+              </Pressable>
               {allowForceAdd && onAddAnyway ? (
                 <Pressable
                   onPress={onAddAnyway}
@@ -237,6 +240,14 @@ export function DuplicateComparisonSheet({
                   <ThemedText type="body" style={styles.primaryBtnText}>
                     {t('common.addAnyway') || 'Add anyway'}
                   </ThemedText>
+                </Pressable>
+              ) : null}
+              {primary && onViewExisting ? (
+                <Pressable
+                  onPress={() => onViewExisting(primary)}
+                  style={[styles.secondaryBtn, { borderColor: theme.border, marginTop: Spacing.sm }]}
+                >
+                  <ThemedText type="body">{t('wardrobe.viewExisting') || 'View existing'}</ThemedText>
                 </Pressable>
               ) : null}
             </>
