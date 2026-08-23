@@ -2,8 +2,11 @@
  * Outfit lock clarification continuity — client FSM (mirrors travel clarify).
  *
  * After server `partial_lock_clarify`, preserve the pending outfit task so a
- * natural short reply ("The black Next blazer.") re-enters
- * POST /api/chat/outfit-from-wardrobe with frozen originalUserMessage + merged locks.
+ * natural short reply re-enters POST /api/chat/outfit-from-wardrobe with frozen
+ * originalUserMessage + merged locks.
+ *
+ * Readiness invariant: a clarification is complete only when every required
+ * structural slot is resolved unambiguously and expectedLockCount is satisfied.
  *
  * Spec: docs/qa/STYLIST_CHAT_OUTFIT_CONTINUITY_SPEC.md
  */
@@ -20,6 +23,9 @@ export type OutfitClarifyWeatherSnap = {
   temperature: number;
   condition: string;
 } | null;
+
+/** Structural garment slots used for readiness and pending-slot validation. */
+export type StructuralSlot = 'top' | 'blazer_or_outerwear' | 'bottom' | 'shoes' | 'other';
 
 export type OutfitClarifyPending = {
   flow: typeof OUTFIT_LOCK_CLARIFY_FLOW;
@@ -53,12 +59,294 @@ export type OutfitRouteDecision =
   | { route: 'awaiting_more'; pending: OutfitClarifyPending; clarifyHint?: string }
   | { route: 'other' };
 
+export type AdvanceOutfitClarifyResult = {
+  state: OutfitClarifyState;
+  lockedItemIds: string[];
+  ready: boolean;
+  pending: OutfitClarifyPending;
+  clarifyHint?: string;
+  ambiguous?: boolean;
+  wrongSlot?: boolean;
+};
+
 type MessageLike = {
   role?: string;
   outfitClarify?: OutfitClarifyPending | null;
   hasOutfitRecommendation?: boolean;
   wardrobeVisual?: unknown;
 };
+
+type ScoredWardrobeMatch = {
+  item: WardrobeItem;
+  score: number;
+};
+
+const MATCH_STOP_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'with', 'in', 'of', 'for', 'your', 'my', 'from',
+  'cotton', 'linen', 'wool', 'leather', 'light', 'dark', 'soft', 'pair', 'wear',
+  'carry', 'this', 'works', 'because', 'optional', 'use', 'actually', 'instead',
+]);
+
+function normalizeForMatch(value: string) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getSignificantTokens(value: string) {
+  return normalizeForMatch(value)
+    .split(' ')
+    .filter((word) => word.length > 2 && !MATCH_STOP_WORDS.has(word));
+}
+
+/** Local token scorer — mirrors wardrobeMentionMatcher scoring for clarify replies. */
+export function scoreClarifyTextMatch(itemSurface: string, query: string): number {
+  const normName = normalizeForMatch(itemSurface);
+  const normText = normalizeForMatch(query);
+  if (!normName || !normText) return 0;
+
+  if (normText.includes(normName)) return normName.length + 50;
+
+  const tokens = getSignificantTokens(itemSurface);
+  if (tokens.length === 0) return 0;
+
+  const matched = tokens.filter((token) => normText.includes(token));
+  const ratio = matched.length / tokens.length;
+
+  if (matched.length >= 2 && ratio >= 0.38) {
+    return matched.join('').length + ratio * 20;
+  }
+  if (tokens.length === 1 && matched.length === 1) {
+    return matched[0].length;
+  }
+  return 0;
+}
+
+function itemMatchSurfaces(item: WardrobeItem): string[] {
+  const name = String(item.name || '').trim();
+  const alias = [item.brand, item.color, name].filter(Boolean).join(' ');
+  return alias === name ? [name] : [name, alias];
+}
+
+function wardrobeById(wardrobeItems: WardrobeItem[]): Map<string, WardrobeItem> {
+  return new Map(wardrobeItems.map((item) => [String(item.id), item]));
+}
+
+function lookupLockedItems(ids: string[], wardrobeItems: WardrobeItem[]): WardrobeItem[] {
+  const byId = wardrobeById(wardrobeItems);
+  return ids.map((id) => byId.get(String(id))).filter((item): item is WardrobeItem => Boolean(item));
+}
+
+function itemTextBlob(item: WardrobeItem): string {
+  return `${item.name || ''} ${item.category || ''} ${item.subcategory || ''} ${item.brand || ''}`.toLowerCase();
+}
+
+/** Map a wardrobe item to its structural slot for lock validation. */
+export function inferItemStructuralSlot(item: WardrobeItem): StructuralSlot {
+  const blob = itemTextBlob(item);
+  const cat = String(item.category || '').toLowerCase();
+
+  if (cat === 'shoes' || /\b(shoe|boot|trainer|sneaker|loafers?|footwear|ugg)\b/.test(blob)) {
+    return 'shoes';
+  }
+  if (cat === 'bottoms' || /\b(trouser|pant|jean|short|skirt|chino|cargo)\b/.test(blob)) {
+    return 'bottom';
+  }
+  if (/\bblazer\b/.test(blob)) return 'blazer_or_outerwear';
+  if (cat === 'outerwear' || /\b(jacket|coat|overcoat|gilet)\b/.test(blob)) {
+    return 'blazer_or_outerwear';
+  }
+  if (cat === 'tops' || /\b(tee|shirt|top|polo|tank|blouse|henley|sweater|jumper|hoodie|running)\b/.test(blob)) {
+    return 'top';
+  }
+  return 'other';
+}
+
+function structuralSlotMatchesRequired(itemSlot: StructuralSlot, required: StructuralSlot): boolean {
+  if (required === itemSlot) return true;
+  if (required === 'blazer_or_outerwear' && itemSlot === 'blazer_or_outerwear') return true;
+  return false;
+}
+
+/** Infer required structural slots from the original outfit ask. */
+export function inferRequiredStructuralSlotsFromAsk(
+  originalAsk: string,
+  expectedCount: number,
+): StructuralSlot[] {
+  const t = String(originalAsk || '').toLowerCase();
+  const slots: StructuralSlot[] = [];
+
+  if (/\b(running top|performance top|gym top|training top|tee|shirt|top|tank|blouse|polo|henley|jumper|sweater|hoodie|chambray)\b/.test(t)) {
+    slots.push('top');
+  }
+  if (/\b(blazer|jacket|coat|outerwear)\b/.test(t)) {
+    slots.push('blazer_or_outerwear');
+  }
+  if (/\b(trouser|pant|jean|short|skirt|bottom|chino)\b/.test(t)) {
+    slots.push('bottom');
+  }
+  if (/\b(shoe|boot|trainer|sneaker|loafer|footwear)\b/.test(t)) {
+    slots.push('shoes');
+  }
+
+  const expected = Math.max(1, expectedCount || 1);
+  while (slots.length < expected) {
+    slots.push('other');
+  }
+  return slots.slice(0, expected);
+}
+
+function pendingSlotToStructuralTargets(
+  pendingSlot: OutfitClarifyPending['pendingSlot'],
+  originalAsk: string,
+  priorLockedItems: WardrobeItem[],
+): StructuralSlot[] {
+  if (pendingSlot === 'blazer') return ['blazer_or_outerwear'];
+  if (pendingSlot === 'second_piece') {
+    const required = inferRequiredStructuralSlotsFromAsk(originalAsk, Math.max(2, priorLockedItems.length + 1));
+    const filled = new Set(priorLockedItems.map(inferItemStructuralSlot));
+    return required.filter((slot) => !filled.has(slot));
+  }
+  const required = inferRequiredStructuralSlotsFromAsk(originalAsk, Math.max(2, priorLockedItems.length + 1));
+  const filled = new Set(priorLockedItems.map(inferItemStructuralSlot));
+  const missing = required.filter((slot) => !filled.has(slot));
+  return missing.length ? missing : ['other'];
+}
+
+/** True when the item satisfies the currently pending unresolved slot(s). */
+export function itemSatisfiesPendingSlot(
+  item: WardrobeItem,
+  pendingSlot: OutfitClarifyPending['pendingSlot'],
+  priorLockedItems: WardrobeItem[],
+  originalAsk: string,
+): boolean {
+  const itemSlot = inferItemStructuralSlot(item);
+  const targets = pendingSlotToStructuralTargets(pendingSlot, originalAsk, priorLockedItems);
+
+  if (!targets.length) return false;
+
+  if (targets.some((target) => structuralSlotMatchesRequired(itemSlot, target))) {
+    if (pendingSlot === 'second_piece' || pendingSlot === 'garment') {
+      const priorSlots = priorLockedItems.map(inferItemStructuralSlot);
+      if (priorSlots.includes(itemSlot) && itemSlot !== 'other') return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+/** Infer which slot Ivy is still waiting on after partial resolution. */
+export function inferNextPendingSlot(
+  prior: OutfitClarifyPending,
+  lockedItemIds: string[],
+  wardrobeItems: WardrobeItem[],
+): OutfitClarifyPending['pendingSlot'] {
+  const lockedItems = lookupLockedItems(lockedItemIds, wardrobeItems);
+  const required = inferRequiredStructuralSlotsFromAsk(
+    prior.originalUserMessage,
+    prior.expectedLockCount,
+  );
+  const filled = new Set(lockedItems.map(inferItemStructuralSlot));
+
+  for (const slot of required) {
+    if (!filled.has(slot)) {
+      if (slot === 'blazer_or_outerwear') return 'blazer';
+      return 'garment';
+    }
+  }
+  return lockedItems.length < prior.expectedLockCount ? 'second_piece' : 'garment';
+}
+
+/**
+ * Readiness predicate — BOTH lock count AND every required structural slot satisfied.
+ * Finding any wardrobe item alone never makes the task READY.
+ */
+export function evaluateOutfitClarifyReadiness(
+  prior: OutfitClarifyPending,
+  lockedItemIds: string[],
+  wardrobeItems: WardrobeItem[],
+): boolean {
+  const expected = Math.max(1, Number(prior.expectedLockCount) || 1);
+  if (lockedItemIds.length < expected) return false;
+
+  const lockedItems = lookupLockedItems(lockedItemIds, wardrobeItems);
+  if (lockedItems.length < expected) return false;
+
+  const required = inferRequiredStructuralSlotsFromAsk(prior.originalUserMessage, expected);
+
+  for (const req of required) {
+    if (req === 'other') continue;
+    if (!lockedItems.some((item) => structuralSlotMatchesRequired(inferItemStructuralSlot(item), req))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function looksLikeSlotCorrection(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  return (
+    /\b(actually|instead|rather|not that|wrong one)\b/i.test(t)
+    || /\b(use|wear|pick|choose)\b.{0,40}\b(the|my)\b.{0,40}\b(instead|rather)\b/i.test(t)
+    || /\b(swap|change)\b.{0,24}\b(to|for)\b/i.test(t)
+  );
+}
+
+function scoreClarifyItemMatch(item: WardrobeItem, query: string): number {
+  return Math.max(...itemMatchSurfaces(item).map((surface) => scoreClarifyTextMatch(surface, query)), 0);
+}
+
+/** Score and rank clarify reply candidates (brand/color alias included). */
+export function matchClarifyCandidatesScored(
+  query: string,
+  wardrobeItems: WardrobeItem[],
+  limit = 8,
+): ScoredWardrobeMatch[] {
+  const seen = new Set<string>();
+  const scored: ScoredWardrobeMatch[] = [];
+
+  for (const item of wardrobeItems) {
+    const score = scoreClarifyItemMatch(item, query);
+    if (score <= 0 || seen.has(String(item.id))) continue;
+    seen.add(String(item.id));
+    scored.push({ item, score });
+  }
+
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+function isAmbiguousAmongCandidates(candidates: ScoredWardrobeMatch[]): boolean {
+  if (candidates.length <= 1) return false;
+  const [top, second] = candidates;
+  const scoreDiff = top.score - second.score;
+  const ratio = top.score > 0 ? second.score / top.score : 0;
+  return scoreDiff < 12 && ratio >= 0.72;
+}
+
+function formatItemLabel(item: WardrobeItem): string {
+  const parts = [item.color, item.brand, item.name].filter(Boolean);
+  return parts.join(' ').trim() || String(item.name || 'item');
+}
+
+export function buildAmbiguityClarifyHint(candidates: WardrobeItem[], pendingSlot?: OutfitClarifyPending['pendingSlot']): string {
+  const labels = candidates.slice(0, 4).map(formatItemLabel);
+  const slotWord = pendingSlot === 'blazer' ? 'blazer' : 'piece';
+  if (labels.length === 2) {
+    return `I found two ${slotWord}s that could work — ${labels[0]} or ${labels[1]}?`;
+  }
+  return `I found a few ${slotWord}s that could work — ${labels.join(', ')}. Which one did you mean?`;
+}
+
+export function buildWrongSlotClarifyHint(pendingSlot?: OutfitClarifyPending['pendingSlot']): string {
+  if (pendingSlot === 'blazer') {
+    return "That doesn't look like the blazer I'm waiting for — which blazer from your wardrobe did you mean?";
+  }
+  return "That piece doesn't match what I'm waiting for — which item from your wardrobe did you mean?";
+}
 
 export function emptyOutfitClarifyState(): OutfitClarifyPending {
   return {
@@ -155,11 +443,13 @@ export function isWardrobeOutfitRefineAsk(text: string): boolean {
   );
 }
 
-export function isOutfitClarifyReady(state: OutfitClarifyPending | null | undefined): boolean {
+export function isOutfitClarifyReady(
+  state: OutfitClarifyPending | null | undefined,
+  wardrobeItems: WardrobeItem[] = [],
+): boolean {
   if (!state || state.state === 'DONE') return false;
   if (state.state === 'READY') return true;
-  const expected = Math.max(1, Number(state.expectedLockCount) || 1);
-  return (state.lockedItemIds || []).length >= expected;
+  return evaluateOutfitClarifyReadiness(state, state.lockedItemIds || [], wardrobeItems);
 }
 
 export function looksLikeOutfitClarifyCancel(text: string): boolean {
@@ -214,26 +504,14 @@ export function findPendingOutfitClarify(
 
 /**
  * Resolve a short clarify reply against wardrobe — include brand/color in the
- * match surface so "The black Next blazer" hits brand=Next + name=… Blazer.
+ * match surface so brand+colour tokens in the reply can hit structured fields.
  */
 export function matchClarifyReplyItems(
   query: string,
   wardrobeItems: WardrobeItem[],
   limit = 4,
 ): WardrobeItem[] {
-  const primary = matchWardrobeItemsInText(query, wardrobeItems, limit);
-  if (primary.length) return primary;
-
-  const aliased = wardrobeItems.map((item) => ({
-    ...item,
-    name: [item.brand, item.color, item.name].filter(Boolean).join(' '),
-  }));
-  const viaAlias = matchWardrobeItemsInText(query, aliased, limit);
-  if (!viaAlias.length) return [];
-  const byId = new Map(wardrobeItems.map((item) => [String(item.id), item]));
-  return viaAlias
-    .map((hit) => byId.get(String(hit.id)))
-    .filter((item): item is WardrobeItem => Boolean(item));
+  return matchClarifyCandidatesScored(query, wardrobeItems, limit).map((entry) => entry.item);
 }
 
 /** Build server userMessage after clarify — keep original ask, append confirmation. */
@@ -283,31 +561,83 @@ export function advanceOutfitClarify(params: {
   query: string;
   prior: OutfitClarifyPending;
   wardrobeItems: WardrobeItem[];
-}): {
-  state: OutfitClarifyState;
-  lockedItemIds: string[];
-  ready: boolean;
-  pending: OutfitClarifyPending;
-} {
+}): AdvanceOutfitClarifyResult {
   const prior = params.prior;
   const priorIds = prior.lockedItemIds || [];
-  const matches = matchClarifyReplyItems(params.query, params.wardrobeItems, 4);
-  const newIds = matches.map((m) => String(m.id)).filter(Boolean);
-  const lockedItemIds = [...new Set([...priorIds, ...newIds])];
-  const expected = Math.max(1, Number(prior.expectedLockCount) || 1);
-  const addedNew = newIds.some((id) => !priorIds.includes(id));
-  // After Ivy asked for a piece, one successful wardrobe match answers the question.
-  const ready =
-    lockedItemIds.length >= expected
-    || (prior.state === 'AWAITING_PIECE' && addedNew);
+  const priorItems = lookupLockedItems(priorIds, params.wardrobeItems);
+  const isCorrection = looksLikeSlotCorrection(params.query);
+
+  const scored = matchClarifyCandidatesScored(params.query, params.wardrobeItems, 8);
+  const slotCandidates = scored.filter((entry) =>
+    itemSatisfiesPendingSlot(
+      entry.item,
+      prior.pendingSlot,
+      priorItems,
+      prior.originalUserMessage,
+    ),
+  );
+
+  if (slotCandidates.length === 0) {
+    const hadAnyMatch = scored.length > 0;
+    return {
+      state: 'AWAITING_PIECE',
+      lockedItemIds: priorIds,
+      ready: false,
+      pending: { ...prior, state: 'AWAITING_PIECE' },
+      wrongSlot: hadAnyMatch,
+      clarifyHint: hadAnyMatch
+        ? buildWrongSlotClarifyHint(prior.pendingSlot)
+        : 'Which piece did you mean from your wardrobe?',
+    };
+  }
+
+  if (isAmbiguousAmongCandidates(slotCandidates)) {
+    return {
+      state: 'AWAITING_PIECE',
+      lockedItemIds: priorIds,
+      ready: false,
+      pending: { ...prior, state: 'AWAITING_PIECE' },
+      ambiguous: true,
+      clarifyHint: buildAmbiguityClarifyHint(
+        slotCandidates.map((entry) => entry.item),
+        prior.pendingSlot,
+      ),
+    };
+  }
+
+  const chosen = slotCandidates[0].item;
+  const chosenId = String(chosen.id);
+  const chosenSlot = inferItemStructuralSlot(chosen);
+
+  let lockedItemIds: string[];
+  if (isCorrection) {
+    lockedItemIds = [
+      ...priorIds.filter((id) => {
+        const item = params.wardrobeItems.find((w) => String(w.id) === String(id));
+        return item ? inferItemStructuralSlot(item) !== chosenSlot : true;
+      }),
+      chosenId,
+    ];
+    lockedItemIds = [...new Set(lockedItemIds)];
+  } else if (priorIds.includes(chosenId)) {
+    lockedItemIds = priorIds;
+  } else {
+    lockedItemIds = [...new Set([...priorIds, chosenId])];
+  }
+
+  const ready = evaluateOutfitClarifyReadiness(prior, lockedItemIds, params.wardrobeItems);
   const pending: OutfitClarifyPending = {
     ...prior,
     lockedItemIds,
+    pendingSlot: ready
+      ? prior.pendingSlot
+      : inferNextPendingSlot(prior, lockedItemIds, params.wardrobeItems),
     state: ready ? 'READY' : 'AWAITING_PIECE',
     continuationCount: ready
       ? Number(prior.continuationCount || 0) + 1
       : prior.continuationCount || 0,
   };
+
   return {
     state: pending.state,
     lockedItemIds,
@@ -350,7 +680,6 @@ export function resolveOutfitRoute(params: {
         route: 'outfit-from-wardrobe',
         reason: 'pending_ready',
         pending: { ...advanced.pending, state: 'DONE' },
-        // Spec: never send the short reply alone — append confirmation to frozen ask.
         userMessageForServer: buildContinuedOutfitUserMessage(
           pending.originalUserMessage,
           text,
@@ -365,7 +694,7 @@ export function resolveOutfitRoute(params: {
     return {
       route: 'awaiting_more',
       pending: advanced.pending,
-      clarifyHint: 'Which piece did you mean from your wardrobe?',
+      clarifyHint: advanced.clarifyHint || 'Which piece did you mean from your wardrobe?',
     };
   }
 

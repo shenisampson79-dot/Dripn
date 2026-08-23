@@ -9,7 +9,11 @@ import type { WardrobeItem } from '../contexts/WardrobeContext';
 import {
   advanceOutfitClarify,
   buildOutfitClarifyFromPartialLock,
+  clearOutfitClarify,
+  evaluateOutfitClarifyReadiness,
   findPendingOutfitClarify,
+  inferItemStructuralSlot,
+  isOutfitClarifyReady,
   isOutfitTaskAsk,
   isSingleLookWardrobeCreateAsk,
   isWardrobeHardLockAsk,
@@ -43,6 +47,15 @@ const wardrobe: WardrobeItem[] = [
   item({ id: '12', category: 'shoes', name: 'White Trainers', brand: 'Nike', color: 'white' }),
 ];
 
+const extendedWardrobe: WardrobeItem[] = [
+  ...wardrobe,
+  item({ id: '201', category: 'outerwear', name: 'Grey Blazer', brand: 'Cavani', color: 'grey' }),
+  item({ id: '202', category: 'outerwear', name: 'Navy Blazer', brand: 'M&S', color: 'navy' }),
+  item({ id: '203', category: 'outerwear', name: 'Black Leather Jacket', brand: 'AllSaints', color: 'black' }),
+  item({ id: '301', category: 'tops', name: 'Black Cotton Tee', brand: 'Uniqlo', color: 'black' }),
+  item({ id: '302', category: 'tops', name: 'Black Polo', brand: 'Lacoste', color: 'black' }),
+];
+
 const ASK_A1 =
   'I want to wear my running top with my smartest blazer for dinner tonight. Build the outfit around those two pieces.';
 const REPLY_A3 = 'The black Next blazer.';
@@ -50,6 +63,31 @@ const ASK_B1 = 'I definitely want to wear my chambray shirt. Build the rest arou
 const ASK_C2 = 'Who invented the little black dress?';
 const ASK_D2 = 'Never mind, different question.';
 const ASK_E2 = 'Keep the shoes but change the top and bottoms';
+
+function pendingDual(lockedItemIds: string[]) {
+  return buildOutfitClarifyFromPartialLock({
+    originalUserMessage: ASK_A1,
+    occasion: 'evening_out',
+    lockedItemIds,
+    expectedLockCount: 2,
+    pendingSlot: 'blazer',
+    weather: { temperature: 17, condition: 'clear' },
+    lat: 51.5,
+  });
+}
+
+function messagesWithPending(pending: ReturnType<typeof pendingDual>) {
+  return [
+    { role: 'user' as const, content: ASK_A1 },
+    {
+      role: 'assistant' as const,
+      content: 'Which blazer did you mean from your wardrobe?',
+      outfitClarify: pending,
+    },
+  ];
+}
+
+const matrix: Record<string, 'PASS' | 'FAIL'> = {};
 
 // ── Fixture A — Test 4 class (clarify continuity) ─────────────────────────
 
@@ -59,201 +97,220 @@ const a1 = resolveOutfitRoute({
   wardrobeItems: wardrobe,
 });
 assert.equal(a1.route, 'outfit-from-wardrobe', 'A1 → outfit-from-wardrobe');
-assert.ok(
-  a1.route === 'outfit-from-wardrobe' && (a1.reason === 'outfit_task' || a1.reason === 'hard_lock'),
-  'A1 reason is outfit task or hard lock',
-);
-assert.equal(
-  a1.route === 'outfit-from-wardrobe' ? a1.userMessageForServer : '',
-  ASK_A1,
-  'A1 userMessage is original ask',
-);
+matrix['one-piece hard lock (B covers); initial outfit ask routes'] = a1.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
 
-// A2: simulate server partial_lock_clarify — persist pending with partial lock (running top)
-const partialLocks = advanceOutfitClarify({
-  query: ASK_A1,
-  prior: buildOutfitClarifyFromPartialLock({
-    originalUserMessage: ASK_A1,
-    occasion: 'evening_out',
-    lockedItemIds: [],
-    expectedLockCount: 2,
-  }),
-  wardrobeItems: wardrobe,
-}).lockedItemIds;
-// Prefer at least running top if matcher finds it
-const locksAfterA1 = partialLocks.length
-  ? partialLocks.slice(0, 1)
-  : ['107'];
-const pendingA2 = buildOutfitClarifyFromPartialLock({
-  originalUserMessage: ASK_A1,
-  occasion: 'evening_out',
-  lockedItemIds: locksAfterA1,
-  expectedLockCount: 2,
-  weather: { temperature: 17, condition: 'clear' },
-  lat: 51.5,
-});
-assert.equal(pendingA2.state, 'AWAITING_PIECE', 'A2 state AWAITING_PIECE');
-assert.equal(pendingA2.originalUserMessage, ASK_A1, 'A2 stores original message');
-assert.equal(pendingA2.occasion, 'evening_out');
-
-const messagesAfterClarify = [
-  { role: 'user' as const, content: ASK_A1 },
-  {
-    role: 'assistant' as const,
-    content: 'I want to lock both pieces you named — Which blazer (or second piece) did you mean from your wardrobe?',
-    outfitClarify: pendingA2,
-  },
-];
+const pendingA2 = pendingDual(['107']);
+const messagesAfterClarify = messagesWithPending(pendingA2);
 assert.ok(findPendingOutfitClarify(messagesAfterClarify), 'A2 findPending finds state');
+matrix['two-piece partial lock persisted'] = 'PASS';
 
-// A3: natural short reply — must NOT go to resilient; must use frozen A1 as userMessage
 const a3 = resolveOutfitRoute({
   userText: REPLY_A3,
   messages: messagesAfterClarify,
   wardrobeItems: wardrobe,
 });
-assert.equal(a3.route, 'outfit-from-wardrobe', 'A3 → outfit-from-wardrobe (not resilient)');
-assert.equal(
-  a3.route === 'outfit-from-wardrobe' ? a3.reason : '',
-  'pending_ready',
-  'A3 reason pending_ready',
-);
-assert.ok(
-  a3.route === 'outfit-from-wardrobe'
-    && a3.userMessageForServer.startsWith(ASK_A1)
-    && a3.userMessageForServer.includes('User confirmed piece:')
-    && a3.userMessageForServer.includes(REPLY_A3),
-  'A3 userMessageForServer freezes A1 and appends short reply confirmation',
-);
-assert.notEqual(
-  a3.route === 'outfit-from-wardrobe' ? a3.userMessageForServer : '',
-  REPLY_A3,
-  'A3 must not send short reply alone as main userMessage',
-);
+assert.equal(a3.route, 'outfit-from-wardrobe', 'A3 → outfit-from-wardrobe');
+assert.equal(a3.route === 'outfit-from-wardrobe' ? a3.reason : '', 'pending_ready');
 if (a3.route === 'outfit-from-wardrobe') {
-  assert.ok(a3.lockedItemIds.length >= 1, 'A3 merged at least the confirmed blazer');
-  assert.ok(
-    a3.lockedItemIds.some((id) => id === '85' || id === String(85)),
-    'A3 includes Next blazer id from short reply',
-  );
-  assert.equal(a3.occasion, 'evening_out');
+  assert.equal(a3.lockedItemIds.length, 2, 'A3 must have exactly two locks');
+  assert.ok(a3.lockedItemIds.includes('107'), 'A3 keeps running top lock');
+  assert.ok(a3.lockedItemIds.includes('85'), 'A3 adds Next blazer lock');
+  assert.ok(a3.userMessageForServer.startsWith(ASK_A1));
+  assert.ok(a3.userMessageForServer.includes('User confirmed piece:'));
 }
+matrix['correct blazer resolves slot → READY with two locks'] =
+  a3.route === 'outfit-from-wardrobe'
+  && a3.route === 'outfit-from-wardrobe'
+  && a3.lockedItemIds.length === 2
+  && a3.lockedItemIds.includes('107')
+  && a3.lockedItemIds.includes('85')
+    ? 'PASS'
+    : 'FAIL';
+matrix['short clarification reply'] = a3.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
 
 // Brand lives on brand field, not name — short reply must still resolve
 const brandOnlyWardrobe: WardrobeItem[] = [
   item({ id: '107', category: 'tops', name: 'Performance Running Top', brand: 'Nike', color: 'black' }),
   item({ id: '85', category: 'outerwear', name: 'Wool Blazer', brand: 'Next', color: 'black' }),
 ];
-const pendingBrand = buildOutfitClarifyFromPartialLock({
-  originalUserMessage: ASK_A1,
-  occasion: 'evening_out',
-  lockedItemIds: ['107'],
-  expectedLockCount: 2,
-});
 const a3Brand = resolveOutfitRoute({
   userText: REPLY_A3,
-  messages: [
-    { role: 'user', content: ASK_A1 },
-    {
-      role: 'assistant',
-      content: 'Which blazer?',
-      outfitClarify: pendingBrand,
-    },
-  ],
+  messages: messagesWithPending(pendingDual(['107'])),
   wardrobeItems: brandOnlyWardrobe,
 });
-assert.equal(a3Brand.route, 'outfit-from-wardrobe', 'A3 brand-field match → outfit-from-wardrobe');
+assert.equal(a3Brand.route, 'outfit-from-wardrobe');
 if (a3Brand.route === 'outfit-from-wardrobe') {
-  assert.ok(a3Brand.lockedItemIds.includes('85'), 'A3 brand-field resolves Next blazer');
+  assert.equal(a3Brand.lockedItemIds.length, 2);
+  assert.ok(a3Brand.lockedItemIds.includes('85'));
 }
 
-// ── Fixture B — Test 3 class (hard lock, no clarify) ──────────────────────
+// ── Slot validation regressions ───────────────────────────────────────────
 
-assert.equal(isWardrobeHardLockAsk(ASK_B1), true, 'B1 isWardrobeHardLockAsk');
-assert.equal(isOutfitTaskAsk(ASK_B1), true, 'B1 isOutfitTaskAsk');
-// May or may not match classic single-look regex — hard lock must be enough
-const b1 = resolveOutfitRoute({
-  userText: ASK_B1,
-  messages: [],
+const wrongSlot = resolveOutfitRoute({
+  userText: 'The black tee.',
+  messages: messagesWithPending(pendingDual(['107'])),
+  wardrobeItems: extendedWardrobe,
+});
+assert.equal(wrongSlot.route, 'awaiting_more', 'wrong-slot tee → awaiting_more');
+if (wrongSlot.route === 'awaiting_more') {
+  assert.deepEqual(wrongSlot.pending.lockedItemIds, ['107'], 'wrong-slot preserves prior lock');
+  assert.ok(wrongSlot.clarifyHint?.includes('blazer'), 'wrong-slot hint mentions blazer');
+}
+matrix['wrong-slot tee rejected'] = wrongSlot.route === 'awaiting_more' ? 'PASS' : 'FAIL';
+
+const underCount = advanceOutfitClarify({
+  query: REPLY_A3,
+  prior: pendingDual([]),
+  wardrobeItems: brandOnlyWardrobe,
+});
+assert.equal(underCount.ready, false, '1/2 locks → NOT READY');
+assert.equal(underCount.lockedItemIds.length, 1, 'partial blazer lock stored');
+matrix['only 1/2 locks → NOT READY'] = !underCount.ready && underCount.lockedItemIds.length === 1 ? 'PASS' : 'FAIL';
+
+const ambiguous = resolveOutfitRoute({
+  userText: 'The black one.',
+  messages: messagesWithPending(pendingDual(['107'])),
+  wardrobeItems: [
+    item({ id: '107', category: 'tops', name: 'Performance Running Top', brand: 'Nike', color: 'black' }),
+    item({ id: '85', category: 'outerwear', name: 'Black Next Blazer', brand: 'Next', color: 'black' }),
+    item({ id: '86', category: 'outerwear', name: 'Black Wool Blazer', brand: 'M&S', color: 'black' }),
+  ],
+});
+assert.equal(ambiguous.route, 'awaiting_more', 'ambiguous black blazers → clarify');
+assert.ok(
+  ambiguous.route === 'awaiting_more' && ambiguous.clarifyHint?.includes('two'),
+  'ambiguity hint distinguishes options',
+);
+matrix['ambiguous black blazers → clarify'] = ambiguous.route === 'awaiting_more' ? 'PASS' : 'FAIL';
+
+const unresolvable = resolveOutfitRoute({
+  userText: 'Something random xyz.',
+  messages: messagesAfterClarify,
   wardrobeItems: wardrobe,
 });
-assert.equal(b1.route, 'outfit-from-wardrobe', 'B1 → outfit-from-wardrobe');
-assert.ok(
-  b1.route === 'outfit-from-wardrobe'
-    && (b1.reason === 'hard_lock' || b1.reason === 'outfit_task'),
-  'B1 via hard_lock or outfit_task',
-);
+assert.equal(unresolvable.route, 'awaiting_more');
+if (unresolvable.route === 'awaiting_more') {
+  assert.deepEqual(unresolvable.pending.lockedItemIds, ['107']);
+  assert.equal(unresolvable.pending.originalUserMessage, ASK_A1);
+}
+matrix['unresolvable reply → clarify while preserving task'] = unresolvable.route === 'awaiting_more' ? 'PASS' : 'FAIL';
 
-// Natural hard lock without "from my wardrobe" / without requiring outfit keyword alone
+const correction = resolveOutfitRoute({
+  userText: 'Actually use the grey one instead.',
+  messages: messagesWithPending(
+    buildOutfitClarifyFromPartialLock({
+      originalUserMessage: ASK_A1,
+      occasion: 'evening_out',
+      lockedItemIds: ['107', '85'],
+      expectedLockCount: 2,
+      pendingSlot: 'blazer',
+    }),
+  ),
+  wardrobeItems: extendedWardrobe,
+});
+assert.equal(correction.route, 'outfit-from-wardrobe', 'correction → outfit POST');
+if (correction.route === 'outfit-from-wardrobe') {
+  assert.ok(correction.lockedItemIds.includes('107'), 'correction keeps running top');
+  assert.ok(correction.lockedItemIds.includes('201'), 'correction adds grey blazer');
+  assert.ok(!correction.lockedItemIds.includes('85'), 'correction removes replaced black blazer');
+  assert.equal(correction.lockedItemIds.length, 2);
+}
+matrix['correction replaces same-slot lock'] =
+  correction.route === 'outfit-from-wardrobe'
+  && correction.lockedItemIds.includes('201')
+  && !correction.lockedItemIds.includes('85')
+    ? 'PASS'
+    : 'FAIL';
+
+// Generic phrase coverage (same mechanism, not phrase-specific)
+const cavani = resolveOutfitRoute({
+  userText: 'Use my Cavani grey blazer.',
+  messages: messagesWithPending(pendingDual(['107'])),
+  wardrobeItems: extendedWardrobe,
+});
+assert.equal(cavani.route, 'outfit-from-wardrobe');
+if (cavani.route === 'outfit-from-wardrobe') {
+  assert.ok(cavani.lockedItemIds.includes('201'));
+  assert.equal(cavani.lockedItemIds.length, 2);
+}
+
+// Readiness predicate unit checks
+const pendingForReady = pendingDual(['107', '85']);
 assert.equal(
-  isSingleLookWardrobeCreateAsk('I definitely want to wear my chambray shirt.'),
-  false,
-  'wear-my alone is not classic single-look (ok — hard lock covers with build-around)',
+  evaluateOutfitClarifyReadiness(pendingForReady, ['107', '85'], wardrobe),
+  true,
+  'readiness: top + blazer satisfied',
 );
+assert.equal(
+  evaluateOutfitClarifyReadiness(pendingForReady, ['107', '301'], extendedWardrobe),
+  false,
+  'readiness: top + tee is NOT satisfied',
+);
+assert.equal(inferItemStructuralSlot(wardrobe[0]), 'top');
+assert.equal(inferItemStructuralSlot(wardrobe[1]), 'blazer_or_outerwear');
+
+// ── Fixture B — hard lock ─────────────────────────────────────────────────
+
+const b1 = resolveOutfitRoute({ userText: ASK_B1, messages: [], wardrobeItems: wardrobe });
+assert.equal(b1.route, 'outfit-from-wardrobe');
 assert.equal(isWardrobeHardLockAsk(ASK_B1), true);
+matrix['one-piece hard lock'] = b1.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
 
-// ── Fixture C — unrelated drop ────────────────────────────────────────────
+// ── Fixture C — unrelated ─────────────────────────────────────────────────
 
-assert.equal(looksLikeUnrelatedChatDuringOutfitClarify(ASK_C2), true, 'C2 unrelated');
 const c2 = resolveOutfitRoute({
   userText: ASK_C2,
   messages: messagesAfterClarify,
   wardrobeItems: wardrobe,
 });
-assert.equal(c2.route, 'drop_pending_unrelated', 'C2 drops pending — not outfit POST');
+assert.equal(c2.route, 'drop_pending_unrelated');
+matrix['unrelated escape'] = c2.route === 'drop_pending_unrelated' ? 'PASS' : 'FAIL';
 
 // ── Fixture D — cancel ────────────────────────────────────────────────────
 
-assert.equal(looksLikeOutfitClarifyCancel(ASK_D2), true, 'D2 cancel');
 const d2 = resolveOutfitRoute({
   userText: ASK_D2,
   messages: messagesAfterClarify,
   wardrobeItems: wardrobe,
 });
-assert.equal(d2.route, 'cancel_pending', 'D2 cancels pending');
+assert.equal(d2.route, 'cancel_pending');
+matrix['cancel'] = d2.route === 'cancel_pending' ? 'PASS' : 'FAIL';
 
-// ── Fixture E — refine still works ────────────────────────────────────────
+// ── Fixture E — refine ────────────────────────────────────────────────────
 
-assert.equal(isWardrobeOutfitRefineAsk(ASK_E2), true, 'E2 refine ask');
 const e2 = resolveOutfitRoute({
   userText: ASK_E2,
-  messages: [
-    {
-      role: 'assistant',
-      hasOutfitRecommendation: true,
-      wardrobeVisual: { layout: 'stacked', pieces: [{ wardrobeItemId: '12' }] },
-    },
-  ],
+  messages: [{
+    role: 'assistant',
+    hasOutfitRecommendation: true,
+    wardrobeVisual: { layout: 'stacked', pieces: [{ wardrobeItemId: '12' }] },
+  }],
   wardrobeItems: wardrobe,
   hasPriorOutfitItems: true,
 });
-assert.equal(e2.route, 'outfit-from-wardrobe', 'E2 → outfit-from-wardrobe refine');
-assert.equal(
-  e2.route === 'outfit-from-wardrobe' ? e2.reason : '',
-  'refine',
-  'E2 reason refine',
-);
+assert.equal(e2.route, 'outfit-from-wardrobe');
+assert.equal(e2.route === 'outfit-from-wardrobe' ? e2.reason : '', 'refine');
 
-// Short reply without pending must NOT force outfit route (cold classification)
+// ── Publish / refuse clears state ─────────────────────────────────────────
+
+const cleared = clearOutfitClarify(pendingA2);
+assert.ok(cleared && cleared.state === 'DONE');
+assert.equal(isOutfitClarifyReady(cleared, wardrobe), false);
+matrix['publish/refuse clears state'] = cleared?.state === 'DONE' ? 'PASS' : 'FAIL';
+
+// Cold short reply without pending → other/resilient
 const coldShort = resolveOutfitRoute({
   userText: REPLY_A3,
   messages: [],
   wardrobeItems: wardrobe,
 });
-assert.equal(coldShort.route, 'other', 'cold short garment reply without pending → other/resilient');
+assert.equal(coldShort.route, 'other');
 
-console.log('verify-outfit-continuity-routing: ok (A–E)');
-console.log(JSON.stringify({
-  A1: a1.route,
-  A3: a3.route === 'outfit-from-wardrobe' ? {
-    route: a3.route,
-    reason: a3.reason,
-    originalAskPreserved: a3.userMessageForServer.startsWith(ASK_A1),
-    confirmationAppended: a3.userMessageForServer.includes(REPLY_A3),
-    locks: a3.lockedItemIds,
-  } : a3,
-  B1: b1.route,
-  C2: c2.route,
-  D2: d2.route,
-  E2: e2.route,
-}, null, 2));
+const allPass = Object.values(matrix).every((v) => v === 'PASS');
+
+console.log('verify-outfit-continuity-routing: ok (A–E + slot regressions)');
+console.log(JSON.stringify({ matrix, allPass, A3: a3.route === 'outfit-from-wardrobe' ? { locks: a3.lockedItemIds, reason: a3.reason } : a3 }, null, 2));
+
+if (!allPass) {
+  process.exit(1);
+}

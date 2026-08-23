@@ -3452,8 +3452,17 @@ export default function AIStylistScreen() {
           const isPartialLockClarify =
             String(outfitResponse.path || '') === 'partial_lock_clarify'
             || /which (blazer|piece|item)/i.test(outfitResponse.content);
-          // After a short clarify reply we must not re-ask the same question (Test 4 loop).
+          // Circuit breaker only — pending_ready should resolve before this fires.
           const clarifyLoopBlocked = pendingOutfitReady && isPartialLockClarify;
+          if (clarifyLoopBlocked) {
+            console.warn(
+              '[OutfitClarify] circuit_breaker_fired — continuity slot resolution failed after pending_ready',
+              {
+                lockedItems: lockedItems || [],
+                occasion: occasionForServer,
+              },
+            );
+          }
           try {
             const attached = attachWardrobeVisualToMessage(
               {
