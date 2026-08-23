@@ -119,6 +119,14 @@ import {
   multiDayClarifyCopy,
   type MultiDayTravelSlots,
 } from '@/utils/multiDayTravelClarify';
+import {
+  buildOutfitClarifyFromPartialLock,
+  clearOutfitClarify,
+  isOutfitTaskAsk,
+  isWardrobeOutfitRefineAsk,
+  resolveOutfitRoute,
+  type OutfitClarifyPending,
+} from '@/utils/outfitClarifyContinuity';
 import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
@@ -268,6 +276,11 @@ interface ChatMessage {
     slots: MultiDayTravelSlots;
     missing?: string[];
   } | null;
+  /**
+   * Single-look outfit lock clarify (pending until publish/refuse/cancel).
+   * Spec: docs/qa/STYLIST_CHAT_OUTFIT_CONTINUITY_SPEC.md
+   */
+  outfitClarify?: OutfitClarifyPending | null;
   wardrobeVisual?: WardrobeVisualPayload | null;
   outfitVisualSuggestion?: {
     source: 'generated';
@@ -322,34 +335,6 @@ function looksLikeBuyCompareAsk(text: string): boolean {
     || /\bcouldn'?t attach\b/i.test(t)
     || /\b(compare|choosing) what to buy\b/i.test(t)
     || /\b(these|those) (two|2|three|3).{0,60}\b(buy|pick|choose|better|compare)\b/i.test(t)
-  );
-}
-
-/** Thin refine follow-ups → same createWardrobeOutfit tool (not cold LLM chat). */
-function isWardrobeOutfitRefineAsk(text: string): boolean {
-  const t = String(text || '').trim();
-  if (!t) return false;
-  if (
-    /\bkeep\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
-    || (
-      /\b(change|swap|different|other|new)\b.{0,40}\b(top|tops|bottom|bottoms|trousers?|pants?|shorts?)\b/i.test(t)
-      && /\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(t)
-      && /\b(keep|same|still)\b/i.test(t)
-    )
-    || /\b(change|swap|different)\b.{0,40}\b(top|tops)\b.{0,24}\b(and|&)\b.{0,16}\b(bottom|bottoms)\b/i.test(t)
-  ) {
-    return true;
-  }
-  return (
-    /\b(swap|change|different|other)\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
-    || /\b(shoe|shoes|trainer|trainers|boot|boots)\b.{0,16}\b(swap|change|different|other)\b/i.test(t)
-    || /\bmake it (smarter|dressier|sharper|smarter looking|more smart|more formal|better)\b/i.test(t)
-    || /\b(smarter|dressier|sharper)\b/i.test(t)
-    || /\bdifferent (outfit|look)\b/i.test(t)
-    || /\btry (again|another|something else)\b/i.test(t)
-    || /\b(don'?t like|do not like|not appropriate|another option|another look|give me another|something different)\b/i.test(t)
-    || /\b(reject|hate)\b.{0,24}\b(outfit|look)\b/i.test(t)
-    || /\b(hotter|cooler|warmer|for (?:the )?gym|gym (?:look|outfit)|refine)\b/i.test(t)
   );
 }
 
@@ -416,19 +401,6 @@ async function fetchWeatherForOutfitCreate(timeoutMs = 3000): Promise<{
     /* non-blocking */
   }
   return { weather: null, lat: null };
-}
-
-/** Single wearable look from wardrobe — same job as Occasion chips / Today's Outfit. */
-function isSingleLookWardrobeCreateAsk(text: string): boolean {
-  const t = String(text || '').trim();
-  if (!t || isMultiLookOrStyleReferenceAsk(t)) return false;
-  return (
-    /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(t)
-    || /\bwhat (should|can|do) i wear\b/i.test(t)
-    || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(t)
-    || /\boutfit for (today|tonight|tomorrow)\b/i.test(t)
-    || /\bwear today\b|\blook for today\b/i.test(t)
-  );
 }
 
 function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
@@ -580,6 +552,26 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         flow: tc.flow,
         state: tc.state,
         slots: (tc.slots && typeof tc.slots === 'object') ? tc.slots as MultiDayTravelSlots : undefined,
+      };
+    }
+  }
+
+  if (message.outfitClarify && typeof message.outfitClarify === 'object') {
+    const oc = message.outfitClarify as OutfitClarifyPending;
+    if (oc.flow === 'outfit_lock_clarify' && typeof oc.state === 'string' && typeof oc.originalUserMessage === 'string') {
+      normalized.outfitClarify = {
+        flow: 'outfit_lock_clarify',
+        state: oc.state === 'READY' || oc.state === 'DONE' ? oc.state : 'AWAITING_PIECE',
+        originalUserMessage: oc.originalUserMessage,
+        occasion: typeof oc.occasion === 'string' ? oc.occasion : 'casual_day',
+        lockedItemIds: Array.isArray(oc.lockedItemIds) ? oc.lockedItemIds.map(String) : [],
+        expectedLockCount: Number.isFinite(Number(oc.expectedLockCount)) ? Number(oc.expectedLockCount) : 1,
+        pendingSlot: oc.pendingSlot,
+        createdAt: typeof oc.createdAt === 'string' ? oc.createdAt : new Date().toISOString(),
+        weather: oc.weather && typeof oc.weather === 'object' && typeof oc.weather.temperature === 'number'
+          ? { temperature: oc.weather.temperature, condition: String(oc.weather.condition || 'clear') }
+          : null,
+        lat: oc.lat ?? null,
       };
     }
   }
@@ -3192,13 +3184,67 @@ export default function AIStylistScreen() {
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
       const trimmedAsk = text.trim();
       const priorItemIds = extractPriorWardrobeItemIds(updatedMessages);
-      const isRefineOutfitAsk = isWardrobeOutfitRefineAsk(trimmedAsk) && priorItemIds.length > 0;
+
+      // Outfit continuity: merge pending clarify BEFORE cold intent classification (C3).
+      const outfitRoute = resolveOutfitRoute({
+        userText: trimmedAsk,
+        messages: updatedMessages,
+        wardrobeItems,
+        hasPriorOutfitItems: priorItemIds.length > 0,
+      });
+
+      const markPriorOutfitClarifyDone = (msgs: ChatMessage[]): ChatMessage[] =>
+        msgs.map((m) =>
+          m.role === 'assistant' && m.outfitClarify && m.outfitClarify.state !== 'DONE'
+            ? { ...m, outfitClarify: clearOutfitClarify(m.outfitClarify) }
+            : m,
+        );
+
+      if (outfitRoute.route === 'cancel_pending' || outfitRoute.route === 'drop_pending_unrelated') {
+        if (outfitRoute.route === 'drop_pending_unrelated') {
+          console.log('[OutfitClarify] chat_drop_unrelated');
+        }
+        // Clear pending, then fall through to normal routing for this turn.
+        const cleared = markPriorOutfitClarifyDone(updatedMessages);
+        updatedMessages.splice(0, updatedMessages.length, ...cleared);
+        setMessages(cleared);
+      }
+
+      if (outfitRoute.route === 'awaiting_more' && !attachedUris.length) {
+        const clarifyMsg: ChatMessage = {
+          id: `msg_${Date.now()}_assistant`,
+          role: 'assistant',
+          content:
+            outfitRoute.clarifyHint
+            || 'Which piece did you mean from your wardrobe?',
+          timestamp: new Date().toISOString(),
+          outfitClarify: outfitRoute.pending,
+        };
+        const finalMessages = [...updatedMessages, clarifyMsg];
+        setMessages(finalMessages);
+        setIsTyping(false);
+        await saveChatHistory(finalMessages);
+        setTimeout(() => scrollChatToEnd(true), 100);
+        return;
+      }
+
+      const isRefineOutfitAsk =
+        (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.reason === 'refine')
+        || (isWardrobeOutfitRefineAsk(trimmedAsk) && priorItemIds.length > 0);
       const isMultiDayTravelAsk = isMultiDayTravelOutfitAsk(trimmedAsk);
       const pendingTravelSlots = findPendingTravelClarify(updatedMessages);
-      const isSingleLookCreate = isSingleLookWardrobeCreateAsk(trimmedAsk);
+      const pendingOutfitReady =
+        outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.reason === 'pending_ready';
+      const isOutfitCreate =
+        (outfitRoute.route === 'outfit-from-wardrobe'
+          && (outfitRoute.reason === 'outfit_task'
+            || outfitRoute.reason === 'hard_lock'
+            || outfitRoute.reason === 'pending_ready'))
+        || isOutfitTaskAsk(trimmedAsk);
 
       // Multi-day / travel: first-class clarify → generate (never single-look chip soft-fail).
-      if ((isMultiDayTravelAsk || pendingTravelSlots) && !attachedUris.length) {
+      // Skip when outfit clarify pending is READY — that stays on outfit-from-wardrobe.
+      if ((isMultiDayTravelAsk || pendingTravelSlots) && !attachedUris.length && !pendingOutfitReady) {
         const advanced = advanceMultiDayTravelClarify({
           query: trimmedAsk,
           priorSlots: pendingTravelSlots || emptyMultiDaySlots(),
@@ -3298,14 +3344,29 @@ export default function AIStylistScreen() {
         }
       }
 
-      // Single-look create / thin refine → ONE server createWardrobeOutfit path.
+      // Single-look create / thin refine / pending clarify merge → ONE server createWardrobeOutfit path.
       // Avoid local-then-server double generate (was a major 40s hang contributor).
-      if ((isSingleLookCreate || isRefineOutfitAsk) && !attachedUris.length) {
+      if ((isOutfitCreate || isRefineOutfitAsk || pendingOutfitReady) && !attachedUris.length) {
         let assistantMessage: ChatMessage | null = null;
-        const weatherSnap = await fetchWeatherForOutfitCreate(3000);
+        const continuityLocks =
+          outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.lockedItemIds.length
+            ? outfitRoute.lockedItemIds
+            : undefined;
+        const serverUserMessage =
+          outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.reason === 'pending_ready'
+            ? outfitRoute.userMessageForServer
+            : trimmedAsk;
+        const weatherSnap =
+          outfitRoute.route === 'outfit-from-wardrobe'
+          && outfitRoute.reason === 'pending_ready'
+          && outfitRoute.weather
+            ? { weather: outfitRoute.weather, lat: outfitRoute.lat ?? null }
+            : await fetchWeatherForOutfitCreate(3000);
         const occasionForServer = isRefineOutfitAsk
           ? raiseOccasionForRefine(extractPriorOutfitOccasion(updatedMessages), trimmedAsk)
-          : inferOutfitOccasionFromAsk(trimmedAsk, 'casual_day');
+          : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
+            ? outfitRoute.occasion
+            : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day'));
         const recentOutfits = updatedMessages
           .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
           .slice(-5)
@@ -3344,30 +3405,32 @@ export default function AIStylistScreen() {
                 })
                 .map((item) => String(item.id))
           : undefined;
-        const lockedItems = keepShoesChangeRest
+        let lockedItems: string[] | undefined = keepShoesChangeRest
           ? priorItems
               .filter((item) => {
                 const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
                 return /\b(shoe|boot|trainer|loafer|footwear|ugg)\b/.test(blob);
               })
               .map((item) => String(item.id))
-          : undefined;
+          : continuityLocks;
 
-        const dualGarmentAsk = /\b(\w+\s+){0,3}(top|blazer|shirt|tee|tank)\b.{0,16}\b(and|with)\b/i.test(trimmedAsk);
-        const mentionMatches = !isRefineOutfitAsk
-          ? matchWardrobeItemsInText(trimmedAsk, wardrobeItems, 4)
-          : [];
-        const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
-        if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
-          lockedItems = mentionLockIds.slice(0, 2);
-        } else if (mentionLockIds.length && /\b(build around|wear my|using my|with my)\b/i.test(trimmedAsk)) {
-          lockedItems = mentionLockIds;
+        if (!continuityLocks?.length) {
+          const dualGarmentAsk = /\b(\w+\s+){0,3}(top|blazer|shirt|tee|tank)\b.{0,16}\b(and|with)\b/i.test(serverUserMessage);
+          const mentionMatches = !isRefineOutfitAsk
+            ? matchWardrobeItemsInText(serverUserMessage, wardrobeItems, 4)
+            : [];
+          const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
+          if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
+            lockedItems = mentionLockIds.slice(0, 2);
+          } else if (mentionLockIds.length && /\b(build around|wear my|using my|with my)\b/i.test(serverUserMessage)) {
+            lockedItems = mentionLockIds;
+          }
         }
 
         try {
           const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
             stylistId: stylist.id,
-            userMessage: trimmedAsk,
+            userMessage: serverUserMessage,
             wardrobeItems: wardrobeContext,
             userProfile: {
               gender: mappedGenderText,
@@ -3386,6 +3449,9 @@ export default function AIStylistScreen() {
           if (!outfitResponse.content || !outfitResponse.content.trim()) {
             throw new Error('Empty response from backend');
           }
+          const isPartialLockClarify =
+            String(outfitResponse.path || '') === 'partial_lock_clarify'
+            || /which (blazer|piece|item)/i.test(outfitResponse.content);
           try {
             const attached = attachWardrobeVisualToMessage(
               {
@@ -3396,7 +3462,7 @@ export default function AIStylistScreen() {
                 visualAuthority: 'server',
                 hasOutfitRecommendation: outfitResponse.hasOutfitRecommendation,
               },
-              trimmedAsk,
+              serverUserMessage,
               outfitResponse as any,
               wardrobeItems,
               user?.subscriptionTier,
@@ -3404,6 +3470,20 @@ export default function AIStylistScreen() {
             if (outfitResponse.occasion || occasionForServer) {
               (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion =
                 outfitResponse.occasion || occasionForServer;
+            }
+            if (isPartialLockClarify) {
+              attached.outfitClarify = buildOutfitClarifyFromPartialLock({
+                originalUserMessage: serverUserMessage,
+                occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
+                lockedItemIds: lockedItems || [],
+                weather: weatherSnap.weather,
+                lat: weatherSnap.lat,
+              });
+            } else {
+              // Publish or structured refuse — clear pending (C7).
+              attached.outfitClarify = clearOutfitClarify(
+                outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
+              ) || undefined;
             }
             assistantMessage = attached;
           } catch {
@@ -3414,6 +3494,17 @@ export default function AIStylistScreen() {
               timestamp: new Date().toISOString(),
               ...(outfitResponse.occasion || occasionForServer
                 ? { outfitOccasion: outfitResponse.occasion || occasionForServer }
+                : {}),
+              ...(isPartialLockClarify
+                ? {
+                    outfitClarify: buildOutfitClarifyFromPartialLock({
+                      originalUserMessage: serverUserMessage,
+                      occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
+                      lockedItemIds: lockedItems || [],
+                      weather: weatherSnap.weather,
+                      lat: weatherSnap.lat,
+                    }),
+                  }
                 : {}),
             };
           }
@@ -3428,10 +3519,16 @@ export default function AIStylistScreen() {
               ? "That took longer than expected — try again in a moment. If you're on a slow connection, give it one more go."
               : "I couldn't land a confident look from your wardrobe for that ask just now. Name one piece to build around, or try again shortly.",
             timestamp: new Date().toISOString(),
+            // Refuse clears pending (C7).
+            outfitClarify: clearOutfitClarify(
+              outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
+            ) || undefined,
           };
         }
 
-        const finalMessages = [...updatedMessages, assistantMessage];
+        const baseMessages =
+          pendingOutfitReady ? markPriorOutfitClarifyDone(updatedMessages) : updatedMessages;
+        const finalMessages = [...baseMessages, assistantMessage];
         setMessages(finalMessages);
         setIsTyping(false);
         await saveChatHistory(finalMessages);
