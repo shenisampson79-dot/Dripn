@@ -3425,6 +3425,8 @@ export default function AIStylistScreen() {
           if (!outfitResponse.content || !outfitResponse.content.trim()) {
             throw new Error('Empty response from backend');
           }
+          const isTierBNarrow =
+            String(outfitResponse.path || '') === 'allocator_tier_b_narrow';
           const isPartialLockClarify =
             String(outfitResponse.path || '') === 'partial_lock_clarify'
             || /which (blazer|piece|item)/i.test(outfitResponse.content);
@@ -3451,12 +3453,14 @@ export default function AIStylistScreen() {
                 visualAuthority: 'server',
                 hasOutfitRecommendation: clarifyLoopBlocked
                   ? false
-                  : outfitResponse.hasOutfitRecommendation,
+                  : (isTierBNarrow ? false : outfitResponse.hasOutfitRecommendation),
               },
               serverUserMessage,
               clarifyLoopBlocked
                 ? { ...outfitResponse, hasOutfitRecommendation: false, wardrobeVisual: null } as any
-                : outfitResponse as any,
+                : isTierBNarrow
+                  ? { ...outfitResponse, hasOutfitRecommendation: false, wardrobeVisual: null } as any
+                  : outfitResponse as any,
               wardrobeItems,
               user?.subscriptionTier,
             );
