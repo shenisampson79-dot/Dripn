@@ -3387,54 +3387,14 @@ export default function AIStylistScreen() {
           .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
           .slice(-5)
           .map((m) => (m.outfitSuggestion!.items || []).map((it) => String(it.id)));
-        const priorItems = recentOutfits.length
-          ? (updatedMessages
-              .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
-              .slice(-1)[0]?.outfitSuggestion?.items || [])
-          : [];
-        const hardExcludeShoesBottoms =
-          isRefineOutfitAsk
-          && /\b(don'?t|do not|never)\b.{0,40}\b(reuse|use|wear|same)\b.{0,40}\b(shoe|shoes|footwear|bottom|bottoms|trousers?|pants?)\b/i.test(trimmedAsk);
-        const keepShoesChangeRest =
-          isRefineOutfitAsk
-          && (
-            /\bkeep\b.{0,24}\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(trimmedAsk)
-            || (
-              /\b(change|swap|different|other|new)\b.{0,40}\b(top|tops|bottom|bottoms)\b/i.test(trimmedAsk)
-              && /\b(shoe|shoes|trainer|trainers|boot|boots|footwear)\b/i.test(trimmedAsk)
-              && /\b(keep|same|still)\b/i.test(trimmedAsk)
-            )
-          );
-        const excludeItemIds = hardExcludeShoesBottoms
-          ? priorItems
-              .filter((item) => {
-                const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
-                return /\b(shoe|boot|trainer|loafer|footwear|ugg|trouser|pant|short|skirt|jean|cargo|chino|bottom)\b/.test(blob);
-              })
-              .map((item) => String(item.id))
-          : keepShoesChangeRest
-            ? priorItems
-                .filter((item) => {
-                  const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
-                  return /\b(trouser|pant|short|skirt|jean|cargo|chino|bottom|top|tee|shirt|tank|blouse|polo|knit|sweater|hoodie)\b/.test(blob)
-                    && !/\b(shoe|boot|trainer|loafer|footwear|ugg)\b/.test(blob);
-                })
-                .map((item) => String(item.id))
-          : undefined;
-        let lockedItems: string[] | undefined = keepShoesChangeRest
-          ? priorItems
-              .filter((item) => {
-                const blob = `${item.category || ''} ${item.subcategory || ''} ${item.name || ''}`.toLowerCase();
-                return /\b(shoe|boot|trainer|loafer|footwear|ugg)\b/.test(blob);
-              })
-              .map((item) => String(item.id))
-          : continuityLocks;
+        // Contract 1: refine lock polarity is server-authoritative (compileRefineIntent).
+        // Do not send client-derived keepShoesChangeRest locks — they inverted Test 6.
+        let lockedItems: string[] | undefined = continuityLocks;
+        let excludeItemIds: string[] | undefined;
 
-        if (!continuityLocks?.length) {
+        if (!isRefineOutfitAsk && !continuityLocks?.length) {
           const dualGarmentAsk = /\b(\w+\s+){0,3}(top|blazer|shirt|tee|tank)\b.{0,16}\b(and|with)\b/i.test(serverUserMessage);
-          const mentionMatches = !isRefineOutfitAsk
-            ? matchWardrobeItemsInText(serverUserMessage, wardrobeItems, 4)
-            : [];
+          const mentionMatches = matchWardrobeItemsInText(serverUserMessage, wardrobeItems, 4);
           const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
           if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
             lockedItems = mentionLockIds.slice(0, 2);
@@ -3457,8 +3417,8 @@ export default function AIStylistScreen() {
             weather: weatherSnap.weather,
             lat: weatherSnap.lat,
             priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
-            lockedItems,
-            excludedItems: excludeItemIds,
+            lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
+            excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,
             recentOutfits,
             source: 'wardrobe',
           });

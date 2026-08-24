@@ -1,4 +1,5 @@
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import { compileRefineIntent, resolveRefineOccasion } from '@/utils/compileRefineIntent';
 
 /**
  * Map free-text stylist asks onto allocator occasion ids.
@@ -44,36 +45,18 @@ export function inferOutfitOccasionFromAsk(
   return fallback;
 }
 
-/** Bump formality when the user rejects a look as too casual / not dinner-appropriate. */
+/**
+ * Contract 1: inherit prior occasion unless the refine ask has an explicit cue
+ * or a formality-raise. Never treat the fallback default as an "inferred" occasion.
+ */
 export function raiseOccasionForRefine(
   prior: string | null | undefined,
   refineText: string,
 ): OutfitOccasionId {
-  const inferred = inferOutfitOccasionFromAsk(refineText, 'smart_casual');
-  // Gym refine must stay gym (hot gym / keep shoes) — never demote to smart_casual.
-  if (inferred === 'gym') return 'gym';
-  if (
-    inferred === 'evening_out'
-    || inferred === 'date_night'
-    || inferred === 'work_outfit'
-    || inferred === 'smart_casual'
-  ) {
-    return inferred;
-  }
-
-  const priorNorm = String(prior || '').toLowerCase().replace(/\s+/g, '_');
-  if (priorNorm.includes('gym') || priorNorm.includes('workout')) return 'gym';
-  if (priorNorm.includes('date')) return 'date_night';
-  if (priorNorm.includes('evening') || priorNorm.includes('dinner')) return 'evening_out';
-  if (priorNorm.includes('work')) return 'work_outfit';
-  if (priorNorm.includes('smart')) return 'smart_casual';
-  if (
-    /\b(not appropriate|too casual|dressier|smarter|more formal|nice dinner|dinner)\b/i.test(
-      refineText,
-    )
-  ) {
-    return 'evening_out';
-  }
-  if (priorNorm.includes('weekend') || priorNorm.includes('casual')) return 'smart_casual';
-  return (priorNorm as OutfitOccasionId) || 'smart_casual';
+  const priorNorm = String(prior || '').trim() || 'casual_day';
+  const intent = compileRefineIntent(refineText, { priorOccasion: priorNorm });
+  return (intent.occasion as OutfitOccasionId) || (priorNorm as OutfitOccasionId);
 }
+
+/** Explicit export for tests / callers that only need occasion resolution. */
+export { resolveRefineOccasion };
