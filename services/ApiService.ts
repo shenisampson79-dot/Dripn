@@ -6341,6 +6341,19 @@ class ApiService {
     }>>(`/api/chat/history?${qs.toString()}`);
   }
 
+  /**
+   * Clear the canonical Stylist conversation for one stylist
+   * (server chat_messages is keyed by userId + stylist — not multi-thread).
+   */
+  async clearChatHistory(stylist: string) {
+    const qs = new URLSearchParams({
+      stylist: String(stylist || '').trim().toLowerCase(),
+    });
+    return this.request<{ message?: string }>(`/api/chat/history?${qs.toString()}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAdminDashboard() {
     return this.adminRequest<{
       users: {

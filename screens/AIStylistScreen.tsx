@@ -150,6 +150,12 @@ import {
   traceDecisionContinuity,
   type DecisionContinuityPayload,
 } from '@/utils/decisionContinuity';
+import {
+  STYLIST_CHAT_CLEARED_TOMBSTONE_KEY,
+  buildStylistChatClearedTombstone,
+  parseStylistChatClearedTombstone,
+  shouldSuppressServerChatHydrate,
+} from '@/utils/stylistFreshThread';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -2891,6 +2897,16 @@ export default function AIStylistScreen() {
       }
 
       try {
+        const tombRaw = await AsyncStorage.getItem(STYLIST_CHAT_CLEARED_TOMBSTONE_KEY);
+        const tombstone = parseStylistChatClearedTombstone(tombRaw);
+        if (shouldSuppressServerChatHydrate(tombstone, stylist.id)) {
+          return false;
+        }
+      } catch {
+        /* tombstone optional */
+      }
+
+      try {
         const serverHistory = await apiService.getChatHistory(stylist.id, 40);
         if (Array.isArray(serverHistory) && serverHistory.length > 0) {
           const mapped = serverHistory
@@ -4096,7 +4112,8 @@ export default function AIStylistScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+
+    const stylistId = String(stylist.id || '').trim().toLowerCase();
     const greeting = buildSeedGreeting();
     const greetingMessage: ChatMessage = {
       id: SEED_MESSAGE_ID,
@@ -4104,13 +4121,31 @@ export default function AIStylistScreen() {
       content: greeting,
       timestamp: new Date().toISOString(),
     };
-    
+
+    // Tombstone first: if remount races DELETE, server hydrate must not resurrect.
+    const tombstone = buildStylistChatClearedTombstone(stylistId);
+    await AsyncStorage.setItem(
+      STYLIST_CHAT_CLEARED_TOMBSTONE_KEY,
+      JSON.stringify(tombstone),
+    ).catch(() => {});
+
     setMessages([greetingMessage]);
     setShowQuickPrompts(true);
     rememberChatMessages([greetingMessage], true);
     setComposerText('');
+    writeComposerDraft(stylist.id, '');
     await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+    await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY).catch(() => {});
     await releaseDecisionContinuity();
+
+    try {
+      // Canonical conversation is chat_messages(userId, stylist) — not multi-thread.
+      await apiService.clearChatHistory(stylistId);
+      await AsyncStorage.removeItem(STYLIST_CHAT_CLEARED_TOMBSTONE_KEY).catch(() => {});
+    } catch (err) {
+      // Keep tombstone so tab-away/return cannot rehydrate the discarded thread.
+      console.warn('[StylistFreshThread] clearChat server delete failed', err);
+    }
   };
   
   const copyChatMessage = useCallback(async (content: string) => {

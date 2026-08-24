@@ -172,11 +172,24 @@ It must not attach generic phrases that look like telemetry labels.
   - and weather when relevant.
 - Negative: banned stock phrases must not appear on the success path after migration.
 
+### Contract 4 acceptance status (2026-08-24 device + Render)
+
+| Finding | Class | Status |
+| --- | --- | --- |
+| `gpt-5.5-mini` 404 → every run `explanationSource=fallback` | Contract 4 defect | Fix: explanation try-list uses `FAST_MODEL_CANDIDATES` recovery (skip broken pin) |
+| Casual: server `ok:true` in **34504ms** (`ChatWardrobeOutfit` **33697ms**) vs client **15s** timeout | Latency — read-only | Time is in **WHAT** (`createWardrobeOutfit`), not WHY (instant 404+fallback). Do **not** raise client timeout as the fix |
+| Gym fallback prose improved; “without overstating formality” still weak for gym | Fallback polish later; not blocker for LLM path retest | Park |
+| Hard-lock `dual_lock_clash` ~226ms | Contaminated thread / lock resolution — **not** Contract 4 prose | Do not score C4 on this run |
+| Refresh thread resurrected old chat | Client fresh-thread defect | Separate client fix + OTA (prerequisite before next C4 device checks) |
+| Chat scroll bounce | Separate UI ticket | Park |
+
+**Latency read-only (casual 10:18):** `[ChatWardrobeOutfit] elapsedMs: 33697` then `[StylistExplanation] explanation_error 404` then `[OutfitFromWardrobe] elapsedMs: 34504 explanationSource: fallback`. ≈33.7s solver; ≪1s explanation. Client `sendWardrobeOutfitFromChat` timeout remains 15s — phone soft-error while server already had IDs `[59,118,121]`.
+
 ## Out-of-scope remediation tonight
 - No further seven-test reruns.
-- No code changes.
 - No threshold changes to the evaluator/beam.
 - No prose template expansion (“add variants”) — explanations must be content-model changes.
+- No client timeout bump; no scroll fix in this pass.
 
 ## Tomorrow’s implementation workflow (evidence-first)
 1. **Contract 1 specification and fixtures first**
