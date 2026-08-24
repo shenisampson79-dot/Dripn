@@ -127,6 +127,10 @@ import {
   resolveOutfitRoute,
   type OutfitClarifyPending,
 } from '@/utils/outfitClarifyContinuity';
+import {
+  isMultiPieceHardLockAsk,
+  resolveHardLockMentions,
+} from '@/utils/hardLockMentionResolution';
 import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
@@ -3393,13 +3397,22 @@ export default function AIStylistScreen() {
         let excludeItemIds: string[] | undefined;
 
         if (!isRefineOutfitAsk && !continuityLocks?.length) {
-          const dualGarmentAsk = /\b(\w+\s+){0,3}(top|blazer|shirt|tee|tank)\b.{0,16}\b(and|with)\b/i.test(serverUserMessage);
-          const mentionMatches = matchWardrobeItemsInText(serverUserMessage, wardrobeItems, 4);
-          const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
-          if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
-            lockedItems = mentionLockIds.slice(0, 2);
-          } else if (mentionLockIds.length && /\b(build around|wear my|using my|with my)\b/i.test(serverUserMessage)) {
-            lockedItems = mentionLockIds;
+          const hardLockRes = resolveHardLockMentions({
+            query: serverUserMessage,
+            wardrobeRows: wardrobeItems,
+          });
+          if (hardLockRes.action === 'lock' && hardLockRes.lockedItemIds.length) {
+            lockedItems = hardLockRes.lockedItemIds;
+          } else if (hardLockRes.action === 'clarify') {
+            // Server is authoritative for clarify; still avoid sending a multi-lock list.
+            lockedItems = undefined;
+          } else {
+            const dualGarmentAsk = isMultiPieceHardLockAsk(serverUserMessage);
+            const mentionMatches = matchWardrobeItemsInText(serverUserMessage, wardrobeItems, 4);
+            const mentionLockIds = [...new Set(mentionMatches.map((m) => String(m.id)).filter(Boolean))];
+            if (dualGarmentAsk && mentionLockIds.length >= 2 && !lockedItems?.length) {
+              lockedItems = mentionLockIds.slice(0, 2);
+            }
           }
         }
 
