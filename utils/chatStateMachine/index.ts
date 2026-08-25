@@ -3,7 +3,8 @@
  *
  * Non-negotiable:
  * - Re-enter always lands at latest (LOCKED_TO_BOTTOM)
- * - Programmatic scroll never clears stick
+ * - Intentional user drag away from bottom yields stick ownership immediately
+ *   (programmatic scrollToEnd retries must not yank the user back)
  * - Intent MULTI_LOOK requires ≥2 looks (enforced server-side; client mirrors)
  */
 
@@ -71,13 +72,15 @@ export function transitionPhase(
 ): ChatMachineSnapshot {
   const out: ChatMachineSnapshot = { ...state, phase: next };
 
-  // Entry invariants
+  // Do not steal ownership if the user already scrolled away.
+  if (state.scroll === 'USER_SCROLLING') {
+    out.scroll = 'USER_SCROLLING';
+    return out;
+  }
+
   if (next === 'READY' || next === 'LOADING_HISTORY' || next === 'RENDERING' || next === 'SETTLED') {
-    if (state.scroll !== 'USER_SCROLLING' || next !== 'SETTLED') {
-      // System owns scroll until user explicitly scrolls while SETTLED
-      if (next !== 'SETTLED' || state.scroll === 'LOCKED_TO_BOTTOM') {
-        out.scroll = 'LOCKED_TO_BOTTOM';
-      }
+    if (next !== 'SETTLED' || state.scroll === 'LOCKED_TO_BOTTOM') {
+      out.scroll = 'LOCKED_TO_BOTTOM';
     }
   }
   if (next === 'READY' || next === 'GENERATING' || next === 'RENDERING') {
@@ -107,8 +110,31 @@ export function endProgrammaticScroll(state: ChatMachineSnapshot): ChatMachineSn
 }
 
 /**
+ * Intentional user drag (onScrollBeginDrag) — yield stick ownership immediately
+ * so pending scrollChatToEnd retries cannot yank back to bottom.
+ */
+export function releaseStickForUserIntent(state: ChatMachineSnapshot): ChatMachineSnapshot {
+  return {
+    ...state,
+    programmatic: false,
+    scroll: 'USER_SCROLLING',
+    // Leave GENERATING as-is (typing); RENDERING → SETTLED so mustScroll stops forcing.
+    phase: state.phase === 'RENDERING' ? 'SETTLED' : state.phase,
+  };
+}
+
+/** Intentional acquire (send message / focus / return near bottom). */
+export function acquireStickOwnership(state: ChatMachineSnapshot): ChatMachineSnapshot {
+  return {
+    ...state,
+    programmatic: true,
+    scroll: 'LOCKED_TO_BOTTOM',
+  };
+}
+
+/**
  * User scroll handler contract.
- * Programmatic frames must NEVER update USER_SCROLLING / unlock.
+ * Programmatic list motion must not unlock; intentional drag uses releaseStickForUserIntent first.
  */
 export function onUserScrollEvent(
   state: ChatMachineSnapshot,
@@ -117,23 +143,30 @@ export function onUserScrollEvent(
   if (state.programmatic) {
     return { ...state, scroll: 'LOCKED_TO_BOTTOM' };
   }
-  // While generating/rendering, system owns scroll
-  if (state.phase === 'GENERATING' || state.phase === 'RENDERING' || state.phase === 'LOADING_HISTORY') {
+  // History hydrate still owns scroll until user begins a drag (releaseStickForUserIntent).
+  if (state.phase === 'LOADING_HISTORY') {
+    return { ...state, scroll: 'LOCKED_TO_BOTTOM' };
+  }
+  if (nearBottom) {
     return { ...state, scroll: 'LOCKED_TO_BOTTOM' };
   }
   return {
     ...state,
-    scroll: nearBottom ? 'LOCKED_TO_BOTTOM' : 'USER_SCROLLING',
+    scroll: 'USER_SCROLLING',
   };
 }
 
 /** Whether the list must jump to end now. */
 export function mustScrollToBottom(state: ChatMachineSnapshot): boolean {
+  if (state.scroll === 'USER_SCROLLING') return false;
   if (state.scroll === 'LOCKED_TO_BOTTOM') return true;
-  if (state.phase === 'GENERATING' || state.phase === 'RENDERING' || state.phase === 'LOADING_HISTORY') {
-    return true;
-  }
+  if (state.phase === 'LOADING_HISTORY') return true;
   return false;
+}
+
+/** Content-size / typing auto-stick — only while ownership is still at bottom. */
+export function shouldAutoStickOnContentChange(state: ChatMachineSnapshot): boolean {
+  return mustScrollToBottom(state);
 }
 
 export function computeNearBottom(params: {
@@ -249,8 +282,11 @@ export default {
   onChatFocus,
   beginProgrammaticScroll,
   endProgrammaticScroll,
+  releaseStickForUserIntent,
+  acquireStickOwnership,
   onUserScrollEvent,
   mustScrollToBottom,
+  shouldAutoStickOnContentChange,
   computeNearBottom,
   assertScrollContract,
   simulateReentryFromMidThread,

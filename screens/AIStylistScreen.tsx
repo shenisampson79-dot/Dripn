@@ -136,6 +136,7 @@ import weatherService from '@/services/WeatherService';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 import {
+  acquireStickOwnership,
   beginProgrammaticScroll,
   CHAT_SCROLL_END_OFFSET,
   createChatMachine,
@@ -144,8 +145,16 @@ import {
   mustScrollToBottom,
   onChatFocus as onChatFocusMachine,
   onUserScrollEvent,
+  releaseStickForUserIntent,
+  shouldAutoStickOnContentChange,
   transitionPhase,
 } from '@/utils/chatStateMachine';
+import {
+  beginStickPulse,
+  cancelStickPulse,
+  createStickPulseController,
+  isStickPulseActive,
+} from '@/utils/stylistChatScroll';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
   clearLastDecisionContinuity,
@@ -1921,6 +1930,8 @@ export default function AIStylistScreen() {
   const stickToLatestRef = useRef(true);
   /** Deterministic chat state machine (scroll + phase invariants). */
   const chatMachineRef = useRef(createChatMachine({ phase: 'READY' }));
+  /** Cancels pending scrollChatToEnd retries when the user intentionally drags away. */
+  const stickPulseRef = useRef(createStickPulseController());
   const messagesLenRef = useRef(0);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
@@ -2077,14 +2088,28 @@ export default function AIStylistScreen() {
   const isMountedRef = useRef(true);
 
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
-    if (!force && !isNearBottomRef.current && !stickToLatestRef.current) return;
+    if (!force) {
+      if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
+      if (!isNearBottomRef.current && !stickToLatestRef.current) return;
+      if (!mustScrollToBottom(chatMachineRef.current)) return;
+    } else {
+      chatMachineRef.current = acquireStickOwnership(chatMachineRef.current);
+      isNearBottomRef.current = true;
+      stickToLatestRef.current = true;
+    }
     chatMachineRef.current = beginProgrammaticScroll(chatMachineRef.current);
     chatMachineRef.current = transitionPhase(chatMachineRef.current, 'RENDERING');
     if (force) {
       isNearBottomRef.current = true;
       stickToLatestRef.current = true;
     }
+    const pulsed = beginStickPulse(stickPulseRef.current);
+    stickPulseRef.current = pulsed.ctrl;
+    const generation = pulsed.generation;
+
     const run = (anim: boolean) => {
+      if (!isStickPulseActive(stickPulseRef.current, generation)) return;
+      if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
       const list = flatListRef.current;
       if (!list) return;
       // Offset jump is reliable with variable-height image bubbles (scrollToIndex often fails).
@@ -2108,9 +2133,20 @@ export default function AIStylistScreen() {
     setTimeout(() => run(false), 900);
     setTimeout(() => run(false), 1600);
     setTimeout(() => {
+      if (!isStickPulseActive(stickPulseRef.current, generation)) return;
       chatMachineRef.current = endProgrammaticScroll(chatMachineRef.current);
-      chatMachineRef.current = transitionPhase(chatMachineRef.current, 'SETTLED');
+      if (chatMachineRef.current.scroll !== 'USER_SCROLLING') {
+        chatMachineRef.current = transitionPhase(chatMachineRef.current, 'SETTLED');
+      }
     }, 1700);
+  }, []);
+
+  const onChatScrollBeginDrag = useCallback(() => {
+    // Intentional upward drag: yield stick ownership immediately; kill pending retries.
+    stickPulseRef.current = cancelStickPulse(stickPulseRef.current);
+    chatMachineRef.current = releaseStickForUserIntent(chatMachineRef.current);
+    stickToLatestRef.current = false;
+    isNearBottomRef.current = false;
   }, []);
 
   const onChatScroll = useCallback((event: {
@@ -2129,7 +2165,12 @@ export default function AIStylistScreen() {
     chatMachineRef.current = onUserScrollEvent(chatMachineRef.current, nearBottom);
     const locked = chatMachineRef.current.scroll === 'LOCKED_TO_BOTTOM';
     isNearBottomRef.current = locked;
-    stickToLatestRef.current = locked;
+    // Only reacquire stick when the user returns near the bottom (not during programmatic frames).
+    if (locked && !chatMachineRef.current.programmatic) {
+      stickToLatestRef.current = true;
+    } else if (!locked) {
+      stickToLatestRef.current = false;
+    }
   }, []);
 
   // Restore unsent composer draft from disk (memory already applied in useState).
@@ -3795,22 +3836,24 @@ export default function AIStylistScreen() {
   useEffect(() => {
     messagesLenRef.current = messages.length;
     if (messages.length > 0 && stickToLatestRef.current) {
-      scrollChatToEnd(true, false);
+      scrollChatToEnd(false, false);
     }
   }, [messages.length, scrollChatToEnd]);
 
-  // When the keyboard rises, re-stick to the latest message so it isn't covered.
+  // When the keyboard rises, re-stick only if the user is still following the live thread.
   useEffect(() => {
     if (!isKeyboardVisible || chatMode !== 'text') return;
+    if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
     stickToLatestRef.current = true;
-    scrollChatToEnd(true, false);
+    scrollChatToEnd(false, false);
   }, [isKeyboardVisible, keyboardHeightPx, chatMode, scrollChatToEnd]);
 
   useEffect(() => {
-    if (isTyping) {
-      stickToLatestRef.current = true;
-      scrollChatToEnd(true, false);
-    }
+    if (!isTyping) return;
+    // Typing must not steal ownership after the user scrolled into history.
+    if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
+    if (!stickToLatestRef.current) return;
+    scrollChatToEnd(false, false);
   }, [isTyping, scrollChatToEnd]);
 
   useEffect(() => {
@@ -5526,19 +5569,22 @@ export default function AIStylistScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={onChatScroll}
+          onScrollBeginDrag={onChatScrollBeginDrag}
           scrollEventThrottle={16}
           onScrollToIndexFailed={() => {
             flatListRef.current?.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: false });
           }}
           onContentSizeChange={() => {
-            // Keep WhatsApp-style stickiness while reading the live reply; don't yank
+            // Keep WhatsApp-style stickiness while following the live reply; don't yank
             // someone who scrolled up into history.
-            if (mustScrollToBottom(chatMachineRef.current) || isNearBottomRef.current || stickToLatestRef.current || isTyping) {
-              scrollChatToEnd(true, false);
+            if (shouldAutoStickOnContentChange(chatMachineRef.current) || stickToLatestRef.current) {
+              scrollChatToEnd(false, false);
             }
           }}
           onLayout={() => {
-            if (mustScrollToBottom(chatMachineRef.current) || stickToLatestRef.current) scrollChatToEnd(true, false);
+            if (shouldAutoStickOnContentChange(chatMachineRef.current) || stickToLatestRef.current) {
+              scrollChatToEnd(false, false);
+            }
           }}
           removeClippedSubviews={false}
           style={styles.flatList}
