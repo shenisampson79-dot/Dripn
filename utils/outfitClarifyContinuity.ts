@@ -7,8 +7,9 @@
  *
  * After server `allocator_tier_b_narrow`, preserve the pending outfit task so the
  * user's narrowing reply re-enters the same canonical path with frozen ask +
- * merged intent (never resilient freestyle). Server must receive
- * `tierBNarrowResolved: true` so Tier B does not re-fire on pool size alone.
+ * explicit `occasion` override from a structured Tier-B choice (never resilient
+ * freestyle). Do NOT send skipTierGuard / tierBNarrowResolved — the normal
+ * tier guard re-evaluates the bound occasion pool.
  *
  * Readiness invariant (lock clarify): complete only when every required
  * structural slot is resolved unambiguously and expectedLockCount is satisfied.
@@ -22,6 +23,46 @@ import { matchWardrobeItemsInText } from '@/utils/wardrobeMentionMatcher';
 
 export const OUTFIT_LOCK_CLARIFY_FLOW = 'outfit_lock_clarify' as const;
 export const OUTFIT_TIER_B_NARROW_FLOW = 'outfit_tier_b_narrow' as const;
+
+/** Launch Tier-B choice ids ≡ authoritative allocator occasions (server SSoT mirror). */
+export const TIER_B_STRUCTURED_OCCASIONS = [
+  'smart_casual',
+  'evening_out',
+  'work_outfit',
+  'gym',
+  'date_night',
+] as const;
+
+export type TierBStructuredOccasion = (typeof TIER_B_STRUCTURED_OCCASIONS)[number];
+
+/**
+ * Map Tier-B chip id or typed reply → structured occasion.
+ * Returns null for coffee / walk / relaxed everyday (still broad — no bypass).
+ */
+export function resolveTierBStructuredOccasion(raw: string): TierBStructuredOccasion | null {
+  const text = String(raw || '').trim();
+  if (!text) return null;
+  const asKey = text.toLowerCase().replace(/[-\s]+/g, '_');
+  if ((TIER_B_STRUCTURED_OCCASIONS as readonly string[]).includes(asKey)) {
+    return asKey as TierBStructuredOccasion;
+  }
+  if (/\b(lunch|drinks?|pub|pint|brewery|wine\s*bar|smart\s*casual)\b/i.test(text)) {
+    return 'smart_casual';
+  }
+  if (/\b(dinner|restaurant|somewhere\s+nice(?:r)?|evening\s+out|cocktail)\b/i.test(text)) {
+    return 'evening_out';
+  }
+  if (/\b(work(?:day|place|wear)?|office|meeting|interview|business)\b/i.test(text)) {
+    return 'work_outfit';
+  }
+  if (/\b(gym|workout|training|active|athleisure|hiit|sport)\b/i.test(text)) {
+    return 'gym';
+  }
+  if (/\b(date|romantic)\b/i.test(text)) {
+    return 'date_night';
+  }
+  return null;
+}
 
 export type OutfitClarifyFlow =
   | typeof OUTFIT_LOCK_CLARIFY_FLOW
@@ -63,8 +104,12 @@ export type OutfitRouteDecision =
       occasion: string;
       weather?: OutfitClarifyWeatherSnap;
       lat?: number | null;
-      /** After Tier-B narrowing answer — skip allocator Tier-B gate once (beam must run). */
-      tierBNarrowResolved?: boolean;
+      /**
+       * True when the Tier-B reply did not bind a structured occasion
+       * (coffee / relaxed). Server must re-apply the guard and return
+       * second-step copy — never skipTierGuard.
+       */
+      tierBStillBroad?: boolean;
     }
   | { route: 'cancel_pending'; pending: null }
   | { route: 'drop_pending_unrelated'; pending: null }
@@ -719,8 +764,11 @@ export function resolveOutfitRoute(params: {
       return { route: 'drop_pending_unrelated', pending: null };
     }
 
-    // Tier-B: any related reply is the narrowing answer — re-enter beam path.
+    // Tier-B: related reply re-enters outfit-from-wardrobe with occasionOverride
+    // when the reply binds a structured lane. Unbound (coffee/relaxed) still
+    // hits the same path so the normal guard returns second-step copy — no bypass.
     if (pending.flow === OUTFIT_TIER_B_NARROW_FLOW) {
+      const boundOccasion = resolveTierBStructuredOccasion(text);
       return {
         route: 'outfit-from-wardrobe',
         reason: 'tier_b_ready',
@@ -734,10 +782,10 @@ export function resolveOutfitRoute(params: {
           text,
         ),
         lockedItemIds: [],
-        occasion: pending.occasion,
+        occasion: boundOccasion || 'casual_day',
         weather: pending.weather ?? null,
         lat: pending.lat ?? null,
-        tierBNarrowResolved: true,
+        tierBStillBroad: !boundOccasion,
       };
     }
 

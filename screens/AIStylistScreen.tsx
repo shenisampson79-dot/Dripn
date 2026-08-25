@@ -3435,14 +3435,15 @@ export default function AIStylistScreen() {
           && outfitRoute.weather
             ? { weather: outfitRoute.weather, lat: outfitRoute.lat ?? null }
             : await fetchWeatherForOutfitCreate(3000);
-        const tierBNarrowResolved =
-          outfitRoute.route === 'outfit-from-wardrobe'
-          && Boolean(outfitRoute.tierBNarrowResolved || outfitRoute.reason === 'tier_b_ready');
         const occasionForServer = isRefineOutfitAsk
           ? raiseOccasionForRefine(extractPriorOutfitOccasion(updatedMessages), trimmedAsk)
-          : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
+          : (outfitRoute.route === 'outfit-from-wardrobe'
+            && (outfitRoute.reason === 'tier_b_ready' || outfitRoute.reason === 'pending_ready')
+            && outfitRoute.occasion
             ? outfitRoute.occasion
-            : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day'));
+            : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
+              ? outfitRoute.occasion
+              : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day')));
         const recentOutfits = extractRecentOutfitIdLists(updatedMessages, 5);
         // Contract 1: refine lock polarity is server-authoritative (compileRefineIntent).
         // Do not send client-derived keepShoesChangeRest locks — they inverted Test 6.
@@ -3486,7 +3487,6 @@ export default function AIStylistScreen() {
             lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
             excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,
             recentOutfits,
-            tierBNarrowResolved: tierBNarrowResolved || undefined,
             source: 'wardrobe',
           });
           if (!outfitResponse.content || !outfitResponse.content.trim()) {
@@ -3499,10 +3499,15 @@ export default function AIStylistScreen() {
             || /which (blazer|piece|item)/i.test(outfitResponse.content);
           // Circuit breaker only — pending_ready / tier_b_ready should resolve before this fires.
           const clarifyLoopBlocked = pendingOutfitReady && isPartialLockClarify;
-          const tierBLoopBlocked =
+          // Structured occasionOverride that still Tier-B's is unexpected; unbound
+          // coffee/relaxed re-firing Tier B with second-step copy is expected.
+          const sentStructuredTierB =
             outfitRoute.route === 'outfit-from-wardrobe'
             && outfitRoute.reason === 'tier_b_ready'
-            && isTierBNarrow;
+            && !outfitRoute.tierBStillBroad
+            && Boolean(outfitRoute.occasion)
+            && outfitRoute.occasion !== 'casual_day';
+          const tierBLoopBlocked = sentStructuredTierB && isTierBNarrow;
           if (clarifyLoopBlocked) {
             console.warn(
               '[OutfitClarify] circuit_breaker_fired — continuity slot resolution failed after pending_ready',
@@ -3514,7 +3519,8 @@ export default function AIStylistScreen() {
           }
           if (tierBLoopBlocked) {
             console.warn(
-              '[OutfitClarify] tier_b_circuit_breaker — Tier B re-fired after narrowing (skipTierGuard failed?)',
+              '[OutfitClarify] tier_b_circuit_breaker — Tier B re-fired after structured occasionOverride',
+              { occasion: occasionForServer },
             );
           }
           const frozenOutfitAsk =
@@ -3547,7 +3553,7 @@ export default function AIStylistScreen() {
                 content: clarifyLoopBlocked
                   ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
                   : tierBLoopBlocked
-                    ? "I've still got a lot of good options — try naming a piece you want to wear, or ask again with a sharper vibe."
+                    ? "I've still got too many options for that direction — pick lunch or drinks, dinner, work, something active, or a date."
                     : outfitResponse.content,
                 timestamp: new Date().toISOString(),
                 visualAuthority: 'server',
@@ -3595,7 +3601,7 @@ export default function AIStylistScreen() {
               content: clarifyLoopBlocked
                 ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
                 : tierBLoopBlocked
-                  ? "I've still got a lot of good options — try naming a piece you want to wear, or ask again with a sharper vibe."
+                  ? "I've still got too many options for that direction — pick lunch or drinks, dinner, work, something active, or a date."
                   : outfitResponse.content,
               timestamp: new Date().toISOString(),
               ...(outfitResponse.occasion || occasionForServer

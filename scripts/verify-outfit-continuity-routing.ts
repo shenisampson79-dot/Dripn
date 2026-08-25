@@ -311,7 +311,8 @@ assert.equal(coldShort.route, 'other');
 // ── Fixture F — Tier-B conversational continuity ─────────────────────────
 
 const ASK_F1 = 'Put together a casual outfit for me today.';
-const REPLY_F2 = "Relaxed everyday — I'm just going out for coffee and a walk.";
+const REPLY_F2_COFFEE = "Relaxed everyday — I'm just going out for coffee and a walk.";
+const REPLY_F2_DRINKS = 'Lunch or drinks — going to the pub';
 
 const f1 = resolveOutfitRoute({
   userText: ASK_F1,
@@ -344,32 +345,52 @@ assert.ok(findPendingOutfitClarify(messagesAfterTierB), 'F2 findPending finds Ti
 
 // Without pending, narrowing reply alone must NOT look like an outfit ask (resilient trap).
 const coldNarrow = resolveOutfitRoute({
-  userText: REPLY_F2,
+  userText: REPLY_F2_COFFEE,
   messages: [],
   wardrobeItems: wardrobe,
 });
 assert.equal(coldNarrow.route, 'other', 'cold Tier-B reply alone → other/resilient');
 matrix['cold Tier-B reply alone → other'] = coldNarrow.route === 'other' ? 'PASS' : 'FAIL';
 
-const f2 = resolveOutfitRoute({
-  userText: REPLY_F2,
+const f2Coffee = resolveOutfitRoute({
+  userText: REPLY_F2_COFFEE,
   messages: messagesAfterTierB,
   wardrobeItems: wardrobe,
 });
-assert.equal(f2.route, 'outfit-from-wardrobe', 'F2 with pending → outfit-from-wardrobe');
-assert.equal(f2.route === 'outfit-from-wardrobe' ? f2.reason : '', 'tier_b_ready');
-if (f2.route === 'outfit-from-wardrobe') {
-  assert.equal(f2.tierBNarrowResolved, true);
-  assert.equal(f2.lockedItemIds.length, 0);
-  assert.ok(f2.userMessageForServer.startsWith(ASK_F1));
-  assert.ok(f2.userMessageForServer.includes('User narrowed intent:'));
-  assert.ok(f2.userMessageForServer.includes('coffee'));
-  assert.equal(f2.occasion, 'casual_day');
+assert.equal(f2Coffee.route, 'outfit-from-wardrobe', 'F2 coffee with pending → outfit-from-wardrobe');
+assert.equal(f2Coffee.route === 'outfit-from-wardrobe' ? f2Coffee.reason : '', 'tier_b_ready');
+if (f2Coffee.route === 'outfit-from-wardrobe') {
+  assert.equal(f2Coffee.tierBStillBroad, true);
+  assert.equal(f2Coffee.lockedItemIds.length, 0);
+  assert.equal(f2Coffee.occasion, 'casual_day');
+  assert.ok(f2Coffee.userMessageForServer.startsWith(ASK_F1));
+  assert.ok(f2Coffee.userMessageForServer.includes('User narrowed intent:'));
+  assert.ok(!(f2Coffee as { tierBNarrowResolved?: boolean }).tierBNarrowResolved);
 }
-matrix['Tier-B narrowing reply → outfit-from-wardrobe + tierBNarrowResolved'] =
-  f2.route === 'outfit-from-wardrobe'
-  && f2.reason === 'tier_b_ready'
-  && f2.tierBNarrowResolved === true
+matrix['Tier-B coffee reply → still broad, no bypass flag'] =
+  f2Coffee.route === 'outfit-from-wardrobe'
+  && f2Coffee.reason === 'tier_b_ready'
+  && f2Coffee.tierBStillBroad === true
+  && f2Coffee.occasion === 'casual_day'
+    ? 'PASS'
+    : 'FAIL';
+
+const f2Drinks = resolveOutfitRoute({
+  userText: REPLY_F2_DRINKS,
+  messages: messagesAfterTierB,
+  wardrobeItems: wardrobe,
+});
+assert.equal(f2Drinks.route, 'outfit-from-wardrobe');
+if (f2Drinks.route === 'outfit-from-wardrobe') {
+  assert.equal(f2Drinks.reason, 'tier_b_ready');
+  assert.equal(f2Drinks.tierBStillBroad, false);
+  assert.equal(f2Drinks.occasion, 'smart_casual');
+  assert.equal(f2Drinks.lockedItemIds.length, 0);
+}
+matrix['Tier-B drinks reply → smart_casual occasionOverride'] =
+  f2Drinks.route === 'outfit-from-wardrobe'
+  && f2Drinks.occasion === 'smart_casual'
+  && f2Drinks.tierBStillBroad === false
     ? 'PASS'
     : 'FAIL';
 
@@ -427,9 +448,12 @@ console.log(JSON.stringify({
   matrix,
   allPass,
   A3: a3.route === 'outfit-from-wardrobe' ? { locks: a3.lockedItemIds, reason: a3.reason } : a3,
-  F2: f2.route === 'outfit-from-wardrobe'
-    ? { reason: f2.reason, tierBNarrowResolved: f2.tierBNarrowResolved }
-    : f2,
+  F2_coffee: f2Coffee.route === 'outfit-from-wardrobe'
+    ? { reason: f2Coffee.reason, occasion: f2Coffee.occasion, tierBStillBroad: f2Coffee.tierBStillBroad }
+    : f2Coffee,
+  F2_drinks: f2Drinks.route === 'outfit-from-wardrobe'
+    ? { reason: f2Drinks.reason, occasion: f2Drinks.occasion, tierBStillBroad: f2Drinks.tierBStillBroad }
+    : f2Drinks,
 }, null, 2));
 
 if (!allPass) {
