@@ -98,7 +98,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = rewriteStylistCtaJargon(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
   text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-  // Soften Title Case garment dumps in chat (Wear the / Opt for / …)
+  // Soften Title Case garment dumps in chat (Wear the / Opt for / … + mid-prose dumps)
   text = text.replace(
     /((?:Wear this(?:\s+instead)?|You could go with|Opt for(?:\s+the)?|Instead,\s*wear(?:\s+the)?|Wear the|Try the|Keeping)\s*[:—–-]?\s*)([^.!?\n]+)/gi,
     (_m, lead, list) => {
@@ -116,6 +116,20 @@ export function sanitizeStylistUserText(input?: string | null): string {
         ? `${softened[0]} and ${softened[1]}`
         : `${softened.slice(0, -1).join(', ')}, and ${softened[softened.length - 1]}`;
       return `${lead}${body}${/\.$/.test(raw) ? '.' : ''}`;
+    },
+  );
+  // Mid-prose wardrobe dumps: "The Primark Cream Crew Neck T-Shirt and White Cotton Trousers…"
+  text = text.replace(
+    /\b((?:[A-Z][A-Za-z0-9'’&./-]*)(?:\s+(?:[A-Z][A-Za-z0-9'’&./-]*|T-Shirt|T-shirt)){2,14})\b/g,
+    (m) => {
+      if (!/\b(shirt|t-?shirt|tee|trousers?|jeans|pants?|chinos?|loafers?|trainers?|sneakers?|boots?|jacket|blazer|coat|hoodie|polo|blouse|skirt|dress|shorts?|joggers?|crew|neck|cotton|leather|canvas|wool)\b/i.test(m)) {
+        return m;
+      }
+      const words = m.split(/\s+/);
+      const titleish = words.filter((w) => /^[A-Z]/.test(w)).length;
+      if (titleish < 2) return m;
+      if (titleish === 1 && /^[A-Z]/.test(words[0])) return m;
+      return editorialGarmentName(m, { atSentenceStart: false });
     },
   );
   // Post-transform editorial integrity (after any lead strip upstream)

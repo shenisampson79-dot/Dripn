@@ -444,6 +444,34 @@ function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
   return [];
 }
 
+/** Recent outfit id lists for diversity — newest first; prefer visual strip over legacy suggestion. */
+function extractRecentOutfitIdLists(messages: ChatMessage[], limit = 5): string[][] {
+  const out: string[][] = [];
+  for (let i = messages.length - 1; i >= 0 && out.length < limit; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== 'assistant') continue;
+    let ids: string[] = [];
+    const pieces = msg.wardrobeVisual?.pieces;
+    if (Array.isArray(pieces) && pieces.length) {
+      ids = pieces
+        .map((p) => (p as { wardrobeItemId?: string | number; id?: string | number })?.wardrobeItemId
+          ?? (p as { id?: string | number })?.id)
+        .filter((id) => id != null && String(id).trim())
+        .map(String);
+    }
+    if (ids.length < 2 && Array.isArray(msg.looks?.[0]?.itemIds) && msg.looks![0]!.itemIds!.length) {
+      ids = msg.looks![0]!.itemIds!.map(String);
+    }
+    if (ids.length < 2 && Array.isArray(msg.outfitSuggestion?.items) && msg.outfitSuggestion!.items.length) {
+      ids = msg.outfitSuggestion!.items
+        .map((it) => String((it as { id?: string | number })?.id || ''))
+        .filter(Boolean);
+    }
+    if (ids.length >= 2) out.push(ids);
+  }
+  return out;
+}
+
 function extractPriorOutfitOccasion(messages: ChatMessage[]): string | null {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const msg = messages[i];
@@ -3428,10 +3456,7 @@ export default function AIStylistScreen() {
           : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
             ? outfitRoute.occasion
             : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day'));
-        const recentOutfits = updatedMessages
-          .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
-          .slice(-5)
-          .map((m) => (m.outfitSuggestion!.items || []).map((it) => String(it.id)));
+        const recentOutfits = extractRecentOutfitIdLists(updatedMessages, 5);
         // Contract 1: refine lock polarity is server-authoritative (compileRefineIntent).
         // Do not send client-derived keepShoesChangeRest locks — they inverted Test 6.
         let lockedItems: string[] | undefined = continuityLocks;

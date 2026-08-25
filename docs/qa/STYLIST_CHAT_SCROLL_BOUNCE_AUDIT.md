@@ -129,7 +129,11 @@ Travel / C3, timeouts, allocator, Prefer Partial, weather, C2/C4, TrendScanner, 
 
 Existing verify suite protects (2)’s lock invariants but does **not** address (1) or typing/content-size yank.
 
-**STOP** — await device symptom class + fix authorization before changing FlatList props or CSM.
+**Verdict (read-only, pre-fix):** Two mechanisms coexist — native bounce + stick ownership.
+
+**Device acceptance (2026-08-25 OTA `10e1f2d`):** **PASS** — no yank-back after outfit reply; first upward drag yields.
+
+**Chat scroll: PASS / FROZEN.** Do not reopen unless a new launch-blocking regression. Native `bounces` still unchanged.
 
 ---
 
@@ -146,4 +150,8 @@ Existing verify suite protects (2)’s lock invariants but does **not** address 
 | `acquireStickOwnership` + `scrollChatToEnd(force=true)` | Send / focus still pin to bottom |
 | Native `bounces` | **Unchanged** |
 
-Fixtures: `scripts/verify-stylist-chat-scroll.ts` (cases 1–5) **PASS**. No OTA until review.
+Fixtures: `scripts/verify-stylist-chat-scroll.ts` (cases 1–5) **PASS**.
+
+**OTA published** production `602c5928…` / preview `7843b5af…` from `10e1f2d`.
+
+**Device acceptance:** **PASS / FROZEN** — no pull-back after outfit reply.
