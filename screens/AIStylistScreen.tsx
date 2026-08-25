@@ -72,6 +72,7 @@ import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
+import { extractRecentOutfitIdLists } from '@/utils/extractRecentOutfitIdLists';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import {
   getAiAllowancePaywallCopy,
@@ -442,34 +443,6 @@ function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
     }
   }
   return [];
-}
-
-/** Recent outfit id lists for diversity — newest first; prefer visual strip over legacy suggestion. */
-function extractRecentOutfitIdLists(messages: ChatMessage[], limit = 5): string[][] {
-  const out: string[][] = [];
-  for (let i = messages.length - 1; i >= 0 && out.length < limit; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== 'assistant') continue;
-    let ids: string[] = [];
-    const pieces = msg.wardrobeVisual?.pieces;
-    if (Array.isArray(pieces) && pieces.length) {
-      ids = pieces
-        .map((p) => (p as { wardrobeItemId?: string | number; id?: string | number })?.wardrobeItemId
-          ?? (p as { id?: string | number })?.id)
-        .filter((id) => id != null && String(id).trim())
-        .map(String);
-    }
-    if (ids.length < 2 && Array.isArray(msg.looks?.[0]?.itemIds) && msg.looks![0]!.itemIds!.length) {
-      ids = msg.looks![0]!.itemIds!.map(String);
-    }
-    if (ids.length < 2 && Array.isArray(msg.outfitSuggestion?.items) && msg.outfitSuggestion!.items.length) {
-      ids = msg.outfitSuggestion!.items
-        .map((it) => String((it as { id?: string | number })?.id || ''))
-        .filter(Boolean);
-    }
-    if (ids.length >= 2) out.push(ids);
-  }
-  return out;
 }
 
 function extractPriorOutfitOccasion(messages: ChatMessage[]): string | null {
@@ -3923,10 +3896,12 @@ export default function AIStylistScreen() {
     }, 100);
 
     try {
-      const priorOutfits = messages
-        .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
-        .slice(-5)
-        .map((m) => m.outfitSuggestion!.items);
+      const recentIdLists = extractRecentOutfitIdLists(messages, 5);
+      const priorOutfits = recentIdLists
+        .map((ids) => ids
+          .map((id) => wardrobeItems.find((item) => String(item.id) === String(id)))
+          .filter((item): item is WardrobeItem => Boolean(item)))
+        .filter((look) => look.length >= 2);
 
       const generated = await generateWardrobeOutfit({
         occasionType: occasionId,
@@ -4038,10 +4013,12 @@ export default function AIStylistScreen() {
     }
 
     try {
-      const priorOutfits = messages
-        .filter((m) => m.role === 'assistant' && m.outfitSuggestion?.items?.length)
-        .slice(-5)
-        .map((m) => m.outfitSuggestion!.items);
+      const recentIdLists = extractRecentOutfitIdLists(messages, 5);
+      const priorOutfits = recentIdLists
+        .map((ids) => ids
+          .map((id) => wardrobeItems.find((item) => String(item.id) === String(id)))
+          .filter((item): item is WardrobeItem => Boolean(item)))
+        .filter((look) => look.length >= 2);
 
       const generated = await generateWardrobeOutfit({
         occasionType: 'casual_day',

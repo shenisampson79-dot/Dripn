@@ -1,46 +1,12 @@
 /**
  * recentOutfits extraction for Chat diversity — newest first, wardrobeVisual preferred.
  * Run: npx tsx utils/extractRecentOutfitIdLists.test.ts
- *
- * (Mirrors AIStylistScreen helper — keep in sync if that helper moves.)
  */
 import assert from 'node:assert/strict';
-
-type Msg = {
-  role: string;
-  wardrobeVisual?: { pieces?: Array<{ wardrobeItemId?: string; id?: string }> } | null;
-  looks?: Array<{ itemIds?: Array<string | number> }>;
-  outfitSuggestion?: { items?: Array<{ id?: string | number }> };
-};
-
-function extractRecentOutfitIdLists(messages: Msg[], limit = 5): string[][] {
-  const out: string[][] = [];
-  for (let i = messages.length - 1; i >= 0 && out.length < limit; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== 'assistant') continue;
-    let ids: string[] = [];
-    const pieces = msg.wardrobeVisual?.pieces;
-    if (Array.isArray(pieces) && pieces.length) {
-      ids = pieces
-        .map((p) => p?.wardrobeItemId ?? p?.id)
-        .filter((id) => id != null && String(id).trim())
-        .map(String);
-    }
-    if (ids.length < 2 && Array.isArray(msg.looks?.[0]?.itemIds) && msg.looks[0].itemIds.length) {
-      ids = msg.looks[0].itemIds.map(String);
-    }
-    if (ids.length < 2 && Array.isArray(msg.outfitSuggestion?.items) && msg.outfitSuggestion.items.length) {
-      ids = msg.outfitSuggestion.items
-        .map((it) => String(it?.id || ''))
-        .filter(Boolean);
-    }
-    if (ids.length >= 2) out.push(ids);
-  }
-  return out;
-}
+import { extractRecentOutfitIdLists } from './extractRecentOutfitIdLists.ts';
 
 {
-  // Visual strip only (no outfitSuggestion) — previously missed → empty recentOutfits
+  // Visual strip only (no outfitSuggestion) — must not produce []
   const lists = extractRecentOutfitIdLists([
     {
       role: 'assistant',
@@ -52,7 +18,7 @@ function extractRecentOutfitIdLists(messages: Msg[], limit = 5): string[][] {
         ],
       },
     },
-    { role: 'user', content: 'again' } as Msg,
+    { role: 'user' },
   ]);
   assert.deepEqual(lists[0], ['59', '84', '122']);
 }
@@ -63,15 +29,34 @@ function extractRecentOutfitIdLists(messages: Msg[], limit = 5): string[][] {
     {
       role: 'assistant',
       wardrobeVisual: { pieces: [{ id: '1' }, { id: '2' }, { id: '3' }] },
+      outfitSuggestion: { items: [{ id: '1' }, { id: '2' }, { id: '3' }] },
     },
-    { role: 'user' } as Msg,
+    { role: 'user' },
     {
       role: 'assistant',
       wardrobeVisual: { pieces: [{ id: '59' }, { id: '84' }, { id: '122' }] },
+      outfitSuggestion: { items: [{ id: '59' }, { id: '84' }, { id: '122' }] },
     },
   ]);
-  assert.deepEqual(lists[0], ['59', '84', '122'], 'most recent look must be [0] for diversityBan*');
+  assert.deepEqual(lists[0], ['59', '84', '122'], 'most recent look must be [0]');
   assert.deepEqual(lists[1], ['1', '2', '3']);
+}
+
+{
+  // 3-look payload shape for review
+  const lists = extractRecentOutfitIdLists([
+    { role: 'assistant', wardrobeVisual: { pieces: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } },
+    { role: 'user' },
+    { role: 'assistant', wardrobeVisual: { pieces: [{ id: 'd' }, { id: 'e' }, { id: 'f' }] } },
+    { role: 'user' },
+    { role: 'assistant', wardrobeVisual: { pieces: [{ id: 'g' }, { id: 'h' }, { id: 'i' }] } },
+  ], 5);
+  assert.deepEqual(lists, [
+    ['g', 'h', 'i'],
+    ['d', 'e', 'f'],
+    ['a', 'b', 'c'],
+  ]);
+  console.log('3-look recentOutfits payload:', JSON.stringify(lists));
 }
 
 console.log('extractRecentOutfitIdLists: PASS');
