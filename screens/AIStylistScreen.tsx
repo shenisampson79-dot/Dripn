@@ -119,6 +119,7 @@ import {
   multiDayClarifyCopy,
   type MultiDayTravelSlots,
 } from '@/utils/multiDayTravelClarify';
+import { resolveMultiDayGenerateUi } from '@/utils/multiDayChatSuccess';
 import {
   buildOutfitClarifyFromPartialLock,
   clearOutfitClarify,
@@ -3316,26 +3317,26 @@ export default function AIStylistScreen() {
               ? { id: user.id, gender: user.gender, countryCode: (user as { countryCode?: string }).countryCode }
               : undefined,
           });
-          const assistantMessage: ChatMessage = attachWardrobeVisualToMessage({
-            id: `msg_${Date.now()}_assistant`,
-            role: 'assistant',
-            content: multi.content || "Here's your day-by-day plan from pieces you already own.",
-            timestamp: new Date().toISOString(),
-            travelClarify: multi.travelClarify
-              ? {
-                  flow: String(multi.travelClarify.flow || 'multi_day_travel_clarify'),
-                  state: String(multi.travelClarify.state || 'DONE'),
-                  slots: (multi.travelClarify.slots as MultiDayTravelSlots) || advanced.slots,
-                }
-              : { flow: 'multi_day_travel_clarify', state: 'DONE', slots: advanced.slots },
-            responseType: multi.responseType || 'multi',
-            lookCount: multi.lookCount,
-            looks: multi.looks,
-            hasOutfitRecommendation: Boolean(multi.hasOutfitRecommendation),
-            visualAuthority: multi.wardrobeVisual ? 'server' : null,
-            ...(multi.wardrobeVisual ? { wardrobeVisual: multi.wardrobeVisual as WardrobeVisualPayload } : {}),
-          }, wardrobeItems);
-          const finalMessages = [...updatedMessages, assistantMessage];
+          const ui = resolveMultiDayGenerateUi({
+            priorMessages: updatedMessages,
+            result: { ok: true, multi },
+            userMessage: trimmedAsk,
+            fallbackSlots: advanced.slots as unknown as Record<string, unknown>,
+            wardrobeItems: wardrobeItems || [],
+            subscriptionTier: user?.subscriptionTier,
+            attachFn: (message, userMessage, response, items, tier) =>
+              attachWardrobeVisualToMessage(
+                message as ChatMessage,
+                userMessage,
+                response as Parameters<typeof attachWardrobeVisualToMessage>[2],
+                items as WardrobeItem[],
+                tier,
+              ) as unknown as Record<string, unknown>,
+          });
+          if (ui.softVisualFail) {
+            console.warn('[StylistChat] multi-day attachWardrobeVisual soft-fail — keeping HTTP body');
+          }
+          const finalMessages = ui.messages as ChatMessage[];
           setMessages(finalMessages);
           setIsTyping(false);
           await saveChatHistory(finalMessages);
@@ -3343,19 +3344,18 @@ export default function AIStylistScreen() {
           return;
         } catch (multiErr) {
           console.warn('[StylistChat] multi-day generate failed:', multiErr);
-          const failMsg: ChatMessage = {
-            id: `msg_${Date.now()}_assistant`,
-            role: 'assistant',
-            content:
-              "I have the trip details but couldn't lock day looks just now. Try again in a moment — or add a few more tops, bottoms, and shoes.",
-            timestamp: new Date().toISOString(),
-            travelClarify: {
-              flow: 'multi_day_travel_clarify',
-              state: 'READY',
-              slots: advanced.slots,
+          const ui = resolveMultiDayGenerateUi({
+            priorMessages: updatedMessages,
+            result: { ok: false },
+            userMessage: trimmedAsk,
+            fallbackSlots: advanced.slots as unknown as Record<string, unknown>,
+            wardrobeItems: wardrobeItems || [],
+            subscriptionTier: user?.subscriptionTier,
+            attachFn: () => {
+              throw new Error('attach_unused_on_http_failure');
             },
-          };
-          const finalMessages = [...updatedMessages, failMsg];
+          });
+          const finalMessages = ui.messages as ChatMessage[];
           setMessages(finalMessages);
           setIsTyping(false);
           await saveChatHistory(finalMessages);
