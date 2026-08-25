@@ -106,8 +106,25 @@ export function resolveRefineOccasion(
   const prior = String(priorOccasion || '').trim() || 'casual_day';
   const t = String(text || '');
 
+  // Same-kind / another-option continuation: keep prior structured occasion.
+  // Words like "drinks" inside "same kind of lunch or drinks" must NOT promote
+  // to evening_out unless the user explicitly changes occasion / dressiness.
+  const sameKindContinuation = /\b(same\s+kind|same\s+(look|vibe|style|direction)|another\s+(option|look|way)|give\s+me\s+another|something\s+different|different\s+(outfit|look)|try\s+(again|another))\b/i.test(t);
+  // Genuine lane change — not plain "make it smarter" (formality raise stays separate).
+  const explicitOccasionChange = /\b(change\s+(?:it\s+)?to|actually\s+(?:make\s+it\s+)?|instead\s+(?:make\s+it\s+)?|for\s+tonight|tonight|this\s+evening|something\s+for\s+tonight)\b/i.test(t)
+    || /\bmake\s+it\s+(?:a\s+)?(?:dinner|evening|night\s+out|work|office|gym|date)\b/i.test(t);
+
+  if (sameKindContinuation && !explicitOccasionChange) {
+    if (!RAISE_FORMALITY_RE.test(t)) {
+      return { occasion: prior, occasionSource: 'inherited' };
+    }
+  }
+
   for (const cue of EXPLICIT_OCCASION_CUES) {
     if (cue.re.test(t)) {
+      if (sameKindContinuation && !explicitOccasionChange) {
+        return { occasion: prior, occasionSource: 'inherited' };
+      }
       return { occasion: cue.occasion, occasionSource: 'explicit_ask' };
     }
   }

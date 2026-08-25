@@ -140,7 +140,14 @@ function textWithoutSleeveModifiers(text: string): string {
 
 function inferCategoryFromText(text: string): ClothingCategory | null {
   const lower = textWithoutSleeveModifiers(text);
-  if (/\b(dress|gown|romper|jumpsuit)\b/.test(lower)) return 'dresses';
+  // Dress shirt / oxford / button-up are tops — never collapse to one-piece dresses.
+  const isDressShirt = /dress[\s_-]*shirt|oxford[\s_-]*shirt|shirt[\s_-]*dress|button[\s_-]?down|button[\s_-]?up/.test(lower)
+    && !/\b(maxi|midi|mini)\s*dress\b/.test(lower);
+  if (isDressShirt) return 'tops';
+  if (/\b(dress|gown|romper|jumpsuit)\b/.test(lower)
+    && !/dress[\s_-]*shirt|dress[\s_-]*shoe|shirt[\s_-]*dress/.test(lower)) {
+    return 'dresses';
+  }
   if (/\b(shoe|sneaker|boot|trainer|loafer|heel|sandal)\b/.test(lower)) return 'shoes';
   if (/\b(bag|backpack|tote|purse|handbag|satchel|clutch)\b/.test(lower)) return 'bags';
   if (/\b(jacket|coat|blazer|parka|trench)\b/.test(lower)) return 'outerwear';
@@ -202,6 +209,10 @@ export function normalizeWardrobeCategory(
   const fromHints = inferCategoryFromText(`${hints?.name || ''} ${hints?.subcategory || ''}`);
 
   const applyHintOverride = (category: ClothingCategory): ClothingCategory => {
+    // Always reconcile dress-shirt naming out of dresses (even when raw was dresses).
+    if (fromHints === 'tops' && category === 'dresses') {
+      return 'tops';
+    }
     if (
       fromHints &&
       category === 'tops' &&

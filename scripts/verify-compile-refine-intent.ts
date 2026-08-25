@@ -30,10 +30,32 @@ assert.ok(p2.keep.includes('top') && p2.keep.includes('bottom'));
 // Legacy inversion must not win on T6
 assert.notEqual(t6.refine, 'keep_footwear_change_top_bottom');
 
+// Occasion continuity — same-kind / another-option must not promote on "drinks"
+const sameKind = compileRefineIntent(
+  'Give me another option for the same kind of lunch or drinks.',
+  { priorOccasion: 'smart_casual' },
+);
+assert.equal(sameKind.occasion, 'smart_casual');
+assert.equal(sameKind.occasionSource, 'inherited');
+
+const another = compileRefineIntent('Give me another option.', { priorOccasion: 'smart_casual' });
+assert.equal(another.occasion, 'smart_casual');
+
+const smarter = compileRefineIntent('Make it smarter — give me a different look.', {
+  priorOccasion: 'smart_casual',
+});
+assert.equal(smarter.occasion, 'smart_casual');
+
+const dinner = compileRefineIntent('Change it to dinner.', { priorOccasion: 'smart_casual' });
+assert.equal(dinner.occasion, 'evening_out');
+assert.equal(dinner.occasionSource, 'explicit_ask');
+
 console.log(JSON.stringify({
   ok: true,
   T6: t6,
   P1: { keep: p1.keep, replace: p1.replace, mode: p1.mode },
   P2: { keep: p2.keep, replace: p2.replace, mode: p2.mode },
   occasionInherited: raiseOccasionForRefine('gym', T6),
+  sameKind: sameKind.occasion,
+  dinner: dinner.occasion,
 }, null, 2));
