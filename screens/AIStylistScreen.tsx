@@ -123,12 +123,15 @@ import {
 import { resolveMultiDayGenerateUi } from '@/utils/multiDayChatSuccess';
 import {
   buildOutfitClarifyFromPartialLock,
+  buildOutfitClarifyFromTierBNarrow,
   clearOutfitClarify,
+  isOutfitClarifyFlow,
   isOutfitTaskAsk,
   isWardrobeOutfitRefineAsk,
   resolveOutfitRoute,
   type OutfitClarifyPending,
 } from '@/utils/outfitClarifyContinuity';
+import { assertCanonicalOutfitVisual } from '@/utils/canonicalOutfitVisualAuthority';
 import {
   isMultiPieceHardLockAsk,
   resolveHardLockMentions,
@@ -579,20 +582,25 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
 
   if (message.outfitClarify && typeof message.outfitClarify === 'object') {
     const oc = message.outfitClarify as OutfitClarifyPending;
-    if (oc.flow === 'outfit_lock_clarify' && typeof oc.state === 'string' && typeof oc.originalUserMessage === 'string') {
+    if (isOutfitClarifyFlow(oc.flow) && typeof oc.state === 'string' && typeof oc.originalUserMessage === 'string') {
       normalized.outfitClarify = {
-        flow: 'outfit_lock_clarify',
+        flow: oc.flow,
         state: oc.state === 'READY' || oc.state === 'DONE' ? oc.state : 'AWAITING_PIECE',
         originalUserMessage: oc.originalUserMessage,
         occasion: typeof oc.occasion === 'string' ? oc.occasion : 'casual_day',
         lockedItemIds: Array.isArray(oc.lockedItemIds) ? oc.lockedItemIds.map(String) : [],
-        expectedLockCount: Number.isFinite(Number(oc.expectedLockCount)) ? Number(oc.expectedLockCount) : 1,
+        expectedLockCount: Number.isFinite(Number(oc.expectedLockCount))
+          ? Number(oc.expectedLockCount)
+          : (oc.flow === 'outfit_tier_b_narrow' ? 0 : 1),
         pendingSlot: oc.pendingSlot,
         createdAt: typeof oc.createdAt === 'string' ? oc.createdAt : new Date().toISOString(),
         weather: oc.weather && typeof oc.weather === 'object' && typeof oc.weather.temperature === 'number'
           ? { temperature: oc.weather.temperature, condition: String(oc.weather.condition || 'clear') }
           : null,
         lat: oc.lat ?? null,
+        continuationCount: Number.isFinite(Number(oc.continuationCount))
+          ? Number(oc.continuationCount)
+          : undefined,
       };
     }
   }
@@ -3297,12 +3305,14 @@ export default function AIStylistScreen() {
       const isMultiDayTravelAsk = isMultiDayTravelOutfitAsk(trimmedAsk);
       const pendingTravelSlots = findPendingTravelClarify(updatedMessages);
       const pendingOutfitReady =
-        outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.reason === 'pending_ready';
+        outfitRoute.route === 'outfit-from-wardrobe'
+        && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready');
       const isOutfitCreate =
         (outfitRoute.route === 'outfit-from-wardrobe'
           && (outfitRoute.reason === 'outfit_task'
             || outfitRoute.reason === 'hard_lock'
-            || outfitRoute.reason === 'pending_ready'))
+            || outfitRoute.reason === 'pending_ready'
+            || outfitRoute.reason === 'tier_b_ready'))
         || isOutfitTaskAsk(trimmedAsk);
 
       // Multi-day / travel: first-class clarify → generate (never single-look chip soft-fail).
@@ -3415,15 +3425,19 @@ export default function AIStylistScreen() {
             ? outfitRoute.lockedItemIds
             : undefined;
         const serverUserMessage =
-          outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.reason === 'pending_ready'
+          outfitRoute.route === 'outfit-from-wardrobe'
+          && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready')
             ? outfitRoute.userMessageForServer
             : trimmedAsk;
         const weatherSnap =
           outfitRoute.route === 'outfit-from-wardrobe'
-          && outfitRoute.reason === 'pending_ready'
+          && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready')
           && outfitRoute.weather
             ? { weather: outfitRoute.weather, lat: outfitRoute.lat ?? null }
             : await fetchWeatherForOutfitCreate(3000);
+        const tierBNarrowResolved =
+          outfitRoute.route === 'outfit-from-wardrobe'
+          && Boolean(outfitRoute.tierBNarrowResolved || outfitRoute.reason === 'tier_b_ready');
         const occasionForServer = isRefineOutfitAsk
           ? raiseOccasionForRefine(extractPriorOutfitOccasion(updatedMessages), trimmedAsk)
           : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
@@ -3472,6 +3486,7 @@ export default function AIStylistScreen() {
             lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
             excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,
             recentOutfits,
+            tierBNarrowResolved: tierBNarrowResolved || undefined,
             source: 'wardrobe',
           });
           if (!outfitResponse.content || !outfitResponse.content.trim()) {
@@ -3482,8 +3497,12 @@ export default function AIStylistScreen() {
           const isPartialLockClarify =
             String(outfitResponse.path || '') === 'partial_lock_clarify'
             || /which (blazer|piece|item)/i.test(outfitResponse.content);
-          // Circuit breaker only — pending_ready should resolve before this fires.
+          // Circuit breaker only — pending_ready / tier_b_ready should resolve before this fires.
           const clarifyLoopBlocked = pendingOutfitReady && isPartialLockClarify;
+          const tierBLoopBlocked =
+            outfitRoute.route === 'outfit-from-wardrobe'
+            && outfitRoute.reason === 'tier_b_ready'
+            && isTierBNarrow;
           if (clarifyLoopBlocked) {
             console.warn(
               '[OutfitClarify] circuit_breaker_fired — continuity slot resolution failed after pending_ready',
@@ -3493,6 +3512,33 @@ export default function AIStylistScreen() {
               },
             );
           }
+          if (tierBLoopBlocked) {
+            console.warn(
+              '[OutfitClarify] tier_b_circuit_breaker — Tier B re-fired after narrowing (skipTierGuard failed?)',
+            );
+          }
+          const frozenOutfitAsk =
+            outfitRoute.route === 'outfit-from-wardrobe'
+            && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready')
+              ? (outfitRoute.pending?.originalUserMessage
+                || String(serverUserMessage).split(/\n\nUser (?:confirmed piece|narrowed intent):/)[0]
+                || serverUserMessage)
+              : serverUserMessage;
+          const authority = assertCanonicalOutfitVisual({
+            itemIds: outfitResponse.itemIds,
+            wardrobeVisual: (outfitResponse.wardrobeVisual as any) || null,
+          });
+          if (!authority.ok && authority.reason) {
+            console.warn('[OutfitClarify] visual_authority_gate', authority.reason, {
+              itemIds: outfitResponse.itemIds || [],
+            });
+          }
+          const publishVisual = clarifyLoopBlocked || tierBLoopBlocked || isTierBNarrow
+            ? null
+            : authority.wardrobeVisual;
+          const publishHasRec = clarifyLoopBlocked || tierBLoopBlocked || isTierBNarrow
+            ? false
+            : Boolean(outfitResponse.hasOutfitRecommendation && publishVisual);
           try {
             const attached = attachWardrobeVisualToMessage(
               {
@@ -3500,19 +3546,19 @@ export default function AIStylistScreen() {
                 role: 'assistant',
                 content: clarifyLoopBlocked
                   ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
-                  : outfitResponse.content,
+                  : tierBLoopBlocked
+                    ? "I've still got a lot of good options — try naming a piece you want to wear, or ask again with a sharper vibe."
+                    : outfitResponse.content,
                 timestamp: new Date().toISOString(),
                 visualAuthority: 'server',
-                hasOutfitRecommendation: clarifyLoopBlocked
-                  ? false
-                  : (isTierBNarrow ? false : outfitResponse.hasOutfitRecommendation),
+                hasOutfitRecommendation: publishHasRec,
               },
               serverUserMessage,
-              clarifyLoopBlocked
-                ? { ...outfitResponse, hasOutfitRecommendation: false, wardrobeVisual: null } as any
-                : isTierBNarrow
-                  ? { ...outfitResponse, hasOutfitRecommendation: false, wardrobeVisual: null } as any
-                  : outfitResponse as any,
+              {
+                ...outfitResponse,
+                hasOutfitRecommendation: publishHasRec,
+                wardrobeVisual: publishVisual,
+              } as any,
               wardrobeItems,
               user?.subscriptionTier,
             );
@@ -3520,16 +3566,16 @@ export default function AIStylistScreen() {
               (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion =
                 outfitResponse.occasion || occasionForServer;
             }
-            if (isPartialLockClarify && !clarifyLoopBlocked) {
-              // Persist frozen turn-1 ask (not the enriched continued message).
-              const frozenAsk =
-                outfitRoute.route === 'outfit-from-wardrobe'
-                && outfitRoute.reason === 'pending_ready'
-                  ? (outfitRoute.pending?.originalUserMessage
-                    || String(serverUserMessage).split('\n\nUser confirmed piece:')[0] || serverUserMessage)
-                  : serverUserMessage;
+            if (isTierBNarrow && !tierBLoopBlocked) {
+              attached.outfitClarify = buildOutfitClarifyFromTierBNarrow({
+                originalUserMessage: frozenOutfitAsk,
+                occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
+                weather: weatherSnap.weather,
+                lat: weatherSnap.lat,
+              });
+            } else if (isPartialLockClarify && !clarifyLoopBlocked) {
               attached.outfitClarify = buildOutfitClarifyFromPartialLock({
-                originalUserMessage: frozenAsk,
+                originalUserMessage: frozenOutfitAsk,
                 occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
                 lockedItemIds: lockedItems || [],
                 weather: weatherSnap.weather,
@@ -3548,26 +3594,37 @@ export default function AIStylistScreen() {
               role: 'assistant',
               content: clarifyLoopBlocked
                 ? "I still couldn't lock those two pieces into a confident dinner look. Name one piece to build around, or try a different pair."
-                : outfitResponse.content,
+                : tierBLoopBlocked
+                  ? "I've still got a lot of good options — try naming a piece you want to wear, or ask again with a sharper vibe."
+                  : outfitResponse.content,
               timestamp: new Date().toISOString(),
               ...(outfitResponse.occasion || occasionForServer
                 ? { outfitOccasion: outfitResponse.occasion || occasionForServer }
                 : {}),
-              ...(isPartialLockClarify && !clarifyLoopBlocked
+              ...(isTierBNarrow && !tierBLoopBlocked
                 ? {
-                    outfitClarify: buildOutfitClarifyFromPartialLock({
-                      originalUserMessage: serverUserMessage.split('\n\nUser confirmed piece:')[0] || serverUserMessage,
+                    outfitClarify: buildOutfitClarifyFromTierBNarrow({
+                      originalUserMessage: frozenOutfitAsk,
                       occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
-                      lockedItemIds: lockedItems || [],
                       weather: weatherSnap.weather,
                       lat: weatherSnap.lat,
                     }),
                   }
-                : {
-                    outfitClarify: clearOutfitClarify(
-                      outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
-                    ) || undefined,
-                  }),
+                : isPartialLockClarify && !clarifyLoopBlocked
+                  ? {
+                      outfitClarify: buildOutfitClarifyFromPartialLock({
+                        originalUserMessage: frozenOutfitAsk,
+                        occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
+                        lockedItemIds: lockedItems || [],
+                        weather: weatherSnap.weather,
+                        lat: weatherSnap.lat,
+                      }),
+                    }
+                  : {
+                      outfitClarify: clearOutfitClarify(
+                        outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
+                      ) || undefined,
+                    }),
             };
           }
         } catch (chatOutfitErr) {

@@ -9,6 +9,7 @@ import type { WardrobeItem } from '../contexts/WardrobeContext';
 import {
   advanceOutfitClarify,
   buildOutfitClarifyFromPartialLock,
+  buildOutfitClarifyFromTierBNarrow,
   clearOutfitClarify,
   evaluateOutfitClarifyReadiness,
   findPendingOutfitClarify,
@@ -22,6 +23,7 @@ import {
   looksLikeUnrelatedChatDuringOutfitClarify,
   resolveOutfitRoute,
 } from '../utils/outfitClarifyContinuity';
+import { assertCanonicalOutfitVisual } from '../utils/canonicalOutfitVisualAuthority';
 
 function item(
   partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'category' | 'name'>,
@@ -306,10 +308,129 @@ const coldShort = resolveOutfitRoute({
 });
 assert.equal(coldShort.route, 'other');
 
+// ── Fixture F — Tier-B conversational continuity ─────────────────────────
+
+const ASK_F1 = 'Put together a casual outfit for me today.';
+const REPLY_F2 = "Relaxed everyday — I'm just going out for coffee and a walk.";
+
+const f1 = resolveOutfitRoute({
+  userText: ASK_F1,
+  messages: [],
+  wardrobeItems: wardrobe,
+});
+assert.equal(f1.route, 'outfit-from-wardrobe');
+assert.equal(f1.route === 'outfit-from-wardrobe' ? f1.reason : '', 'outfit_task');
+matrix['Tier B cold ask → outfit-from-wardrobe'] = f1.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
+
+const pendingF = buildOutfitClarifyFromTierBNarrow({
+  originalUserMessage: ASK_F1,
+  occasion: 'casual_day',
+  weather: { temperature: 22, condition: 'clear' },
+  lat: 51.5,
+});
+assert.equal(pendingF.flow, 'outfit_tier_b_narrow');
+assert.equal(pendingF.expectedLockCount, 0);
+
+const messagesAfterTierB = [
+  { role: 'user' as const, content: ASK_F1 },
+  {
+    role: 'assistant' as const,
+    content: "I've got a lot of good options here — what are you dressing for?",
+    hasOutfitRecommendation: false,
+    outfitClarify: pendingF,
+  },
+];
+assert.ok(findPendingOutfitClarify(messagesAfterTierB), 'F2 findPending finds Tier-B state');
+
+// Without pending, narrowing reply alone must NOT look like an outfit ask (resilient trap).
+const coldNarrow = resolveOutfitRoute({
+  userText: REPLY_F2,
+  messages: [],
+  wardrobeItems: wardrobe,
+});
+assert.equal(coldNarrow.route, 'other', 'cold Tier-B reply alone → other/resilient');
+matrix['cold Tier-B reply alone → other'] = coldNarrow.route === 'other' ? 'PASS' : 'FAIL';
+
+const f2 = resolveOutfitRoute({
+  userText: REPLY_F2,
+  messages: messagesAfterTierB,
+  wardrobeItems: wardrobe,
+});
+assert.equal(f2.route, 'outfit-from-wardrobe', 'F2 with pending → outfit-from-wardrobe');
+assert.equal(f2.route === 'outfit-from-wardrobe' ? f2.reason : '', 'tier_b_ready');
+if (f2.route === 'outfit-from-wardrobe') {
+  assert.equal(f2.tierBNarrowResolved, true);
+  assert.equal(f2.lockedItemIds.length, 0);
+  assert.ok(f2.userMessageForServer.startsWith(ASK_F1));
+  assert.ok(f2.userMessageForServer.includes('User narrowed intent:'));
+  assert.ok(f2.userMessageForServer.includes('coffee'));
+  assert.equal(f2.occasion, 'casual_day');
+}
+matrix['Tier-B narrowing reply → outfit-from-wardrobe + tierBNarrowResolved'] =
+  f2.route === 'outfit-from-wardrobe'
+  && f2.reason === 'tier_b_ready'
+  && f2.tierBNarrowResolved === true
+    ? 'PASS'
+    : 'FAIL';
+
+const fCancel = resolveOutfitRoute({
+  userText: 'Never mind, different question.',
+  messages: messagesAfterTierB,
+  wardrobeItems: wardrobe,
+});
+assert.equal(fCancel.route, 'cancel_pending');
+matrix['Tier-B cancel drops pending'] = fCancel.route === 'cancel_pending' ? 'PASS' : 'FAIL';
+
+const fUnrelated = resolveOutfitRoute({
+  userText: 'Who invented the little black dress?',
+  messages: messagesAfterTierB,
+  wardrobeItems: wardrobe,
+});
+assert.equal(fUnrelated.route, 'drop_pending_unrelated');
+matrix['Tier-B unrelated drops pending'] = fUnrelated.route === 'drop_pending_unrelated' ? 'PASS' : 'FAIL';
+
+// Visual authority: published strip IDs must equal canonical itemIds
+const visualOk = assertCanonicalOutfitVisual({
+  itemIds: ['140', '43', '132'],
+  wardrobeVisual: {
+    layout: 'stacked',
+    pieces: [
+      { wardrobeItemId: '140' },
+      { wardrobeItemId: '43' },
+      { wardrobeItemId: '132' },
+    ],
+  },
+});
+assert.equal(visualOk.ok, true);
+const visualPadFail = assertCanonicalOutfitVisual({
+  itemIds: ['140', '43', '132'],
+  wardrobeVisual: {
+    layout: 'stacked',
+    pieces: [
+      { wardrobeItemId: '140' },
+      { wardrobeItemId: '43' },
+      { wardrobeItemId: '132' },
+      { wardrobeItemId: '84' },
+    ],
+  },
+});
+assert.equal(visualPadFail.ok, false);
+assert.equal(visualPadFail.wardrobeVisual, null);
+matrix['visual authority rejects padded outerwear ID'] = !visualPadFail.ok && visualPadFail.wardrobeVisual == null
+  ? 'PASS'
+  : 'FAIL';
+
 const allPass = Object.values(matrix).every((v) => v === 'PASS');
 
-console.log('verify-outfit-continuity-routing: ok (A–E + slot regressions)');
-console.log(JSON.stringify({ matrix, allPass, A3: a3.route === 'outfit-from-wardrobe' ? { locks: a3.lockedItemIds, reason: a3.reason } : a3 }, null, 2));
+console.log('verify-outfit-continuity-routing: ok (A–F + slot regressions)');
+console.log(JSON.stringify({
+  matrix,
+  allPass,
+  A3: a3.route === 'outfit-from-wardrobe' ? { locks: a3.lockedItemIds, reason: a3.reason } : a3,
+  F2: f2.route === 'outfit-from-wardrobe'
+    ? { reason: f2.reason, tierBNarrowResolved: f2.tierBNarrowResolved }
+    : f2,
+}, null, 2));
 
 if (!allPass) {
   process.exit(1);

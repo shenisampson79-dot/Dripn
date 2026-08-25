@@ -1,11 +1,16 @@
 /**
- * Outfit lock clarification continuity — client FSM (mirrors travel clarify).
+ * Outfit lock / Tier-B clarification continuity — client FSM (mirrors travel clarify).
  *
  * After server `partial_lock_clarify`, preserve the pending outfit task so a
  * natural short reply re-enters POST /api/chat/outfit-from-wardrobe with frozen
  * originalUserMessage + merged locks.
  *
- * Readiness invariant: a clarification is complete only when every required
+ * After server `allocator_tier_b_narrow`, preserve the pending outfit task so the
+ * user's narrowing reply re-enters the same canonical path with frozen ask +
+ * merged intent (never resilient freestyle). Server must receive
+ * `tierBNarrowResolved: true` so Tier B does not re-fire on pool size alone.
+ *
+ * Readiness invariant (lock clarify): complete only when every required
  * structural slot is resolved unambiguously and expectedLockCount is satisfied.
  *
  * Spec: docs/qa/STYLIST_CHAT_OUTFIT_CONTINUITY_SPEC.md
@@ -16,6 +21,11 @@ import { isMultiDayTravelOutfitAsk } from '@/utils/multiDayTravelClarify';
 import { matchWardrobeItemsInText } from '@/utils/wardrobeMentionMatcher';
 
 export const OUTFIT_LOCK_CLARIFY_FLOW = 'outfit_lock_clarify' as const;
+export const OUTFIT_TIER_B_NARROW_FLOW = 'outfit_tier_b_narrow' as const;
+
+export type OutfitClarifyFlow =
+  | typeof OUTFIT_LOCK_CLARIFY_FLOW
+  | typeof OUTFIT_TIER_B_NARROW_FLOW;
 
 export type OutfitClarifyState = 'AWAITING_PIECE' | 'READY' | 'DONE';
 
@@ -28,7 +38,7 @@ export type OutfitClarifyWeatherSnap = {
 export type StructuralSlot = 'top' | 'blazer_or_outerwear' | 'bottom' | 'shoes' | 'other';
 
 export type OutfitClarifyPending = {
-  flow: typeof OUTFIT_LOCK_CLARIFY_FLOW;
+  flow: OutfitClarifyFlow;
   state: OutfitClarifyState;
   originalUserMessage: string;
   occasion: string;
@@ -45,7 +55,7 @@ export type OutfitClarifyPending = {
 export type OutfitRouteDecision =
   | {
       route: 'outfit-from-wardrobe';
-      reason: 'outfit_task' | 'hard_lock' | 'pending_ready' | 'refine';
+      reason: 'outfit_task' | 'hard_lock' | 'pending_ready' | 'tier_b_ready' | 'refine';
       pending?: OutfitClarifyPending;
       /** Frozen turn-1 ask when continuing after clarify — never the short reply alone. */
       userMessageForServer: string;
@@ -53,6 +63,8 @@ export type OutfitRouteDecision =
       occasion: string;
       weather?: OutfitClarifyWeatherSnap;
       lat?: number | null;
+      /** After Tier-B narrowing answer — skip allocator Tier-B gate once (beam must run). */
+      tierBNarrowResolved?: boolean;
     }
   | { route: 'cancel_pending'; pending: null }
   | { route: 'drop_pending_unrelated'; pending: null }
@@ -484,6 +496,10 @@ export function looksLikeUnrelatedChatDuringOutfitClarify(text: string): boolean
   return false;
 }
 
+export function isOutfitClarifyFlow(flow: unknown): flow is OutfitClarifyFlow {
+  return flow === OUTFIT_LOCK_CLARIFY_FLOW || flow === OUTFIT_TIER_B_NARROW_FLOW;
+}
+
 export function findPendingOutfitClarify(
   messages: MessageLike[],
 ): OutfitClarifyPending | null {
@@ -492,7 +508,7 @@ export function findPendingOutfitClarify(
     if (msg.role !== 'assistant') continue;
     const oc = msg.outfitClarify;
     // Pending clarify wins even if the bubble also has a visual/recommendation flag.
-    if (oc && oc.flow === OUTFIT_LOCK_CLARIFY_FLOW && oc.state !== 'DONE') {
+    if (oc && isOutfitClarifyFlow(oc.flow) && oc.state !== 'DONE') {
       return { ...oc, lockedItemIds: [...(oc.lockedItemIds || [])] };
     }
     // Stop at published outfit or completed clarify
@@ -526,6 +542,18 @@ export function buildContinuedOutfitUserMessage(
   return `${original}\n\nUser confirmed piece: ${reply}`;
 }
 
+/** Merge Tier-B narrowing answer into the frozen broad outfit ask. */
+export function buildContinuedTierBUserMessage(
+  originalUserMessage: string,
+  narrowReply: string,
+): string {
+  const original = String(originalUserMessage || '').trim();
+  const reply = String(narrowReply || '').trim();
+  if (!original) return reply;
+  if (!reply) return original;
+  return `${original}\n\nUser narrowed intent: ${reply}`;
+}
+
 export function buildOutfitClarifyFromPartialLock(params: {
   originalUserMessage: string;
   occasion: string;
@@ -551,6 +579,28 @@ export function buildOutfitClarifyFromPartialLock(params: {
     lockedItemIds: locks,
     expectedLockCount: expected,
     pendingSlot: params.pendingSlot || (/\bblazer\b/i.test(params.originalUserMessage) ? 'blazer' : 'garment'),
+    createdAt: new Date().toISOString(),
+    weather: params.weather ?? null,
+    lat: params.lat ?? null,
+  };
+}
+
+/**
+ * Persist pending after allocator Tier-B narrowing (no piece locks — intent only).
+ */
+export function buildOutfitClarifyFromTierBNarrow(params: {
+  originalUserMessage: string;
+  occasion: string;
+  weather?: OutfitClarifyWeatherSnap;
+  lat?: number | null;
+}): OutfitClarifyPending {
+  return {
+    flow: OUTFIT_TIER_B_NARROW_FLOW,
+    state: 'AWAITING_PIECE',
+    originalUserMessage: String(params.originalUserMessage || '').trim(),
+    occasion: String(params.occasion || 'casual_day').trim() || 'casual_day',
+    lockedItemIds: [],
+    expectedLockCount: 0,
     createdAt: new Date().toISOString(),
     weather: params.weather ?? null,
     lat: params.lat ?? null,
@@ -667,6 +717,28 @@ export function resolveOutfitRoute(params: {
     }
     if (looksLikeUnrelatedChatDuringOutfitClarify(text)) {
       return { route: 'drop_pending_unrelated', pending: null };
+    }
+
+    // Tier-B: any related reply is the narrowing answer — re-enter beam path.
+    if (pending.flow === OUTFIT_TIER_B_NARROW_FLOW) {
+      return {
+        route: 'outfit-from-wardrobe',
+        reason: 'tier_b_ready',
+        pending: {
+          ...pending,
+          state: 'DONE',
+          continuationCount: Number(pending.continuationCount || 0) + 1,
+        },
+        userMessageForServer: buildContinuedTierBUserMessage(
+          pending.originalUserMessage,
+          text,
+        ),
+        lockedItemIds: [],
+        occasion: pending.occasion,
+        weather: pending.weather ?? null,
+        lat: pending.lat ?? null,
+        tierBNarrowResolved: true,
+      };
     }
 
     const advanced = advanceOutfitClarify({

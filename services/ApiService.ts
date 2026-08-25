@@ -2341,6 +2341,8 @@ class ApiService {
     excludedItems?: Array<string | number>;
     priorItemIds?: Array<string | number>;
     recentOutfits?: Array<Array<string | number>>;
+    /** After Tier-B narrowing reply — skip allocator Tier-B gate once so beam runs. */
+    tierBNarrowResolved?: boolean;
     source?: string;
   }): Promise<{
     content: string;
@@ -2392,6 +2394,7 @@ class ApiService {
         excludedItems: data.excludedItems || undefined,
         priorItemIds: data.priorItemIds || undefined,
         recentOutfits: data.recentOutfits || undefined,
+        tierBNarrowResolved: data.tierBNarrowResolved === true ? true : undefined,
         source: data.source || 'wardrobe',
       }),
     });

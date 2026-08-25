@@ -1,15 +1,74 @@
 # Duplicate matrix + spoken-label contract
 
-**Mode:** Fixtures-first · CODE-TRACED · **No OTA / Render**  
+**Mode:** Device acceptance pending (Tier-B conversational continuity + then diversity)  
 **Date:** 2026-08-25  
-**Held commits (do not ship as-is):** client `0025fd2`, server `9197054`  
-**Scroll:** PASS / FROZEN (unchanged)
+**History plumbing:** client `e458e5d` (OTA prod `73722ac6…` / preview `b03f45d5…`)  
+**Spoken-label SSoT:** server `9928e8e` (shipped; beam acceptance still pending)  
+**Scroll:** PASS / FROZEN  
+**Allocator Tier A/B:** PASS / FROZEN — **do not reopen thresholds / 2500 / scorer / `MIN_TRIO_CHANGES`**  
+**Contract 3 / travel:** PASS / FROZEN (quality/latency debts recorded elsewhere)
+
+**Diversity/history:** implementation shipped; **device acceptance NOT RUN**  
+**Spoken-label sample:** encouraging on resilient freestyle prose — **not** canonical beam acceptance  
+**New blocker (in flight):** Tier-B conversational continuity / representation authority
+
+---
+
+## Launch ledger (keep exact)
+
+| Item | Status |
+|------|--------|
+| Allocator Tier A/B | PASS / FROZEN |
+| Scroll | PASS / FROZEN |
+| Contract 3 / travel | PASS / FROZEN (+ recorded debts) |
+| Spoken-label SSoT | Server shipped; sample encouraging; not beam-canonical yet |
+| Diversity / history plumbing | Shipped; device acceptance **NOT RUN** |
+| Tier-B continuity / visual authority | **BLOCKER** — bounded fix authorized |
+
+---
+
+## Root cause (device evidence + CODE-TRACED + DETERMINISTIC)
+
+Tier-B clarification **broke conversational ownership**: after `allocator_tier_b_narrow`, the client cleared pending, so the user’s narrowing reply was classified as ordinary chat → `/api/chat/resilient` → freestyle prose → `finalizeStylistOutfitVisual` / prose→wardrobe (`MIN_OUTFIT_ITEMS=4` pad) independently reconstructed a strip (e.g. North Face jacket when prose said no jacket).
+
+This is **not** a diversity-policy failure. Newest-first history ordering remains correct, but **`wardrobeVisual` cannot universally evidence what Ivy selected**. Beam-backed visuals can; resilient `text+complete` visuals cannot.
+
+---
+
+## Bounded fix (authorized)
+
+1. Persist pending on `allocator_tier_b_narrow` (`outfit_tier_b_narrow` flow).  
+2. Next user message (if related) → merge into frozen ask (`User narrowed intent: …`) → **`POST /api/chat/outfit-from-wardrobe`**.  
+3. Send `tierBNarrowResolved: true` so Tier-B gate skips **once** (pool size alone would otherwise re-fire Tier B — not a threshold change).  
+4. Published strip IDs must equal canonical `itemIds` (`assertCanonicalOutfitVisual`); diverge → drop strip.  
+5. **No** resilient freestyle imitation of the allocator. No scorer / `MIN_TRIO_CHANGES` / Tier A/B threshold edits.
+
+**Fixtures:** `scripts/verify-outfit-continuity-routing.ts` (Fixture F) · `utils/canonicalOutfitVisualAuthority.ts` · server `scripts/test-allocator-tier-guard.mjs` (`skipTierGuard`).
+
+---
+
+## Device acceptance protocol (after continuity ships)
+
+1. Fresh Ivy thread (user 68 / broad wardrobe).  
+2. Turn 1: `Put together a casual outfit for me today.` → `allocator_tier_b_narrow` + pending.  
+3. Answer: `Relaxed everyday — I'm just going out for coffee and a walk.`  
+4. **Expect:** `POST /api/chat/outfit-from-wardrobe` with `tierBNarrowResolved`, beam-backed publish, visual IDs === `itemIds`.  
+5. Only then resume ~5 published outfits for diversity.  
+6. Spoken PASS on that beam Outfit 1+.
+
+**STOP after device evidence.** No Tier A/B, 2500, beam scoring, `MIN_TRIO_CHANGES`, hard-lock, travel, scroll, or M6 changes in this slice.
+
+---
+
+## Naming note (product review later — do not change now)
+
+`allocator_tier_b_narrow` is **misread as “narrow wardrobe.”** For user 68 it means the opposite: eligible casual pool is **large** (measured **23×14×20 = 6,440** trios > Tier-A ceiling **2,500**), so Ivy asks the customer to narrow **intent / search space**, not that capacity is insufficient. Distinct from M6 lock×capacity debt (Tops→1 refuse).
 
 ---
 
 ## M6 debt (not in these slices)
 
-Hard-lock × Tier/capacity: locking a top role-excludes other tops → Tops 1 → allocate capacity refuse.
+Hard-lock × Tier/capacity: locking a top role-excludes other tops → Tops 1 → allocate capacity refuse.  
 **Do not treat as evidence against classification A.** Fix separately if previously passing hard-lock device behaviour regresses.
 
 ---
@@ -22,110 +81,27 @@ Hard-lock × Tier/capacity: locking a top role-excludes other tops → Tops 1 �
 
 **Rationale:** On canonical `createWardrobeOutfit → beam`, with newest-first history supplied, `MIN_TRIO_CHANGES=2` + soft history penalties prevent immediate same-look repeats and, in a broad closet, suppress cream-tee / white-trousers winning again after 2–3 recent uses. Legacy Chat client history is **empty** when only `wardrobeVisual` is present and **oldest-first** when `outfitSuggestion` exists — so the beam often runs with **no / wrong “yesterday”**. That matches observed frequency without proving the ≥2-change contract wrong.
 
-**Not D for the customer report:** empty/wrong history means the device symptom is not “legitimate keep-one under good history”; it is history never reaching the beam correctly.
+---
 
-**Not B as primary:** when history is correct in fixtures, chronic cream/white did **not** win again (`M5`). Soft penalty exists (`−375` on forced chronic combo). Re-evaluate frequency weighting **only after** history plumbing is fixed and device-retested.
+## History source-of-truth (updated)
 
-**Blanket top+bottom+shoes ban:** rejected. Held `9197054` ban is on the **critique ladder**, not the Chat beam; it also collapses round-1/round-2 and fights deliberate keep-one.
+| Source | Launch role |
+|--------|-------------|
+| Beam / `createWardrobeOutfit` `wardrobeVisual` whose IDs match `itemIds` | **Safe** for `recentOutfits` |
+| Resilient prose-resolved / `text+complete` visual | **Unsafe** — do not treat as Ivy’s selection |
+| Newest-first extraction | Still correct ordering |
 
 ---
 
 ## Matrix fixtures
 
 **Harness:** `Dripn-Server/scripts/test-duplicate-matrix-beam.mjs`  
-**Path under test:** `allocateSurpriseOutfitFromWardrobe` / `createWardrobeOutfit` / `generateOutfitCandidateBeam` — **not** `diversityBanBottomAndShoes`.
-
-| ID | Case | Result |
-|----|------|--------|
-| M0 | Empty `recentOutfits` (fresh server view) | No diversity/history; not cross-session |
-| M1 | Exact prior trio available | No immediate too-similar / exact repeat |
-| M2 | Prior top favourite | Keep-one only with ≥2 trio changes |
-| M3 | Prior bottom favourite | Same |
-| M4 | Prior shoes favourite | Same |
-| M5 | Item across 2–3 looks | Cream/white did not win again; soft penalty present |
-| M6 | Hard-lock recent item | **PARTIAL/FAIL** — role-exclude → Tops 1 → capacity/Tier refuse (debt; not A/B) |
-| M7 | Narrow 2×2×2 closet | Publishes (graceful) |
-| M8 | Multi-look ordering | Legacy `history[0]`=oldest; proposed=newest |
-| M9 | Visual-only message | Legacy sends `[]`; proposed recovers strip IDs — **UI state only** |
-
 Run: `node scripts/test-duplicate-matrix-beam.mjs`
 
----
-
-## History source-of-truth (smallest launch fix)
-
-| Source | What it is | Launch role |
-|--------|------------|-------------|
-| Current-thread `wardrobeVisual` / message IDs | UI published look | **Primary** for in-thread variation |
-| `outfitSuggestion.items` | Hydrated after strip enrich | Fallback if visual missing |
-| Persisted AsyncStorage chat | Same shapes after reload | Same extraction; still thread-scoped |
-| `fetchRecentOutfits` (worn calendar) | Cross-session worn | **Not** wired to `outfit-from-wardrobe` today — out of launch MVP unless device still fails after thread history |
-
-**Launch requirement:** reasonable variation during normal Ivy use in a thread.  
-**Immediate contract:** client must send `recentOutfits` as **newest-first** id lists from the last N assistant looks, preferring visual strip IDs.
-
-Do **not** call strip/UI history “cross-session protection.”
-
----
-
-## Spoken garment label SSoT
-
-**Contract (conceptual):**
-
-```text
-stored wardrobe name  →  may stay Title Case (cards / identity)
-spokenPieceLabel(piece)  →  ONLY form allowed into customer prose writers
-```
-
-**Target wire order:**
-
-1. Evidence builder attaches `spokenLabel` (or replaces prompt `name` with spoken form) **before** LLM  
-2. Deterministic fallback already uses `spokenPieceLabel` — keep  
-3. Repair/clarify copy uses the same function  
-4. Presentation seal remains **defensive** only — not the primary transform  
-
-**Fixtures:** `Dripn-Server/scripts/test-spoken-piece-label-ssot.mjs`
-
-| Stored | `spokenPieceLabel` today |
-|--------|---------------------------|
-| Primark Cream Crew Neck T-Shirt | the primark cream tee |
-| White Cotton Trousers | the white pants |
-| Black Running T-shirt | the black tee |
-| Gap striped shirt | the gap white shirt |
-| ASOS Oversized Hoodie | the asos black hoodie *(brand lowercased — merge with `editorialGarmentName` brand rules)* |
-| adidas Ultraboost… | the black ultraboost trainers |
-
-**Gap (CODE-TRACED):** `buildStylistExplanationEvidence` still puts raw Title Case in `pieces[].name` for the LLM prompt. Held seal/client regexes **mask**; they are not SSoT.
-
-Goal is natural sentence-case references with proper brand/product tokens — **not** blindly lowercasing every wardrobe name.
-
----
-
-## Held-commit disposition
-
-| Change | Disposition |
-|--------|-------------|
-| `0025fd2` newest-first + prefer `wardrobeVisual` IDs | **Salvage** (matrix proves correct) — ship as history plumbing only |
-| `0025fd2` client mid-prose Title Case regex | **Drop** as primary fix |
-| `0025fd2` scroll PASS doc | Keep (already frozen) |
-| `9197054` trio ban on `diversityBanBottomAndShoes` | **Revert / drop** |
-| `9197054` seal sanitize + mid-prose / known-name softeners | **Hold** → replace with evidence spokenLabel; seal may stay thin defensive |
-| `9197054` prompt “use sentence case” alone | Insufficient |
-
----
-
-## Proposed minimal implementation (STOP — do not implement until authorized)
-
-1. **Client only:** extract `recentOutfits` newest-first from `wardrobeVisual` → looks → `outfitSuggestion`; align occasion-chip paths (~3927/4042). No casing regex.  
-2. **Server:** revert trio-ban change on `diversityBanBottomAndShoes` (restore bottom+shoes round-1).  
-3. **Spoken SSoT (server-first):** evidence/prompt consumes `spokenPieceLabel` (optionally brand-cased via `editorialGarmentName` tokens); leave seal as defense.  
-4. **Do not** add chronic frequency scorer until device retest with (1).  
-5. **Record debts:** M6 lock×tier capacity; true cross-session history later if still needed.
-
-**No OTA. No Render** until explicit authorization after this salvage lands and device-checks history.
+Spoken: `Dripn-Server/scripts/test-spoken-piece-label-ssot.mjs`
 
 ---
 
 ## Out of scope
 
-Allocator Tier A/B architecture, C1–C4 thresholds, hard-lock redesign, travel, scroll, evaluator floor, C2, timeout copy.
+Allocator Tier A/B architecture, C1–C4 thresholds, hard-lock redesign, travel, scroll, evaluator floor, C2, timeout copy, teaching resilient freestyle to imitate the allocator.
