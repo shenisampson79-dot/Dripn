@@ -133,6 +133,10 @@ import {
 } from '@/utils/outfitClarifyContinuity';
 import { assertCanonicalOutfitVisual } from '@/utils/canonicalOutfitVisualAuthority';
 import {
+  extractPriorOutfitOccasion,
+  pickPersistedOutfitOccasion,
+} from '@/utils/extractPriorOutfitOccasion';
+import {
   isMultiPieceHardLockAsk,
   resolveHardLockMentions,
 } from '@/utils/hardLockMentionResolution';
@@ -448,17 +452,7 @@ function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
   return [];
 }
 
-function extractPriorOutfitOccasion(messages: ChatMessage[]): string | null {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== 'assistant') continue;
-    const occ = (msg as ChatMessage & { outfitOccasion?: string }).outfitOccasion
-      || msg.outfitSuggestion?.occasion
-      || msg.outfitVisualSuggestion?.occasion;
-    if (typeof occ === 'string' && occ.trim()) return occ.trim();
-  }
-  return null;
-}
+// extractPriorOutfitOccasion — utils/extractPriorOutfitOccasion.ts (hydration SSoT)
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -621,6 +615,18 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         userMessage: typeof s.userMessage === 'string' ? s.userMessage : undefined,
       };
     }
+  }
+
+  // Structured occasion must survive force-close / remount hydrate (refine continuity).
+  const persistedOccasion = pickPersistedOutfitOccasion({
+    role: message.role,
+    outfitOccasion: typeof message.outfitOccasion === 'string' ? message.outfitOccasion : null,
+    outfitSuggestion: normalized.outfitSuggestion,
+    outfitVisualSuggestion: normalized.outfitVisualSuggestion,
+    styleSession: normalized.styleSession,
+  });
+  if (persistedOccasion) {
+    normalized.outfitOccasion = persistedOccasion;
   }
 
   return normalized;

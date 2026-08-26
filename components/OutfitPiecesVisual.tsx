@@ -9,6 +9,11 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import {
+  getOutfitPieceSlot,
+  resolveOutfitVisualSlots,
+  type OutfitVisualSlot,
+} from '@/utils/outfitVisualSlots';
+import {
   buildWardrobeImageProxyUrl,
   enrichWardrobeItemForOutfitVisual,
   isProxyWardrobeImageUri,
@@ -18,6 +23,9 @@ import {
   wardrobeProcessedTileBackground,
   wardrobeTileBackground,
 } from '@/utils/wardrobeImage';
+
+export { resolveOutfitVisualSlots, getOutfitPieceSlot };
+export type { OutfitVisualSlot };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -52,7 +60,7 @@ export type OutfitPieceVisual = {
   category?: string | null;
 };
 
-type LayerSlot = 'outerwear' | 'top' | 'bottom' | 'shoes' | 'dress' | 'accessory';
+type LayerSlot = OutfitVisualSlot;
 
 type ResolvedLayer = {
   key: string;
@@ -101,36 +109,12 @@ const STACK_OVERLAP_LARGE = 22;
 
 const STACK_ORDER: LayerSlot[] = ['outerwear', 'top', 'dress', 'bottom', 'shoes'];
 
-function inferSlotFromText(text: string): LayerSlot | null {
-  const t = text.toLowerCase();
-  if (/\b(dress|jumpsuit|romper|playsuit)\b/.test(t)) return 'dress';
-  if (/\b(blazer|jacket|coat|outerwear|cardigan|parka|trench|overcoat|gilet|vest)\b/.test(t)) return 'outerwear';
-  if (/\b(trouser|pant|jean|short|skirt|cargo|chino|bottom|legging)\b/.test(t)) return 'bottom';
-  if (/\b(shoe|trainer|sneaker|boot|loafer|heel|sandal|footwear|mule|flat)\b/.test(t)) return 'shoes';
-  if (/\b(bag|tote|purse|belt|scarf|hat|tie|bowtie|accessory|necklace|earring|watch)\b/.test(t)) return 'accessory';
-  if (/\b(shirt|blouse|top|tee|t-shirt|sweater|knit|polo|tank|camisole)\b/.test(t)) return 'top';
-  return null;
-}
-
 function getPieceSlot(piece: OutfitPieceVisual, item?: WardrobeItem | null): LayerSlot {
-  const role = String(piece.role || '').toLowerCase();
-  const category = String(piece.category || item?.category || '').toLowerCase();
-  const name = String(piece.name || item?.name || '').toLowerCase();
-
-  if (['dress', 'jumpsuit'].includes(role) || category === 'dresses') return 'dress';
-  if (['outerwear', 'blazer', 'jacket', 'coat'].includes(role) || category === 'outerwear') return 'outerwear';
-  if (['bottom', 'trousers', 'pants', 'jeans', 'skirt'].includes(role) || ['bottoms', 'activewear_bottoms'].includes(category)) {
-    return 'bottom';
-  }
-  if (['shoes', 'footwear', 'trainers', 'boots', 'sneakers'].includes(role) || ['shoes', 'footwear'].includes(category)) {
-    return 'shoes';
-  }
-  if (['accessory', 'accessories', 'bag'].includes(role) || ['bags', 'accessories'].includes(category)) return 'accessory';
-  if (['top', 'shirt', 'blouse', 'sweater'].includes(role) || ['tops', 'activewear_tops', 'formal'].includes(category)) {
-    return 'top';
-  }
-
-  return inferSlotFromText(`${role} ${name}`) || 'top';
+  return getOutfitPieceSlot({
+    role: piece.role,
+    category: piece.category || item?.category,
+    name: piece.name || item?.name,
+  });
 }
 
 function findWardrobeItemForPiece(
@@ -183,7 +167,7 @@ function pieceToWardrobeItem(piece: OutfitPieceVisual, wardrobeItem?: WardrobeIt
       imageUri: fallbackUri || '',
       enhancedImageUri: fallbackUri || undefined,
       imageProcessed: Boolean(fallbackUri),
-      category: 'tops',
+      category: (piece.category as WardrobeItem['category']) || 'tops',
       color: 'multicolor',
       name: piece.name || 'Item',
       seasons: ['all-season'],
@@ -203,7 +187,7 @@ function pieceToWardrobeItem(piece: OutfitPieceVisual, wardrobeItem?: WardrobeIt
       imageUri: fallbackUri || '',
       enhancedImageUri: fallbackUri || undefined,
       imageProcessed: Boolean(fallbackUri),
-      category: 'tops',
+      category: (piece.category as WardrobeItem['category']) || 'tops',
       color: 'multicolor',
       name: piece.name,
       seasons: ['all-season'],
@@ -365,28 +349,6 @@ export function OutfitPiecesVisual({
       return sum + Math.round(layerHeight(layer.slot) * adaptiveBoost) - overlap;
     }, (compact ? Spacing.sm : Spacing.md) * 2);
 
-  const getAccessoryTop = (index: number) => {
-    if (!large) {
-      return (compact ? 64 : 88) + index * (compact ? 22 : 28);
-    }
-
-    const outerwearLayer = stack.find((layer) => layer.slot === 'outerwear');
-    const topLayer = stack.find((layer) => layer.slot === 'top');
-    let torsoAnchor = 20;
-
-    if (outerwearLayer) {
-      torsoAnchor = layerHeight('outerwear') - Math.round(stackOverlap * 0.55);
-    } else if (topLayer) {
-      torsoAnchor = Math.round(layerHeight('top') * 0.35);
-    }
-
-    if (topLayer && outerwearLayer) {
-      torsoAnchor += Math.round(layerHeight('top') * 0.12);
-    }
-
-    return torsoAnchor + index * (layerHeight('accessory') + 12);
-  };
-
   const seamlessWhite = large;
   const canvasBg = seamlessWhite ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark);
 
@@ -482,36 +444,64 @@ export function OutfitPiecesVisual({
             );
           })}
         </View>
-
-        {accessories.map((layer, index) => {
-          const isProcessedLayer = itemHasProcessedCutout(layer.item);
-          // Transparent float — white tote tiles were covering adjacent top arms.
-          const layerBg = 'transparent';
-          const accessoryWidthPct = `${Math.round(layerWidth('accessory') * 100)}%` as DimensionValue;
-          return (
-            <View
-              key={layer.key}
-              style={[
-                styles.accessoryFloat,
-                {
-                  backgroundColor: 'transparent',
-                  borderRadius: 0,
-                  borderWidth: 0,
-                  overflow: 'visible' as const,
-                  width: large ? accessoryWidthPct : effectiveCanvasWidth * layerWidth('accessory'),
-                  maxWidth: large ? '38%' : undefined,
-                  height: layerHeight('accessory'),
-                  top: getAccessoryTop(index),
-                  right: large ? 4 : 0,
-                  zIndex: 2 + index,
-                },
-              ]}
-            >
-              {renderLayerImage(layer, layerBg, isProcessedLayer)}
-            </View>
-          );
-        })}
       </View>
+
+      {/* Canonical accessories: dedicated strip (not a tiny transparent float). */}
+      {accessories.length > 0 ? (
+        <View
+          style={[
+            styles.accessoryStrip,
+            large && styles.accessoryStripLarge,
+          ]}
+          accessibilityRole="summary"
+          accessibilityLabel={`Accessories: ${accessories.map((a) => a.piece.name || 'accessory').join(', ')}`}
+        >
+          <ThemedText
+            type="small"
+            lightColor="#5A4D3A"
+            darkColor="rgba(255,255,255,0.75)"
+            style={styles.accessoryStripLabel}
+          >
+            Also wearing
+          </ThemedText>
+          <View style={styles.accessoryStripRow}>
+            {accessories.map((layer) => {
+              const isProcessedLayer = itemHasProcessedCutout(layer.item);
+              const layerBg = isProcessedLayer
+                ? wardrobeProcessedTileBackground()
+                : wardrobeTileBackground(isDark);
+              const tile = Math.round((large ? 96 : 72) * sizeScale);
+              return (
+                <View key={layer.key} style={styles.accessoryStripItem}>
+                  <View
+                    style={[
+                      styles.accessoryStripTile,
+                      {
+                        width: tile,
+                        height: tile,
+                        backgroundColor: layerBg,
+                      },
+                    ]}
+                  >
+                    {renderLayerImage(layer, layerBg, isProcessedLayer)}
+                  </View>
+                  {layer.piece.name ? (
+                    <ThemedText
+                      type="small"
+                      numberOfLines={2}
+                      lightColor="#3D3428"
+                      darkColor="rgba(255,255,255,0.9)"
+                      style={styles.accessoryStripName}
+                    >
+                      {layer.piece.name}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -573,10 +563,38 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  accessoryFloat: {
-    position: 'absolute',
+  accessoryStrip: {
+    marginTop: Spacing.sm,
+    width: '100%',
+    alignItems: 'flex-start',
+  },
+  accessoryStripLarge: {
+    marginTop: Spacing.md,
+  },
+  accessoryStripLabel: {
+    marginBottom: Spacing.xs,
+    fontWeight: '600',
+  },
+  accessoryStripRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    width: '100%',
+  },
+  accessoryStripItem: {
+    alignItems: 'center',
+    maxWidth: 112,
+  },
+  accessoryStripTile: {
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'visible',
+  },
+  accessoryStripName: {
+    marginTop: 4,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 14,
   },
 });
