@@ -2143,19 +2143,47 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   }
 
   if (!permission.granted) {
+    const deniedPermanently = permission.status === 'denied' && !permission.canAskAgain;
+    const handlePermissionRecovery = async () => {
+      if (deniedPermanently) {
+        try {
+          await Linking.openSettings();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      await requestPermission();
+    };
+
     return (
-      <View style={[styles.centered, { backgroundColor: theme.background, padding: Spacing.lg }]}>
-        <ThemedText type="h2" style={{ marginBottom: Spacing.md }}>
-          Camera access
-        </ThemedText>
-        <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
-          Live stylist needs the camera to sample your outfit.
-        </ThemedText>
-        <Pressable onPress={requestPermission} style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}>
-          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            Allow camera
+      <View style={[styles.root, { backgroundColor: '#000', paddingTop: insets.top }]}>
+        <View style={styles.permissionTopBar}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>
+            <Feather name="x" size={22} color="#FFFFFF" />
+          </Pressable>
+        </View>
+        <View style={[styles.centered, { flex: 1, padding: Spacing.lg }]}>
+          <ThemedText type="h2" style={{ marginBottom: Spacing.md, color: '#FFFFFF' }}>
+            Camera access
           </ThemedText>
-        </Pressable>
+          <ThemedText type="body" style={{ color: 'rgba(255,255,255,0.72)', marginBottom: Spacing.lg, textAlign: 'center' }}>
+            Live stylist needs the camera to sample your outfit.
+          </ThemedText>
+          <Pressable
+            onPress={handlePermissionRecovery}
+            style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold }]}
+          >
+            <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+              {deniedPermanently ? 'Open Settings' : 'Allow camera'}
+            </ThemedText>
+          </Pressable>
+          <Pressable onPress={() => navigation.goBack()} style={{ marginTop: Spacing.lg }}>
+            <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+              Go back
+            </ThemedText>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -2506,6 +2534,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  permissionTopBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
   cameraWrap: { flex: 1, overflow: 'hidden' },
   cameraErrorOverlay: {
     ...StyleSheet.absoluteFillObject,

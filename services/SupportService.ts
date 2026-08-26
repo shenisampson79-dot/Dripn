@@ -2,6 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Gender } from '@/contexts/AuthContext';
 import { getStylistForUser, PersonalStylist } from './PersonalStylistService';
 import { apiService } from './ApiService';
+import {
+  isJuliaFashionStylingAsk,
+  JULIA_FASHION_REDIRECT_RESPONSE,
+} from '@/utils/juliaFashionRedirect';
 
 const SUPPORT_CHAT_KEY = '@dripn_support_chat';
 const SUPPORT_TICKETS_KEY = '@dripn_support_tickets';
@@ -32,6 +36,7 @@ export interface SupportMessage {
   content: string;
   timestamp: string;
   isTicketCreation?: boolean;
+  redirectToStylist?: boolean;
 }
 
 export const TICKET_CATEGORIES: { id: TicketCategory; label: string; icon: string }[] = [
@@ -226,11 +231,17 @@ class SupportService {
       : undefined;
 
     let responseContent: string;
+    let fashionRedirect = false;
 
     if (troubleshootingMatch) {
       responseContent = troubleshootingMatch.response;
+    } else if (isJuliaFashionStylingAsk(userMessage)) {
+      responseContent = JULIA_FASHION_REDIRECT_RESPONSE;
+      fashionRedirect = true;
     } else {
-      responseContent = await this.getAIResponse(userMessage);
+      const aiResult = await this.getAIResponse(userMessage);
+      responseContent = aiResult.content;
+      fashionRedirect = aiResult.redirectToStylist ?? false;
     }
 
     const assistantMsg: SupportMessage = {
@@ -238,6 +249,7 @@ class SupportService {
       role: 'assistant',
       content: ensureSupportListFullStops(stripSupportMarkdown(responseContent)),
       timestamp: new Date().toISOString(),
+      redirectToStylist: fashionRedirect,
     };
     this.chatHistory.push(assistantMsg);
     await this.saveChatHistory();
@@ -245,10 +257,12 @@ class SupportService {
     return assistantMsg;
   }
 
-  private async getAIResponse(userMessage: string): Promise<string> {
+  private async getAIResponse(
+    userMessage: string,
+  ): Promise<{ content: string; redirectToStylist?: boolean }> {
     try {
       if (!apiService.isConfigured()) {
-        return this.getMockResponse(userMessage, { reason: 'not_configured' });
+        return { content: this.getMockResponse(userMessage, { reason: 'not_configured' }) };
       }
 
       const chatHistory = this.chatHistory
@@ -275,13 +289,16 @@ class SupportService {
         /trouble connecting|try again or email support/i.test(response);
 
       if (!response || looksLikeOutage) {
-        return this.getMockResponse(userMessage, { reason: 'ai_unavailable' });
+        return { content: this.getMockResponse(userMessage, { reason: 'ai_unavailable' }) };
       }
 
-      return stripSupportMarkdown(response);
+      return {
+        content: stripSupportMarkdown(response),
+        redirectToStylist: Boolean((result as { redirectToStylist?: boolean })?.redirectToStylist),
+      };
     } catch (error) {
       console.error('Support API error:', error);
-      return this.getMockResponse(userMessage, { reason: 'network_error' });
+      return { content: this.getMockResponse(userMessage, { reason: 'network_error' }) };
     }
   }
 
@@ -346,6 +363,10 @@ class SupportService {
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
       return `For styling help, open the Stylist tab and chat with Ruby, Max, Ace, or Ivy.\n\nCompare plans anytime in Settings > Subscription. ${signOff}`;
+    }
+
+    if (isJuliaFashionStylingAsk(userMessage)) {
+      return JULIA_FASHION_REDIRECT_RESPONSE;
     }
 
     if (lowerMessage.includes('wardrobe') || lowerMessage.includes('closet')) {

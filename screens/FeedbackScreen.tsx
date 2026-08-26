@@ -86,7 +86,9 @@ const FEEDBACK_FALLBACKS: Record<string, string> = {
     "Thanks — we've got your feedback.",
   "feedback.submissionFailedTitle": "Submission Failed",
   "feedback.submissionFailedMessage":
-    "We couldn't submit your feedback. Please try again later.",
+    "We couldn't submit your feedback. Please check your connection and try again.",
+  "feedback.offlineMessage":
+    "You're offline. Connect to Wi‑Fi or mobile data, then try submitting again.",
 };
 
 const CORRUPT_VALUES = new Set([
@@ -197,8 +199,15 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: tx(t, "feedback.screenTitle") });
+    const screenTitle = tx(t, "feedback.screenTitle");
+    navigation.setOptions({ title: screenTitle });
   }, [navigation, t]);
+
+  const resolveFeedbackType = (): FeedbackType | null => {
+    if (feedbackType) return feedbackType;
+    if (category) return "general";
+    return null;
+  };
 
   const getDeviceInfo = (): string => {
     const osName = Platform.OS === "ios" ? "iOS" : Platform.OS === "web" ? "Web" : "Android";
@@ -229,7 +238,8 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   };
 
   const handleSubmit = async () => {
-    if (!feedbackType) {
+    const effectiveType = resolveFeedbackType();
+    if (!effectiveType) {
       Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredType"));
       return;
     }
@@ -245,7 +255,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
       Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredDescription"));
       return;
     }
-    if (feedbackType === "rating" && rating === 0) {
+    if (effectiveType === "rating" && rating === 0) {
       Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredRating"));
       return;
     }
@@ -253,7 +263,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     setIsSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
-        feedbackType,
+        feedbackType: effectiveType,
         category,
         title: title.trim(),
         description: description.trim(),
@@ -261,7 +271,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
         appVersion: getAppVersion(),
       };
 
-      if (feedbackType === "rating" && rating > 0) {
+      if (effectiveType === "rating" && rating > 0) {
         payload.rating = rating;
       }
 
@@ -284,9 +294,18 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
       }
     } catch (error) {
       console.warn("Feedback submission error:", error instanceof Error ? error.message : error);
+      const errMsg = String(error instanceof Error ? error.message : error).toLowerCase();
+      const looksOffline =
+        errMsg.includes("network") ||
+        errMsg.includes("offline") ||
+        errMsg.includes("fetch") ||
+        errMsg.includes("failed to fetch") ||
+        errMsg.includes("internet");
       Alert.alert(
         tx(t, "feedback.submissionFailedTitle"),
-        tx(t, "feedback.submissionFailedMessage"),
+        looksOffline
+          ? tx(t, "feedback.offlineMessage")
+          : tx(t, "feedback.submissionFailedMessage"),
       );
     } finally {
       setIsSubmitting(false);

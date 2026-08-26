@@ -78,7 +78,9 @@ export const getSettingsChildScreenOptions = ({
     title,
     headerShown: true,
     // Custom title node so colour always applies (native headerTitleStyle is unreliable on iOS glass)
-    headerTitle: () => <StackHeaderTitle title={title} color={titleColor} />,
+    headerTitle: ({ children }) => (
+      <StackHeaderTitle title={String(children ?? title)} color={titleColor} />
+    ),
   };
 };
 

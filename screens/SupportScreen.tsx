@@ -39,6 +39,7 @@ import {
 } from '@/services/SupportService';
 import { PersonalStylist } from '@/services/PersonalStylistService';
 import { currencyService } from '@/services/CurrencyService';
+import { ensureStylistHubVisible } from '@/utils/todaysOutfitEnsureRoute';
 
 const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
@@ -109,18 +110,24 @@ export default function SupportScreen() {
   }, [user?.gender]);
 
   const scrollToEnd = useCallback(() => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    const run = () => flatListRef.current?.scrollToEnd({ animated: true });
+    requestAnimationFrame(run);
+    setTimeout(run, 120);
+    setTimeout(run, 280);
   }, []);
 
-  // After keyboard height lands, re-scroll so footer actions clear the sticky composer.
+  // After keyboard height lands, re-scroll so latest messages clear the sticky composer.
   const prevKeyboardHeightRef = useRef(0);
   useEffect(() => {
     const opened = prevKeyboardHeightRef.current <= 0 && keyboardHeightPx > 0;
     prevKeyboardHeightRef.current = keyboardHeightPx;
     if (opened) scrollToEnd();
   }, [keyboardHeightPx, scrollToEnd]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    scrollToEnd();
+  }, [messages.length, isLoading, scrollToEnd]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading || sendingRef.current) return;
@@ -279,6 +286,19 @@ export default function SupportScreen() {
           >
             {item.content}
           </ThemedText>
+          {!isUser && item.redirectToStylist ? (
+            <Pressable
+              onPress={() => ensureStylistHubVisible(navigation)}
+              style={({ pressed }) => [
+                styles.stylistRedirectBtn,
+                { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                {t('support.openStylist') || 'Open Stylist Chat'}
+              </ThemedText>
+            </Pressable>
+          ) : null}
         </View>
       </Animated.View>
     );
@@ -668,6 +688,13 @@ const styles = StyleSheet.create({
   },
   messageText: {
     lineHeight: 22,
+  },
+  stylistRedirectBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignSelf: 'flex-start',
   },
   typingIndicator: {
     flexDirection: 'row',
