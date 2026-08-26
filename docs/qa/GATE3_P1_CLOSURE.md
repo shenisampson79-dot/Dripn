@@ -1,6 +1,6 @@
 # Gate 3 P1 closure (2026-08-27)
 
-Device matrix on OTA `55606fe` / server `08d06a7` found **3 proven P1 clusters** (+ keyboard regression).
+Device matrix on OTA `55606fe` / server `08d06a7` found **4 proven P1 clusters**.
 
 ## Fixes (this pass)
 
@@ -9,7 +9,7 @@ Device matrix on OTA `55606fe` / server `08d06a7` found **3 proven P1 clusters**
 | **G3-DM-04** | Live camera-deny: Open Settings when permanent deny; Allow camera otherwise; X + Go back exit. Permission UI only — no Live engine changes. |
 | **G3-DM-09a** | Server + client deterministic fashion gate; redirect to Stylist with CTA button. Julia support path preserved. |
 | **G3-DM-10b** | Feedback: default type `general` when area chip selected; honest offline error; header title reacts to `setOptions` via `screenOptions` fix. |
-| **G3-DM-09b-KB** | Julia chat: stronger scroll-to-end when keyboard opens / messages arrive (QA screenshot on same build = P1 regression). |
+| **G3-DM-09b-KB** | **P1 PROVEN** — Julia multi-turn keyboard scroll: stick-to-latest + `onContentSizeChange` retries; no Julia prose changes. |
 
 ## Deterministic tests
 

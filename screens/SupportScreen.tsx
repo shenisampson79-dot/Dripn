@@ -11,10 +11,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { KeyboardStickyView, useKeyboardState } from 'react-native-keyboard-controller';
 
@@ -45,6 +47,8 @@ const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
 /** Composer row + vertical padding — used so list content clears the sticky input. */
 const COMPOSER_HEIGHT = INPUT_MIN_HEIGHT + Spacing.md + Spacing.sm;
+/** px from bottom before we treat the user as "following" the live thread. */
+const NEAR_BOTTOM_THRESHOLD = 96;
 
 export default function SupportScreen() {
   const navigation = useNavigation();
@@ -56,15 +60,19 @@ export default function SupportScreen() {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const sendingRef = useRef(false);
+  /** User is following the live thread — auto-scroll on new content. */
+  const stickToLatestRef = useRef(true);
+  const isNearBottomRef = useRef(true);
   // Tab bar overlays the screen (absolute). Negative closed offset lifts the composer
   // above it (positive closed translates DOWN and hides the bar under the tabs).
   const tabBarClearance = TAB_BAR_HEIGHT + safeAreaInsets.bottom;
   const keyboardHeightPx = useKeyboardState((state) => state.height);
+  const isKeyboardVisible = keyboardHeightPx > 0;
   // Sticky composer overlays the list when the keyboard is open — pad enough to clear both.
   const listBottomPad =
     Spacing.xl +
     COMPOSER_HEIGHT +
-    (keyboardHeightPx > 0 ? keyboardHeightPx : tabBarClearance);
+    (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarClearance);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -109,25 +117,63 @@ export default function SupportScreen() {
     initialize();
   }, [user?.gender]);
 
-  const scrollToEnd = useCallback(() => {
-    const run = () => flatListRef.current?.scrollToEnd({ animated: true });
-    requestAnimationFrame(run);
-    setTimeout(run, 120);
-    setTimeout(run, 280);
+  const scrollToLatest = useCallback((force = false) => {
+    if (!force && !stickToLatestRef.current && !isNearBottomRef.current) return;
+    if (force) {
+      stickToLatestRef.current = true;
+      isNearBottomRef.current = true;
+    }
+    const run = (animated: boolean) => {
+      try {
+        flatListRef.current?.scrollToEnd({ animated });
+      } catch {
+        /* list not ready */
+      }
+    };
+    // Instant first pass, then retries as bubbles / keyboard / padding settle.
+    requestAnimationFrame(() => run(false));
+    setTimeout(() => run(true), 50);
+    setTimeout(() => run(false), 160);
+    setTimeout(() => run(false), 320);
+    setTimeout(() => run(false), 520);
+    setTimeout(() => run(false), 900);
   }, []);
 
-  // After keyboard height lands, re-scroll so latest messages clear the sticky composer.
+  const onChatScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - layoutMeasurement.height - contentOffset.y;
+    isNearBottomRef.current = distanceFromBottom <= NEAR_BOTTOM_THRESHOLD;
+    if (!isNearBottomRef.current) {
+      stickToLatestRef.current = false;
+    } else {
+      stickToLatestRef.current = true;
+    }
+  }, []);
+
+  const onChatScrollBeginDrag = useCallback(() => {
+    // Position update happens in onChatScroll; drag may release stick if user reads history.
+  }, []);
+
+  // After keyboard height lands, re-scroll when following the live thread.
   const prevKeyboardHeightRef = useRef(0);
   useEffect(() => {
     const opened = prevKeyboardHeightRef.current <= 0 && keyboardHeightPx > 0;
     prevKeyboardHeightRef.current = keyboardHeightPx;
-    if (opened) scrollToEnd();
-  }, [keyboardHeightPx, scrollToEnd]);
+    if (opened && stickToLatestRef.current) scrollToLatest(true);
+  }, [keyboardHeightPx, scrollToLatest]);
+
+  const lastMessageId = messages[messages.length - 1]?.id;
+  useEffect(() => {
+    if (!lastMessageId) return;
+    if (stickToLatestRef.current || isNearBottomRef.current) {
+      scrollToLatest(false);
+    }
+  }, [lastMessageId, isLoading, scrollToLatest]);
 
   useEffect(() => {
-    if (messages.length === 0) return;
-    scrollToEnd();
-  }, [messages.length, isLoading, scrollToEnd]);
+    if (isLoading && stickToLatestRef.current) scrollToLatest(false);
+  }, [isLoading, scrollToLatest]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading || sendingRef.current) return;
@@ -143,12 +189,12 @@ export default function SupportScreen() {
     // Same id as SupportService — register once so we never flash a duplicate bubble
     supportService.ensureUserMessage(clientMessageId, userMessage);
     setMessages(supportService.getChatHistoryDeduped());
-    scrollToEnd();
+    scrollToLatest(true);
 
     try {
       await supportService.sendMessage(userMessage, { clientMessageId });
       setMessages(supportService.getChatHistoryDeduped());
-      scrollToEnd();
+      scrollToLatest(true);
     } catch (error) {
       setMessages(supportService.getChatHistoryDeduped());
       Alert.alert(t('common.error'), t('support.sendFailed') || 'Could not send your message. Please try again.');
@@ -172,7 +218,7 @@ export default function SupportScreen() {
 
     supportService.ensureUserMessage(clientMessageId, label);
     setMessages(supportService.getChatHistoryDeduped());
-    scrollToEnd();
+    scrollToLatest(true);
 
     try {
       await supportService.sendMessage(action.label, {
@@ -180,7 +226,7 @@ export default function SupportScreen() {
         clientMessageId,
       });
       setMessages(supportService.getChatHistoryDeduped());
-      scrollToEnd();
+      scrollToLatest(true);
     } catch (error) {
       setMessages(supportService.getChatHistoryDeduped());
       Alert.alert(t('common.error'), t('support.responseFailed') || 'Could not get a response. Please try again.');
@@ -213,7 +259,7 @@ export default function SupportScreen() {
       setShowTicketModal(false);
       setSelectedCategory(null);
       setTicketDescription('');
-      scrollToEnd();
+      scrollToLatest(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       Alert.alert(t('common.error'), t('support.ticketFailed'));
@@ -242,14 +288,11 @@ export default function SupportScreen() {
     );
   };
 
-  const renderMessage = ({ item, index }: { item: SupportMessage; index: number }) => {
+  const renderMessage = ({ item }: { item: SupportMessage; index: number }) => {
     const isUser = item.role === 'user';
-    const isFirst = index === 0;
 
     return (
-      <Animated.View
-        // User bubbles keep a stable id — animating them remounts as a second bubble briefly
-        entering={isUser || isFirst ? undefined : FadeInUp.duration(300).springify()}
+      <View
         style={[
           styles.messageContainer,
           isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
@@ -300,7 +343,7 @@ export default function SupportScreen() {
             </Pressable>
           ) : null}
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -527,6 +570,19 @@ export default function SupportScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        removeClippedSubviews={false}
+        onScroll={onChatScroll}
+        onScrollBeginDrag={onChatScrollBeginDrag}
+        scrollEventThrottle={16}
+        onContentSizeChange={() => {
+          if (stickToLatestRef.current || isNearBottomRef.current) {
+            scrollToLatest(false);
+          }
+        }}
+        onLayout={() => {
+          if (stickToLatestRef.current) scrollToLatest(false);
+        }}
         ListFooterComponent={
           <>
             {isLoading ? (
@@ -587,7 +643,8 @@ export default function SupportScreen() {
               underlineColorAndroid="transparent"
               showSoftInputOnFocus
               onFocus={() => {
-                requestAnimationFrame(() => scrollToEnd());
+                stickToLatestRef.current = true;
+                scrollToLatest(true);
               }}
             />
             <Pressable
