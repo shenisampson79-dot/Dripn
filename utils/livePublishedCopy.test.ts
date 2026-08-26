@@ -153,13 +153,28 @@ function truth(partial: Partial<LiveOutfitTruth> = {}): LiveOutfitTruth {
     summary: 'The direction of grey t-shirt conflicts with black athletic shorts.',
     summaryTemplate: 'The direction of {top} conflicts with {bottom}.',
     bullets: [
-      'Garment subtypes clash — lanes or pairing rules conflict',
+      'These pieces pull in different directions — keep tops, bottoms, and shoes in one style lane',
       'Mixes athleisure with smart casual — different style worlds',
     ],
   }, clash);
   assert.match(out?.summary || '', /loafer/i);
   assert.match(out?.summary || '', /athletic shorts/i);
   assert.doesNotMatch(out?.summary || '', /direction of grey t-shirt conflicts/i);
+  assert.equal(
+    (out?.bullets || []).some((b) => /garment subtypes|pairing rules/i.test(b)),
+    false,
+    'engineering jargon bullets must not paint',
+  );
+
+  const jargonOnly = renderCopyFromPublishedTruth({
+    headline: 'Needs a tweak',
+    summary: 'Black loafers sit awkwardly with black athletic shorts.',
+    bullets: ['Garment subtypes clash — lanes or pairing rules conflict'],
+  }, clash);
+  assert.equal(
+    (jargonOnly?.bullets || []).some((b) => /garment subtypes|pairing rules/i.test(b)),
+    false,
+  );
 
   const palette = renderCopyFromPublishedTruth({
     headline: 'Needs a tweak',

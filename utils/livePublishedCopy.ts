@@ -21,6 +21,10 @@ export const FOOTWEAR_COPY_RE =
 const DRESSY_SHOE_RE = /loafer|oxford|derby|brogue|dress\s*shoe/;
 const ATHLETIC_BOTTOM_RE = /athletic|gym|sweat|jersey|sport/;
 
+/** Engine / allocator jargon — never customer coaching. */
+const ENGINEERING_COACHING_RE =
+  /\b(garment subtypes?|pairing rules?|lanes?\s+or\s+pairing|style\s+lane[s]?\s+conflict|subtype[s]?\s+clash|allocator|clash-safe|outfitKey|publishedLiveState)\b/i;
+
 const GARMENT_TOKEN_RE =
   /\b(shirts?|tees?|t-shirts?|hoodies?|jackets?|blazers?|coats?|shorts?|trousers?|jeans?|chinos?|sweatpants?|joggers?|leggings?|dresses?|shoes?|boots?|loafers?|trainers?|sneakers?|sandals?|clogs?|tops?|polos?|blouses?)\b/gi;
 
@@ -236,6 +240,7 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
   const bullets = (Array.isArray(coaching.bullets) ? coaching.bullets : [])
     .map((b) => String(b || '').trim())
     .filter(Boolean)
+    .filter((b) => !ENGINEERING_COACHING_RE.test(b))
     .filter((b) => textUsesOnlyPublishedNames(b, names))
     .filter((b) => {
       if (!publishedFootwearFormalityClash(truth, names)) return true;
@@ -249,7 +254,12 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
     });
 
   const advisory = adviseLegwearFromPublishedTruth(truth);
-  const merged = mergeLegwearBullet(bullets, advisory).slice(0, 2);
+  const safeAdvisory = advisory
+    && !ENGINEERING_COACHING_RE.test(advisory)
+    && textUsesOnlyPublishedNames(advisory, names)
+    ? advisory
+    : null;
+  const merged = mergeLegwearBullet(bullets, safeAdvisory).slice(0, 2);
 
   return polishUkCoaching({
     ...coaching,

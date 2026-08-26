@@ -141,4 +141,29 @@ assert.equal(softenOutcomeTone('Looking good', 'high'), 'Looking good');
   assert.match(out?.headline || '', /nice balance/i);
 }
 
+// Gate 3 L03: high score must never keep a weak-band headline.
+{
+  const out = enforceLiveOutcomeContract({
+    headline: 'Needs a tweak',
+    summary: 'Black athletic shorts and white trainers work well together.',
+    bullets: [],
+    hasConflict: false,
+    styleLane: 'athleisure',
+  }, 95);
+  assert.doesNotMatch(out?.headline || '', /needs a tweak/i);
+  assert.match(out?.headline || '', /sport-ready|looks sharp|looking good/i);
+}
+
+// Gate 3 L05: Swim-ready is retired unless rewritten from score (no swim evidence path here).
+{
+  const out = enforceLiveOutcomeContract({
+    headline: 'Swim-ready',
+    summary: 'Black athletic shorts and white trainers work well together.',
+    bullets: [],
+    hasConflict: false,
+    styleLane: 'athleisure',
+  }, 84);
+  assert.doesNotMatch(out?.headline || '', /swim-ready/i);
+}
+
 console.log('liveOutcomeContract.test.ts: all passed');

@@ -29,12 +29,24 @@ const COHESION_COPY_RE =
 const LAYERING_PRAISE_RE =
   /\b(worn over|adds depth|layered? (?:look|well)|depth to the outfit|nice layer)\b/i;
 
+/**
+ * Occasion / lane-locked legacy headlines. Cleared then re-derived from score
+ * (and optional styleLane) so Swim-ready cannot stick on non-swim looks.
+ */
+const REMOVED_CUSTOMER_HEADLINE_RE =
+  /^(Swim-ready|Gym-ready|Beach-ready|Pool-ready|Sport-ready|Smart casual|Casual and easy)$/i;
+
+/** True when the pill is a retired occasion headline (not a score-band lane). */
+export function isRemovedCustomerHeadline(headline: string | null | undefined): boolean {
+  return REMOVED_CUSTOMER_HEADLINE_RE.test(String(headline || '').trim());
+}
+
 /** Headlines illegal for each numeric band — rewritten from score. */
 const HEADLINE_FORBIDDEN: Record<LiveOutcomeBand, RegExp> = {
-  weak: /polished|looks sharp|looking good|nice balance|sport-ready|smart casual|casual and easy|street-focused/i,
-  mixed: /polished|looks sharp|looking good|sport-ready|smart casual|casual and easy/i,
-  good: /mixed (?:weights|directions)|needs a tweak|disjoint|getting a read|sport-ready/i,
-  strong: /mixed (?:weights|directions)|needs a tweak|almost there|getting a read|one piece|waiting on pieces/i,
+  weak: /polished|looks sharp|looking good|nice balance|sport-ready|smart casual|casual and easy|street-focused|swim-ready|gym-ready/i,
+  mixed: /polished|looks sharp|looking good|sport-ready|smart casual|casual and easy|swim-ready|gym-ready/i,
+  good: /mixed (?:weights|directions)|needs a tweak|disjoint|getting a read|sport-ready|swim-ready|gym-ready/i,
+  strong: /mixed (?:weights|directions)|needs a tweak|almost there|getting a read|one piece|waiting on pieces|swim-ready|gym-ready/i,
 };
 
 /** Summary / bullet language forbidden for the band. */
@@ -229,7 +241,10 @@ export function enforceLiveOutcomeContract<T extends LiveCoaching>(
     : [];
   let hasConflict = Boolean(coaching.hasConflict);
 
-  // 1. Score → headline authority (band-illegal headlines are always rewritten).
+  // 1. Score → headline authority (band-illegal / retired headlines are rewritten).
+  if (isRemovedCustomerHeadline(headline)) {
+    headline = headlineFromScore(n, lane);
+  }
   if (partial) {
     hasConflict = false;
     if (
@@ -237,7 +252,7 @@ export function enforceLiveOutcomeContract<T extends LiveCoaching>(
       || HEADLINE_FORBIDDEN[band].test(headline)
       || MIXED_HEADLINE_RE.test(headline)
       || MIXED_WEIGHTS_RE.test(headline)
-      || /polished|needs a tweak|looking (good|solid)|looks sharp|sport-ready/i.test(headline)
+      || /polished|needs a tweak|looking (good|solid)|looks sharp|sport-ready|swim-ready/i.test(headline)
     ) {
       // Provisional — never paint a locked polish verdict under soft certainty.
       headline = band === 'strong' || band === 'good'

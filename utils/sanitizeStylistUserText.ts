@@ -83,6 +83,10 @@ export function sanitizeStylistUserText(input?: string | null): string {
   if (!text) {
     return cannedFallback('qsc');
   }
+  // Defense-in-depth: strip internal outfit-engine jargon before other rewrites.
+  text = text.replace(/\bclash-safe\b/gi, '');
+  text = text.replace(/\bwardrobe allocator\b/gi, 'wardrobe');
+  text = text.replace(/\bClosest issue:\s*[^.!?\n]*[.!?]?/gi, ' ');
   text = text.replace(DRIPN_OUTFIT_BLOCK_RE, ' ');
   text = text.replace(DRIPN_OUTFIT_JSON_RE, ' ');
   text = text.replace(SCORED_FOR_RE, ' ');

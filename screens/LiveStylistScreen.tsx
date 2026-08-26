@@ -39,7 +39,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
-import { isStaffUser } from '@/utils/staffAccess';
+import { isBeliefDebugAllowed } from '@/utils/staffAccess';
 import {
   diagnoseYoloFromRgba,
   diagnoseYoloReferenceAsset,
@@ -353,7 +353,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [shopHints, setShopHints] = useState<FallbackMissingItem[]>([]);
   const [statusNote, setStatusNote] = useState('Tap Start for live styling');
   // Belief debug is staff/__DEV__ only — App Store subscribers never see the overlay or DBG chip.
-  const beliefDebugAllowed = __DEV__ || isStaffUser(user);
+  const beliefDebugAllowed = isBeliefDebugAllowed(__DEV__, user);
   const [showBeliefDebug, setShowBeliefDebug] = useState(() => __DEV__);
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
@@ -897,29 +897,30 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     // that copy until the trainers score adopts — never mix new names + old score.
 
     // Published truth is the only garment-name source for HUD copy.
+    // Always re-enforce score↔headline after hold/align so ~95 never keeps "Needs a tweak".
     if (holdPublishedCopy && previousFeedbackRef.current?.coaching) {
       next.coaching = previousFeedbackRef.current.coaching;
     } else if (next.coaching) {
       next.coaching = alignCoachingToTruth(next.coaching, truth) || next.coaching;
-      next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
-        certainty: hudCertainty,
-      }) || next.coaching;
       next.coaching = renderCopyFromPublishedTruth(next.coaching, {
         ...truth,
         score: next.score,
+      }) || next.coaching;
+    }
+    if (next.coaching && next.score != null && Number.isFinite(Number(next.score))) {
+      next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
+        certainty: hudCertainty,
       }) || next.coaching;
       next.coaching = {
         ...next.coaching,
         headline: blankProvisionalHeadlineAfterScore(next.coaching.headline, next.score),
       };
-      if (next.score != null) {
-        const h = next.coaching.headline;
-        if (!h || isProvisionalLiveHeadline(h)) {
-          next.coaching = {
-            ...next.coaching,
-            headline: headlineFromScore(Number(next.score), next.coaching.styleLane),
-          };
-        }
+      const h = next.coaching.headline;
+      if (!h || isProvisionalLiveHeadline(h)) {
+        next.coaching = {
+          ...next.coaching,
+          headline: headlineFromScore(Number(next.score), next.coaching.styleLane),
+        };
       }
     }
     // Hard publish rule: no score → no judgment copy (summary / bullets / tips).
@@ -2309,7 +2310,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               ellipsizeMode="tail"
               style={{ color: 'rgba(255,255,255,0.75)' }}
             >
-              {sourceLabel} · {sanitizeLiveUserHudText(statusNote) || 'Live'}
+              {beliefDebugAllowed
+                ? `${sourceLabel} · ${sanitizeLiveUserHudText(statusNote) || 'Live'}`
+                : (sanitizeLiveUserHudText(statusNote) || 'Live')}
             </ThemedText>
           </Pressable>
           {beliefDebugAllowed ? (

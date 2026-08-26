@@ -170,17 +170,23 @@ export function resolveLiveLegwear(
 }
 
 function publishedBottomKind(bottomBlob: string): 'shorts' | 'skirt' | 'dress' | 'trousers' | 'other' {
+  // Shorts / skirts win over "pant" fragments so athletic shorts never become "trousers".
   if (/\bshorts?\b/.test(bottomBlob)) return 'shorts';
   if (/\bskirt\b/.test(bottomBlob)) return 'skirt';
   if (/\bdress\b/.test(bottomBlob) && !/dress\s*shirt/.test(bottomBlob)) return 'dress';
-  if (/trouser|chino|pant|jean/.test(bottomBlob)) return 'trousers';
+  if (/trouser|chino|\bpants?\b|jean/.test(bottomBlob)) return 'trousers';
   return 'other';
 }
 
-function sockColourTransitionLine(bottomKind: ReturnType<typeof publishedBottomKind>): string | null {
+function sockColourTransitionLine(
+  bottomKind: ReturnType<typeof publishedBottomKind>,
+  bottomName?: string | null,
+): string | null {
   if (bottomKind === 'shorts' || bottomKind === 'skirt' || bottomKind === 'dress') {
     return null;
   }
+  // Never say "trousers" when the published bottom name is shorts (mis-typed kind).
+  if (/\bshorts?\b/i.test(String(bottomName || ''))) return null;
   if (bottomKind === 'trousers') {
     return 'A sock colour closer to the trousers would create a cleaner transition into the shoes.';
   }
@@ -398,7 +404,7 @@ export function adviseLegwear(input: LegwearAdvisoryInput): string | null {
     && (dressyShoes || tailored)
     && bottomKind === 'trousers'
   ) {
-    return sockColourTransitionLine(bottomKind);
+    return sockColourTransitionLine(bottomKind, input.truth.bottom?.name);
   }
 
   return null;

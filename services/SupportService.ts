@@ -389,6 +389,8 @@ class SupportService {
     };
 
     let backendTicketId: string | null = null;
+    let backendOk = false;
+    let localSaved = false;
 
     try {
       if (apiService.isConfigured()) {
@@ -400,6 +402,7 @@ class SupportService {
         });
         backendTicketId = result.ticketId;
         ticket.id = result.ticketId;
+        backendOk = Boolean(result.ticketId);
       }
     } catch (error) {
       console.error('Failed to create ticket on backend, saving locally:', error);
@@ -410,20 +413,34 @@ class SupportService {
       const tickets: SupportTicket[] = stored ? JSON.parse(stored) : [];
       tickets.push(ticket);
       await AsyncStorage.setItem(SUPPORT_TICKETS_KEY, JSON.stringify(tickets));
+      localSaved = true;
     } catch (error) {
       console.error('Error saving support ticket locally:', error);
     }
 
-    const ticketRef = backendTicketId || ticket.id.slice(-6).toUpperCase();
+    let content: string;
+    if (backendOk && backendTicketId) {
+      const ticketRef = backendTicketId.slice(-6).toUpperCase();
+      content = `Your support ticket has been created successfully!\n\nTicket #${ticketRef}\nCategory: ${TICKET_CATEGORIES.find(c => c.id === category)?.label}\n\nOur support team will review your request and get back to you within 24-48 hours. You'll receive updates via email.\n\nIs there anything else I can help you with?`;
+    } else if (localSaved) {
+      content = `I couldn't reach support just now, so this wasn't filed as a ticket with our team yet.\n\nI've saved your note on this device under ${TICKET_CATEGORIES.find(c => c.id === category)?.label}. Please try again when you're online, or email support@dripnapp.com with the same details.\n\nIs there anything else I can help you with?`;
+    } else {
+      content = `I couldn't create a support ticket right now — nothing was saved on our servers or this device.\n\nPlease try again in a moment, or email support@dripnapp.com with your issue.\n\nIs there anything else I can help you with?`;
+    }
+
     const confirmationMsg: SupportMessage = {
       id: generateId(),
       role: 'assistant',
-      content: `Your support ticket has been created successfully!\n\nTicket #${ticketRef.slice(-6).toUpperCase()}\nCategory: ${TICKET_CATEGORIES.find(c => c.id === category)?.label}\n\nOur support team will review your request and get back to you within 24-48 hours. You'll receive updates via email.\n\nIs there anything else I can help you with?`,
+      content,
       timestamp: new Date().toISOString(),
       isTicketCreation: true,
     };
     this.chatHistory.push(confirmationMsg);
     await this.saveChatHistory();
+
+    if (!backendOk && !localSaved) {
+      throw new Error('support_ticket_failed');
+    }
 
     return ticket;
   }

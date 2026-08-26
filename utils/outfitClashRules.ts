@@ -901,7 +901,7 @@ export const CLASH_RULES: Array<{
   {
     id: 'subtype_avoid_pair',
     penalty: 76,
-    hint: 'Garment subtypes clash — lanes or pairing rules conflict',
+    hint: 'These pieces pull in different directions — keep tops, bottoms, and shoes in one style lane',
     severity: 'major',
     when: (ctx) => {
       const { conflicts } = detectSubtypeConflicts(ctx.items);
@@ -1235,7 +1235,7 @@ export const CLASH_SUGGESTIONS: Record<string, string> = {
   blazer_chunky_trainers: 'Swap chunky athletic trainers for plain white lifestyle sneakers, or drop the blazer',
   athletic_shorts_blazer: 'Swap athletic shorts for tailored shorts, chinos, or trousers',
   revealing_stack: 'Keep one revealing hero piece — tone down the second silhouette',
-  subtype_avoid_pair: 'Swap one piece so subtypes share a lane',
+  subtype_avoid_pair: 'Swap one piece so the whole look shares one style',
 };
 
 export function clashToScore(penalty: number, extraPenalty = 0): number {

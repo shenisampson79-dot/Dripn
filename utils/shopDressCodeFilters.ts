@@ -101,5 +101,8 @@ export function rewriteStylistCtaJargon(text?: string | null): string {
   out = out.replace(/\blog this (?:wedding )?outfit(?: choice)?\b/gi, 'save this look');
   out = out.replace(/\bhelp you log\b/gi, 'help you save');
   out = out.replace(/\blog (?:the |this |your )?outfit\b/gi, 'save this look');
+  out = out.replace(/\bclash-safe\b/gi, 'cohesive');
+  out = out.replace(/\bClosest issue:\s*[^.!?\n]*[.!?]?/gi, '');
+  out = out.replace(/\bwardrobe allocator\b/gi, 'wardrobe');
   return out.replace(/\s{2,}/g, ' ').trim();
 }
