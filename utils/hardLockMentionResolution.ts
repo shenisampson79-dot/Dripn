@@ -54,7 +54,10 @@ export function isSingularHardLockAsk(query = ''): boolean {
   if (!t.trim()) return false;
   if (isMultiPieceHardLockAsk(t)) return false;
   return /\b(build around|lock|include|wear my|using my|with my)\b/i.test(t)
-    || /\bbuild (the )?rest around (it|that|this)\b/i.test(t);
+    || /\bbuild (the )?rest around (it|that|this)\b/i.test(t)
+    // "Build me an outfit around my …" / "build the look around my …"
+    || /\bbuild\b[\w\s]{0,40}\b(outfit|look)\b[\w\s]{0,16}\baround\b/i.test(t)
+    || /\bbuild\b[\w\s]{0,24}\baround\b/i.test(t);
 }
 
 export function evidenceTokensForItem(itemName: string, query: string): string[] {
