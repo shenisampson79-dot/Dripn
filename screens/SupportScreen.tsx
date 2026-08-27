@@ -42,11 +42,10 @@ import {
 import { PersonalStylist } from '@/services/PersonalStylistService';
 import { currencyService } from '@/services/CurrencyService';
 import { ensureStylistHubVisible } from '@/utils/todaysOutfitEnsureRoute';
+import { CHAT_SCROLL_END_OFFSET } from '@/utils/stylistChatScroll';
 
 const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
-/** Composer row + vertical padding — used so list content clears the sticky input. */
-const COMPOSER_HEIGHT = INPUT_MIN_HEIGHT + Spacing.md + Spacing.sm;
 /** px from bottom before we treat the user as "following" the live thread. */
 const NEAR_BOTTOM_THRESHOLD = 96;
 
@@ -68,11 +67,10 @@ export default function SupportScreen() {
   const tabBarClearance = TAB_BAR_HEIGHT + safeAreaInsets.bottom;
   const keyboardHeightPx = useKeyboardState((state) => state.height);
   const isKeyboardVisible = keyboardHeightPx > 0;
-  // Sticky composer overlays the list when the keyboard is open — pad enough to clear both.
+  // Composer is in-flow (not absolute) — do NOT also add COMPOSER_HEIGHT (double-counts).
+  // When keyboard is open, pad only keyboard height; when closed, clear the tab bar.
   const listBottomPad =
-    Spacing.xl +
-    COMPOSER_HEIGHT +
-    (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarClearance);
+    Spacing.xl + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarClearance);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -123,19 +121,27 @@ export default function SupportScreen() {
       stickToLatestRef.current = true;
       isNearBottomRef.current = true;
     }
+    // Same overshoot primitive as Stylist chat — scrollToEnd undershoots with variable-height
+    // bubbles + keyboard padding (G3-DM-09b-KB retest FAIL).
     const run = (animated: boolean) => {
+      const list = flatListRef.current;
+      if (!list) return;
       try {
-        flatListRef.current?.scrollToEnd({ animated });
+        list.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated });
+        return;
+      } catch {
+        /* fall through */
+      }
+      try {
+        list.scrollToEnd({ animated });
       } catch {
         /* list not ready */
       }
     };
-    // Instant first pass, then retries as bubbles / keyboard / padding settle.
     requestAnimationFrame(() => run(false));
-    setTimeout(() => run(true), 50);
-    setTimeout(() => run(false), 160);
-    setTimeout(() => run(false), 320);
-    setTimeout(() => run(false), 520);
+    setTimeout(() => run(true), 60);
+    setTimeout(() => run(false), 180);
+    setTimeout(() => run(false), 420);
     setTimeout(() => run(false), 900);
   }, []);
 
@@ -570,7 +576,6 @@ export default function SupportScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         removeClippedSubviews={false}
         onScroll={onChatScroll}
         onScrollBeginDrag={onChatScrollBeginDrag}
