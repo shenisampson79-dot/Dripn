@@ -20,6 +20,7 @@ import {
   createCertaintySmoothState,
   smoothLiveCertainty,
   isLiveFootwearResolved,
+  isSportReadyInflationOnHeldLoafers,
   nextLiveScoreApproximation,
   shouldHoldLivePublishedCopy,
   LIVE_FIRST_SCORE_MAX_HOLD_MS,
@@ -906,6 +907,66 @@ assert.equal(
     footwearResolved: true,
   });
   assert.equal(inflated.score, 47, 'floor-trainer Cloud 82 must not replace held loafers clash');
+}
+
+// G3-LIVE-HOLD-01: athletic_shorts Mixed → chino_shorts Nice must hold while
+// tee + shorts + loafers stay stationary (cloudComplete must not adopt).
+{
+  const athleticSig = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'grey' },
+    { category: 'bottoms', subcategory: 'athletic_shorts', color: 'navy' },
+    { category: 'shoes', subcategory: 'loafers', color: 'black' },
+  ]);
+  const chinoSig = liveScoreSignature([
+    { category: 'tops', subcategory: 't-shirt', color: 'grey' },
+    { category: 'bottoms', subcategory: 'chino_shorts', color: 'navy' },
+    { category: 'shoes', subcategory: 'loafers', color: 'black' },
+  ]);
+  const mixed = gateLiveScore(createLiveScoreGate(), 47, {
+    signature: athleticSig,
+    now: 1000,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'athletic_shorts|loafers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(mixed.score, 47);
+  assert.equal(
+    isSportReadyInflationOnHeldLoafers('athletic_shorts|loafers|t:t-shirt', 47, 75),
+    true,
+  );
+  const chinoFlicker = gateLiveScore(mixed.gate, 75, {
+    signature: chinoSig,
+    now: 2500,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'chino_shorts|loafers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(
+    chinoFlicker.score,
+    47,
+    'G3-LIVE-HOLD-01: athletic↔chino must not upgrade Mixed→Nice',
+  );
+  assert.equal(chinoFlicker.gate.shown, 47);
+
+  // Real footwear change may leave the clash.
+  const trainers = gateLiveScore(mixed.gate, 82, {
+    signature: liveScoreSignature([
+      { category: 'tops', subcategory: 't-shirt', color: 'grey' },
+      { category: 'bottoms', subcategory: 'athletic_shorts', color: 'navy' },
+      { category: 'shoes', subcategory: 'sneakers', color: 'white' },
+    ]),
+    now: 4000,
+    settled: true,
+    identityLocked: true,
+    cloudComplete: true,
+    identityKey: 'athletic_shorts|sneakers|t:t-shirt',
+    footwearResolved: true,
+  });
+  assert.equal(trainers.score, 82, 'loafers→trainers may adopt sport score');
 }
 
 console.log('liveScoreStability.test.ts: all passed');
