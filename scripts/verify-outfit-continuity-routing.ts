@@ -431,6 +431,25 @@ assert.equal(c2SmarterRoute.route, 'other');
 matrix['C2 smarter advice stays other (not outfit-from-wardrobe)'] =
   c2SmarterRoute.route === 'other' ? 'PASS' : 'FAIL';
 
+const C6_SMARTER = 'make it smarter but still relaxed';
+assert.equal(isStylingAdviceHowAsk(C6_SMARTER), true);
+assert.equal(isOutfitTaskAsk(C6_SMARTER), false);
+assert.equal(isWardrobeOutfitRefineAsk(C6_SMARTER), false);
+assert.equal(isWardrobeOutfitRefineAsk("I don't like that, give another option"), false);
+const c6Route = resolveOutfitRoute({
+  userText: C6_SMARTER,
+  messages: [
+    { role: 'user', content: 'Can I wear loafers with jeans?' },
+    { role: 'assistant', content: 'Yes.' },
+  ],
+  wardrobeItems: wardrobe,
+  hasPriorOutfitItems: true,
+});
+assert.equal(c6Route.route, 'other');
+matrix['C6 smarter-but-relaxed stays other'] = c6Route.route === 'other' ? 'PASS' : 'FAIL';
+matrix['short make it smarter still refine'] =
+  isWardrobeOutfitRefineAsk('make it smarter') ? 'PASS' : 'FAIL';
+
 // Explicit create still routes
 assert.equal(isOutfitTaskAsk('Create an outfit from my wardrobe for tonight'), true);
 matrix['explicit create still outfit task'] =
