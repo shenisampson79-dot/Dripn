@@ -11,8 +11,10 @@ import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { isTodaysOutfitAllowed } from "@/utils/staffAccess";
 import { TodaysOutfitCard } from "@/components/TodaysOutfitCard";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import {
@@ -173,17 +175,19 @@ const getLaunchDecisionTiles = (t: (key: string) => string): StylistFeature[] =>
 ];
 
 /** Fixed 2-column grid order — do not persist or allow reorder. */
+export const STYLIST_HUB_LAUNCH_TILE_ORDER = [
+  "live-stylist",
+  "ai-stylist",
+  "choosing-what-to-buy",
+  "outfit-for-event",
+  "quick-sanity-check",
+  "scan-wardrobe",
+  "fashion-blog",
+  "style-rules",
+] as const;
+
 const FIXED_TILES_ORDER = FEATURE_FLAGS.launchSimplified
-  ? [
-      "choosing-what-to-buy",
-      "live-stylist",
-      "outfit-for-event",
-      "quick-sanity-check",
-      "ai-stylist",
-      "scan-wardrobe",
-      "fashion-blog",
-      "style-rules",
-    ]
+  ? [...STYLIST_HUB_LAUNCH_TILE_ORDER]
   : ["scan-wardrobe", "ai-stylist", "live-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
 
 /** Unique gradient slot order matching FIXED_TILES_ORDER (launch). */
@@ -220,8 +224,10 @@ function resolveTileGradient(featureId: string, index: number): GradientKey {
 
 export default function StylistHubScreen({ navigation, route }: StylistHubScreenProps) {
   const { limits } = useSubscription();
+  const { user } = useAuth();
   const { palette, colorScheme } = useColorScheme();
   const { t } = useTranslations();
+  const todaysOutfitVisible = isTodaysOutfitAllowed(__DEV__, user);
   const insets = useSafeAreaInsets();
   const tabBarHeightContext = React.useContext(BottomTabBarHeightContext);
   const tabBarHeight =
@@ -404,15 +410,17 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
         </View>
       </View>
 
-      {/* Overlay — does not affect Style Tools layout */}
-      <TodaysOutfitCard
-        openToday={Boolean(route.params?.openToday)}
-        onOpenStylist={(prompt) => {
-          void prefetchAIStylistChatHistory().finally(() => {
-            navigation.navigate("AIStylist", { initialPrompt: prompt });
-          });
-        }}
-      />
+      {/* Overlay — staff/dev only; customers use Stylist Chat for outfit questions */}
+      {todaysOutfitVisible ? (
+        <TodaysOutfitCard
+          openToday={Boolean(route.params?.openToday)}
+          onOpenStylist={(prompt) => {
+            void prefetchAIStylistChatHistory().finally(() => {
+              navigation.navigate("AIStylist", { initialPrompt: prompt });
+            });
+          }}
+        />
+      ) : null}
     </View>
   );
 }
