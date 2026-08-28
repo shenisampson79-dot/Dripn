@@ -39,7 +39,7 @@ import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePic
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { RetailOutfitSection } from '@/components/stylist/RetailOutfitSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
-import { shouldShowSanityFollowUpCta } from '@/utils/sanityFollowUpCta';
+import { shouldShowDecisionRefineCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplayState';
@@ -1116,20 +1116,22 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                     {t('wardrobe.useWhatIHave') || 'Use what I have'}
                   </ThemedText>
                 </Pressable>
-                <Pressable
-                  onPress={() => {
-                    void flow.continueInChat({
-                      seedMessage:
-                        t('wardrobe.showAlternativesSeed')
-                        || 'I already own something similar to what I was considering. Show me different styles / alternatives instead of buying a near-duplicate.',
-                    });
-                  }}
-                  style={styles.secondaryButton}
-                >
-                  <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
-                    {t('wardrobe.showAlternatives') || 'Show alternatives'}
-                  </ThemedText>
-                </Pressable>
+                {shouldShowDecisionRefineCta(decisionType, res) ? (
+                  <Pressable
+                    onPress={() => {
+                      void flow.continueInChat({
+                        seedMessage:
+                          t('wardrobe.showAlternativesSeed')
+                          || 'I already own something similar to what I was considering. Show me different styles / alternatives instead of buying a near-duplicate.',
+                      });
+                    }}
+                    style={styles.secondaryButton}
+                  >
+                    <ThemedText type="body" style={{ color: LuxuryColors.gold }}>
+                      {t('wardrobe.showAlternatives') || 'Show alternatives'}
+                    </ThemedText>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           ) : null}
@@ -1236,10 +1238,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         <View style={styles.responseActions}>
           {(() => {
             const isQsc = decisionType === 'sanity-check';
-            const showFollowUp =
-              (isQsc && shouldShowSanityFollowUpCta(res))
-              || decisionType === 'event-outfit'
-              || decisionType === 'shopping';
+            const showFollowUp = shouldShowDecisionRefineCta(decisionType, res);
             const followUpLabel = (t('stylistFlow.refineWithStylist') || 'Refine this — {name}').replace(
               '{name}',
               stylistName,

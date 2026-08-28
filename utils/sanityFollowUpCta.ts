@@ -1,8 +1,9 @@
 /**
- * Quick Sanity Check follow-up CTA.
- * Launch contract: QSC answers only “Does this outfit work?” and ends on Done —
- * never Refine→Chat / continuity handoff.
+ * Decisions follow-up / refine→Chat CTA gate.
+ * Launch contract: completed Decisions/QSC end on Done — no Refine→Chat handoff.
  */
+
+export type DecisionRefineFlow = 'sanity-check' | 'event-outfit' | 'shopping' | string;
 
 export type SanityFollowUpResponse = {
   stylistNote?: string | null;
@@ -21,9 +22,17 @@ export type SanityFollowUpResponse = {
   unifiedScore?: { final_score?: number | null } | null;
 };
 
-/** Always false — QSC has no chat follow-up CTA. */
-export function shouldShowSanityFollowUpCta(
+/** Always false — no Decisions→Stylist Chat refine CTA at launch. */
+export function shouldShowDecisionRefineCta(
+  _decisionType?: DecisionRefineFlow | null,
   _res?: SanityFollowUpResponse | null,
 ): boolean {
   return false;
+}
+
+/** @deprecated Prefer shouldShowDecisionRefineCta — kept for existing verify imports. */
+export function shouldShowSanityFollowUpCta(
+  res?: SanityFollowUpResponse | null,
+): boolean {
+  return shouldShowDecisionRefineCta('sanity-check', res);
 }
