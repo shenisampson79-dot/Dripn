@@ -108,24 +108,22 @@ const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFe
 
   return {
     free: [
-      { text: tx('subscription.features.free.dailyDecision', '1 stylist decision per day'), included: true },
-      { text: tx('subscription.features.free.compareTwo', 'Compare 2 shopping options'), included: true },
-      { text: tx('subscription.features.free.wardrobe15', 'Up to 15 wardrobe items'), included: true },
-      { text: tx('subscription.features.free.basicChat', 'Basic AI chat (10/day)'), included: true },
-      { text: tx('subscription.features.free.wardrobeAdvice', 'Wardrobe-aware advice'), included: false },
+      { text: tx('subscription.features.free.tryWardrobe', 'Try Dripn with your own wardrobe'), included: true },
+      { text: tx('subscription.features.free.personalisedAdvice', 'Get personalised outfit advice'), included: true },
+      { text: tx('subscription.features.free.checkOutfits', 'Check outfits before you head out'), included: true },
+      { text: tx('subscription.features.free.exploreStyling', 'Explore smarter ways to style what you own'), included: true },
     ],
     personal_stylist: [
-      { text: tx('subscription.features.personalStylist.instantDecisions', 'Get instant outfit decisions (no overthinking)'), included: true },
-      { text: tx('subscription.features.personalStylist.looksGood', 'Know what actually looks good on you'), included: true },
-      { text: tx('subscription.features.personalStylist.confidence', 'Build confidence before you leave the house'), included: true },
-      { text: tx('subscription.features.personalStylist.voiceAnswers', 'Voice your outfit and get instant answers'), included: true },
-      { text: tx('subscription.features.personalStylist.learnsStyle', 'Stylists learn your style over time'), included: true },
+      { text: tx('subscription.features.personalStylist.moreConversations', 'More conversations with your personal stylist'), included: true },
+      { text: tx('subscription.features.personalStylist.wardrobeAdvice', 'Personalised advice built around your wardrobe'), included: true },
+      { text: tx('subscription.features.personalStylist.outfitHelp', 'Outfit help for everyday plans and special occasions'), included: true },
+      { text: tx('subscription.features.personalStylist.voiceStyling', "Voice styling when you'd rather talk than type"), included: true },
     ],
     stylist_unlimited: [
-      { text: tx('subscription.features.stylistUnlimited.everythingPersonal', 'Everything in Personal Stylist'), included: true, bold: true },
-      { text: tx('subscription.features.stylistUnlimited.fullWardrobe', 'See your full wardrobe instantly'), included: true },
-      { text: tx('subscription.features.stylistUnlimited.systemWorks', 'Build a system that always works'), included: true },
-      { text: tx('subscription.features.stylistUnlimited.voiceAnytime', 'Talk to your stylist by voice, anytime'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.highestAllowance', 'Our highest styling allowance'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.moreConversations', 'More room for ongoing styling conversations'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.moreLiveVoice', 'More Live Stylist and voice usage'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.everydayStylist', 'Built for people who want Dripn as their everyday stylist'), included: true },
     ],
   };
 };
