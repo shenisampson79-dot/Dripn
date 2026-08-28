@@ -244,38 +244,31 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     }
   }, [user?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadDFYAccess();
-      loadTravelPlan();
-    }, [user?.id, user?.subscriptionTier, loadTravelPlan]),
-  );
-
-  useEffect(() => {
+  const loadAiUsage = useCallback(async () => {
     if (!user?.id) {
       setAiUsage(null);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      setAiUsageLoading(true);
-      try {
-        await apiService.init();
-        const result = await apiService.getAiUsage();
-        if (!cancelled) {
-          setAiUsage(result.usage || null);
-        }
-      } catch (err) {
-        console.warn('[Settings] AI usage load skipped:', err);
-        if (!cancelled) setAiUsage(null);
-      } finally {
-        if (!cancelled) setAiUsageLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setAiUsageLoading(true);
+    try {
+      await apiService.init();
+      const result = await apiService.getAiUsage();
+      setAiUsage(result.usage || null);
+    } catch (err) {
+      console.warn('[Settings] AI usage load skipped:', err);
+      setAiUsage(null);
+    } finally {
+      setAiUsageLoading(false);
+    }
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDFYAccess();
+      loadTravelPlan();
+      loadAiUsage();
+    }, [user?.id, user?.subscriptionTier, loadTravelPlan, loadAiUsage]),
+  );
 
   useEffect(() => {
     let cancelled = false;
