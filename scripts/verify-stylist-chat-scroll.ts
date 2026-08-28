@@ -21,7 +21,9 @@ import {
 import {
   beginStickPulse,
   cancelStickPulse,
+  clearScheduledTimeouts,
   createStickPulseController,
+  FOCUS_REENTRY_SCROLL_DELAYS_MS,
   isStickPulseActive,
 } from '../utils/stylistChatScroll';
 
@@ -124,6 +126,28 @@ assert.ok(CHAT_SCROLL_END_OFFSET > 1e6, 'end offset must overshoot content');
   s = onChatFocus(s);
   assert.equal(s.scroll, 'LOCKED_TO_BOTTOM');
   assert.equal(mustScrollToBottom(s), true);
+}
+
+// --- 6. Tab-return focus timers must be clearable before stale scroll fires ---
+{
+  const scheduled = FOCUS_REENTRY_SCROLL_DELAYS_MS.map((ms) =>
+    setTimeout(() => {}, ms),
+  );
+  assert.equal(scheduled.length, 6);
+  const cleared = clearScheduledTimeouts(scheduled);
+  assert.equal(cleared.length, 0);
+
+  let pulse = createStickPulseController();
+  let s = createChatMachine({ phase: 'RENDERING', scroll: 'LOCKED_TO_BOTTOM' });
+  const started = beginStickPulse(pulse);
+  pulse = started.ctrl;
+  const gen = started.generation;
+  pulse = cancelStickPulse(pulse);
+  s = releaseStickForUserIntent(s);
+  assert.equal(s.scroll, 'USER_SCROLLING');
+  assert.equal(isStickPulseActive(pulse, gen), false);
+  // Simulated delayed focus timer after user drag — must not force scroll
+  assert.equal(mustScrollToBottom(s), false);
 }
 
 console.log('verify-stylist-chat-scroll: CSM stick-yield + re-entry invariants passed');

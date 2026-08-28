@@ -70,3 +70,13 @@ export function isStickPulseActive(
 ): boolean {
   return ctrl.generation === generation;
 }
+
+/** Tab-return stick pulses — must be cleared on blur or first intentional user drag. */
+export const FOCUS_REENTRY_SCROLL_DELAYS_MS = [80, 200, 450, 800, 1400, 2200] as const;
+
+export function clearScheduledTimeouts(
+  ids: readonly ReturnType<typeof setTimeout>[],
+): ReturnType<typeof setTimeout>[] {
+  ids.forEach((id) => clearTimeout(id));
+  return [];
+}

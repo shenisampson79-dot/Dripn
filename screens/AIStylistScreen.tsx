@@ -160,7 +160,9 @@ import {
 import {
   beginStickPulse,
   cancelStickPulse,
+  clearScheduledTimeouts,
   createStickPulseController,
+  FOCUS_REENTRY_SCROLL_DELAYS_MS,
   isStickPulseActive,
 } from '@/utils/stylistChatScroll';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
@@ -1947,6 +1949,8 @@ export default function AIStylistScreen() {
   const chatMachineRef = useRef(createChatMachine({ phase: 'READY' }));
   /** Cancels pending scrollChatToEnd retries when the user intentionally drags away. */
   const stickPulseRef = useRef(createStickPulseController());
+  /** Focus re-entry scroll pulses — cleared on blur / first user drag so stale timers cannot yank. */
+  const focusReentryScrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const messagesLenRef = useRef(0);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
@@ -2156,13 +2160,20 @@ export default function AIStylistScreen() {
     }, 1700);
   }, []);
 
+  const clearFocusReentryScrollTimers = useCallback(() => {
+    focusReentryScrollTimersRef.current = clearScheduledTimeouts(
+      focusReentryScrollTimersRef.current,
+    );
+  }, []);
+
   const onChatScrollBeginDrag = useCallback(() => {
-    // Intentional upward drag: yield stick ownership immediately; kill pending retries.
+    // Intentional drag: kill tab-return stick pulses before they can override this gesture.
+    clearFocusReentryScrollTimers();
     stickPulseRef.current = cancelStickPulse(stickPulseRef.current);
     chatMachineRef.current = releaseStickForUserIntent(chatMachineRef.current);
     stickToLatestRef.current = false;
     isNearBottomRef.current = false;
-  }, []);
+  }, [clearFocusReentryScrollTimers]);
 
   const onChatScroll = useCallback((event: {
     nativeEvent: {
@@ -2236,9 +2247,14 @@ export default function AIStylistScreen() {
       chatMachineRef.current = onChatFocusMachine(chatMachineRef.current);
       stickToLatestRef.current = true;
       isNearBottomRef.current = true;
+      clearFocusReentryScrollTimers();
+      stickPulseRef.current = cancelStickPulse(stickPulseRef.current);
       scrollChatToEnd(true, false);
-      const timers = [80, 200, 450, 800, 1400, 2200].map((ms) =>
-        setTimeout(() => scrollChatToEnd(true, false), ms),
+      focusReentryScrollTimersRef.current = FOCUS_REENTRY_SCROLL_DELAYS_MS.map((ms) =>
+        setTimeout(() => {
+          if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
+          scrollChatToEnd(true, false);
+        }, ms),
       );
 
       let cancelled = false;
@@ -2292,12 +2308,13 @@ export default function AIStylistScreen() {
 
       return () => {
         cancelled = true;
-        timers.forEach(clearTimeout);
+        clearFocusReentryScrollTimers();
+        stickPulseRef.current = cancelStickPulse(stickPulseRef.current);
         if (retryTimer) clearTimeout(retryTimer);
         // Flush draft on leave (memory + disk).
         writeComposerDraft(stylist.id, inputTextRef.current);
       };
-    }, [scrollChatToEnd, tier, stylist.id]),
+    }, [clearFocusReentryScrollTimers, scrollChatToEnd, tier, stylist.id]),
   );
 
   // listBottomInset is computed after limitReached (see below) so the allowance
