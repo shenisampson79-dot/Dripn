@@ -236,6 +236,26 @@ export function normalizeLiveShoeIdentity(shoeSubtype?: string | null): string {
 }
 
 /**
+ * G3-LIVE-HOLD-01: athletic/sweat/casual/chino/tailored shorts are one
+ * customer shorts family while the outfit is held stationary.
+ */
+export function collapseLiveShortsFamilyBottom(bottomKind?: string | null): string {
+  const b = String(bottomKind || '').toLowerCase().trim();
+  if (!b) return '';
+  if (/short/.test(b)) return 'shorts';
+  return b;
+}
+
+/** bottom|shoe core with shorts subtypes collapsed (ignores piece-set). */
+export function liveShortsAwareCoreKey(identityKey?: string | null): string {
+  const raw = String(identityKey || '');
+  if (!raw) return '';
+  const parts = raw.split('|');
+  if (parts.length < 2) return raw.toLowerCase();
+  return `${collapseLiveShortsFamilyBottom(parts[0])}|${normalizeLiveShoeIdentity(parts[1])}`;
+}
+
+/**
  * When the gate still holds the previous number, customer copy must stay on
  * that scored identity. Publishing "white trainers" next to a loafers-48 is
  * the QA 18 Aug desync.
@@ -260,7 +280,11 @@ export function liveCoreIdentityKey(sample: LiveIdentitySample | null | undefine
   return `${bottom}|${normalizeLiveShoeIdentity(sample.shoeSubtype)}`;
 }
 
-/** Floor-trainer Cloud scores must not paint Sport-ready while loafers are still the scored identity. */
+/**
+ * Floor-trainer / subtype-flicker Cloud scores must not paint Sport-ready or
+ * Nice balance while a loafers Mixed/weak clash is still the scored identity.
+ * G3-LIVE-HOLD-01: also covers 47→72 / 48→73 (good band), not only ≥80.
+ */
 export function isSportReadyInflationOnHeldLoafers(
   identityKey: string | null,
   shown: number | null,
@@ -269,7 +293,7 @@ export function isSportReadyInflationOnHeldLoafers(
   const shoe = normalizeLiveShoeIdentity(String(identityKey || '').split('|')[1] || '');
   if (shoe !== 'loafers') return false;
   if (shown == null || !Number.isFinite(shown)) return false;
-  return shown < 65 && next >= 80;
+  return shown < 65 && next >= 65;
 }
 
 function sampleSlotConfidence(sample: LiveIdentitySample): number {
@@ -626,16 +650,25 @@ export function gateLiveScore(
     && opts.signature
     && gate.signature !== opts.signature,
   );
-  const floorPairInflation = !coreDrift && isSportReadyInflationOnHeldLoafers(
-    gate.scoredIdentityKey || identityKey,
-    gate.shown,
-    value,
+  // G3-LIVE-HOLD-01: athletic↔chino shorts subtype flicker looks like coreDrift
+  // but is still the same customer shorts+loafers outfit — hold Mixed→Nice.
+  const shortsFamilyStable = Boolean(
+    liveShortsAwareCoreKey(gate.scoredIdentityKey)
+    && liveShortsAwareCoreKey(identityKey)
+    && liveShortsAwareCoreKey(gate.scoredIdentityKey)
+      === liveShortsAwareCoreKey(identityKey),
   );
+  const floorPairInflation = (shortsFamilyStable || !coreDrift)
+    && isSportReadyInflationOnHeldLoafers(
+      gate.scoredIdentityKey || identityKey,
+      gate.shown,
+      value,
+    );
   const approxOpts = {
     shown: gate.shown,
     previouslyApproximate: gate.approximate,
     footwearResolved,
-    identityShifted: coreDrift,
+    identityShifted: coreDrift && !shortsFamilyStable,
   };
 
   // Medium certainty: keep the badge calm while upper-body labels settle.
@@ -698,7 +731,7 @@ export function gateLiveScore(
   // HOLD the published number while Cloud searches shoes or athletic↔sweat
   // shorts flicker. Blanking 78 → "—" is a regression. Adopt a new number
   // only when the next identity is corroborated (settled / locked / Cloud).
-  // Floor trainers in frame must not inflate a loafers clash into Sport-ready.
+  // Floor trainers / chino flicker must not inflate a loafers clash into Nice.
   if (floorPairInflation) return hold();
   if (coreDrift || signatureDrift) {
     if (opts.settled || opts.identityLocked || opts.cloudComplete) return adopt();

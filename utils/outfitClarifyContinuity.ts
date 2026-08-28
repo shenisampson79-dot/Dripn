@@ -428,10 +428,55 @@ function isMultiLookOrStyleReferenceAsk(text: string): boolean {
   );
 }
 
+/**
+ * Conversational formality / styling advice — must NOT route to outfit-from-wardrobe.
+ * Covers C2 how-to and C6 “make it smarter but still relaxed”.
+ */
+export function isStylingAdviceHowAsk(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (/\bfrom my (wardrobe|closet)\b/i.test(t)) return false;
+  if (/\b(create|build|put together)\b.{0,40}\b(outfit|look)\b/i.test(t)) return false;
+  if (/\b(show me|find me|generate)\b.{0,40}\b(outfit|look)\b/i.test(t)) return false;
+  if (/\b(different|another)\s+(outfit|look)\b/i.test(t)) return false;
+  if (
+    /\bhow (would|do|can|should) i\b/i.test(t)
+    && /\b(smarter|dressier|sharper|more formal|overdress|style|look)\b/i.test(t)
+  ) {
+    return true;
+  }
+  if (/\bmake it look (smarter|dressier|sharper|better|more formal|more casual)\b/i.test(t)) {
+    return true;
+  }
+  if (
+    /\bmake it (smarter|dressier|sharper|better|more formal|more casual|more relaxed|more smart)\b/i.test(t)
+    && /\b(but|while|without|still|keep(ing)?(\s+it)?)\b/i.test(t)
+  ) {
+    return true;
+  }
+  if (
+    /\bmake it more (casual|relaxed|smart|dressy)\b/i.test(t)
+    && !/\b(outfit|look|wardrobe)\b/i.test(t)
+  ) {
+    return true;
+  }
+  if (/\bwithout (looking|being) overdressed\b/i.test(t)) return true;
+  if (
+    /\b(don['\u2019]?t like that|do not like that)\b/i.test(t)
+    && /\b(another option|something (else|different)|give (me )?another)\b/i.test(t)
+    && !/\b(outfit|look|wardrobe|shoes?|tops?|bottoms?)\b/i.test(t)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /** Existing single-look create regex (moved here so isOutfitTaskAsk is one gate). */
 export function isSingleLookWardrobeCreateAsk(text: string): boolean {
   const t = String(text || '').trim();
   if (!t || isMultiLookOrStyleReferenceAsk(t)) return false;
+  // "make it look smarter…" is advice, not "make … look/outfit"
+  if (isStylingAdviceHowAsk(t)) return false;
   return (
     /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(t)
     || /\bwhat (should|can|do) i wear\b/i.test(t)
@@ -476,6 +521,8 @@ export function isOutfitTaskAsk(text: string): boolean {
 export function isWardrobeOutfitRefineAsk(text: string): boolean {
   const t = String(text || '').trim();
   if (!t) return false;
+  // Open advice "how would I make it look smarter" is not a published-look refine.
+  if (isStylingAdviceHowAsk(t)) return false;
   if (
     /\bkeep\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
     || (

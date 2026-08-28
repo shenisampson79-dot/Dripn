@@ -17,6 +17,7 @@ import {
   isOutfitClarifyReady,
   isOutfitTaskAsk,
   isSingleLookWardrobeCreateAsk,
+  isStylingAdviceHowAsk,
   isWardrobeHardLockAsk,
   isWardrobeOutfitRefineAsk,
   looksLikeOutfitClarifyCancel,
@@ -409,6 +410,50 @@ const fUnrelated = resolveOutfitRoute({
 });
 assert.equal(fUnrelated.route, 'drop_pending_unrelated');
 matrix['Tier-B unrelated drops pending'] = fUnrelated.route === 'drop_pending_unrelated' ? 'PASS' : 'FAIL';
+
+// Ivy C2 residual: advice how-to must NOT enter outfit-from-wardrobe / Tier B
+const C2_SMARTER = 'How would I make it look smarter without looking overdressed?';
+assert.equal(isStylingAdviceHowAsk(C2_SMARTER), true);
+assert.equal(isOutfitTaskAsk(C2_SMARTER), false);
+assert.equal(isWardrobeOutfitRefineAsk(C2_SMARTER), false);
+const c2SmarterRoute = resolveOutfitRoute({
+  userText: C2_SMARTER,
+  messages: [
+    { role: 'user', content: 'Can I wear loafers with jeans?' },
+    { role: 'assistant', content: 'Yes. Wear loafers with jeans.' },
+    { role: 'user', content: 'What if the jeans are distressed?' },
+    { role: 'assistant', content: 'Yes, but be careful with heavy distressing.' },
+  ],
+  wardrobeItems: wardrobe,
+  hasPriorOutfitItems: false,
+});
+assert.equal(c2SmarterRoute.route, 'other');
+matrix['C2 smarter advice stays other (not outfit-from-wardrobe)'] =
+  c2SmarterRoute.route === 'other' ? 'PASS' : 'FAIL';
+
+const C6_SMARTER = 'make it smarter but still relaxed';
+assert.equal(isStylingAdviceHowAsk(C6_SMARTER), true);
+assert.equal(isOutfitTaskAsk(C6_SMARTER), false);
+assert.equal(isWardrobeOutfitRefineAsk(C6_SMARTER), false);
+assert.equal(isWardrobeOutfitRefineAsk("I don't like that, give another option"), false);
+const c6Route = resolveOutfitRoute({
+  userText: C6_SMARTER,
+  messages: [
+    { role: 'user', content: 'Can I wear loafers with jeans?' },
+    { role: 'assistant', content: 'Yes.' },
+  ],
+  wardrobeItems: wardrobe,
+  hasPriorOutfitItems: true,
+});
+assert.equal(c6Route.route, 'other');
+matrix['C6 smarter-but-relaxed stays other'] = c6Route.route === 'other' ? 'PASS' : 'FAIL';
+matrix['short make it smarter still refine'] =
+  isWardrobeOutfitRefineAsk('make it smarter') ? 'PASS' : 'FAIL';
+
+// Explicit create still routes
+assert.equal(isOutfitTaskAsk('Create an outfit from my wardrobe for tonight'), true);
+matrix['explicit create still outfit task'] =
+  isOutfitTaskAsk('Create an outfit from my wardrobe for tonight') ? 'PASS' : 'FAIL';
 
 // Visual authority: published strip IDs must equal canonical itemIds
 const visualOk = assertCanonicalOutfitVisual({
