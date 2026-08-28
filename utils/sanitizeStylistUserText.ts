@@ -3,7 +3,7 @@
  * Keep scoring/refinement/style-rule ids for the engine — never show them to users.
  */
 
-import { rewriteStylistCtaJargon } from '@/utils/shopDressCodeFilters';
+import { rewriteStylistCtaJargon, stripNonActionableSaveLookProse } from '@/utils/shopDressCodeFilters';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { cannedFallback, containsEngineLeak, isFatalEngineLeak, presentText } from '@/utils/stylistPresentationBoundary';
 
@@ -100,6 +100,7 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(WEAR_THIS_INSTEAD_DUP_RE, 'Wear this instead. ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
   text = rewriteStylistCtaJargon(text);
+  text = stripNonActionableSaveLookProse(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
   text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
   // Soften Title Case garment dumps in chat (Wear the / Opt for / …)

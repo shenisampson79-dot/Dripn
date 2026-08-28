@@ -90,19 +90,42 @@ export function filterSuggestionStringsForUi(
 export function rewriteStylistCtaJargon(text?: string | null): string {
   if (typeof text !== 'string' || !text.trim()) return '';
   let out = text;
+  // Log-outfit CTAs are internal jargon — strip (save affordance lives on outfit cards).
   out = out.replace(
     /\bIf you want,?\s*I can help you log this (?:wedding )?outfit\b[^.!?]*[.!?]?/gi,
-    'Want to save this look, or shop the missing pieces?',
+    '',
   );
   out = out.replace(
     /\b(?:want(?: to)?|I can help you|shall I|let me) log this (?:wedding )?outfit\b[^.!?]*[.!?]?/gi,
-    'Want to save this look?',
+    '',
   );
-  out = out.replace(/\blog this (?:wedding )?outfit(?: choice)?\b/gi, 'save this look');
-  out = out.replace(/\bhelp you log\b/gi, 'help you save');
-  out = out.replace(/\blog (?:the |this |your )?outfit\b/gi, 'save this look');
+  out = out.replace(/\blog this (?:wedding )?outfit(?: choice)?\b[^.!?]*[.!?]?/gi, '');
+  out = out.replace(/\blog (?:the |this |your )?outfit\b[^.!?]*[.!?]?/gi, '');
   out = out.replace(/\bclash-safe\b/gi, 'cohesive');
   out = out.replace(/\bClosest issue:\s*[^.!?\n]*[.!?]?/gi, '');
   out = out.replace(/\bwardrobe allocator\b/gi, 'wardrobe');
   return out.replace(/\s{2,}/g, ' ').trim();
+}
+
+/** Strip imperative save-a-look prose — real save CTAs live on outfit cards/buttons only. */
+export function stripNonActionableSaveLookProse(text?: string | null): string {
+  if (typeof text !== 'string' || !text.trim()) return '';
+  let out = text;
+  out = out.replace(/\bWant to save this look(?:,\s*or shop the missing pieces)?\??/gi, '');
+  out = out.replace(/\bWant to save this look\??/gi, '');
+  out = out.replace(
+    /\b(?:Save this look|Save the look)\s*[—–-]?\s*(?:or|and)\s*shop[^.!?\n]*[.!?]?/gi,
+    '',
+  );
+  out = out.replace(/\s*[—–-]\s*or save this look once you have(?: the pieces| them)?\.?/gi, '');
+  out = out.replace(/\b(?:or|and)\s+save this look once you have(?: the pieces| them)\.?/gi, '');
+  out = out.replace(
+    /\b(?:You can|You could|Feel free to|Don't forget to|Remember to|Ask if they want to)\s+save this look\b[^.!?]*[.!?]?/gi,
+    '',
+  );
+  out = out.replace(/\.\s*(?:Save this look|Save the look)\??\.?\s*/gi, '. ');
+  out = out.replace(/\s+(?:Save this look|Save the look)\??\.?\s*$/gi, '');
+  out = out.replace(/^(?:Save this look|Save the look)\??\.?\s*/gim, '');
+  out = out.replace(/\b(?:Save this look|Save the look)\??\s*(?=[.!?]|$)/gi, '');
+  return out.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').replace(/\.\s*\./g, '.').trim();
 }
