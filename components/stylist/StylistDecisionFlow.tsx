@@ -440,8 +440,6 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
   const renderSanityInput = () => (
     <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
-      {renderContextChips(t('stylistFlow.contextSubtitle'))}
-
       <ThemedText type="h3">{t('stylistFlow.sanityCheck.inputTitle')}</ThemedText>
       <ThemedText style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
         {t('stylistFlow.sanityCheck.inputSubtitle')}
@@ -469,6 +467,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         maxItems={flow.getWardrobeSelectLimit?.() ?? MAX_DECISION_WARDROBE_ITEMS}
         disabled={flow.isReadOnly}
       />
+
+      {renderContextChips(t('stylistFlow.contextSubtitle'))}
     </Animated.View>
   );
 
