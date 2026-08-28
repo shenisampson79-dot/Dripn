@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView, TextInput, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -244,21 +244,28 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     }
   }, [user?.id]);
 
+  const aiUsageRequestGen = useRef(0);
+
   const loadAiUsage = useCallback(async () => {
     if (!user?.id) {
       setAiUsage(null);
       return;
     }
+    const requestGen = ++aiUsageRequestGen.current;
     setAiUsageLoading(true);
     try {
       await apiService.init();
       const result = await apiService.getAiUsage();
+      if (requestGen !== aiUsageRequestGen.current) return;
       setAiUsage(result.usage || null);
     } catch (err) {
+      if (requestGen !== aiUsageRequestGen.current) return;
       console.warn('[Settings] AI usage load skipped:', err);
       setAiUsage(null);
     } finally {
-      setAiUsageLoading(false);
+      if (requestGen === aiUsageRequestGen.current) {
+        setAiUsageLoading(false);
+      }
     }
   }, [user?.id]);
 
@@ -267,6 +274,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       loadDFYAccess();
       loadTravelPlan();
       loadAiUsage();
+      return () => {
+        // Invalidate in-flight fetches when leaving Settings so a slow stale
+        // response cannot overwrite a fresher result from the next focus.
+        aiUsageRequestGen.current += 1;
+      };
     }, [user?.id, user?.subscriptionTier, loadTravelPlan, loadAiUsage]),
   );
 

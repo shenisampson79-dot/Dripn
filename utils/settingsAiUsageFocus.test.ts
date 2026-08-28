@@ -1,5 +1,5 @@
 /**
- * Settings AI allowance refetches on screen focus.
+ * Settings AI allowance refetches on screen focus without stale overwrites.
  * Run: npx tsx utils/settingsAiUsageFocus.test.ts
  */
 import assert from 'node:assert/strict';
@@ -19,6 +19,27 @@ assert.match(
 assert.doesNotMatch(
   settingsSrc,
   /useEffect\([\s\S]*?getAiUsage\(\)/,
+);
+
+// Guard against out-of-order focus fetches overwriting fresh usage.
+assert.match(settingsSrc, /aiUsageRequestGen\s*=\s*useRef\(0\)/);
+assert.match(
+  settingsSrc,
+  /const requestGen = \+\+aiUsageRequestGen\.current/,
+);
+assert.match(
+  settingsSrc,
+  /if \(requestGen !== aiUsageRequestGen\.current\) return/,
+);
+assert.match(
+  settingsSrc,
+  /return \(\) => \{[\s\S]*?aiUsageRequestGen\.current \+= 1/,
+);
+
+// Percentage still derives from server usage fields only.
+assert.match(
+  settingsSrc,
+  /aiUsage\.usedCents \/ Math\.max\(aiUsage\.budgetCents, 1\)/,
 );
 
 console.log('settingsAiUsageFocus.test.ts: all assertions passed');
