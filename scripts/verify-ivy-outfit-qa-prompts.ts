@@ -46,6 +46,20 @@ assert.equal(
   'evening_out',
 );
 
+// C7 — solemn ceremony must not fall through to casual_day
+assert.equal(
+  inferOutfitOccasionFromAsk('What should I wear to a funeral?'),
+  'work_outfit',
+);
+assert.equal(
+  inferOutfitOccasionFromAsk('Create an outfit for a casual day at the park.'),
+  'casual_day',
+);
+assert.equal(
+  inferOutfitOccasionFromAsk('What should I wear to work tomorrow?'),
+  'work_outfit',
+);
+
 assert.equal(
   raiseOccasionForRefine('casual_day', "I don't like this outfit as I don't think wearing cargo shorts and chunky boots to a nice dinner is appropriate. Give me another option"),
   'evening_out',

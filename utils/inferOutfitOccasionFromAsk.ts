@@ -14,6 +14,9 @@ export function inferOutfitOccasionFromAsk(
 
   if (/\b(gym|workout|training|run|exercise)\b/.test(t)) return 'gym';
 
+  // Solemn ceremony — allocator uses work_outfit lane (server activityConstraints parity).
+  if (/\b(funeral|memorial|wake|bereavement)\b/.test(t)) return 'work_outfit';
+
   // "stylish not formal" must not map to formal_event
   if (/\bnot\s+formal\b|\bnon-?formal\b|\bstylish\b/.test(t) && /\b(dinner|evening|elevated)\b/.test(t)) {
     return 'evening_out';
