@@ -1281,7 +1281,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                         </ThemedText>
                       </Pressable>
                     </>
-                  ) : null}
+                  ) : (
+                    <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                      <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                        {t('stylistFlow.startOver')}
+                      </ThemedText>
+                    </Pressable>
+                  )}
                 </>
               );
             }
@@ -1320,7 +1326,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                       </ThemedText>
                     </Pressable>
                   </>
-                ) : null}
+                ) : (
+                  <Pressable onPress={() => flow.resetFlow()} style={styles.secondaryButton}>
+                    <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+                      {t('stylistFlow.startOver')}
+                    </ThemedText>
+                  </Pressable>
+                )}
               </>
             );
           })()}
