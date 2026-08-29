@@ -20,7 +20,29 @@ const GENERIC_EVENT_WHY_RES: RegExp[] = [
   /\bPolished without trying too hard\b/i,
   /\bClean, composed, and deliberately simple\b/i,
   /\bNothing unnecessary, just clean performance\b/i,
+  /\bI chose these pieces to read polished and occasion-correct\b/i,
 ];
+
+const DRESS_CODE_LABELS: Record<string, string> = {
+  casual: 'casual',
+  'smart-casual': 'smart casual',
+  business: 'business',
+  cocktail: 'cocktail',
+  formal: 'formal',
+  'black-tie': 'black tie',
+};
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  interview: 'interview',
+  dinner: 'formal dinner',
+  hiking: 'hiking',
+  wedding: 'wedding',
+  other: 'event',
+};
+
+export type EventPieceRef = { role?: string; name?: string };
+
+export type EventOccasionContext = { eventType?: string; dressCode?: string };
 
 const QSC_SWAP_CANNED_RE = /\bIf a piece fights the rest of the outfit, swap that piece only\b/i;
 const QSC_GOT_LOOK_RE = /^I've got your look\.?$/i;
@@ -310,31 +332,72 @@ function collectProseSource(
   return recommendation || reasoning;
 }
 
+function buildEventOccasionPhrase(ctx?: EventOccasionContext | null): string {
+  if (!ctx) return 'this occasion';
+  const eventLabel = EVENT_TYPE_LABELS[ctx.eventType || '']
+    || (ctx.eventType ? ctx.eventType.replace(/-/g, ' ') : '');
+  const dressLabel = DRESS_CODE_LABELS[ctx.dressCode || '']
+    || (ctx.dressCode ? ctx.dressCode.replace(/-/g, ' ') : '');
+  if (eventLabel) return `this ${eventLabel}`;
+  if (dressLabel) return `this ${dressLabel} occasion`;
+  return 'this occasion';
+}
+
+/** Deterministic Event WHY from structured outfit pieces — no invented attributes. */
+export function deriveEventWhyFromPieces(
+  pieces: EventPieceRef[],
+  occasionCtx?: EventOccasionContext | null,
+): string[] {
+  if (!Array.isArray(pieces) || !pieces.length) return [];
+
+  const occ = buildEventOccasionPhrase(occasionCtx);
+  const byRole: Record<string, string> = {};
+  for (const piece of pieces) {
+    const role = normalizeOutfitRole(piece.role);
+    const name = String(piece.name || '').trim();
+    if (!role || !name) continue;
+    if (!byRole[role]) byRole[role] = name;
+  }
+
+  const bullets: string[] = [];
+  const top = byRole.top;
+  const bottom = byRole.bottom;
+  const outerwear = byRole.outerwear;
+  const shoes = byRole.shoes;
+
+  if (top) {
+    bullets.push(`${top} fills the top role for ${occ}.`);
+  }
+  if (outerwear) {
+    bullets.push(`${outerwear} provides the selected outerwear layer.`);
+  }
+  if (bottom && shoes) {
+    bullets.push(`${bottom} and ${shoes} complete the selected outfit for ${occ}.`);
+  } else {
+    if (bottom) bullets.push(`${bottom} is your selected bottom for ${occ}.`);
+    if (shoes) bullets.push(`${shoes} completes the footwear for this outfit.`);
+  }
+
+  return bullets.slice(0, 4);
+}
+
 function mergeEventReasoningBullets(
   summary: string | null,
   bullets: string[],
   reasoning: string,
 ): string[] {
   const eventReasoning = safeText(reasoning);
-  if (!eventReasoning || isDuplicate(eventReasoning, summary || '')) return bullets;
+  if (!eventReasoning) return bullets;
 
-  const reasoningSegmented = buildFromSentences(splitIntoSentences(eventReasoning));
   const extras: string[] = [];
-  if (
-    reasoningSegmented.summary
-    && !isDuplicate(reasoningSegmented.summary, summary || '')
-    && !bullets.some((b) => isDuplicate(b, reasoningSegmented.summary!))
-  ) {
-    extras.push(reasoningSegmented.summary);
-  }
-  for (const bullet of reasoningSegmented.bullets) {
-    if (
-      !isDuplicate(bullet, summary || '')
-      && !extras.some((e) => isDuplicate(e, bullet))
-      && !bullets.some((b) => isDuplicate(b, bullet))
-    ) {
-      extras.push(bullet);
-    }
+  for (const sentence of splitIntoSentences(eventReasoning)) {
+    const s = sentence.trim();
+    if (!s) continue;
+    if (isGenericEventWhyBullet(s)) continue;
+    if (isDuplicate(s, summary || '')) continue;
+    if (bullets.some((b) => isDuplicate(b, s))) continue;
+    if (extras.some((e) => isDuplicate(e, s))) continue;
+    extras.push(s);
   }
 
   return [...bullets, ...extras]
@@ -384,7 +447,12 @@ function buildFromSentences(sentences: string[]): Pick<DecisionResultDisplay, 's
 export function formatDecisionResultPresentation(
   res: DecisionResultInput,
   decisionType: DecisionFlowType,
-  opts: { rejected?: boolean; eventPieceNames?: string[] } = {},
+  opts: {
+    rejected?: boolean;
+    eventPieceNames?: string[];
+    eventPieces?: EventPieceRef[];
+    eventOccasionContext?: EventOccasionContext;
+  } = {},
 ): DecisionResultDisplay {
   const qscOutfitScore = decisionType === 'sanity-check' ? (res.outfitScore ?? null) : null;
   const verdictLabel = resolveVerdictLabel({
@@ -450,6 +518,9 @@ export function formatDecisionResultPresentation(
 
   if (decisionType === 'event-outfit') {
     bullets = filterEventWhyBullets(bullets);
+    if (!bullets.length && opts.eventPieces?.length) {
+      bullets = deriveEventWhyFromPieces(opts.eventPieces, opts.eventOccasionContext);
+    }
   }
 
   if (summary && bottomLine && isDuplicate(summary, bottomLine)) bottomLine = null;

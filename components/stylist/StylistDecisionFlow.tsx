@@ -947,6 +947,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       eventPieceNames: decisionType === 'event-outfit'
         ? displayPieces.map((p) => p.name).filter(Boolean) as string[]
         : undefined,
+      eventPieces: decisionType === 'event-outfit'
+        ? displayPieces.map((p) => ({ role: p.role, name: p.name }))
+        : undefined,
+      eventOccasionContext: decisionType === 'event-outfit'
+        ? { eventType: flow.eventDetails.eventType, dressCode: flow.eventDetails.dressCode }
+        : undefined,
     });
     const showPieceRows = decisionType !== 'sanity-check' && displayPieces.length > 0;
     const eventMissingUpgrades = decisionType === 'event-outfit'

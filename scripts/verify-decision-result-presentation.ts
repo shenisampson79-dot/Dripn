@@ -21,6 +21,7 @@ import {
   filterEventMissingUpgrades,
   isEventCannedReasoning,
   isGenericEventWhyBullet,
+  deriveEventWhyFromPieces,
 } from '../utils/decisionResultPresentation';
 import { ENGINE_LEAK_SENTINEL } from '../utils/stylistPresentationBoundary';
 import { sanitizeStylistUserText } from '../utils/sanitizeStylistUserText';
@@ -274,20 +275,64 @@ assert.equal(
   const qscCanned = "I've got your look. If a piece fights the rest of the outfit, swap that piece only.";
   assert.ok(isEventCannedReasoning(qscCanned));
   assert.ok(isGenericEventWhyBullet('It reads dressed-up without feeling forced.'));
+  const eventPieces = [
+    { role: 'top', name: 'charles tyrwhitt pink dress shirt' },
+    { role: 'bottom', name: 'Next black coated slim trousers' },
+    { role: 'shoes', name: 'black leather loafers' },
+    { role: 'outerwear', name: 'Cavani gray windowpane check blazer' },
+  ];
+  const eventCtx = { eventType: 'dinner', dressCode: 'formal' };
   const display = formatDecisionResultPresentation(
     base({
       message: 'Sharp, composed, and completely in step with a formal setting. It reads dressed-up without feeling forced.',
       reasoning: qscCanned,
     }),
     'event-outfit',
+    { eventPieces, eventOccasionContext: eventCtx },
   );
   assert.match(display.summary || '', /formal setting/i);
   assert.ok(!display.bullets.some((b) => /I've got your look/i.test(b)), 'no QSC canned in WHY');
   assert.ok(!display.bullets.some((b) => /swap that piece only/i.test(b)), 'no swap boilerplate in WHY');
   assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'no generic house-style in WHY');
+  assert.ok(display.bullets.length >= 2, 'A: deterministic Event WHY from pieces when canned removed');
+  assert.ok(display.bullets.some((b) => /pink dress shirt/i.test(b)), 'A: fallback cites selected top');
 }
 
-// Event: outfit-specific reasoning survives filtering
+// Event B: reasoning contains headline + useful sentence — headline deduped, useful survives
+{
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting.',
+      reasoning: 'Sharp, composed, and completely in step with a formal setting. The pink dress shirt meets the formal dress code.',
+    }),
+    'event-outfit',
+  );
+  assert.ok(display.bullets.length >= 1, 'B: useful reasoning survives headline echo');
+  assert.ok(display.bullets.some((b) => /pink dress shirt/i.test(b)), 'B: piece-specific sentence kept');
+  assert.ok(!display.bullets.some((b) => /completely in step with a formal setting/i.test(b)), 'B: headline deduped from WHY');
+}
+
+// Event C: generic house-style secondary only — generic removed, deterministic WHY produced
+{
+  const eventPieces = [
+    { role: 'top', name: 'charles tyrwhitt pink dress shirt' },
+    { role: 'bottom', name: 'Next black coated slim trousers' },
+    { role: 'shoes', name: 'black leather loafers' },
+  ];
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting. It reads dressed-up without feeling forced.',
+      reasoning: '',
+    }),
+    'event-outfit',
+    { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
+  );
+  assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'C: generic removed');
+  assert.ok(display.bullets.length >= 2, 'C: deterministic WHY when only generic secondary');
+  assert.ok(display.bullets.some((b) => /pink dress shirt|black coated|loafers/i.test(b)), 'C: fallback grounded in pieces');
+}
+
+// Event D: genuinely piece-specific reasoning preserved
 {
   const display = formatDecisionResultPresentation(
     base({
@@ -296,11 +341,46 @@ assert.equal(
     }),
     'event-outfit',
   );
-  assert.ok(display.bullets.length >= 2, 'specific reasoning kept');
+  assert.ok(display.bullets.length >= 2, 'D: specific reasoning kept');
   assert.ok(display.bullets.some((b) => /pink dress shirt/i.test(b)));
+  assert.ok(display.bullets.some((b) => /Black coated trousers|Loafers/i.test(b)));
 }
 
-// Event: hide optional upgrades when selected pieces already fill the role
+// Event E: no reasoning — deterministic WHY produced
+{
+  const eventPieces = [
+    { role: 'top', name: 'charles tyrwhitt pink dress shirt' },
+    { role: 'bottom', name: 'Next black coated slim trousers' },
+    { role: 'shoes', name: 'black leather loafers' },
+  ];
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting.',
+    }),
+    'event-outfit',
+    { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
+  );
+  assert.ok(display.bullets.length >= 2, 'E: deterministic WHY with no reasoning');
+  assert.ok(display.bullets.some((b) => /formal dinner/i.test(b)), 'E: occasion context in fallback');
+}
+
+// deriveEventWhyFromPieces unit contract
+{
+  const bullets = deriveEventWhyFromPieces(
+    [
+      { role: 'top', name: 'Pink dress shirt' },
+      { role: 'outerwear', name: 'Cavani blazer' },
+      { role: 'bottom', name: 'Black trousers' },
+      { role: 'shoes', name: 'Black loafers' },
+    ],
+    { eventType: 'dinner', dressCode: 'formal' },
+  );
+  assert.ok(bullets.length >= 2);
+  assert.ok(bullets.some((b) => /Pink dress shirt/i.test(b)));
+  assert.ok(bullets.some((b) => /Cavani blazer/i.test(b)));
+}
+
+// Event F: hide optional upgrades when selected pieces already fill the role
 {
   const missing = [
     { role: 'top', label: 'White dress shirt or oxford', name: 'White dress shirt or oxford' },
@@ -313,12 +393,26 @@ assert.equal(
     { role: 'outerwear', name: 'Cavani gray windowpane check blazer' },
   ];
   const filtered = filterEventMissingUpgrades(missing, pieces);
-  assert.equal(filtered.length, 0, 'top + shoes already satisfied — hide contradictory upgrades');
+  assert.equal(filtered.length, 0, 'F: top + shoes already satisfied — hide contradictory upgrades');
 }
 
-// Event: StylistDecisionFlow uses upgrade filter
+// Event G: QSC presentation unchanged (no Event fallback bleed)
+{
+  const display = formatDecisionResultPresentation(
+    base({ outfitScore: 8.2, ratingLabel: 'Works', message: 'Looks polished for work.', reasoning: "I've got your look." }),
+    'sanity-check',
+  );
+  assert.equal(display.verdictLabel, 'WORKS');
+  assert.equal(display.scoreDisplay, '8.2/10');
+  assert.ok(display.summary);
+  assert.ok(!display.bullets.some((b) => /fills the top role/i.test(b)), 'G: QSC has no Event piece fallback');
+}
+
+// Event: StylistDecisionFlow passes piece + occasion context for WHY fallback
 {
   const flowSrc = readFileSync(resolve(__dirname, '../components/stylist/StylistDecisionFlow.tsx'), 'utf8');
+  assert.match(flowSrc, /eventPieces:/);
+  assert.match(flowSrc, /eventOccasionContext:/);
   assert.match(flowSrc, /filterEventMissingUpgrades/);
 }
 
