@@ -236,7 +236,7 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
       : 56 + insets.bottom;
 
   React.useEffect(() => {
-    void prefetchAIStylistChatHistory();
+    void prefetchAIStylistChatHistory(user?.id);
   }, []);
 
   React.useEffect(() => {
@@ -299,7 +299,7 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
     }
     if (feature.screen) {
       if (feature.screen === "AIStylist") {
-        void prefetchAIStylistChatHistory().finally(() => {
+        void prefetchAIStylistChatHistory(user?.id).finally(() => {
           navigation.navigate("AIStylist");
         });
         return;
@@ -415,7 +415,7 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
         <TodaysOutfitCard
           openToday={Boolean(route.params?.openToday)}
           onOpenStylist={(prompt) => {
-            void prefetchAIStylistChatHistory().finally(() => {
+            void prefetchAIStylistChatHistory(user?.id).finally(() => {
               navigation.navigate("AIStylist", { initialPrompt: prompt });
             });
           }}

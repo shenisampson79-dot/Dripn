@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { STYLIST_CHAT_STORAGE_KEY } from '@/utils/stylistChatAccountSession';
+
 export const GUEST_TOKEN_KEY = '@dripn_guest_token';
 const GUEST_CHATS_PREFIX = '@dripn_guest_chats:';
-/** Seeded into logged-in stylist chat after claim so the thread appears immediately. */
-export const AI_STYLIST_CHAT_KEY = '@dripn_ai_stylist_chat';
+/** @deprecated Use STYLIST_CHAT_STORAGE_KEY — kept for existing imports. */
+export const AI_STYLIST_CHAT_KEY = STYLIST_CHAT_STORAGE_KEY;
 
 const ALLOWED_STYLISTS = new Set(['ruby', 'max', 'ace', 'ivy']);
 const MAX_MESSAGES_PER_STYLIST = 50;

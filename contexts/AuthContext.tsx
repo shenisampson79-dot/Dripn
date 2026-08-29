@@ -18,6 +18,13 @@ import {
   readGuestConversationsForClaim,
   seedAiStylistChatFromGuest,
 } from '@/services/GuestChatStorage';
+import {
+  establishStylistChatAccountSession,
+  getActiveStylistChatUserId,
+  relinquishStylistChatAccountSession,
+  resumeStylistChatSession,
+  shouldPreserveStylistChatLocal,
+} from '@/utils/stylistChatAccountSession';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
@@ -202,6 +209,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const STORAGE_KEY = '@dripn_user';
+
+async function resolvePriorAuthenticatedUserId(): Promise<string | null> {
+  const active = getActiveStylistChatUserId();
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) return active;
+    const parsed = JSON.parse(raw) as { id?: string };
+    return String(parsed?.id || active || '').trim() || null;
+  } catch {
+    return active;
+  }
+}
+
+async function transitionStylistChatSessionForAuth(nextUserId: string): Promise<void> {
+  const priorUserId = await resolvePriorAuthenticatedUserId();
+  await establishStylistChatAccountSession(nextUserId, {
+    preserveLocal: shouldPreserveStylistChatLocal(priorUserId, nextUserId),
+  });
+}
 
 async function syncHydratedProfileToBackendSafe(profile: UserProfile): Promise<void> {
   try {
@@ -457,6 +483,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localUser.subscriptionTier = 'stylist_unlimited';
         }
         setUser(localUser);
+        resumeStylistChatSession(String(localUser.id || '').trim());
         
         // Try to refresh from backend to ensure onboarding + tour status is accurate
         try {
@@ -620,6 +647,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         preserveLocalEmail: email,
       });
 
+      await transitionStylistChatSessionForAuth(String(userProfile.id || userId || '').trim());
       await saveUserLocalOnly(userProfile);
       await claimGuestConversationsAfterAuth();
     } catch (error) {
@@ -652,6 +680,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const backendUser = result.user;
       const newUser = createDefaultUser(email, name);
       newUser.id = backendUser.id?.toString() || newUser.id;
+      await transitionStylistChatSessionForAuth(String(newUser.id || '').trim());
       await saveUser(newUser);
 
       try {
@@ -722,6 +751,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           backendLoginUser: backendUser,
           preserveLocalEmail: backendUser.email || userEmail || newUser.email,
         });
+        await transitionStylistChatSessionForAuth(String(newUser.id || '').trim());
         await saveUserLocalOnly(newUser);
         await claimGuestConversationsAfterAuth();
         return;
@@ -807,6 +837,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         preserveLocalEmail: backendUser.email || userEmail || newUser.email,
       });
 
+      await transitionStylistChatSessionForAuth(String(newUser.id || '').trim());
       await saveUserLocalOnly(newUser);
 
       try {
@@ -853,6 +884,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         preserveLocalEmail: backendUser.email || userEmail || newUser.email,
       });
 
+      await transitionStylistChatSessionForAuth(String(newUser.id || '').trim());
       await saveUserLocalOnly(newUser);
 
       try {
@@ -964,6 +996,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      await relinquishStylistChatAccountSession();
       await apiService.logout();
       await AsyncStorage.removeItem(STORAGE_KEY);
       setUser(null);

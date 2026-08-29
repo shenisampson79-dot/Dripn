@@ -180,6 +180,21 @@ import {
   parseStylistChatClearedTombstone,
   shouldSuppressServerChatHydrate,
 } from '@/utils/stylistFreshThread';
+import {
+  STYLIST_STYLIST_CHAT_STORAGE_KEY,
+  STYLIST_STYLIST_DAILY_MESSAGES_KEY,
+  STYLIST_PENDING_RETRY_KEY,
+  beginStylistChatHydrate,
+  getCachedStylistChatMessagesSync,
+  getCachedStylistChatQuickPromptsSync,
+  getStylistChatHydrateGeneration,
+  isStylistChatHydrateCurrent,
+  isStylistChatSessionActive,
+  readComposerDraftMemory,
+  rememberStylistChatMessages,
+  stylistComposerDraftKey,
+  writeComposerDraftMemory,
+} from '@/utils/stylistChatAccountSession';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -232,35 +247,12 @@ const INPUT_CONTAINER_HEIGHT = 80;
 const LIMIT_HIT_BANNER_HEIGHT = 108;
 const TAB_BAR_HEIGHT = 56;
 
-const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
-const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
-/** Unsent composer text — survives leaving chat (like iMessage / WhatsApp drafts). */
-const COMPOSER_DRAFT_KEY_PREFIX = '@dripn_ai_stylist_composer_draft:';
-/** Last user question to auto-retry after an allowance upgrade. */
-const PENDING_STYLIST_RETRY_KEY = '@dripn_stylist_pending_retry';
-
-function composerDraftKey(stylistId: string) {
-  return `${COMPOSER_DRAFT_KEY_PREFIX}${stylistId || 'default'}`;
-}
-
-/** Sync cache so remount restores draft before AsyncStorage resolves. */
-const composerDraftMemory: Record<string, string> = {};
-
 function readComposerDraft(stylistId: string): string {
-  const mem = composerDraftMemory[stylistId || 'default'];
-  return typeof mem === 'string' ? mem : '';
+  return readComposerDraftMemory(stylistId);
 }
 
 function writeComposerDraft(stylistId: string, text: string) {
-  const id = stylistId || 'default';
-  const next = String(text || '');
-  if (!next.trim()) {
-    delete composerDraftMemory[id];
-    void AsyncStorage.removeItem(composerDraftKey(id)).catch(() => {});
-    return;
-  }
-  composerDraftMemory[id] = next;
-  void AsyncStorage.setItem(composerDraftKey(id), next).catch(() => {});
+  writeComposerDraftMemory(stylistId, text);
 }
 /** Stable FlatList row id for the welcome bubble — never swap this id on hydrate. */
 const SEED_MESSAGE_ID = 'msg_seed_init';
@@ -634,21 +626,6 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
   return normalized;
 }
 
-/** In-memory chat snapshot so remounts paint with real history (no seed→history swap). */
-let chatMessagesMemoryCache: ChatMessage[] | null = null;
-let chatQuickPromptsMemoryCache: boolean | null = null;
-
-function rememberChatMessages(msgs: ChatMessage[], showQuickPrompts?: boolean) {
-  chatMessagesMemoryCache = msgs.slice(-50);
-  if (typeof showQuickPrompts === 'boolean') {
-    chatQuickPromptsMemoryCache = showQuickPrompts;
-  }
-}
-
-function getCachedMessagesSync(): ChatMessage[] | null {
-  return chatMessagesMemoryCache;
-}
-
 function isSeedOnlyThread(msgs: ChatMessage[]): boolean {
   if (msgs.length === 0) return true;
   return (
@@ -723,13 +700,14 @@ function readTodayMessagesFromParsed(parsed: unknown): ChatMessage[] {
 }
 
 /** Warm sync cache before Hub → Chat so first paint already has today's thread. */
-export async function prefetchAIStylistChatHistory(): Promise<void> {
+export async function prefetchAIStylistChatHistory(expectedUserId?: string | null): Promise<void> {
+  if (!expectedUserId || !isStylistChatSessionActive(expectedUserId)) return;
   try {
-    const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+    const data = await AsyncStorage.getItem(STYLIST_STYLIST_CHAT_STORAGE_KEY);
     if (!data) return;
     const recent = readTodayMessagesFromParsed(JSON.parse(data));
     if (!recent.length) return;
-    rememberChatMessages(recent, !threadHasUserMessage(recent));
+    rememberStylistChatMessages(recent, !threadHasUserMessage(recent));
   } catch {
     /* optional warm */
   }
@@ -2052,7 +2030,7 @@ export default function AIStylistScreen() {
   }, [stylist, user?.name, effectiveLanguage, greetingWardrobe]);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const cached = getCachedMessagesSync();
+    const cached = getCachedStylistChatMessagesSync();
     if (cached?.length) return cached;
     return [
       {
@@ -2084,7 +2062,7 @@ export default function AIStylistScreen() {
   const sendMessageRef = useRef<(text: string) => Promise<void>>(async () => {});
   const pendingRetryInFlightRef = useRef(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(
-    () => chatQuickPromptsMemoryCache ?? !threadHasUserMessage(getCachedMessagesSync() || []),
+    () => getCachedStylistChatQuickPromptsSync() ?? !threadHasUserMessage(getCachedStylistChatMessagesSync() || []),
   );
   const [generatingOccasionId, setGeneratingOccasionId] = useState<string | null>(null);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'helpful' | 'not_helpful' | null>>({});
@@ -2204,7 +2182,7 @@ export default function AIStylistScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(composerDraftKey(stylist.id));
+        const raw = await AsyncStorage.getItem(stylistComposerDraftKey(stylist.id));
         if (cancelled || raw == null) return;
         // Prefer in-progress typing; otherwise restore stored draft.
         if (!String(inputTextRef.current || '').trim() && raw.length > 0) {
@@ -2234,7 +2212,7 @@ export default function AIStylistScreen() {
         setInputText(mem);
         inputTextRef.current = mem;
       }
-      void AsyncStorage.getItem(composerDraftKey(stylist.id))
+      void AsyncStorage.getItem(stylistComposerDraftKey(stylist.id))
         .then((raw) => {
           if (!raw || String(inputTextRef.current || '').trim()) return;
           setInputText(raw);
@@ -2281,7 +2259,7 @@ export default function AIStylistScreen() {
           setMonthlyAllowanceExhausted(false);
           setAiAllowanceSoftWarn(pct >= 0.9);
 
-          const raw = await AsyncStorage.getItem(PENDING_STYLIST_RETRY_KEY);
+          const raw = await AsyncStorage.getItem(STYLIST_PENDING_RETRY_KEY);
           if (!raw || cancelled || pendingRetryInFlightRef.current) return;
           let pendingText = '';
           try {
@@ -2291,11 +2269,11 @@ export default function AIStylistScreen() {
             pendingText = String(raw || '').trim();
           }
           if (!pendingText) {
-            await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY);
+            await AsyncStorage.removeItem(STYLIST_PENDING_RETRY_KEY);
             return;
           }
           pendingRetryInFlightRef.current = true;
-          await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY);
+          await AsyncStorage.removeItem(STYLIST_PENDING_RETRY_KEY);
           retryTimer = setTimeout(() => {
             void sendMessageRef.current(pendingText).finally(() => {
               pendingRetryInFlightRef.current = false;
@@ -2397,15 +2375,34 @@ export default function AIStylistScreen() {
   }, [wardrobeImageFingerprint, wardrobeItems, user?.subscriptionTier]);
   
   useEffect(() => {
+    if (!user?.id) return;
     isMountedRef.current = true;
-    // Progressive hydrate — no transition coupling, no cover. Sync cache (prefetched from Hub)
-    // means first paint usually already has today's thread; merge is a no-op then.
+    const userId = user.id;
+    const sessionGen = beginStylistChatHydrate(userId);
+
+    const cached = getCachedStylistChatMessagesSync();
+    if (!cached?.length) {
+      setMessages([
+        {
+          id: SEED_MESSAGE_ID,
+          role: 'assistant',
+          content: buildSeedGreeting(),
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setShowQuickPrompts(true);
+      messagesLenRef.current = 1;
+    }
+
     void (async () => {
-      const localFound = await loadChatHistory({ phase: 'local' });
+      const localFound = await loadChatHistory({ phase: 'local', sessionGen, userId });
+      if (!isStylistChatHydrateCurrent(sessionGen, userId)) return;
       await loadDailyMessageCount();
+      if (!isStylistChatHydrateCurrent(sessionGen, userId)) return;
       if (!localFound) {
-        await loadChatHistory({ phase: 'server' });
+        await loadChatHistory({ phase: 'server', sessionGen, userId });
       }
+      if (!isStylistChatHydrateCurrent(sessionGen, userId)) return;
       void checkAudioPermission();
     })();
     return () => {
@@ -2422,7 +2419,7 @@ export default function AIStylistScreen() {
       }
       stopTTSPlayback();
     };
-  }, []);
+  }, [user?.id, stylist.id]);
   
   // Patch seed greeting text in place (same row id) when language/stylist changes.
   useEffect(() => {
@@ -2431,7 +2428,7 @@ export default function AIStylistScreen() {
       if (!isSeedOnlyThread(prev) || !prev[0]) return prev;
       if (prev[0].content === nextGreeting) return prev;
       const next = [{ ...prev[0], id: SEED_MESSAGE_ID, content: nextGreeting }];
-      rememberChatMessages(next, true);
+      rememberStylistChatMessages(next, true);
       return next;
     });
   }, [stylist, buildSeedGreeting]);
@@ -2929,15 +2926,24 @@ export default function AIStylistScreen() {
     }
   };
 
-  const loadChatHistory = async (options?: { phase?: 'local' | 'server' }) => {
+  const loadChatHistory = async (options?: {
+    phase?: 'local' | 'server';
+    sessionGen?: number;
+    userId?: string | null;
+  }) => {
     const phase = options?.phase ?? 'local';
+    const sessionGen = options?.sessionGen ?? getStylistChatHydrateGeneration();
+    const userId = options?.userId ?? user?.id ?? null;
+    const sessionOk = () => isStylistChatHydrateCurrent(sessionGen, userId);
     try {
+      if (!sessionOk()) return false;
       if (phase === 'local') {
-        const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+        const data = await AsyncStorage.getItem(STYLIST_CHAT_STORAGE_KEY);
+        if (!sessionOk()) return false;
         if (data) {
           const parsed = JSON.parse(data);
           if (!Array.isArray(parsed)) {
-            await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+            await AsyncStorage.removeItem(STYLIST_CHAT_STORAGE_KEY);
           } else {
             let recentMessages = readTodayMessagesFromParsed(parsed);
 
@@ -2954,10 +2960,11 @@ export default function AIStylistScreen() {
                 setShowQuickPrompts(false);
               }
 
+              if (!sessionOk()) return false;
               setMessages((prev) => {
                 const merged = mergeChatMessages(prev, recentMessages);
                 if (merged !== prev) {
-                  rememberChatMessages(merged, !threadHasUserMessage(merged));
+                  rememberStylistChatMessages(merged, !threadHasUserMessage(merged));
                 }
                 return merged;
               });
@@ -2970,9 +2977,7 @@ export default function AIStylistScreen() {
         return false;
       }
 
-      if (threadHasUserMessage(getCachedMessagesSync() || []) || messagesLenRef.current > 1) {
-        return false;
-      }
+      if (!sessionOk()) return false;
 
       try {
         const tombRaw = await AsyncStorage.getItem(STYLIST_CHAT_CLEARED_TOMBSTONE_KEY);
@@ -2984,8 +2989,11 @@ export default function AIStylistScreen() {
         /* tombstone optional */
       }
 
+      if (!sessionOk()) return false;
+
       try {
         const serverHistory = await apiService.getChatHistory(stylist.id, 40);
+        if (!sessionOk()) return false;
         if (Array.isArray(serverHistory) && serverHistory.length > 0) {
           const mapped = serverHistory
             .filter((m) => m?.role === 'user' || m?.role === 'assistant')
@@ -3000,11 +3008,12 @@ export default function AIStylistScreen() {
             .filter((m) => m.content.trim().length > 0)
             .slice(-20);
           if (mapped.some((m) => m.role === 'user')) {
+            if (!sessionOk()) return false;
             setShowQuickPrompts(false);
             setMessages((prev) => {
               const merged = mergeChatMessages(prev, mapped);
               if (merged !== prev) {
-                rememberChatMessages(merged, false);
+                rememberStylistChatMessages(merged, false);
                 void saveChatHistory(merged);
               }
               return merged;
@@ -3018,21 +3027,21 @@ export default function AIStylistScreen() {
       return false;
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      await AsyncStorage.removeItem(CHAT_STORAGE_KEY).catch(() => {});
+      await AsyncStorage.removeItem(STYLIST_CHAT_STORAGE_KEY).catch(() => {});
       return false;
     }
   };
   
   const loadDailyMessageCount = async () => {
     try {
-      const data = await AsyncStorage.getItem(DAILY_MESSAGES_KEY);
+      const data = await AsyncStorage.getItem(STYLIST_DAILY_MESSAGES_KEY);
       if (data) {
         const parsed = JSON.parse(data);
         const today = new Date().toDateString();
         if (parsed.date === today) {
           setMessagesToday(parsed.count);
         } else {
-          await AsyncStorage.setItem(DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: 0 }));
+          await AsyncStorage.setItem(STYLIST_DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: 0 }));
           setMessagesToday(0);
         }
       }
@@ -3044,10 +3053,11 @@ export default function AIStylistScreen() {
   };
   
   const saveChatHistory = async (newMessages: ChatMessage[]) => {
+    if (!user?.id || !isStylistChatSessionActive(user.id)) return;
     try {
       const trimmed = newMessages.slice(-50);
-      rememberChatMessages(trimmed, !threadHasUserMessage(trimmed));
-      await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(trimmed));
+      rememberStylistChatMessages(trimmed, !threadHasUserMessage(trimmed));
+      await AsyncStorage.setItem(STYLIST_CHAT_STORAGE_KEY, JSON.stringify(trimmed));
     } catch (error) {
       console.error('Failed to save chat history:', error);
     }
@@ -3138,7 +3148,7 @@ export default function AIStylistScreen() {
         return;
       }
       const newCount = messagesToday + 1;
-      await AsyncStorage.setItem(DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: newCount }));
+      await AsyncStorage.setItem(STYLIST_DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: newCount }));
       setMessagesToday(newCount);
     } catch (error) {
       console.error('Failed to increment daily messages:', error);
@@ -3165,7 +3175,7 @@ export default function AIStylistScreen() {
     const pending = String(lastOutboundPromptRef.current || '').trim();
     if (pending) {
       void AsyncStorage.setItem(
-        PENDING_STYLIST_RETRY_KEY,
+        STYLIST_PENDING_RETRY_KEY,
         JSON.stringify({ text: pending, stylistId: stylist.id, at: Date.now() }),
       );
     }
@@ -4244,11 +4254,11 @@ export default function AIStylistScreen() {
 
     setMessages([greetingMessage]);
     setShowQuickPrompts(true);
-    rememberChatMessages([greetingMessage], true);
+    rememberStylistChatMessages([greetingMessage], true);
     setComposerText('');
     writeComposerDraft(stylist.id, '');
-    await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
-    await AsyncStorage.removeItem(PENDING_STYLIST_RETRY_KEY).catch(() => {});
+    await AsyncStorage.removeItem(STYLIST_CHAT_STORAGE_KEY);
+    await AsyncStorage.removeItem(STYLIST_PENDING_RETRY_KEY).catch(() => {});
     await releaseDecisionContinuity();
 
     try {
