@@ -155,6 +155,8 @@ export interface DecisionResponse {
     };
   }>;
   styleRating?: number | null;
+  /** QSC-only customer outfit score (1.0–10.0) — from server outfitScore, not internal styleRating. */
+  outfitScore?: number | null;
   ratingLabel?: string | null;
   recommendedIndex?: number;
   uploadedImages?: string[];

@@ -1048,9 +1048,16 @@ export function useStylistDecision({
           || apiResult.response
           || '',
         ),
-        reasoning: (apiResult.message || apiResult.outfitId || (mappedType === 'shopping' && imageUris.length > 1))
-          ? undefined
-          : sanitizeStylistUserText(apiResult.reasoning || ''),
+        reasoning: (() => {
+          const raw = sanitizeStylistUserText(apiResult.reasoning || '');
+          if (!raw) return undefined;
+          // Event: keep server reasoning even when message exists — formatter dedupes for WHY bullets.
+          if (mappedType === 'event_outfit') return raw;
+          if (apiResult.message || apiResult.outfitId || (mappedType === 'shopping' && imageUris.length > 1)) {
+            return undefined;
+          }
+          return raw;
+        })(),
         confidenceNote: sanitizeStylistUserText(
           apiResult.confidenceNote
           || apiResult.decisionConfidence?.note
@@ -1075,22 +1082,18 @@ export function useStylistDecision({
             : apiResult.evaluateResult?.suitable === false
               ? 'doesnt_work'
               : undefined),
-        styleRating: (() => {
-          const raw = apiResult.styleRating ?? null;
-          // QSC always shows a finite score; other flows keep the display floor.
-          if (decisionType === 'sanity-check') {
-            return raw != null && Number.isFinite(Number(raw)) ? Number(raw) : null;
-          }
-          return shouldDisplayStyleRating(raw) ? Number(raw) : null;
+        styleRating: null,
+        outfitScore: (() => {
+          if (decisionType !== 'sanity-check') return null;
+          const raw = (apiResult as { outfitScore?: number | null }).outfitScore ?? null;
+          return raw != null && Number.isFinite(Number(raw)) ? Number(raw) : null;
         })(),
         ratingLabel: (() => {
-          const raw = apiResult.styleRating ?? null;
-          const show = decisionType === 'sanity-check'
-            ? (raw != null && Number.isFinite(Number(raw)))
-            : shouldDisplayStyleRating(raw);
-          return show
-            ? sanitizeStylistUserText(apiResult.ratingLabel ?? '') || null
-            : null;
+          const label = sanitizeStylistUserText(apiResult.ratingLabel ?? '') || null;
+          if (decisionType === 'sanity-check') {
+            return label;
+          }
+          return null;
         })(),
         status: (apiResult.status as DecisionResponse['status'])
           || (apiResult.isFallback || apiResult.type === 'fallback_outfit' ? 'fallback_outfit' : 'ok'),

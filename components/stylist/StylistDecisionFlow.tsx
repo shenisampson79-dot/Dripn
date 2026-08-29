@@ -1020,6 +1020,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
                     source={{ uri }}
                     style={[
                       styles.responseOptionThumb,
+                      isWinner ? styles.responseOptionThumbWinner : null,
                       isWinner
                         ? { borderWidth: 2, borderColor: LuxuryColors.gold }
                         : null,
@@ -1751,6 +1752,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     borderRadius: BorderRadius.md,
+  },
+  responseOptionThumbWinner: {
+    height: 168,
   },
   responseCard: {
     borderRadius: BorderRadius.lg,

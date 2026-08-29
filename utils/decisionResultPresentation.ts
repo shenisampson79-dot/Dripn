@@ -18,6 +18,8 @@ export function shouldDisplayStyleRating(rating: number | null | undefined): boo
 }
 
 export type DecisionResultInput = {
+  /** QSC-only customer outfit score (1.0–10.0) from server outfitScore field. */
+  outfitScore?: number | null;
   styleRating?: number | null;
   ratingLabel?: string | null;
   verdict?: string | null;
@@ -118,15 +120,11 @@ export function resolveVerdictLabel(input: {
 
 export function resolveScoreDisplay(
   decisionType: DecisionFlowType,
-  styleRating?: number | null,
+  outfitScore?: number | null,
 ): string | null {
-  if (styleRating == null || !Number.isFinite(Number(styleRating))) return null;
-  const rating = Number(styleRating);
-  if (decisionType === 'sanity-check') {
-    return `${rating.toFixed(1)}/10`;
-  }
-  if (!shouldDisplayStyleRating(rating)) return null;
-  return `${rating.toFixed(1)}/10`;
+  if (decisionType !== 'sanity-check') return null;
+  if (outfitScore == null || !Number.isFinite(Number(outfitScore))) return null;
+  return `${Number(outfitScore).toFixed(1)}/10`;
 }
 
 /** Deterministic sentence segmentation — preserves punctuation, no rewriting. */
@@ -190,9 +188,11 @@ function collectProseSource(
     || res.decision
     || '',
   );
-  const reasoning = (res.message || res.outfitId)
-    ? ''
-    : safeText(res.reasoning || '');
+  const reasoning = decisionType === 'event-outfit'
+    ? safeText(res.reasoning || '')
+    : ((res.message || res.outfitId)
+      ? ''
+      : safeText(res.reasoning || ''));
 
   if (opts.rejected) {
     recommendation = recommendation
@@ -200,10 +200,47 @@ function collectProseSource(
       .trim();
   }
 
+  // Event: primary prose only — reasoning merges as WHY bullets in the formatter.
+  if (decisionType === 'event-outfit') {
+    return recommendation || reasoning;
+  }
+
   if (reasoning && recommendation && !isDuplicate(reasoning, recommendation)) {
     return `${recommendation} ${reasoning}`.trim();
   }
   return recommendation || reasoning;
+}
+
+function mergeEventReasoningBullets(
+  summary: string | null,
+  bullets: string[],
+  reasoning: string,
+): string[] {
+  const eventReasoning = safeText(reasoning);
+  if (!eventReasoning || isDuplicate(eventReasoning, summary || '')) return bullets;
+
+  const reasoningSegmented = buildFromSentences(splitIntoSentences(eventReasoning));
+  const extras: string[] = [];
+  if (
+    reasoningSegmented.summary
+    && !isDuplicate(reasoningSegmented.summary, summary || '')
+    && !bullets.some((b) => isDuplicate(b, reasoningSegmented.summary!))
+  ) {
+    extras.push(reasoningSegmented.summary);
+  }
+  for (const bullet of reasoningSegmented.bullets) {
+    if (
+      !isDuplicate(bullet, summary || '')
+      && !extras.some((e) => isDuplicate(e, bullet))
+      && !bullets.some((b) => isDuplicate(b, bullet))
+    ) {
+      extras.push(bullet);
+    }
+  }
+
+  return [...bullets, ...extras]
+    .filter((b, i, arr) => arr.findIndex((x) => isDuplicate(x, b)) === i)
+    .slice(0, 4);
 }
 
 function buildFromSentences(sentences: string[]): Pick<DecisionResultDisplay, 'summary' | 'bullets' | 'bottomLine'> {
@@ -250,12 +287,13 @@ export function formatDecisionResultPresentation(
   decisionType: DecisionFlowType,
   opts: { rejected?: boolean } = {},
 ): DecisionResultDisplay {
+  const qscOutfitScore = decisionType === 'sanity-check' ? (res.outfitScore ?? null) : null;
   const verdictLabel = resolveVerdictLabel({
-    styleRating: res.styleRating,
+    styleRating: qscOutfitScore,
     ratingLabel: res.ratingLabel,
     verdict: res.verdict,
   });
-  const scoreDisplay = resolveScoreDisplay(decisionType, res.styleRating);
+  const scoreDisplay = resolveScoreDisplay(decisionType, qscOutfitScore);
 
   const presentationBullets = (Array.isArray(res.presentation?.bullets) ? res.presentation!.bullets : [])
     .map((b) => safeText(b))
@@ -283,6 +321,10 @@ export function formatDecisionResultPresentation(
   let summary = segmented.summary;
   let bullets = segmented.bullets;
   let bottomLine = segmented.bottomLine;
+
+  if (decisionType === 'event-outfit' && res.reasoning) {
+    bullets = mergeEventReasoningBullets(summary, bullets, String(res.reasoning));
+  }
 
   if (noteSummary && !looksLikeItemNameList(noteSummary)) {
     if (!summary) summary = noteSummary;

@@ -2667,6 +2667,7 @@ class ApiService {
       recommendation?: string;
       reasoning?: string;
       styleRating?: number | null;
+      outfitScore?: number | null;
       ratingLabel?: string | null;
       outfitPieces?: Array<{
         role: string;

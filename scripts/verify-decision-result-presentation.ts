@@ -32,14 +32,35 @@ function base(overrides: Partial<TestResponse> = {}): TestResponse {
 
 console.log('=== verify-decision-result-presentation ===\n');
 
-// QSC score displays X/10
+// QSC: outfitScore renders X.X/10; ratingLabel independent
 {
   const display = formatDecisionResultPresentation(
-    base({ styleRating: 8.2, ratingLabel: 'Strong overall', message: 'Looks polished for work.' }),
+    base({ outfitScore: 8.2, ratingLabel: 'Works', message: 'Looks polished for work.' }),
     'sanity-check',
   );
+  assert.equal(display.verdictLabel, 'WORKS');
   assert.equal(display.scoreDisplay, '8.2/10');
   assert.doesNotMatch(display.scoreDisplay || '', /%/);
+  assert.ok(display.summary);
+}
+
+// QSC: ratingLabel without outfitScore — verdict only, no numeric score
+{
+  const display = formatDecisionResultPresentation(
+    base({ ratingLabel: 'Works', message: 'Looks polished for work.' }),
+    'sanity-check',
+  );
+  assert.equal(display.verdictLabel, 'WORKS');
+  assert.equal(display.scoreDisplay, null);
+}
+
+// Internal styleRating never drives QSC display (use outfitScore only)
+{
+  const display = formatDecisionResultPresentation(
+    base({ styleRating: 8.2, message: 'Looks polished for work.' }),
+    'sanity-check',
+  );
+  assert.equal(display.scoreDisplay, null);
 }
 
 // Verdict bands on customer-facing styleRating
@@ -76,7 +97,7 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
     + 'Brown boots work, but another brown detail would tie them in. '
     + "You're good to go.";
   const display = formatDecisionResultPresentation(
-    base({ styleRating: 8.2, message: essay }),
+    base({ outfitScore: 8.2, message: essay }),
     'sanity-check',
   );
   assert.ok(display.summary, 'summary present');
@@ -88,17 +109,28 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
 // Short prose remains sensible
 {
   const display = formatDecisionResultPresentation(
-    base({ styleRating: 7.8, message: 'This works for a smart-casual office day.' }),
+    base({ outfitScore: 7.8, message: 'This works for a smart-casual office day.' }),
     'sanity-check',
   );
   assert.equal(display.bullets.length, 0);
   assert.match(display.summary || '', /works/i);
 }
 
-// Event score eligibility unchanged
+// Event and Shopping never show numeric outfit score
 {
-  assert.equal(resolveScoreDisplay('event-outfit', 5.3), null);
-  assert.equal(resolveScoreDisplay('event-outfit', 7.2), '7.2/10');
+  assert.equal(resolveScoreDisplay('event-outfit', 7.2), null);
+  assert.equal(resolveScoreDisplay('shopping', 8.5), null);
+  assert.equal(resolveScoreDisplay('sanity-check', 8.2), '8.2/10');
+  const eventDisplay = formatDecisionResultPresentation(
+    base({ outfitScore: 7.2, styleRating: 7.2, message: 'Smart casual for dinner.' }),
+    'event-outfit',
+  );
+  assert.equal(eventDisplay.scoreDisplay, null);
+  const shopDisplay = formatDecisionResultPresentation(
+    base({ outfitScore: 8.0, message: 'Option 2 wins.' }),
+    'shopping',
+  );
+  assert.equal(shopDisplay.scoreDisplay, null);
 }
 
 // Shopping multi prose structured
@@ -118,7 +150,7 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
 {
   const display = formatDecisionResultPresentation(
     base({
-      styleRating: 8,
+      outfitScore: 8,
       message: 'Looks good.',
       ...({ unifiedScore: { style_score: 0.91, feedback: ['Internal only'] } } as object),
     }),
@@ -163,6 +195,33 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
   );
 }
 
+// Event: message summary + distinct reasoning → WHY bullets (deduped)
+{
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Smart casual polish for the dinner.',
+      reasoning: 'The navy blazer anchors the look. Cream trousers keep it evening-appropriate. Loafers finish it cleanly.',
+    }),
+    'event-outfit',
+  );
+  assert.match(display.summary || '', /Smart casual/i);
+  assert.ok(display.bullets.length >= 2, 'reasoning becomes WHY bullets');
+  assert.ok(!display.bullets.some((b) => /Smart casual polish/i.test(b)), 'summary not duplicated in bullets');
+}
+
+// Event: duplicate reasoning omitted
+{
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Smart casual polish for the dinner.',
+      reasoning: 'Smart casual polish for the dinner.',
+    }),
+    'event-outfit',
+  );
+  assert.match(display.summary || '', /Smart casual/i);
+  assert.equal(display.bullets.length, 0);
+}
+
 // SHOPPING DO_NOT_BUY routing unchanged
 {
   assert.equal(
@@ -178,9 +237,19 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
   assert.match(flowSrc, /renderDecisionResultHierarchy/);
   assert.match(flowSrc, /WHY/);
   assert.doesNotMatch(flowSrc, /qscPercent/);
+  assert.match(flowSrc, /responseOptionThumbWinner/);
   assert.match(flowSrc, /flow\.resetFlow\(\)/);
   assert.match(flowSrc, /stylistFlow\.done/);
   assert.match(flowSrc, /% match/);
+}
+
+// Hook: QSC outfitScore + ratingLabel; event reasoning kept with message
+{
+  const hookSrc = readFileSync(resolve(__dirname, '../hooks/useStylistDecision.ts'), 'utf8');
+  assert.match(hookSrc, /outfitScore/);
+  assert.match(hookSrc, /decisionType === 'sanity-check'\)[\s\S]*return label/);
+  assert.match(hookSrc, /mappedType === 'event_outfit'\) return raw/);
+  assert.match(hookSrc, /styleRating: null/);
 }
 
 console.log('All decision result presentation checks passed.');
