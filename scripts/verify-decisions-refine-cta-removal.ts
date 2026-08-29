@@ -72,13 +72,19 @@ assert.ok(
 // Core result actions intact
 for (const action of [
   'flow.completeAndClose',
-  'flow.editAndRerun',
   'flow.resetFlow',
-  'flow.rejectAndClose',
   'flow.refreshStaleRecommendation',
 ]) {
   assert.ok(flowSrc.includes(action), `${action} must remain`);
 }
+
+// Shopping/Event: Done + Start over only — no Don't like / Edit & re-run on result card
+assert.doesNotMatch(flowSrc, /outfitFeedback\.dontLike/, 'Don\'t like must not appear on Decisions result');
+assert.doesNotMatch(flowSrc, /stylistFlow\.editAndRerun/, 'Edit & re-run must not appear on Decisions result');
+assert.doesNotMatch(flowSrc, /flow\.rejectAndClose/, 'rejectAndClose must not appear on Decisions result UI');
+assert.doesNotMatch(flowSrc, /flow\.editAndRerun/, 'editAndRerun must not appear on Decisions result UI');
+assert.ok(flowSrc.includes('stylistFlow.done'), 'Done CTA must remain');
+assert.ok(flowSrc.includes('stylistFlow.startOver'), 'Start over CTA must remain');
 
 // Verdict rendering intact
 assert.ok(flowSrc.includes('resolveStylistResultDisplayState'), 'verdict display preserved');

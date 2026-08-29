@@ -16,6 +16,7 @@ import {
   resolveScoreDisplay,
   resolveVerdictLabel,
   splitIntoSentences,
+  stripTrailingGarmentNamesFromEventSummary,
   verdictFromStyleRating,
 } from '../utils/decisionResultPresentation';
 import { ENGINE_LEAK_SENTINEL } from '../utils/stylistPresentationBoundary';
@@ -242,6 +243,36 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
   );
   assert.match(display.summary || '', /Smart casual/i);
   assert.equal(display.bullets.length, 0);
+}
+
+// Event: trailing garment name stripped from summary when listed below
+{
+  const malformed =
+    'A clean, smart-casual look perfect for a relaxed, active evening date Primark cream crew neck t-shirt';
+  const display = formatDecisionResultPresentation(
+    base({ message: malformed }),
+    'event-outfit',
+    { eventPieceNames: ['Primark cream crew neck t-shirt', 'u.s. chinos beige straight-leg pants'] },
+  );
+  assert.match(display.summary || '', /relaxed, active evening date\.?$/i);
+  assert.doesNotMatch(display.summary || '', /Primark cream crew neck t-shirt/i);
+}
+
+assert.equal(
+  stripTrailingGarmentNamesFromEventSummary(
+    'Smart headline for the date Primark cream crew neck t-shirt',
+    ['Primark cream crew neck t-shirt'],
+  ),
+  'Smart headline for the date.',
+);
+
+// Shopping/Event CTA contract in StylistDecisionFlow source
+{
+  const flowSrc = readFileSync(resolve(__dirname, '../components/stylist/StylistDecisionFlow.tsx'), 'utf8');
+  assert.doesNotMatch(flowSrc, /outfitFeedback\.dontLike/);
+  assert.doesNotMatch(flowSrc, /stylistFlow\.editAndRerun/);
+  assert.ok(flowSrc.includes('stylistFlow.done'));
+  assert.ok(flowSrc.includes('stylistFlow.startOver'));
 }
 
 // SHOPPING DO_NOT_BUY routing unchanged

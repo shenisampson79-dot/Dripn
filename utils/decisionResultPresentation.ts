@@ -302,7 +302,7 @@ function buildFromSentences(sentences: string[]): Pick<DecisionResultDisplay, 's
 export function formatDecisionResultPresentation(
   res: DecisionResultInput,
   decisionType: DecisionFlowType,
-  opts: { rejected?: boolean } = {},
+  opts: { rejected?: boolean; eventPieceNames?: string[] } = {},
 ): DecisionResultDisplay {
   const qscOutfitScore = decisionType === 'sanity-check' ? (res.outfitScore ?? null) : null;
   const verdictLabel = resolveVerdictLabel({
@@ -366,6 +366,10 @@ export function formatDecisionResultPresentation(
 
   if (summary && bottomLine && isDuplicate(summary, bottomLine)) bottomLine = null;
 
+  if (decisionType === 'event-outfit' && summary && opts.eventPieceNames?.length) {
+    summary = stripTrailingGarmentNamesFromEventSummary(summary, opts.eventPieceNames);
+  }
+
   return {
     verdictLabel,
     scoreDisplay,
@@ -379,4 +383,33 @@ function looksLikeItemNameList(text: string): boolean {
   const value = String(text || '').trim();
   if (!value) return false;
   return / · /.test(value) && !/[.!?…]/.test(value);
+}
+
+function escapeRegExpLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Event headline must not trail a garment name already listed in piece rows below.
+ * Server prose sometimes omits the sentence break before the first selected piece.
+ */
+export function stripTrailingGarmentNamesFromEventSummary(
+  summary: string | null,
+  pieceNames: string[] = [],
+): string | null {
+  if (!summary || !pieceNames.length) return summary;
+  let text = summary.trim();
+  const names = [...new Set(
+    pieceNames.map((n) => String(n || '').trim()).filter((n) => n.length >= 3),
+  )].sort((a, b) => b.length - a.length);
+
+  for (const name of names) {
+    const re = new RegExp(`\\s+${escapeRegExpLiteral(name)}\\.?$`, 'i');
+    if (re.test(text)) {
+      text = text.replace(re, '').trim();
+      if (text && !/[.!?…]$/.test(text)) text = `${text}.`;
+      break;
+    }
+  }
+  return text || null;
 }
