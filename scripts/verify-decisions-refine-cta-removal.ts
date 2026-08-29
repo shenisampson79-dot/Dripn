@@ -82,7 +82,9 @@ for (const action of [
 
 // Verdict rendering intact
 assert.ok(flowSrc.includes('resolveStylistResultDisplayState'), 'verdict display preserved');
-assert.ok(flowSrc.includes('renderMarkdownText(analysis)'), 'analysis body preserved');
+assert.ok(flowSrc.includes('formatDecisionResultPresentation'), 'structured result presentation preserved');
+assert.ok(flowSrc.includes('renderDecisionResultHierarchy'), 'hierarchy renderer preserved');
+assert.ok(flowSrc.includes('renderMarkdownText'), 'markdown body rendering preserved');
 
 // Standalone Stylist Chat entry elsewhere untouched
 assert.ok(hubSrc.includes('navigation.navigate("AIStylist")'), 'Stylist hub chat tile intact');

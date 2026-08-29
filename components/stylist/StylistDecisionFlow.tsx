@@ -43,6 +43,7 @@ import { shouldShowDecisionRefineCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplayState';
+import { formatDecisionResultPresentation } from '@/utils/decisionResultPresentation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -122,10 +123,89 @@ function renderMarkdownText(text: string) {
   });
 }
 
-function looksLikeItemNameList(text?: string | null): boolean {
-  const value = String(text || '').trim();
-  if (!value) return false;
-  return / · /.test(value) && !/[.!?…]/.test(value);
+
+function renderDecisionResultHierarchy(
+  display: ReturnType<typeof formatDecisionResultPresentation>,
+  theme: { text: string; tabIconDefault: string; background: string; border: string },
+  opts: { showPieceRows?: boolean; displayPieces?: Array<{ role?: string; name?: string; wardrobeItemId?: number | string; type?: string; brand?: string }> } = {},
+) {
+  const { showPieceRows = false, displayPieces = [] } = opts;
+  const hasHierarchy = Boolean(
+    display.verdictLabel
+    || display.scoreDisplay
+    || display.summary
+    || display.bullets.length
+    || display.bottomLine,
+  );
+  if (!hasHierarchy) return null;
+
+  return (
+    <>
+      {display.verdictLabel ? (
+        <ThemedText type="h3" style={styles.verdictLabel}>
+          {display.verdictLabel}
+        </ThemedText>
+      ) : null}
+
+      {display.scoreDisplay ? (
+        <View style={styles.styleRatingRow}>
+          <View style={[styles.styleRatingBadge, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ThemedText type="h2" style={[styles.styleRatingNumber, { color: LuxuryColors.gold }]}>
+              {display.scoreDisplay}
+            </ThemedText>
+          </View>
+        </View>
+      ) : null}
+
+      {display.summary ? (
+        <ThemedText type="body" style={styles.responseBody}>
+          {renderMarkdownText(display.summary)}
+        </ThemedText>
+      ) : null}
+
+      {showPieceRows && displayPieces.length > 0 ? (
+        <View style={{ marginTop: display.summary ? Spacing.md : 0 }}>
+          {displayPieces.map((piece, index) => (
+            <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
+              <ThemedText type="body">
+                {formatOutfitPieceRoleLabel(piece.role)}
+                {': '}
+                {editorialGarmentName(piece.name || '', { brand: (piece as { brand?: string }).brand })}
+                {piece.type === 'recommended' ? ' · recommended' : ''}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {display.bullets.length > 0 ? (
+        <View style={styles.whyBlock}>
+          <ThemedText type="small" style={[styles.whyHeading, { color: theme.tabIconDefault }]}>
+            WHY
+          </ThemedText>
+          {display.bullets.map((bullet, index) => (
+            <View key={`why-${index}`} style={styles.whyBulletRow}>
+              <ThemedText type="body" style={[styles.whyBulletDot, { color: LuxuryColors.gold }]}>
+                •
+              </ThemedText>
+              <ThemedText
+                type="body"
+                style={[styles.whyBulletText, { color: theme.tabIconDefault }]}
+              >
+                {renderMarkdownText(bullet)}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {display.bottomLine ? (
+        <ThemedText type="body" style={[styles.responseBody, styles.bottomLineText]}>
+          {renderMarkdownText(display.bottomLine)}
+        </ThemedText>
+      ) : null}
+    </>
+  );
 }
 
 export default function StylistDecisionFlow({ decisionType, navigation }: StylistDecisionFlowProps) {
@@ -870,10 +950,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             : null
       );
 
-    const qscRating = decisionType === 'sanity-check' && res.styleRating != null && Number.isFinite(Number(res.styleRating))
-      ? Number(res.styleRating)
-      : null;
-    const qscPercent = qscRating != null ? Math.round(qscRating * 10) : null;
+    const resultDisplay = formatDecisionResultPresentation(res, decisionType, { rejected });
+    const showPieceRows = decisionType !== 'sanity-check' && displayPieces.length > 0;
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -983,33 +1061,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         <View style={[styles.responseCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-          {qscPercent != null ? (
-            <View style={styles.styleRatingRow}>
-              <View style={[styles.styleRatingBadge, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                <ThemedText type="h2" style={[styles.styleRatingNumber, { color: LuxuryColors.gold }]}>
-                  {`${qscPercent}%`}
-                </ThemedText>
-              </View>
-              {res.ratingLabel ? (
-                <ThemedText type="body" style={[styles.styleRatingLabel, { color: theme.text }]}>
-                  {sanitizeStylistUserText(res.ratingLabel)}
-                </ThemedText>
-              ) : null}
-            </View>
-          ) : null}
-
           {decisionType === 'shopping' && uploaded.length > 1 ? (
-            <ThemedText type="body" style={styles.responseBody}>
-              {sanitizeStylistUserText(
-                res.presentation?.body
-                || res.message
-                || res.shoppingDecision?.message
-                || res.shoppingDecision?.text
-                || res.recommendation
-                || res.decision
-                || '',
-              )}
-            </ThemedText>
+            renderDecisionResultHierarchy(
+              formatDecisionResultPresentation(res, 'shopping', { rejected }),
+              theme,
+            )
           ) : null}
 
           {/* Single-option shopping ownership (full DO_NOT_BUY) — never used for multi-compare */}
@@ -1136,96 +1192,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             </View>
           ) : null}
 
-          {decisionType === 'shopping' && uploaded.length > 1 ? null : (() => {
-            const summary = sanitizeStylistUserText(res.stylistNote || res.outfitSummary || '');
-            const summaryIsNameList = looksLikeItemNameList(summary);
-            // Single message field preferred — never prefer legacy reasoning over bound message
-            let recommendation = res.presentation?.body
-              || sanitizeStylistUserText(
-                res.message || res.recommendation || res.decision || '',
-              );
-            const reasoning = (res.message || res.outfitId)
-              ? ''
-              : sanitizeStylistUserText(res.reasoning || '');
-            // Heading already says Wear this instead — don't repeat it in the body
-            if (rejected) {
-              recommendation = recommendation
-                .replace(/^Wear this instead\s*[—–-]?\s*/i, '')
-                .trim();
-            }
-            // Always present professional sentence case after lead strip / sanitise
-            recommendation = recommendation.replace(
-              /(^|[.!?]\s+|—\s*|–\s*)([a-z])/g,
-              (_, lead, ch) => `${lead}${ch.toUpperCase()}`,
-            );
-            const headline = summary && !summaryIsNameList ? summary : null;
-            const analysis = rejected
-              ? recommendation
-              : (
-                reasoning
-                || (recommendation && !looksLikeItemNameList(recommendation.split('\n\n')[0] || '')
-                  ? recommendation
-                  : '')
-              );
-            const showPieceRows = decisionType !== 'sanity-check' && displayPieces.length > 0;
-
-            return (
-              <>
-                {headline && !rejected ? (
-                  <ThemedText type="body" style={styles.responseBody}>
-                    {headline}
-                  </ThemedText>
-                ) : null}
-
-                {showPieceRows ? (
-                  <View style={{ marginTop: headline ? Spacing.md : 0 }}>
-                    {displayPieces.map((piece, index) => (
-                      <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
-                        <ThemedText type="body">
-                          {formatOutfitPieceRoleLabel(piece.role)}
-                          {': '}
-                          {editorialGarmentName(piece.name || '', { brand: (piece as { brand?: string }).brand })}
-                          {piece.type === 'recommended' ? ' · recommended' : ''}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-
-                {analysis ? (
-                  <ThemedText
-                    type="body"
-                    style={[
-                      rejected ? styles.responseBody : styles.reasoning,
-                      {
-                        color: rejected ? theme.text : theme.tabIconDefault,
-                        // QSC: keep card padding even — no extra top margin on the verdict text.
-                        marginTop: decisionType === 'sanity-check'
-                          ? 0
-                          : Spacing.md,
-                      },
-                    ]}
-                  >
-                    {renderMarkdownText(analysis)}
-                  </ThemedText>
-                ) : null}
-
-                {!rejected && !headline && !analysis && recommendation ? (
-                  <ThemedText
-                    type="body"
-                    style={[
-                      styles.responseBody,
-                      {
-                        marginTop: decisionType === 'sanity-check' ? 0 : Spacing.md,
-                      },
-                    ]}
-                  >
-                    {renderMarkdownText(recommendation)}
-                  </ThemedText>
-                ) : null}
-              </>
-            );
-          })()}
+          {decisionType === 'shopping' && uploaded.length > 1 ? null : (
+            renderDecisionResultHierarchy(resultDisplay, theme, {
+              showPieceRows,
+              displayPieces,
+            })
+          )}
         </View>
 
         {(rejected && Array.isArray(res.missing) && res.missing.length > 0) ? (
@@ -1814,6 +1786,35 @@ const styles = StyleSheet.create({
   styleRatingLabel: {
     flex: 1,
     fontWeight: '500',
+  },
+  verdictLabel: {
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+  whyBlock: {
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+  whyHeading: {
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: Spacing.xs,
+  },
+  whyBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  whyBulletDot: {
+    lineHeight: 22,
+    width: 12,
+  },
+  whyBulletText: {
+    flex: 1,
+    lineHeight: 22,
+  },
+  bottomLineText: {
+    marginTop: Spacing.md,
   },
   responseBody: {
     lineHeight: 22,
