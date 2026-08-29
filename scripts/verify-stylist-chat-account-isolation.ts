@@ -23,6 +23,11 @@ import {
   STYLIST_PENDING_RETRY_KEY,
 } from '../utils/stylistChatAccountSession';
 import { STYLIST_CHAT_CLEARED_TOMBSTONE_KEY } from '../utils/stylistFreshThread';
+import {
+  applyServerHydrateMerge,
+  evaluateServerHydrateAcceptance,
+  mapServerChatHistoryRows,
+} from '../utils/stylistChatServerHydrate';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
@@ -97,7 +102,21 @@ async function run(): Promise<void> {
   const auth = readFileSync(join(root, '../contexts/AuthContext.tsx'), 'utf8');
   assert.match(screen, /const clearChat = async \(\) =>/);
   assert.match(screen, /apiService\.clearChatHistory\(stylistId\)/);
-  assert.match(screen, /STYLIST_CHAT_STORAGE_KEY/);
+  assert.match(
+    screen,
+    /import[\s\S]*STYLIST_CHAT_STORAGE_KEY[\s\S]*from '@\/utils\/stylistChatAccountSession'/,
+    'AIStylistScreen must import canonical STYLIST_CHAT_STORAGE_KEY',
+  );
+  assert.match(
+    screen,
+    /import[\s\S]*STYLIST_DAILY_MESSAGES_KEY[\s\S]*from '@\/utils\/stylistChatAccountSession'/,
+    'AIStylistScreen must import canonical STYLIST_DAILY_MESSAGES_KEY',
+  );
+  assert.doesNotMatch(
+    screen,
+    /STYLIST_STYLIST_/,
+    'AIStylistScreen must not reference typo storage constant names',
+  );
   assert.match(auth, /relinquishStylistChatAccountSession/);
   assert.match(auth, /transitionStylistChatSessionForAuth/);
   assert.match(auth, /resumeStylistChatSession/);
@@ -106,6 +125,53 @@ async function run(): Promise<void> {
     /if \(threadHasUserMessage\(getCachedStylistChatMessagesSync\(\)/,
     'server hydrate must not be suppressed by stale global cache',
   );
+}
+
+// CASE 6 — same-user logout/reset → re-auth → mocked server history accepted
+{
+  __resetStylistChatAccountSessionForTests();
+  resumeStylistChatSession('user-sharon');
+  rememberStylistChatMessages([msgA]);
+  await relinquishStylistChatAccountSession();
+  assert.equal(getCachedStylistChatMessagesSync(), null);
+  await establishStylistChatAccountSession('user-sharon', { preserveLocal: false });
+  assert.equal(getActiveStylistChatUserId(), 'user-sharon');
+  assert.equal(getCachedStylistChatMessagesSync(), null);
+
+  const sessionGen = beginStylistChatHydrate('user-sharon');
+  assert.equal(isStylistChatHydrateCurrent(sessionGen, 'user-sharon'), true);
+  assert.equal(isStylistChatSessionActive('user-sharon'), true);
+
+  const mockedServerRows = [
+    {
+      id: 101,
+      role: 'user' as const,
+      content: 'Sharon prior ask',
+      createdAt: '2026-08-29T08:00:00.000Z',
+    },
+    {
+      id: 102,
+      role: 'assistant' as const,
+      content: 'Sharon prior reply',
+      createdAt: '2026-08-29T08:00:01.000Z',
+    },
+  ];
+  const mapped = mapServerChatHistoryRows(mockedServerRows);
+  assert.equal(evaluateServerHydrateAcceptance(mapped), 'accepted');
+  assert.equal(mapped.some((m) => m.role === 'user'), true);
+
+  const seedOnly = [
+    {
+      id: 'msg_seed_init',
+      role: 'assistant' as const,
+      content: 'Hello!',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+  const merged = applyServerHydrateMerge(seedOnly, mapped);
+  assert.equal(merged.some((m) => m.content === 'Sharon prior ask'), true);
+  assert.equal(merged.some((m) => m.content === 'Sharon prior reply'), true);
+  assert.equal(isStylistChatHydrateCurrent(sessionGen, 'user-sharon'), true);
 }
 
 // Storage keys remain canonical (reset targets documented in session module)

@@ -181,8 +181,8 @@ import {
   shouldSuppressServerChatHydrate,
 } from '@/utils/stylistFreshThread';
 import {
-  STYLIST_STYLIST_CHAT_STORAGE_KEY,
-  STYLIST_STYLIST_DAILY_MESSAGES_KEY,
+  STYLIST_CHAT_STORAGE_KEY,
+  STYLIST_DAILY_MESSAGES_KEY,
   STYLIST_PENDING_RETRY_KEY,
   beginStylistChatHydrate,
   getCachedStylistChatMessagesSync,
@@ -195,6 +195,12 @@ import {
   stylistComposerDraftKey,
   writeComposerDraftMemory,
 } from '@/utils/stylistChatAccountSession';
+import {
+  evaluateServerHydrateAcceptance,
+  logStylistChatServerHydrateDiagnostic,
+  mapServerChatHistoryRows,
+  sanitizeHydrateRequestError,
+} from '@/utils/stylistChatServerHydrate';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -703,7 +709,7 @@ function readTodayMessagesFromParsed(parsed: unknown): ChatMessage[] {
 export async function prefetchAIStylistChatHistory(expectedUserId?: string | null): Promise<void> {
   if (!expectedUserId || !isStylistChatSessionActive(expectedUserId)) return;
   try {
-    const data = await AsyncStorage.getItem(STYLIST_STYLIST_CHAT_STORAGE_KEY);
+    const data = await AsyncStorage.getItem(STYLIST_CHAT_STORAGE_KEY);
     if (!data) return;
     const recent = readTodayMessagesFromParsed(JSON.parse(data));
     if (!recent.length) return;
@@ -2977,52 +2983,94 @@ export default function AIStylistScreen() {
         return false;
       }
 
-      if (!sessionOk()) return false;
+      if (!sessionOk()) {
+        logStylistChatServerHydrateDiagnostic({
+          outcome: 'stale_session',
+          stylistId: stylist.id,
+        });
+        return false;
+      }
 
       try {
         const tombRaw = await AsyncStorage.getItem(STYLIST_CHAT_CLEARED_TOMBSTONE_KEY);
         const tombstone = parseStylistChatClearedTombstone(tombRaw);
         if (shouldSuppressServerChatHydrate(tombstone, stylist.id)) {
+          logStylistChatServerHydrateDiagnostic({
+            outcome: 'tombstone_suppressed',
+            stylistId: stylist.id,
+          });
           return false;
         }
       } catch {
         /* tombstone optional */
       }
 
-      if (!sessionOk()) return false;
+      if (!sessionOk()) {
+        logStylistChatServerHydrateDiagnostic({
+          outcome: 'stale_session',
+          stylistId: stylist.id,
+        });
+        return false;
+      }
 
       try {
         const serverHistory = await apiService.getChatHistory(stylist.id, 40);
-        if (!sessionOk()) return false;
-        if (Array.isArray(serverHistory) && serverHistory.length > 0) {
-          const mapped = serverHistory
-            .filter((m) => m?.role === 'user' || m?.role === 'assistant')
-            .map((m, index) => ({
-              id: `server_${m.id ?? index}`,
-              role: m.role as 'user' | 'assistant',
-              content: typeof m.content === 'string' ? m.content : '',
-              timestamp: m.createdAt
-                ? new Date(m.createdAt).toISOString()
-                : new Date().toISOString(),
-            }))
-            .filter((m) => m.content.trim().length > 0)
-            .slice(-20);
-          if (mapped.some((m) => m.role === 'user')) {
-            if (!sessionOk()) return false;
-            setShowQuickPrompts(false);
-            setMessages((prev) => {
-              const merged = mergeChatMessages(prev, mapped);
-              if (merged !== prev) {
-                rememberStylistChatMessages(merged, false);
-                void saveChatHistory(merged);
-              }
-              return merged;
-            });
-            return true;
-          }
+        if (!sessionOk()) {
+          logStylistChatServerHydrateDiagnostic({
+            outcome: 'stale_session',
+            stylistId: stylist.id,
+          });
+          return false;
         }
-      } catch {
-        /* server history optional */
+
+        const rawRowCount = Array.isArray(serverHistory) ? serverHistory.length : 0;
+        const mapped = mapServerChatHistoryRows(Array.isArray(serverHistory) ? serverHistory : []);
+        const acceptance = evaluateServerHydrateAcceptance(mapped);
+        const userMessageCount = mapped.filter((m) => m.role === 'user').length;
+
+        if (acceptance === 'accepted') {
+          if (!sessionOk()) {
+            logStylistChatServerHydrateDiagnostic({
+              outcome: 'stale_session',
+              stylistId: stylist.id,
+              rawRowCount,
+              mappedRowCount: mapped.length,
+              userMessageCount,
+            });
+            return false;
+          }
+          logStylistChatServerHydrateDiagnostic({
+            outcome: 'accepted',
+            stylistId: stylist.id,
+            rawRowCount,
+            mappedRowCount: mapped.length,
+            userMessageCount,
+          });
+          setShowQuickPrompts(false);
+          setMessages((prev) => {
+            const merged = mergeChatMessages(prev, mapped);
+            if (merged !== prev) {
+              rememberStylistChatMessages(merged, false);
+              void saveChatHistory(merged);
+            }
+            return merged;
+          });
+          return true;
+        }
+
+        logStylistChatServerHydrateDiagnostic({
+          outcome: acceptance,
+          stylistId: stylist.id,
+          rawRowCount,
+          mappedRowCount: mapped.length,
+          userMessageCount,
+        });
+      } catch (error) {
+        logStylistChatServerHydrateDiagnostic({
+          outcome: 'request_failed',
+          stylistId: stylist.id,
+          requestError: sanitizeHydrateRequestError(error),
+        });
       }
       return false;
     } catch (error) {
