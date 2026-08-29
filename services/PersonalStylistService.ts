@@ -227,6 +227,14 @@ function formatGapsList(parts: string[], andWord = 'and'): string {
 }
 
 /** Honest, wardrobe-aware first message — never invents a wardrobe that isn't there. */
+function fixRubyCountPluralization(text: string): string {
+  return String(text || '')
+    .replace(/\b1 tops\b/gi, '1 top')
+    .replace(/\b1 bottoms\b/gi, '1 bottom')
+    .replace(/\b1 pairs of shoes\b/gi, '1 pair of shoes')
+    .replace(/\b1 pairs\b/gi, '1 pair');
+}
+
 export function getStylistGreeting(
   stylist: PersonalStylist,
   userName?: string | null,
@@ -249,13 +257,15 @@ export function getStylistGreeting(
     shoes >= 3;
 
   const apply = (template: string) =>
-    template
-      .replace(/\{name\}/g, displayName)
-      .replace(/\{stylist\}/g, stylist.name)
-      .replace(/\{count\}/g, String(owned ?? 0))
-      .replace(/\{tops\}/g, String(tops))
-      .replace(/\{bottoms\}/g, String(bottoms))
-      .replace(/\{shoes\}/g, String(shoes));
+    fixRubyCountPluralization(
+      template
+        .replace(/\{name\}/g, displayName)
+        .replace(/\{stylist\}/g, stylist.name)
+        .replace(/\{count\}/g, String(owned ?? 0))
+        .replace(/\{tops\}/g, String(tops))
+        .replace(/\{bottoms\}/g, String(bottoms))
+        .replace(/\{shoes\}/g, String(shoes)),
+    );
 
   // Unknown wardrobe state (still loading) — stay neutral, no inventing.
   if (owned == null) {

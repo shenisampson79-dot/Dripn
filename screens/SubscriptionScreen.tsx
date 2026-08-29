@@ -92,7 +92,6 @@ interface Plan {
   bestValue?: boolean;
   starter?: boolean;
   tagline?: string;
-  footerLine?: string;
   gradientColors: readonly [string, string, ...string[]];
   accentColor: string;
   anchorStyle: 'highlight' | 'normal' | 'subtle';
@@ -128,19 +127,17 @@ const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFe
   };
 };
 
-const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description?: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
+const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description?: string; popular?: boolean; bestValue?: boolean; tagline?: string }> => ({
   free: { name: resolvePlanDisplayName('free', t), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },
   personal_stylist: {
     name: resolvePlanDisplayName('personal_stylist', t),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
-    footerLine: t('subscription.plan.personalStylist.footerLine'),
     popular: true,
   },
   stylist_unlimited: {
     name: resolvePlanDisplayName('stylist_unlimited', t),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
     bestValue: true,
-    footerLine: t('subscription.plan.stylistUnlimited.footerLine'),
   },
 });
 
@@ -283,6 +280,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
   const [devTestingMode, setDevTestingMode] = useState(false);
   const [aiTopUpPrices, setAiTopUpPrices] = useState<Partial<Record<AiTopUpPackId, string>>>({});
+  const [aiTopUpPricesResolved, setAiTopUpPricesResolved] = useState(false);
   const useAppleIAP = shouldUseAppleIAP();
 
   const applyCatalogPrices = useCallback(() => {
@@ -347,10 +345,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               next[row.packId] = row.priceString;
             }
             setAiTopUpPrices(next);
+            setAiTopUpPricesResolved(true);
           }
         } catch (error) {
           console.warn('[Subscription] Apple IAP price load failed:', error);
+          if (!cancelled) setAiTopUpPricesResolved(true);
         }
+      } else if (!cancelled) {
+        setAiTopUpPricesResolved(true);
       }
 
       if (cancelled) return;
@@ -668,10 +670,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
   const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;
+  const aiTopUpHasStorePrices = Boolean(aiTopUpPrices.standard || aiTopUpPrices.plus);
   const showAiTopUpSection =
-    landOnAiTopUp
-    || normalizedTier === 'personal_stylist'
-    || normalizedTier === 'stylist_unlimited';
+    aiTopUpPricesResolved
+    && (!useAppleIAP || aiTopUpHasStorePrices)
+    && (
+      landOnAiTopUp
+      || normalizedTier === 'personal_stylist'
+      || normalizedTier === 'stylist_unlimited'
+    );
 
   const aiTopUpSection = showAiTopUpSection ? (
         <View
@@ -1403,12 +1410,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             ))}
           </View>
 
-          {plan.footerLine ? (
-            <ThemedText type="caption" style={styles.planFooterLine}>
-              {plan.footerLine}
-            </ThemedText>
-          ) : null}
-
           {isSelected && !isCurrent ? (
             <View style={[
               styles.selectedIndicator, 
@@ -2133,12 +2134,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontStyle: 'italic',
     marginBottom: Spacing.md,
-  },
-  planFooterLine: {
-    color: 'rgba(255,255,255,0.65)',
-    fontStyle: 'italic',
-    marginTop: Spacing.md,
-    textAlign: 'center',
   },
   planCard: {
     borderRadius: BorderRadius.lg,

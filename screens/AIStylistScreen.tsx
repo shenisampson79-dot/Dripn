@@ -248,7 +248,7 @@ const WARDROBE_CHAT_CANVAS_WIDTH =
 /** Outer max width for assistant bubbles that include wardrobe visuals. */
 const WARDROBE_CHAT_BUBBLE_MAX_WIDTH =
   SCREEN_WIDTH - CHAT_ROW_PADDING * 2 - CHAT_AVATAR_SIZE - CHAT_AVATAR_GAP - CHAT_EDGE_SAFE;
-const INPUT_CONTAINER_HEIGHT = 80;
+const INPUT_CONTAINER_HEIGHT = 116;
 /** Allowance / daily-limit banner sits above the input — reserve space so the last bubble isn't covered. */
 const LIMIT_HIT_BANNER_HEIGHT = 108;
 const TAB_BAR_HEIGHT = 56;
@@ -3730,15 +3730,22 @@ export default function AIStylistScreen() {
               ? "That took longer than expected — try again in a moment. If you're on a slow connection, give it one more go."
               : "I couldn't land a confident look from your wardrobe for that ask just now. Name one piece to build around, or try again shortly.",
             timestamp: new Date().toISOString(),
-            // Refuse clears pending (C7).
-            outfitClarify: clearOutfitClarify(
-              outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
-            ) || undefined,
+            // Refuse/error — preserve pending clarify so short answers can retry.
+            outfitClarify: outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.pending
+              ? outfitRoute.pending
+              : clearOutfitClarify(
+                outfitRoute.route === 'outfit-from-wardrobe' ? outfitRoute.pending : null,
+              ) || undefined,
           };
         }
 
+        const outfitPublished = Boolean(
+          assistantMessage
+          && (assistantMessage as ChatMessage).hasOutfitRecommendation
+          && !(assistantMessage as ChatMessage).outfitClarify,
+        );
         const baseMessages =
-          pendingOutfitReady ? markPriorOutfitClarifyDone(updatedMessages) : updatedMessages;
+          outfitPublished ? markPriorOutfitClarifyDone(updatedMessages) : updatedMessages;
         const finalMessages = [...baseMessages, assistantMessage];
         setMessages(finalMessages);
         setIsTyping(false);
@@ -4995,6 +5002,11 @@ export default function AIStylistScreen() {
     const t = setTimeout(() => scrollChatToEnd(true, false), 80);
     return () => clearTimeout(t);
   }, [limitReached, scrollChatToEnd]);
+
+  useEffect(() => {
+    const t = setTimeout(() => scrollChatToEnd(true, false), 80);
+    return () => clearTimeout(t);
+  }, [listBottomInset, scrollChatToEnd]);
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
@@ -5172,87 +5184,88 @@ export default function AIStylistScreen() {
     }
   }, [stylist.id]);
 
-  const renderHeader = () => (
-    <View style={styles.headerContent}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <LinearGradient
-            colors={stylistGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.stylistIcon}
+  const renderStickyChatHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        <LinearGradient
+          colors={stylistGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.stylistIcon}
+        >
+          <ThemedText
+            style={[
+              styles.headerAvatarInitial,
+              { color: stylist.id === 'ace' ? LUXURY_COLORS.midnight : '#FFFFFF' },
+            ]}
           >
-            <ThemedText
-              style={[
-                styles.headerAvatarInitial,
-                { color: stylist.id === 'ace' ? LUXURY_COLORS.midnight : '#FFFFFF' },
-              ]}
-            >
-              {stylistAvatarInitial(stylist.name)}
-            </ThemedText>
-          </LinearGradient>
-          <View>
-            <View style={styles.headerTitleRow}>
-              <ThemedText style={styles.headerTitle}>{stylist.name}</ThemedText>
-              {moodInfo ? (
-                <Animated.View 
-                  entering={FadeIn.duration(300)}
-                  style={[styles.moodBadge, { backgroundColor: moodInfo.color + '20' }]}
-                >
-                  <Feather name={moodInfo.icon} size={10} color={moodInfo.color} />
-                  <ThemedText style={[styles.moodBadgeText, { color: moodInfo.color }]}>
-                    {moodInfo.label}
-                  </ThemedText>
-                </Animated.View>
-              ) : null}
-            </View>
-            <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
-              {chatMode === 'voice'
-                ? (t('aiStylist.voiceModeLabel') || 'Voice mode — spoken replies')
-                : (t('aiStylist.chatModeLabel') || 'Stylist Chat')}
-            </ThemedText>
+            {stylistAvatarInitial(stylist.name)}
+          </ThemedText>
+        </LinearGradient>
+        <View>
+          <View style={styles.headerTitleRow}>
+            <ThemedText style={styles.headerTitle}>{stylist.name}</ThemedText>
+            {moodInfo ? (
+              <Animated.View 
+                entering={FadeIn.duration(300)}
+                style={[styles.moodBadge, { backgroundColor: moodInfo.color + '20' }]}
+              >
+                <Feather name={moodInfo.icon} size={10} color={moodInfo.color} />
+                <ThemedText style={[styles.moodBadgeText, { color: moodInfo.color }]}>
+                  {moodInfo.label}
+                </ThemedText>
+              </Animated.View>
+            ) : null}
           </View>
-        </View>
-        
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => setChatMode((m) => (m === 'text' ? 'voice' : 'text'))}
-            style={[styles.ttsButton, chatMode === 'voice' && { backgroundColor: theme.link + '20' }]}
-          >
-            <Feather
-              name={chatMode === 'voice' ? 'message-circle' : 'headphones'}
-              size={20}
-              color={chatMode === 'voice' ? theme.link : theme.tabIconDefault}
-            />
-          </Pressable>
-          {chatMode === 'text' && (
-            isPlayingTTS ? (
-              <Pressable 
-                onPress={stopTTSPlayback} 
-                style={[styles.ttsButton, { backgroundColor: theme.link + '20' }]}
-              >
-                <ActivityIndicator size="small" color={theme.link} />
-              </Pressable>
-            ) : (
-              <Pressable 
-                onPress={() => setTtsEnabled(!ttsEnabled)} 
-                style={styles.ttsButton}
-              >
-                <Feather 
-                  name={ttsEnabled ? "volume-2" : "volume-x"} 
-                  size={20} 
-                  color={ttsEnabled ? theme.link : theme.tabIconDefault} 
-                />
-              </Pressable>
-            )
-          )}
-          <Pressable onPress={clearChat} style={styles.clearButton}>
-            <Feather name="refresh-cw" size={20} color={theme.tabIconDefault} />
-          </Pressable>
+          <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
+            {chatMode === 'voice'
+              ? (t('aiStylist.voiceModeLabel') || 'Voice mode — spoken replies')
+              : (t('aiStylist.chatModeLabel') || 'Stylist Chat')}
+          </ThemedText>
         </View>
       </View>
+      
+      <View style={styles.headerActions}>
+        <Pressable
+          onPress={() => setChatMode((m) => (m === 'text' ? 'voice' : 'text'))}
+          style={[styles.ttsButton, chatMode === 'voice' && { backgroundColor: theme.link + '20' }]}
+        >
+          <Feather
+            name={chatMode === 'voice' ? 'message-circle' : 'headphones'}
+            size={20}
+            color={chatMode === 'voice' ? theme.link : theme.tabIconDefault}
+          />
+        </Pressable>
+        {chatMode === 'text' && (
+          isPlayingTTS ? (
+            <Pressable 
+              onPress={stopTTSPlayback} 
+              style={[styles.ttsButton, { backgroundColor: theme.link + '20' }]}
+            >
+              <ActivityIndicator size="small" color={theme.link} />
+            </Pressable>
+          ) : (
+            <Pressable 
+              onPress={() => setTtsEnabled(!ttsEnabled)} 
+              style={styles.ttsButton}
+            >
+              <Feather 
+                name={ttsEnabled ? "volume-2" : "volume-x"} 
+                size={20} 
+                color={ttsEnabled ? theme.link : theme.tabIconDefault} 
+              />
+            </Pressable>
+          )
+        )}
+        <Pressable onPress={clearChat} style={styles.clearButton}>
+          <Feather name="refresh-cw" size={20} color={theme.tabIconDefault} />
+        </Pressable>
+      </View>
+    </View>
+  );
 
-      {continuityBanner ? (
+  const renderScrollChatHeader = () => (
+    <>
         <View
           style={[
             styles.continuityBanner,
@@ -5347,7 +5360,13 @@ export default function AIStylistScreen() {
           </LinearGradient>
         </View>
       ) : null}
-      
+    </>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.headerContent}>
+      {renderStickyChatHeader()}
+      {renderScrollChatHeader()}
     </View>
   );
   
@@ -5702,18 +5721,21 @@ export default function AIStylistScreen() {
         </View>
       ) : (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={{ paddingTop: contentTopPad, paddingHorizontal: Spacing.lg }}>
+          <View style={styles.headerContent}>{renderStickyChatHeader()}</View>
+        </View>
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={renderScrollChatHeader}
           ListFooterComponent={renderFooter}
           contentContainerStyle={[
             styles.listContent,
             {
-              paddingTop: contentTopPad,
+              paddingTop: Spacing.sm,
               paddingBottom: listBottomInset,
             },
           ]}
@@ -5740,7 +5762,7 @@ export default function AIStylistScreen() {
           removeClippedSubviews={false}
           style={styles.flatList}
         />
-        <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={styles.inputSticky}>
+        <KeyboardStickyView offset={{ closed: -tabBarHeight, opened: 0 }} style={styles.inputSticky}>
           <Animated.View style={[inputBottomPadStyle, { backgroundColor: theme.backgroundDefault }]}>
             {renderInputBar()}
           </Animated.View>

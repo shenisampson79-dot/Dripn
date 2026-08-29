@@ -2638,6 +2638,8 @@ class ApiService {
     }>;
     /** Abort when user changes category / photo mid-flight */
     signal?: AbortSignal;
+    /** Event diversity — recent outfit id lists, newest first. */
+    recentOutfits?: Array<Array<string | number>>;
   }) {
     const images = (data.images || []).filter(
       (img) => typeof img === 'string' && img.length > 100,

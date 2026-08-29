@@ -927,6 +927,8 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           (p) => p.wardrobeItemId != null || p.imageUrl,
         )
         : (ownedPieces.length > 0 ? ownedPieces : allPieces.filter((p) => p.wardrobeItemId != null));
+    const eventHasDisplayableImage = decisionType !== 'event-outfit'
+      || visualPieces.some((p) => typeof p.imageUrl === 'string' && p.imageUrl.trim().length > 0);
 
     const winnerUri = rejected
       ? null
@@ -1053,7 +1055,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           </View>
         ) : res.outfitImageUrl && !rejected ? (
           <Image source={{ uri: res.outfitImageUrl }} style={styles.responseHero} />
-        ) : visualPieces.length > 0 ? (
+        ) : eventHasDisplayableImage && visualPieces.length > 0 ? (
           <SafeOutfitPieces
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}

@@ -28,6 +28,9 @@ import {
 } from '@/services/DecisionSessionManager';
 import { stabilizeDecisionImage } from '@/services/VisionAnalysisService';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import {
+  extractEventRecentOutfitIdLists,
+} from '@/utils/extractEventRecentOutfitIdLists';
 import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -229,6 +232,7 @@ export function useStylistDecision({
   const sessionHydratedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = useRef<DecisionSession | null>(null);
+  const eventRecentOutfitsRef = useRef<string[][]>([]);
   const contextHashRef = useRef<string>('');
 
   const contextChips = decisionService.getContextChips(decisionType);
@@ -1023,6 +1027,9 @@ export function useStylistDecision({
           occasions: item.occasions,
           subcategory: item.subcategory,
         })),
+        recentOutfits: mappedType === 'event_outfit'
+          ? eventRecentOutfitsRef.current
+          : undefined,
         signal: abortController.signal,
       });
 
@@ -1284,6 +1291,12 @@ export function useStylistDecision({
       if (isStale() || abortController.signal.aborted) return;
       setResponse(result);
       setStep('response');
+      if (mappedType === 'event_outfit' && Array.isArray(result.outfitPieces) && result.outfitPieces.length >= 2) {
+        eventRecentOutfitsRef.current = extractEventRecentOutfitIdLists(
+          eventRecentOutfitsRef.current,
+          result.outfitPieces,
+        );
+      }
     } catch (error) {
       if (isStale() || abortController.signal.aborted || (error as Error)?.name === 'AbortError') {
         console.log('[StylistDecision] Ignoring aborted/stale submit error', {

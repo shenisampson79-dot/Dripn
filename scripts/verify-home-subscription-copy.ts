@@ -76,6 +76,9 @@ const OLD_SUBSCRIPTION = [
   'Talk to your stylist by voice, anytime',
 ] as const;
 
+const translationServicePath = resolve(root, 'services/TranslationService.ts');
+const translationServiceSrc = readFileSync(translationServicePath, 'utf8');
+
 // --- Home (WelcomeScreen + en.json) ---
 assert.ok(
   welcomeSrc.includes("welcome.featureStopGuessingTitle"),
@@ -89,6 +92,7 @@ for (let i = 0; i < HOME_TITLES.length; i++) {
     'welcome.featureWardrobeTitle',
   ][i];
   assert.equal(en[key], HOME_TITLES[i], `Home title missing or wrong: ${HOME_TITLES[i]}`);
+  assert.ok(translationServiceSrc.includes(HOME_TITLES[i]), `DEFAULT_TRANSLATIONS missing title: ${HOME_TITLES[i]}`);
 }
 for (let i = 0; i < HOME_BODIES.length; i++) {
   const key = [
@@ -101,6 +105,7 @@ for (let i = 0; i < HOME_BODIES.length; i++) {
 }
 for (const old of OLD_HOME) {
   assert.ok(!Object.values(en).includes(old), `old Home copy must be gone from en.json: ${old}`);
+  assert.ok(!translationServiceSrc.includes(old), `old Home copy must be gone from DEFAULT_TRANSLATIONS: ${old}`);
 }
 assert.ok(!welcomeSrc.includes('Stop guessing what to wear'), 'old Home title must not be hardcoded');
 
@@ -121,6 +126,10 @@ for (const tier of Object.keys(SUBSCRIPTION) as Array<keyof typeof SUBSCRIPTION>
 for (const old of OLD_SUBSCRIPTION) {
   assert.ok(!subscriptionSrc.includes(old), `old subscription bullet in SubscriptionScreen: ${old}`);
 }
+assert.ok(!subscriptionSrc.includes('plan.footerLine'), 'tier marketing footnotes must not render');
+assert.ok(!subscriptionSrc.includes('planFooterLine'), 'tier footnote style removed');
+assert.ok(!subscriptionSrc.includes('For people who are done guessing'), 'Stylist Pro footnote removed');
+assert.ok(!subscriptionSrc.includes('Perfect if you want to look better'), 'Personal Stylist footnote removed');
 
 const freeKeys = [
   'subscription.features.free.tryWardrobe',
