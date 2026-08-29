@@ -206,7 +206,7 @@ export function RetailOutfitSection({
     const out: Array<{ key: string; source: number | { uri: string } }> = [];
     for (const { role, product } of safeCards) {
       if (out.length >= 4) break;
-      const local = resolveShopThumb(product);
+      const local = resolveShopThumb(product, gender);
       if (typeof local === 'number') {
         out.push({ key: `local-${product.id || role}`, source: local });
       } else if (local && typeof local === 'object' && 'uri' in local && local.uri) {
@@ -216,7 +216,7 @@ export function RetailOutfitSection({
       }
     }
     return out;
-  }, [safeCards]);
+  }, [safeCards, gender]);
 
   const showPreview = Boolean(confirmedPreviewUrl);
   const showFallback = !showPreview && Boolean(fallbackHeroSource) && !fallbackFailed;
@@ -303,6 +303,7 @@ export function RetailOutfitSection({
           key={product.id || `${role}-${product.title}`}
           product={product}
           roleLabel={formatOutfitPieceRoleLabel(role)}
+          gender={gender}
         />
       ))}
 

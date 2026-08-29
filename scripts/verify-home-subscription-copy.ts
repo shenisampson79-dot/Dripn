@@ -84,6 +84,13 @@ assert.ok(
   welcomeSrc.includes("welcome.featureStopGuessingTitle"),
   'WelcomeScreen must use welcome.featureStopGuessingTitle',
 );
+const wardrobeIdx = welcomeSrc.indexOf('welcome.featureWardrobeTitle');
+const talkIdx = welcomeSrc.indexOf('welcome.featureTalkStylistTitle');
+const stopIdx = welcomeSrc.indexOf('welcome.featureStopGuessingTitle');
+const lookIdx = welcomeSrc.indexOf('welcome.featureLookGoodTitle');
+assert.ok(wardrobeIdx > 0 && talkIdx > wardrobeIdx, 'Home order: shopping first');
+assert.ok(stopIdx > talkIdx, 'Home order: wardrobe third');
+assert.ok(lookIdx > stopIdx, 'Home order: confidence last');
 for (let i = 0; i < HOME_TITLES.length; i++) {
   const key = [
     'welcome.featureStopGuessingTitle',

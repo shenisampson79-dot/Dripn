@@ -14,15 +14,26 @@ const CATEGORY_FALLBACK: Record<string, ImageSourcePropType> = {
   default: require('../assets/images/shop-thumbs/formal_white_shirt.jpg'),
 };
 
-export function ensureShopImage(product: {
-  imageKey?: string | null;
-  garmentType?: string | null;
-  category?: string | null;
-  image?: string | null;
-  title?: string | null;
-} | null | undefined): ImageSourcePropType {
-  const resolved = product ? resolveShopThumb(product) : null;
+export function ensureShopImage(
+  product: {
+    imageKey?: string | null;
+    garmentType?: string | null;
+    category?: string | null;
+    image?: string | null;
+    title?: string | null;
+  } | null | undefined,
+  gender?: string | null,
+): ImageSourcePropType | null {
+  const resolved = product ? resolveShopThumb(product, gender) : null;
   if (resolved) return resolved;
+
+  const shopGender = String(gender || '').toLowerCase();
+  const feminine = /female|woman|women/.test(shopGender)
+    || /blouse|midi|skirt|court|heel|women'?s/i.test(String(product?.title || ''));
+  if (feminine) {
+    return null;
+  }
+
   const cat = String(product?.category || 'default').toLowerCase();
   return CATEGORY_FALLBACK[cat] || CATEGORY_FALLBACK.default;
 }

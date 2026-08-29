@@ -57,6 +57,8 @@ console.log('=== verify-sprint-cleanup-regressions ===\n');
   const hookSrc = readFileSync(resolve(__dirname, '../hooks/useStylistDecision.ts'), 'utf8');
   assert.match(hookSrc, /recentOutfits/);
   assert.match(hookSrc, /eventRecentOutfitsRef/);
+  assert.match(hookSrc, /loadEventRecentOutfitHistory/);
+  assert.match(hookSrc, /appendEventRecentOutfitHistory/);
 }
 
 {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Image, ImageSourcePropType, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -31,6 +31,7 @@ export type RetailProduct = {
 type Props = {
   product: RetailProduct;
   roleLabel?: string;
+  gender?: string | null;
 };
 
 async function openUrl(url?: string | null) {
@@ -56,13 +57,14 @@ function resolvePriceDisplay(product: RetailProduct): string | null {
   return null;
 }
 
-export function ProductCard({ product, roleLabel }: Props) {
+export function ProductCard({ product, roleLabel, gender = null }: Props) {
   const theme = useTheme();
   const title = sanitizeStylistUserText(product.title || product.brand || 'Piece');
   const price = resolvePriceDisplay(product);
   const buyUrl = product.url || product.searchUrl;
-  const thumb = ensureShopImage(product);
+  const thumb = ensureShopImage(product, gender);
   const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(thumb) && !imageFailed;
 
   return (
     <Pressable
@@ -71,9 +73,9 @@ export function ProductCard({ product, roleLabel }: Props) {
       accessibilityRole="link"
       accessibilityLabel={`Buy ${title}`}
     >
-      {!imageFailed ? (
+      {showImage ? (
         <Image
-          source={thumb}
+          source={thumb as ImageSourcePropType}
           style={styles.image}
           resizeMode="cover"
           onError={() => setImageFailed(true)}

@@ -31,6 +31,11 @@ import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import {
   extractEventRecentOutfitIdLists,
 } from '@/utils/extractEventRecentOutfitIdLists';
+import {
+  appendEventRecentOutfitHistory,
+  loadEventRecentOutfitHistory,
+  saveEventRecentOutfitHistory,
+} from '@/utils/eventRecentOutfitHistory';
 import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
@@ -423,6 +428,22 @@ export function useStylistDecision({
         setSessionStatus('draft');
         setStep(getDerivedStep(created));
         setBrokenImageCount(0);
+      }
+
+      if (flowKey === 'event-outfit' && user.id) {
+        let history = await loadEventRecentOutfitHistory(user.id);
+        if (
+          session?.result?.outfitPieces
+          && Array.isArray(session.result.outfitPieces)
+          && session.result.outfitPieces.length >= 2
+        ) {
+          history = extractEventRecentOutfitIdLists(history, session.result.outfitPieces);
+          await saveEventRecentOutfitHistory(user.id, history);
+        }
+        eventRecentOutfitsRef.current = history;
+        console.log('[StylistDecision] Event recentOutfits hydrated', {
+          count: history.length,
+        });
       }
 
       sessionHydratedRef.current = true;
@@ -1292,10 +1313,17 @@ export function useStylistDecision({
       setResponse(result);
       setStep('response');
       if (mappedType === 'event_outfit' && Array.isArray(result.outfitPieces) && result.outfitPieces.length >= 2) {
-        eventRecentOutfitsRef.current = extractEventRecentOutfitIdLists(
-          eventRecentOutfitsRef.current,
-          result.outfitPieces,
-        );
+        if (user?.id) {
+          eventRecentOutfitsRef.current = await appendEventRecentOutfitHistory(
+            user.id,
+            result.outfitPieces,
+          );
+        } else {
+          eventRecentOutfitsRef.current = extractEventRecentOutfitIdLists(
+            eventRecentOutfitsRef.current,
+            result.outfitPieces,
+          );
+        }
       }
     } catch (error) {
       if (isStale() || abortController.signal.aborted || (error as Error)?.name === 'AbortError') {

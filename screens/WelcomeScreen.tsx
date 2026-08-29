@@ -79,9 +79,9 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
 
         <View style={styles.featuresContainer}>
           <FeatureItem
-            icon="zap"
-            title={t('welcome.featureStopGuessingTitle')}
-            description={t('welcome.featureStopGuessingDesc')}
+            icon="grid"
+            title={t('welcome.featureWardrobeTitle')}
+            description={t('welcome.featureWardrobeDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
@@ -95,17 +95,17 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             palette={palette}
           />
           <FeatureItem
-            icon="users"
-            title={t('welcome.featureLookGoodTitle')}
-            description={t('welcome.featureLookGoodDesc')}
+            icon="zap"
+            title={t('welcome.featureStopGuessingTitle')}
+            description={t('welcome.featureStopGuessingDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
-            icon="grid"
-            title={t('welcome.featureWardrobeTitle')}
-            description={t('welcome.featureWardrobeDesc')}
+            icon="users"
+            title={t('welcome.featureLookGoodTitle')}
+            description={t('welcome.featureLookGoodDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}

@@ -1922,7 +1922,8 @@ export default function AIStylistScreen() {
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const keyboardHeightPx = useKeyboardState((state) => state.height);
   const inputBottomPadStyle = useAnimatedStyle(() => ({
-    paddingBottom: keyboardHeight.value === 0 ? tabBarHeight : 0,
+    // KeyboardStickyView closed offset already clears the tab bar — only pad home indicator.
+    paddingBottom: keyboardHeight.value === 0 ? Math.max(insets.bottom, Spacing.xs) : 0,
   }));
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
