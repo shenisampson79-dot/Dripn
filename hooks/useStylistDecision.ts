@@ -60,6 +60,10 @@ import {
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 import { genderAwareGapSuggestions, filterSuggestionStringsForUi } from '@/utils/shopDressCodeFilters';
+import {
+  fetchDecisionWeatherSnapshot,
+  shouldAttachDeviceWeatherForDecision,
+} from '@/utils/decisionWeatherSnapshot';
 
 export type StylistFlowStep = 'event' | 'input' | 'context' | 'response';
 
@@ -975,6 +979,15 @@ export function useStylistDecision({
         submitGeneration: generation,
       });
 
+      let decisionWeather: Awaited<ReturnType<typeof fetchDecisionWeatherSnapshot>> = null;
+      if (shouldAttachDeviceWeatherForDecision(
+        decisionType,
+        decisionType === 'event-outfit' ? eventDetails.venue : undefined,
+      )) {
+        decisionWeather = await fetchDecisionWeatherSnapshot();
+        if (isStale() || abortController.signal.aborted) return;
+      }
+
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: mappedType,
         images: base64Images,
@@ -992,6 +1005,9 @@ export function useStylistDecision({
             || (contextNotes.match(/\b(?:in|at|near)\s+([A-Za-z][A-Za-z\s-]{2,40})\b/i)?.[1]?.trim())
             || undefined)
           : undefined,
+        weather: decisionWeather || undefined,
+        lat: decisionWeather?.latitude,
+        lon: decisionWeather?.longitude,
         // Surprise Me ignores draft wardrobe picks — sending evaluate_outfit diverted
         // the server into the LLM catch → "Unable to submit / please resend".
         selectedWardrobeIds: surpriseMe

@@ -132,12 +132,29 @@ export function splitIntoSentences(text: string): string[] {
   const trimmed = String(text || '').trim();
   if (!trimmed) return [];
 
+  // Explicit paragraph breaks → split before sentence logic.
+  if (/\n\s*\n/.test(trimmed)) {
+    const paragraphs = trimmed.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
+    if (paragraphs.length >= 2) {
+      const merged: string[] = [];
+      for (const para of paragraphs) {
+        merged.push(...splitIntoSentences(para.replace(/\n+/g, ' ')));
+      }
+      return merged.filter(Boolean);
+    }
+  }
+
   const lines = trimmed.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   const bulletLines = lines
     .filter((l) => /^[-•*]\s+/.test(l))
     .map((l) => l.replace(/^[-•*]\s+/, '').trim())
     .filter(Boolean);
   if (bulletLines.length >= 2) return bulletLines;
+
+  // Newline-separated prose without bullets — treat each line as its own unit.
+  if (lines.length >= 2 && !/[.!?…]/.test(trimmed)) {
+    return lines;
+  }
 
   if (!/[.!?…]/.test(trimmed) && trimmed.length <= 280) {
     return [trimmed];

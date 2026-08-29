@@ -2605,6 +2605,20 @@ class ApiService {
     eventDetails?: Record<string, string>;
     /** Venue / trip place for weather (e.g. Wales). */
     location?: string;
+    /** Fresh live weather snapshot from client WeatherService (Decisions only). */
+    weather?: {
+      source: 'live';
+      temperatureC: number;
+      feelsLikeC?: number | null;
+      conditions: string;
+      description?: string | null;
+      observedAt: number;
+      latitude?: number;
+      longitude?: number;
+      location?: string;
+    };
+    lat?: number;
+    lon?: number;
     selectedWardrobeIds?: Array<string | number>;
     /** Manual wardrobe picks: mixed categories = evaluate look; same category = pick one. */
     wardrobeSelectionMode?: 'evaluate_outfit' | 'pick_one';

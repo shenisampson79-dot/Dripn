@@ -19,6 +19,7 @@ import {
   verdictFromStyleRating,
 } from '../utils/decisionResultPresentation';
 import { ENGINE_LEAK_SENTINEL } from '../utils/stylistPresentationBoundary';
+import { sanitizeStylistUserText } from '../utils/sanitizeStylistUserText';
 
 type TestResponse = Parameters<typeof formatDecisionResultPresentation>[0];
 
@@ -181,6 +182,27 @@ assert.equal(VERDICT_BAND_RETHINK_MAX, 5.4);
   assert.equal(parts.length, 3);
   assert.match(parts[0], /\.$/);
   assert.match(parts[1], /!$/);
+}
+
+// Paragraph / newline prose becomes separate WHY units
+{
+  const parts = splitIntoSentences(
+    'The red waterproof jacket is vibrant and practical.\nThe navy track trousers with side piping are athletic.',
+  );
+  assert.equal(parts.length, 2);
+}
+
+// Factor score tails and vision hedges stripped before presentation
+{
+  const cleaned = sanitizeStylistUserText(
+    'These lack harmony due to the bold colour contrasts: 1. '
+    + 'The black top (if chosen, as it visually contradicts the aqua seen) remains neutral. '
+    + "The jacket's red and potential aqua undershirt overshadow neutrality.",
+  );
+  assert.doesNotMatch(cleaned, /contrasts:\s*1/i);
+  assert.doesNotMatch(cleaned, /if chosen/i);
+  assert.doesNotMatch(cleaned, /potential aqua/i);
+  assert.match(cleaned, /aqua undershirt/i);
 }
 
 // EVENT routing unchanged

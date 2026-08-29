@@ -61,6 +61,15 @@ const JUDGE_AGAINST_RE = /\b(?:For work\s*\/\s*office\s*\/\s*work[- ]?(?:appropr
 const TRAINER_PROMPT_RE =
   /\b(?:Never recommend trainers or sneakers for this workplace|Trainers only if they are clean\/minimal lifestyle)[^.!\n]*[.!]?/gi;
 const STYLE_LANE_PROMPT_RE = /\bKeep one clear style lane end to end[^.!\n]*[.!]?/gi;
+/** Dimension/factor score tails leaked into prose (e.g. "bold colour contrasts: 1"). */
+const FACTOR_SCORE_TAIL_RE =
+  /\b(?:bold\s+)?(?:colour|color)\s+contrasts?\s*:\s*\d{1,2}\b/gi;
+const DIMENSION_SCORE_TAIL_RE =
+  /\b(contrasts?|cohesion|formality|silhouette|fabric|occasion|trend|personalisation|personalization|colour harmony|color harmony|compatibility)\s*:\s*\d{1,2}\b/gi;
+/** Vision uncertainty hedges that must not reach customers. */
+const VISION_IF_CHOSEN_RE = /\s*\(\s*if chosen[^)]*\)/gi;
+const VISION_POTENTIAL_GARMENT_RE =
+  /\bpotential\s+((?:[a-z]+\s+){0,2}(?:undershirt|undershirts|top|tops|layer|layers|shirt|shirts|jacket|jackets|tee|t-shirt|t-shirts))\b/gi;
 
 function stripInternalPromptLeaks(input: string): string {
   let text = input.replace(/\\"/g, '"').replace(/\\'/g, "'");
@@ -99,6 +108,10 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(IDEAL_OVERRIDE_RE, ' ');
   text = text.replace(WEAR_THIS_INSTEAD_DUP_RE, 'Wear this instead. ');
   text = text.replace(SNAKE_CASE_RE, humanizeSnakeCase);
+  text = text.replace(FACTOR_SCORE_TAIL_RE, 'bold colour contrasts');
+  text = text.replace(DIMENSION_SCORE_TAIL_RE, '$1');
+  text = text.replace(VISION_IF_CHOSEN_RE, ' ');
+  text = text.replace(VISION_POTENTIAL_GARMENT_RE, '$1');
   text = rewriteStylistCtaJargon(text);
   text = stripNonActionableSaveLookProse(text);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
