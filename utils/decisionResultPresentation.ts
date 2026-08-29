@@ -12,6 +12,88 @@ export type DecisionFlowType = 'sanity-check' | 'event-outfit' | 'shopping';
 export const STYLE_RATING_DISPLAY_FLOOR = 5.4;
 export const STYLE_RATING_RECOMMEND_FLOOR = 7.0;
 
+/** Generic house-style secondaries — not outfit-specific WHY bullets. */
+const GENERIC_EVENT_WHY_RES: RegExp[] = [
+  /\bIt reads dressed-up without feeling forced\b/i,
+  /\bIt feels considered without ever looking overdone\b/i,
+  /\bFeels put-together without looking forced\b/i,
+  /\bPolished without trying too hard\b/i,
+  /\bClean, composed, and deliberately simple\b/i,
+  /\bNothing unnecessary, just clean performance\b/i,
+];
+
+const QSC_SWAP_CANNED_RE = /\bIf a piece fights the rest of the outfit, swap that piece only\b/i;
+const QSC_GOT_LOOK_RE = /^I've got your look\.?$/i;
+
+/** Server seal occasionally injects QSC canned copy into Event reasoning when reasoning is empty/leaked. */
+export function isEventCannedReasoning(text?: string | null): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  const qscCanned = cannedFallback('qsc');
+  if (t === qscCanned) return true;
+  if (QSC_GOT_LOOK_RE.test(t)) return true;
+  if (QSC_SWAP_CANNED_RE.test(t)) return true;
+  if (QSC_GOT_LOOK_RE.test(t.split(/[.!?…]/)[0]?.trim() || '') && QSC_SWAP_CANNED_RE.test(t)) return true;
+  return false;
+}
+
+export function isGenericEventWhyBullet(text?: string | null): boolean {
+  const t = String(text || '').trim();
+  if (!t) return true;
+  if (isEventCannedReasoning(t)) return true;
+  if (GENERIC_EVENT_WHY_RES.some((re) => re.test(t))) return true;
+  return false;
+}
+
+export function filterEventWhyBullets(bullets: string[]): string[] {
+  return bullets.filter((b) => !isGenericEventWhyBullet(b));
+}
+
+function normalizeOutfitRole(role?: string | null): string {
+  const r = String(role || '').toLowerCase().trim();
+  if (!r) return '';
+  if (/top|shirt|blouse|tee|t-?shirt|knit|sweater|polo/.test(r)) return 'top';
+  if (/bottom|trouser|pant|jean|chino|skirt|short/.test(r)) return 'bottom';
+  if (/shoe|footwear|loafer|boot|sneaker|trainer|heel|oxford/.test(r)) return 'shoes';
+  if (/outer|jacket|blazer|coat|layer/.test(r)) return 'outerwear';
+  return r;
+}
+
+function garmentNameSatisfiesRole(name: string, role: string): boolean {
+  const n = String(name || '').toLowerCase();
+  if (!n) return false;
+  switch (role) {
+    case 'top':
+      return /\b(shirts?|blouses?|oxfords?|tees?|t-?shirts?|tops?|knits?|polos?|tyrwhitt|button[- ]?downs?)\b/.test(n);
+    case 'bottom':
+      return /\b(trousers?|pants?|jeans?|chinos?|skirts?|shorts?|bottoms?|legs?)\b/.test(n);
+    case 'shoes':
+      return /\b(shoes?|loafers?|boots?|sneakers?|trainers?|heels?|oxfords?|footwear)\b/.test(n);
+    case 'outerwear':
+      return /\b(blazers?|jackets?|coats?|outerwear|overcoats?|cardigans?)\b/.test(n);
+    default:
+      return false;
+  }
+}
+
+/** Hide dress-code template upgrades when the selected outfit already fills that role. */
+export function filterEventMissingUpgrades<T extends { role?: string; label?: string; name?: string }>(
+  missing: T[] | null | undefined,
+  pieces: Array<{ role?: string; name?: string }>,
+): T[] {
+  if (!Array.isArray(missing) || !missing.length) return [];
+  if (!Array.isArray(pieces) || !pieces.length) return missing;
+
+  return missing.filter((item) => {
+    const role = normalizeOutfitRole(item.role);
+    if (!role) return true;
+    const filled = pieces.some(
+      (p) => normalizeOutfitRole(p.role) === role && garmentNameSatisfiesRole(String(p.name || ''), role),
+    );
+    return !filled;
+  });
+}
+
 export function shouldDisplayStyleRating(rating: number | null | undefined): boolean {
   if (rating == null || !Number.isFinite(Number(rating))) return false;
   return Number(rating) > STYLE_RATING_DISPLAY_FLOOR;
@@ -339,8 +421,10 @@ export function formatDecisionResultPresentation(
   let bullets = segmented.bullets;
   let bottomLine = segmented.bottomLine;
 
-  if (decisionType === 'event-outfit' && res.reasoning) {
+  if (decisionType === 'event-outfit' && res.reasoning && !isEventCannedReasoning(res.reasoning)) {
     bullets = mergeEventReasoningBullets(summary, bullets, String(res.reasoning));
+  } else if (decisionType === 'event-outfit' && res.reasoning && isEventCannedReasoning(res.reasoning)) {
+    // Drop QSC canned reasoning — never surface as Event WHY.
   }
 
   if (noteSummary && !looksLikeItemNameList(noteSummary)) {
@@ -363,6 +447,10 @@ export function formatDecisionResultPresentation(
   bullets = bullets
     .filter((b) => !isDuplicate(b, summary || '') && !isDuplicate(b, bottomLine || ''))
     .slice(0, 4);
+
+  if (decisionType === 'event-outfit') {
+    bullets = filterEventWhyBullets(bullets);
+  }
 
   if (summary && bottomLine && isDuplicate(summary, bottomLine)) bottomLine = null;
 

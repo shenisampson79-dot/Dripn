@@ -18,6 +18,9 @@ import {
   splitIntoSentences,
   stripTrailingGarmentNamesFromEventSummary,
   verdictFromStyleRating,
+  filterEventMissingUpgrades,
+  isEventCannedReasoning,
+  isGenericEventWhyBullet,
 } from '../utils/decisionResultPresentation';
 import { ENGINE_LEAK_SENTINEL } from '../utils/stylistPresentationBoundary';
 import { sanitizeStylistUserText } from '../utils/sanitizeStylistUserText';
@@ -265,6 +268,59 @@ assert.equal(
   ),
   'Smart headline for the date.',
 );
+
+// Event: strip generic house-style + QSC canned reasoning from WHY
+{
+  const qscCanned = "I've got your look. If a piece fights the rest of the outfit, swap that piece only.";
+  assert.ok(isEventCannedReasoning(qscCanned));
+  assert.ok(isGenericEventWhyBullet('It reads dressed-up without feeling forced.'));
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting. It reads dressed-up without feeling forced.',
+      reasoning: qscCanned,
+    }),
+    'event-outfit',
+  );
+  assert.match(display.summary || '', /formal setting/i);
+  assert.ok(!display.bullets.some((b) => /I've got your look/i.test(b)), 'no QSC canned in WHY');
+  assert.ok(!display.bullets.some((b) => /swap that piece only/i.test(b)), 'no swap boilerplate in WHY');
+  assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'no generic house-style in WHY');
+}
+
+// Event: outfit-specific reasoning survives filtering
+{
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting.',
+      reasoning: 'The pink dress shirt meets the formal dress code. Black coated trousers keep the line clean. Loafers finish the formality without heaviness.',
+    }),
+    'event-outfit',
+  );
+  assert.ok(display.bullets.length >= 2, 'specific reasoning kept');
+  assert.ok(display.bullets.some((b) => /pink dress shirt/i.test(b)));
+}
+
+// Event: hide optional upgrades when selected pieces already fill the role
+{
+  const missing = [
+    { role: 'top', label: 'White dress shirt or oxford', name: 'White dress shirt or oxford' },
+    { role: 'shoes', label: 'Black leather loafers', name: 'Black leather loafers' },
+  ];
+  const pieces = [
+    { role: 'top', name: 'charles tyrwhitt pink dress shirt' },
+    { role: 'bottom', name: 'Next black coated slim trousers' },
+    { role: 'shoes', name: 'black leather loafers' },
+    { role: 'outerwear', name: 'Cavani gray windowpane check blazer' },
+  ];
+  const filtered = filterEventMissingUpgrades(missing, pieces);
+  assert.equal(filtered.length, 0, 'top + shoes already satisfied — hide contradictory upgrades');
+}
+
+// Event: StylistDecisionFlow uses upgrade filter
+{
+  const flowSrc = readFileSync(resolve(__dirname, '../components/stylist/StylistDecisionFlow.tsx'), 'utf8');
+  assert.match(flowSrc, /filterEventMissingUpgrades/);
+}
 
 // Shopping/Event CTA contract in StylistDecisionFlow source
 {

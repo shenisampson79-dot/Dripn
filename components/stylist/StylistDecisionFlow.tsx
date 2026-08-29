@@ -43,7 +43,7 @@ import { shouldShowDecisionRefineCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplayState';
-import { formatDecisionResultPresentation } from '@/utils/decisionResultPresentation';
+import { formatDecisionResultPresentation, filterEventMissingUpgrades } from '@/utils/decisionResultPresentation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -947,6 +947,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         : undefined,
     });
     const showPieceRows = decisionType !== 'sanity-check' && displayPieces.length > 0;
+    const eventMissingUpgrades = decisionType === 'event-outfit'
+      ? filterEventMissingUpgrades(
+        Array.isArray(res.missing) ? res.missing : [],
+        displayPieces,
+      )
+      : (Array.isArray(res.missing) ? res.missing : []);
 
     return (
       <Animated.View entering={FadeInDown.duration(300)} style={styles.section}>
@@ -1196,9 +1202,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           )}
         </View>
 
-        {(rejected && Array.isArray(res.missing) && res.missing.length > 0) ? (
+        {(rejected && eventMissingUpgrades.length > 0) ? (
           <FallbackShopSection
-            missing={res.missing}
+            missing={eventMissingUpgrades}
             headline="Optional upgrades"
           />
         ) : null}
