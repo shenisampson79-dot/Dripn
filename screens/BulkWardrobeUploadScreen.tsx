@@ -42,7 +42,7 @@ import {
   findLocalWardrobeDuplicates,
   findLocalWithinBatchDuplicates,
   formatDuplicateNames,
-  normalizeDuplicateDecisionWithClientGuard,
+  normalizeDuplicateDecision,
   type NormalizedDuplicateDecision,
   type DuplicateMatch,
 } from "@/utils/wardrobeDuplicateMatch";
@@ -131,7 +131,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   });
   const similarReviewQueueRef = useRef<Array<{ item: PendingItem; decision: NormalizedDuplicateDecision }>>([]);
   const similarReviewSaveRef = useRef<PendingItem[] | null>(null);
-  const suppressedSimilarOverridesRef = useRef<Record<string, string[]>>({});
 
   const photoTips = getPhotoTips();
 
@@ -748,7 +747,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     let duplicateLabelMap: Record<string, string> = {};
     const similarDecisionMap: Record<string, NormalizedDuplicateDecision> = {};
     const duplicateDecisionMap: Record<string, NormalizedDuplicateDecision> = {};
-    suppressedSimilarOverridesRef.current = {};
 
     try {
       setIsProcessing(true);
@@ -782,7 +780,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       (check.results || []).forEach((r) => {
         const src = selectedItems[r.index];
         if (!src) return;
-        const { decision, suppressedSimilarMatchIds } = normalizeDuplicateDecisionWithClientGuard({
+        const decision = normalizeDuplicateDecision({
           ...r,
           type: r.type || r.decision?.type,
           decision: r.decision,
@@ -796,9 +794,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             material: src.material,
           },
         });
-        if (suppressedSimilarMatchIds.length > 0) {
-          suppressedSimilarOverridesRef.current[src.id] = suppressedSimilarMatchIds;
-        }
         if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'classification_conflict') {
           const matches = (decision.matches || r.matches || []) as Array<{
             matchScope?: string;
@@ -972,28 +967,24 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     let savedCount = 0;
 
     try {
-      const batchItems = itemsToSave.map((item) => {
-        const dedupeOverrideAgainst = suppressedSimilarOverridesRef.current[item.id];
-        return {
-          imageUri: item.imageUri ?? '',
-          name: item.suggestedName,
-          category: item.category,
-          subcategory: item.subcategory,
-          color: item.color,
-          seasons: (item.seasons.length > 0 ? item.seasons : ['all-season']) as import('@/contexts/WardrobeContext').ClothingSeason[],
-          occasions: (item.occasions.length > 0 ? item.occasions : ['everyday']) as import('@/contexts/WardrobeContext').ClothingOccasion[],
-          brand: item.brand,
-          material: item.material,
-          notes: item.description,
-          origin: 'owned' as const,
-          sourceUrl: item.sourceUrl,
-          purchasePrice: item.price,
-          isFavorite: false,
-          wardrobeConfidence: item.confidence,
-          needsReview: Boolean(item.needsReview),
-          ...(dedupeOverrideAgainst?.length ? { dedupeOverrideAgainst } : {}),
-        };
-      });
+      const batchItems = itemsToSave.map((item) => ({
+        imageUri: item.imageUri ?? '',
+        name: item.suggestedName,
+        category: item.category,
+        subcategory: item.subcategory,
+        color: item.color,
+        seasons: (item.seasons.length > 0 ? item.seasons : ['all-season']) as import('@/contexts/WardrobeContext').ClothingSeason[],
+        occasions: (item.occasions.length > 0 ? item.occasions : ['everyday']) as import('@/contexts/WardrobeContext').ClothingOccasion[],
+        brand: item.brand,
+        material: item.material,
+        notes: item.description,
+        origin: 'owned' as const,
+        sourceUrl: item.sourceUrl,
+        purchasePrice: item.price,
+        isFavorite: false,
+        wardrobeConfidence: item.confidence,
+        needsReview: Boolean(item.needsReview),
+      }));
 
       const savedItems = await addItemsBatch(batchItems, {
         allowDuplicates: opts?.allowDuplicates === true,
@@ -1004,16 +995,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
 
     setIsProcessing(false);
-    Haptics.notificationAsync(
-      savedCount > 0
-        ? Haptics.NotificationFeedbackType.Success
-        : Haptics.NotificationFeedbackType.Error,
-    );
-
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
     Alert.alert(
-      savedCount > 0
-        ? (t('wardrobe.itemsAdded') || 'Items Added')
-        : (t('wardrobe.error') || 'Could Not Add Items'),
+      t('wardrobe.itemsAdded'),
       savedCount > 0
         ? t('wardrobe.itemsAddedSuccess').replace('{count}', String(savedCount))
         : t('wardrobe.itemsAddedFailed'),
