@@ -162,6 +162,18 @@ export interface AuthTranslations {
   forgotPasswordEnterEmail: string;
   forgotPasswordSent: string;
   forgotPasswordFailed: string;
+  resetPasswordTitle: string;
+  resetPasswordSubtitle: string;
+  resetPasswordNew: string;
+  resetPasswordConfirm: string;
+  resetPasswordConfirmPlaceholder: string;
+  resetPasswordSubmit: string;
+  resetPasswordSuccess: string;
+  resetPasswordFailed: string;
+  resetPasswordTooShort: string;
+  resetPasswordMismatch: string;
+  resetPasswordInvalidToken: string;
+  resetPasswordRequestNew: string;
 }
 
 export interface AIStylistTranslations {
@@ -787,6 +799,18 @@ const DEFAULT_TRANSLATIONS: Translations = {
     forgotPasswordEnterEmail: 'Enter the email address for your account and we\'ll send you a reset link.',
     forgotPasswordSent: 'If that email exists, a reset link has been sent.',
     forgotPasswordFailed: 'Could not send a reset link. Please try again.',
+    resetPasswordTitle: 'Reset password',
+    resetPasswordSubtitle: 'Choose a new password for your account.',
+    resetPasswordNew: 'New password',
+    resetPasswordConfirm: 'Confirm password',
+    resetPasswordConfirmPlaceholder: 'Re-enter your new password',
+    resetPasswordSubmit: 'Update password',
+    resetPasswordSuccess: 'Password updated successfully. Sign in with your new password.',
+    resetPasswordFailed: 'Could not reset your password. Please try again.',
+    resetPasswordTooShort: 'Password must be at least 6 characters',
+    resetPasswordMismatch: 'Passwords do not match',
+    resetPasswordInvalidToken: 'This reset link is invalid or has expired. Request a new one from the login screen.',
+    resetPasswordRequestNew: 'Back to Sign In',
   },
   aiStylist: {
     suggestedOutfit: 'Suggested Outfit',

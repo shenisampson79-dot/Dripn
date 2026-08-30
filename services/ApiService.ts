@@ -534,6 +534,16 @@ class ApiService {
     });
   }
 
+  async resetPassword(token: string, password: string) {
+    return this.request<{ success: boolean; message: string; token?: string; user?: unknown }>(
+      '/api/auth/reset-password',
+      {
+        method: 'POST',
+        body: JSON.stringify({ token: token.trim(), password }),
+      },
+    );
+  }
+
   async logout() {
     await this.setToken(null);
   }

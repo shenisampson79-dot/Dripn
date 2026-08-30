@@ -36,6 +36,7 @@
     "verify:event-recent-outfit-history": "npx tsx scripts/verify-event-recent-outfit-history.ts && npx tsx utils/extractEventRecentOutfitIdLists.test.ts",
     "verify:production-copy-faq": "npx tsx scripts/verify-production-copy-faq.ts",
     "verify:forgot-password-login": "npx tsx scripts/verify-forgot-password-login.ts",
+    "verify:password-reset-flow": "npx tsx scripts/verify-password-reset-flow.ts",
     "verify:decision-result-presentation": "npx tsx scripts/verify-decision-result-presentation.ts",
     "verify:decision-weather-snapshot": "npx tsx scripts/verify-decision-weather-snapshot.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",

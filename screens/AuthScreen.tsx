@@ -45,6 +45,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    route.params?.resetSuccessMessage ?? null,
+  );
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
@@ -418,6 +421,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             ) : null}
           </View>
 
+          {successMessage ? (
+            <View style={styles.successContainer}>
+              <Feather name="check-circle" size={16} color="#059669" />
+              <ThemedText style={styles.successText}>{successMessage}</ThemedText>
+            </View>
+          ) : null}
+
           {errorMessage ? (
             <View style={styles.errorContainer}>
               <Feather name="alert-circle" size={16} color="#DC2626" />
@@ -653,6 +663,20 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#DC2626',
+    fontSize: 14,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  successText: {
+    color: '#059669',
     fontSize: 14,
     flex: 1,
   },

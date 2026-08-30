@@ -81,6 +81,10 @@ import {
   markAppStable,
   tryResolveImmediately,
 } from "@/utils/appEntryRouter";
+import {
+  parsePasswordResetToken,
+  stashPasswordResetToken,
+} from "@/utils/passwordResetDeepLink";
 import { ensureStylistHubVisible } from "@/utils/todaysOutfitEnsureRoute";
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
@@ -384,6 +388,10 @@ export default function App() {
     const captureInvite = (url: string | null) => {
       if (!url) return;
       try {
+        const resetToken = parsePasswordResetToken(url);
+        if (resetToken) {
+          stashPasswordResetToken(resetToken);
+        }
         const parsed = Linking.parse(url);
         const path = `${parsed.path || ''} ${parsed.hostname || ''}`.toLowerCase();
         const codeFromPath = parsed.path?.match(/invite\/([^/?#]+)/i)?.[1]
