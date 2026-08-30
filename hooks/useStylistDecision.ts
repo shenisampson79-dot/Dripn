@@ -46,8 +46,12 @@ import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import {
   getAiAllowancePaywallCopy,
-  isAiBudgetError,
 } from '@/utils/aiBudgetError';
+import {
+  isDecisionDailyLimitError,
+  isGenericDecisionRateLimit,
+  shouldLatchMonthlyAllowanceBlocked,
+} from '@/utils/decisionAllowanceLatch';
 import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { safeEnforceDecisionContract } from '@/utils/decisionContract';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
@@ -523,7 +527,6 @@ export function useStylistDecision({
 
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
-    setAllowanceBlocked(true);
     const paywall = getAiAllowancePaywallCopy(user?.subscriptionTier);
     navigateToSubscription(navigation as never, {
       highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
@@ -535,7 +538,6 @@ export function useStylistDecision({
 
   const dismissPaywall = () => {
     setShowUpgradeModal(false);
-    setAllowanceBlocked(true);
   };
 
   const openAllowanceDestination = () => {
@@ -751,33 +753,8 @@ export function useStylistDecision({
       eventType: eventDetails?.eventType,
       surpriseMe: isSurpriseMe,
     });
-    if (
-      isAiBudgetError(error)
-      || error.limitCopy
-      || error.message?.includes('your decision for today')
-      || error.status === 429
-    ) {
-      if (isAiBudgetError(error)) {
-        const paywall = getAiAllowancePaywallCopy(
-          planTierFromBudgetError(error) || user?.subscriptionTier,
-        );
-        setAllowanceBlocked(true);
-        Alert.alert(paywall.title, paywall.message, [
-          { text: paywall.secondaryLabel, style: 'cancel' },
-          {
-            text: paywall.primaryLabel,
-            onPress: () =>
-              navigateToSubscription(navigation as never, {
-                source: flowKey,
-                asPaywall: true,
-                scrollToAiTopUp: paywall.primaryAction === 'topup',
-              }),
-          },
-        ]);
-        return;
-      }
+    if (isDecisionDailyLimitError(error)) {
       await checkAccess({ showPaywallIfBlocked: true });
-      setAllowanceBlocked(true);
       Alert.alert(
         t('askStylist.unableToSubmit'),
         error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
@@ -788,6 +765,51 @@ export function useStylistDecision({
             onPress: openSubscriptionFromPaywall,
           },
         ],
+      );
+      return;
+    }
+
+    if (shouldLatchMonthlyAllowanceBlocked(error)) {
+      const paywall = getAiAllowancePaywallCopy(
+        planTierFromBudgetError(error) || user?.subscriptionTier,
+      );
+      setAllowanceBlocked(true);
+      Alert.alert(paywall.title, paywall.message, [
+        { text: paywall.secondaryLabel, style: 'cancel' },
+        {
+          text: paywall.primaryLabel,
+          onPress: () =>
+            navigateToSubscription(navigation as never, {
+              source: flowKey,
+              asPaywall: true,
+              scrollToAiTopUp: paywall.primaryAction === 'topup',
+            }),
+        },
+      ]);
+      return;
+    }
+
+    if (error.limitCopy) {
+      await checkAccess({ showPaywallIfBlocked: true });
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
+        [
+          { text: t('common.maybeLater'), style: 'cancel' },
+          {
+            text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions') || 'See plans',
+            onPress: openSubscriptionFromPaywall,
+          },
+        ],
+      );
+      return;
+    }
+
+    if (isGenericDecisionRateLimit(error)) {
+      Alert.alert(
+        t('askStylist.unableToSubmit'),
+        error.message || t('common.tryAgain') || 'Too many attempts. Please try again shortly.',
+        [{ text: t('common.ok') || 'OK' }],
       );
       return;
     }
@@ -1317,6 +1339,7 @@ export function useStylistDecision({
         }
       }
       if (isStale() || abortController.signal.aborted) return;
+      setAllowanceBlocked(false);
       setResponse(result);
       setStep('response');
       if (mappedType === 'event_outfit' && Array.isArray(result.outfitPieces) && result.outfitPieces.length >= 2) {

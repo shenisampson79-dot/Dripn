@@ -47,7 +47,8 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-// Input uses KeyboardStickyView (absolute bottom) so it tracks the keyboard without extra gap.
+// Input uses KeyboardStickyView (absolute bottom) — symmetric md inset when closed,
+// deliberate sm gap above keyboard when open (not flush to keyboard edge).
 
 import { ThemedText } from '@/components/ThemedText';
 import { ChatSelectableText } from '@/components/chat/ChatSelectableText';
@@ -1922,8 +1923,8 @@ export default function AIStylistScreen() {
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const keyboardHeightPx = useKeyboardState((state) => state.height);
   const inputBottomPadStyle = useAnimatedStyle(() => ({
-    // Match paddingTop on inputContainerWrapper (Spacing.md) when keyboard is closed.
-    paddingBottom: keyboardHeight.value === 0 ? Spacing.md : 0,
+    // Symmetric with inputContainerWrapper paddingTop when keyboard is closed.
+    paddingBottom: keyboardHeight.value === 0 ? Spacing.md : Spacing.sm,
   }));
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -4984,7 +4985,7 @@ export default function AIStylistScreen() {
       INPUT_CONTAINER_HEIGHT
       + (limitReached ? LIMIT_HIT_BANNER_HEIGHT : 0)
       + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
-      + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) : tabBarHeight)
+      + (isKeyboardVisible ? Math.max(0, keyboardHeightPx) + Spacing.sm : tabBarHeight)
       + Spacing.md,
     [
       limitReached,

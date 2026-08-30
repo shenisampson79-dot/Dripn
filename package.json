@@ -32,6 +32,7 @@
     "verify:wear-rules": "npx tsx scripts/verify-wear-rules.ts",
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:decision-access": "npx tsx utils/decisionAccessGate.test.ts",
+    "verify:decision-allowance-latch": "npx tsx utils/decisionAllowanceLatch.test.ts",
     "verify:decision-result-presentation": "npx tsx scripts/verify-decision-result-presentation.ts",
     "verify:decision-weather-snapshot": "npx tsx scripts/verify-decision-weather-snapshot.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
