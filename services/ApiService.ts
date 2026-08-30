@@ -1211,6 +1211,8 @@ class ApiService {
     stylistId?: string;
     workDressCode?: string;
     brandInspiration?: string;
+    recentOutfits?: Array<Array<string | number>>;
+    penalizeItemIds?: Array<string | number>;
     weather?: {
       temperature: number;
       condition?: string;

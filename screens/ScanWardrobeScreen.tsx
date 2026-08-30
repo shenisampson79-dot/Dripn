@@ -60,6 +60,10 @@ import {
   loadGetOutfitsSession,
   saveGetOutfitsSession,
 } from '@/utils/getOutfitsSessionStore';
+import {
+  extractGonRecentOutfitIdLists,
+  flattenGonPenalizeItemIds,
+} from '@/utils/extractGonRecentOutfitIdLists';
 import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import {
   buildLookContinuity,
@@ -490,6 +494,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       const brandInspiration = resolveBrandInspiration(
         user?.extendedPreferences?.favoriteBrands || null,
       );
+      const recentOutfits = extractGonRecentOutfitIdLists(outfitOptions, 5);
+      const penalizeItemIds = flattenGonPenalizeItemIds(recentOutfits);
       const result = await apiService.generateOutfitFromScan({
         sessionWardrobe: confirmedItems,
         hybridMerge,
@@ -497,6 +503,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         optionCount: 3,
         workDressCode: workDressCode || undefined,
         brandInspiration: brandInspiration || undefined,
+        recentOutfits: recentOutfits.length ? recentOutfits : undefined,
+        penalizeItemIds: penalizeItemIds.length ? penalizeItemIds : undefined,
         weather: weatherSnap
           ? {
               temperature: weatherSnap.temperature,
