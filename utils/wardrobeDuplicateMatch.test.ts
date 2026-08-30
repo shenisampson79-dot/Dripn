@@ -26,6 +26,9 @@ import {
   CLIP_POSSIBLE,
   LAUNCH_DEDUPE_CONTRACT,
   normalizeDuplicateDecision,
+  shouldSuppressClipSimilarItemWarning,
+  nameSuggestsGraphicDetail,
+  namesGraphicPlainConflict,
   sameScanExactCrop,
   sameSourceDifferentCrop,
   scoreLocalDuplicateMatch,
@@ -89,6 +92,51 @@ console.log('=== Client wardrobe duplicate match ===\n');
   assertEq(conflict.type, 'classification_conflict', 'conflict type');
   assertEq(conflict.isDuplicate, true, 'conflict is duplicate');
   console.log('✓ format + classification_conflict normalize');
+}
+
+{
+  assert.ok(nameSuggestsGraphicDetail('Nike HWPO Graphic Tee'), 'hwpo/graphic detail');
+  assert.ok(!nameSuggestsGraphicDetail('White Tee'), 'plain generic tee');
+  assert.ok(namesGraphicPlainConflict('Nike HWPO Graphic Tee', 'H&M White Tee'), 'graphic vs plain');
+  assert.ok(!namesGraphicPlainConflict('Nike HWPO Graphic Tee', 'Nike HWPO Graphic Tee'), 'same graphic tee');
+
+  assert.ok(
+    shouldSuppressClipSimilarItemWarning(
+      { name: 'Nike HWPO Graphic Tee', category: 'tops', brand: 'Nike', color: 'white' },
+      { id: 1, name: 'H&M White Tee', category: 'tops', brand: 'H&M', color: 'white' },
+    ),
+    'Nike HWPO vs H&M plain suppresses similar_item',
+  );
+  assert.ok(
+    !shouldSuppressClipSimilarItemWarning(
+      { name: 'Nike HWPO Graphic Tee', category: 'tops', brand: 'Nike', color: 'white' },
+      { id: 1, name: 'Nike HWPO Graphic Tee', category: 'tops', brand: 'Nike', color: 'white' },
+    ),
+    'same SKU re-photo keeps similar_item',
+  );
+
+  const suppressed = normalizeDuplicateDecision({
+    type: 'similar_item',
+    similarMatches: [{ id: 2, name: 'H&M White Tee', brand: 'H&M', category: 'tops' }],
+    candidate: { name: 'Nike HWPO Graphic Tee', brand: 'Nike', category: 'tops', color: 'white' },
+  });
+  assertEq(suppressed.type, 'ok', 'CLIP false positive downgraded to ok');
+
+  const kept = normalizeDuplicateDecision({
+    type: 'similar_item',
+    similarMatches: [{ id: 3, name: 'Grey Blazer', brand: 'Cavani', category: 'outerwear', color: 'grey' }],
+    candidate: { name: 'Navy Blazer', brand: 'Cavani', category: 'outerwear', color: 'navy' },
+  });
+  assertEq(kept.type, 'similar_item', 'same-brand colour conflict still warns');
+
+  const hardDupe = normalizeDuplicateDecision({
+    type: 'duplicate',
+    isDuplicate: true,
+    matches: [{ id: 4, name: 'Grey Blazer', category: 'outerwear' }],
+    candidate: { name: 'Different label', brand: 'Other', category: 'outerwear' },
+  });
+  assertEq(hardDupe.type, 'duplicate', 'hard duplicate unchanged by guard');
+  console.log('✓ CLIP similar_item client guard');
 }
 
 console.log('\n--- Launch wardrobe dedupe matrix D1–D25 ---\n');

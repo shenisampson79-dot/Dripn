@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import type { DuplicateDecisionType, DuplicateMatch } from '@/utils/wardrobeDuplicateMatch';
 import { DEDUPE_COPY, SIMILAR_ITEM_COPY } from '@/utils/wardrobeDuplicateMatch';
+import { resolveDuplicateMatchImageUri } from '@/utils/wardrobeImage';
 
 export type DuplicateComparisonProps = {
   visible: boolean;
@@ -42,7 +43,11 @@ function MatchCard({
   theme: { backgroundSecondary: string; border: string; tabIconDefault: string };
   onPress?: () => void;
 }) {
-  const uri = match.imageUrl || match.imageUri;
+  const uri = resolveDuplicateMatchImageUri({
+    id: match.id,
+    imageUri: match.imageUri || match.imageUrl,
+    imageUrl: match.imageUrl,
+  }) || match.imageUrl || match.imageUri;
   return (
     <Pressable
       onPress={onPress}
@@ -149,9 +154,17 @@ export function DuplicateComparisonSheet({
               <ThemedText type="caption" style={styles.compareLabel}>
                 {t('wardrobe.yourWardrobe') || 'Yours'}
               </ThemedText>
-              {primary?.imageUrl || primary?.imageUri ? (
+              {(() => {
+                const yoursUri = primary
+                  ? resolveDuplicateMatchImageUri({
+                    id: primary.id,
+                    imageUri: primary.imageUri || primary.imageUrl,
+                    imageUrl: primary.imageUrl,
+                  }) || primary.imageUrl || primary.imageUri
+                  : undefined;
+                return yoursUri ? (
                 <Image
-                  source={{ uri: (primary.imageUrl || primary.imageUri)! }}
+                  source={{ uri: yoursUri }}
                   style={styles.compareImage}
                   resizeMode="cover"
                 />
@@ -159,7 +172,8 @@ export function DuplicateComparisonSheet({
                 <View style={[styles.compareImage, styles.matchImagePlaceholder]}>
                   <Feather name="archive" size={28} color={theme.tabIconDefault} />
                 </View>
-              )}
+              );
+              })()}
               <ThemedText type="caption" numberOfLines={2} style={{ marginTop: Spacing.xs }}>
                 {primary?.name || 'Existing'}
               </ThemedText>
