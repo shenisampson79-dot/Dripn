@@ -18,7 +18,6 @@ import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
-import { apiService } from "@/services/ApiService";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { LanguageEntryButton, LanguagePickerModal } from "@/components/LanguagePickerModal";
 
@@ -45,12 +44,8 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(
-    route.params?.resetSuccessMessage ?? null,
-  );
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
-  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const isSignup = mode === "signup";
 
@@ -156,29 +151,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       setErrorMessage(message);
     } finally {
       setSocialLoading(null);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    setErrorMessage(null);
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) {
-      Alert.alert(t('auth.forgotPasswordTitle'), t('auth.forgotPasswordEnterEmail'));
-      return;
-    }
-
-    setForgotPasswordLoading(true);
-    try {
-      const result = await apiService.requestForgotPassword(normalizedEmail);
-      Alert.alert(
-        t('auth.forgotPasswordTitle'),
-        result.message || t('auth.forgotPasswordSent'),
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('auth.forgotPasswordFailed');
-      Alert.alert(t('common.error'), message);
-    } finally {
-      setForgotPasswordLoading(false);
     }
   };
 
@@ -400,33 +372,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 />
               </Pressable>
             </View>
-            {!isSignup ? (
-              <Pressable
-                onPress={handleForgotPassword}
-                disabled={forgotPasswordLoading || isAuthenticating}
-                style={({ pressed }) => [
-                  styles.forgotPasswordLink,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-                accessibilityRole="button"
-              >
-                {forgotPasswordLoading ? (
-                  <ActivityIndicator size="small" color={theme.link} />
-                ) : (
-                  <ThemedText type="link" style={styles.forgotPasswordText}>
-                    {t('auth.forgotPassword')}
-                  </ThemedText>
-                )}
-              </Pressable>
-            ) : null}
           </View>
-
-          {successMessage ? (
-            <View style={styles.successContainer}>
-              <Feather name="check-circle" size={16} color="#059669" />
-              <ThemedText style={styles.successText}>{successMessage}</ThemedText>
-            </View>
-          ) : null}
 
           {errorMessage ? (
             <View style={styles.errorContainer}>
@@ -608,16 +554,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  forgotPasswordLink: {
-    alignSelf: "flex-end",
-    marginTop: Spacing.sm,
-    minHeight: 24,
-    justifyContent: "center",
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   submitButton: {
     marginTop: Spacing.md,
   },
@@ -663,20 +599,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#DC2626',
-    fontSize: 14,
-    flex: 1,
-  },
-  successContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
-  },
-  successText: {
-    color: '#059669',
     fontSize: 14,
     flex: 1,
   },

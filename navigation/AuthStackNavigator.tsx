@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WelcomeScreen from "@/screens/WelcomeScreen";
 import TrustOnboardingScreen from "@/screens/TrustOnboardingScreen";
@@ -12,7 +12,6 @@ import UploadInstructionsScreen from "@/screens/UploadInstructionsScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import ConfirmationScreen from "@/screens/ConfirmationScreen";
 import AuthScreen from "@/screens/AuthScreen";
-import ResetPasswordScreen from "@/screens/ResetPasswordScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import OnboardingStyleQuizScreen from "@/screens/OnboardingStyleQuizScreen";
@@ -23,11 +22,6 @@ import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
-import { useAuthPasswordResetDeepLinks } from "@/hooks/useAuthPasswordResetDeepLinks";
-import {
-  consumePasswordResetToken,
-  readWebPasswordResetToken,
-} from "@/utils/passwordResetDeepLink";
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -41,8 +35,7 @@ export type AuthStackParamList = {
   UploadInstructions: { type: "outfit" | "core" };
   DFYUpload: { type: "outfit" | "core" };
   Confirmation: { type: "outfit" | "core" };
-  Auth: { mode: 'login' | 'signup'; resetSuccessMessage?: string };
-  ResetPassword: { token: string };
+  Auth: { mode: 'login' | 'signup' };
   Onboarding: undefined;
   OnboardingQuiz: undefined;
   OnboardingStyleQuiz: undefined;
@@ -56,29 +49,15 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 type AuthStackNavigatorProps = {
   initialRouteName?: keyof AuthStackParamList;
-  initialResetToken?: string;
 };
 
-export default function AuthStackNavigator({
-  initialRouteName = "Welcome",
-  initialResetToken,
-}: AuthStackNavigatorProps) {
+export default function AuthStackNavigator({ initialRouteName = "Welcome" }: AuthStackNavigatorProps) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
 
-  const nativeResetToken = useMemo(
-    () => consumePasswordResetToken() ?? undefined,
-    [],
-  );
-  const webResetToken = readWebPasswordResetToken();
-  const resetToken = initialResetToken || webResetToken || nativeResetToken;
-  const resolvedInitialRoute = resetToken ? "ResetPassword" : initialRouteName;
-
-  useAuthPasswordResetDeepLinks();
-
   return (
     <Stack.Navigator 
-      initialRouteName={resolvedInitialRoute}
+      initialRouteName={initialRouteName}
       screenOptions={{
         ...getCommonScreenOptions({ theme, isDark, transparent: false }),
         headerShown: false,
@@ -97,11 +76,6 @@ export default function AuthStackNavigator({
       <Stack.Screen name="DFYUpload" component={DFYUploadScreen} />
       <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
-      <Stack.Screen
-        name="ResetPassword"
-        component={ResetPasswordScreen}
-        initialParams={resetToken ? { token: resetToken } : undefined}
-      />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="OnboardingQuiz" component={OnboardingQuizScreen} />
       <Stack.Screen name="OnboardingStyleQuiz" component={OnboardingStyleQuizScreen} />

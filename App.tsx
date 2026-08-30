@@ -81,14 +81,7 @@ import {
   markAppStable,
   tryResolveImmediately,
 } from "@/utils/appEntryRouter";
-import {
-  parsePasswordResetToken,
-  stashPasswordResetToken,
-} from "@/utils/passwordResetDeepLink";
 import { ensureStylistHubVisible } from "@/utils/todaysOutfitEnsureRoute";
-
-/** Never block native splash on a hung expo-updates network call (post-OTA cold start). */
-const UPDATES_BOOT_TIMEOUT_MS = 8000;
 
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -370,20 +363,12 @@ export default function App() {
       }
       try {
         if (Updates.isEnabled) {
-          const applyIfAvailable = async () => {
-            const result = await Updates.checkForUpdateAsync();
-            if (result.isAvailable) {
-              await Updates.fetchUpdateAsync();
-              await Updates.reloadAsync();
-            }
-          };
-          await Promise.race([
-            applyIfAvailable(),
-            new Promise<void>((resolve) =>
-              setTimeout(resolve, UPDATES_BOOT_TIMEOUT_MS),
-            ),
-          ]);
-          // reloadAsync remounts the app — only reached when no reload happened
+          const result = await Updates.checkForUpdateAsync();
+          if (result.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+            return; // reload remounts the app on the new bundle
+          }
         }
       } catch (error) {
         console.log("[Updates] check/apply skipped:", error);
@@ -399,10 +384,6 @@ export default function App() {
     const captureInvite = (url: string | null) => {
       if (!url) return;
       try {
-        const resetToken = parsePasswordResetToken(url);
-        if (resetToken) {
-          stashPasswordResetToken(resetToken);
-        }
         const parsed = Linking.parse(url);
         const path = `${parsed.path || ''} ${parsed.hostname || ''}`.toLowerCase();
         const codeFromPath = parsed.path?.match(/invite\/([^/?#]+)/i)?.[1]
