@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WelcomeScreen from "@/screens/WelcomeScreen";
 import TrustOnboardingScreen from "@/screens/TrustOnboardingScreen";
@@ -24,7 +24,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import { useAuthPasswordResetDeepLinks } from "@/hooks/useAuthPasswordResetDeepLinks";
-import { readWebPasswordResetToken } from "@/utils/passwordResetDeepLink";
+import {
+  consumePasswordResetToken,
+  readWebPasswordResetToken,
+} from "@/utils/passwordResetDeepLink";
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -63,8 +66,12 @@ export default function AuthStackNavigator({
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
 
+  const nativeResetToken = useMemo(
+    () => consumePasswordResetToken() ?? undefined,
+    [],
+  );
   const webResetToken = readWebPasswordResetToken();
-  const resetToken = initialResetToken || webResetToken;
+  const resetToken = initialResetToken || webResetToken || nativeResetToken;
   const resolvedInitialRoute = resetToken ? "ResetPassword" : initialRouteName;
 
   useAuthPasswordResetDeepLinks();

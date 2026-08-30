@@ -87,6 +87,9 @@ import {
 } from "@/utils/passwordResetDeepLink";
 import { ensureStylistHubVisible } from "@/utils/todaysOutfitEnsureRoute";
 
+/** Never block native splash on a hung expo-updates network call (post-OTA cold start). */
+const UPDATES_BOOT_TIMEOUT_MS = 8000;
+
 // Keep native splash visible until auth bootstrap finishes (avoids flash to LoadingScreen).
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* may fail in web / some envs */
@@ -367,12 +370,20 @@ export default function App() {
       }
       try {
         if (Updates.isEnabled) {
-          const result = await Updates.checkForUpdateAsync();
-          if (result.isAvailable) {
-            await Updates.fetchUpdateAsync();
-            await Updates.reloadAsync();
-            return; // reload remounts the app on the new bundle
-          }
+          const applyIfAvailable = async () => {
+            const result = await Updates.checkForUpdateAsync();
+            if (result.isAvailable) {
+              await Updates.fetchUpdateAsync();
+              await Updates.reloadAsync();
+            }
+          };
+          await Promise.race([
+            applyIfAvailable(),
+            new Promise<void>((resolve) =>
+              setTimeout(resolve, UPDATES_BOOT_TIMEOUT_MS),
+            ),
+          ]);
+          // reloadAsync remounts the app — only reached when no reload happened
         }
       } catch (error) {
         console.log("[Updates] check/apply skipped:", error);

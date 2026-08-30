@@ -28,7 +28,7 @@ assert.doesNotMatch(
   'AuthStack must not wrap navigator in Fragment with siblings',
 );
 assert.match(authStackSrc, /useAuthPasswordResetDeepLinks/, 'deep links routed via in-stack hook');
-assert.match(hookSrc, /initialLaunchUrlChecked/, 'getInitialURL processed once per app session');
+assert.doesNotMatch(hookSrc, /Linking\.getInitialURL/, 'cold-start URL owned by App.tsx only');
 assert.match(hookSrc, /safeNavigateToResetPassword/, 'reset navigation is guarded');
 assert.match(hookSrc, /try\s*\{[\s\S]*safeNavigateToResetPassword/, 'navigation errors must not throw');
 

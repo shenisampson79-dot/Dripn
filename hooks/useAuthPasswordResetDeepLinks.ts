@@ -5,8 +5,6 @@ import { CommonActions } from '@react-navigation/native';
 import { getNavigationRef } from '@/components/ErrorFallback';
 import { parsePasswordResetToken, stashPasswordResetToken } from '@/utils/passwordResetDeepLink';
 
-let initialLaunchUrlChecked = false;
-
 function safeNavigateToResetPassword(token: string): boolean {
   try {
     const nav = getNavigationRef();
@@ -23,13 +21,32 @@ function safeNavigateToResetPassword(token: string): boolean {
   }
 }
 
-/** Auth stack only — must run under a mounted stack navigator (not as its sibling). */
+/**
+ * Auth stack only — warm reset links while signed out.
+ * Cold-start getInitialURL is owned by App.tsx (single read); AuthStack initial
+ * route consumes the stashed token from passwordResetDeepLink.ts.
+ */
 export function useAuthPasswordResetDeepLinks(): void {
   const handledRef = useRef<string | null>(null);
+  const deferRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let retryTimer: ReturnType<typeof setInterval> | null = null;
-    let cancelRetry: ReturnType<typeof setTimeout> | null = null;
+    const clearTimers = () => {
+      if (deferRef.current) {
+        clearTimeout(deferRef.current);
+        deferRef.current = null;
+      }
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      if (cancelRetryRef.current) {
+        clearTimeout(cancelRetryRef.current);
+        cancelRetryRef.current = null;
+      }
+    };
 
     const openReset = (url: string | null | undefined) => {
       const token = parsePasswordResetToken(url);
@@ -37,37 +54,29 @@ export function useAuthPasswordResetDeepLinks(): void {
       handledRef.current = token;
       stashPasswordResetToken(token);
 
-      const scheduleNavigate = () => {
+      deferRef.current = setTimeout(() => {
+        deferRef.current = null;
         if (safeNavigateToResetPassword(token)) return;
-        retryTimer = setInterval(() => {
-          if (safeNavigateToResetPassword(token) && retryTimer) {
-            clearInterval(retryTimer);
-            retryTimer = null;
+        retryTimerRef.current = setInterval(() => {
+          if (safeNavigateToResetPassword(token) && retryTimerRef.current) {
+            clearInterval(retryTimerRef.current);
+            retryTimerRef.current = null;
           }
         }, 100);
-        cancelRetry = setTimeout(() => {
-          if (retryTimer) {
-            clearInterval(retryTimer);
-            retryTimer = null;
+        cancelRetryRef.current = setTimeout(() => {
+          if (retryTimerRef.current) {
+            clearInterval(retryTimerRef.current);
+            retryTimerRef.current = null;
           }
         }, 3000);
-      };
-
-      // Defer until AuthStack replaces MainTab after sign-out / cold start.
-      setTimeout(scheduleNavigate, 0);
+      }, 0);
     };
-
-    if (!initialLaunchUrlChecked) {
-      initialLaunchUrlChecked = true;
-      void Linking.getInitialURL().then(openReset);
-    }
 
     const sub = Linking.addEventListener('url', ({ url }) => openReset(url));
 
     return () => {
       sub.remove();
-      if (retryTimer) clearInterval(retryTimer);
-      if (cancelRetry) clearTimeout(cancelRetry);
+      clearTimers();
     };
   }, []);
 }

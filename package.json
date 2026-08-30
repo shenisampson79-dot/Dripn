@@ -38,6 +38,7 @@
     "verify:forgot-password-login": "npx tsx scripts/verify-forgot-password-login.ts",
     "verify:password-reset-flow": "npx tsx scripts/verify-password-reset-flow.ts",
     "verify:sign-out-auth": "npx tsx scripts/verify-sign-out-auth-regression.ts",
+    "verify:app-startup-auth": "npx tsx scripts/verify-app-startup-auth-regression.ts",
     "verify:decision-result-presentation": "npx tsx scripts/verify-decision-result-presentation.ts",
     "verify:decision-weather-snapshot": "npx tsx scripts/verify-decision-weather-snapshot.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",
