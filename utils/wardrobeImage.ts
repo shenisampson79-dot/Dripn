@@ -444,23 +444,6 @@ export function wardrobeImageContentFit(
 }
 
 /** Prefer on-device photos for chat/outfit visuals when available. */
-/** Resolve YOURS / duplicate-sheet thumbnails through the standard wardrobe image pipeline. */
-export function resolveDuplicateMatchImageUri(
-  match: GarmentImageFields & { imageUrl?: string | null },
-): string | undefined {
-  const coerced: ImageFields = {
-    id: match.id,
-    imageUri: trimUri(match.imageUri) || trimUri(match.imageUrl),
-    enhancedImageUri: match.enhancedImageUri,
-    originalImageUri: match.originalImageUri,
-    imageProcessed: match.imageProcessed,
-    aiAnalyzed: match.aiAnalyzed,
-  };
-  const enriched = enrichWardrobeItemForDisplay(coerced);
-  const uri = resolveWardrobeImageUri(enriched);
-  return uri || undefined;
-}
-
 export function enrichWardrobeItemForDisplay(item: ImageFields): ImageFields {
   const coerced = coerceWardrobeDisplayImages(item);
   if (itemHasProcessedCutout(coerced)) {

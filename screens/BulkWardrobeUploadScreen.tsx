@@ -65,7 +65,6 @@ import { aiAllowanceSubscriptionParams } from "@/utils/aiBudgetError";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { prepareWardrobeImagesFromPickerAssets, rotateWardrobeImage } from "@/utils/wardrobeImageOrientation";
-import { resolveDuplicateMatchImageUri } from "@/utils/wardrobeImage";
 import { useTranslations } from "@/contexts/TranslationContext";
 
 function yieldToUi(): Promise<void> {
@@ -137,20 +136,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const enrichDuplicateMatches = useCallback((matches: DuplicateMatch[]): DuplicateMatch[] => {
     return matches.map((m) => {
       const existing = existingItems.find((it) => String(it.id) === String(m.id));
-      const resolvedUri = resolveDuplicateMatchImageUri({
-        id: m.id ?? existing?.id,
-        imageUri: m.imageUri || m.imageUrl || existing?.imageUri,
-        imageUrl: m.imageUrl,
-        enhancedImageUri: existing?.enhancedImageUri,
-        originalImageUri: existing?.originalImageUri,
-        imageProcessed: existing?.imageProcessed,
-        aiAnalyzed: existing?.aiAnalyzed,
-      });
       return {
         ...m,
         name: m.name || existing?.name || 'Wardrobe item',
-        imageUri: resolvedUri,
-        imageUrl: resolvedUri,
+        imageUri: m.imageUri || m.imageUrl || existing?.enhancedImageUri || existing?.imageUri,
+        imageUrl: m.imageUrl || existing?.enhancedImageUri || existing?.imageUri,
       };
     });
   }, [existingItems]);
@@ -785,14 +775,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           type: r.type || r.decision?.type,
           decision: r.decision,
           similarMatches: r.similarMatches,
-          candidate: {
-            name: src.suggestedName,
-            category: src.category,
-            subcategory: src.subcategory,
-            color: src.color,
-            brand: src.brand,
-            material: src.material,
-          },
         });
         if (decision.type === 'duplicate' || decision.type === 'already_owned' || decision.type === 'classification_conflict') {
           const matches = (decision.matches || r.matches || []) as Array<{

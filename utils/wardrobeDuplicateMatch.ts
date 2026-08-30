@@ -852,79 +852,6 @@ function brandsCompatible(a?: string | null, b?: string | null): boolean {
   return ca === cb || ca.includes(cb) || cb.includes(ca);
 }
 
-const GRAPHIC_DETAIL_RE = /\b(graphic|logo|printed|print|slogan|hwpo|emblem|pattern|striped|plaid|floral|band|artwork|photo)\b/i;
-const PLAIN_DESCRIPTOR_RE = /\b(plain|basic|solid|essential|classic|regular)\b/i;
-const GENERIC_GARMENT_TOKENS = new Set([
-  'white', 'black', 'grey', 'gray', 'navy', 'blue', 'red', 'green', 'cream', 'beige',
-  'tee', 'tshirt', 'shirt', 'top', 'cotton', 'mens', 'womens', 'men', 'women', 'short', 'long',
-  'sleeve', 'fit', 'slim', 'regular', 'light', 'dark',
-]);
-
-/** Graphic/logo/detail cues in item names — used to veto CLIP-only similar_item. */
-export function nameSuggestsGraphicDetail(name?: string | null): boolean {
-  const raw = String(name || '').toLowerCase();
-  if (!raw) return false;
-  if (GRAPHIC_DETAIL_RE.test(raw)) return true;
-  const distinctive = [...tokenSet(raw, false)].filter((t) => !GENERIC_GARMENT_TOKENS.has(t));
-  return distinctive.length >= 2;
-}
-
-/** One side reads graphic/branded-detail; the other reads plain generic garment. */
-export function namesGraphicPlainConflict(a?: string | null, b?: string | null): boolean {
-  const ga = nameSuggestsGraphicDetail(a);
-  const gb = nameSuggestsGraphicDetail(b);
-  if (ga === gb) return false;
-  const plainSide = ga ? b : a;
-  const plainRaw = String(plainSide || '').toLowerCase();
-  if (PLAIN_DESCRIPTOR_RE.test(plainRaw)) return true;
-  const plainTokens = [...tokenSet(plainRaw, false)].filter((t) => !GENERIC_GARMENT_TOKENS.has(t));
-  return plainTokens.length <= 1;
-}
-
-/**
- * Client guard at first similar_item accept — suppresses server CLIP >= 0.90 false positives
- * when brand or graphic/plain metadata shows meaningfully distinct garments.
- */
-export function shouldSuppressClipSimilarItemWarning(
-  candidate: WardrobeDupeCandidate,
-  match: DuplicateMatch,
-): boolean {
-  const candBrand = String(candidate.brand || '').trim();
-  const matchBrand = String(match.brand || '').trim();
-  if (candBrand && matchBrand && !brandsCompatible(candBrand, matchBrand)) {
-    return true;
-  }
-  if (namesGraphicPlainConflict(candidate.name, match.name)) {
-    return true;
-  }
-  return false;
-}
-
-export function applySimilarItemClientGuard(
-  candidate: WardrobeDupeCandidate,
-  decision: NormalizedDuplicateDecision,
-): NormalizedDuplicateDecision {
-  if (decision.type !== 'similar_item') return decision;
-  const kept = (decision.matches || []).filter(
-    (m) => !shouldSuppressClipSimilarItemWarning(candidate, m),
-  );
-  if (kept.length === 0) {
-    return {
-      ...decision,
-      type: 'ok',
-      matches: [],
-      message: undefined,
-      isDuplicate: false,
-    };
-  }
-  if (kept.length === (decision.matches || []).length) return decision;
-  return {
-    ...decision,
-    matches: kept,
-    message: kept[0]?.message || decision.message,
-  };
-}
-
 /**
  * Launch conservative duplicate hint — client-only when server returns ok.
  * Requires multi-signal evidence (brand + colour + structure); never name alone.
@@ -1082,7 +1009,6 @@ export function normalizeDuplicateDecision(input: {
   conflictMatches?: DuplicateMatch[] | null;
   decision?: { type?: string; matches?: DuplicateMatch[]; message?: string } | null;
   candidateIndex?: number;
-  candidate?: WardrobeDupeCandidate | null;
 } | null | undefined): NormalizedDuplicateDecision {
   const decisionType = (input?.decision?.type || input?.type || '').toLowerCase();
   const matches = (input?.decision?.matches || input?.matches || []).filter(Boolean);
@@ -1112,17 +1038,13 @@ export function normalizeDuplicateDecision(input: {
     };
   }
   if (decisionType === 'similar_item' || similar.length > 0) {
-    const guarded = {
-      type: 'similar_item' as const,
+    return {
+      type: 'similar_item',
       matches: similar.length ? similar : matches,
       message: message || similar[0]?.message || matches[0]?.message || DEDUPE_COPY.probable,
       isDuplicate: false,
       candidateIndex: input?.candidateIndex,
     };
-    if (input?.candidate) {
-      return applySimilarItemClientGuard(input.candidate, guarded);
-    }
-    return guarded;
   }
   return { type: 'ok', matches: [], message: undefined, isDuplicate: false, candidateIndex: input?.candidateIndex };
 }
