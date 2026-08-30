@@ -26,6 +26,7 @@ import {
   CLIP_POSSIBLE,
   LAUNCH_DEDUPE_CONTRACT,
   normalizeDuplicateDecision,
+  normalizeDuplicateDecisionWithClientGuard,
   shouldSuppressClipSimilarItemWarning,
   nameSuggestsGraphicDetail,
   namesGraphicPlainConflict,
@@ -136,6 +137,15 @@ console.log('=== Client wardrobe duplicate match ===\n');
     candidate: { name: 'Different label', brand: 'Other', category: 'outerwear' },
   });
   assertEq(hardDupe.type, 'duplicate', 'hard duplicate unchanged by guard');
+  {
+    const guarded = normalizeDuplicateDecisionWithClientGuard({
+      type: 'similar_item',
+      similarMatches: [{ id: 42, name: 'H&M White Tee', brand: 'H&M', category: 'tops' }],
+      candidate: { name: 'Nike HWPO Graphic Tee', brand: 'Nike', category: 'tops', color: 'white' },
+    });
+    assertEq(guarded.decision.type, 'ok', 'guard suppresses similar');
+    assert.deepStrictEqual(guarded.suppressedSimilarMatchIds, ['42'], 'override ids for batch create');
+  }
   console.log('✓ CLIP similar_item client guard');
 }
 

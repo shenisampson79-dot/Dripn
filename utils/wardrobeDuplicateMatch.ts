@@ -1127,6 +1127,28 @@ export function normalizeDuplicateDecision(input: {
   return { type: 'ok', matches: [], message: undefined, isDuplicate: false, candidateIndex: input?.candidateIndex };
 }
 
+export type GuardedDuplicateDecision = {
+  decision: NormalizedDuplicateDecision;
+  /** Server similar_item matches vetoed by client guard — pass as dedupeOverrideAgainst on create. */
+  suppressedSimilarMatchIds: string[];
+};
+
+/** Compare guarded vs unguarded decision; surface override ids when guard suppresses server similar_item. */
+export function normalizeDuplicateDecisionWithClientGuard(
+  input: Parameters<typeof normalizeDuplicateDecision>[0],
+): GuardedDuplicateDecision {
+  const { candidate, ...rest } = input || {};
+  const unguarded = normalizeDuplicateDecision(rest);
+  const guarded = normalizeDuplicateDecision(input);
+  if (unguarded.type === 'similar_item' && guarded.type === 'ok' && candidate) {
+    return {
+      decision: guarded,
+      suppressedSimilarMatchIds: overrideIdsFromMatches(unguarded.matches),
+    };
+  }
+  return { decision: guarded, suppressedSimilarMatchIds: [] };
+}
+
 /**
  * Offline pairwise within-batch duplicates.
  * Only the later item is flagged — the first occurrence is kept.
