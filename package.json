@@ -33,6 +33,7 @@
     "verify:decision-contract": "npx tsx scripts/verify-decision-contract.ts",
     "verify:decision-access": "npx tsx utils/decisionAccessGate.test.ts",
     "verify:decision-allowance-latch": "npx tsx utils/decisionAllowanceLatch.test.ts",
+    "verify:event-recent-outfit-history": "npx tsx scripts/verify-event-recent-outfit-history.ts && npx tsx utils/extractEventRecentOutfitIdLists.test.ts",
     "verify:decision-result-presentation": "npx tsx scripts/verify-decision-result-presentation.ts",
     "verify:decision-weather-snapshot": "npx tsx scripts/verify-decision-weather-snapshot.ts",
     "verify:safe-render": "npx tsx scripts/verify-safe-render.ts",

@@ -8,6 +8,7 @@ import { resolve } from 'node:path';
 
 import {
   extractEventRecentOutfitIdLists,
+  resolveEventOutfitHistoryPieces,
 } from '../utils/extractEventRecentOutfitIdLists';
 
 const root = resolve(__dirname, '..');
@@ -49,6 +50,14 @@ console.log('=== verify-matrix-post-ota-fixes ===\n');
     { wardrobeItemId: '50' },
   ]);
   assert.deepEqual(prior[0], ['142', '85', '121', '50']);
+  const shopPrior = extractEventRecentOutfitIdLists([], resolveEventOutfitHistoryPieces({
+    displayState: 'SHOP_REQUIRED',
+    outfitPieces: null,
+    retailOutfit: {
+      products: [{ id: 'fw-f-top-blouse' }, { id: 'fw-f-bottom-midi' }, { id: 'fw-f-shoes-heel' }],
+    },
+  })!);
+  assert.equal(shopPrior.length, 1);
   const second = extractEventRecentOutfitIdLists(prior, [
     { wardrobeItemId: '10' },
     { wardrobeItemId: '11' },

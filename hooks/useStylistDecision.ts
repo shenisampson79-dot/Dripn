@@ -37,6 +37,7 @@ import { stabilizeDecisionImage } from '@/services/VisionAnalysisService';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import {
   extractEventRecentOutfitIdLists,
+  resolveEventOutfitHistoryPieces,
 } from '@/utils/extractEventRecentOutfitIdLists';
 import {
   appendEventRecentOutfitHistory,
@@ -457,12 +458,9 @@ export function useStylistDecision({
 
       if (flowKey === 'event-outfit' && user.id) {
         let history = await loadEventRecentOutfitHistory(user.id);
-        if (
-          session?.result?.outfitPieces
-          && Array.isArray(session.result.outfitPieces)
-          && session.result.outfitPieces.length >= 2
-        ) {
-          history = extractEventRecentOutfitIdLists(history, session.result.outfitPieces);
+        const sessionHistoryPieces = resolveEventOutfitHistoryPieces(session?.result || null);
+        if (sessionHistoryPieces) {
+          history = extractEventRecentOutfitIdLists(history, sessionHistoryPieces);
           await saveEventRecentOutfitHistory(user.id, history);
         }
         eventRecentOutfitsRef.current = history;
@@ -1034,6 +1032,9 @@ export function useStylistDecision({
           : null;
 
       const mappedType = DECISION_TYPE_MAP[decisionType] || 'sanity_check';
+      if (mappedType === 'event_outfit' && user?.id && eventRecentOutfitsRef.current.length === 0) {
+        eventRecentOutfitsRef.current = await loadEventRecentOutfitHistory(user.id);
+      }
       const approxKb = Math.round(
         base64Images.reduce((sum, img) => sum + img.length, 0) / 1024,
       );
@@ -1360,16 +1361,17 @@ export function useStylistDecision({
       setAllowanceBlocked(false);
       setResponse(result);
       setStep('response');
-      if (mappedType === 'event_outfit' && Array.isArray(result.outfitPieces) && result.outfitPieces.length >= 2) {
+      const eventHistoryPieces = resolveEventOutfitHistoryPieces(result);
+      if (mappedType === 'event_outfit' && eventHistoryPieces) {
         if (user?.id) {
           eventRecentOutfitsRef.current = await appendEventRecentOutfitHistory(
             user.id,
-            result.outfitPieces,
+            eventHistoryPieces,
           );
         } else {
           eventRecentOutfitsRef.current = extractEventRecentOutfitIdLists(
             eventRecentOutfitsRef.current,
-            result.outfitPieces,
+            eventHistoryPieces,
           );
         }
       }
