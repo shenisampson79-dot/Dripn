@@ -32,6 +32,10 @@ const REJECTED_REMOTE = [
   'pexels-photo-5264927',
   // Men's blazer rack reused for women's blazer labels
   'pexels-photo-325876',
+  // Device-proven bad female formal Unsplash associations
+  'photo-1583496661160-fb5886a0aaaa',
+  'photo-1543163521-1bf539c55dd2',
+  'photo-1591369822096-ffd140ec948f',
   // Shoe-led crop previously used as trousers
   '2989593',
   'pexels-photo-2989593',
