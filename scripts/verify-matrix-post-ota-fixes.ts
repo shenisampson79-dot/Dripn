@@ -61,6 +61,7 @@ console.log('=== verify-matrix-post-ota-fixes ===\n');
 {
   assert.match(shopThumbSrc, /isFeminineShopProduct/);
   assert.match(shopThumbSrc, /pexels-photo-804069/);
+  assert.match(shopThumbSrc, /pexels-photo-5264927/);
   assert.match(shopThumbSrc, /if \(feminine\) return false/);
   assert.doesNotMatch(shopThumbSrc, /\/white\|poplin/);
   assert.doesNotMatch(ensureShopSrc, /CATEGORY_FALLBACK/);

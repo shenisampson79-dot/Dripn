@@ -28,6 +28,8 @@ const REJECTED_REMOTE = [
   'photo-1579664531470-ac357f8f8e2b',
   // Men's shirt stock reused for women's blouse labels
   'pexels-photo-804069',
+  // Men's trousers stock reused for women's tailored trousers
+  'pexels-photo-5264927',
   // Men's blazer rack reused for women's blazer labels
   'pexels-photo-325876',
   // Shoe-led crop previously used as trousers
@@ -105,7 +107,7 @@ export function resolveShopThumb(
 
   const remote = product.image;
   if (remote && /^https?:\/\//i.test(remote) && !isRejectedRemote(remote)) {
-    if (feminine && (remote.includes('804069') || remote.includes('325876'))) {
+    if (feminine && (remote.includes('804069') || remote.includes('5264927') || remote.includes('325876'))) {
       return null;
     }
     return { uri: remote };
