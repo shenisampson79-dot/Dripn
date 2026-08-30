@@ -202,7 +202,9 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         if (saved.outfitOptions?.length && (saved.step === 'looks' || saved.step === 'outfit')) {
           setStep('looks');
         } else if (saved.scanItems?.length) {
-          setStep(saved.step === 'capture' ? 'confirm' : saved.step);
+          const restoredStep =
+            saved.step === 'capture' || saved.step === 'outfit' ? 'confirm' : saved.step;
+          setStep(restoredStep);
         } else {
           setStep('capture');
         }
@@ -842,6 +844,18 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
     </View>
   );
 
+  const renderGeneratingOutfits = () => (
+    <View style={[styles.stepBody, styles.centered]}>
+      <ActivityIndicator size="large" color={LuxuryColors.gold} />
+      <ThemedText type="h2" style={{ marginTop: Spacing.lg, textAlign: 'center' }}>
+        {t('wardrobe.creatingYourOutfits') || 'Creating your outfits…'}
+      </ThemedText>
+      <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: 'center' }}>
+        This usually takes a few seconds.
+      </ThemedText>
+    </View>
+  );
+
   const renderConfirmItem = ({ item }: { item: ScanSessionItem }) => (
     <View style={[styles.itemCard, { backgroundColor: isDark ? theme.surface : '#FFF', borderColor: theme.border }]}>
       <View style={styles.itemRow}>
@@ -966,18 +980,20 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           disabled={isGenerating || (!canGenerateLooks && !allowanceBlocked)}
           style={[styles.primaryBtn, { backgroundColor: LuxuryColors.gold, opacity: isGenerating || (!canGenerateLooks && !allowanceBlocked) ? 0.5 : 1 }]}
         >
-          <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
-            {isGenerating
-              ? 'Building looks…'
-              : allowanceBlocked
+          {isGenerating ? (
+            <ActivityIndicator color={LuxuryColors.midnight} />
+          ) : (
+            <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
+              {allowanceBlocked
                 ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
                 : 'Show me 3 outfits'}
-          </ThemedText>
+            </ThemedText>
+          )}
         </Pressable>
         <Pressable
           onPress={handleSaveToWardrobe}
-          disabled={isSaving}
-          style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving ? 0.5 : 1 }]}
+          disabled={isSaving || isGenerating}
+          style={[styles.secondaryBtn, { borderColor: theme.border, opacity: isSaving || isGenerating ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: theme.text }}>
             Save scanned pieces to wardrobe
@@ -985,7 +1001,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         </Pressable>
         <Pressable
           onPress={goAddAnotherItem}
-          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold }]}
+          disabled={isGenerating}
+          style={[styles.secondaryBtn, { borderColor: LuxuryColors.gold, opacity: isGenerating ? 0.5 : 1 }]}
         >
           <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
             + Add another item
@@ -1097,7 +1114,8 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       >
         {step === 'capture' && renderCapture()}
         {step === 'scanning' && renderScanning()}
-        {(step === 'confirm' || step === 'outfit') && renderConfirm()}
+        {step === 'confirm' && renderConfirm()}
+        {step === 'outfit' && renderGeneratingOutfits()}
         {step === 'looks' && renderLooks()}
         {step === 'save' && renderSave()}
       </KeyboardAwareScrollView>
@@ -1107,30 +1125,6 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         outfit={generatedOutfit}
         occasion={selectedOccasion}
         onClose={() => setShowOutfitModal(false)}
-        onAskStylist={() => {
-          const look = generatedOutfit?.items || [];
-          void (async () => {
-            const continuity = await persistLookContinuity(
-              look,
-              generatedOutfit?.stylistMessage,
-            );
-            setShowOutfitModal(false);
-            try {
-              (navigation as { navigate: (name: string, params?: object) => void }).navigate(
-                'AIStylist',
-                continuity
-                  ? {
-                      decisionContinuity: continuity,
-                      fromDecisionSessionId: continuity.decisionSessionId,
-                      initialPrompt: 'Finish off the outfit from Get outfits now.',
-                    }
-                  : { initialPrompt: 'Finish off the outfit from Get outfits now.' },
-              );
-            } catch {
-              /* Tab route still loads the persisted snapshot. */
-            }
-          })();
-        }}
         onSkipLook={() => {
           if (outfitOptions.length < 2) {
             setShowOutfitModal(false);

@@ -30,6 +30,11 @@ export function shouldShowDecisionRefineCta(
   return false;
 }
 
+/** Always false — no Get Outfits Now→Stylist Chat refine CTA at launch. */
+export function shouldShowGonRefineCta(): boolean {
+  return false;
+}
+
 /** @deprecated Prefer shouldShowDecisionRefineCta — kept for existing verify imports. */
 export function shouldShowSanityFollowUpCta(
   res?: SanityFollowUpResponse | null,

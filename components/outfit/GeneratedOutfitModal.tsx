@@ -16,6 +16,7 @@ import { humanizeStylistMessage } from '@/utils/humanizeStylistMessage';
 import { wardrobeProcessedTileBackground, wardrobeTileBackground } from '@/utils/wardrobeImage';
 import { useTranslations } from "@/contexts/TranslationContext";
 import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
+import { shouldShowGonRefineCta } from '@/utils/sanityFollowUpCta';
 
 export type GeneratedOutfitModalData = {
   items: WardrobeItem[];
@@ -221,7 +222,7 @@ export function GeneratedOutfitModal({
                 {t('common.gotIt') || 'Got it!'}
               </ThemedText>
             </Pressable>
-            {onAskStylist ? (
+            {shouldShowGonRefineCta() && onAskStylist ? (
               <Pressable
                 style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.7 }]}
                 onPress={() => {
