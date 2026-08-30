@@ -1,6 +1,8 @@
 /**
  * Local curated shop thumbnails — preferred over remote stock for formal SKUs.
  * Keys match server `imageKey` / garmentType from retailOutfitBuilder.
+ *
+ * Conservative: no title-keyword guessing. Only explicit keys or vetted remote URLs.
  */
 import type { ImageSourcePropType } from 'react-native';
 
@@ -62,6 +64,26 @@ function isMasculineShopProduct(product: {
     || /dress_shirt|oxford/.test(type);
 }
 
+function isRejectedRemote(url: string): boolean {
+  return REJECTED_REMOTE.some((id) => url.includes(id));
+}
+
+/** Men's curated local thumbs must not appear for feminine-labelled products. */
+function localThumbAllowedForProduct(
+  key: string,
+  product: { title?: string | null; garmentType?: string | null; category?: string | null },
+  feminine: boolean,
+  masculine: boolean,
+): boolean {
+  if (feminine) return false;
+  if (!masculine && /blouse|skirt|midi|heel|court|women/i.test(String(product.title || ''))) {
+    return false;
+  }
+  const menOnlyKeys = ['formal_white_shirt', 'dress_shirt', 'formal_navy_blazer', 'blazer', 'suit_jacket'];
+  if (!masculine && menOnlyKeys.includes(key)) return false;
+  return Boolean(THUMBS[key]);
+}
+
 export function resolveShopThumb(
   product: {
     imageKey?: string | null;
@@ -76,36 +98,17 @@ export function resolveShopThumb(
   const feminine = shopGender === 'female' || (shopGender !== 'male' && isFeminineShopProduct(product));
   const masculine = shopGender === 'male' || (!feminine && isMasculineShopProduct(product));
 
-  const remote = product.image;
-  if (remote && !REJECTED_REMOTE.some((id) => remote.includes(id))) {
-    if (feminine && (remote.includes('804069') || remote.includes('325876'))) {
-      // Known men's stock URLs — never show for blouse/blazer labels.
-    } else {
-      return { uri: remote };
-    }
-  }
-
-  if (feminine) {
-    return null;
-  }
-
   const key = String(product.imageKey || product.garmentType || '').toLowerCase();
-  if (key && THUMBS[key]) return THUMBS[key];
+  if (key && localThumbAllowedForProduct(key, product, feminine, masculine)) {
+    return THUMBS[key] || null;
+  }
 
-  const title = String(product.title || '').toLowerCase();
-  if (masculine || !feminine) {
-    if (/white|poplin|oxford.*shirt|dress shirt/.test(title) && THUMBS.formal_white_shirt) {
-      return THUMBS.formal_white_shirt;
+  const remote = product.image;
+  if (remote && /^https?:\/\//i.test(remote) && !isRejectedRemote(remote)) {
+    if (feminine && (remote.includes('804069') || remote.includes('325876'))) {
+      return null;
     }
-    if (/oxford|derby|dress shoe/.test(title) && THUMBS.formal_black_oxfords) {
-      return THUMBS.formal_black_oxfords;
-    }
-    if (/trouser|pant|chino/.test(title) && THUMBS.formal_dress_trousers) {
-      return THUMBS.formal_dress_trousers;
-    }
-    if (/blazer|jacket|suit/.test(title) && THUMBS.formal_navy_blazer) {
-      return THUMBS.formal_navy_blazer;
-    }
+    return { uri: remote };
   }
 
   return null;

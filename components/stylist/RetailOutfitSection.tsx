@@ -211,8 +211,6 @@ export function RetailOutfitSection({
         out.push({ key: `local-${product.id || role}`, source: local });
       } else if (local && typeof local === 'object' && 'uri' in local && local.uri) {
         out.push({ key: `uri-${product.id || role}`, source: local });
-      } else if (product.image && /^https?:\/\//i.test(product.image)) {
-        out.push({ key: `img-${product.id || role}`, source: { uri: product.image } });
       }
     }
     return out;

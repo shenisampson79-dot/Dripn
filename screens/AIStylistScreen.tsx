@@ -1922,8 +1922,8 @@ export default function AIStylistScreen() {
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const keyboardHeightPx = useKeyboardState((state) => state.height);
   const inputBottomPadStyle = useAnimatedStyle(() => ({
-    // KeyboardStickyView closed offset already clears the tab bar — only pad home indicator.
-    paddingBottom: keyboardHeight.value === 0 ? Math.max(insets.bottom, Spacing.xs) : 0,
+    // Match paddingTop on inputContainerWrapper (Spacing.md) when keyboard is closed.
+    paddingBottom: keyboardHeight.value === 0 ? Spacing.md : 0,
   }));
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -5413,10 +5413,7 @@ export default function AIStylistScreen() {
         <View
           style={[
             styles.inputContainerWrapper,
-            { 
-              paddingBottom: Spacing.sm,
-              backgroundColor: theme.backgroundDefault,
-            }
+            { backgroundColor: theme.backgroundDefault },
           ]}
         >
           <View style={[styles.recordingContainer, { backgroundColor: theme.backgroundSecondary }]}>
@@ -5461,10 +5458,7 @@ export default function AIStylistScreen() {
         <View
           style={[
             styles.inputContainerWrapper,
-            { 
-              paddingBottom: Spacing.sm,
-              backgroundColor: theme.backgroundDefault,
-            }
+            { backgroundColor: theme.backgroundDefault },
           ]}
         >
           <View style={[styles.transcribingContainer, { backgroundColor: theme.backgroundSecondary }]}>
@@ -5481,10 +5475,7 @@ export default function AIStylistScreen() {
       <View
         style={[
           styles.inputContainerWrapper,
-          { 
-            paddingBottom: Spacing.sm,
-            backgroundColor: theme.backgroundDefault,
-          }
+          { backgroundColor: theme.backgroundDefault },
         ]}
       >
         {showQuickPrompts && !isTyping && messages.length <= 1 ? (

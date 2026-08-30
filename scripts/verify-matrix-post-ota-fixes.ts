@@ -57,20 +57,26 @@ console.log('=== verify-matrix-post-ota-fixes ===\n');
   assert.equal(second.length, 2);
 }
 
-// C. Female SHOP_REQUIRED — gender-aware thumbs; hide misleading men's stock
+// C. SHOP_REQUIRED — conservative thumbs only; no category/title guessing
 {
   assert.match(shopThumbSrc, /isFeminineShopProduct/);
   assert.match(shopThumbSrc, /pexels-photo-804069/);
-  assert.match(shopThumbSrc, /if \(feminine\) \{\s*return null;/);
-  assert.match(ensureShopSrc, /gender\?: string/);
-  assert.match(ensureShopSrc, /if \(feminine\) \{\s*return null;/);
-  assert.match(productSrc, /gender\?: string/);
+  assert.match(shopThumbSrc, /if \(feminine\) return false/);
+  assert.doesNotMatch(shopThumbSrc, /\/white\|poplin/);
+  assert.doesNotMatch(ensureShopSrc, /CATEGORY_FALLBACK/);
+  assert.match(ensureShopSrc, /return null/);
   assert.match(productSrc, /ensureShopImage\(product, gender\)/);
+  assert.match(productSrc, /shopping-bag/);
 }
 
-// D. Chat composer spacing — no double tab-bar pad inside sticky input
+// D. Chat composer spacing — symmetric md pad above/below when keyboard closed
 {
   assert.match(chatSrc, /KeyboardStickyView offset=\{\{ closed: -tabBarHeight/);
+  assert.match(
+    chatSrc,
+    /paddingBottom: keyboardHeight\.value === 0 \? Spacing\.md : 0/,
+    'closed-keyboard bottom pad matches top (Spacing.md)',
+  );
   assert.doesNotMatch(
     chatSrc,
     /paddingBottom: keyboardHeight\.value === 0 \? tabBarHeight/,
