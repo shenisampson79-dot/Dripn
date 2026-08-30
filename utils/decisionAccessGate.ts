@@ -56,9 +56,9 @@ export function sanitizeDecisionAccessStatus<T extends DecisionAccessSnapshot | 
 export function canSubmitDecisionAtGuard(
   tier: SubscriptionTier | string | null | undefined,
   accessStatus: { canMakeDecision: boolean } | null,
-  authReady = true,
+  tierReady = true,
 ): boolean {
-  if (!authReady) return true;
+  if (!tierReady) return true;
   if (tierHasUnlimitedDecisions(normalizeSubscriptionTier(tier))) return true;
   return accessStatus?.canMakeDecision !== false;
 }
@@ -70,28 +70,48 @@ export function isDailyDecisionPaywallTier(
   return !tierHasUnlimitedDecisions(normalizeSubscriptionTier(tier));
 }
 
+/**
+ * Subscription tier is safe to use for daily Decision paywall display.
+ * Auth shell + entitlement refresh must finish first — never treat a
+ * pre-refresh free snapshot as authoritative for PS subscribers.
+ */
+export function isDecisionTierReadyForPaywall(
+  authReady = true,
+  entitlementReady = true,
+): boolean {
+  return authReady && entitlementReady;
+}
+
 /** Clear latched upgrade modal once access re-evaluates allowed or tier is unlimited. */
 export function resolveDecisionUpgradeModalVisible(
   canMakeDecision: boolean,
   showPaywallIfBlocked: boolean | undefined,
   tier?: SubscriptionTier | string | null,
-  authReady = true,
+  tierReady = true,
 ): boolean {
-  if (!authReady) return false;
+  if (!tierReady) return false;
   if (!isDailyDecisionPaywallTier(tier)) return false;
   if (canMakeDecision) return false;
   return showPaywallIfBlocked !== false;
 }
 
-/** Presentation gate — suppress stale latched modal state for unlimited tiers / auth hydrate. */
+/** Presentation gate — never render daily modal until tier is ready and Free. */
 export function shouldShowDecisionUpgradeModal(
   showUpgradeModal: boolean,
   tier: SubscriptionTier | string | null | undefined,
-  authReady = true,
+  tierReady = true,
 ): boolean {
   if (!showUpgradeModal) return false;
-  if (!authReady) return false;
+  if (!tierReady) return false;
   return isDailyDecisionPaywallTier(tier);
+}
+
+/** Latch daily modal only when resolved tier is actually subject to the daily gate. */
+export function shouldLatchDailyDecisionUpgradeModal(
+  tier: SubscriptionTier | string | null | undefined,
+  tierReady = true,
+): boolean {
+  return tierReady && isDailyDecisionPaywallTier(tier);
 }
 
 /** Tier-aware Decision paywall — never upsell Personal Stylist to existing PS subscribers. */

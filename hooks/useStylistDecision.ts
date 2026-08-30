@@ -7,8 +7,10 @@ import { useWardrobe } from '@/contexts/WardrobeContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import {
   canSubmitDecisionAtGuard,
+  isDecisionTierReadyForPaywall,
   resolveDecisionUpgradeModalVisible,
   sanitizeDecisionAccessStatus,
+  shouldLatchDailyDecisionUpgradeModal,
   shouldShowDecisionUpgradeModal,
 } from '@/utils/decisionAccessGate';
 import { tierHasUnlimitedDecisions } from '@/utils/tierMatrix';
@@ -201,7 +203,9 @@ export function useStylistDecision({
   navigation,
   initialStep,
 }: UseStylistDecisionOptions) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, refreshSubscriptionFromBackend } = useAuth();
+  const [entitlementReady, setEntitlementReady] = useState(false);
+  const tierReady = isDecisionTierReadyForPaywall(!authLoading, entitlementReady);
   const { items: wardrobeItems } = useWardrobe();
   const { t } = useTranslations();
 
@@ -344,13 +348,31 @@ export function useStylistDecision({
           status.canMakeDecision,
           opts?.showPaywallIfBlocked,
           user.subscriptionTier,
-          !authLoading,
+          tierReady,
         ),
       );
       return status;
     },
-    [authLoading, user?.id, user?.subscriptionTier],
+    [tierReady, user?.id, user?.subscriptionTier],
   );
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setEntitlementReady(true);
+      return;
+    }
+    let cancelled = false;
+    setEntitlementReady(false);
+    void refreshSubscriptionFromBackend()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setEntitlementReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, refreshSubscriptionFromBackend, user?.id]);
 
   useEffect(() => {
     checkAccess({ showPaywallIfBlocked: false });
@@ -569,8 +591,10 @@ export function useStylistDecision({
       openAllowanceDestination();
       return false;
     }
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus, !authLoading)) {
-      if (!authLoading) setShowUpgradeModal(true);
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus, tierReady)) {
+      if (shouldLatchDailyDecisionUpgradeModal(user?.subscriptionTier, tierReady)) {
+        setShowUpgradeModal(true);
+      }
       return false;
     }
     return true;
@@ -1718,7 +1742,7 @@ export function useStylistDecision({
     isLoading,
     isSurpriseMe,
     response,
-    showUpgradeModal: shouldShowDecisionUpgradeModal(showUpgradeModal, user?.subscriptionTier, !authLoading),
+    showUpgradeModal: shouldShowDecisionUpgradeModal(showUpgradeModal, user?.subscriptionTier, tierReady),
     allowanceBlocked,
     contextChips,
     wardrobeItems,

@@ -8,8 +8,10 @@ import {
   FREE_DAILY_DECISION_REASON,
   getDecisionPaywallCopy,
   getDecisionPaywallModalCopy,
+  isDecisionTierReadyForPaywall,
   resolveDecisionUpgradeModalVisible,
   sanitizeDecisionAccessStatus,
+  shouldLatchDailyDecisionUpgradeModal,
   shouldShowDecisionUpgradeModal,
 } from '../utils/decisionAccessGate';
 
@@ -126,7 +128,13 @@ const sanitized = sanitizeDecisionAccessStatus('personal_stylist', {
 assert.equal(sanitized.canMakeDecision, true, 'sanitize clears blocked flag for PS');
 assert.equal(sanitized.reason, undefined, 'sanitize clears stale daily reason for PS');
 
-// H — presentation gate suppresses latched modal for PS / auth loading
+assert.equal(
+  canSubmitDecisionAtGuard('free', { canMakeDecision: false }, false),
+  true,
+  'tier not ready must not latch daily gate',
+);
+
+// H — presentation gate suppresses latched modal for PS / auth + entitlement loading
 assert.equal(
   shouldShowDecisionUpgradeModal(true, 'personal_stylist'),
   false,
@@ -140,10 +148,54 @@ assert.equal(
 assert.equal(
   shouldShowDecisionUpgradeModal(true, 'free', false),
   false,
-  'latched modal hidden while auth hydrates',
+  'latched modal hidden while tier not ready',
+);
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'free', true),
+  true,
+  'latched modal visible for resolved free tier at daily limit',
+);
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'personal_stylist', true),
+  false,
+  'resolved PS never renders daily modal',
+);
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'personal_stylist', false),
+  false,
+  'PS with stale free status during entitlement refresh stays hidden',
+);
+assert.equal(
+  isDecisionTierReadyForPaywall(false, true),
+  false,
+  'auth loading blocks paywall tier readiness',
+);
+assert.equal(
+  isDecisionTierReadyForPaywall(true, false),
+  false,
+  'entitlement refresh blocks paywall tier readiness',
+);
+assert.equal(
+  shouldLatchDailyDecisionUpgradeModal('free', false),
+  false,
+  'never latch daily modal before tier ready',
+);
+assert.equal(
+  shouldLatchDailyDecisionUpgradeModal('personal_stylist', true),
+  false,
+  'never latch daily modal for PS',
+);
+assert.equal(
+  shouldLatchDailyDecisionUpgradeModal('free', true),
+  true,
+  'resolved free may latch daily modal',
 );
 
-// I — modal copy ignores stale daily reason on unlimited tier
+assert.equal(
+  resolveDecisionUpgradeModalVisible(false, true, 'free', false),
+  false,
+  'modal hidden while tier not ready even if blocked',
+);
 const psModal = getDecisionPaywallModalCopy('personal_stylist', {
   reason: FREE_DAILY_DECISION_REASON,
 });
