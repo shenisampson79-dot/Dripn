@@ -364,6 +364,34 @@ assert.equal(
   assert.ok(display.bullets.some((b) => /formal dinner/i.test(b)), 'E: occasion context in fallback');
 }
 
+// Event H: allocator relaxation metadata must not render — piece-grounded fallback instead
+{
+  assert.ok(isGenericEventWhyBullet('Built after relaxing non-occasion constraints'));
+  assert.ok(isGenericEventWhyBullet('Occasion lock kept hard.'));
+  assert.ok(!isGenericEventWhyBullet('The pink dress shirt meets the formal dress code.'));
+
+  const eventPieces = [
+    { role: 'top', name: 'Primark cream crew neck t-shirt' },
+    { role: 'bottom', name: 'u.s. chinos beige straight-leg pants' },
+    { role: 'shoes', name: 'black leather loafers' },
+  ];
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Your date look.',
+      reasoning: 'Built after relaxing non-occasion constraints — Occasion lock kept hard.',
+    }),
+    'event-outfit',
+    { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'casual' } },
+  );
+  assert.ok(!display.bullets.some((b) => /built after relaxing/i.test(b)), 'H: no relaxation metadata');
+  assert.ok(!display.bullets.some((b) => /occasion lock kept hard/i.test(b)), 'H: no lock metadata');
+  assert.ok(display.bullets.length >= 2, 'H: piece-grounded fallback renders');
+  assert.ok(
+    display.bullets.some((b) => /Primark cream crew neck|chinos|loafers/i.test(b)),
+    'H: fallback cites selected pieces',
+  );
+}
+
 // deriveEventWhyFromPieces unit contract
 {
   const bullets = deriveEventWhyFromPieces(

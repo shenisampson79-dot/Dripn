@@ -170,6 +170,13 @@ const ENGINE_LEAK_RES: RegExp[] = [
   /\bNever recommend trainers or sneakers for this workplace\b/i,
   /\bTrainers only if they are clean\/minimal lifestyle\b/i,
   /ZZ_[A-Z0-9_]{8,}/,
+  /** Allocator / constraint-relaxation metadata — never customer WHY copy. */
+  /\bbuilt after relaxing\b/i,
+  /\brelaxing non-occasion constraint/i,
+  /\boccasion lock kept hard\b/i,
+  /\boccasion lock kept\b/i,
+  /\bcasual_occasion_tie_blocked\b/i,
+  /\bnon-occasion constraint/i,
 ];
 
 const FATAL_ENGINE_LEAK_RES: RegExp[] = [

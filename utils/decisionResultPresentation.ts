@@ -63,6 +63,7 @@ export function isGenericEventWhyBullet(text?: string | null): boolean {
   const t = String(text || '').trim();
   if (!t) return true;
   if (isEventCannedReasoning(t)) return true;
+  if (containsEngineLeak(t)) return true;
   if (GENERIC_EVENT_WHY_RES.some((re) => re.test(t))) return true;
   return false;
 }
