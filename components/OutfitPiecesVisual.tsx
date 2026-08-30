@@ -51,6 +51,16 @@ const SLOT_SAFE_PAD: Record<LayerSlot, { paddingTop: number; paddingBottom: numb
   accessory: { paddingTop: 4, paddingBottom: 4 },
 };
 
+/** Large card uses gap stacking — lighter pad so contain-fit garments sit closer. */
+const SLOT_SAFE_PAD_LARGE: Record<LayerSlot, { paddingTop: number; paddingBottom: number }> = {
+  outerwear: { paddingTop: 2, paddingBottom: 4 },
+  top: { paddingTop: 2, paddingBottom: 4 },
+  bottom: { paddingTop: 4, paddingBottom: 2 },
+  shoes: { paddingTop: 2, paddingBottom: 2 },
+  dress: { paddingTop: 4, paddingBottom: 4 },
+  accessory: { paddingTop: 2, paddingBottom: 2 },
+};
+
 export type OutfitPieceVisual = {
   role?: string;
   name?: string;
@@ -79,12 +89,12 @@ const LAYER_HEIGHT: Record<LayerSlot, number> = {
 };
 
 const LAYER_HEIGHT_LARGE: Record<LayerSlot, number> = {
-  outerwear: 268,
-  top: 242,
-  bottom: 272,
-  shoes: 188,
-  dress: 420,
-  accessory: 168,
+  outerwear: 200,
+  top: 168,
+  bottom: 190,
+  shoes: 120,
+  dress: 300,
+  accessory: 140,
 };
 
 const LAYER_WIDTH: Record<LayerSlot, number> = {
@@ -106,6 +116,9 @@ const LAYER_WIDTH_LARGE: Record<LayerSlot, number> = {
 };
 
 const STACK_OVERLAP_LARGE = 22;
+
+/** Large visual cards (Event, Stylist Chat, ranked looks) — positive gap between garment bounds (~20px). */
+const STACK_GAP_LARGE = 20;
 
 const STACK_ORDER: LayerSlot[] = ['outerwear', 'top', 'dress', 'bottom', 'shoes'];
 
@@ -335,18 +348,21 @@ export function OutfitPiecesVisual({
     return base * (compact ? 0.94 : 1);
   };
   const baseOverlap = compact ? 22 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
-  // Prefer readable hems over dense collage; tight only nudges slightly.
-  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));
+  const useStackGap = large && !tight && !compact;
+  const stackSpacing = useStackGap
+    ? Math.round(STACK_GAP_LARGE * sizeScale)
+    : Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));
 
   // Adaptive canvas: taller stacks get more vertical room (tall shirts / dresses).
-  const adaptiveBoost = stack.some((l) => l.slot === 'dress') ? 1.06
-    : stack.filter((l) => l.slot === 'top' || l.slot === 'outerwear').length >= 2 ? 1.04
+  const adaptiveBoost = stack.some((l) => l.slot === 'dress') ? 1.04
+    : stack.filter((l) => l.slot === 'top' || l.slot === 'outerwear').length >= 2 ? 1.02
       : 1;
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
-      const overlap = index === 0 ? 0 : stackOverlap;
-      return sum + Math.round(layerHeight(layer.slot) * adaptiveBoost) - overlap;
+      const layerH = Math.round(layerHeight(layer.slot) * adaptiveBoost);
+      if (index === 0) return sum + layerH;
+      return sum + layerH + (useStackGap ? stackSpacing : -stackSpacing);
     }, (compact ? Spacing.sm : Spacing.md) * 2);
 
   const seamlessWhite = large;
@@ -416,7 +432,7 @@ export function OutfitPiecesVisual({
               ? wardrobeProcessedTileBackground()
               : wardrobeTileBackground(isDark);
             const widthPct = `${Math.round(layerWidth(layer.slot) * 100)}%` as DimensionValue;
-            const safePad = SLOT_SAFE_PAD[layer.slot];
+            const safePad = (large ? SLOT_SAFE_PAD_LARGE : SLOT_SAFE_PAD)[layer.slot];
             return (
               <View
                 key={layer.key}
@@ -427,7 +443,7 @@ export function OutfitPiecesVisual({
                     width: widthPct,
                     maxWidth: '100%',
                     height: Math.round(layerHeight(layer.slot) * adaptiveBoost),
-                    marginTop: index === 0 ? 0 : -stackOverlap,
+                    marginTop: index === 0 ? 0 : (useStackGap ? stackSpacing : -stackSpacing),
                     zIndex: large ? 10 + index : index + 1,
                     paddingTop: Math.round(safePad.paddingTop * sizeScale),
                     paddingBottom: Math.round(safePad.paddingBottom * sizeScale),

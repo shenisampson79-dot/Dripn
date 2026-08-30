@@ -12,10 +12,10 @@ export function computeOutfitVisualScaleForModal(
   const naturalHeights: Record<number, number> = {
     1: 190,
     2: 320,
-    3: 470,
-    4: 620,
-    5: 740,
-    6: 860,
+    3: 420,
+    4: 540,
+    5: 640,
+    6: 740,
   };
 
   const count = Math.min(Math.max(pieceCount, 1), 6);
