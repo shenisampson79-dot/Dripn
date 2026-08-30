@@ -2,6 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId, SubscriptionTier } from '@/contexts/AuthContext';
 import { getTierFeatures, tierHasUnlimitedDecisions, canSaveDecisionHistory } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import {
+  evaluateLocalDecisionAccess,
+  getDecisionPaywallCopy,
+  type DecisionPaywallCopy,
+} from '@/utils/decisionAccessGate';
+
+export {
+  canSubmitDecisionAtGuard,
+  evaluateLocalDecisionAccess,
+  getDecisionPaywallCopy,
+  resolveDecisionUpgradeModalVisible,
+} from '@/utils/decisionAccessGate';
+export type { DecisionPaywallCopy } from '@/utils/decisionAccessGate';
 import { apiService } from '@/services/ApiService';
 import type { SafePresentation } from '@/utils/stylistPresentationBoundary';
 
@@ -475,12 +488,7 @@ class DecisionService {
 
     const unlimited = tierHasUnlimitedDecisions(normalized);
     const maxDecisions = unlimited ? 999 : (limits.decisionsPerDay as number);
-    const canMakeDecision = unlimited || decisionsToday < (limits.decisionsPerDay as number);
-
-    let reason: string | undefined;
-    if (!canMakeDecision) {
-      reason = "That's your decision for today. Upgrade to Personal Stylist for more outfit decisions.";
-    }
+    const { canMakeDecision, reason } = evaluateLocalDecisionAccess(normalized, decisionsToday);
 
     return {
       canMakeDecision,
@@ -561,11 +569,12 @@ class DecisionService {
   ): Promise<DecisionResponse> {
     const access = await this.checkDecisionAccess(request.userId, tier);
     if (!access.canMakeDecision) {
-      const error: any = new Error(access.reason || 'Cannot make decision');
+      const paywall = getDecisionPaywallCopy(tier, access.reason);
+      const error: any = new Error(paywall.body);
       error.limitCopy = {
-        message: access.reason || "That's your decision for today. Your stylist is here whenever you're ready.",
+        message: paywall.body,
         subtext: "Upgrade for more stylist consultations this month",
-        cta: "See plans",
+        cta: paywall.cta,
         redirectUrl: "/subscription",
         shouldRedirect: true,
       };
@@ -765,11 +774,8 @@ class DecisionService {
     };
   }
 
-  getUpgradeCopy(): { headline: string; cta: string } {
-    return {
-      headline: "Stop overthinking outfits.",
-      cta: 'Upgrade to Personal Stylist',
-    };
+  getUpgradeCopy(tier?: SubscriptionTier | string | null): DecisionPaywallCopy {
+    return getDecisionPaywallCopy(tier);
   }
 
   getSecondOpinionLockedCopy(): string {

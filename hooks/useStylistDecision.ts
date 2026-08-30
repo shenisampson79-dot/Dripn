@@ -6,6 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/contexts/WardrobeContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import {
+  canSubmitDecisionAtGuard,
+  resolveDecisionUpgradeModalVisible,
+} from '@/utils/decisionAccessGate';
+import {
   decisionService,
   DecisionType,
   DecisionContext,
@@ -324,9 +328,12 @@ export function useStylistDecision({
         user.subscriptionTier || 'free',
       );
       setAccessStatus(status);
-      if (!status.canMakeDecision && opts?.showPaywallIfBlocked !== false) {
-        setShowUpgradeModal(true);
-      }
+      setShowUpgradeModal(
+        resolveDecisionUpgradeModalVisible(
+          status.canMakeDecision,
+          opts?.showPaywallIfBlocked,
+        ),
+      );
       return status;
     },
     [user?.id, user?.subscriptionTier],
@@ -548,7 +555,7 @@ export function useStylistDecision({
       openAllowanceDestination();
       return false;
     }
-    if (accessStatus && !accessStatus.canMakeDecision) {
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
       setShowUpgradeModal(true);
       return false;
     }

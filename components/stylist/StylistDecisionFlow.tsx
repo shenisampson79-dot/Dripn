@@ -1427,14 +1427,16 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             <LinearGradient colors={[LuxuryColors.gold, LuxuryColors.deepGold]} style={styles.upgradeGradient}>
               <Feather name="unlock" size={28} color={LuxuryColors.obsidian} />
               <ThemedText type="h3" style={styles.upgradeTitle}>
-                {decisionService.getUpgradeCopy().headline}
+                {decisionService.getUpgradeCopy(flow.user?.subscriptionTier).headline}
               </ThemedText>
               <ThemedText style={styles.upgradeBody}>
-                {flow.accessStatus?.reason || t('stylistFlow.upgradeDefault')}
+                {flow.accessStatus?.reason
+                  || decisionService.getUpgradeCopy(flow.user?.subscriptionTier).body
+                  || t('stylistFlow.upgradeDefault')}
               </ThemedText>
               <Pressable onPress={flow.openSubscriptionFromPaywall} style={styles.upgradeCta}>
                 <ThemedText type="body" style={styles.upgradeCtaText}>
-                  {decisionService.getUpgradeCopy().cta}
+                  {decisionService.getUpgradeCopy(flow.user?.subscriptionTier).cta}
                 </ThemedText>
               </Pressable>
               <Pressable onPress={flow.dismissPaywall}>

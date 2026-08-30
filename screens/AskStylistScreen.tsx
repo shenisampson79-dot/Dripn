@@ -37,6 +37,10 @@ import {
   DecisionResponse,
   DecisionAccessStatus,
 } from "@/services/DecisionService";
+import {
+  canSubmitDecisionAtGuard,
+  resolveDecisionUpgradeModalVisible,
+} from "@/utils/decisionAccessGate";
 import { apiService } from "@/services/ApiService";
 import { safeEnforceDecisionContract } from "@/utils/decisionContract";
 import { sanitizeOutfitPieces } from "@/utils/safeRender";
@@ -56,6 +60,7 @@ import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageL
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
+import { aiAllowanceSubscriptionParams } from "@/utils/aiBudgetError";
 import { editorialGarmentName } from "@/utils/wardrobeItemName";
 import { formatOutfitPieceRoleLabel } from "@/utils/sanitizeStylistUserText";
 
@@ -208,7 +213,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     if (!initialDecisionType || initialDecisionApplied.current || accessStatus === null) return;
     initialDecisionApplied.current = true;
 
-    if (!accessStatus.canMakeDecision) {
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -438,17 +443,21 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       user.subscriptionTier || 'free'
     );
     setAccessStatus(status);
-
-    if (!status.canMakeDecision && opts?.showPaywallIfBlocked !== false) {
-      setShowUpgradeModal(true);
-    }
+    setShowUpgradeModal(
+      resolveDecisionUpgradeModalVisible(
+        status.canMakeDecision,
+        opts?.showPaywallIfBlocked,
+      ),
+    );
     return status;
   };
 
   const openSubscriptionFromPaywall = () => {
-    // Close UI only — do NOT reset daily decision count / accessStatus
     setShowUpgradeModal(false);
-    navigateToSubscription(navigation, 'personal_stylist');
+    navigateToSubscription(
+      navigation,
+      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'ask-stylist'),
+    );
   };
 
   const dismissPaywallWithoutUnlock = () => {
@@ -457,7 +466,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const handleTypeSelect = (type: DecisionType) => {
-    if (accessStatus && !accessStatus.canMakeDecision) {
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       setShowUpgradeModal(true);
       return;
@@ -509,7 +518,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const submitWithSurpriseMe = async () => {
-    if (accessStatus && !accessStatus.canMakeDecision) {
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -783,7 +792,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     if (!selectedType) return;
     // Images are only required when NOT using Surprise Me
     if (!isSurpriseMe && images.length === 0) return;
-    if (accessStatus && !accessStatus.canMakeDecision) {
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -2227,17 +2236,19 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
                 <Feather name="unlock" size={32} color={LUXURY_COLORS.midnight} />
               </View>
               <ThemedText type="h2" style={styles.upgradeTitle}>
-                {decisionService.getUpgradeCopy().headline}
+                {decisionService.getUpgradeCopy(user?.subscriptionTier).headline}
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
-                {accessStatus?.reason || "Upgrade for more stylist decisions."}
+                {accessStatus?.reason
+                  || decisionService.getUpgradeCopy(user?.subscriptionTier).body
+                  || "Upgrade for more stylist decisions."}
               </ThemedText>
               <Pressable
                 onPress={openSubscriptionFromPaywall}
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  {decisionService.getUpgradeCopy().cta}
+                  {decisionService.getUpgradeCopy(user?.subscriptionTier).cta}
                 </ThemedText>
               </Pressable>
               <Pressable
