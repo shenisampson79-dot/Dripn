@@ -519,9 +519,6 @@ export function formatDecisionResultPresentation(
 
   if (decisionType === 'event-outfit') {
     bullets = filterEventWhyBullets(bullets);
-    if (!bullets.length && opts.eventPieces?.length) {
-      bullets = deriveEventWhyFromPieces(opts.eventPieces, opts.eventOccasionContext);
-    }
   }
 
   if (summary && bottomLine && isDuplicate(summary, bottomLine)) bottomLine = null;

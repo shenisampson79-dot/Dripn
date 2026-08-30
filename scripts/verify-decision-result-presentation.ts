@@ -294,8 +294,7 @@ assert.equal(
   assert.ok(!display.bullets.some((b) => /I've got your look/i.test(b)), 'no QSC canned in WHY');
   assert.ok(!display.bullets.some((b) => /swap that piece only/i.test(b)), 'no swap boilerplate in WHY');
   assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'no generic house-style in WHY');
-  assert.ok(display.bullets.length >= 2, 'A: deterministic Event WHY from pieces when canned removed');
-  assert.ok(display.bullets.some((b) => /pink dress shirt/i.test(b)), 'A: fallback cites selected top');
+  assert.equal(display.bullets.length, 0, 'A: no flat piece fallback when only canned/generic sources');
 }
 
 // Event B: reasoning contains headline + useful sentence — headline deduped, useful survives
@@ -328,8 +327,7 @@ assert.equal(
     { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
   );
   assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'C: generic removed');
-  assert.ok(display.bullets.length >= 2, 'C: deterministic WHY when only generic secondary');
-  assert.ok(display.bullets.some((b) => /pink dress shirt|black coated|loafers/i.test(b)), 'C: fallback grounded in pieces');
+  assert.equal(display.bullets.length, 0, 'C: no flat piece fallback when only generic secondary');
 }
 
 // Event D: genuinely piece-specific reasoning preserved
@@ -346,7 +344,7 @@ assert.equal(
   assert.ok(display.bullets.some((b) => /Black coated trousers|Loafers/i.test(b)));
 }
 
-// Event E: no reasoning — deterministic WHY produced
+// Event E: no reasoning — summary only, no flat piece fallback
 {
   const eventPieces = [
     { role: 'top', name: 'charles tyrwhitt pink dress shirt' },
@@ -360,11 +358,11 @@ assert.equal(
     'event-outfit',
     { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
   );
-  assert.ok(display.bullets.length >= 2, 'E: deterministic WHY with no reasoning');
-  assert.ok(display.bullets.some((b) => /formal dinner/i.test(b)), 'E: occasion context in fallback');
+  assert.match(display.summary || '', /formal setting/i);
+  assert.equal(display.bullets.length, 0, 'E: no flat piece fallback without reasoning');
 }
 
-// Event H: allocator relaxation metadata must not render — piece-grounded fallback instead
+// Event H: allocator relaxation metadata must not render — no flat piece fallback
 {
   assert.ok(isGenericEventWhyBullet('Built after relaxing non-occasion constraints'));
   assert.ok(isGenericEventWhyBullet('Occasion lock kept hard.'));
@@ -385,11 +383,8 @@ assert.equal(
   );
   assert.ok(!display.bullets.some((b) => /built after relaxing/i.test(b)), 'H: no relaxation metadata');
   assert.ok(!display.bullets.some((b) => /occasion lock kept hard/i.test(b)), 'H: no lock metadata');
-  assert.ok(display.bullets.length >= 2, 'H: piece-grounded fallback renders');
-  assert.ok(
-    display.bullets.some((b) => /Primark cream crew neck|chinos|loafers/i.test(b)),
-    'H: fallback cites selected pieces',
-  );
+  assert.ok(!display.bullets.some((b) => /fills the top role/i.test(b)), 'H: no flat piece fallback');
+  assert.equal(display.bullets.length, 0, 'H: empty WHY when only internal metadata');
 }
 
 // deriveEventWhyFromPieces unit contract
