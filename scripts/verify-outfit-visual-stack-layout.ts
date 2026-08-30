@@ -13,6 +13,12 @@ const eventSrc = readFileSync(resolve(root, 'components/stylist/StylistDecisionF
 const rankedSrc = readFileSync(resolve(root, 'components/stylist/RankedMultiLookCards.tsx'), 'utf8');
 
 assert.match(outfitVisualSrc, /STACK_GAP_LARGE = 20/, 'large card uses ~20px stack gap');
+assert.match(outfitVisualSrc, /LARGE_CUTOUT_DISPLAY_SCALE = 1\.18/, 'large mode uses 1.18 cutout zoom');
+assert.match(
+  outfitVisualSrc,
+  /displayScale=\{large && !tight && !compact \? LARGE_CUTOUT_DISPLAY_SCALE : 1\}/,
+  'displayScale only on large visual-card path',
+);
 assert.match(outfitVisualSrc, /useStackGap = large && !tight && !compact/, 'gap mode for all large cards');
 assert.match(
   outfitVisualSrc,
@@ -75,6 +81,7 @@ console.log(JSON.stringify({
   chatPath: 'AIStylistScreen → SafeOutfitPieces large',
   eventPath: 'StylistDecisionFlow → SafeOutfitPieces large',
   stackGapLarge: gapAfter,
+  largeDisplayScale: 1.18,
   chatThreeBefore: { spacing: -overlapBefore, canvasHeight: chatThreeBefore },
   chatThreeAfter: { spacing: gapAfter, canvasHeight: chatThreeAfter },
   chatFourAfter: { spacing: gapAfter, canvasHeight: chatFourAfter },
