@@ -25,6 +25,7 @@ import {
   resumeStylistChatSession,
   shouldPreserveStylistChatLocal,
 } from '@/utils/stylistChatAccountSession';
+import { clearPasswordResetToken } from '@/utils/passwordResetDeepLink';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
@@ -997,6 +998,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await relinquishStylistChatAccountSession();
+      clearPasswordResetToken();
       await apiService.logout();
       await AsyncStorage.removeItem(STORAGE_KEY);
       setUser(null);

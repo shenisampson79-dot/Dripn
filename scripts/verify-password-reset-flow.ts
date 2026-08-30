@@ -18,7 +18,7 @@ const apiSrc = read('services/ApiService.ts');
 const resetScreenSrc = read('screens/ResetPasswordScreen.tsx');
 const authStackSrc = read('navigation/AuthStackNavigator.tsx');
 const appSrc = read('App.tsx');
-const handlerSrc = read('components/PasswordResetDeepLinkHandler.tsx');
+const hookSrc = read('hooks/useAuthPasswordResetDeepLinks.ts');
 const deepLinkSrc = read('utils/passwordResetDeepLink.ts');
 const authScreenSrc = read('screens/AuthScreen.tsx');
 const en = JSON.parse(read('locales/en.json')) as Record<string, string>;
@@ -66,15 +66,20 @@ assert.doesNotMatch(
 
 assert.match(authStackSrc, /ResetPasswordScreen/, 'auth stack registers reset screen');
 assert.match(authStackSrc, /readWebPasswordResetToken/, 'web token opens reset screen');
-assert.match(authStackSrc, /PasswordResetDeepLinkHandler/, 'native deep-link handler wired');
+assert.match(authStackSrc, /useAuthPasswordResetDeepLinks/, 'native deep-link hook wired in auth stack');
 assert.match(
   authStackSrc,
   /resolvedInitialRoute = resetToken \? "ResetPassword"/,
   'web /reset-password initial route',
 );
+assert.doesNotMatch(
+  authStackSrc,
+  /PasswordResetDeepLinkHandler/,
+  'handler must not sit outside Stack.Navigator',
+);
 
 assert.match(appSrc, /parsePasswordResetToken/, 'App stashes reset deep links');
-assert.match(handlerSrc, /parsePasswordResetToken/, 'handler parses reset links');
+assert.match(hookSrc, /parsePasswordResetToken/, 'hook parses reset deep links');
 assert.match(deepLinkSrc, /readWebPasswordResetToken/, 'web path helper exists');
 
 assert.match(authScreenSrc, /auth\.forgotPassword/, 'forgot-password link preserved');

@@ -23,7 +23,7 @@ import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
-import { PasswordResetDeepLinkHandler } from "@/components/PasswordResetDeepLinkHandler";
+import { useAuthPasswordResetDeepLinks } from "@/hooks/useAuthPasswordResetDeepLinks";
 import { readWebPasswordResetToken } from "@/utils/passwordResetDeepLink";
 
 export type AuthStackParamList = {
@@ -67,9 +67,9 @@ export default function AuthStackNavigator({
   const resetToken = initialResetToken || webResetToken;
   const resolvedInitialRoute = resetToken ? "ResetPassword" : initialRouteName;
 
+  useAuthPasswordResetDeepLinks();
+
   return (
-    <>
-      <PasswordResetDeepLinkHandler />
     <Stack.Navigator 
       initialRouteName={resolvedInitialRoute}
       screenOptions={{
@@ -117,6 +117,5 @@ export default function AuthStackNavigator({
         }}
       />
     </Stack.Navigator>
-    </>
   );
 }

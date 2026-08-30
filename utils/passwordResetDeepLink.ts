@@ -24,6 +24,10 @@ export function consumePasswordResetToken(): string | null {
   return token;
 }
 
+export function clearPasswordResetToken(): void {
+  pendingResetToken = null;
+}
+
 export function readWebPasswordResetToken(): string | undefined {
   if (typeof window === 'undefined') return undefined;
   const path = window.location.pathname.replace(/\/$/, '');
