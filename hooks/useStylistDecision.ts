@@ -8,7 +8,10 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import {
   canSubmitDecisionAtGuard,
   resolveDecisionUpgradeModalVisible,
+  sanitizeDecisionAccessStatus,
+  shouldShowDecisionUpgradeModal,
 } from '@/utils/decisionAccessGate';
+import { tierHasUnlimitedDecisions } from '@/utils/tierMatrix';
 import {
   decisionService,
   DecisionType,
@@ -197,7 +200,7 @@ export function useStylistDecision({
   navigation,
   initialStep,
 }: UseStylistDecisionOptions) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
   const { t } = useTranslations();
 
@@ -327,25 +330,36 @@ export function useStylistDecision({
   const checkAccess = useCallback(
     async (opts?: { showPaywallIfBlocked?: boolean }) => {
       if (!user?.id) return null;
-      const status = await decisionService.checkDecisionAccess(
-        user.id,
-        user.subscriptionTier || 'free',
+      const status = sanitizeDecisionAccessStatus(
+        user.subscriptionTier,
+        await decisionService.checkDecisionAccess(
+          user.id,
+          user.subscriptionTier || 'free',
+        ),
       );
       setAccessStatus(status);
       setShowUpgradeModal(
         resolveDecisionUpgradeModalVisible(
           status.canMakeDecision,
           opts?.showPaywallIfBlocked,
+          user.subscriptionTier,
+          !authLoading,
         ),
       );
       return status;
     },
-    [user?.id, user?.subscriptionTier],
+    [authLoading, user?.id, user?.subscriptionTier],
   );
 
   useEffect(() => {
     checkAccess({ showPaywallIfBlocked: false });
   }, [checkAccess]);
+
+  useEffect(() => {
+    if (!tierHasUnlimitedDecisions(normalizeSubscriptionTier(user?.subscriptionTier))) return;
+    setShowUpgradeModal(false);
+    setAccessStatus((prev) => sanitizeDecisionAccessStatus(user?.subscriptionTier, prev));
+  }, [user?.subscriptionTier]);
 
   const applySessionToState = (session: DecisionSession) => {
     const normalized = decisionSessionManager.normalizeSession(session);
@@ -557,8 +571,8 @@ export function useStylistDecision({
       openAllowanceDestination();
       return false;
     }
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
-      setShowUpgradeModal(true);
+    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus, !authLoading)) {
+      if (!authLoading) setShowUpgradeModal(true);
       return false;
     }
     return true;
@@ -754,6 +768,10 @@ export function useStylistDecision({
       surpriseMe: isSurpriseMe,
     });
     if (isDecisionDailyLimitError(error)) {
+      if (tierHasUnlimitedDecisions(normalizeSubscriptionTier(user?.subscriptionTier))) {
+        console.warn('[StylistDecision] Ignoring stale daily-limit error for unlimited tier');
+        return;
+      }
       await checkAccess({ showPaywallIfBlocked: true });
       Alert.alert(
         t('askStylist.unableToSubmit'),
@@ -1698,7 +1716,7 @@ export function useStylistDecision({
     isLoading,
     isSurpriseMe,
     response,
-    showUpgradeModal,
+    showUpgradeModal: shouldShowDecisionUpgradeModal(showUpgradeModal, user?.subscriptionTier, !authLoading),
     allowanceBlocked,
     contextChips,
     wardrobeItems,

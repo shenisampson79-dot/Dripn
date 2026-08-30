@@ -30,6 +30,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { DecisionType } from '@/services/DecisionService';
+import { getDecisionPaywallModalCopy } from '@/utils/decisionAccessGate';
 import { decisionService } from '@/services/DecisionService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
@@ -1426,19 +1427,27 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           <Pressable style={styles.upgradeModal} onPress={(e) => e.stopPropagation()}>
             <LinearGradient colors={[LuxuryColors.gold, LuxuryColors.deepGold]} style={styles.upgradeGradient}>
               <Feather name="unlock" size={28} color={LuxuryColors.obsidian} />
+              {(() => {
+                const paywall = getDecisionPaywallModalCopy(
+                  flow.user?.subscriptionTier,
+                  flow.accessStatus,
+                );
+                return (
+                  <>
               <ThemedText type="h3" style={styles.upgradeTitle}>
-                {decisionService.getUpgradeCopy(flow.user?.subscriptionTier).headline}
+                {paywall.headline}
               </ThemedText>
               <ThemedText style={styles.upgradeBody}>
-                {flow.accessStatus?.reason
-                  || decisionService.getUpgradeCopy(flow.user?.subscriptionTier).body
-                  || t('stylistFlow.upgradeDefault')}
+                {paywall.body || t('stylistFlow.upgradeDefault')}
               </ThemedText>
               <Pressable onPress={flow.openSubscriptionFromPaywall} style={styles.upgradeCta}>
                 <ThemedText type="body" style={styles.upgradeCtaText}>
-                  {decisionService.getUpgradeCopy(flow.user?.subscriptionTier).cta}
+                  {paywall.cta}
                 </ThemedText>
               </Pressable>
+                  </>
+                );
+              })()}
               <Pressable onPress={flow.dismissPaywall}>
                 <ThemedText type="small" style={styles.upgradeDismiss}>
                   {t('common.maybeLater')}

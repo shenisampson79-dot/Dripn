@@ -5,8 +5,12 @@ import assert from 'node:assert/strict';
 import {
   canSubmitDecisionAtGuard,
   evaluateLocalDecisionAccess,
+  FREE_DAILY_DECISION_REASON,
   getDecisionPaywallCopy,
+  getDecisionPaywallModalCopy,
   resolveDecisionUpgradeModalVisible,
+  sanitizeDecisionAccessStatus,
+  shouldShowDecisionUpgradeModal,
 } from '../utils/decisionAccessGate';
 
 // A — personal_stylist, local count 0
@@ -30,19 +34,24 @@ assert.equal(
 
 // C — stale modal clears when access re-evaluates allowed
 assert.equal(
-  resolveDecisionUpgradeModalVisible(true, true),
+  resolveDecisionUpgradeModalVisible(true, true, 'free'),
   false,
   'modal dismissed when canMakeDecision true',
 );
 assert.equal(
-  resolveDecisionUpgradeModalVisible(true, false),
+  resolveDecisionUpgradeModalVisible(true, false, 'free'),
   false,
   'modal stays hidden when access open and paywall suppressed',
 );
 assert.equal(
-  resolveDecisionUpgradeModalVisible(false, true),
+  resolveDecisionUpgradeModalVisible(false, true, 'free'),
   true,
   'modal shown when blocked and paywall requested',
+);
+assert.equal(
+  resolveDecisionUpgradeModalVisible(false, true, 'personal_stylist'),
+  false,
+  'PS never shows daily upgrade modal even if latched blocked',
 );
 
 // D — PS paywall never upsells Personal Stylist
@@ -102,6 +111,46 @@ assert.equal(
   canSubmitDecisionAtGuard('free', null),
   true,
   'free guard allows before accessStatus hydrates',
+);
+assert.equal(
+  canSubmitDecisionAtGuard('free', { canMakeDecision: false }, false),
+  true,
+  'auth loading must not latch daily gate',
+);
+
+// G — sanitize stale free snapshot for unlimited tier
+const sanitized = sanitizeDecisionAccessStatus('personal_stylist', {
+  canMakeDecision: false,
+  reason: FREE_DAILY_DECISION_REASON,
+});
+assert.equal(sanitized.canMakeDecision, true, 'sanitize clears blocked flag for PS');
+assert.equal(sanitized.reason, undefined, 'sanitize clears stale daily reason for PS');
+
+// H — presentation gate suppresses latched modal for PS / auth loading
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'personal_stylist'),
+  false,
+  'latched modal hidden for PS tier',
+);
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'free'),
+  true,
+  'latched modal visible for free tier',
+);
+assert.equal(
+  shouldShowDecisionUpgradeModal(true, 'free', false),
+  false,
+  'latched modal hidden while auth hydrates',
+);
+
+// I — modal copy ignores stale daily reason on unlimited tier
+const psModal = getDecisionPaywallModalCopy('personal_stylist', {
+  reason: FREE_DAILY_DECISION_REASON,
+});
+assert.doesNotMatch(
+  `${psModal.body} ${psModal.cta}`,
+  /your decision for today|Upgrade to Personal Stylist/i,
+  'PS modal ignores stale free daily reason',
 );
 
 console.log('decisionAccessGate.test.ts: all passed');
