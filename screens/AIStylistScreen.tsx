@@ -3911,10 +3911,10 @@ export default function AIStylistScreen() {
         errorContent = presentMonthlyAllowancePaywall(error);
       } else if (isNetwork) {
         errorContent = isMale
-          ? "I couldn't reach the styling servers just now — mobile data is fine, but the link dropped. Try again in a moment."
+          ? "I couldn't reach the styling servers just now — please check your connection and try again in a moment."
           : isAce
-            ? "I couldn't reach the styling servers just now. Mobile data works — please try again in a moment."
-            : "I couldn't reach the styling servers just now, gorgeous — mobile data is fine, the link just dropped. Try again in a moment.";
+            ? "I couldn't reach the styling servers just now. Please check your connection and try again in a moment."
+            : "I couldn't reach the styling servers just now — please check your connection and try again in a moment.";
       } else if (isServer) {
         errorContent = isMale
           ? "My styling brain hiccupped on the server side. Give it another shot in a moment."

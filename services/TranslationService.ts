@@ -1284,11 +1284,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
     chatWithJuliaSubtitle: 'Your personal support assistant',
     faq: {
       a1: {
-        answer: 'You can sign up using your Apple ID, Google account, or email address. Just tap ',
+        answer: 'Create an account with your email address. On the welcome screen, tap Sign Up, enter your details, and set a password.',
         question: 'How do I create an account?',
       },
       a2: {
-        answer: 'On the login screen, tap ',
+        answer: 'On the login screen, tap Forgot password, enter your email, and follow the reset link we send you.',
         question: 'I forgot my password. How do I reset it?',
       },
       a3: {
@@ -1308,7 +1308,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'How does the AI stylist work?',
       },
       ai3: {
-        answer: 'Open Stylist Chat and tap the headphones icon for Voice mode — your stylist speaks replies aloud (uses voice sessions from your plan). In Chat mode, type or tap the mic to dictate; text replies are unlimited on the Personal Stylist plan.',
+        answer: 'Open Stylist Chat and tap the headphones icon for Voice mode — your stylist speaks replies aloud (uses voice sessions from your plan). In Chat mode, type or tap the mic to dictate; text replies use your shared monthly AI allowance on paid plans.',
         question: 'How do voice conversations work?',
       },
       ai4: {
@@ -1320,11 +1320,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'What is Dripn?',
       },
       g2: {
-        answer: 'Dripn is available on iOS and Android devices through the Expo Go app, and also accessible via web browsers. For the best experience, we recommend using the mobile app.',
+        answer: 'Download Dripn from the App Store on iPhone and iPad, or from Google Play on Android. Sign in with the email account you created in the app.',
         question: 'Which devices support Dripn?',
       },
       g3: {
-        answer: 'Simply create an account, complete our quick style quiz to help us understand your preferences, and start exploring! You can upload your wardrobe, ask your AI stylist for outfit advice, or get a personalised lookbook right away.',
+        answer: 'Create an account and complete our quick style quiz so we understand your preferences. Then upload wardrobe items, ask your AI stylist for outfit advice, or try Decisions and Live.',
         question: 'How do I get started?',
       },
       g4: {
@@ -1348,7 +1348,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'How do I delete my data?',
       },
       p4: {
-        answer: 'Absolutely. All payments are processed through our secure payment partner Stripe. We never see or store your full payment details.',
+        answer: 'Absolutely. On iPhone and iPad, Apple processes in-app purchases and subscriptions through the App Store. Dripn never sees or stores your full payment details.',
         question: 'Is my payment information secure?',
       },
       p5: {
@@ -1360,7 +1360,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'What subscription plans are available?',
       },
       s2: {
-        answer: 'Go to Settings, then Subscription to view all plans and upgrade. Payments are processed securely through Stripe.',
+        answer: 'Go to Settings, then Subscription to view all plans and upgrade. On iPhone and iPad, subscriptions are purchased through the Apple App Store.',
         question: 'How do I upgrade my subscription?',
       },
       s3: {
@@ -1392,12 +1392,12 @@ const DEFAULT_TRANSLATIONS: Translations = {
         question: 'The app crashed! What happened?',
       },
       t5: {
-        answer: 'The web version has some limitations compared to mobile. For the best experience with all features, we recommend using the iOS or Android app through Expo Go.',
+        answer: 'Some features are mobile-first. For the full experience, use the Dripn app from the App Store or Google Play.',
         question: 'Features look different on web vs mobile.',
       },
       t6: {
-        answer: 'Make sure you are signed into your Apple or Google account on your device. Try logging out and back in to those accounts. If using web, some browsers may block sign-in popups, so check your popup settings.',
-        question: 'I cannot log in with Apple or Google.',
+        answer: 'Double-check your email and password, then try Forgot password on the login screen. If you still cannot sign in, contact support@dripnapp.com or chat with Julia below.',
+        question: 'I cannot log in to my account.',
       },
     },
     faqSectionTitle: 'Frequently Asked Questions',
