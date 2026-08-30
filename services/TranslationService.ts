@@ -157,6 +157,11 @@ export interface AuthTranslations {
   fillRequired: string;
   enterYourName: string;
   authFailed: string;
+  forgotPassword: string;
+  forgotPasswordTitle: string;
+  forgotPasswordEnterEmail: string;
+  forgotPasswordSent: string;
+  forgotPasswordFailed: string;
 }
 
 export interface AIStylistTranslations {
@@ -777,6 +782,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
     fillRequired: 'Please fill in all required fields',
     enterYourName: 'Please enter your name',
     authFailed: 'Authentication failed. Please try again.',
+    forgotPassword: 'Forgot your password?',
+    forgotPasswordTitle: 'Reset password',
+    forgotPasswordEnterEmail: 'Enter the email address for your account and we\'ll send you a reset link.',
+    forgotPasswordSent: 'If that email exists, a reset link has been sent.',
+    forgotPasswordFailed: 'Could not send a reset link. Please try again.',
   },
   aiStylist: {
     suggestedOutfit: 'Suggested Outfit',
