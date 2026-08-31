@@ -117,8 +117,8 @@ const LAYER_WIDTH_LARGE: Record<LayerSlot, number> = {
 
 const STACK_OVERLAP_LARGE = 22;
 
-/** Large visual cards (Event, Stylist Chat, ranked looks) — positive gap between garment bounds (~20px). */
-const STACK_GAP_LARGE = 20;
+/** Large visual cards (Event, Stylist Chat, ranked looks) — positive gap between garment bounds (~8px). */
+const STACK_GAP_LARGE = 8;
 
 /** Zoom processed cutouts in large stacks — matches GeneratedOutfitModal / outfit reel pattern. */
 const LARGE_CUTOUT_DISPLAY_SCALE = 1.18;
