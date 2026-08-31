@@ -5268,6 +5268,7 @@ export default function AIStylistScreen() {
 
   const renderScrollChatHeader = () => (
     <>
+      {continuityBanner ? (
         <View
           style={[
             styles.continuityBanner,
@@ -5315,7 +5316,7 @@ export default function AIStylistScreen() {
           </Pressable>
         </View>
       ) : null}
-      
+
       {showUpgradeTeaser ? (
         <View 
           key="upgrade-teaser-stable"
@@ -5613,6 +5614,8 @@ export default function AIStylistScreen() {
           <TextInput
             value={inputText}
             onChangeText={setComposerText}
+            autoCorrect={true}
+            spellCheck={true}
             onFocus={() => {
               stickToLatestRef.current = true;
               isNearBottomRef.current = true;
