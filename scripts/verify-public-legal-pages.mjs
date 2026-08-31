@@ -8,13 +8,39 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(root, 'public');
+const marketingDir = path.join(root, 'marketing-website');
+const assetsDir = path.join(root, 'assets', 'images');
 const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+const vercelIgnorePath = path.join(root, '.vercelignore');
+const vercelIgnore = fs.existsSync(vercelIgnorePath)
+  ? fs.readFileSync(vercelIgnorePath, 'utf8')
+  : '';
+
+const requiredSources = [
+  path.join(marketingDir, 'styles.css'),
+  path.join(marketingDir, 'privacy.html'),
+  path.join(marketingDir, 'terms.html'),
+  path.join(marketingDir, 'index.html'),
+  path.join(assetsDir, 'dripn-logo-gold.png'),
+  path.join(assetsDir, 'dripn-logo-icon.png'),
+  path.join(assetsDir, 'dripn-logo-gold-cream.png'),
+];
 
 const failures = [];
 
 function assert(name, cond, detail = '') {
   if (!cond) failures.push(detail ? `${name}: ${detail}` : name);
 }
+
+for (const source of requiredSources) {
+  assert(`tracked source exists: ${path.relative(root, source)}`, fs.existsSync(source));
+}
+
+assert(
+  'vercelignore allows marketing-website',
+  !/(^|\n)\s*marketing-website\s*($|\n)/.test(vercelIgnore),
+  'marketing-website must not be excluded from Vercel checkout',
+);
 
 const support = fs.readFileSync(path.join(publicDir, 'support.html'), 'utf8');
 const privacy = fs.readFileSync(path.join(publicDir, 'privacy.html'), 'utf8');
