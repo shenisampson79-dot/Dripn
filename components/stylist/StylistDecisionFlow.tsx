@@ -124,13 +124,27 @@ function renderMarkdownText(text: string) {
   });
 }
 
+/** QSC prose may include **item** markers from the server — render as uniform body text. */
+function stripMarkdownBoldMarkers(text: string): string {
+  return text.replace(/\*\*([^*]+)\*\*/g, '$1');
+}
+
+function renderDecisionProseText(text: string, plainProse: boolean) {
+  if (plainProse) return stripMarkdownBoldMarkers(text);
+  return renderMarkdownText(text);
+}
+
 
 function renderDecisionResultHierarchy(
   display: ReturnType<typeof formatDecisionResultPresentation>,
   theme: { text: string; tabIconDefault: string; background: string; border: string },
-  opts: { showPieceRows?: boolean; displayPieces?: Array<{ role?: string; name?: string; wardrobeItemId?: number | string; type?: string; brand?: string }> } = {},
+  opts: {
+    showPieceRows?: boolean;
+    displayPieces?: Array<{ role?: string; name?: string; wardrobeItemId?: number | string; type?: string; brand?: string }>;
+    plainProse?: boolean;
+  } = {},
 ) {
-  const { showPieceRows = false, displayPieces = [] } = opts;
+  const { showPieceRows = false, displayPieces = [], plainProse = false } = opts;
   const hasHierarchy = Boolean(
     display.verdictLabel
     || display.scoreDisplay
@@ -160,7 +174,7 @@ function renderDecisionResultHierarchy(
 
       {display.summary ? (
         <ThemedText type="body" style={styles.responseBody}>
-          {renderMarkdownText(display.summary)}
+          {renderDecisionProseText(display.summary, plainProse)}
         </ThemedText>
       ) : null}
 
@@ -193,7 +207,7 @@ function renderDecisionResultHierarchy(
                 type="body"
                 style={[styles.whyBulletText, { color: theme.tabIconDefault }]}
               >
-                {renderMarkdownText(bullet)}
+                {renderDecisionProseText(bullet, plainProse)}
               </ThemedText>
             </View>
           ))}
@@ -202,7 +216,7 @@ function renderDecisionResultHierarchy(
 
       {display.bottomLine ? (
         <ThemedText type="body" style={[styles.responseBody, styles.bottomLineText]}>
-          {renderMarkdownText(display.bottomLine)}
+          {renderDecisionProseText(display.bottomLine, plainProse)}
         </ThemedText>
       ) : null}
     </>
@@ -1207,6 +1221,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             renderDecisionResultHierarchy(resultDisplay, theme, {
               showPieceRows,
               displayPieces,
+              plainProse: decisionType === 'sanity-check',
             })
           )}
         </View>

@@ -467,6 +467,10 @@ assert.equal(
   assert.match(flowSrc, /flow\.resetFlow\(\)/);
   assert.match(flowSrc, /stylistFlow\.done/);
   assert.match(flowSrc, /% match/);
+  assert.match(flowSrc, /plainProse:\s*decisionType === 'sanity-check'/);
+  assert.match(flowSrc, /stripMarkdownBoldMarkers/);
+  assert.match(flowSrc, /renderDecisionProseText/);
+  assert.match(flowSrc, /renderMarkdownText/);
 }
 
 // Hook: QSC outfitScore + ratingLabel; event reasoning kept with message
