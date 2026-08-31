@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
@@ -25,6 +26,8 @@ export const SESSION_BACKUP_KEY = {
 
 export type TokenKeyPair = { secure: string; legacy: string };
 
+const isWebPlatform = Platform.OS === 'web';
+
 async function assertSecureStoreAvailable(): Promise<void> {
   if (!(await SecureStore.isAvailableAsync())) {
     throw new Error(
@@ -33,10 +36,41 @@ async function assertSecureStoreAvailable(): Promise<void> {
   }
 }
 
+async function getWebToken(keys: TokenKeyPair): Promise<string | null> {
+  const fromWeb = await AsyncStorage.getItem(keys.secure).catch(() => null);
+  if (fromWeb) return fromWeb;
+
+  const legacyAtKey = await AsyncStorage.getItem(keys.legacy).catch(() => null);
+  if (legacyAtKey) {
+    await AsyncStorage.setItem(keys.secure, legacyAtKey);
+    await AsyncStorage.removeItem(keys.legacy).catch(() => {});
+    return legacyAtKey;
+  }
+
+  return null;
+}
+
+async function setWebToken(keys: TokenKeyPair, token: string): Promise<void> {
+  await AsyncStorage.setItem(keys.secure, token);
+  await AsyncStorage.removeItem(keys.legacy).catch(() => {});
+}
+
+async function clearWebToken(keys: TokenKeyPair): Promise<void> {
+  await Promise.all([
+    AsyncStorage.removeItem(keys.secure).catch(() => {}),
+    AsyncStorage.removeItem(keys.legacy).catch(() => {}),
+  ]);
+}
+
 /**
  * Read token: SecureStore first, then migrate from AsyncStorage legacy key.
+ * Web uses AsyncStorage (localStorage) — SecureStore is native-only.
  */
 export async function getSecureToken(keys: TokenKeyPair): Promise<string | null> {
+  if (isWebPlatform) {
+    return getWebToken(keys);
+  }
+
   await assertSecureStoreAvailable();
   const fromSecure = await SecureStore.getItemAsync(keys.secure);
   if (fromSecure) return fromSecure;
@@ -65,6 +99,11 @@ export async function getSecureToken(keys: TokenKeyPair): Promise<string | null>
 }
 
 export async function setSecureToken(keys: TokenKeyPair, token: string): Promise<void> {
+  if (isWebPlatform) {
+    await setWebToken(keys, token);
+    return;
+  }
+
   await assertSecureStoreAvailable();
   await SecureStore.setItemAsync(keys.secure, token);
   await Promise.all([
@@ -74,10 +113,20 @@ export async function setSecureToken(keys: TokenKeyPair, token: string): Promise
 }
 
 export async function clearSecureToken(keys: TokenKeyPair): Promise<void> {
+  if (isWebPlatform) {
+    await clearWebToken(keys);
+    return;
+  }
+
   await assertSecureStoreAvailable();
   await Promise.all([
     SecureStore.deleteItemAsync(keys.secure),
     AsyncStorage.removeItem(keys.legacy).catch(() => {}),
     AsyncStorage.removeItem(keys.secure).catch(() => {}),
   ]);
+}
+
+/** @internal Test hook — true when auth tokens use browser AsyncStorage instead of SecureStore. */
+export function usesWebAuthStorage(): boolean {
+  return isWebPlatform;
 }

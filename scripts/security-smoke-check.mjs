@@ -65,6 +65,14 @@ assert(
     /AsyncStorage\.removeItem/.test(storeSrc) &&
     /SecureStore\.setItemAsync/.test(storeSrc),
 );
+assert(
+  'secureTokenStore provides web AsyncStorage fallback',
+  /Platform\.OS === ['"]web['"]/.test(storeSrc) || /isWebPlatform/.test(storeSrc),
+);
+assert(
+  'secureTokenStore web path avoids SecureStore',
+  /if \(isWebPlatform\)[\s\S]*return getWebToken\(keys\)/.test(storeSrc),
+);
 
 const apiSrc = read('services/ApiService.ts');
 assert(
