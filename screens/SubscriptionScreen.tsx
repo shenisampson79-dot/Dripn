@@ -670,24 +670,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
   const landOnAiTopUp = !!route?.params?.scrollToAiTopUp;
-  const pricedAiTopUpPacks = [
-    {
-      id: 'standard' as AiTopUpPackId,
-      name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
-      price: aiTopUpPrices.standard,
-      detail: t('subscription.aiTopUp.standardDetail') || '300 AI credits',
-    },
-    {
-      id: 'plus' as AiTopUpPackId,
-      name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
-      price: aiTopUpPrices.plus,
-      detail: t('subscription.aiTopUp.plusDetail') || '600 AI credits',
-      bestValue: true,
-    },
-  ].filter((pack): pack is typeof pack & { price: string } => Boolean(pack.price));
+  const aiTopUpHasStorePrices = Boolean(aiTopUpPrices.standard || aiTopUpPrices.plus);
   const showAiTopUpSection =
     aiTopUpPricesResolved
-    && pricedAiTopUpPacks.length > 0
+    && (!useAppleIAP || aiTopUpHasStorePrices)
     && (
       landOnAiTopUp
       || normalizedTier === 'personal_stylist'
@@ -716,7 +702,21 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               || 'Need more Live and chat this month? Buy extra credit without changing your subscription.'}
           </ThemedText>
 
-          {pricedAiTopUpPacks.map((pack) => (
+          {[
+            {
+              id: 'standard' as AiTopUpPackId,
+              name: t('subscription.aiTopUp.standardName') || 'AI Top-Up',
+              price: aiTopUpPrices.standard || '—',
+              detail: t('subscription.aiTopUp.standardDetail') || '300 AI credits',
+            },
+            {
+              id: 'plus' as AiTopUpPackId,
+              name: t('subscription.aiTopUp.plusName') || 'AI Top-Up Plus',
+              price: aiTopUpPrices.plus || '—',
+              detail: t('subscription.aiTopUp.plusDetail') || '600 AI credits',
+              bestValue: true,
+            },
+          ].map((pack) => (
             <Pressable
               key={pack.id}
               disabled={isProcessing}
