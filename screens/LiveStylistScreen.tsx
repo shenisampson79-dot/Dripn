@@ -115,10 +115,7 @@ import {
   LIVE_CERTAINTY_UPGRADE_STREAK,
   type LiveIdentitySample,
 } from '@/utils/liveScoreStability';
-import {
-  liveHudAwaitingFirstPublish,
-  shouldShowLoadingAfterPreview,
-} from '@/utils/liveHudChrome';
+import { deriveLiveFirstPublishDashVisible } from '@/utils/liveHudChrome';
 import {
   alignCoachingToTruth,
   buildOutfitTruth,
@@ -339,24 +336,22 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   const [liveState, setLiveState] = useState<LiveSessionState>('idle');
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<LiveFeedback | null>(null);
+  const [previewReadyAt, setPreviewReadyAt] = useState<number | null>(null);
+  const [previewElapsedMs, setPreviewElapsedMs] = useState(0);
   const liveStateRef = useRef<LiveSessionState>('idle');
   liveStateRef.current = liveState;
   const isLive = liveState === 'live';
   const isBooting = liveState === 'starting' || liveState === 'camera-loading';
-  const awaitingFirstPublish = useMemo(() => {
-    if (feedback) return false;
-    if (liveState !== 'live' || previewReadyAt == null) return false;
-    const previewReady = liveHudAwaitingFirstPublish({
-      sessionActive: true,
-      hasPublishedScore: false,
-      previewReady: true,
-    });
-    if (!previewReady) return false;
-    return shouldShowLoadingAfterPreview({
-      hasPublishedScore: false,
+  const awaitingFirstPublish = useMemo(
+    () => deriveLiveFirstPublishDashVisible({
+      liveState,
+      feedback,
+      previewReadyAt,
       previewElapsedMs,
-    });
-  }, [feedback, liveState, previewReadyAt, previewElapsedMs]);
+    }),
+    [feedback, liveState, previewReadyAt, previewElapsedMs],
+  );
 
   useEffect(() => {
     if (liveState !== 'live' || feedback || previewReadyAt == null) {
@@ -378,9 +373,6 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
   const sourceSizeRef = useRef({ width: 0, height: 0 });
   const [items, setItems] = useState<LiveTrackedItem[]>([]);
-  const [feedback, setFeedback] = useState<LiveFeedback | null>(null);
-  const [previewReadyAt, setPreviewReadyAt] = useState<number | null>(null);
-  const [previewElapsedMs, setPreviewElapsedMs] = useState(0);
   /** Hide garment name labels until identity locks — boxes may still paint. */
   const [labelsReady, setLabelsReady] = useState(false);
   const labelsReadyRef = useRef(false);

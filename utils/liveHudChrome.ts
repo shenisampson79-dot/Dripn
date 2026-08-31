@@ -15,6 +15,23 @@ export const LIVE_FIRST_START_SCORE = '—';
 /** Wait until the camera preview has been showing, then reveal Analysing. */
 export const LIVE_ANALYSING_AFTER_PREVIEW_MS = 1000;
 
+/** Mirrors LiveStylistScreen awaitingFirstPublish — any feedback object owns the HUD. */
+export function deriveLiveFirstPublishDashVisible(args: {
+  liveState: 'idle' | 'starting' | 'camera-loading' | 'live' | 'error' | string;
+  feedback: unknown;
+  previewReadyAt: number | null;
+  previewElapsedMs: number;
+  delayMs?: number;
+}): boolean {
+  if (args.feedback) return false;
+  if (args.liveState !== 'live' || args.previewReadyAt == null) return false;
+  return shouldShowLoadingAfterPreview({
+    hasPublishedScore: false,
+    previewElapsedMs: args.previewElapsedMs,
+    delayMs: args.delayMs,
+  });
+}
+
 export function liveHudAwaitingFirstPublish(args: {
   sessionActive: boolean;
   hasPublishedScore: boolean;

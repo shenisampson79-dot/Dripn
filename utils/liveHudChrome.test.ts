@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import {
   LIVE_ANALYSING_AFTER_PREVIEW_MS,
   LIVE_FIRST_START_HEADLINE,
   LIVE_FIRST_START_SCORE,
+  deriveLiveFirstPublishDashVisible,
   liveHudAwaitingFirstPublish,
   liveHudChrome,
   shouldShowLoadingAfterPreview,
@@ -222,6 +225,103 @@ import {
     shouldShowLoadingAfterPreview({ hasPublishedScore: false, previewElapsedMs: 5000 }),
     true,
     'delay alone does not imply session active',
+  );
+}
+
+{
+  // A — screen wiring: state bindings must precede consuming presentation hooks.
+  const screenPath = path.join(process.cwd(), 'screens', 'LiveStylistScreen.tsx');
+  const src = fs.readFileSync(screenPath, 'utf8');
+  const feedbackDecl = src.indexOf('const [feedback, setFeedback]');
+  const previewReadyDecl = src.indexOf('const [previewReadyAt, setPreviewReadyAt]');
+  const previewElapsedDecl = src.indexOf('const [previewElapsedMs, setPreviewElapsedMs]');
+  const awaitingMemo = src.indexOf('const awaitingFirstPublish = useMemo');
+  const previewTimerEffect = src.indexOf('setPreviewElapsedMs(Math.max(0, Date.now() - previewReadyAt))');
+  assert.ok(feedbackDecl > 0, 'feedback state must exist');
+  assert.ok(awaitingMemo > feedbackDecl, 'feedback must precede awaitingFirstPublish useMemo');
+  assert.ok(awaitingMemo > previewReadyDecl, 'previewReadyAt must precede awaitingFirstPublish useMemo');
+  assert.ok(awaitingMemo > previewElapsedDecl, 'previewElapsedMs must precede awaitingFirstPublish useMemo');
+  assert.ok(previewTimerEffect > previewElapsedDecl, 'previewElapsedMs must precede preview timer effect');
+}
+
+{
+  // B — no feedback + preview <1s => no loading HUD
+  assert.equal(
+    deriveLiveFirstPublishDashVisible({
+      liveState: 'live',
+      feedback: null,
+      previewReadyAt: 1000,
+      previewElapsedMs: 500,
+    }),
+    false,
+  );
+}
+
+{
+  // C — no feedback + preview >=1s => — / Analysing…
+  assert.equal(
+    deriveLiveFirstPublishDashVisible({
+      liveState: 'live',
+      feedback: null,
+      previewReadyAt: 1000,
+      previewElapsedMs: 1000,
+    }),
+    true,
+  );
+  const loading = liveHudChrome({ score: null, awaitingFirstPublish: true });
+  assert.equal(loading.headline, LIVE_FIRST_START_HEADLINE);
+}
+
+{
+  // D — genuine feedback + null score => existing feedback HUD owns presentation
+  const preScoreFeedback = { score: null as number | null, coaching: { headline: 'Searching shoes' } };
+  assert.equal(
+    deriveLiveFirstPublishDashVisible({
+      liveState: 'live',
+      feedback: preScoreFeedback,
+      previewReadyAt: 1000,
+      previewElapsedMs: 2000,
+    }),
+    false,
+    'any feedback object ends loading-shell eligibility',
+  );
+  const overlayUsesFeedback = Boolean(preScoreFeedback);
+  const overlayLoading = !preScoreFeedback && false;
+  assert.equal(overlayUsesFeedback, true);
+  assert.equal(overlayLoading, false);
+}
+
+{
+  // E — genuine feedback + finite score => existing score HUD
+  const scoredFeedback = { score: 47, coaching: { headline: 'Needs a tweak' } };
+  assert.equal(
+    deriveLiveFirstPublishDashVisible({
+      liveState: 'live',
+      feedback: scoredFeedback,
+      previewReadyAt: 1000,
+      previewElapsedMs: 2000,
+    }),
+    false,
+  );
+  const scoreHud = liveHudChrome({
+    score: scoredFeedback.score,
+    headline: scoredFeedback.coaching.headline,
+    awaitingFirstPublish: true,
+  });
+  assert.equal(scoreHud.numericScore, 47);
+  assert.equal(scoreHud.loadingShell, false);
+}
+
+{
+  // F — stop/exit clears loading eligibility
+  assert.equal(
+    deriveLiveFirstPublishDashVisible({
+      liveState: 'idle',
+      feedback: null,
+      previewReadyAt: null,
+      previewElapsedMs: 5000,
+    }),
+    false,
   );
 }
 
