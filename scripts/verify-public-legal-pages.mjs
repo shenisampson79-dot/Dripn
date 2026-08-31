@@ -71,7 +71,10 @@ assert('terms support email', /support@dripnapp.com/.test(terms));
 assert('terms has body', /Acceptance of Terms/.test(terms));
 assert('terms support link', /href="\/support"/.test(terms));
 
-assert('about product intro', /AI-Powered Fashion|AI-powered fashion/i.test(about));
+assert('about product intro', /personal stylist|Powered by AI/i.test(about));
+assert('about no investor copy', !/Investment Opportunity|investors@dripnapp\.com/i.test(about));
+assert('about no stale pricing', !/£4\.99|£9\.99|£9,999/i.test(about));
+assert('about no gpt stack copy', !/GPT-4 Vision|DALL-E 3|text-embedding-3-large/i.test(about));
 assert('about legal entity', /Dripn App Ltd/.test(about));
 assert('about support link', /href="\/support"/.test(about));
 assert('about privacy link', /href="\/privacy"/.test(about));
