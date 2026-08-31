@@ -189,6 +189,58 @@ function appendPublicFooterStyles(css) {
 .legal-content a[href^="mailto:"] {
   font-weight: 600;
 }
+
+.reset-intro {
+  font-size: 18px;
+  margin-bottom: 24px;
+}
+
+.reset-panel {
+  max-width: 420px;
+}
+
+.reset-label {
+  display: block;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+
+.reset-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(201, 168, 124, 0.35);
+  border-radius: 8px;
+  font-size: 16px;
+  background: #fff;
+}
+
+.reset-button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #c8a96e;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reset-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.reset-error {
+  color: #b42318;
+  margin-top: 12px;
+}
+
+.reset-success h2 {
+  margin-top: 0;
+}
 `;
   if (!css.includes('.public-legal-footer')) {
     return `${css}\n${extra}`;
@@ -234,6 +286,142 @@ fs.writeFileSync(
 
 writeSupportPage();
 
+function writeResetPasswordPage() {
+  const bodyHtml = `
+        <h1>Reset your password</h1>
+        <p class="reset-intro">Choose a new password for your Dripn account.</p>
+
+        <div id="reset-missing-token" class="reset-panel reset-error" hidden>
+          <p>This reset link is invalid or incomplete. Request a new password reset from the Dripn app login screen.</p>
+        </div>
+
+        <form id="reset-form" class="reset-panel" hidden novalidate>
+          <label class="reset-label" for="reset-password">New password</label>
+          <input id="reset-password" class="reset-input" type="password" autocomplete="new-password" minlength="6" required />
+
+          <label class="reset-label" for="reset-confirm">Confirm password</label>
+          <input id="reset-confirm" class="reset-input" type="password" autocomplete="new-password" minlength="6" required />
+
+          <p id="reset-error" class="reset-error" role="alert" hidden></p>
+
+          <button id="reset-submit" class="reset-button" type="submit">Reset password</button>
+        </form>
+
+        <div id="reset-success" class="reset-panel reset-success" hidden>
+          <h2>Password updated</h2>
+          <p>Your password has been changed successfully.</p>
+          <p>Open the Dripn app and sign in with your new password.</p>
+        </div>
+
+        <script>
+          (function () {
+            var MIN_PASSWORD_LENGTH = 6;
+            var params = new URLSearchParams(window.location.search);
+            var token = (params.get('token') || '').trim();
+            var missingEl = document.getElementById('reset-missing-token');
+            var formEl = document.getElementById('reset-form');
+            var successEl = document.getElementById('reset-success');
+            var errorEl = document.getElementById('reset-error');
+            var passwordEl = document.getElementById('reset-password');
+            var confirmEl = document.getElementById('reset-confirm');
+            var submitEl = document.getElementById('reset-submit');
+
+            function showError(message) {
+              errorEl.textContent = message;
+              errorEl.hidden = false;
+            }
+
+            function clearError() {
+              errorEl.textContent = '';
+              errorEl.hidden = true;
+            }
+
+            if (!token) {
+              missingEl.hidden = false;
+              return;
+            }
+
+            formEl.hidden = false;
+
+            formEl.addEventListener('submit', function (event) {
+              event.preventDefault();
+              clearError();
+
+              var password = passwordEl.value;
+              var confirmPassword = confirmEl.value;
+
+              if (!password || !confirmPassword) {
+                showError('Please enter and confirm your new password.');
+                return;
+              }
+
+              if (password.length < MIN_PASSWORD_LENGTH) {
+                showError('Password must be at least 6 characters.');
+                return;
+              }
+
+              if (password !== confirmPassword) {
+                showError('Passwords do not match.');
+                return;
+              }
+
+              submitEl.disabled = true;
+              submitEl.textContent = 'Updating…';
+
+              fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, password: password }),
+              })
+                .then(function (response) {
+                  return response.json().then(function (body) {
+                    return { ok: response.ok, body: body };
+                  });
+                })
+                .then(function (result) {
+                  if (result.ok && result.body && result.body.success) {
+                    formEl.hidden = true;
+                    successEl.hidden = false;
+                    return;
+                  }
+
+                  var message =
+                    (result.body && result.body.message) ||
+                    'Could not reset your password. Please request a new reset link from the Dripn app.';
+                  var lower = String(message).toLowerCase();
+                  if (lower.indexOf('invalid') >= 0 || lower.indexOf('expired') >= 0) {
+                    missingEl.hidden = false;
+                    formEl.hidden = true;
+                    missingEl.querySelector('p').textContent =
+                      'This reset link is invalid or has expired. Request a new password reset from the Dripn app login screen.';
+                    return;
+                  }
+                  showError(message);
+                })
+                .catch(function () {
+                  showError('Could not reset your password right now. Please try again.');
+                })
+                .finally(function () {
+                  submitEl.disabled = false;
+                  submitEl.textContent = 'Reset password';
+                });
+            });
+          })();
+        </script>`;
+
+  fs.writeFileSync(
+    path.join(publicDir, 'reset-password.html'),
+    pageShell({
+      title: 'Reset your password | Dripn',
+      description: 'Reset your Dripn account password securely.',
+      bodyHtml,
+    }),
+    'utf8',
+  );
+}
+
+writeResetPasswordPage();
+
 function transformMarketingPage(html) {
   return html
     .replace(/href="index\.html"/g, 'href="/about"')
@@ -260,4 +448,4 @@ function writeMarketingAboutPage() {
 
 writeMarketingAboutPage();
 
-console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, styles.css');
+console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, reset-password.html, styles.css');

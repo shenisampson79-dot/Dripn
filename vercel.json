@@ -92,6 +92,14 @@
       "destination": "/terms.html"
     },
     {
+      "source": "/reset-password",
+      "destination": "/reset-password.html"
+    },
+    {
+      "source": "/reset-password/",
+      "destination": "/reset-password.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -71,7 +71,8 @@ assert('terms support email', /support@dripnapp.com/.test(terms));
 assert('terms has body', /Acceptance of Terms/.test(terms));
 assert('terms support link', /href="\/support"/.test(terms));
 
-assert('about product intro', /personal stylist|Powered by AI/i.test(about));
+assert('about four stylists', /four AI stylists|Ruby, Max, Ace and Ivy/i.test(about));
+assert('about no ivy-only headline', !/Meet Ivy, your AI personal stylist/i.test(about));
 assert('about no investor copy', !/Investment Opportunity|investors@dripnapp\.com/i.test(about));
 assert('about no stale pricing', !/£4\.99|£9\.99|£9,999/i.test(about));
 assert('about no gpt stack copy', !/GPT-4 Vision|DALL-E 3|text-embedding-3-large/i.test(about));
@@ -87,6 +88,14 @@ assert('vercel /about rewrite', rewriteDestinations.includes('/about.html'));
 assert('vercel /support rewrite', rewriteDestinations.includes('/support.html'));
 assert('vercel /privacy rewrite', rewriteDestinations.includes('/privacy.html'));
 assert('vercel /terms rewrite', rewriteDestinations.includes('/terms.html'));
+assert('vercel /reset-password rewrite', rewriteDestinations.includes('/reset-password.html'));
+
+const resetPassword = fs.readFileSync(path.join(publicDir, 'reset-password.html'), 'utf8');
+assert('reset-password.html exists', fs.existsSync(path.join(publicDir, 'reset-password.html')));
+assert('reset page title', /Reset your password \| Dripn/.test(resetPassword));
+assert('reset page reads token', /params\.get\('token'\)/.test(resetPassword));
+assert('reset page posts to API', /\/api\/auth\/reset-password/.test(resetPassword));
+assert('reset page no deep link', !/dripn:\/\//.test(resetPassword));
 
 if (failures.length) {
   console.error('verify-public-legal-pages FAILED:\n' + failures.map((f) => `  - ${f}`).join('\n'));

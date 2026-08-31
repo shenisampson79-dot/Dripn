@@ -527,6 +527,13 @@ class ApiService {
     return result;
   }
 
+  async requestForgotPassword(email: string) {
+    return this.request<{ success: boolean; message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+  }
+
   async logout() {
     await this.setToken(null);
   }
