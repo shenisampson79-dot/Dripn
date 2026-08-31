@@ -4,7 +4,7 @@
  * vision-camera-worklets. On-device YOLO TFLite when linked; else cloud Vision.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -115,6 +115,10 @@ import {
   LIVE_CERTAINTY_UPGRADE_STREAK,
   type LiveIdentitySample,
 } from '@/utils/liveScoreStability';
+import {
+  liveHudAwaitingFirstPublish,
+  shouldShowLoadingAfterPreview,
+} from '@/utils/liveHudChrome';
 import {
   alignCoachingToTruth,
   buildOutfitTruth,
@@ -339,12 +343,44 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   liveStateRef.current = liveState;
   const isLive = liveState === 'live';
   const isBooting = liveState === 'starting' || liveState === 'camera-loading';
+  const awaitingFirstPublish = useMemo(() => {
+    if (feedback) return false;
+    if (liveState !== 'live' || previewReadyAt == null) return false;
+    const previewReady = liveHudAwaitingFirstPublish({
+      sessionActive: true,
+      hasPublishedScore: false,
+      previewReady: true,
+    });
+    if (!previewReady) return false;
+    return shouldShowLoadingAfterPreview({
+      hasPublishedScore: false,
+      previewElapsedMs,
+    });
+  }, [feedback, liveState, previewReadyAt, previewElapsedMs]);
+
+  useEffect(() => {
+    if (liveState !== 'live' || feedback || previewReadyAt == null) {
+      if (liveState !== 'live') {
+        setPreviewReadyAt(null);
+        setPreviewElapsedMs(0);
+      }
+      return undefined;
+    }
+    const tick = () => {
+      setPreviewElapsedMs(Math.max(0, Date.now() - previewReadyAt));
+    };
+    tick();
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
+  }, [liveState, feedback, previewReadyAt]);
   const [isBusy, setIsBusy] = useState(false);
   const [layout, setLayout] = useState({ width: Dimensions.get('window').width, height: 480 });
   const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
   const sourceSizeRef = useRef({ width: 0, height: 0 });
   const [items, setItems] = useState<LiveTrackedItem[]>([]);
   const [feedback, setFeedback] = useState<LiveFeedback | null>(null);
+  const [previewReadyAt, setPreviewReadyAt] = useState<number | null>(null);
+  const [previewElapsedMs, setPreviewElapsedMs] = useState(0);
   /** Hide garment name labels until identity locks — boxes may still paint. */
   const [labelsReady, setLabelsReady] = useState(false);
   const labelsReadyRef = useRef(false);
@@ -1759,6 +1795,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setLabelsReady(false);
       setItems([]);
       setFeedback(null);
+      setPreviewReadyAt(null);
+      setPreviewElapsedMs(0);
       setDebugSnapshot(emptyDebugSnapshot('live'));
     }
   }, []);
@@ -1791,6 +1829,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     }
     setCameraError(null);
     setLiveState('idle');
+    setPreviewReadyAt(null);
+    setPreviewElapsedMs(0);
     unmountCamera();
     analysisSucceededRef.current = false;
     lastHashRef.current = null;
@@ -1924,6 +1964,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setStatusNote('Live — reading your look…');
       captureAllowedAtRef.current = Date.now() + 400;
       liveStartedAtRef.current = Date.now();
+      setPreviewReadyAt(Date.now());
+      setPreviewElapsedMs(0);
       setLiveState('live');
       startSamplingLoop();
       await liveStartCrumb('5. start armed.vision.ok');
@@ -2254,6 +2296,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           height={layout.height}
           items={items}
           feedback={feedback}
+          awaitingFirstPublish={awaitingFirstPublish}
           selectedTrackId={selected?.trackId}
           showRegionGuides={beliefDebugAllowed && showBeliefDebug}
           showLabels={labelsReady}

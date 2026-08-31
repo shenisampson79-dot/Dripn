@@ -19,12 +19,19 @@ import {
   sanitizeLiveBoxLabel,
 } from '@/utils/livePublishedIdentity';
 import { presentLiveScore } from '@/utils/liveScoreStability';
+import {
+  LIVE_FIRST_START_HEADLINE,
+  LIVE_FIRST_START_SCORE,
+  liveHudChrome,
+} from '@/utils/liveHudChrome';
 
 type Props = {
   width: number;
   height: number;
   items: LiveTrackedItem[];
   feedback: LiveFeedback | null;
+  /** Pre-first-feedback shell: — + Analysing… after preview delay. */
+  awaitingFirstPublish?: boolean;
   onSelectItem?: (item: LiveTrackedItem) => void;
   selectedTrackId?: string | null;
   /** Dev: draw top / transition / bottom / footwear guide lines */
@@ -62,6 +69,7 @@ export function LiveArOverlay({
   height,
   items,
   feedback,
+  awaitingFirstPublish = false,
   onSelectItem,
   selectedTrackId,
   showRegionGuides = false,
@@ -115,6 +123,10 @@ export function LiveArOverlay({
     feedback?.confidenceLevel || 'high',
     { approximate: feedback?.scoreApproximate },
   );
+  const loadingChrome = !feedback && awaitingFirstPublish
+    ? liveHudChrome({ score: null, awaitingFirstPublish: true })
+    : null;
+  const showHud = Boolean(feedback) || Boolean(loadingChrome?.showScore);
 
   if (width <= 0 || height <= 0) return null;
 
@@ -186,8 +198,10 @@ export function LiveArOverlay({
           />
       ))}
 
-      {feedback ? (
+      {showHud ? (
         <View style={styles.hud} pointerEvents="box-none">
+          {feedback ? (
+            <>
           <View style={styles.topRow}>
             <View
               style={[
@@ -252,6 +266,31 @@ export function LiveArOverlay({
                 <View style={[styles.chip, styles.chipGold]}>
                   <ThemedText type="caption" style={styles.chipText} numberOfLines={2}>
                     {feedback.suggestions[0]}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+            </>
+          ) : loadingChrome ? (
+            <View style={styles.topRow}>
+              <View
+                style={[
+                  styles.scoreBadge,
+                  { borderColor: 'rgba(255,255,255,0.35)' },
+                ]}
+              >
+                <ThemedText type="h3" style={{ color: '#FFF', fontWeight: '700' }}>
+                  {LIVE_FIRST_START_SCORE}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                  score
+                </ThemedText>
+              </View>
+              {loadingChrome.showHeadline ? (
+                <View style={styles.headlinePill}>
+                  <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
+                    {LIVE_FIRST_START_HEADLINE}
                   </ThemedText>
                 </View>
               ) : null}
