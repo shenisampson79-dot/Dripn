@@ -438,21 +438,42 @@ class RevenueCatAppleIAPService implements AppleIAPService {
   }
 
   async getAiTopUpPrices(): Promise<AiTopUpPriceInfo[]> {
-    if (!this.isAvailable()) return [];
+    const diag = '[AI_TOPUP_DIAG]';
+    const available = this.isAvailable();
+    console.warn(`${diag} available=${available}`);
+    if (!available) return [];
     if (this.configurePromise) await this.configurePromise;
-    if (!this.isConfigured()) return [];
+    const configured = this.isConfigured();
+    console.warn(`${diag} configured=${configured}`);
+    if (!configured) return [];
 
     await this.syncCurrencyAuthorityFromStore();
+    const sessionCurrency = currencyService.getSessionCurrency();
 
     const productIds = Object.values(APPLE_AI_TOPUP_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
+    console.warn(`${diag} getProducts rawCount=${storeProducts.length} sessionCurrency=${sessionCurrency}`);
+    for (const product of storeProducts) {
+      console.warn(
+        `${diag} product id=${product.identifier} currencyCode=${product.currencyCode ?? 'null'} priceString=${product.priceString ?? 'null'}`,
+      );
+    }
+    for (const productId of productIds) {
+      if (!storeProducts.some((product) => product.identifier === productId)) {
+        console.warn(`${diag} product id=${productId} missing from getProducts response`);
+      }
+    }
+
     const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
     const results: AiTopUpPriceInfo[] = [];
 
     for (const packId of Object.keys(APPLE_AI_TOPUP_PRODUCT_IDS) as AiTopUpPackId[]) {
       const productId = aiTopUpProductIdFor(packId);
       const storeProduct = productById.get(productId);
-      if (!storeProduct?.priceString) continue;
+      if (!storeProduct?.priceString) {
+        console.warn(`${diag} product id=${productId} safeStorekitPrice=rejected reason=no_priceString`);
+        continue;
+      }
 
       const currencyCode = storeProduct.currencyCode ?? null;
       currencyService.notePaymentCurrency(currencyCode);
@@ -463,7 +484,10 @@ class RevenueCatAppleIAPService implements AppleIAPService {
           currencyCode,
           price: storeProduct.price,
         },
-        currencyService.getSessionCurrency(),
+        sessionCurrency,
+      );
+      console.warn(
+        `${diag} product id=${productId} safeStorekitPrice=${safe ? 'accepted' : 'rejected'} sessionCurrency=${sessionCurrency}`,
       );
       if (!safe) continue;
 
@@ -478,6 +502,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
       });
     }
 
+    console.warn(`${diag} acceptedCount=${results.length}`);
     return results;
   }
 
