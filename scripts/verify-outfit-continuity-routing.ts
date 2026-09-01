@@ -296,6 +296,26 @@ const e2 = resolveOutfitRoute({
 assert.equal(e2.route, 'outfit-from-wardrobe');
 assert.equal(e2.route === 'outfit-from-wardrobe' ? e2.reason : '', 'refine');
 
+const bootsFollowUp = resolveOutfitRoute({
+  userText: 'boots are a bit much, keep the rest but give me different shoes',
+  messages: [{
+    role: 'assistant',
+    hasOutfitRecommendation: true,
+    outfitOccasion: 'casual_day',
+    outfitSuggestion: { occasion: 'casual_day' },
+    wardrobeVisual: { layout: 'stacked', pieces: [{ wardrobeItemId: '12' }] },
+  }],
+  wardrobeItems: wardrobe,
+  hasPriorOutfitItems: true,
+});
+assert.equal(bootsFollowUp.route, 'outfit-from-wardrobe');
+assert.equal(bootsFollowUp.route === 'outfit-from-wardrobe' ? bootsFollowUp.reason : '', 'refine');
+assert.equal(
+  bootsFollowUp.route === 'outfit-from-wardrobe' ? bootsFollowUp.occasion : '',
+  'casual_day',
+  'refine must forward prior visual occasion, not cold-start empty',
+);
+
 // ── Publish / refuse clears state ─────────────────────────────────────────
 
 const cleared = clearOutfitClarify(pendingA2);

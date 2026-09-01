@@ -21,6 +21,7 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { isMultiDayTravelOutfitAsk } from '@/utils/multiDayTravelClarify';
 import { matchWardrobeItemsInText } from '@/utils/wardrobeMentionMatcher';
 import { compileRefineIntent } from '@/utils/compileRefineIntent';
+import { extractPriorOutfitOccasion } from '@/utils/extractPriorOutfitOccasion';
 
 export const OUTFIT_LOCK_CLARIFY_FLOW = 'outfit_lock_clarify' as const;
 export const OUTFIT_TIER_B_NARROW_FLOW = 'outfit_tier_b_narrow' as const;
@@ -134,6 +135,10 @@ type MessageLike = {
   outfitClarify?: OutfitClarifyPending | null;
   hasOutfitRecommendation?: boolean;
   wardrobeVisual?: unknown;
+  outfitOccasion?: string | null;
+  outfitSuggestion?: { occasion?: string | null } | null;
+  outfitVisualSuggestion?: { occasion?: string | null } | null;
+  styleSession?: { occasion?: string | null } | null;
 };
 
 type ScoredWardrobeMatch = {
@@ -1101,7 +1106,7 @@ export function resolveOutfitRoute(params: {
       reason: 'refine',
       userMessageForServer: text,
       lockedItemIds: [],
-      occasion: '',
+      occasion: extractPriorOutfitOccasion(params.messages) || '',
     };
   }
 

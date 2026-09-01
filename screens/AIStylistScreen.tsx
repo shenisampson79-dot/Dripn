@@ -141,6 +141,7 @@ import { assertCanonicalOutfitVisual } from '@/utils/canonicalOutfitVisualAuthor
 import {
   extractPriorOutfitOccasion,
   pickPersistedOutfitOccasion,
+  asStructuredOutfitOccasion,
 } from '@/utils/extractPriorOutfitOccasion';
 import {
   isMultiPieceHardLockAsk,
@@ -441,7 +442,10 @@ function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const msg = messages[i];
     if (msg.role !== 'assistant') continue;
-    const pieces = msg.wardrobeVisual?.pieces;
+    const visual = msg.wardrobeVisual;
+    const pieces = Array.isArray(visual?.pieces) && visual.pieces.length
+      ? visual.pieces
+      : (visual?.outfits || []).flatMap((outfit) => outfit.pieces || []);
     if (Array.isArray(pieces) && pieces.length) {
       const ids = pieces
         .map((p) => (p as { wardrobeItemId?: string | number; id?: string | number })?.wardrobeItemId
@@ -769,6 +773,7 @@ function attachWardrobeVisualToMessage(
     responseType?: 'single' | 'multi' | string;
     lookCount?: number;
     looks?: ChatMessage['looks'];
+    occasion?: string | null;
   },
   wardrobeItems: WardrobeItem[],
   subscriptionTier?: string | null,
@@ -863,9 +868,16 @@ function attachWardrobeVisualToMessage(
     .filter((item): item is WardrobeItem => Boolean(item));
 
   if (matchedItems.length > 0) {
+    const persistedOccasion = asStructuredOutfitOccasion(response.occasion)
+      || asStructuredOutfitOccasion(message.outfitOccasion)
+      || asStructuredOutfitOccasion(enriched.outfitOccasion)
+      || inferOutfitOccasionFromAsk(userMessage);
+    if (persistedOccasion) {
+      enriched.outfitOccasion = persistedOccasion;
+    }
     enriched.outfitSuggestion = {
       items: matchedItems,
-      occasion: '',
+      occasion: persistedOccasion || '',
       reason: '',
     };
   }

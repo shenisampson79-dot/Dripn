@@ -5,6 +5,7 @@
 import assert from 'assert';
 import { compileRefineIntent } from '../utils/compileRefineIntent';
 import { raiseOccasionForRefine } from '../utils/inferOutfitOccasionFromAsk';
+import { extractPriorOutfitOccasion } from '../utils/extractPriorOutfitOccasion';
 
 const T6 = 'Keep the top, but change the bottoms and trainers. Give me a different version.';
 const P1 = 'Keep the shoes, but change the top and bottoms';
@@ -49,6 +50,27 @@ assert.equal(smarter.occasion, 'smart_casual');
 const dinner = compileRefineIntent('Change it to dinner.', { priorOccasion: 'smart_casual' });
 assert.equal(dinner.occasion, 'evening_out');
 assert.equal(dinner.occasionSource, 'explicit_ask');
+
+const boots = compileRefineIntent(
+  'boots are a bit much, keep the rest but give me different shoes',
+  { priorOccasion: 'casual_day' },
+);
+assert.equal(boots.mode, 'slot_swap');
+assert.deepEqual(boots.replace, ['footwear']);
+assert.ok(boots.keep.includes('top') && boots.keep.includes('bottom'));
+assert.equal(boots.confidence, 'high');
+assert.equal(boots.occasion, 'casual_day');
+assert.equal(
+  raiseOccasionForRefine('casual_day', 'boots are a bit much, keep the rest but give me different shoes'),
+  'casual_day',
+);
+assert.equal(
+  extractPriorOutfitOccasion([
+    { role: 'user', outfitOccasion: 'ignored' },
+    { role: 'assistant', outfitOccasion: 'casual_day', outfitSuggestion: { occasion: 'casual_day' } },
+  ]),
+  'casual_day',
+);
 
 console.log(JSON.stringify({
   ok: true,

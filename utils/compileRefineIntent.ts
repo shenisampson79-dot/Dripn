@@ -215,20 +215,11 @@ export function compileRefineIntent(
   let keepU = uniq(keep);
   let replaceU = uniq(replace);
 
-  const conflict = keepU.filter((s) => replaceU.includes(s));
-  if (conflict.length) {
-    return {
-      keep: keepU,
-      replace: replaceU,
-      mode: 'ambiguous',
-      occasion: occ.occasion,
-      occasionSource: occ.occasionSource,
-      confidence: 'ambiguous',
-      clarifySlot: conflict[0],
-      isRefresh: false,
-      raiseFormality,
-      refine: null,
-    };
+  // Same slot in keep and replace: the replace clause is the slot op
+  // ("keep the rest but change the shoes" also names the current shoes).
+  // Drop the slot from keep so slot_swap can lock the rest of the prior look.
+  if (keepU.some((s) => replaceU.includes(s))) {
+    keepU = keepU.filter((s) => !replaceU.includes(s));
   }
 
   if (!keepU.length && !replaceU.length) {
