@@ -90,10 +90,27 @@ function collapseDuplicateWords(name: string): string {
   return name.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
 }
 
+/** Stored JS null/undefined or the literal strings "null"/"undefined" — not real metadata. */
+const NULLISH_METADATA_TOKEN = /^(null|undefined)$/i;
+
+export function isAbsentWardrobeMetadata(value: unknown): boolean {
+  if (value == null) return true;
+  const s = String(value).trim();
+  return !s || NULLISH_METADATA_TOKEN.test(s);
+}
+
+function dropAbsentMetadataTokens(name: string | null | undefined): string {
+  return String(name || '')
+    .split(/\s+/)
+    .filter((tok) => tok && !NULLISH_METADATA_TOKEN.test(tok))
+    .join(' ')
+    .trim();
+}
+
 function resolveBrandToken(word: string, brandHint?: string | null): string | null {
   const lower = word.toLowerCase().replace(/\.$/, '');
   if (BRAND_CASING[lower]) return BRAND_CASING[lower];
-  const hint = String(brandHint || '').trim();
+  const hint = isAbsentWardrobeMetadata(brandHint) ? '' : String(brandHint).trim();
   if (hint && hint.toLowerCase() === lower) {
     // Prefer brand field; if it is ALL CAPS short code keep it, else Title-ish brand field
     if (/^[A-Z0-9&]{2,6}$/.test(hint)) return hint;
@@ -113,10 +130,10 @@ export function editorialGarmentName(
   name: string,
   options?: { brand?: string | null; atSentenceStart?: boolean },
 ): string {
-  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const words = dropAbsentMetadataTokens(name).split(/\s+/).filter(Boolean);
   if (!words.length) return '';
 
-  const brandHint = options?.brand;
+  const brandHint = isAbsentWardrobeMetadata(options?.brand) ? '' : String(options?.brand).trim();
   const lowered = words.map((word, index) => {
     if (/^[A-Z]{2,}$/.test(word) && word.length <= 5) return word;
     const brand = resolveBrandToken(word, index === 0 ? brandHint : null);
@@ -132,7 +149,7 @@ export function editorialGarmentName(
   });
 
   // If brand field is set but missing from the name, prepend it
-  const hint = String(brandHint || '').trim();
+  const hint = brandHint;
   let out = lowered.join(' ');
   if (hint && !out.toLowerCase().includes(hint.toLowerCase())) {
     const brandLabel = resolveBrandToken(hint, hint) || hint;
@@ -152,12 +169,14 @@ export function sanitizeWardrobeItemName(
   rawName: string,
   options?: { color?: string | null; brand?: string | null },
 ): string {
-  let name = String(rawName || '').trim().replace(/\s+/g, ' ');
+  let name = dropAbsentMetadataTokens(rawName).replace(/\s+/g, ' ');
   if (!name) return name;
 
   name = collapseDuplicateWords(name);
 
-  const color = String(options?.color || '').trim().toLowerCase();
+  const color = isAbsentWardrobeMetadata(options?.color)
+    ? ''
+    : String(options?.color).trim().toLowerCase();
   if (color.length > 2) {
     const colorRe = new RegExp(`\\b${escapeRegExp(color)}\\b`, 'i');
 
@@ -189,8 +208,8 @@ export function formatWardrobeItemDisplayName(item: {
   brand?: string | null;
 }): string {
   return sanitizeWardrobeItemName(item.name || '', {
-    color: item.color,
-    brand: item.brand,
+    color: isAbsentWardrobeMetadata(item.color) ? '' : item.color,
+    brand: isAbsentWardrobeMetadata(item.brand) ? '' : item.brand,
   });
 }
 
@@ -198,8 +217,8 @@ export function reconcileWardrobeBrandName(
   rawName: string,
   brand?: string | null,
 ): string {
-  const name = String(rawName || '').trim();
-  const brandClean = String(brand || '').trim();
+  const name = dropAbsentMetadataTokens(rawName);
+  const brandClean = isAbsentWardrobeMetadata(brand) ? '' : String(brand).trim();
   if (!name || !brandClean) return name ? editorialGarmentName(name) : name;
 
   if (name.toLowerCase().startsWith(brandClean.toLowerCase())) {
