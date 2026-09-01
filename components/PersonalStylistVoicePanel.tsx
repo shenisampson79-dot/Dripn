@@ -535,7 +535,7 @@ export function PersonalStylistVoicePanel({
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
       >
         <ThemedText type="small" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
-          Hands-free mode — {stylist.name} speaks replies aloud. Text chat stays unlimited in Chat mode.
+          Hands-free mode — {stylist.name} speaks replies aloud. Switch to Chat mode for text replies.
         </ThemedText>
 
         {recentLines.length === 0 ? (
