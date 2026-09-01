@@ -24,9 +24,9 @@ const wardrobeIdx = sanity.indexOf('<DecisionWardrobePicker');
 const contextIdx = sanity.indexOf('renderContextChips(');
 
 assert.ok(titleIdx >= 0 && uploadIdx >= 0 && wardrobeIdx >= 0 && contextIdx >= 0);
+assert.ok(contextIdx < uploadIdx, 'known-good QSC: notes/context precede Gallery/Camera');
 assert.ok(titleIdx < uploadIdx, 'title must precede Gallery/Camera row');
 assert.ok(uploadIdx < wardrobeIdx, 'Gallery/Camera must precede wardrobe picker');
-assert.ok(wardrobeIdx < contextIdx, 'optional context chips must follow wardrobe');
 
 assert.ok(
   !/selectedWardrobeIds\.length/.test(sanity),
