@@ -44,6 +44,20 @@ assertIncludes(authScreen, '!isSignup ? (', 'login-only forgot link');
 assertIncludes(authScreen, 'forgotPasswordSent', 'generic success copy');
 assertExcludes(authScreen, 'result.message', 'client must not render server forgot message');
 
+assertIncludes(authScreen, 'isValidForgotPasswordEmail', 'email validation helper');
+assertIncludes(authScreen, 'sendForgotPasswordRequest', 'shared forgot request helper');
+assertIncludes(authScreen, 'forgotPasswordModalVisible', 'email-entry modal state');
+assertIncludes(authScreen, 'handleForgotPasswordModalSubmit', 'modal submit handler');
+assertIncludes(authScreen, 'isValidForgotPasswordEmail(trimmedLoginEmail)', 'valid login email requests directly');
+assertIncludes(authScreen, 'setForgotPasswordModalVisible(true)', 'empty/invalid login email opens modal');
+assertIncludes(authScreen, "t('auth.forgotPasswordInvalidEmail')", 'invalid modal email blocked');
+assertIncludes(authScreen, "t('auth.forgotPasswordSendLink')", 'modal send button copy');
+assertExcludes(
+  authScreen,
+  "Alert.alert(t('auth.forgotPasswordTitle'), t('auth.forgotPasswordEnterEmail'))",
+  'must not dead-end with enter-email alert only',
+);
+
 assertIncludes(apiService, "async requestForgotPassword(email: string)", 'ApiService forgot method');
 assertIncludes(apiService, "'/api/auth/forgot-password'", 'forgot endpoint path');
 assertExcludes(apiService, 'reset-password?token', 'ApiService must not embed reset URLs');
