@@ -33,7 +33,8 @@ const SLOT_PATTERNS: Record<OutfitSlot, RegExp> = {
 };
 
 const KEEP_VERB = /\b(keep|keeping|same|still)\b/i;
-const REPLACE_VERB = /\b(change|changing|swap|swapping|different|other|new|replace|replacing)\b/i;
+// "instead" is replace only when slotsFromClause already found a garment slot.
+const REPLACE_VERB = /\b(change|changing|swap|swapping|different|other|new|replace|replacing|instead)\b/i;
 
 const EXPLICIT_OCCASION_CUES: Array<{ re: RegExp; occasion: string }> = [
   { re: /\b(gym|workout|training|run|exercise)\b/i, occasion: 'gym' },

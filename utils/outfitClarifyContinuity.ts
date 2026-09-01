@@ -20,6 +20,7 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { isMultiDayTravelOutfitAsk } from '@/utils/multiDayTravelClarify';
 import { matchWardrobeItemsInText } from '@/utils/wardrobeMentionMatcher';
+import { compileRefineIntent } from '@/utils/compileRefineIntent';
 
 export const OUTFIT_LOCK_CLARIFY_FLOW = 'outfit_lock_clarify' as const;
 export const OUTFIT_TIER_B_NARROW_FLOW = 'outfit_tier_b_narrow' as const;
@@ -509,7 +510,7 @@ export function isWardrobeHardLockAsk(text: string): boolean {
   if (!t || isMultiLookOrStyleReferenceAsk(t)) return false;
 
   const wearMyHero =
-    /\b(definitely |really |absolutely )?(want to |wanna |need to |gotta )?wear my\b/i.test(t)
+    /\b(definitely |really |absolutely )?(want to |wanna |need to |gotta )?(wear|use) my\b/i.test(t)
     || /\bi('m| am) (definitely |really )?wearing my\b/i.test(t);
 
   const buildAround =
@@ -519,10 +520,14 @@ export function isWardrobeHardLockAsk(text: string): boolean {
     || /\bbuild the (outfit|look) around\b/i.test(t);
 
   const wearMyOccasion =
-    /\bwear my\b.{0,80}\b(tonight|this afternoon|this evening|today|to dinner|for dinner)\b/i.test(t);
+    /\b(wear|use) my\b.{0,80}\b(tonight|this afternoon|this evening|today|to dinner|for dinner)\b/i.test(t);
 
-  return (wearMyHero && (buildAround || wearMyOccasion || /\b(shirt|top|tee|blazer|jacket|jumper|sweater|hoodie)\b/i.test(t)))
-    || (buildAround && /\b(wear|using|with) my\b/i.test(t))
+  // Same named-garment family as compileRefineIntent SLOT_PATTERNS (tops + bottoms).
+  const namedGarment =
+    /\b(shirt|top|tee|t-?shirt|blazer|jacket|jumper|sweater|hoodie|jeans?|trousers?|pants?|shorts?|cargos?|chinos?|skirt|joggers?|leggings?|bottoms?)\b/i.test(t);
+
+  return (wearMyHero && (buildAround || wearMyOccasion || namedGarment))
+    || (buildAround && /\b(wear|use|using|with) my\b/i.test(t))
     || (wearMyHero && buildAround);
 }
 
@@ -548,7 +553,7 @@ export function isWardrobeOutfitRefineAsk(text: string): boolean {
   ) {
     return true;
   }
-  return (
+  if (
     /\b(swap|change|different|other)\b.{0,24}\b(shoe|shoes|trainer|trainers|sneaker|sneakers|boot|boots|footwear)\b/i.test(t)
     || /\b(shoe|shoes|trainer|trainers|boot|boots)\b.{0,16}\b(swap|change|different|other)\b/i.test(t)
     || /\bmake it (smarter|dressier|sharper|smarter looking|more smart|more formal|better)\b/i.test(t)
@@ -558,7 +563,22 @@ export function isWardrobeOutfitRefineAsk(text: string): boolean {
     || /\b(don'?t like|do not like|not appropriate|another option|another look|give me another|something different)\b/i.test(t)
     || /\b(reject|hate)\b.{0,24}\b(outfit|look)\b/i.test(t)
     || /\b(hotter|cooler|warmer|for (?:the )?gym|gym (?:look|outfit)|refine)\b/i.test(t)
-  );
+  ) {
+    return true;
+  }
+  // Slot-bound "instead" (wear my black jeans instead). Colour-only "instead" has no slot.
+  if (/\binstead\b/i.test(t)) {
+    const intent = compileRefineIntent(t);
+    if (
+      intent
+      && intent.confidence !== 'ambiguous'
+      && Array.isArray(intent.replace)
+      && intent.replace.length > 0
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function isOutfitClarifyReady(
