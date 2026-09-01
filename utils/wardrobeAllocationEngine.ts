@@ -49,6 +49,10 @@ import {
   parseWeatherTempC,
   type WeatherLike,
 } from '@/utils/weatherOuterwear';
+import {
+  ensureBeamOptionalOuterwearDiversity,
+  type BeamOutfitCandidate,
+} from '@/utils/beamOptionalOuterwearDiversity';
 
 export type AllocationMode = 'strict' | 'soft' | 'rotation' | 'failure';
 
@@ -346,6 +350,29 @@ function comboItems(combo: Combo): WardrobeItem[] {
  * First optional piece that keeps the full outfit hard-valid.
  * Prefer omit over forcing an invalid accessory/outerwear (no first-fit).
  */
+function collectValidOptionalCandidates(
+  candidates: WardrobeItem[],
+  baseItems: WardrobeItem[],
+  dayIndex: number,
+  log: UsageLog,
+  mode: Exclude<AllocationMode, 'failure'>,
+  occasion: OutfitOccasionId,
+  laundryProfile: LaundryProfile,
+  referenceDate: Date,
+  canWearRelaxLevel: 0 | 1 | 2,
+  workDressCode?: WorkDressCode | null,
+): WardrobeItem[] {
+  const clashOpts = clashOptionsFor(occasion, workDressCode);
+  const out: WardrobeItem[] = [];
+  for (const item of candidates) {
+    if (!itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, canWearRelaxLevel)) {
+      continue;
+    }
+    if (isOutfitValid([...baseItems, item], clashOpts)) out.push(item);
+  }
+  return out;
+}
+
 function pickValidOptional(
   candidates: WardrobeItem[],
   baseItems: WardrobeItem[],
@@ -358,12 +385,63 @@ function pickValidOptional(
   canWearRelaxLevel: 0 | 1 | 2,
   workDressCode?: WorkDressCode | null,
 ): WardrobeItem | undefined {
-  const clashOpts = clashOptionsFor(occasion, workDressCode);
-  for (const item of candidates) {
-    if (!itemAllowed(item, dayIndex, log, mode, occasion, laundryProfile, referenceDate, canWearRelaxLevel)) continue;
-    if (isOutfitValid([...baseItems, item], clashOpts)) return item;
-  }
-  return undefined;
+  const valid = collectValidOptionalCandidates(
+    candidates,
+    baseItems,
+    dayIndex,
+    log,
+    mode,
+    occasion,
+    laundryProfile,
+    referenceDate,
+    canWearRelaxLevel,
+    workDressCode,
+  );
+  return valid[0];
+}
+
+/**
+ * Optional-outerwear beam construction guard — call after beam insert, before rerank.
+ * Prevents one eligible outerwear piece from occupying every candidate when alternatives exist.
+ */
+export function finalizeOptionalOuterwearBeam<T extends BeamOutfitCandidate>(
+  beam: T[],
+  outerwearPool: WardrobeItem[],
+  opts: {
+    dayIndex?: number;
+    log?: UsageLog;
+    mode?: Exclude<AllocationMode, 'failure'>;
+    occasion?: OutfitOccasionId;
+    laundryProfile?: LaundryProfile;
+    referenceDate?: Date;
+    canWearRelaxLevel?: 0 | 1 | 2;
+    workDressCode?: WorkDressCode | null;
+  } = {},
+): T[] {
+  const dayIndex = opts.dayIndex ?? 0;
+  const log = opts.log ?? { lastDay: new Map(), weekCount: new Map() };
+  const mode = opts.mode ?? 'soft';
+  const occasion = opts.occasion ?? 'casual_day';
+  const laundryProfile = opts.laundryProfile ?? DEFAULT_LAUNDRY_PROFILE;
+  const referenceDate = opts.referenceDate ?? new Date();
+  const canWearRelaxLevel = opts.canWearRelaxLevel ?? 0;
+  const workDressCode = opts.workDressCode ?? null;
+
+  return ensureBeamOptionalOuterwearDiversity(beam, (baseWithoutOuterwear, excludeOuterwearIds) => {
+    const valid = collectValidOptionalCandidates(
+      outerwearPool,
+      baseWithoutOuterwear,
+      dayIndex,
+      log,
+      mode,
+      occasion,
+      laundryProfile,
+      referenceDate,
+      canWearRelaxLevel,
+      workDressCode,
+    );
+    return valid.find((item) => !excludeOuterwearIds.has(String(item.id)));
+  });
 }
 
 function itemAllowed(

@@ -471,6 +471,18 @@ export function isStylingAdviceHowAsk(text: string): boolean {
   return false;
 }
 
+/**
+ * Wear-intent phrasing — "what should I wear" and natural variants such as
+ * "what I should I wear" (extra subject pronoun before the modal).
+ */
+export function isWhatToWearAsk(text: string): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (/\bwhat (should|can|do) i wear\b/i.test(t)) return true;
+  if (/\bwhat i (should|can|do) i wear\b/i.test(t)) return true;
+  return false;
+}
+
 /** Existing single-look create regex (moved here so isOutfitTaskAsk is one gate). */
 export function isSingleLookWardrobeCreateAsk(text: string): boolean {
   const t = String(text || '').trim();
@@ -479,7 +491,7 @@ export function isSingleLookWardrobeCreateAsk(text: string): boolean {
   if (isStylingAdviceHowAsk(t)) return false;
   return (
     /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(t)
-    || /\bwhat (should|can|do) i wear\b/i.test(t)
+    || isWhatToWearAsk(t)
     || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(t)
     || /\boutfit for (today|tonight|tomorrow)\b/i.test(t)
     || /\bwear today\b|\blook for today\b/i.test(t)

@@ -20,11 +20,13 @@ import {
   isStylingAdviceHowAsk,
   isWardrobeHardLockAsk,
   isWardrobeOutfitRefineAsk,
+  isWhatToWearAsk,
   looksLikeOutfitClarifyCancel,
   looksLikeUnrelatedChatDuringOutfitClarify,
   resolveOutfitRoute,
 } from '../utils/outfitClarifyContinuity';
 import { assertCanonicalOutfitVisual } from '../utils/canonicalOutfitVisualAuthority';
+import { inferOutfitOccasionFromAsk } from '../utils/inferOutfitOccasionFromAsk';
 
 function item(
   partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'category' | 'name'>,
@@ -454,6 +456,35 @@ matrix['short make it smarter still refine'] =
 assert.equal(isOutfitTaskAsk('Create an outfit from my wardrobe for tonight'), true);
 matrix['explicit create still outfit task'] =
   isOutfitTaskAsk('Create an outfit from my wardrobe for tonight') ? 'PASS' : 'FAIL';
+
+// ── P1-B wear-intent routing (date / cinema) ───────────────────────────────
+
+assert.equal(isWhatToWearAsk('what should I wear'), true);
+assert.equal(isWhatToWearAsk('what I should I wear'), true);
+assert.equal(isOutfitTaskAsk('what should I wear'), true);
+assert.equal(isOutfitTaskAsk('what I should I wear'), true);
+
+const DATE_CINEMA_ASK =
+  "I'm going to the cinema tomorrow on a date, what I should I wear";
+const dateCinemaRoute = resolveOutfitRoute({
+  userText: DATE_CINEMA_ASK,
+  messages: [],
+  wardrobeItems: wardrobe,
+});
+assert.equal(dateCinemaRoute.route, 'outfit-from-wardrobe', 'cinema/date ask → outfit-from-wardrobe');
+assert.equal(inferOutfitOccasionFromAsk(DATE_CINEMA_ASK), 'date_night', 'on a date → date_night');
+matrix['P1-B cinema/date wear ask routes outfit-from-wardrobe'] =
+  dateCinemaRoute.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
+matrix['P1-B cinema/date infer date_night'] =
+  inferOutfitOccasionFromAsk(DATE_CINEMA_ASK) === 'date_night' ? 'PASS' : 'FAIL';
+
+const negativeControl = resolveOutfitRoute({
+  userText: 'I went to the cinema yesterday, it was a great film.',
+  messages: [],
+  wardrobeItems: wardrobe,
+});
+assert.equal(negativeControl.route, 'other', 'general cinema chat stays other');
+matrix['P1-B non-outfit negative control'] = negativeControl.route === 'other' ? 'PASS' : 'FAIL';
 
 // Visual authority: published strip IDs must equal canonical itemIds
 const visualOk = assertCanonicalOutfitVisual({
