@@ -73,7 +73,7 @@ import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
-import { extractRecentOutfitIdLists } from '@/utils/extractRecentOutfitIdLists';
+import { extractCurrentLookItemIds, extractRecentOutfitIdLists } from '@/utils/extractRecentOutfitIdLists';
 import {
   appendChatRecentOutfitHistory,
   outfitItemIdsFromPublishedTurn,
@@ -438,28 +438,11 @@ async function fetchWeatherForOutfitCreate(timeoutMs = 3000): Promise<{
   return { weather: null, lat: null };
 }
 
-function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== 'assistant') continue;
-    const visual = msg.wardrobeVisual;
-    const pieces = Array.isArray(visual?.pieces) && visual.pieces.length
-      ? visual.pieces
-      : (visual?.outfits || []).flatMap((outfit) => outfit.pieces || []);
-    if (Array.isArray(pieces) && pieces.length) {
-      const ids = pieces
-        .map((p) => (p as { wardrobeItemId?: string | number; id?: string | number })?.wardrobeItemId
-          ?? (p as { id?: string | number })?.id)
-        .filter((id) => id != null && String(id).trim())
-        .map(String);
-      if (ids.length) return ids;
-    }
-    const lookIds = msg.looks?.[0]?.itemIds;
-    if (Array.isArray(lookIds) && lookIds.length) {
-      return lookIds.map(String);
-    }
-  }
-  return [];
+function extractPriorWardrobeItemIds(
+  messages: ChatMessage[],
+  wardrobeItems: WardrobeItem[] = [],
+): string[] {
+  return extractCurrentLookItemIds(messages, wardrobeItems);
 }
 
 function candidateItemIdsFromClarifyResponse(resp: {
@@ -3370,7 +3353,7 @@ export default function AIStylistScreen() {
       
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
       const trimmedAsk = text.trim();
-      const priorItemIds = extractPriorWardrobeItemIds(updatedMessages);
+      const priorItemIds = extractPriorWardrobeItemIds(updatedMessages, wardrobeItems);
 
       // Outfit continuity: merge pending clarify BEFORE cold intent classification (C3).
       const outfitRoute = resolveOutfitRoute({
