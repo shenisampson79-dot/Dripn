@@ -288,6 +288,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         label: paywall.primaryLabel,
         onPress: () => flow.openAllowanceDestination(),
         loading: false,
+        disabled: false,
       };
     }
     if (flow.step === 'event') {
@@ -296,6 +297,21 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         label: t('stylistFlow.continue'),
         onPress: () => flow.setStep('input'),
         loading: false,
+        disabled: false,
+      };
+    }
+    // QSC: keep Get Verdict visible so it can look disabled then illuminate,
+    // and so KeyboardStickyView/bottomOffset stay applied while typing notes.
+    if (flow.step === 'input' && decisionType === 'sanity-check') {
+      const canSubmit = flow.canProceedFromInput();
+      return {
+        label: t('stylistFlow.getVerdict'),
+        onPress: () => {
+          if (!canSubmit) return;
+          flow.submitDecision(false);
+        },
+        loading: flow.isLoading,
+        disabled: !canSubmit,
       };
     }
     if (flow.step === 'input' && flow.canProceedFromInput()) {
@@ -304,13 +320,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           label: t('stylistFlow.getRecommendation'),
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
-        };
-      }
-      if (decisionType === 'sanity-check') {
-        return {
-          label: t('stylistFlow.getVerdict'),
-          onPress: () => flow.submitDecision(false),
-          loading: flow.isLoading,
+          disabled: false,
         };
       }
       if (decisionType === 'event-outfit') {
@@ -318,6 +328,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           label: t('stylistFlow.getRecommendation'),
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
+          disabled: false,
         };
       }
     }
@@ -479,6 +490,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         numberOfLines={decisionType === 'shopping' ? 4 : 3}
         maxLength={decisionType === 'shopping' ? 400 : 200}
         editable={!flow.isReadOnly}
+        onFocus={() => {
+          if (decisionType !== 'sanity-check') return;
+          requestAnimationFrame(() => {
+            scrollRef.current?.scrollTo?.({ y: 99999, animated: true });
+          });
+        }}
       />
     </View>
   );
@@ -1323,7 +1340,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ref={scrollRef}
         style={styles.flex}
         opaqueHeader
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={decisionType === 'sanity-check' ? 'none' : 'on-drag'}
         bottomOffset={stickyCta ? stickyFooterClearance : 0}
         extraKeyboardSpace={stickyCta ? Spacing.sm : 0}
         // Extra space so last fields clear the sticky CTA; tab/safe clearance is on the footer
@@ -1419,7 +1436,12 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               },
             ]}
           >
-            {renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
+            {renderPrimaryButton(
+              stickyCta.label,
+              stickyCta.onPress,
+              Boolean(stickyCta.disabled),
+              stickyCta.loading,
+            )}
           </SafeAreaView>
         </KeyboardStickyView>
       ) : null}
