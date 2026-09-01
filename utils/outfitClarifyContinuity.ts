@@ -720,6 +720,59 @@ export function looksLikeUnrelatedChatDuringOutfitClarify(text: string): boolean
   return false;
 }
 
+/**
+ * A lock-clarify turn may consume only a plausible answer to the pending
+ * question (ordinal / shade / candidate hit / elliptical "the X ones").
+ * Does not change candidate matching — only calls existing resolvers.
+ */
+function isPlausibleLockClarifyReply(
+  text: string,
+  pending: OutfitClarifyPending,
+  wardrobeItems: WardrobeItem[],
+): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (parseClarifyOrdinalIndex(t) != null) return true;
+  if (/\b(darker|darkest|lighter|lightest|brighter|paler|deeper)\b/i.test(t)) return true;
+  if (looksLikeSlotCorrection(t)) return true;
+  const candidateIds = [...new Set((pending.candidateItemIds || []).map(String).filter(Boolean))];
+  if (candidateIds.length >= 2) {
+    const universe = lookupLockedItems(candidateIds, wardrobeItems);
+    const picked = resolveReplyAgainstCandidateUniverse(t, universe);
+    if (picked.status === 'unique' || picked.status === 'ambiguous') return true;
+  } else if (matchClarifyCandidatesScored(t, wardrobeItems, 8).length > 0) {
+    return true;
+  }
+  if (t.length <= 80 && /\b(the\s+)?[a-z0-9']+\s+(ones?|pair|pairs)\b/i.test(t)) return true;
+  return false;
+}
+
+/** Existing cold-route classifiers: this turn is a new ask, not a piece pick. */
+function isStandaloneIntentDuringOutfitClarify(text: string): boolean {
+  return (
+    isOutfitTaskAsk(text)
+    || isStylingAdviceHowAsk(text)
+    || isWardrobeOutfitRefineAsk(text)
+    || isMultiDayTravelOutfitAsk(text)
+  );
+}
+
+/**
+ * Stale AWAITING_PIECE must not hijack a new standalone request.
+ * Short failed discriminators stay in clarification (never silently guess).
+ */
+function shouldAbandonStaleLockClarify(
+  text: string,
+  pending: OutfitClarifyPending,
+  wardrobeItems: WardrobeItem[],
+): boolean {
+  if (pending.flow !== OUTFIT_LOCK_CLARIFY_FLOW) return false;
+  if (isPlausibleLockClarifyReply(text, pending, wardrobeItems)) return false;
+  if (isStandaloneIntentDuringOutfitClarify(text)) return true;
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  return words.length >= 8;
+}
+
 export function isOutfitClarifyFlow(flow: unknown): flow is OutfitClarifyFlow {
   return flow === OUTFIT_LOCK_CLARIFY_FLOW || flow === OUTFIT_TIER_B_NARROW_FLOW;
 }
@@ -982,6 +1035,9 @@ export function resolveOutfitRoute(params: {
       return { route: 'cancel_pending', pending: null };
     }
     if (looksLikeUnrelatedChatDuringOutfitClarify(text)) {
+      return { route: 'drop_pending_unrelated', pending: null };
+    }
+    if (shouldAbandonStaleLockClarify(text, pending, params.wardrobeItems)) {
       return { route: 'drop_pending_unrelated', pending: null };
     }
 
