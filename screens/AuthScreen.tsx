@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform, Modal } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -27,16 +27,6 @@ WebBrowser.maybeCompleteAuthSession();
 /** Hide Apple/Google/Facebook until OAuth is configured & verified. Re-enable after App Review. */
 const SHOW_SOCIAL_LOGIN = false;
 
-const FORGOT_PASSWORD_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function isValidForgotPasswordEmail(value: string): boolean {
-  return FORGOT_PASSWORD_EMAIL_REGEX.test(value.trim());
-}
-
-function normalizeForgotPasswordEmail(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 type AuthScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Auth">;
   route: RouteProp<AuthStackParamList, "Auth">;
@@ -58,9 +48,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
-  const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false);
-  const [forgotPasswordModalEmail, setForgotPasswordModalEmail] = useState("");
-  const [forgotPasswordModalError, setForgotPasswordModalError] = useState<string | null>(null);
 
   const isSignup = mode === "signup";
 
@@ -169,18 +156,17 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     }
   };
 
-  const closeForgotPasswordModal = () => {
-    setForgotPasswordModalVisible(false);
-    setForgotPasswordModalEmail("");
-    setForgotPasswordModalError(null);
-  };
+  const handleForgotPassword = async () => {
+    setErrorMessage(null);
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      Alert.alert(t('auth.forgotPasswordTitle'), t('auth.forgotPasswordEnterEmail'));
+      return;
+    }
 
-  const sendForgotPasswordRequest = async (rawEmail: string) => {
-    const normalizedEmail = normalizeForgotPasswordEmail(rawEmail);
     setForgotPasswordLoading(true);
     try {
       await apiService.requestForgotPassword(normalizedEmail);
-      closeForgotPasswordModal();
       Alert.alert(
         t('auth.forgotPasswordTitle'),
         t('auth.forgotPasswordSent'),
@@ -191,28 +177,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     } finally {
       setForgotPasswordLoading(false);
     }
-  };
-
-  const handleForgotPassword = () => {
-    setErrorMessage(null);
-    const trimmedLoginEmail = email.trim();
-    if (isValidForgotPasswordEmail(trimmedLoginEmail)) {
-      void sendForgotPasswordRequest(trimmedLoginEmail);
-      return;
-    }
-    setForgotPasswordModalEmail(trimmedLoginEmail);
-    setForgotPasswordModalError(null);
-    setForgotPasswordModalVisible(true);
-  };
-
-  const handleForgotPasswordModalSubmit = () => {
-    const trimmedModalEmail = forgotPasswordModalEmail.trim();
-    if (!isValidForgotPasswordEmail(trimmedModalEmail)) {
-      setForgotPasswordModalError(t('auth.forgotPasswordInvalidEmail'));
-      return;
-    }
-    setForgotPasswordModalError(null);
-    void sendForgotPasswordRequest(trimmedModalEmail);
   };
 
   const handleSubmit = async () => {
@@ -531,81 +495,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           </ThemedText>
         </View>
       </ScreenKeyboardAwareScrollView>
-      <Modal
-        visible={forgotPasswordModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeForgotPasswordModal}
-      >
-        <Pressable
-          style={styles.forgotPasswordModalOverlay}
-          onPress={closeForgotPasswordModal}
-        >
-          <Pressable
-            style={[
-              styles.forgotPasswordModalContent,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
-            onPress={(event) => event.stopPropagation()}
-          >
-            <ThemedText type="h3" style={styles.forgotPasswordModalTitle}>
-              {t('auth.forgotPasswordTitle')}
-            </ThemedText>
-            <ThemedText type="small" style={[styles.forgotPasswordModalHint, { color: theme.tabIconDefault }]}>
-              {t('auth.forgotPasswordEnterEmail')}
-            </ThemedText>
-            <TextInput
-              style={[
-                inputStyle,
-                styles.forgotPasswordModalInput,
-                forgotPasswordModalError ? styles.forgotPasswordModalInputError : null,
-              ]}
-              value={forgotPasswordModalEmail}
-              onChangeText={(value) => {
-                setForgotPasswordModalEmail(value);
-                if (forgotPasswordModalError) {
-                  setForgotPasswordModalError(null);
-                }
-              }}
-              placeholder={t('auth.emailPlaceholder')}
-              placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoFocus
-              returnKeyType="send"
-              onSubmitEditing={handleForgotPasswordModalSubmit}
-              editable={!forgotPasswordLoading}
-            />
-            {forgotPasswordModalError ? (
-              <ThemedText type="small" style={styles.forgotPasswordModalError}>
-                {forgotPasswordModalError}
-              </ThemedText>
-            ) : null}
-            <Button
-              onPress={handleForgotPasswordModalSubmit}
-              disabled={forgotPasswordLoading}
-              style={styles.forgotPasswordModalSubmit}
-            >
-              {forgotPasswordLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                t('auth.forgotPasswordSendLink')
-              )}
-            </Button>
-            <Pressable
-              onPress={closeForgotPasswordModal}
-              disabled={forgotPasswordLoading}
-              style={({ pressed }) => [
-                styles.forgotPasswordModalCancel,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
-            >
-              <ThemedText type="link">{t('common.cancel')}</ThemedText>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
       <LanguagePickerModal
         visible={languagePickerVisible}
         onClose={() => setLanguagePickerVisible(false)}
@@ -718,41 +607,6 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     fontSize: 14,
     fontWeight: "600",
-  },
-  forgotPasswordModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.lg,
-  },
-  forgotPasswordModalContent: {
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-  },
-  forgotPasswordModalTitle: {
-    marginBottom: Spacing.sm,
-  },
-  forgotPasswordModalHint: {
-    marginBottom: Spacing.md,
-    lineHeight: 20,
-  },
-  forgotPasswordModalInput: {
-    marginBottom: Spacing.sm,
-  },
-  forgotPasswordModalInputError: {
-    borderWidth: 1,
-    borderColor: "#DC2626",
-  },
-  forgotPasswordModalError: {
-    color: "#DC2626",
-    marginBottom: Spacing.sm,
-  },
-  forgotPasswordModalSubmit: {
-    marginTop: Spacing.sm,
-  },
-  forgotPasswordModalCancel: {
-    alignItems: "center",
-    paddingVertical: Spacing.md,
   },
   submitButton: {
     marginTop: Spacing.md,
