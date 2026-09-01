@@ -74,6 +74,11 @@ import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguage
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 import { extractRecentOutfitIdLists } from '@/utils/extractRecentOutfitIdLists';
+import {
+  appendChatRecentOutfitHistory,
+  outfitItemIdsFromPublishedTurn,
+} from '@/utils/chatRecentOutfitHistory';
+import { resolveChatOutfitRecencyForRequest } from '@/utils/mergeChatOutfitRecencySources';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import {
   getAiAllowancePaywallCopy,
@@ -3527,7 +3532,10 @@ export default function AIStylistScreen() {
             : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
               ? outfitRoute.occasion
               : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day')));
-        const recentOutfits = extractRecentOutfitIdLists(updatedMessages, 5);
+        const outfitRecency = await resolveChatOutfitRecencyForRequest({
+          userId: user?.id,
+          messages: updatedMessages,
+        });
         // Contract 1: refine lock polarity is server-authoritative (compileRefineIntent).
         // Do not send client-derived keepShoesChangeRest locks — they inverted Test 6.
         let lockedItems: string[] | undefined = continuityLocks;
@@ -3558,6 +3566,7 @@ export default function AIStylistScreen() {
           }
         }
 
+        let publishedOutfitResponseItemIds: string[] | undefined;
         try {
           const outfitResponse = await apiService.sendWardrobeOutfitFromChat({
             stylistId: stylist.id,
@@ -3574,12 +3583,15 @@ export default function AIStylistScreen() {
             priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
             lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
             excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,
-            recentOutfits,
+            recentOutfits: outfitRecency.recentOutfits.length
+              ? outfitRecency.recentOutfits
+              : undefined,
             source: 'wardrobe',
           });
           if (!outfitResponse.content || !outfitResponse.content.trim()) {
             throw new Error('Empty response from backend');
           }
+          publishedOutfitResponseItemIds = outfitResponse.itemIds;
           const isTierBNarrow =
             String(outfitResponse.path || '') === 'allocator_tier_b_narrow';
           const isPartialLockClarify =
@@ -3746,6 +3758,15 @@ export default function AIStylistScreen() {
           && (assistantMessage as ChatMessage).hasOutfitRecommendation
           && !(assistantMessage as ChatMessage).outfitClarify,
         );
+        if (outfitPublished && user?.id && assistantMessage) {
+          const publishedIds = outfitItemIdsFromPublishedTurn(
+            assistantMessage as ChatMessage,
+            publishedOutfitResponseItemIds,
+          );
+          if (publishedIds.length >= 2) {
+            void appendChatRecentOutfitHistory(user.id, publishedIds);
+          }
+        }
         const baseMessages =
           outfitPublished ? markPriorOutfitClarifyDone(updatedMessages) : updatedMessages;
         const finalMessages = [...baseMessages, assistantMessage];

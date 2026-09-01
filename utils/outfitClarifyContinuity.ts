@@ -492,8 +492,10 @@ export function isSingleLookWardrobeCreateAsk(text: string): boolean {
   return (
     /\b(create|build|put together|make|pick|suggest|recommend)\b.{0,40}\b(outfit|look)\b/i.test(t)
     || isWhatToWearAsk(t)
+    || /\b(help me )?(choose|pick|select)\b.{0,24}\b(an? )?(outfit|look)\b/i.test(t)
+    || /\bgive me\b.{0,24}\b(an? )?(outfit|look)\b/i.test(t)
     || /\bfrom my (wardrobe|closet|mobile|phone)\b/i.test(t)
-    || /\boutfit for (today|tonight|tomorrow)\b/i.test(t)
+    || /\boutfit for\b/i.test(t)
     || /\bwear today\b|\blook for today\b/i.test(t)
   );
 }
