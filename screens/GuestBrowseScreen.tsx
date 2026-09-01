@@ -87,6 +87,8 @@ const GUEST_VISUAL_LIMIT_MSG =
   "You've used your free outfit visuals for this guest session. Sign up to unlock unlimited looks.";
 const GUEST_VISUAL_FAIL_MSG =
   "Couldn't create that outfit visual. Tap retry to try again.";
+/** Launch: just-browsing Guest Chat is text-only (no Replicate / Retry visual). */
+const GUEST_CHAT_OUTFIT_VISUALS_ENABLED = false;
 
 function isRenderableHttpsImageUrl(url: unknown): url is string {
   return typeof url === 'string' && url.startsWith('https://');
@@ -413,8 +415,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       }
 
       const askedForVisual = /\b(visual|visualize|picture|photo|image|show me|see (it|the|that)|render)\b/i.test(userText);
-      const canGenerateImage = imageGenUsed < GUEST_VISUAL_LIMIT;
-      // Prefer auto-visualize whenever the server flags an outfit recommendation
+      const canGenerateImage = GUEST_CHAT_OUTFIT_VISUALS_ENABLED && imageGenUsed < GUEST_VISUAL_LIMIT;
+      // Launch: guest Chat is text-only — never auto-call Guest Image / show Retry.
       const shouldVisualize = canGenerateImage && (
         rawResponse?.hasOutfitRecommendation === true
         || (askedForVisual && Boolean(lastOutfitVisualRef.current?.description || outfitContext))
@@ -496,6 +498,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     tokenOverride?: string | null,
     extras?: { pieces?: OutfitPiece[]; occasion?: string | null },
   ) => {
+    if (!GUEST_CHAT_OUTFIT_VISUALS_ENABLED) return;
     const activeToken = tokenOverride || sessionToken;
     if (!activeToken || !selectedStylist) return;
     const stylistId = selectedStylist.id;
@@ -739,7 +742,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         >
           {renderFormattedContent(item.content, item.isUser ? "#FFFFFF" : theme.text)}
 
-          {item.isGeneratingImage && !hasValidImage && (
+          {GUEST_CHAT_OUTFIT_VISUALS_ENABLED && item.isGeneratingImage && !hasValidImage && (
             <View style={styles.imageLoadingRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={{ color: theme.textSecondary || theme.text, fontSize: 12, marginLeft: 8, opacity: 0.7 }}>
@@ -748,7 +751,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             </View>
           )}
 
-          {hasValidImage && (
+          {GUEST_CHAT_OUTFIT_VISUALS_ENABLED && hasValidImage && (
             <Pressable
               onPress={() => setViewerImageUrl(item.imageUrl!)}
               accessibilityRole="imagebutton"
@@ -780,7 +783,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             </Pressable>
           )}
 
-          {!hasValidImage && !item.isGeneratingImage && !!item.visualError && (
+          {GUEST_CHAT_OUTFIT_VISUALS_ENABLED && !hasValidImage && !item.isGeneratingImage && !!item.visualError && (
             <Text style={{
               color: theme.textSecondary || theme.text,
               fontSize: 12,
@@ -792,7 +795,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             </Text>
           )}
 
-          {!hasValidImage && !item.isGeneratingImage && item.showVisualizeButton && (
+          {GUEST_CHAT_OUTFIT_VISUALS_ENABLED && !hasValidImage && !item.isGeneratingImage && item.showVisualizeButton && (
             <Pressable
               onPress={() => handleGenerateOutfitImage(
                 item.id,
