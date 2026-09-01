@@ -85,6 +85,8 @@ export type OutfitClarifyPending = {
   originalUserMessage: string;
   occasion: string;
   lockedItemIds: string[];
+  /** Ambiguous wardrobe IDs from hard_lock_ambiguous — next reply resolves only against this set. */
+  candidateItemIds?: string[];
   expectedLockCount: number;
   pendingSlot?: 'second_piece' | 'blazer' | 'garment';
   createdAt: string;
@@ -356,6 +358,102 @@ export function looksLikeSlotCorrection(text: string): boolean {
 
 function scoreClarifyItemMatch(item: WardrobeItem, query: string): number {
   return Math.max(...itemMatchSurfaces(item).map((surface) => scoreClarifyTextMatch(surface, query)), 0);
+}
+
+const CANDIDATE_REPLY_FILLER = new Set([
+  'the', 'a', 'an', 'and', 'with', 'my', 'your', 'ones', 'one', 'pair', 'pairs',
+  'those', 'them', 'that', 'this', 'yeah', 'yes', 'please', 'just', 'from',
+  'wardrobe', 'piece', 'item', 'jeans', 'shoes', 'shoe',
+]);
+
+function candidateSurfaceTokens(item: WardrobeItem): string[] {
+  return getSignificantTokens(`${item.brand || ''} ${item.color || ''} ${item.name || ''}`);
+}
+
+function replyDiscriminatorTokens(query: string): string[] {
+  return normalizeForMatch(query)
+    .split(' ')
+    .filter((word) => word.length > 2 && !CANDIDATE_REPLY_FILLER.has(word));
+}
+
+/** 0-based index, or null if the reply is not an ordinal pick. */
+export function parseClarifyOrdinalIndex(query: string): number | null {
+  const t = String(query || '').trim();
+  if (!t) return null;
+  if (/\b(the\s+)?first(\s+(one|ones|pair|item|piece))?\b/i.test(t) || /\b1st\b/i.test(t)) {
+    return 0;
+  }
+  if (/\b(the\s+)?second(\s+(one|ones|pair|item|piece))?\b/i.test(t) || /\b2nd\b/i.test(t)) {
+    return 1;
+  }
+  if (/\b(the\s+)?third(\s+(one|ones|pair|item|piece))?\b/i.test(t) || /\b3rd\b/i.test(t)) {
+    return 2;
+  }
+  return null;
+}
+
+function colorDarknessScore(item: WardrobeItem): number {
+  const blob = `${item.color || ''} ${item.name || ''}`.toLowerCase();
+  let score = 50;
+  if (/\b(black|navy|charcoal|espresso|ink|midnight)\b/.test(blob)) score += 40;
+  if (/\bdark\b/.test(blob)) score += 20;
+  if (/\b(white|cream|ivory|beige|pale|off[\s-]?white)\b/.test(blob)) score -= 40;
+  if (/\blight\b/.test(blob)) score -= 20;
+  if (/\b(grey|gray|brown|olive)\b/.test(blob)) score += 5;
+  return score;
+}
+
+type CandidateUniversePick =
+  | { status: 'unique'; item: WardrobeItem }
+  | { status: 'ambiguous' }
+  | { status: 'none' };
+
+/**
+ * Resolve a short clarify reply against a closed candidate universe only.
+ * Generic attributes (brand/name tokens, ordinal, relative shade) — no brand vocabulary.
+ */
+export function resolveReplyAgainstCandidateUniverse(
+  query: string,
+  candidates: WardrobeItem[],
+): CandidateUniversePick {
+  const universe = (candidates || []).filter(Boolean);
+  if (universe.length < 2) {
+    return universe[0] ? { status: 'unique', item: universe[0] } : { status: 'none' };
+  }
+
+  const ordinal = parseClarifyOrdinalIndex(query);
+  if (ordinal != null) {
+    const picked = universe[ordinal];
+    return picked ? { status: 'unique', item: picked } : { status: 'ambiguous' };
+  }
+
+  const t = String(query || '');
+  const wantsDarker = /\b(darker|darkest|deeper)\b/i.test(t);
+  const wantsLighter = /\b(lighter|lightest|brighter|paler)\b/i.test(t);
+  if (wantsDarker || wantsLighter) {
+    const ranked = universe.map((item) => ({ item, w: colorDarknessScore(item) }));
+    const target = wantsDarker
+      ? Math.max(...ranked.map((r) => r.w))
+      : Math.min(...ranked.map((r) => r.w));
+    const opposite = wantsDarker
+      ? Math.min(...ranked.map((r) => r.w))
+      : Math.max(...ranked.map((r) => r.w));
+    if (target === opposite) return { status: 'ambiguous' };
+    const hits = ranked.filter((r) => r.w === target);
+    if (hits.length === 1) return { status: 'unique', item: hits[0].item };
+    return { status: 'ambiguous' };
+  }
+
+  const replyTokens = replyDiscriminatorTokens(query);
+  if (!replyTokens.length) return { status: 'none' };
+
+  const hits = universe.filter((item) => {
+    const surface = new Set(candidateSurfaceTokens(item));
+    return replyTokens.some((tok) => surface.has(tok) || [...surface].some((s) => s.includes(tok) || tok.includes(s)));
+  });
+  if (hits.length === 1) return { status: 'unique', item: hits[0] };
+  if (hits.length > 1) return { status: 'ambiguous' };
+  return { status: 'none' };
 }
 
 /** Score and rank clarify reply candidates (brand/color alias included). */
@@ -635,7 +733,7 @@ export function findPendingOutfitClarify(
     const oc = msg.outfitClarify;
     // Pending clarify wins even if the bubble also has a visual/recommendation flag.
     if (oc && isOutfitClarifyFlow(oc.flow) && oc.state !== 'DONE') {
-      return { ...oc, lockedItemIds: [...(oc.lockedItemIds || [])] };
+      return { ...oc, lockedItemIds: [...(oc.lockedItemIds || [])], candidateItemIds: [...(oc.candidateItemIds || [])] };
     }
     // Stop at published outfit or completed clarify
     if (oc?.state === 'DONE') return null;
@@ -684,12 +782,14 @@ export function buildOutfitClarifyFromPartialLock(params: {
   originalUserMessage: string;
   occasion: string;
   lockedItemIds?: Array<string | number>;
+  candidateItemIds?: Array<string | number>;
   expectedLockCount?: number;
   weather?: OutfitClarifyWeatherSnap;
   lat?: number | null;
   pendingSlot?: OutfitClarifyPending['pendingSlot'];
 }): OutfitClarifyPending {
   const locks = [...new Set((params.lockedItemIds || []).map(String).filter(Boolean))];
+  const candidates = [...new Set((params.candidateItemIds || []).map(String).filter(Boolean))];
   const dualAsk = /\b(and|with)\b/i.test(params.originalUserMessage)
     && /\b(top|blazer|shirt|tee|tank|jacket)\b/i.test(params.originalUserMessage);
   const expected = Math.max(
@@ -703,6 +803,7 @@ export function buildOutfitClarifyFromPartialLock(params: {
     originalUserMessage: String(params.originalUserMessage || '').trim(),
     occasion: String(params.occasion || 'casual_day').trim() || 'casual_day',
     lockedItemIds: locks,
+    candidateItemIds: candidates,
     expectedLockCount: expected,
     pendingSlot: params.pendingSlot || (/\bblazer\b/i.test(params.originalUserMessage) ? 'blazer' : 'garment'),
     createdAt: new Date().toISOString(),
@@ -742,6 +843,45 @@ export function advanceOutfitClarify(params: {
   const priorIds = prior.lockedItemIds || [];
   const priorItems = lookupLockedItems(priorIds, params.wardrobeItems);
   const isCorrection = looksLikeSlotCorrection(params.query);
+
+  const candidateIds = [...new Set((prior.candidateItemIds || []).map(String).filter(Boolean))];
+  if (candidateIds.length >= 2) {
+    const universe = lookupLockedItems(candidateIds, params.wardrobeItems);
+    const picked = resolveReplyAgainstCandidateUniverse(params.query, universe);
+    if (picked.status === 'unique') {
+      const chosenId = String(picked.item.id);
+      const lockedItemIds = priorIds.includes(chosenId)
+        ? priorIds
+        : [...new Set([...priorIds, chosenId])];
+      const ready = evaluateOutfitClarifyReadiness(prior, lockedItemIds, params.wardrobeItems);
+      const pending: OutfitClarifyPending = {
+        ...prior,
+        lockedItemIds,
+        candidateItemIds: candidateIds,
+        pendingSlot: ready
+          ? prior.pendingSlot
+          : inferNextPendingSlot(prior, lockedItemIds, params.wardrobeItems),
+        state: ready ? 'READY' : 'AWAITING_PIECE',
+        continuationCount: ready
+          ? Number(prior.continuationCount || 0) + 1
+          : prior.continuationCount || 0,
+      };
+      return {
+        state: pending.state,
+        lockedItemIds,
+        ready,
+        pending,
+      };
+    }
+    return {
+      state: 'AWAITING_PIECE',
+      lockedItemIds: priorIds,
+      ready: false,
+      pending: { ...prior, state: 'AWAITING_PIECE', candidateItemIds: candidateIds },
+      ambiguous: picked.status === 'ambiguous',
+      clarifyHint: buildAmbiguityClarifyHint(universe, prior.pendingSlot),
+    };
+  }
 
   const scored = matchClarifyCandidatesScored(params.query, params.wardrobeItems, 8);
   const slotCandidates = scored.filter((entry) =>

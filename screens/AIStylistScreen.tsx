@@ -458,6 +458,21 @@ function extractPriorWardrobeItemIds(messages: ChatMessage[]): string[] {
   return [];
 }
 
+function candidateItemIdsFromClarifyResponse(resp: {
+  path?: string;
+  itemIds?: string[];
+  ambiguousIds?: unknown;
+}): string[] {
+  if (Array.isArray(resp.ambiguousIds)) {
+    const ids = resp.ambiguousIds.map(String).filter(Boolean);
+    if (ids.length) return [...new Set(ids)];
+  }
+  if (String(resp.path || '') === 'partial_lock_clarify' && Array.isArray(resp.itemIds)) {
+    return [...new Set(resp.itemIds.map(String).filter(Boolean))];
+  }
+  return [];
+}
+
 // extractPriorOutfitOccasion — utils/extractPriorOutfitOccasion.ts (hydration SSoT)
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -589,6 +604,7 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         originalUserMessage: oc.originalUserMessage,
         occasion: typeof oc.occasion === 'string' ? oc.occasion : 'casual_day',
         lockedItemIds: Array.isArray(oc.lockedItemIds) ? oc.lockedItemIds.map(String) : [],
+        candidateItemIds: Array.isArray(oc.candidateItemIds) ? oc.candidateItemIds.map(String) : [],
         expectedLockCount: Number.isFinite(Number(oc.expectedLockCount))
           ? Number(oc.expectedLockCount)
           : (oc.flow === 'outfit_tier_b_narrow' ? 0 : 1),
@@ -3395,6 +3411,15 @@ export default function AIStylistScreen() {
       const pendingOutfitReady =
         outfitRoute.route === 'outfit-from-wardrobe'
         && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready');
+      const originalAskForRefine = pendingOutfitReady && outfitRoute.route === 'outfit-from-wardrobe'
+        ? String(outfitRoute.pending?.originalUserMessage || '')
+          .split(/\n\nUser (?:confirmed piece|narrowed intent):/)[0]
+          .trim()
+        : trimmedAsk;
+      const pendingRefineContinuation =
+        pendingOutfitReady
+        && priorItemIds.length > 0
+        && isWardrobeOutfitRefineAsk(originalAskForRefine);
       const isOutfitCreate =
         (outfitRoute.route === 'outfit-from-wardrobe'
           && (outfitRoute.reason === 'outfit_task'
@@ -3580,7 +3605,7 @@ export default function AIStylistScreen() {
             occasion: occasionForServer,
             weather: weatherSnap.weather,
             lat: weatherSnap.lat,
-            priorItemIds: isRefineOutfitAsk ? priorItemIds : undefined,
+            priorItemIds: (isRefineOutfitAsk || pendingRefineContinuation) ? priorItemIds : undefined,
             lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
             excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,
             recentOutfits: outfitRecency.recentOutfits.length
@@ -3684,6 +3709,7 @@ export default function AIStylistScreen() {
                 originalUserMessage: frozenOutfitAsk,
                 occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
                 lockedItemIds: lockedItems || [],
+                candidateItemIds: candidateItemIdsFromClarifyResponse(outfitResponse),
                 weather: weatherSnap.weather,
                 lat: weatherSnap.lat,
               });
@@ -3722,6 +3748,7 @@ export default function AIStylistScreen() {
                         originalUserMessage: frozenOutfitAsk,
                         occasion: outfitResponse.occasion || occasionForServer || 'casual_day',
                         lockedItemIds: lockedItems || [],
+                        candidateItemIds: candidateItemIdsFromClarifyResponse(outfitResponse),
                         weather: weatherSnap.weather,
                         lat: weatherSnap.lat,
                       }),
