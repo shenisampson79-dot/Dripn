@@ -80,6 +80,11 @@ import {
   workDressCodeForAsk,
 } from '@/services/OnboardingProfileService';
 import { resolveWardrobeSelectionMode } from '@/utils/wardrobeSelectionMode';
+import {
+  clearQscWardrobeSelectionForFreshStart,
+  normalizeSelectedWardrobeIds,
+  resolveQscEvaluateSubmitSelection,
+} from '@/utils/qscEvaluateSelection';
 import { sanitizeStylistUserText } from '@/utils/sanitizeStylistUserText';
 import { genderAwareGapSuggestions, filterSuggestionStringsForUi } from '@/utils/shopDressCodeFilters';
 import {
@@ -391,7 +396,7 @@ export function useStylistDecision({
     setStep(getDerivedStep(normalized));
     setImages(normalized.input.images || []);
     setImageDataUris(normalized.input.imageDataUris || []);
-    setSelectedWardrobeIds(normalized.input.selectedWardrobeIds || []);
+    setSelectedWardrobeIds(normalizeSelectedWardrobeIds(normalized.input.selectedWardrobeIds));
     setContextNotes(normalized.input.text || '');
     setSelectedContexts(normalized.input.selectedContexts || []);
     // Event details only belong to event-outfit — keep other flows clean
@@ -427,6 +432,7 @@ export function useStylistDecision({
       if (session) {
         // Shopping / sanity: stale completed snapshots must not block a fresh start
         // with an outdated banner (and must not reuse event SHOP_REQUIRED visuals).
+        // QSC: auto-unlock is a new check — prior wardrobe IDs/images must not stay selected.
         let nextSession = session;
         if (
           (flowKey === 'shopping' || flowKey === 'sanity-check')
@@ -434,6 +440,12 @@ export function useStylistDecision({
           && session.result
         ) {
           nextSession = decisionSessionManager.markDraftForEdit(session, hash);
+          if (flowKey === 'sanity-check') {
+            nextSession = {
+              ...nextSession,
+              input: clearQscWardrobeSelectionForFreshStart(nextSession.input),
+            };
+          }
           await decisionSessionManager.persist(nextSession);
         }
         // Isolate flows: never carry event details into shopping / sanity sessions
@@ -949,12 +961,21 @@ export function useStylistDecision({
   const submitDecision = async (surpriseMe = false, opts?: { force?: boolean }) => {
     if (!opts?.force && !guardAccess()) return;
 
-    const imageUris = collectImageUris();
-    const wardrobeSelectionMode = resolveWardrobeSelectionMode(selectedWardrobeIds, wardrobeItems);
+    const qscSubmit = !surpriseMe && decisionType === 'sanity-check'
+      ? resolveQscEvaluateSubmitSelection({
+        selectedWardrobeIds,
+        galleryImages: images,
+        wardrobeItems,
+        maxWardrobeItems: getWardrobeSelectLimit(),
+      })
+      : null;
+    const submitWardrobeIds = qscSubmit ? qscSubmit.selectedWardrobeIds : selectedWardrobeIds;
+    const imageUris = qscSubmit ? qscSubmit.imageUris : collectImageUris();
+    const wardrobeSelectionMode = resolveWardrobeSelectionMode(submitWardrobeIds, wardrobeItems);
     const hasWardrobeOnly =
       !surpriseMe
       && imageUris.length === 0
-      && selectedWardrobeIds.length > 0
+      && submitWardrobeIds.length > 0
       && (decisionType === 'event-outfit' || decisionType === 'sanity-check');
 
     if (!surpriseMe && imageUris.length === 0 && decisionType !== 'shopping' && !hasWardrobeOnly) {
@@ -1042,7 +1063,7 @@ export function useStylistDecision({
       // Manual multi-category picks → show the full proposed look, not a single "winner" piece.
       const selectionPieces =
         !surpriseMe && wardrobeSelectionMode === 'evaluate_outfit'
-          ? selectedWardrobeIds
+          ? submitWardrobeIds
             .slice(0, getWardrobeSelectLimit())
             .map((id) => wardrobeItems.find((item) => String(item.id) === id))
             .filter(Boolean)
@@ -1070,7 +1091,7 @@ export function useStylistDecision({
         contextLength: context.length,
         stylist: stylistId,
         surpriseMe,
-        wardrobeSelected: selectedWardrobeIds.length,
+        wardrobeSelected: submitWardrobeIds.length,
         wardrobeSelectionMode,
         wardrobeAvailable: wardrobeItems.length,
         submitGeneration: generation,
@@ -1109,7 +1130,7 @@ export function useStylistDecision({
         // the server into the LLM catch → "Unable to submit / please resend".
         selectedWardrobeIds: surpriseMe
           ? []
-          : selectedWardrobeIds.slice(0, getWardrobeSelectLimit()),
+          : submitWardrobeIds.slice(0, getWardrobeSelectLimit()),
         wardrobeSelectionMode: surpriseMe ? undefined : (wardrobeSelectionMode || undefined),
         wardrobeItems: wardrobeItems.slice(0, 80).map((item) => ({
           id: item.id,
