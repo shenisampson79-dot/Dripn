@@ -104,4 +104,82 @@ const helperSrc = readFileSync(join(root, 'utils/freeChatMonthlyAllowance.ts'), 
 assert.match(helperSrc, /chatHardCap/);
 assert.match(helperSrc, /monthlyChatCount/);
 
+const FREE_CHAT_QUOTA_KEYS = [
+  'aiStylist.dailyLimitPlaceholder',
+  'aiStylist.dailyLimitUpgrade',
+  'aiStylist.messagesRemainingToday',
+  'aiStylist.onlyMessagesLeft',
+  'aiStylist.onlyMessagesLeftPlural',
+  'subscription.features.free.basicChat',
+] as const;
+
+/** Daily allowance wording in quota/remaining strings only. Do not scan Style Shuffle. */
+const DAILY_QUOTA_SEMANTICS = [
+  /\btoday\b/i,
+  /\bper day\b/i,
+  /\/day\b/i,
+  /\bdaily\b/i,
+  /\bhoy\b/i,
+  /\bdiario/i,
+  /\baujourd/i,
+  /\bquotidien/i,
+  /\bheute\b/i,
+  /\btäglich/i,
+  /Tageslimit/i,
+  /\boggi\b/i,
+  /giornalier/i,
+  /\bhoje\b/i,
+  /di[aá]rio/i,
+  /\bvandaag\b/i,
+  /Dagelijkse/i,
+  /\bi dag\b/i,
+  /\bidag\b/i,
+  /\btänään\b/i,
+  /Päivittäinen/i,
+  /dzienny/i,
+  /\bdziś\b/i,
+  /сегодня/i,
+  /дневн/i,
+  /bugün/i,
+  /Günlük/i,
+  /आज/,
+  /दैनिक/,
+  /اليوم/,
+  /اليومي/,
+  /오늘/,
+  /일일/,
+  /今天/,
+  /每日/,
+  /1 日の制限/,
+  /日の制限に達/,
+];
+
+const PRODUCTION_LOCALES = [
+  'ar', 'da', 'de', 'en', 'es', 'fi', 'fr', 'hi', 'it', 'ja', 'ko', 'nl', 'no', 'pl', 'pt', 'ru', 'sv', 'tr', 'zh',
+] as const;
+
+const REQUIRED_QUOTA_KEYS = [
+  'aiStylist.dailyLimitPlaceholder',
+  'aiStylist.dailyLimitUpgrade',
+  'subscription.features.free.basicChat',
+] as const;
+
+const verifiedLocales: string[] = [];
+for (const code of PRODUCTION_LOCALES) {
+  const localePath = join(root, 'locales', `${code}.json`);
+  const bundle = JSON.parse(readFileSync(localePath, 'utf8').replace(/^\uFEFF/, '')) as Record<string, string>;
+  for (const key of REQUIRED_QUOTA_KEYS) {
+    assert.ok(typeof bundle[key] === 'string' && bundle[key].trim(), `${code}.json missing ${key}`);
+  }
+  for (const key of FREE_CHAT_QUOTA_KEYS) {
+    const value = bundle[key];
+    if (typeof value !== 'string') continue;
+    for (const pattern of DAILY_QUOTA_SEMANTICS) {
+      assert.ok(!pattern.test(value), `${code}.json ${key} still has daily semantics: ${value}`);
+    }
+  }
+  verifiedLocales.push(code);
+}
+
 console.log(`verify-free-chat-entitlement-copy: ${scanned} files scanned, 10/month copy OK`);
+console.log(`supported locales verified (no daily Free Chat quota copy): ${verifiedLocales.join(', ')}`);
