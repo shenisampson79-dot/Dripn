@@ -171,6 +171,7 @@ import {
   createStickPulseController,
   FOCUS_REENTRY_SCROLL_DELAYS_MS,
   isStickPulseActive,
+  shouldHoldListAtStartForAllowanceBanner,
 } from '@/utils/stylistChatScroll';
 import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 import {
@@ -1957,6 +1958,8 @@ export default function AIStylistScreen() {
   /** Focus re-entry scroll pulses — cleared on blur / first user drag so stale timers cannot yank. */
   const focusReentryScrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const messagesLenRef = useRef(0);
+  /** Skip scroll-to-end while the Free allowance banner must stay fully on-screen. */
+  const holdAllowanceBannerInViewRef = useRef(false);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
 
@@ -2115,6 +2118,7 @@ export default function AIStylistScreen() {
   const isMountedRef = useRef(true);
 
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
+    if (holdAllowanceBannerInViewRef.current) return;
     if (!force) {
       if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
       if (!isNearBottomRef.current && !stickToLatestRef.current) return;
@@ -5201,6 +5205,10 @@ export default function AIStylistScreen() {
     showLimitWarning: upgradeTeaserData.showWarning,
     showUpgradeTeaser: upgradeTeaserData.showTeaser,
   };
+  holdAllowanceBannerInViewRef.current = shouldHoldListAtStartForAllowanceBanner({
+    showUpgradeTeaser,
+    messageCount: messages.length,
+  });
   
   const getMoodInfo = (): MoodInfo | null => {
     if (!detectedMood) return null;
@@ -5777,6 +5785,7 @@ export default function AIStylistScreen() {
           onScrollBeginDrag={onChatScrollBeginDrag}
           scrollEventThrottle={16}
           onScrollToIndexFailed={() => {
+            if (holdAllowanceBannerInViewRef.current) return;
             flatListRef.current?.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: false });
           }}
           onContentSizeChange={() => {

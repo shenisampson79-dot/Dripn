@@ -26,6 +26,19 @@ export function nextProgrammaticScrollLock(
 /** FlatList offset jump that always lands past the last bubble. */
 export const CHAT_SCROLL_END_OFFSET = 1e9;
 
+/**
+ * Free allowance banner is ListHeaderComponent under a sticky stylist header.
+ * Programmatic scrollToEnd (CHAT_SCROLL_END_OFFSET) on a greeting-only thread
+ * clips "N messages remaining this month" under that header.
+ * Hold offset 0 until the thread has real chat content. Paid/no-banner is false.
+ */
+export function shouldHoldListAtStartForAllowanceBanner(params: {
+  showUpgradeTeaser: boolean;
+  messageCount: number;
+}): boolean {
+  return Boolean(params.showUpgradeTeaser) && params.messageCount <= 1;
+}
+
 export function computeNearBottom(params: {
   contentOffsetY: number;
   layoutHeight: number;
