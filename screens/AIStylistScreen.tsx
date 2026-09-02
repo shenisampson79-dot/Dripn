@@ -189,7 +189,6 @@ import {
 } from '@/utils/stylistFreshThread';
 import {
   STYLIST_CHAT_STORAGE_KEY,
-  STYLIST_DAILY_MESSAGES_KEY,
   STYLIST_PENDING_RETRY_KEY,
   beginStylistChatHydrate,
   getCachedStylistChatMessagesSync,
@@ -208,6 +207,10 @@ import {
   mapServerChatHistoryRows,
   sanitizeHydrateRequestError,
 } from '@/utils/stylistChatServerHydrate';
+import {
+  canSendHardCappedChat,
+  remainingMonthlyChatActions,
+} from '@/utils/freeChatMonthlyAllowance';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -2076,7 +2079,10 @@ export default function AIStylistScreen() {
     writeComposerDraft(stylist.id, text);
   }, [stylist.id]);
   const [isTyping, setIsTyping] = useState(false);
-  const [messagesToday, setMessagesToday] = useState(0);
+  const [monthlyChatUsed, setMonthlyChatUsed] = useState(0);
+  const [monthlyChatCap, setMonthlyChatCap] = useState<number | null>(() => (
+    limits.aiChatMessagesPerDay === Infinity ? null : Number(limits.aiChatMessagesPerDay) || 10
+  ));
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   /** Server monthly AI meter exhausted — convert, do not pretend it is a network snag. */
   const [monthlyAllowanceExhausted, setMonthlyAllowanceExhausted] = useState(false);
@@ -2273,6 +2279,9 @@ export default function AIStylistScreen() {
           const remaining = Number(u.remainingCents);
           const hasRoom = Number.isFinite(remaining) ? remaining > 0 : budget > 0 && used < budget;
           const pct = budget > 0 ? used / budget : 0;
+          const chatAllowance = remainingMonthlyChatActions(u, result.entitlements);
+          setMonthlyChatUsed(chatAllowance.used);
+          setMonthlyChatCap(chatAllowance.cap);
 
           if (!hasRoom) {
             setMonthlyAllowanceExhausted(true);
@@ -2653,8 +2662,8 @@ export default function AIStylistScreen() {
         presentMonthlyAllowancePaywall();
       } else {
         Alert.alert(
-          t('common.dailyLimitReached'),
-          t('aiStylist.dailyLimitUpgrade'),
+          t('aiStylist.monthlyLimitTitle') || 'Monthly limit reached',
+          t('aiStylist.dailyLimitUpgrade') || 'Upgrade to send more messages this month',
           [
             { text: t('common.cancel'), style: 'cancel' },
             { text: t('aiStylist.upgradeNow') || 'Upgrade Now', onPress: navigateToSubscriptionScreen },
@@ -3099,24 +3108,10 @@ export default function AIStylistScreen() {
   };
   
   const loadDailyMessageCount = async () => {
-    try {
-      const data = await AsyncStorage.getItem(STYLIST_DAILY_MESSAGES_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        const today = new Date().toDateString();
-        if (parsed.date === today) {
-          setMessagesToday(parsed.count);
-        } else {
-          await AsyncStorage.setItem(STYLIST_DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: 0 }));
-          setMessagesToday(0);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load daily message count:', error);
-    } finally {
-      setLimitsLoaded(true);
-    }
+    // Free Chat remaining is server UTC-month state (GET /api/usage/ai), not a local daily counter.
+    setLimitsLoaded(true);
   };
+
   
   const saveChatHistory = async (newMessages: ChatMessage[]) => {
     if (!user?.id || !isStylistChatSessionActive(user.id)) return;
@@ -3203,29 +3198,25 @@ export default function AIStylistScreen() {
   };
 
   const incrementDailyMessages = async () => {
-    try {
-      const today = new Date().toDateString();
-      if (
-        limits.aiChatMessagesPerDay !== Infinity &&
-        messagesToday >= limits.aiChatMessagesPerDay &&
-        bonusAIRequests > 0
-      ) {
-        await consumeBonusAiRequest();
-        return;
-      }
-      const newCount = messagesToday + 1;
-      await AsyncStorage.setItem(STYLIST_DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: newCount }));
-      setMessagesToday(newCount);
-    } catch (error) {
-      console.error('Failed to increment daily messages:', error);
+    const { remaining } = remainingMonthlyChatActions(
+      { monthlyChatCount: monthlyChatUsed, chatHardCap: monthlyChatCap },
+    );
+    if (remaining <= 0 && bonusAIRequests > 0) {
+      await consumeBonusAiRequest();
+      return;
     }
+    setMonthlyChatUsed((prev) => prev + 1);
   };
   
   const canSendMessage = () => {
-    if (monthlyAllowanceExhausted) return false;
-    if (limits.aiChatMessagesPerDay === Infinity) return true;
-    if (messagesToday < limits.aiChatMessagesPerDay) return true;
-    return bonusAIRequests > 0;
+    const { remaining } = remainingMonthlyChatActions(
+      { monthlyChatCount: monthlyChatUsed, chatHardCap: monthlyChatCap },
+    );
+    return canSendHardCappedChat({
+      monthlyBudgetExhausted: monthlyAllowanceExhausted,
+      remaining,
+      bonusRequests: bonusAIRequests,
+    });
   };
 
   const presentMonthlyAllowancePaywall = useCallback((error?: unknown) => {
@@ -3265,9 +3256,11 @@ export default function AIStylistScreen() {
   }, [tier, stylist.name, stylist.id, openAiAllowanceDestination]);
 
   const getRemainingMessages = () => {
-    if (limits.aiChatMessagesPerDay === Infinity) return Infinity;
-    const dailyLeft = Math.max(0, limits.aiChatMessagesPerDay - messagesToday);
-    return dailyLeft + Math.max(0, bonusAIRequests);
+    const { remaining } = remainingMonthlyChatActions(
+      { monthlyChatCount: monthlyChatUsed, chatHardCap: monthlyChatCap },
+    );
+    if (!Number.isFinite(remaining)) return Infinity;
+    return remaining + Math.max(0, bonusAIRequests);
   };
   
   const sendMessage = async (text: string) => {
@@ -5018,7 +5011,7 @@ export default function AIStylistScreen() {
   const remainingMessages = getRemainingMessages();
   const limitReached = useMemo(
     () => limitsLoaded && !canSendMessage(),
-    [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay, bonusAIRequests, monthlyAllowanceExhausted],
+    [limitsLoaded, monthlyChatUsed, monthlyChatCap, bonusAIRequests, monthlyAllowanceExhausted],
   );
 
   // Tab bar hides while keyboard is open — reserve keyboard height instead so
@@ -5155,7 +5148,7 @@ export default function AIStylistScreen() {
     const showWarning = remainingMessages !== Infinity && remainingMessages <= 3;
     const showTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
     
-    let teaserTitle = (t('aiStylist.messagesRemainingToday') || '{count} messages remaining today')
+    let teaserTitle = (t('aiStylist.messagesRemainingToday') || '{count} messages remaining this month')
       .replace('{count}', String(remainingMessages));
     let teaserMsg = (t('aiStylist.unlockUnlimitedConversations') || 'Upgrade to Personal Stylist for a bigger monthly AI pot with {name}.')
       .replace('{name}', stylist.name);
@@ -5169,8 +5162,8 @@ export default function AIStylistScreen() {
     } else if (remainingMessages <= 3) {
       teaserTitle = (
         remainingMessages === 1
-          ? (t('aiStylist.onlyMessagesLeft') || 'Only {count} message left today')
-          : (t('aiStylist.onlyMessagesLeftPlural') || 'Only {count} messages left today')
+          ? (t('aiStylist.onlyMessagesLeft') || 'Only {count} message left this month')
+          : (t('aiStylist.onlyMessagesLeftPlural') || 'Only {count} messages left this month')
       ).replace('{count}', String(remainingMessages));
       teaserMsg = (t('aiStylist.lovingChatUpgrade') || 'Loving your chat with {name}? Upgrade to keep the style advice flowing.')
         .replace('{name}', stylist.name);
@@ -5668,7 +5661,7 @@ export default function AIStylistScreen() {
               monthlyAllowanceExhausted
                 ? (t('aiStylist.monthlyAllowancePlaceholder') || 'Monthly allowance used — upgrade to continue')
                 : limitReached
-                  ? (t('aiStylist.dailyLimitPlaceholder') || 'Daily limit reached - upgrade for more')
+                  ? (t('aiStylist.dailyLimitPlaceholder') || 'Monthly limit reached - upgrade for more')
                   : (t('aiStylist.askPlaceholder') || 'Ask for styling advice...')
             }
             placeholderTextColor={theme.tabIconDefault}

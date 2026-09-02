@@ -6444,7 +6444,12 @@ class ApiService {
         remainingCents: number;
         marketTier?: string | null;
         purchasedAiCredits?: number;
+        monthlyChatCount?: number;
+        chatHardCap?: number | null;
       } | null;
+      entitlements?: {
+        chatMessages?: number | null;
+      };
       freeRembgLifetimeLimit: number;
       paidRembgMonthlyLimit?: number;
       message?: string;

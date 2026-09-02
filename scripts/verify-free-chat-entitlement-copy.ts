@@ -91,4 +91,17 @@ const translation = readFileSync(join(root, 'services/TranslationService.ts'), '
 assert.match(translation, /basicChat: 'Basic AI chat \(10\/month\)'/);
 assert.ok(!translation.includes("basicChat: 'Basic AI chat (10/day)'"));
 
+const stylistSrc = readFileSync(join(root, 'screens/AIStylistScreen.tsx'), 'utf8');
+assert.match(stylistSrc, /remainingMonthlyChatActions/);
+assert.match(stylistSrc, /canSendHardCappedChat/);
+assert.ok(!stylistSrc.includes('STYLIST_DAILY_MESSAGES_KEY'));
+assert.ok(!stylistSrc.includes('parsed.date === today'));
+assert.ok(!stylistSrc.includes('messages remaining today'));
+assert.ok(!stylistSrc.includes('message left today'));
+assert.ok(!stylistSrc.includes('Daily limit reached - upgrade for more'));
+
+const helperSrc = readFileSync(join(root, 'utils/freeChatMonthlyAllowance.ts'), 'utf8');
+assert.match(helperSrc, /chatHardCap/);
+assert.match(helperSrc, /monthlyChatCount/);
+
 console.log(`verify-free-chat-entitlement-copy: ${scanned} files scanned, 10/month copy OK`);
