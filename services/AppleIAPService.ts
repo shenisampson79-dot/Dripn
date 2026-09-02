@@ -19,6 +19,7 @@ import type { DFYTier } from '@/services/DFYService';
 import { currencyService } from '@/services/CurrencyService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { nextRevenueCatIdentityAction } from '@/utils/appleEntitlementIsolation';
+import { selectAppleSubscriptionSyncEvidence } from '@/utils/appleSubscriptionSyncEvidence';
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
   type AiTopUpPackId,
@@ -716,15 +717,16 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
     store: ent.store,
   }));
 
-  const latestProductId = activeEntitlements[0]?.productIdentifier ?? null;
+  const evidence = selectAppleSubscriptionSyncEvidence(customerInfo);
 
   return {
     appUserId: customerInfo.originalAppUserId,
     activeEntitlements,
-    latestProductId,
-    originalTransactionId: findOriginalTransactionId(customerInfo, latestProductId),
+    productId: evidence.productId,
+    latestProductId: evidence.productId,
+    originalTransactionId: evidence.originalTransactionId,
     managementURL: customerInfo.managementURL,
-    tier: resolveTierFromCustomerInfo(customerInfo),
+    tier: evidence.tier,
   };
 }
 
