@@ -42,8 +42,8 @@ assert.match(
 );
 assert.match(
   flowSrc,
-  /renderPrimaryButton\(stickyCta\.label, stickyCta\.onPress, false, stickyCta\.loading\)/,
-  'visible Get Verdict uses the enabled/illuminated primary style',
+  /stickyCta\.useReadyAccent[\s\S]*renderDecisionReadyCta\(stickyCta\.label, stickyCta\.onPress, true, stickyCta\.loading\)/,
+  'ready QSC Get Verdict uses the Decisions accent CTA, still only after canProceed',
 );
 
 assert.match(hookSrc, /resolveQscEvaluateSubmitSelection/, 'selection-integrity submit helper preserved');

@@ -288,6 +288,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         label: paywall.primaryLabel,
         onPress: () => flow.openAllowanceDestination(),
         loading: false,
+        useReadyAccent: false,
       };
     }
     if (flow.step === 'event') {
@@ -296,6 +297,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         label: t('stylistFlow.continue'),
         onPress: () => flow.setStep('input'),
         loading: false,
+        useReadyAccent: true,
       };
     }
     if (flow.step === 'input' && flow.canProceedFromInput()) {
@@ -304,6 +306,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           label: t('stylistFlow.getRecommendation'),
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
+          useReadyAccent: true,
         };
       }
       if (decisionType === 'sanity-check') {
@@ -311,6 +314,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           label: t('stylistFlow.getVerdict'),
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
+          useReadyAccent: true,
         };
       }
       if (decisionType === 'event-outfit') {
@@ -318,6 +322,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
           label: t('stylistFlow.getRecommendation'),
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
+          useReadyAccent: true,
         };
       }
     }
@@ -359,6 +364,36 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
       </View>
     </View>
   );
+
+  const renderDecisionReadyCta = (
+    label: string,
+    onPress: () => void,
+    ready: boolean,
+    loading = false,
+  ) => {
+    const fill = ready ? theme.link : theme.backgroundSecondary;
+    const labelColor = ready ? theme.buttonText : theme.tabIconDefault;
+    return (
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onPress();
+        }}
+        disabled={loading || !ready}
+        style={[styles.primaryButton, (!ready || loading) && styles.primaryButtonDisabled]}
+      >
+        <LinearGradient colors={[fill, fill]} style={styles.primaryButtonGradient}>
+          {loading ? (
+            <ActivityIndicator color={labelColor} />
+          ) : (
+            <ThemedText type="body" style={[styles.primaryButtonText, { color: labelColor }]}>
+              {label}
+            </ThemedText>
+          )}
+        </LinearGradient>
+      </Pressable>
+    );
+  };
 
   const renderPrimaryButton = (
     label: string,
@@ -1419,7 +1454,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               },
             ]}
           >
-            {renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
+            {stickyCta.useReadyAccent
+              ? renderDecisionReadyCta(stickyCta.label, stickyCta.onPress, true, stickyCta.loading)
+              : renderPrimaryButton(stickyCta.label, stickyCta.onPress, false, stickyCta.loading)}
           </SafeAreaView>
         </KeyboardStickyView>
       ) : null}
