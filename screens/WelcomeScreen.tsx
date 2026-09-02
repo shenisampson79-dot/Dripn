@@ -8,7 +8,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
-import { LanguageEntryButton, LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
@@ -28,8 +27,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { loginAsTestUser } = useAuth();
   const { t } = useTranslations();
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "mixed" }));
-  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
-  
+
   const handleTestLogin = async () => {
     await loginAsTestUser();
   };
@@ -72,7 +70,6 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
               </View>
             </View>
           </View>
-          <LanguageEntryButton light onPress={() => setLanguagePickerVisible(true)} />
         </View>
 
         <View style={styles.spacer} />
@@ -143,12 +140,6 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           </Pressable>
         ) : null}
       </View>
-
-      <LanguagePickerModal
-        visible={languagePickerVisible}
-        onClose={() => setLanguagePickerVisible(false)}
-        alsoSetStylistLanguage
-      />
     </View>
   );
 }

@@ -112,22 +112,21 @@ assert.match(settingsSrc, /mode="stylist"/);
 assert.doesNotMatch(settingsSrc, /SUPPORTED_LANGUAGES\.map\(\(lang\) => \(\{/);
 
 const welcomeSrc = read('screens/WelcomeScreen.tsx');
-assert.match(welcomeSrc, /LanguagePickerModal/);
+assert.doesNotMatch(welcomeSrc, /LanguagePickerModal/);
+assert.doesNotMatch(welcomeSrc, /LanguageEntryButton/);
 assert.match(welcomeSrc, /t\('welcome\.tagline'\)/);
-assert.doesNotMatch(welcomeSrc, /alsoSetStylistLanguage[\s\S]*mode="stylist"/);
 
 const authSrc = read('screens/AuthScreen.tsx');
 assert.match(authSrc, /LanguagePickerModal/);
 const onboardingEntrySrc = read('screens/OnboardingEntryScreen.tsx');
 assert.match(onboardingEntrySrc, /LanguagePickerModal/);
 
-const pickerCallers = ['screens/WelcomeScreen.tsx', 'screens/AuthScreen.tsx', 'screens/OnboardingEntryScreen.tsx', 'screens/SettingsScreen.tsx'];
+const pickerCallers = ['screens/AuthScreen.tsx', 'screens/OnboardingEntryScreen.tsx', 'screens/SettingsScreen.tsx'];
 for (const file of pickerCallers) {
   assert.match(read(file), /LanguagePickerModal/, `${file} is a customer-facing app-language surface`);
 }
 
 const allTsx = [
-  'screens/WelcomeScreen.tsx',
   'screens/AuthScreen.tsx',
   'screens/OnboardingEntryScreen.tsx',
   'screens/SettingsScreen.tsx',
