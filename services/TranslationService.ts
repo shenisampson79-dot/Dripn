@@ -2171,7 +2171,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     featureWardrobeTitle: 'Make easier shopping decisions',
     getStyled: 'Get Styled',
     signIn: 'Sign In',
-    tagline: 'we decide — you look better',
+    tagline: 'style that moves with you',
   },
 };
 

@@ -120,7 +120,7 @@ function main() {
 
   // Manual fixes for known parser issues
   const MANUAL = {
-    'welcome.tagline': 'we decide — you look better',
+    'welcome.tagline': 'style that moves with you',
     'welcome.featureStopGuessingTitle': 'Stop guessing what to wear',
     'welcome.featureStopGuessingDesc': 'Get the right outfit — instantly.',
     'welcome.featureTalkStylistTitle': 'Just talk to your stylist',
