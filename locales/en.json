@@ -2094,6 +2094,7 @@
   "stylistFlow.or": "or",
   "stylistFlow.orDescribe": "Anything I need to know",
   "stylistFlow.orFromWardrobe": "Or pick from your wardrobe",
+  "stylistFlow.qscSelectedTotal": "Selected {count}",
   "stylistFlow.wardrobeSelectedCount": "{count}/{max} selected",
   "stylistFlow.maxWardrobeItemsMessage": "You can select up to {n} wardrobe items for this question.",
   "stylistFlow.wardrobeGroup.outerwear": "Outerwear",

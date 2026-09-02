@@ -40,6 +40,7 @@ import { DecisionWardrobePicker } from '@/components/stylist/DecisionWardrobePic
 import { FallbackShopSection } from '@/components/stylist/FallbackShopSection';
 import { RetailOutfitSection } from '@/components/stylist/RetailOutfitSection';
 import { MAX_DECISION_WARDROBE_ITEMS } from '@/utils/decisionWardrobeGroups';
+import { formatQscSelectionCounter } from '@/utils/qscSelectionCounter';
 import { shouldShowDecisionRefineCta } from '@/utils/sanityFollowUpCta';
 import { sanitizeStylistUserText, formatOutfitPieceRoleLabel, isOutfitRejectedByStylist } from '@/utils/sanitizeStylistUserText';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
@@ -590,6 +591,18 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
       <ThemedText type="body" style={styles.orLabel}>
         {t('stylistFlow.orFromWardrobe')}
+      </ThemedText>
+      <ThemedText
+        type="caption"
+        style={[styles.qscSelectionCounter, { color: theme.tabIconDefault }]}
+      >
+        {formatQscSelectionCounter({
+          selectedIds: flow.selectedWardrobeIds,
+          items: flow.wardrobeItems,
+          selectedLabel: (count) =>
+            (t('stylistFlow.qscSelectedTotal') || 'Selected {count}').replace('{count}', String(count)),
+          labelForGroup: (key) => t(`stylistFlow.wardrobeGroup.${key}`),
+        })}
       </ThemedText>
 
       <DecisionWardrobePicker
@@ -1691,6 +1704,11 @@ const styles = StyleSheet.create({
   orLabel: {
     textAlign: 'center',
     marginVertical: Spacing.sm,
+  },
+  qscSelectionCounter: {
+    textAlign: 'center',
+    flexShrink: 1,
+    marginBottom: Spacing.sm,
   },
   heroImageWrap: {
     alignSelf: 'center',
