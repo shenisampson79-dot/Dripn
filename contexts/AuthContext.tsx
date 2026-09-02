@@ -30,6 +30,10 @@ import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubsc
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import {
+  shouldAutoPromoteLocalTierFromCustomerInfo,
+  shouldSyncCustomerInfoOnPassiveRefresh,
+} from '@/utils/appleEntitlementIsolation';
+import {
   appleIAPService,
   resolveTierFromCustomerInfo,
   serializeCustomerInfoForSyncWithStorefront,
@@ -996,6 +1000,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      await appleIAPService.resetIdentity().catch((err) => {
+        console.warn('[Auth] RevenueCat identity reset failed:', err);
+      });
       await relinquishStylistChatAccountSession();
       await apiService.logout();
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -1039,8 +1046,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (ready) {
             const customerInfo = await appleIAPService.getCustomerInfo();
             const tier = resolveTierFromCustomerInfo(customerInfo);
-            if (tier !== 'free') {
+            const originalAppUserId = customerInfo.originalAppUserId || null;
+            const currentAppUserId = customerInfo.appUserId || null;
+            const allowPassiveSync = shouldSyncCustomerInfoOnPassiveRefresh({
+              dripnUserId: user.id,
+              originalAppUserId,
+              currentAppUserId,
+              localTier: user.subscriptionTier,
+            });
+            const allowPromote = shouldAutoPromoteLocalTierFromCustomerInfo({
+              source: 'foreground_refresh',
+              localTier: user.subscriptionTier,
+              rcTier: tier,
+              dripnUserId: user.id,
+              originalAppUserId,
+              currentAppUserId,
+            });
+            if (allowPromote) {
               await applyLocalSubscriptionTier(tier);
+            }
+            if (allowPassiveSync && tier !== 'free') {
               const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
               if (!syncPayload.tier || syncPayload.tier === 'free') {
                 syncPayload.tier = tier;

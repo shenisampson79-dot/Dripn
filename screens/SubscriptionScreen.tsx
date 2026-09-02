@@ -15,6 +15,10 @@ import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
 import {
+  shouldAutoPromoteLocalTierFromCustomerInfo,
+  shouldSyncCustomerInfoOnPassiveRefresh,
+} from "@/utils/appleEntitlementIsolation";
+import {
   getDfyBenefitForSubscription,
   subscriptionTierDisplayName,
 } from "@/utils/dfyEntitlements";
@@ -380,10 +384,31 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         const tier = resolveTierFromCustomerInfo(customerInfo);
         if (cancelled || tier === 'free') return;
 
-        const localTier = normalizeTier(user.subscriptionTier);
-        if (localTier === 'free' || preferHigherSubscriptionTier(localTier, tier) === tier) {
-          await applyLocalSubscriptionTier(tier);
+        const originalAppUserId = customerInfo.originalAppUserId || null;
+        const currentAppUserId = customerInfo.appUserId || null;
+        const allowPromote = shouldAutoPromoteLocalTierFromCustomerInfo({
+          source: 'subscription_open',
+          localTier: user.subscriptionTier,
+          rcTier: tier,
+          dripnUserId: user.id,
+          originalAppUserId,
+          currentAppUserId,
+        });
+        const allowSync = shouldSyncCustomerInfoOnPassiveRefresh({
+          dripnUserId: user.id,
+          originalAppUserId,
+          currentAppUserId,
+          localTier: user.subscriptionTier,
+        });
+
+        if (allowPromote) {
+          const localTier = normalizeTier(user.subscriptionTier);
+          if (localTier === 'free' || preferHigherSubscriptionTier(localTier, tier) === tier) {
+            await applyLocalSubscriptionTier(tier);
+          }
         }
+
+        if (!allowSync) return;
 
         const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
         if (!syncPayload.tier || syncPayload.tier === 'free') {
@@ -883,9 +908,17 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       let restoredSomething = false;
       let serverSynced = false;
       const restoredTier = resolveTierFromCustomerInfo(customerInfo);
+      const allowRestorePromote = shouldAutoPromoteLocalTierFromCustomerInfo({
+        source: 'restore',
+        localTier: user.subscriptionTier,
+        rcTier: restoredTier,
+        dripnUserId: user.id,
+        originalAppUserId: customerInfo.originalAppUserId || null,
+        currentAppUserId: customerInfo.appUserId || null,
+      });
 
       // Unlock locally first so sandbox restores recover even if backend returns 401
-      if (restoredTier !== 'free') {
+      if (allowRestorePromote && restoredTier !== 'free') {
         await applyLocalSubscriptionTier(restoredTier);
         restoredSomething = true;
       }

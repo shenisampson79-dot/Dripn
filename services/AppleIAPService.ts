@@ -18,6 +18,7 @@ import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
 import { currencyService } from '@/services/CurrencyService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import { nextRevenueCatIdentityAction } from '@/utils/appleEntitlementIsolation';
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
   type AiTopUpPackId,
@@ -126,6 +127,7 @@ export interface AppleIAPService {
   isAvailable(): boolean;
   isConfigured(): boolean;
   configure(appUserId: string): Promise<boolean>;
+  resetIdentity(): Promise<void>;
   getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]>;
   getDFYPrices(): Promise<DFYPriceInfo[]>;
   getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]>;
@@ -209,6 +211,8 @@ function isUserCancelledPurchase(error: unknown): boolean {
 
 class RevenueCatAppleIAPService implements AppleIAPService {
   private configuredForUserId: string | null = null;
+  /** True after Purchases.configure — logOut does not un-configure the SDK. */
+  private sdkConfigured = false;
   /** In-flight configure — callers await this to avoid purchase-before-ready races */
   private configurePromise: Promise<boolean> | null = null;
   private lastConfigureFailure: string | null = null;
@@ -271,18 +275,36 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
   private async runConfigure(apiKey: string, appUserId: string): Promise<boolean> {
     try {
-      // Already configured for another user — switch identity without re-configure
-      if (this.configuredForUserId != null && this.configuredForUserId !== appUserId) {
+      const action = nextRevenueCatIdentityAction(
+        this.configuredForUserId,
+        appUserId,
+        this.sdkConfigured,
+      );
+      if (action === 'noop') {
+        this.lastConfigureFailure = null;
+        return true;
+      }
+
+      if (action === 'logout_then_login' || action === 'login') {
+        if (action === 'logout_then_login') {
+          try {
+            await Purchases.logOut();
+          } catch (logoutError) {
+            console.warn('[AppleIAP] logOut before account switch failed:', logoutError);
+          }
+          this.configuredForUserId = null;
+        }
         await Purchases.logIn(appUserId);
         this.configuredForUserId = appUserId;
+        this.sdkConfigured = true;
         this.lastConfigureFailure = null;
         return true;
       }
 
       Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO);
-      // configure is sync in react-native-purchases v8+; await keeps API consistent
       await Promise.resolve(Purchases.configure({ apiKey, appUserID: appUserId }));
       this.configuredForUserId = appUserId;
+      this.sdkConfigured = true;
       this.lastConfigureFailure = null;
       return true;
     } catch (error) {
@@ -291,6 +313,24 @@ class RevenueCatAppleIAPService implements AppleIAPService {
         error instanceof Error ? error.message : IAP_UNAVAILABLE_MESSAGE;
       console.warn('[AppleIAP] configure failed:', error);
       return false;
+    }
+  }
+
+  async resetIdentity(): Promise<void> {
+    this.lastConfigureFailure = null;
+    const hadUser = this.configuredForUserId;
+    this.configuredForUserId = null;
+    if (!this.isAvailable() || isExpoGo()) return;
+    if (!hadUser && !this.sdkConfigured) return;
+    try {
+      const configured = typeof Purchases.isConfigured === 'function'
+        ? await Promise.resolve(Purchases.isConfigured())
+        : this.sdkConfigured;
+      if (configured) {
+        await Purchases.logOut();
+      }
+    } catch (error) {
+      console.warn('[AppleIAP] resetIdentity logOut failed:', error);
     }
   }
 

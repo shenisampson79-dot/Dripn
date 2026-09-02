@@ -535,6 +535,7 @@ class ApiService {
   }
 
   async logout() {
+    await AsyncStorage.removeItem(PENDING_APPLE_SUB_SYNC_KEY).catch(() => {});
     await this.setToken(null);
   }
 
