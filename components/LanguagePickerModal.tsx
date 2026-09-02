@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useVoiceSettings, SUPPORTED_LANGUAGES } from "@/contexts/VoiceSettingsContext";
 import { STYLIST_LANGUAGES } from "@/services/PersonalStylistService";
+import { selectableAppUiLanguages } from "@/utils/appUiLanguage";
 import {
   resolveStylistSpeakLanguage,
   stylistLanguageCodeToName,
@@ -68,12 +69,7 @@ export function LanguagePickerModal({
         };
       });
     }
-    return availableLanguages.length > 0
-      ? availableLanguages
-      : SUPPORTED_LANGUAGES.map((lang) => ({
-          ...lang,
-          direction: (lang.code === "ar" ? "rtl" : "ltr") as "ltr" | "rtl",
-        }));
+    return selectableAppUiLanguages(availableLanguages);
   }, [availableLanguages, isStylistMode]);
 
   const selectedCode = isStylistMode ? stylistSpeakCode : currentLanguage;

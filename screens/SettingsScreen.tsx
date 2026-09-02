@@ -35,6 +35,7 @@ import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModa
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 import { resolveStylistSpeakLanguage, stylistLanguageCodeToName } from "@/utils/stylistLanguage";
+import { selectableAppUiLanguages } from "@/utils/appUiLanguage";
 import {
   DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
   formatHourLabel,
@@ -626,12 +627,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     { value: 'minimalist', label: t('settings.minimalist'), description: t('settings.minimalistDesc') },
   ];
 
-  const languageOptions = availableLanguages.length > 0
-    ? availableLanguages
-    : SUPPORTED_LANGUAGES.map((lang) => ({
-        ...lang,
-        direction: (lang.code === 'ar' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
-      }));
+  const languageOptions = selectableAppUiLanguages(availableLanguages);
 
   const currentLanguageLabel =
     languageOptions.find((lang) => lang.code === currentLanguage)?.nativeName

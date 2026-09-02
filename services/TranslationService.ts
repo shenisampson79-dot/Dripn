@@ -2,11 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './ApiService';
 import {
   LOCAL_TRANSLATION_BUNDLES,
-  LOCAL_LANGUAGE_META,
   UI_FULL_COVERAGE_LANGUAGES,
   resolveLocaleDirection,
   resolveLocaleNativeName,
 } from './localeBundles';
+import {
+  V1_APP_UI_LANGUAGE,
+  V1_APP_UI_LANGUAGE_OPTIONS,
+  normalizeAppUiLanguage,
+  persistedAppUiLanguageNeedsRewrite,
+  v1AppUiDirection,
+} from '../utils/appUiLanguage';
 
 const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v12';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
@@ -2201,62 +2207,44 @@ class TranslationServiceClass {
   }
 
   private applyFlatTranslations(flat: Record<string, string>, langCode: string, direction?: 'ltr' | 'rtl'): Translations {
-    const merged = this.mergeTranslations(flat, langCode);
-    merged.localeInfo.direction = direction || resolveLocaleDirection(langCode);
-    merged.localeInfo.language = resolveLocaleNativeName(langCode);
+    const uiLang = normalizeAppUiLanguage(langCode);
+    void direction;
+    const merged = this.mergeTranslations(flat, uiLang);
+    merged.localeInfo.direction = v1AppUiDirection();
+    merged.localeInfo.language = resolveLocaleNativeName(uiLang);
     this.translations = merged;
-    this.currentLang = langCode;
+    this.currentLang = uiLang;
     return merged;
   }
 
+  private applyEnglishUiBundle(): Translations {
+    const localFlat = LOCAL_TRANSLATIONS[V1_APP_UI_LANGUAGE] || {};
+    if (Object.keys(localFlat).length > 0) {
+      return this.applyFlatTranslations(localFlat, V1_APP_UI_LANGUAGE, v1AppUiDirection());
+    }
+    this.translations = DEFAULT_TRANSLATIONS;
+    this.currentLang = V1_APP_UI_LANGUAGE;
+    this.translations.localeInfo.direction = v1AppUiDirection();
+    return this.translations;
+  }
+
   async fetchCurrentLanguage(): Promise<Translations> {
+    const merged = this.applyEnglishUiBundle();
+    await this.cacheTranslations(merged, V1_APP_UI_LANGUAGE);
     try {
-      const response = await apiService.getCurrentLanguage();
-      const langCode = response.languageCode;
-      const localFlat = LOCAL_TRANSLATIONS[langCode] || {};
-      // Local offline bundles win over API so nested English payloads cannot wipe UI chrome
-      const backendFlat = this.normalizeToFlat(response.translations);
-      const combined = { ...backendFlat, ...localFlat };
-      const merged = this.applyFlatTranslations(combined, langCode, response.direction);
-      await this.cacheTranslations(merged, langCode);
-      return merged;
+      // Backend preferredLanguage is the stylist-speak field — never apply it as app UI.
+      await apiService.getCurrentLanguage();
     } catch (error) {
       console.log('Failed to fetch current language:', error);
-      return this.translations;
     }
+    return merged;
   }
 
   async fetchTranslations(langCode: string): Promise<Translations> {
-    const localFlat = LOCAL_TRANSLATIONS[langCode] || {};
-    const hasLocal = Object.keys(localFlat).length > 0;
-
-    // Full-coverage languages: apply local bundle immediately (no network gate)
-    if (hasLocal) {
-      const merged = this.applyFlatTranslations(localFlat, langCode);
-      await this.cacheTranslations(merged, langCode);
-      return merged;
-    }
-
-    if (langCode === 'en') {
-      this.translations = DEFAULT_TRANSLATIONS;
-      this.currentLang = 'en';
-      await this.cacheTranslations(DEFAULT_TRANSLATIONS, 'en');
-      return DEFAULT_TRANSLATIONS;
-    }
-
-    try {
-      const response = await apiService.getTranslations(langCode);
-      const backendFlat = this.normalizeToFlat(response.translations);
-      const merged = this.applyFlatTranslations(backendFlat, langCode, response.direction);
-      if (response.nativeName) {
-        merged.localeInfo.language = response.nativeName;
-      }
-      await this.cacheTranslations(merged, langCode);
-      return merged;
-    } catch (error) {
-      console.log('Translation fetch error, no local bundle available:', error);
-      throw new Error(`No translations available for language: ${langCode}`);
-    }
+    void langCode;
+    const merged = this.applyEnglishUiBundle();
+    await this.cacheTranslations(merged, V1_APP_UI_LANGUAGE);
+    return merged;
   }
 
   private mergeTranslations(backendTranslations: Record<string, any>, langCode: string): Translations {
@@ -2491,21 +2479,15 @@ class TranslationServiceClass {
   }
 
   async setLanguage(langCode: string): Promise<{ success: boolean; backendSaved: boolean }> {
-    // Apply bundled (or network) translations first — must not depend on POST /api/language
-    await this.fetchTranslations(langCode);
-    const backendSaved = await this.persistLanguagePreference(langCode);
-    return { success: true, backendSaved };
+    await this.fetchTranslations(normalizeAppUiLanguage(langCode));
+    // Do not POST /api/language — that writes userStyleProfiles.preferredLanguage (stylist speak).
+    return { success: true, backendSaved: false };
   }
 
-  /** Persist preferred language for stylist chat; failures are non-fatal for UI chrome. */
+  /** App UI language is local-only in v1. Backend preferredLanguage remains stylist speak. */
   async persistLanguagePreference(langCode: string): Promise<boolean> {
-    try {
-      await apiService.setLanguage({ languageCode: langCode });
-      return true;
-    } catch (error) {
-      console.log('Failed to persist language to backend (will use local):', error);
-      return false;
-    }
+    void langCode;
+    return true;
   }
 
   async syncLanguageFromAccent(accent: string): Promise<void> {
@@ -2518,60 +2500,24 @@ class TranslationServiceClass {
   }
 
   async getAvailableLanguages(): Promise<Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>> {
-    if (this.availableLanguages.length > 0) {
-      return this.availableLanguages;
-    }
-
-    const localList = LOCAL_LANGUAGE_META.map((lang) => ({ ...lang }));
-    const byCode = new Map(localList.map((lang) => [lang.code, lang]));
-
-    try {
-      const response = await apiService.getLanguages();
-      for (const lang of response.languages || []) {
-        if (!byCode.has(lang.code)) {
-          byCode.set(lang.code, lang);
-        }
-      }
-    } catch (error) {
-      console.log('Failed to fetch available languages:', error);
-    }
-
-    this.availableLanguages = Array.from(byCode.values());
+    this.availableLanguages = [...V1_APP_UI_LANGUAGE_OPTIONS];
     return this.availableLanguages;
   }
 
   async loadCachedTranslations(): Promise<Translations> {
     try {
       const cachedLang = await AsyncStorage.getItem(TRANSLATIONS_LANG_KEY);
-      const cached = await AsyncStorage.getItem(TRANSLATIONS_CACHE_KEY);
-
-      if (cached && cachedLang) {
-        const parsed = JSON.parse(cached);
-        const localFlat = LOCAL_TRANSLATIONS[cachedLang] || {};
-        if (Object.keys(localFlat).length > 0) {
-          // Prefer bundled locale over possibly-stale/English-contaminated cache
-          const merged = this.applyFlatTranslations(
-            { ...this.flattenTranslations(parsed), ...localFlat },
-            cachedLang,
-            parsed?.localeInfo?.direction
-          );
-          return merged;
-        }
-        this.translations = parsed;
-        this.currentLang = cachedLang;
-        return this.translations;
+      const merged = this.applyEnglishUiBundle();
+      if (persistedAppUiLanguageNeedsRewrite(cachedLang)) {
+        await this.cacheTranslations(merged, V1_APP_UI_LANGUAGE);
+      } else if (!cachedLang) {
+        await this.cacheTranslations(merged, V1_APP_UI_LANGUAGE);
       }
-
-      if (cachedLang && cachedLang !== 'en' && LOCAL_TRANSLATIONS[cachedLang]) {
-        return this.applyFlatTranslations(LOCAL_TRANSLATIONS[cachedLang], cachedLang);
-      }
+      return merged;
     } catch (error) {
       console.log('Failed to load cached translations:', error);
     }
-    if (LOCAL_TRANSLATIONS.en && Object.keys(LOCAL_TRANSLATIONS.en).length) {
-      return this.applyFlatTranslations(LOCAL_TRANSLATIONS.en, 'en');
-    }
-    return DEFAULT_TRANSLATIONS;
+    return this.applyEnglishUiBundle();
   }
 
   private flattenTranslations(obj: Record<string, any>, prefix = ''): Record<string, string> {
