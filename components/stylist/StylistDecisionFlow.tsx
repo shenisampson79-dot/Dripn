@@ -311,8 +311,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         };
       }
       if (decisionType === 'sanity-check') {
+        const wardrobeMax = flow.getWardrobeSelectLimit?.() ?? MAX_DECISION_WARDROBE_ITEMS;
         return {
-          label: t('stylistFlow.getVerdict'),
+          label: t('stylistFlow.getVerdict') + ` · ${flow.selectedWardrobeIds.length}/${wardrobeMax}`,
           onPress: () => flow.submitDecision(false),
           loading: flow.isLoading,
           useReadyAccent: true,
@@ -611,6 +612,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         onToggle={flow.toggleWardrobeItem}
         maxItems={flow.getWardrobeSelectLimit?.() ?? MAX_DECISION_WARDROBE_ITEMS}
         disabled={flow.isReadOnly}
+        showSelectedCount={false}
       />
     </Animated.View>
   );

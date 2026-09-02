@@ -29,6 +29,8 @@ interface DecisionWardrobePickerProps {
   onToggle: (id: string) => void;
   maxItems?: number;
   disabled?: boolean;
+  /** When false, omit the standalone `{count}/{max} selected` caption. Default true (Event). */
+  showSelectedCount?: boolean;
 }
 
 export function DecisionWardrobePicker({
@@ -37,6 +39,7 @@ export function DecisionWardrobePicker({
   onToggle,
   maxItems = MAX_DECISION_WARDROBE_ITEMS,
   disabled = false,
+  showSelectedCount = true,
 }: DecisionWardrobePickerProps) {
   const theme = useTheme();
   const { t } = useTranslations();
@@ -62,11 +65,13 @@ export function DecisionWardrobePicker({
 
   return (
     <View style={styles.root}>
-      <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-        {(t('stylistFlow.wardrobeSelectedCount') || '{count}/{max} selected')
-          .replace('{count}', String(selectedIds.length))
-          .replace('{max}', String(maxItems))}
-      </ThemedText>
+      {showSelectedCount ? (
+        <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+          {(t('stylistFlow.wardrobeSelectedCount') || '{count}/{max} selected')
+            .replace('{count}', String(selectedIds.length))
+            .replace('{max}', String(maxItems))}
+        </ThemedText>
+      ) : null}
 
       {sections.map((section) => (
         <View key={section.key} style={styles.section}>
