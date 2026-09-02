@@ -152,6 +152,14 @@ for (const key of freeKeys) {
 assert.equal(TIER_MATRIX.free.wardrobeItemsLimit, 15);
 assert.equal(TIER_MATRIX.free.decisionsPerDay, 1);
 assert.equal(TIER_MATRIX.free.aiChatMessagesPerDay, 10);
+assert.ok(
+  translationServiceSrc.includes("Basic AI chat (10/month)"),
+  'Free Chat entitlement copy must say 10/month',
+);
+assert.ok(
+  !translationServiceSrc.includes("Basic AI chat (10/day)"),
+  'Free Chat entitlement copy must not say 10/day',
+);
 assert.equal(TIER_MATRIX.free.voiceCommentsPerMonth, 0);
 assert.equal(TIER_MATRIX.personal_stylist.voiceCommentsPerMonth, 20);
 assert.equal(TIER_MATRIX.stylist_unlimited.voiceCommentsPerMonth, 100);

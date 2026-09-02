@@ -1701,7 +1701,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     discountAppliedTitle: 'Great!',
     features: {
       free: {
-        basicChat: 'Basic AI chat (10/day)',
+        basicChat: 'Basic AI chat (10/month)',
         compareTwo: 'Compare 2 shopping options',
         dailyDecision: '1 stylist decision per day',
         decisionHistory: 'Decision history',
