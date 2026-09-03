@@ -217,6 +217,7 @@ export default function QuickAddScreen({ navigation }: Props) {
       Alert.alert('Quick Add trace', 'Could not copy — try again.');
     }
   }, []);
+  void copyQuickAddTrace;
 
   useEffect(() => {
     if (!permission?.granted) void requestPermission();
@@ -956,33 +957,13 @@ export default function QuickAddScreen({ navigation }: Props) {
           <View style={{ alignItems: 'center' }}>
             <ThemedText type="body" style={styles.title}>Quick Add</ThemedText>
             <ThemedText type="caption" style={styles.subtitle}>
-              {autocaptureEnabled
-                ? (yoloStatus.available
-                  ? 'Centre in the box (overflow OK) · white → amber → green'
-                  : 'Centre garment in the box · overflow OK · snap anytime')
-                : 'Centre garment in the box · overflow OK · tap Capture'}
+              Centre the garment, then tap Capture
             </ThemedText>
           </View>
           <Pressable onPress={() => setTorch((v) => !v)} hitSlop={10} style={styles.iconBtn}>
             <Feather name={torch ? 'zap' : 'zap-off'} size={20} color="#FFF" />
           </Pressable>
         </View>
-        {beliefDebug && autocaptureEnabled ? (
-          <View style={styles.traceBar}>
-            <ThemedText type="caption" style={styles.traceSummary} numberOfLines={1}>
-              {traceCount > 0 ? lastTraceSummary : 'Trace armed — samples appear after YOLO ticks'}
-            </ThemedText>
-            <Pressable
-              onPress={() => void copyQuickAddTrace()}
-              style={styles.traceCopyBtn}
-              hitSlop={8}
-            >
-              <ThemedText type="caption" style={styles.traceCopyText}>
-                Copy {traceCount}
-              </ThemedText>
-            </Pressable>
-          </View>
-        ) : null}
       </LinearGradient>
 
       <View
@@ -1007,13 +988,6 @@ export default function QuickAddScreen({ navigation }: Props) {
             <ThemedText type="h2" style={styles.countdownText}>{countdown}</ThemedText>
           ) : null}
         </Animated.View>
-        <ThemedText type="body" style={[
-          styles.hint,
-          showHold && styles.hintHold,
-          showReady && styles.hintReady,
-        ]}>
-          {hint}
-        </ThemedText>
       </View>
 
       {captureThumb ? (
