@@ -19,7 +19,10 @@ import type { DFYTier } from '@/services/DFYService';
 import { currencyService } from '@/services/CurrencyService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { nextRevenueCatIdentityAction } from '@/utils/appleEntitlementIsolation';
-import { selectAppleSubscriptionSyncEvidence } from '@/utils/appleSubscriptionSyncEvidence';
+import {
+  originalSubscriptionPurchaseEvidence,
+  selectAppleSubscriptionSyncEvidence,
+} from '@/utils/appleSubscriptionSyncEvidence';
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
   type AiTopUpPackId,
@@ -212,7 +215,7 @@ function isUserCancelledPurchase(error: unknown): boolean {
 
 class RevenueCatAppleIAPService implements AppleIAPService {
   private configuredForUserId: string | null = null;
-  /** True after Purchases.configure — logOut does not un-configure the SDK. */
+  /** True after Purchases.configure — Dripn logout must not Purchases.logOut (anonymous alias). */
   private sdkConfigured = false;
   /** In-flight configure — callers await this to avoid purchase-before-ready races */
   private configurePromise: Promise<boolean> | null = null;
@@ -286,18 +289,15 @@ class RevenueCatAppleIAPService implements AppleIAPService {
         return true;
       }
 
-      if (action === 'logout_then_login' || action === 'login') {
-        if (action === 'logout_then_login') {
-          try {
-            await Purchases.logOut();
-          } catch (logoutError) {
-            console.warn('[AppleIAP] logOut before account switch failed:', logoutError);
-          }
-          this.configuredForUserId = null;
-        }
+      if (action === 'login') {
         await Purchases.logIn(appUserId);
         this.configuredForUserId = appUserId;
         this.sdkConfigured = true;
+        this.lastConfigureFailure = null;
+        return true;
+      }
+
+      if (action === 'hold') {
         this.lastConfigureFailure = null;
         return true;
       }
@@ -317,22 +317,15 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     }
   }
 
+  /**
+   * Dripn logout: drop the local mapping so IAP is not used without a Dripn user,
+   * but leave RevenueCat identified as the last user. The next authenticated
+   * user is Purchases.logIn(B) (identified → identified switch).
+   * Never Purchases.logOut() — that creates an anonymous RC user that can alias.
+   */
   async resetIdentity(): Promise<void> {
     this.lastConfigureFailure = null;
-    const hadUser = this.configuredForUserId;
     this.configuredForUserId = null;
-    if (!this.isAvailable() || isExpoGo()) return;
-    if (!hadUser && !this.sdkConfigured) return;
-    try {
-      const configured = typeof Purchases.isConfigured === 'function'
-        ? await Promise.resolve(Purchases.isConfigured())
-        : this.sdkConfigured;
-      if (configured) {
-        await Purchases.logOut();
-      }
-    } catch (error) {
-      console.warn('[AppleIAP] resetIdentity logOut failed:', error);
-    }
   }
 
   /** Wait for any in-flight configure, then require a ready singleton before Purchases.* calls */
@@ -718,6 +711,7 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
   }));
 
   const evidence = selectAppleSubscriptionSyncEvidence(customerInfo);
+  const purchaseEvidence = originalSubscriptionPurchaseEvidence(customerInfo, evidence.productId);
 
   return {
     appUserId: customerInfo.originalAppUserId,
@@ -725,6 +719,8 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
     productId: evidence.productId,
     latestProductId: evidence.productId,
     originalTransactionId: evidence.originalTransactionId,
+    originalPurchaseDate: purchaseEvidence.originalPurchaseDate,
+    isFamilyShare: purchaseEvidence.isFamilyShare,
     managementURL: customerInfo.managementURL,
     tier: evidence.tier,
   };

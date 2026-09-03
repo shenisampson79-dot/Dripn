@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  originalSubscriptionPurchaseEvidence,
   selectAppleSubscriptionSyncEvidence,
 } from './appleSubscriptionSyncEvidence';
 
@@ -15,7 +16,12 @@ const VOICE_TXN = '2000001000000003';
 const TOPUP_TXN = 'o1_topup_txn';
 
 function customerInfo(opts: {
-  entitlements: Record<string, { productIdentifier: string; isActive?: boolean }>;
+  entitlements: Record<string, {
+    productIdentifier: string;
+    isActive?: boolean;
+    originalPurchaseDate?: string;
+    isFamilyShare?: boolean;
+  }>;
   subscriptions?: Record<string, { storeTransactionId: string; isActive?: boolean }>;
   activeSubscriptions?: string[];
 }) {
@@ -105,6 +111,25 @@ function customerInfo(opts: {
   assert.equal(evidence.productId, PS_MONTHLY, 'E: subscription-only product preserved');
   assert.equal(evidence.originalTransactionId, PS_TXN, 'E: subscription-only txn preserved');
   assert.equal(evidence.tier, 'personal_stylist', 'E: subscription-only tier preserved');
+}
+
+{
+  const info = customerInfo({
+    entitlements: {
+      personal_stylist: {
+        productIdentifier: PS_MONTHLY,
+        isActive: true,
+        originalPurchaseDate: '2026-09-02T12:00:00.000Z',
+        isFamilyShare: false,
+      },
+    },
+    subscriptions: {
+      [PS_MONTHLY]: { storeTransactionId: PS_TXN, isActive: true },
+    },
+  });
+  const purchase = originalSubscriptionPurchaseEvidence(info, PS_MONTHLY);
+  assert.equal(purchase.originalPurchaseDate, '2026-09-02T12:00:00.000Z');
+  assert.equal(purchase.isFamilyShare, false);
 }
 
 console.log('appleSubscriptionSyncEvidence: all passed');

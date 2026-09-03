@@ -11,6 +11,8 @@ type EntitlementLike = {
   originalTransactionId?: string | null;
   storeTransactionId?: string | null;
   transactionId?: string | null;
+  originalPurchaseDate?: string | null;
+  isFamilyShare?: boolean;
 };
 
 type SubscriptionLike = {
@@ -128,4 +130,20 @@ export function selectAppleSubscriptionSyncEvidence(
     originalTransactionId: best.originalTransactionId,
     tier: best.tier,
   };
+}
+
+export function originalSubscriptionPurchaseEvidence(
+  customerInfo: SubscriptionSyncCustomerInfo,
+  productId?: string | null,
+): { originalPurchaseDate: string | null; isFamilyShare: boolean } {
+  if (!productId) return { originalPurchaseDate: null, isFamilyShare: false };
+  const active = customerInfo.entitlements?.active || {};
+  for (const ent of Object.values(active)) {
+    if (!ent || String(ent.productIdentifier || '') !== String(productId)) continue;
+    return {
+      originalPurchaseDate: ent.originalPurchaseDate ? String(ent.originalPurchaseDate) : null,
+      isFamilyShare: Boolean(ent.isFamilyShare),
+    };
+  }
+  return { originalPurchaseDate: null, isFamilyShare: false };
 }

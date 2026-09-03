@@ -14,6 +14,14 @@ export function getTourSeenStorageKey(userId?: string | null): string {
   return userId ? `${TOUR_SEEN_KEY}_${userId}` : TOUR_SEEN_KEY;
 }
 
+export function omitClientControlledSubscriptionTier<T extends Record<string, any>>(
+  source?: T | null,
+): T | null {
+  if (!source || typeof source !== 'object') return source ?? null;
+  const { subscriptionTier: _ignored, ...rest } = source;
+  return rest as T;
+}
+
 function backendIndicatesTourSeen(source?: Record<string, any> | null): boolean {
   if (!source) return false;
   return source.hasSeenTour === true || source.profileData?.hasSeenTour === true;
@@ -204,8 +212,13 @@ export async function hydrateUserProfileAfterAuth(
   const deviceTourSeen = await readDeviceTourSeen(baseProfile.id);
   const onboardingProfile = await onboardingProfileService.getProfile();
   let backendTourSeen = backendIndicatesTourSeen(options.backendLoginUser);
+  let serverBillingTier = options.backendLoginUser?.subscriptionTier ?? baseProfile.subscriptionTier;
 
-  let merged = mergeObjectsPreferFilled(baseProfile, options.backendLoginUser?.profileData);
+  const profileDataWithoutBilling = omitClientControlledSubscriptionTier(
+    options.backendLoginUser?.profileData,
+  );
+  let merged = mergeObjectsPreferFilled(baseProfile, profileDataWithoutBilling);
+  merged.subscriptionTier = serverBillingTier;
 
   if (options.backendLoginUser?.hasCompletedOnboarding !== undefined) {
     merged.hasCompletedOnboarding = !!options.backendLoginUser.hasCompletedOnboarding;
@@ -231,7 +244,10 @@ export async function hydrateUserProfileAfterAuth(
     const me = await apiService.getCurrentUser();
     if (me?.profileData) {
       const { hasSeenTour: _ignoredTour, ...profileWithoutTour } = me.profileData;
-      merged = mergeObjectsPreferFilled(merged, profileWithoutTour);
+      merged = mergeObjectsPreferFilled(merged, omitClientControlledSubscriptionTier(profileWithoutTour));
+    }
+    if (me?.subscriptionTier != null && String(me.subscriptionTier).trim() !== '') {
+      serverBillingTier = me.subscriptionTier;
     }
     backendTourSeen = backendTourSeen || backendIndicatesTourSeen(me);
     if (me?.hasCompletedOnboarding !== undefined) {
@@ -280,7 +296,7 @@ export async function hydrateUserProfileAfterAuth(
   const allowLocalUnlock = await shouldApplyTestingUnlock(baseProfile);
   merged.subscriptionTier = reconcileSubscriptionTier({
     local: baseProfile.subscriptionTier,
-    remote: merged.subscriptionTier,
+    remote: serverBillingTier,
     allowLocalUnlock,
   });
 

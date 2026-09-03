@@ -1,36 +1,178 @@
 import assert from 'node:assert/strict';
 import {
   isForeignRevenueCatAppUserId,
+  isRevenueCatAnonymousAppUserId,
   nextRevenueCatIdentityAction,
   shouldAutoPromoteLocalTierFromCustomerInfo,
   shouldSyncCustomerInfoOnPassiveRefresh,
 } from './appleEntitlementIsolation';
+import { authoritativeBillingTierFromHydrate } from './subscriptionTier';
 
 const FREE = '68';
 const PAID = '41';
+
+type SimulatedRcState = {
+  sdkConfigured: boolean;
+  configuredForUserId: string | null;
+  rcAppUserId: string | null;
+  createdAnonymous: boolean;
+  aliasedFromAnonymous: boolean;
+  ops: string[];
+};
+
+function emptyRc(): SimulatedRcState {
+  return {
+    sdkConfigured: false,
+    configuredForUserId: null,
+    rcAppUserId: null,
+    createdAnonymous: false,
+    aliasedFromAnonymous: false,
+    ops: [],
+  };
+}
+
+/** Apply the same identity actions AppleIAPService uses. Never invent Purchases.logOut. */
+function identifyAs(state: SimulatedRcState, nextUserId: string): void {
+  const action = nextRevenueCatIdentityAction(
+    state.configuredForUserId,
+    nextUserId,
+    state.sdkConfigured,
+  );
+  assert.notEqual(action, 'hold', 'authenticated identify must not hold');
+  if (action === 'noop') {
+    state.ops.push('noop');
+    return;
+  }
+  if (action === 'configure') {
+    assert.ok(nextUserId, 'must not Purchases.configure without a Dripn user');
+    state.ops.push(`configure:${nextUserId}`);
+    state.rcAppUserId = nextUserId;
+    state.configuredForUserId = nextUserId;
+    state.sdkConfigured = true;
+    return;
+  }
+  if (action === 'login') {
+    if (isRevenueCatAnonymousAppUserId(state.rcAppUserId)) {
+      state.aliasedFromAnonymous = true;
+    }
+    state.ops.push(`login:${nextUserId}`);
+    state.rcAppUserId = nextUserId;
+    state.configuredForUserId = nextUserId;
+    state.sdkConfigured = true;
+  }
+}
+
+function dripnLogout(state: SimulatedRcState): void {
+  const action = nextRevenueCatIdentityAction(
+    state.configuredForUserId,
+    null,
+    state.sdkConfigured,
+  );
+  assert.equal(action, 'hold', 'Dripn logout must hold identified RC, not logOut');
+  state.ops.push('hold');
+  state.configuredForUserId = null;
+}
 
 {
   assert.equal(
     nextRevenueCatIdentityAction(null, FREE),
     'configure',
-    'first identify for a Dripn user configures RC',
+    'fresh authenticated user configures RC directly as that Dripn id',
   );
   assert.equal(nextRevenueCatIdentityAction(FREE, FREE), 'noop');
   assert.equal(
     nextRevenueCatIdentityAction(PAID, FREE),
-    'logout_then_login',
-    'Paid A → Free B must logOut before logIn (must not alias/transfer)',
+    'login',
+    'identified A → identified B is Purchases.logIn(B), never logOut then logIn',
   );
   assert.equal(
     nextRevenueCatIdentityAction(FREE, null),
-    'reset',
-    'Dripn logout must reset RC identity',
+    'hold',
+    'Dripn logout must not Purchases.logOut (that creates an anonymous RC user)',
   );
   assert.equal(
     nextRevenueCatIdentityAction(null, FREE, true),
     'login',
-    'after logOut the SDK stays configured — next user logs in, does not re-configure',
+    'after Dripn logout the SDK stays identified — next user is logIn, not anonymous configure',
   );
+}
+
+{
+  const paidThenLogoutThenFree = emptyRc();
+  identifyAs(paidThenLogoutThenFree, PAID);
+  dripnLogout(paidThenLogoutThenFree);
+  identifyAs(paidThenLogoutThenFree, FREE);
+  assert.equal(paidThenLogoutThenFree.createdAnonymous, false);
+  assert.equal(paidThenLogoutThenFree.aliasedFromAnonymous, false);
+  assert.equal(paidThenLogoutThenFree.rcAppUserId, FREE);
+  assert.ok(!isRevenueCatAnonymousAppUserId(paidThenLogoutThenFree.rcAppUserId));
+  assert.deepEqual(paidThenLogoutThenFree.ops, [`configure:${PAID}`, 'hold', `login:${FREE}`]);
+  assert.equal(
+    shouldAutoPromoteLocalTierFromCustomerInfo({
+      source: 'subscription_open',
+      localTier: 'free',
+      rcTier: 'personal_stylist',
+      dripnUserId: FREE,
+      originalAppUserId: PAID,
+      currentAppUserId: FREE,
+    }),
+    false,
+    'Paid A → logout → Free B: B remains Free (no local promote from A CustomerInfo)',
+  );
+  assert.equal(
+    shouldSyncCustomerInfoOnPassiveRefresh({
+      dripnUserId: FREE,
+      originalAppUserId: PAID,
+      currentAppUserId: FREE,
+      localTier: 'free',
+    }),
+    false,
+    'Paid A → logout → Free B: Free B must not POST A CustomerInfo',
+  );
+}
+
+{
+  const aba = emptyRc();
+  identifyAs(aba, PAID);
+  identifyAs(aba, FREE);
+  identifyAs(aba, PAID);
+  assert.equal(aba.createdAnonymous, false);
+  assert.equal(aba.aliasedFromAnonymous, false);
+  assert.deepEqual(aba.ops, [`configure:${PAID}`, `login:${FREE}`, `login:${PAID}`]);
+  assert.equal(aba.rcAppUserId, PAID);
+  assert.equal(
+    shouldAutoPromoteLocalTierFromCustomerInfo({
+      source: 'foreground_refresh',
+      localTier: 'free',
+      rcTier: 'personal_stylist',
+      dripnUserId: FREE,
+      originalAppUserId: PAID,
+      currentAppUserId: FREE,
+    }),
+    false,
+    'A → B → A: B stays Free throughout (no CustomerInfo copy on passive refresh)',
+  );
+  assert.equal(
+    shouldAutoPromoteLocalTierFromCustomerInfo({
+      source: 'restore',
+      localTier: 'free',
+      rcTier: 'personal_stylist',
+      dripnUserId: PAID,
+      originalAppUserId: PAID,
+      currentAppUserId: PAID,
+    }),
+    true,
+    'A → B → A: A may still restore as the identified purchaser',
+  );
+}
+
+{
+  const freshFree = emptyRc();
+  identifyAs(freshFree, FREE);
+  assert.deepEqual(freshFree.ops, [`configure:${FREE}`]);
+  assert.equal(freshFree.rcAppUserId, FREE);
+  assert.equal(freshFree.createdAnonymous, false);
+  assert.ok(!isRevenueCatAnonymousAppUserId(freshFree.rcAppUserId));
 }
 
 {
@@ -96,7 +238,7 @@ const PAID = '41';
       currentAppUserId: FREE,
     }),
     true,
-    'legitimate purchase for the current user still upgrades locally',
+    'legitimate first purchase while identified as this Dripn user still upgrades locally',
   );
 }
 
@@ -111,7 +253,7 @@ const PAID = '41';
       currentAppUserId: PAID,
     }),
     true,
-    'legitimate Restore Purchases for the rightful purchaser still upgrades',
+    'same-user Restore Purchases still upgrades',
   );
   assert.equal(
     shouldAutoPromoteLocalTierFromCustomerInfo({
@@ -161,7 +303,6 @@ const PAID = '41';
 }
 
 {
-  // Restart / account-switch matrix (local policy; server remains source of truth)
   assert.equal(
     shouldAutoPromoteLocalTierFromCustomerInfo({
       source: 'foreground_refresh',
@@ -172,6 +313,27 @@ const PAID = '41';
     }),
     false,
     'Free B after Paid A logout: RC paid CustomerInfo must not keep B paid',
+  );
+}
+
+{
+  assert.equal(
+    authoritativeBillingTierFromHydrate({
+      serverBillingTier: 'personal_stylist',
+      profileJsonTier: 'free',
+      localTier: 'personal_stylist',
+    }),
+    'personal_stylist',
+    'profile JSON Free cannot downgrade authoritative paid tier on login',
+  );
+  assert.equal(
+    authoritativeBillingTierFromHydrate({
+      serverBillingTier: 'free',
+      profileJsonTier: 'personal_stylist',
+      localTier: 'free',
+    }),
+    'free',
+    'profile JSON Paid cannot upgrade authoritative Free user',
   );
 }
 

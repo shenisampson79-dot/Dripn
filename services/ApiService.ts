@@ -3309,12 +3309,31 @@ class ApiService {
     });
   }
 
+  async createApplePurchaseIntent(productId: string) {
+    return this.request<{
+      success: boolean;
+      intentId: string;
+      nonce: string;
+      productId: string;
+      createdAt: string;
+      expiresAt: string;
+    }>('/api/subscription/apple/purchase-intent', {
+      method: 'POST',
+      body: JSON.stringify({ productId }),
+    });
+  }
+
   async syncAppleSubscription(payload: {
     tier?: string;
     productId?: string;
     originalTransactionId?: string;
     storeCountry?: string;
     customerInfo?: Record<string, unknown>;
+    source?: 'purchase' | 'restore';
+    intentId?: string;
+    nonce?: string;
+    originalPurchaseDate?: string | null;
+    isFamilyShare?: boolean;
   }) {
     await this.refreshToken();
     if (!(await this.getToken()) && !this.sessionBackup) {
@@ -3365,6 +3384,11 @@ class ApiService {
     productId?: string;
     originalTransactionId?: string;
     customerInfo?: Record<string, unknown>;
+    source?: 'purchase' | 'restore';
+    intentId?: string;
+    nonce?: string;
+    originalPurchaseDate?: string | null;
+    isFamilyShare?: boolean;
   }) {
     try {
       await AsyncStorage.setItem(

@@ -101,6 +101,20 @@ export function preferHigherSubscriptionTier(
  * Billing truth wins — including free/expired.
  * Only keep a higher local tier when explicitly unlocked (staff Testing Mode).
  */
+export function authoritativeBillingTierFromHydrate(opts: {
+  serverBillingTier?: string | null;
+  profileJsonTier?: string | null;
+  localTier?: string | null;
+  allowLocalUnlock?: boolean;
+}): SubscriptionTier {
+  void opts.profileJsonTier;
+  return reconcileSubscriptionTier({
+    local: opts.localTier,
+    remote: opts.serverBillingTier,
+    allowLocalUnlock: opts.allowLocalUnlock,
+  });
+}
+
 export function reconcileSubscriptionTier(opts: {
   local?: string | null;
   remote?: string | null;

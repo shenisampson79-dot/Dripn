@@ -4,6 +4,10 @@
  *
  * Causal bug: opening Subscription / foreground refresh treated device
  * CustomerInfo as belonging to the currently authenticated Dripn user.
+ *
+ * Identity rule: never Purchases.logOut() just to park an anonymous RC user.
+ * Dripn is always authenticated before IAP. Identified A → identified B is
+ * Purchases.logIn(B) (user switch, no anonymous alias/merge).
  */
 
 export type PassiveEntitlementSource = 'subscription_open' | 'foreground_refresh';
@@ -14,8 +18,7 @@ export type RevenueCatIdentityAction =
   | 'noop'
   | 'configure'
   | 'login'
-  | 'reset'
-  | 'logout_then_login';
+  | 'hold';
 
 export function isRevenueCatAnonymousAppUserId(appUserId?: string | null): boolean {
   if (!appUserId) return false;
@@ -35,14 +38,18 @@ export function isForeignRevenueCatAppUserId(
   return claimed !== String(dripnUserId);
 }
 
+/**
+ * Next RevenueCat SDK call for a Dripn identity change.
+ * `nextUserId === null` is Dripn logout: hold the last identified RC user.
+ */
 export function nextRevenueCatIdentityAction(
   configuredForUserId: string | null,
   nextUserId: string | null,
   sdkConfigured = false,
 ): RevenueCatIdentityAction {
-  if (!nextUserId) return 'reset';
+  if (!nextUserId) return 'hold';
   if (configuredForUserId != null && configuredForUserId === nextUserId) return 'noop';
-  if (configuredForUserId != null && configuredForUserId !== nextUserId) return 'logout_then_login';
+  if (configuredForUserId != null && configuredForUserId !== nextUserId) return 'login';
   if (sdkConfigured) return 'login';
   return 'configure';
 }

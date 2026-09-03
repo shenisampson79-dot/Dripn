@@ -29,6 +29,7 @@ import { resolveSubscriptionBackLabel } from "@/utils/subscriptionBackLabel";
 import {
   appleIAPService,
   IAP_UNAVAILABLE_MESSAGE,
+  APPLE_SUBSCRIPTION_PRODUCT_IDS,
   resolveTierFromCustomerInfo,
   serializeCustomerInfoForSyncWithStorefront,
   serializeDfyCustomerInfoForSync,
@@ -779,17 +780,23 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   ) : null;
 
   const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
+    const productId = APPLE_SUBSCRIPTION_PRODUCT_IDS[tier][interval];
+    const intent = await apiService.createApplePurchaseIntent(productId);
     const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
     // Apple / StoreKit already charged — unlock immediately even if backend sync fails.
     const fromRc = resolveTierFromCustomerInfo(customerInfo);
     const unlockedTier = fromRc !== 'free' ? fromRc : normalizeSubscriptionTier(tier);
     await applyLocalSubscriptionTier(unlockedTier);
 
-    const syncPayload = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
-    // Ensure sync payload carries the purchased tier when RC entitlement mapping is delayed
-    if (!syncPayload.tier || syncPayload.tier === 'free') {
-      syncPayload.tier = unlockedTier;
-    }
+    const serialized = await serializeCustomerInfoForSyncWithStorefront(customerInfo);
+    const syncPayload = {
+      ...serialized,
+      source: 'purchase' as const,
+      intentId: intent.intentId,
+      nonce: intent.nonce,
+      productId: serialized.productId || productId,
+      tier: !serialized.tier || serialized.tier === 'free' ? unlockedTier : serialized.tier,
+    };
 
     try {
       await apiService.syncAppleSubscription(syncPayload);
@@ -925,7 +932,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       if (subscriptionPayload.tier !== 'free') {
         try {
-          await apiService.syncAppleSubscription(subscriptionPayload);
+          await apiService.syncAppleSubscription({
+            ...subscriptionPayload,
+            source: 'restore',
+          });
           serverSynced = true;
           restoredSomething = true;
         } catch (syncError) {
