@@ -161,8 +161,8 @@ function dripnLogout(state: SimulatedRcState): void {
       originalAppUserId: PAID,
       currentAppUserId: PAID,
     }),
-    true,
-    'A → B → A: A may still restore as the identified purchaser',
+    false,
+    'A → B → A: restore CustomerInfo must not auto-promote even for the identified purchaser',
   );
 }
 
@@ -252,8 +252,8 @@ function dripnLogout(state: SimulatedRcState): void {
       originalAppUserId: PAID,
       currentAppUserId: PAID,
     }),
-    true,
-    'same-user Restore Purchases still upgrades',
+    false,
+    'same-user Restore Purchases must not auto-promote from CustomerInfo',
   );
   assert.equal(
     shouldAutoPromoteLocalTierFromCustomerInfo({

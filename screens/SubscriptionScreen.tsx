@@ -15,6 +15,7 @@ import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName, preferHigherSubscriptionTier } from "@/utils/subscriptionTier";
 import {
+  localTierWriteForRestore,
   shouldAutoPromoteLocalTierFromCustomerInfo,
   shouldSyncCustomerInfoOnPassiveRefresh,
 } from "@/utils/appleEntitlementIsolation";
@@ -914,38 +915,39 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       let restoredSomething = false;
       let serverSynced = false;
-      const restoredTier = resolveTierFromCustomerInfo(customerInfo);
-      const allowRestorePromote = shouldAutoPromoteLocalTierFromCustomerInfo({
-        source: 'restore',
-        localTier: user.subscriptionTier,
-        rcTier: restoredTier,
-        dripnUserId: user.id,
-        originalAppUserId: customerInfo.originalAppUserId || null,
-        currentAppUserId: customerInfo.appUserId || null,
-      });
-
-      // Unlock locally first so sandbox restores recover even if backend returns 401
-      if (allowRestorePromote && restoredTier !== 'free') {
-        await applyLocalSubscriptionTier(restoredTier);
-        restoredSomething = true;
-      }
+      // Restore CustomerInfo is evidence for /apple/sync only — never unlock locally first.
 
       if (subscriptionPayload.tier !== 'free') {
         try {
-          await apiService.syncAppleSubscription({
+          const synced = await apiService.syncAppleSubscription({
             ...subscriptionPayload,
             source: 'restore',
           });
+          const acceptedWrite = localTierWriteForRestore({
+            phase: 'post_sync',
+            syncOutcome: 'accepted',
+            acceptedServerTier: synced?.tier || subscriptionPayload.tier,
+          });
+          if (acceptedWrite.applyAcceptedServerTier) {
+            await applyLocalSubscriptionTier(
+              normalizeSubscriptionTier(acceptedWrite.applyAcceptedServerTier),
+            );
+          }
           serverSynced = true;
           restoredSomething = true;
         } catch (syncError) {
-          console.warn('[Subscription] Restore sync failed; local unlock kept', syncError);
+          const rejectedWrite = localTierWriteForRestore({
+            phase: 'post_sync',
+            syncOutcome: 'rejected',
+          });
+          if (rejectedWrite.reconcileFromServer) {
+            await refreshSubscriptionFromBackend().catch(() => {});
+          }
+          console.warn('[Subscription] Restore sync rejected; reconciled from server', syncError);
           const detail = syncError instanceof Error ? syncError.message : String(syncError);
           Alert.alert(
-            t('subscription.restoreFailedTitle') || 'Could not sync subscription',
-            (t('subscription.restoreSyncFailedMessage')
-              || 'Apple restored your purchase on this phone, but we could not update your account on the server. Voice and outfit features may stay limited until this succeeds. Try again in a moment.')
-              + (detail ? `\n\n${detail}` : ''),
+            t('subscription.restoreFailedTitle') || 'Restore failed',
+            detail || t('subscription.restoreFailedMessage'),
           );
           return;
         }

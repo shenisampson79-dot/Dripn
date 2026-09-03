@@ -55,9 +55,10 @@ export function nextRevenueCatIdentityAction(
 }
 
 /**
- * Opening Subscription or foregrounding must never copy RC CustomerInfo
- * into the local Dripn tier. Purchase/restore may, if RC is identified as
- * this Dripn user and originalAppUserId is not another Dripn account.
+ * Opening Subscription, foregrounding, or Restore must never copy RC
+ * CustomerInfo into the local Dripn tier. Restore CustomerInfo is evidence
+ * for /apple/sync only. Purchase may still unlock locally if RC is identified
+ * as this Dripn user and originalAppUserId is not another Dripn account.
  */
 export function shouldAutoPromoteLocalTierFromCustomerInfo(opts: {
   source: EntitlementSyncSource;
@@ -70,13 +71,49 @@ export function shouldAutoPromoteLocalTierFromCustomerInfo(opts: {
   const rcTier = String(opts.rcTier || 'free').toLowerCase();
   if (!rcTier || rcTier === 'free') return false;
 
-  if (opts.source === 'subscription_open' || opts.source === 'foreground_refresh') {
+  if (
+    opts.source === 'subscription_open'
+    || opts.source === 'foreground_refresh'
+    || opts.source === 'restore'
+  ) {
     return false;
   }
 
   if (isForeignRevenueCatAppUserId(opts.dripnUserId, opts.currentAppUserId)) return false;
   if (isForeignRevenueCatAppUserId(opts.dripnUserId, opts.originalAppUserId)) return false;
   return true;
+}
+
+export type RestoreLocalWritePhase = 'pre_sync' | 'post_sync';
+export type RestoreSyncOutcome = 'accepted' | 'rejected';
+
+/**
+ * Restore must not grant a Dripn paid tier from CustomerInfo.
+ * Paid local state is allowed only after /apple/sync accepts.
+ * Bind rejection (403) must reconcile from authoritative server billing.
+ */
+export function localTierWriteForRestore(opts: {
+  phase: RestoreLocalWritePhase;
+  syncOutcome?: RestoreSyncOutcome;
+  acceptedServerTier?: string | null;
+}): {
+  applyOptimisticRcTier: false;
+  applyAcceptedServerTier: string | null;
+  reconcileFromServer: boolean;
+} {
+  if (opts.phase === 'pre_sync' || opts.syncOutcome !== 'accepted') {
+    return {
+      applyOptimisticRcTier: false,
+      applyAcceptedServerTier: null,
+      reconcileFromServer: opts.phase === 'post_sync',
+    };
+  }
+  const accepted = String(opts.acceptedServerTier || 'free').trim().toLowerCase();
+  return {
+    applyOptimisticRcTier: false,
+    applyAcceptedServerTier: !accepted || accepted === 'free' ? null : accepted,
+    reconcileFromServer: true,
+  };
 }
 
 /** Passive paths may refresh server state; they must not POST a foreign RC subscriber. */
