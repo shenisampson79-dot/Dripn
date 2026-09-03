@@ -388,10 +388,12 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
     navigation.navigate("BulkWardrobeUpload");
   };
 
+  // Scan UI is hidden on My Wardrobe; keep this entry so DigitizeWardrobe remains reachable from existing callers.
   const handleScanWardrobe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("DigitizeWardrobe");
   };
+  void handleScanWardrobe;
 
   const handleAICreateOutfit = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -809,34 +811,29 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
   const renderQuickActionsBar = useCallback(() => (
     <View style={styles.quickActionsBar}>
       <Pressable
-        onPress={handleScanWardrobe}
-        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+        onPress={handleQuickAdd}
+        style={({ pressed }) => [styles.quickActionChip, styles.quickActionChipPrimary, pressed && { opacity: 0.9 }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('wardrobe.quickAdd') || 'Quick Add'}
       >
-        <Feather name="maximize" size={15} color="#FFFFFF" />
-        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          {t('wardrobe.scanMyWardrobeShort') || 'Scan'}
+        <Feather name="camera" size={18} color={LUXURY_COLORS.midnight} />
+        <ThemedText type="body" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
+          {t('wardrobe.quickAdd') || 'Quick Add'}
         </ThemedText>
       </Pressable>
       <Pressable
         onPress={handleBulkAdd}
-        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [styles.quickActionChip, styles.quickActionChipPrimary, pressed && { opacity: 0.9 }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('wardrobe.bulkAdd') || 'Bulk Add'}
       >
-        <Feather name="layers" size={15} color="#FFFFFF" />
-        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
+        <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
+        <ThemedText type="body" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
           {t('wardrobe.bulkAdd') || 'Bulk Add'}
         </ThemedText>
       </Pressable>
-      <Pressable
-        onPress={handleQuickAdd}
-        style={({ pressed }) => [styles.quickActionChip, styles.quickActionChipPrimary, pressed && { opacity: 0.9 }]}
-      >
-        <Feather name="camera" size={15} color={LUXURY_COLORS.midnight} />
-        <ThemedText type="caption" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
-          {t('wardrobe.quickAdd') || 'Quick Add'}
-        </ThemedText>
-      </Pressable>
     </View>
-  ), [handleBulkAdd, handleQuickAdd, handleScanWardrobe, LUXURY_COLORS.midnight, t]);
+  ), [handleBulkAdd, handleQuickAdd, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     // Resilience: wardrobe tiles can hit malformed item data after upgrades or partial sync.
@@ -989,55 +986,12 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={[LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20']}
-        style={styles.emptyIconContainer}
-      >
-        <LinearGradient
-          colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          style={styles.emptyIconGradient}
-        >
-          <Feather name="camera" size={32} color="#FFFFFF" />
-        </LinearGradient>
-      </LinearGradient>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
+        Build your wardrobe
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        {t('wardrobe.scanMyWardrobeDesc')
-          || 'Scan individual items or clearly separated pieces — flat lays and spaced hangings work best.'}
+        Add your clothes to get more personalised outfit suggestions and styling advice.
       </ThemedText>
-      <LinearGradient
-        colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.emptyButtonGradient}
-      >
-        <Pressable onPress={handleScanWardrobe} style={styles.emptyButtonInner}>
-          <Feather name="maximize" size={18} color={LUXURY_COLORS.midnight} />
-          <ThemedText type="body" style={styles.emptyButtonText}>
-            {t('wardrobe.scanMyWardrobe') || 'Scan my wardrobe'}
-          </ThemedText>
-        </Pressable>
-      </LinearGradient>
-      <Pressable
-        onPress={handleQuickAdd}
-        style={[styles.emptyButtonSecondary, { borderColor: LUXURY_COLORS.gold }]}
-      >
-        <Feather name="camera" size={18} color={LUXURY_COLORS.gold} />
-        <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
-          {t('wardrobe.quickAdd') || 'Quick Add'}
-        </ThemedText>
-      </Pressable>
-      <Pressable
-        onPress={handleBulkAdd}
-        style={[styles.emptyButtonSecondary, { borderColor: theme.border, marginTop: Spacing.sm }]}
-      >
-        <Feather name="layers" size={18} color={theme.textSecondary} />
-        <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: theme.textSecondary }}>
-          {t('wardrobe.bulkAdd') || 'Bulk Add'}
-        </ThemedText>
-      </Pressable>
     </View>
   );
 
@@ -2274,28 +2228,28 @@ const styles = StyleSheet.create({
   quickActionsBar: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   quickActionChip: {
     flex: 1,
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: 2,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    minHeight: 52,
+    minHeight: 56,
   },
   quickActionChipPrimary: {
     backgroundColor: '#F5E6D3',
   },
   quickActionLabel: {
     color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 10,
+    fontWeight: '700',
+    fontSize: 15,
     textAlign: 'center',
   },
   quickActionLabelPrimary: {
