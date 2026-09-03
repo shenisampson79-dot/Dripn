@@ -134,6 +134,10 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
   stylist_unlimited: matrixToLimits('stylist_unlimited'),
 };
 
+export function limitsForTier(tier: SubscriptionTier): TierLimits {
+  return TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+}
+
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'free',

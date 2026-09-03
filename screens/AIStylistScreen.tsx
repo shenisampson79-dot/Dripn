@@ -64,11 +64,12 @@ import { VoiceCreditsPurchaseModal } from '@/components/VoiceCreditsPurchaseModa
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { logInvalidRender, sanitizeOutfitPieces, sanitizeWardrobeVisual } from '@/utils/safeRender';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { limitsForTier } from '@/contexts/SubscriptionContext';
 import { useReferral } from '@/contexts/ReferralContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { featureAccessTier } from '@/utils/subscriptionTier';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { getStylistSpeakTranslator, resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
@@ -1898,10 +1899,12 @@ export default function AIStylistScreen() {
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
   const quickPrompts = useMemo(() => getQuickPrompts(t), [t]);
-  const { limits, tier } = useSubscription();
   const { bonusAIRequests, consumeBonusAiRequest } = useReferral();
   const { items: wardrobeItems } = useWardrobe();
   const { user, actualCountry } = useAuth();
+  const featureTier = featureAccessTier(user);
+  const tier = featureTier;
+  const limits = limitsForTier(featureTier);
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
   const {
     hasCredits: hasVoiceCredits,
@@ -2409,7 +2412,7 @@ export default function AIStylistScreen() {
 
       return changed ? next : prev;
     });
-  }, [wardrobeImageFingerprint, wardrobeItems, user?.subscriptionTier]);
+  }, [wardrobeImageFingerprint, wardrobeItems, featureTier]);
   
   useEffect(() => {
     if (!user?.id) return;
@@ -2879,7 +2882,7 @@ export default function AIStylistScreen() {
           stylePreference: user?.stylePreference,
           sizeRange: user?.sizeRange,
           budgetRange: user?.budgetRange,
-          subscriptionTier: user?.subscriptionTier,
+          subscriptionTier: featureTier,
           retailers: user?.extendedPreferences?.favoriteShops || [],
         },
       });
@@ -2900,7 +2903,7 @@ export default function AIStylistScreen() {
         messageToSend,
         response,
         wardrobeItems,
-        user?.subscriptionTier,
+        featureTier,
       );
 
       const finalMessages = [...updatedMessages, assistantMessage];
@@ -3480,7 +3483,7 @@ export default function AIStylistScreen() {
             userMessage: trimmedAsk,
             fallbackSlots: advanced.slots as unknown as Record<string, unknown>,
             wardrobeItems: wardrobeItems || [],
-            subscriptionTier: user?.subscriptionTier,
+            subscriptionTier: featureTier,
             attachFn: (message, userMessage, response, items, tier) =>
               attachWardrobeVisualToMessage(
                 message as ChatMessage,
@@ -3507,7 +3510,7 @@ export default function AIStylistScreen() {
             userMessage: trimmedAsk,
             fallbackSlots: advanced.slots as unknown as Record<string, unknown>,
             wardrobeItems: wardrobeItems || [],
-            subscriptionTier: user?.subscriptionTier,
+            subscriptionTier: featureTier,
             attachFn: () => {
               throw new Error('attach_unused_on_http_failure');
             },
@@ -3592,7 +3595,7 @@ export default function AIStylistScreen() {
             userProfile: {
               gender: mappedGenderText,
               name: user?.name,
-              subscriptionTier: user?.subscriptionTier,
+              subscriptionTier: featureTier,
             },
             occasion: occasionForServer,
             weather: weatherSnap.weather,
@@ -3683,7 +3686,7 @@ export default function AIStylistScreen() {
                 wardrobeVisual: publishVisual,
               } as any,
               wardrobeItems,
-              user?.subscriptionTier,
+              featureTier,
             );
             if (outfitResponse.occasion || occasionForServer) {
               (attached as ChatMessage & { outfitOccasion?: string }).outfitOccasion =
@@ -3864,7 +3867,7 @@ export default function AIStylistScreen() {
           stylePreference: user?.stylePreference,
           sizeRange: user?.sizeRange,
           budgetRange: user?.budgetRange,
-          subscriptionTier: user?.subscriptionTier,
+          subscriptionTier: featureTier,
           retailers: user?.extendedPreferences?.favoriteShops || [],
         },
       });
@@ -3895,7 +3898,7 @@ export default function AIStylistScreen() {
             text.trim(),
             response,
             wardrobeItems,
-            user?.subscriptionTier,
+            featureTier,
           );
         } catch (attachErr) {
           console.warn('[StylistChat] attachWardrobeVisual soft-fail:', attachErr);
@@ -4115,7 +4118,7 @@ export default function AIStylistScreen() {
 
       const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
       const cappedVisual = wardrobeVisual
-        ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
+        ? capWardrobeVisualForAccess(wardrobeVisual, featureTier)
         : null;
 
       const assistantMessage: ChatMessage = {
@@ -4236,7 +4239,7 @@ export default function AIStylistScreen() {
 
       const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
       const cappedVisual = wardrobeVisual
-        ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
+        ? capWardrobeVisualForAccess(wardrobeVisual, featureTier)
         : null;
 
       const assistantMessage: ChatMessage = {

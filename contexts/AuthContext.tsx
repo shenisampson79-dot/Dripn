@@ -26,7 +26,7 @@ import {
   shouldPreserveStylistChatLocal,
 } from '@/utils/stylistChatAccountSession';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
-import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier } from '@/utils/subscriptionTier';
+import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier, featureAccessTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import {
@@ -147,6 +147,10 @@ export interface UserProfile {
   budgetRange: BudgetRange;
   skinUndertone: SkinUndertone;
   subscriptionTier: SubscriptionTier;
+  /** Review/tester feature access only — never Apple/billing ownership. */
+  featureTier?: SubscriptionTier;
+  isTester?: boolean;
+  tierOverride?: string | null;
   contributorTier: ContributorTier;
   feedPreference: FeedPreference;
   aiSuggestionsEnabled: boolean;
@@ -254,6 +258,9 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   budgetRange: null,
   skinUndertone: null,
   subscriptionTier: 'free',
+  featureTier: 'free',
+  isTester: false,
+  tierOverride: null,
   contributorTier: 'none',
   feedPreference: 'global',
   aiSuggestionsEnabled: true,
@@ -483,6 +490,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         const localUser = JSON.parse(userData);
         localUser.subscriptionTier = normalizeSubscriptionTier(localUser.subscriptionTier);
+        localUser.isTester = localUser.isTester === true;
+        localUser.featureTier = featureAccessTier(localUser);
         if (await shouldApplyTestingUnlock(localUser)) {
           localUser.subscriptionTier = 'stylist_unlimited';
         }
@@ -543,6 +552,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedUser: UserProfile = {
       ...userData,
       subscriptionTier: normalizeSubscriptionTier(userData.subscriptionTier),
+      isTester: userData.isTester === true,
+      featureTier: featureAccessTier(userData),
+      tierOverride: userData.isTester === true ? (userData.tierOverride ?? null) : null,
     };
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedUser));
@@ -557,6 +569,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedUser: UserProfile = {
       ...userData,
       subscriptionTier: normalizeSubscriptionTier(userData.subscriptionTier),
+      isTester: userData.isTester === true,
+      featureTier: featureAccessTier(userData),
+      tierOverride: userData.isTester === true ? (userData.tierOverride ?? null) : null,
     };
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedUser));

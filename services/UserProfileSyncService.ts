@@ -5,7 +5,11 @@ import {
   onboardingProfileService,
   type OnboardingProfile,
 } from '@/services/OnboardingProfileService';
-import { reconcileSubscriptionTier } from '@/utils/subscriptionTier';
+import {
+  applyServerReviewFeatureEntitlement,
+  omitClientControlledFeatureEntitlement,
+  reconcileSubscriptionTier,
+} from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 
 const TOUR_SEEN_KEY = '@dripn_tour_seen';
@@ -17,9 +21,7 @@ export function getTourSeenStorageKey(userId?: string | null): string {
 export function omitClientControlledSubscriptionTier<T extends Record<string, any>>(
   source?: T | null,
 ): T | null {
-  if (!source || typeof source !== 'object') return source ?? null;
-  const { subscriptionTier: _ignored, ...rest } = source;
-  return rest as T;
+  return omitClientControlledFeatureEntitlement(source);
 }
 
 function backendIndicatesTourSeen(source?: Record<string, any> | null): boolean {
@@ -213,6 +215,7 @@ export async function hydrateUserProfileAfterAuth(
   const onboardingProfile = await onboardingProfileService.getProfile();
   let backendTourSeen = backendIndicatesTourSeen(options.backendLoginUser);
   let serverBillingTier = options.backendLoginUser?.subscriptionTier ?? baseProfile.subscriptionTier;
+  let reviewEntitlementSource: Record<string, any> | null = options.backendLoginUser || null;
 
   const profileDataWithoutBilling = omitClientControlledSubscriptionTier(
     options.backendLoginUser?.profileData,
@@ -248,6 +251,9 @@ export async function hydrateUserProfileAfterAuth(
     }
     if (me?.subscriptionTier != null && String(me.subscriptionTier).trim() !== '') {
       serverBillingTier = me.subscriptionTier;
+    }
+    if (me) {
+      reviewEntitlementSource = { ...reviewEntitlementSource, ...me };
     }
     backendTourSeen = backendTourSeen || backendIndicatesTourSeen(me);
     if (me?.hasCompletedOnboarding !== undefined) {
@@ -300,6 +306,12 @@ export async function hydrateUserProfileAfterAuth(
     allowLocalUnlock,
   });
 
+  merged = applyServerReviewFeatureEntitlement(merged, reviewEntitlementSource || {
+    subscriptionTier: merged.subscriptionTier,
+    isTester: false,
+    featureTier: merged.subscriptionTier,
+  });
+
   if (merged.hasSeenTour) {
     await persistTourSeenLocally(merged.id);
   }
@@ -309,7 +321,9 @@ export async function hydrateUserProfileAfterAuth(
 
 export async function syncHydratedProfileToBackend(profile: UserProfile): Promise<void> {
   const { id, email, hasSeenTour, ...profileData } = profile as UserProfile & Record<string, unknown>;
-  const payload = hasSeenTour === true ? { ...profileData, hasSeenTour: true } : profileData;
+  const payload = omitClientControlledFeatureEntitlement(
+    hasSeenTour === true ? { ...profileData, hasSeenTour: true } : profileData,
+  ) || {};
   await apiService.syncProfile(payload);
 
   const onboardingProfile = await onboardingProfileService.getProfile();

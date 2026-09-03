@@ -77,6 +77,86 @@ export function isPaidTier(tier?: string | null): boolean {
   return normalizeSubscriptionTier(tier) !== 'free';
 }
 
+function overrideLooksRecognised(tierOverride?: string | null): boolean {
+  if (tierOverride == null || String(tierOverride).trim() === '') return false;
+  const key = String(tierOverride).trim().toLowerCase();
+  if (key === 'free' || key in TIER_ALIASES) return true;
+  return TIER_ALIASES[tierOverride] != null;
+}
+
+/**
+ * Review/tester feature access — never aliases billing `subscriptionTier`.
+ * Requires isTester === true AND a recognised override (or server featureTier).
+ */
+export function effectiveFeatureTierFromTesterOverride(opts: {
+  isTester?: boolean | null;
+  tierOverride?: string | null;
+  billingTier?: string | null;
+}): SubscriptionTier {
+  const billing = normalizeSubscriptionTier(opts.billingTier);
+  if (opts.isTester !== true) return billing;
+  if (!overrideLooksRecognised(opts.tierOverride)) return billing;
+  return normalizeSubscriptionTier(opts.tierOverride);
+}
+
+export function featureAccessTier(user?: {
+  subscriptionTier?: string | null;
+  featureTier?: string | null;
+  isTester?: boolean | null;
+  tierOverride?: string | null;
+} | null): SubscriptionTier {
+  return effectiveFeatureTierFromTesterOverride({
+    isTester: user?.isTester,
+    tierOverride: user?.tierOverride ?? user?.featureTier,
+    billingTier: user?.subscriptionTier,
+  });
+}
+
+/** /api/auth/me + login hydrate: billing stays billing; featureTier is derived. */
+export function applyServerReviewFeatureEntitlement<T extends {
+  subscriptionTier?: string | null;
+  isTester?: boolean;
+  featureTier?: SubscriptionTier;
+  tierOverride?: string | null;
+}>(
+  profile: T,
+  source?: Record<string, any> | null,
+): T {
+  const billing = normalizeSubscriptionTier(profile.subscriptionTier);
+  const isTester = source?.isTester === true;
+  const featureTier = effectiveFeatureTierFromTesterOverride({
+    isTester,
+    tierOverride:
+      source?.tierOverride
+      ?? source?.featureTier
+      ?? source?.styleProfile?.tierOverride,
+    billingTier: billing,
+  });
+  return {
+    ...profile,
+    subscriptionTier: billing,
+    isTester,
+    featureTier,
+    tierOverride: isTester ? (source?.tierOverride ?? profile.tierOverride ?? null) : null,
+  };
+}
+
+/** Never persist review/billing entitlement through client-controlled profile JSON. */
+export function omitClientControlledFeatureEntitlement<T extends Record<string, any>>(
+  source?: T | null,
+): T | null {
+  if (!source || typeof source !== 'object') return source ?? null;
+  const {
+    subscriptionTier: _billing,
+    featureTier: _feature,
+    isTester: _tester,
+    tierOverride: _override,
+    billingPlatform: _platform,
+    ...rest
+  } = source;
+  return rest as T;
+}
+
 export function isTopTier(tier?: string | null): boolean {
   return normalizeSubscriptionTier(tier) === 'stylist_unlimited';
 }

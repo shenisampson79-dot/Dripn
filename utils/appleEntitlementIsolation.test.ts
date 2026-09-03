@@ -6,7 +6,7 @@ import {
   shouldAutoPromoteLocalTierFromCustomerInfo,
   shouldSyncCustomerInfoOnPassiveRefresh,
 } from './appleEntitlementIsolation';
-import { authoritativeBillingTierFromHydrate } from './subscriptionTier';
+import { authoritativeBillingTierFromHydrate, effectiveFeatureTierFromTesterOverride } from './subscriptionTier';
 
 const FREE = '68';
 const PAID = '41';
@@ -334,6 +334,23 @@ function dripnLogout(state: SimulatedRcState): void {
     }),
     'free',
     'profile JSON Paid cannot upgrade authoritative Free user',
+  );
+  assert.equal(
+    effectiveFeatureTierFromTesterOverride({
+      isTester: true,
+      tierOverride: 'personal_stylist',
+      billingTier: 'free',
+    }),
+    'personal_stylist',
+  );
+  assert.equal(
+    authoritativeBillingTierFromHydrate({
+      serverBillingTier: 'free',
+      profileJsonTier: 'personal_stylist',
+      localTier: 'personal_stylist',
+    }),
+    'free',
+    'tester feature override must not become billing ownership',
   );
 }
 
