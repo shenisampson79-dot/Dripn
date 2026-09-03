@@ -1194,7 +1194,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             <Feather name="edit-2" size={14} color={theme.link} style={styles.pendingItemEditIcon} />
           </View>
           {item.needsReview || item.confidence < 0.7 ? (
-            <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, marginTop: 2 }}>
+            <ThemedText type="caption" style={{ color: LuxuryColors.gold, marginTop: 2 }}>
               {item.reconciliationFlags?.[0]?.suggestion || 'Something looks off — tap to check'}
             </ThemedText>
           ) : null}
@@ -1253,8 +1253,8 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           </ThemedText>
         </View>
         {needsCheckCount > 0 ? (
-          <View style={[styles.reviewBanner, { backgroundColor: LUXURY_COLORS.gold + '22', borderColor: LUXURY_COLORS.gold + '55' }]}>
-            <Feather name="alert-circle" size={16} color={LUXURY_COLORS.gold} />
+          <View style={[styles.reviewBanner, { backgroundColor: LuxuryColors.gold + '22', borderColor: LuxuryColors.gold + '55' }]}>
+            <Feather name="alert-circle" size={16} color={LuxuryColors.gold} />
             <ThemedText type="caption" style={{ flex: 1, color: theme.text, lineHeight: 18 }}>
               {needsCheckCount === 1
                 ? '1 item may need a quick check before saving'
