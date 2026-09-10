@@ -22,7 +22,7 @@ import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
-import { getLocalizedSubscriptionSubtitle } from "@/utils/subscriptionPlanLabels";
+import { getHydratingSubscriptionSubtitle } from "@/utils/subscriptionPlanLabels";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 import { ALL_COUNTRIES } from "@/constants/countries";
@@ -145,7 +145,7 @@ function SettingItem({
 
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, billingResolved, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, shareReferral, applyReferralCode, referredByCode, referralCreditPercent, referralNextInvoicePercent } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
@@ -746,7 +746,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="credit-card"
             title={t('settings.subscription')}
-            subtitle={getLocalizedSubscriptionSubtitle(user?.subscriptionTier, t)}
+            subtitle={getHydratingSubscriptionSubtitle(user?.subscriptionTier, billingResolved, t)}
             onPress={() => navigateToSubscription(navigation, { source: 'settings' })}
             theme={theme}
             isDark={isDark}

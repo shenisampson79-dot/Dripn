@@ -20,7 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
-import { resolvePlanDisplayName } from "@/utils/subscriptionPlanLabels";
+import { resolveSubscriptionDisplayLabel } from "@/utils/subscriptionPlanLabels";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
@@ -72,7 +72,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { theme, isDark } = useTheme();
   const { palette, colorScheme } = useColorScheme();
   const { translations, t } = useTranslations();
-  const { user } = useAuth();
+  const { user, billingResolved } = useAuth();
   const { limits } = useSubscription();
   const { bodyProfile, hasBodyProfile, hasColorAnalysis, saveBodyProfile } = useBodyProfile();
   const { styleProfile, hasStyleProfile } = useStyleProfile();
@@ -554,8 +554,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     );
   };
 
-  const subscriptionTierNormalized = normalizeSubscriptionTier(user?.subscriptionTier);
-  const subscriptionTierLabel = resolvePlanDisplayName(subscriptionTierNormalized, t);
+  const subscriptionTierLabel = resolveSubscriptionDisplayLabel({
+    subscriptionTier: user?.subscriptionTier,
+    billingResolved,
+    t,
+  });
 
   const tabConfig = [
     { key: 'outfits', label: t('profile.savedOutfits') || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
@@ -612,16 +615,18 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </ThemedText>
 
           <View style={styles.badgesContainer}>
-            <LinearGradient
-              colors={getSubscriptionBadgeGradient()}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.subscriptionBadge}
-            >
-              <ThemedText type="caption" style={styles.subscriptionBadgeText}>
-                {subscriptionTierLabel}
-              </ThemedText>
-            </LinearGradient>
+            {subscriptionTierLabel ? (
+              <LinearGradient
+                colors={getSubscriptionBadgeGradient()}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.subscriptionBadge}
+              >
+                <ThemedText type="caption" style={styles.subscriptionBadgeText}>
+                  {subscriptionTierLabel}
+                </ThemedText>
+              </LinearGradient>
+            ) : null}
             {getContributorBadge()}
           </View>
         </View>

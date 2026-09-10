@@ -192,6 +192,8 @@ type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forev
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
+  /** True after cold-start /me attempt finishes (success or fail). */
+  billingResolved: boolean;
   isAuthenticating: boolean;
   isAuthenticated: boolean;
   isExploringOtherCountry: boolean;
@@ -401,6 +403,7 @@ function getCountryName(isoCode: string | null | undefined): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [billingResolved, setBillingResolved] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<LocationPermissionStatus>('unknown');
@@ -495,7 +498,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (await shouldApplyTestingUnlock(localUser)) {
           localUser.subscriptionTier = 'stylist_unlimited';
         }
-        setUser(localUser);
         resumeStylistChatSession(String(localUser.id || '').trim());
         
         // Try to refresh from backend to ensure onboarding + tour status is accurate
@@ -535,15 +537,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Retry any Apple IAP sync that failed after purchase (e.g. missing JWT)
             apiService.flushPendingAppleSubscriptionSync().catch(() => {});
             console.log('[Auth] loadUser refresh:', { hasSeenTour, hasCompletedOnboarding: updatedUser.hasCompletedOnboarding });
+          } else {
+            setUser(localUser);
           }
         } catch (backendErr) {
           // If backend fetch fails, continue with local user
           console.log('[Auth] Could not refresh from backend on init');
+          setUser(localUser);
         }
       }
     } catch (error) {
       console.error('Failed to load user:', error);
     } finally {
+      setBillingResolved(true);
       setIsLoading(false);
     }
   };
@@ -1182,6 +1188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
+        billingResolved,
         isAuthenticating,
         isAuthenticated: !!user,
         isExploringOtherCountry,

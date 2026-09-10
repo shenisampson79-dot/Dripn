@@ -34,3 +34,52 @@ export function getLocalizedSubscriptionSubtitle(
   const planWord = t('settings.plan') || 'Plan';
   return `${planName} ${planWord}`.trim();
 }
+
+/**
+ * Display-only billing label. Unresolved authenticated hydration must not
+ * coerce missing/local-unknown tier to Free (cold-launch flash).
+ */
+export function resolveSubscriptionDisplayLabel(opts: {
+  subscriptionTier?: string | null;
+  billingResolved: boolean;
+  t?: (key: string) => string;
+}): string {
+  if (!opts.billingResolved) return '';
+  return resolvePlanDisplayName(opts.subscriptionTier, opts.t);
+}
+
+export function getHydratingSubscriptionSubtitle(
+  tier: string | null | undefined,
+  billingResolved: boolean,
+  t: (key: string) => string,
+): string {
+  const planName = resolveSubscriptionDisplayLabel({
+    subscriptionTier: tier,
+    billingResolved,
+    t,
+  });
+  if (!planName) return '';
+  const planWord = t('settings.plan') || 'Plan';
+  return `${planName} ${planWord}`.trim();
+}
+
+/** Cold-start display frames: process start → cached user → /me. */
+export function coldLaunchSubscriptionLabelSequence(opts: {
+  localTier?: string | null;
+  meTier: string;
+}): string[] {
+  return [
+    resolveSubscriptionDisplayLabel({
+      subscriptionTier: undefined,
+      billingResolved: false,
+    }),
+    resolveSubscriptionDisplayLabel({
+      subscriptionTier: opts.localTier,
+      billingResolved: false,
+    }),
+    resolveSubscriptionDisplayLabel({
+      subscriptionTier: opts.meTier,
+      billingResolved: true,
+    }),
+  ];
+}
