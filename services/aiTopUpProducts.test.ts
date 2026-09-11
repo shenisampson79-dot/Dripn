@@ -2,13 +2,27 @@
  * Run: npx tsx services/aiTopUpProducts.test.ts
  */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
+  acceptAiTopUpStorefrontPrice,
   creditsForAiTopUpProductId,
   displayNameForAiTopUpProductId,
   isAiTopUpProductId,
+  mapAiTopUpPricesFromStoreProducts,
   resolveAiTopUpFromProductId,
 } from './aiTopUpProducts';
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const appleIap = fs.readFileSync(path.join(ROOT, 'services', 'AppleIAPService.ts'), 'utf8');
+const getAiTopUpPrices = appleIap.slice(
+  appleIap.indexOf('async getAiTopUpPrices'),
+  appleIap.indexOf('private async purchaseProductById'),
+);
+assert.match(getAiTopUpPrices, /mapAiTopUpPricesFromStoreProducts\(storeProducts\)/);
+assert.doesNotMatch(getAiTopUpPrices, /safeStorekitPrice/);
 
 assert.equal(APPLE_AI_TOPUP_PRODUCT_IDS.standard, 'com.dripn.ai.topup');
 assert.equal(APPLE_AI_TOPUP_PRODUCT_IDS.plus, 'com.dripn.ai.topup.600');
@@ -40,5 +54,51 @@ assert.equal(isAiTopUpProductId('com.dripn.ai.topup.large'), false);
 assert.equal(isAiTopUpProductId('com.dripn.voice.boost.30'), false);
 assert.equal(creditsForAiTopUpProductId('com.dripn.voice.boost.30'), null);
 assert.equal(displayNameForAiTopUpProductId('com.dripn.personal_stylist.monthly'), null);
+
+{
+  const accepted = acceptAiTopUpStorefrontPrice(
+    {
+      identifier: APPLE_AI_TOPUP_PRODUCT_IDS.standard,
+      priceString: '$4.99',
+      currencyCode: 'USD',
+      price: 4.99,
+    },
+    'GBP',
+  );
+  assert.ok(accepted, 'non-empty StoreKit Top-Up price survives session/storefront currency mismatch');
+  assert.equal(accepted.priceString, '$4.99');
+  assert.equal(accepted.currencyCode, 'USD');
+  const mapped = mapAiTopUpPricesFromStoreProducts(
+    [{
+      identifier: APPLE_AI_TOPUP_PRODUCT_IDS.standard,
+      priceString: '$4.99',
+      currencyCode: 'USD',
+      price: 4.99,
+    }],
+    'GBP',
+  );
+  assert.equal(mapped.length, 1);
+  assert.equal(mapped[0].productId, 'com.dripn.ai.topup');
+  assert.equal(mapped[0].priceString, '$4.99');
+}
+
+{
+  assert.equal(
+    acceptAiTopUpStorefrontPrice({
+      identifier: APPLE_AI_TOPUP_PRODUCT_IDS.standard,
+      priceString: '',
+      currencyCode: 'USD',
+    }, 'GBP'),
+    null,
+  );
+  assert.deepEqual(
+    mapAiTopUpPricesFromStoreProducts(
+      [{ identifier: APPLE_AI_TOPUP_PRODUCT_IDS.standard, priceString: '   ', currencyCode: 'GBP' }],
+      'GBP',
+    ),
+    [],
+  );
+  assert.deepEqual(mapAiTopUpPricesFromStoreProducts([], 'GBP'), []);
+}
 
 console.log('aiTopUpProducts.test.ts: all passed');

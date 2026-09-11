@@ -60,3 +60,70 @@ export function resolveAiTopUpFromProductId(productId?: string | null): {
   if (!row) return null;
   return { productId, ...row };
 }
+
+export type AiTopUpStoreProductLike = {
+  identifier?: string;
+  priceString?: string | null;
+  currencyCode?: string | null;
+  price?: number;
+};
+
+export type AiTopUpStorefrontPrice = {
+  priceString: string;
+  currencyCode: string | null;
+};
+
+export type AiTopUpMappedPrice = {
+  packId: AiTopUpPackId;
+  productId: string;
+  credits: number;
+  displayName: string;
+  priceString: string;
+  currencyCode: string | null;
+};
+
+/**
+ * Apple storefront price is authoritative for AI Top-Ups.
+ * Session/internal currency must not reject a valid StoreKit localized price.
+ * `_sessionCurrency` is accepted for call-site compatibility and is not used as a filter.
+ */
+export function acceptAiTopUpStorefrontPrice(
+  product: AiTopUpStoreProductLike | null | undefined,
+  _sessionCurrency = 'GBP',
+): AiTopUpStorefrontPrice | null {
+  const priceString = product?.priceString?.trim();
+  if (!priceString) return null;
+  const currencyCode = product?.currencyCode?.trim().toUpperCase() || null;
+  return { priceString, currencyCode };
+}
+
+export function mapAiTopUpPricesFromStoreProducts(
+  storeProducts: ReadonlyArray<AiTopUpStoreProductLike>,
+  sessionCurrency = 'GBP',
+): AiTopUpMappedPrice[] {
+  const productById = new Map(
+    storeProducts
+      .filter((product): product is AiTopUpStoreProductLike & { identifier: string } =>
+        Boolean(product.identifier),
+      )
+      .map((product) => [product.identifier, product]),
+  );
+  const results: AiTopUpMappedPrice[] = [];
+
+  for (const packId of Object.keys(APPLE_AI_TOPUP_PRODUCT_IDS) as AiTopUpPackId[]) {
+    const productId = aiTopUpProductIdFor(packId);
+    const storefront = acceptAiTopUpStorefrontPrice(productById.get(productId), sessionCurrency);
+    if (!storefront) continue;
+    const mapped = APPLE_AI_TOPUP_CATALOG[productId];
+    results.push({
+      packId,
+      productId,
+      credits: mapped?.credits ?? 0,
+      displayName: mapped?.displayName ?? packId,
+      priceString: storefront.priceString,
+      currencyCode: storefront.currencyCode,
+    });
+  }
+
+  return results;
+}

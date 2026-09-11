@@ -26,11 +26,11 @@ import {
 import {
   APPLE_AI_TOPUP_PRODUCT_IDS,
   type AiTopUpPackId,
-  APPLE_AI_TOPUP_CATALOG,
   aiTopUpProductIdFor,
   creditsForAiTopUpProductId,
   displayNameForAiTopUpProductId,
   isAiTopUpProductId,
+  mapAiTopUpPricesFromStoreProducts,
 } from '@/services/aiTopUpProducts';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
@@ -480,39 +480,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
     const productIds = Object.values(APPLE_AI_TOPUP_PRODUCT_IDS);
     const storeProducts = await Purchases.getProducts(productIds);
-    const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
-    const results: AiTopUpPriceInfo[] = [];
-
-    for (const packId of Object.keys(APPLE_AI_TOPUP_PRODUCT_IDS) as AiTopUpPackId[]) {
-      const productId = aiTopUpProductIdFor(packId);
-      const storeProduct = productById.get(productId);
-      if (!storeProduct?.priceString) continue;
-
-      const currencyCode = storeProduct.currencyCode ?? null;
-      currencyService.notePaymentCurrency(currencyCode);
-
-      const safe = currencyService.safeStorekitPrice(
-        {
-          priceString: storeProduct.priceString,
-          currencyCode,
-          price: storeProduct.price,
-        },
-        currencyService.getSessionCurrency(),
-      );
-      if (!safe) continue;
-
-      const mapped = APPLE_AI_TOPUP_CATALOG[productId];
-      results.push({
-        packId,
-        productId,
-        credits: mapped?.credits ?? 0,
-        displayName: mapped?.displayName ?? packId,
-        priceString: safe.priceString,
-        currencyCode: safe.currencyCode,
-      });
-    }
-
-    return results;
+    return mapAiTopUpPricesFromStoreProducts(storeProducts);
   }
 
   private async purchaseProductById(productId: string): Promise<CustomerInfo> {
