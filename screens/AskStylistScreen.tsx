@@ -10,6 +10,7 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -58,7 +59,7 @@ import { getCurrentFashionYear } from "@/utils/fashionSeason";
 import { stabilizeDecisionImage } from "@/services/VisionAnalysisService";
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from "@/utils/tierMatrix";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
-import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { androidEffectiveFeatureTier, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 import { aiAllowanceSubscriptionParams } from "@/utils/aiBudgetError";
 import { editorialGarmentName } from "@/utils/wardrobeItemName";
@@ -161,6 +162,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   const initialDecisionType = routeProp?.params?.initialDecisionType ?? route.params?.initialDecisionType;
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const featureTier = androidEffectiveFeatureTier(user, Platform.OS);
   const { items: wardrobeItems } = useWardrobe();
   const { t, translations, currentLanguage } = useTranslations();
   const insets = useSafeAreaInsets();
@@ -213,7 +215,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     if (!initialDecisionType || initialDecisionApplied.current || accessStatus === null) return;
     initialDecisionApplied.current = true;
 
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
+    if (!canSubmitDecisionAtGuard(featureTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -237,14 +239,14 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   const getUploadLimit = () => {
     if (selectedType === 'sanity-check') return 1;
     if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') {
-      return getOutfitDecisionImageLimit(user?.subscriptionTier || 'free');
+      return getOutfitDecisionImageLimit(featureTier);
     }
     if (selectedType === 'shopping') {
       const comparisonMax =
-        accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
+        accessStatus?.maxImages ?? getMaxComparisonImages(featureTier);
       return Math.min(3, comparisonMax);
     }
-    return accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
+    return accessStatus?.maxImages ?? getMaxComparisonImages(featureTier);
   };
 
   const formatSubmitError = (error: any) => {
@@ -440,7 +442,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     if (!user?.id) return null;
     const status = await decisionService.checkDecisionAccess(
       user.id,
-      user.subscriptionTier || 'free'
+      featureTier
     );
     setAccessStatus(status);
     setShowUpgradeModal(
@@ -456,7 +458,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     setShowUpgradeModal(false);
     navigateToSubscription(
       navigation,
-      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'ask-stylist'),
+      aiAllowanceSubscriptionParams(featureTier, 'ask-stylist'),
     );
   };
 
@@ -466,7 +468,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const handleTypeSelect = (type: DecisionType) => {
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
+    if (!canSubmitDecisionAtGuard(featureTier, accessStatus)) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       setShowUpgradeModal(true);
       return;
@@ -518,7 +520,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
   };
 
   const submitWithSurpriseMe = async () => {
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
+    if (!canSubmitDecisionAtGuard(featureTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -670,7 +672,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       if (user?.id) {
         await decisionService.incrementDecisionsToday(user.id);
         await decisionService.incrementTotalDecisions(user.id);
-        const tier = normalizeSubscriptionTier(user.subscriptionTier);
+        const tier = normalizeSubscriptionTier(featureTier);
         if (canSaveDecisionHistory(tier)) {
           const historyRequest: DecisionRequest = {
             id: result.requestId,
@@ -792,7 +794,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
     if (!selectedType) return;
     // Images are only required when NOT using Surprise Me
     if (!isSurpriseMe && images.length === 0) return;
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus)) {
+    if (!canSubmitDecisionAtGuard(featureTier, accessStatus)) {
       setShowUpgradeModal(true);
       return;
     }
@@ -930,7 +932,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
       if (user?.id) {
         await decisionService.incrementDecisionsToday(user.id);
         await decisionService.incrementTotalDecisions(user.id);
-        const tier = normalizeSubscriptionTier(user.subscriptionTier);
+        const tier = normalizeSubscriptionTier(featureTier);
         if (canSaveDecisionHistory(tier)) {
           const historyRequest: DecisionRequest = {
             id: result.requestId,
@@ -1045,7 +1047,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
         ))}
       </View>
 
-      {accessStatus && normalizeSubscriptionTier(user?.subscriptionTier) === 'free' ? (
+      {accessStatus && normalizeSubscriptionTier(featureTier) === 'free' ? (
         <View style={styles.limitInfo}>
           <Feather name="info" size={14} color="rgba(255,255,255,0.5)" />
           <ThemedText type="small" style={styles.limitText}>
@@ -2236,11 +2238,11 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
                 <Feather name="unlock" size={32} color={LUXURY_COLORS.midnight} />
               </View>
               <ThemedText type="h2" style={styles.upgradeTitle}>
-                {decisionService.getUpgradeCopy(user?.subscriptionTier).headline}
+                {decisionService.getUpgradeCopy(featureTier).headline}
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
                 {accessStatus?.reason
-                  || decisionService.getUpgradeCopy(user?.subscriptionTier).body
+                  || decisionService.getUpgradeCopy(featureTier).body
                   || "Upgrade for more stylist decisions."}
               </ThemedText>
               <Pressable
@@ -2248,7 +2250,7 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  {decisionService.getUpgradeCopy(user?.subscriptionTier).cta}
+                  {decisionService.getUpgradeCopy(featureTier).cta}
                 </ThemedText>
               </Pressable>
               <Pressable

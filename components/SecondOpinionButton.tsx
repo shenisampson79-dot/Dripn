@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Modal, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, Modal, ActivityIndicator, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -20,6 +20,7 @@ import { decisionService, CommunityVotingEligibility } from "@/services/Decision
 import { dfyService } from "@/services/DFYService";
 import { currencyService } from "@/services/CurrencyService";
 import { useAuth } from "@/contexts/AuthContext";
+import { androidEffectiveFeatureTier } from "@/utils/subscriptionTier";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
@@ -71,7 +72,7 @@ export function SecondOpinionButton({
         const hasDFYCompleted = dfyAccess.hasAccess || dfyAccess.tier !== null;
         const eligibilityResult = await decisionService.checkCommunityVotingEligibility(
           user.id,
-          user.subscriptionTier || 'free',
+          androidEffectiveFeatureTier(user, Platform.OS),
           hasDFYCompleted
         );
         setEligibility(eligibilityResult);
@@ -84,7 +85,7 @@ export function SecondOpinionButton({
     };
     
     checkEligibility();
-  }, [user?.id, user?.subscriptionTier]);
+  }, [user?.id, user?.subscriptionTier, user?.featureTier, user?.isTester]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;

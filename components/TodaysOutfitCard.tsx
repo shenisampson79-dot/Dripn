@@ -4,6 +4,7 @@ import {
   View,
   Pressable,
   Modal,
+  Platform,
   useWindowDimensions,
   AppState,
 } from 'react-native';
@@ -35,7 +36,7 @@ import {
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { OutfitTasteFeedback } from '@/components/outfit/OutfitTasteFeedback';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { traceTodaysOutfit } from '@/utils/todaysOutfitTrace';
 import { analyzeRotationVsYesterday } from '@/utils/styleMemory7d';
 import { dateKeyInTimeZone, TODAYS_OUTFIT_TIMEZONE } from '@/utils/todaysOutfitTime';
@@ -359,7 +360,7 @@ export function TodaysOutfitCard({ onRefresh, openToday }: Props) {
       setErrorMessage(null);
 
       try {
-        if (!hasPaidTodaysOutfitAccess(currentUser?.subscriptionTier)) {
+        if (!hasPaidTodaysOutfitAccess(androidEffectiveFeatureTier(currentUser, Platform.OS))) {
           if (!stillCurrent()) return;
           setOutfit(null);
           setPieces([]);

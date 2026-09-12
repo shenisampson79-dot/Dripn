@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Alert, BackHandler } from 'react-native';
+import { Alert, BackHandler, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,7 +48,7 @@ import {
 } from '@/utils/eventRecentOutfitHistory';
 import { recordStylistOutfitFeedback } from '@/utils/outfitFeedbackBrain';
 import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from '@/utils/tierMatrix';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { navigateToSubscription } from '@/utils/navigateToSubscription';
 import {
   getAiAllowancePaywallCopy,
@@ -209,6 +209,7 @@ export function useStylistDecision({
   initialStep,
 }: UseStylistDecisionOptions) {
   const { user, isLoading: authLoading, refreshSubscriptionFromBackend } = useAuth();
+  const featureTier = androidEffectiveFeatureTier(user, Platform.OS);
   const [entitlementReady, setEntitlementReady] = useState(false);
   const tierReady = isDecisionTierReadyForPaywall(!authLoading, entitlementReady);
   const { items: wardrobeItems } = useWardrobe();
@@ -317,14 +318,14 @@ export function useStylistDecision({
     if (decisionType === 'sanity-check') return MAX_SANITY_CHECK_PHOTOS;
     if (decisionType === 'shopping') {
       const comparisonMax =
-        accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
+        accessStatus?.maxImages ?? getMaxComparisonImages(featureTier);
       return Math.min(3, comparisonMax);
     }
     if (decisionType === 'event-outfit') {
-      return getOutfitDecisionImageLimit(user?.subscriptionTier || 'free');
+      return getOutfitDecisionImageLimit(featureTier);
     }
-    return accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
-  }, [accessStatus, decisionType, user?.subscriptionTier]);
+    return accessStatus?.maxImages ?? getMaxComparisonImages(featureTier);
+  }, [accessStatus, decisionType, featureTier]);
 
   const getWardrobeSelectLimit = useCallback(() => MAX_DECISION_WARDROBE_ITEMS, []);
 
@@ -341,10 +342,10 @@ export function useStylistDecision({
     async (opts?: { showPaywallIfBlocked?: boolean }) => {
       if (!user?.id) return null;
       const status = sanitizeDecisionAccessStatus(
-        user.subscriptionTier,
+        featureTier,
         await decisionService.checkDecisionAccess(
           user.id,
-          user.subscriptionTier || 'free',
+          featureTier,
         ),
       );
       setAccessStatus(status);
@@ -352,13 +353,13 @@ export function useStylistDecision({
         resolveDecisionUpgradeModalVisible(
           status.canMakeDecision,
           opts?.showPaywallIfBlocked,
-          user.subscriptionTier,
+          featureTier,
           tierReady,
         ),
       );
       return status;
     },
-    [tierReady, user?.id, user?.subscriptionTier],
+    [tierReady, user?.id, featureTier],
   );
 
   useEffect(() => {
@@ -384,10 +385,10 @@ export function useStylistDecision({
   }, [checkAccess]);
 
   useEffect(() => {
-    if (!tierHasUnlimitedDecisions(normalizeSubscriptionTier(user?.subscriptionTier))) return;
+    if (!tierHasUnlimitedDecisions(normalizeSubscriptionTier(featureTier))) return;
     setShowUpgradeModal(false);
-    setAccessStatus((prev) => sanitizeDecisionAccessStatus(user?.subscriptionTier, prev));
-  }, [user?.subscriptionTier]);
+    setAccessStatus((prev) => sanitizeDecisionAccessStatus(featureTier, prev));
+  }, [featureTier]);
 
   const applySessionToState = (session: DecisionSession) => {
     const normalized = decisionSessionManager.normalizeSession(session);
@@ -573,7 +574,7 @@ export function useStylistDecision({
 
   const openSubscriptionFromPaywall = () => {
     setShowUpgradeModal(false);
-    const paywall = getAiAllowancePaywallCopy(user?.subscriptionTier);
+    const paywall = getAiAllowancePaywallCopy(featureTier);
     navigateToSubscription(navigation as never, {
       highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
       source: flowKey,
@@ -588,7 +589,7 @@ export function useStylistDecision({
 
   const openAllowanceDestination = () => {
     setAllowanceBlocked(true);
-    const paywall = getAiAllowancePaywallCopy(user?.subscriptionTier);
+    const paywall = getAiAllowancePaywallCopy(featureTier);
     navigateToSubscription(navigation as never, {
       highlightPlan: paywall.primaryAction === 'upgrade' ? 'personal_stylist' : undefined,
       source: flowKey,
@@ -603,8 +604,8 @@ export function useStylistDecision({
       openAllowanceDestination();
       return false;
     }
-    if (!canSubmitDecisionAtGuard(user?.subscriptionTier, accessStatus, tierReady)) {
-      if (shouldLatchDailyDecisionUpgradeModal(user?.subscriptionTier, tierReady)) {
+    if (!canSubmitDecisionAtGuard(featureTier, accessStatus, tierReady)) {
+      if (shouldLatchDailyDecisionUpgradeModal(featureTier, tierReady)) {
         setShowUpgradeModal(true);
       }
       return false;
@@ -765,7 +766,7 @@ export function useStylistDecision({
     const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
     await decisionService.incrementDecisionsToday(user.id);
     await decisionService.incrementTotalDecisions(user.id);
-    const tier = normalizeSubscriptionTier(user.subscriptionTier);
+    const tier = normalizeSubscriptionTier(featureTier);
     if (canSaveDecisionHistory(tier)) {
       const historyRequest: DecisionRequest = {
         id: result.requestId,
@@ -802,7 +803,7 @@ export function useStylistDecision({
       surpriseMe: isSurpriseMe,
     });
     if (isDecisionDailyLimitError(error)) {
-      if (tierHasUnlimitedDecisions(normalizeSubscriptionTier(user?.subscriptionTier))) {
+      if (tierHasUnlimitedDecisions(normalizeSubscriptionTier(featureTier))) {
         console.warn('[StylistDecision] Ignoring stale daily-limit error for unlimited tier');
         return;
       }
@@ -823,7 +824,7 @@ export function useStylistDecision({
 
     if (shouldLatchMonthlyAllowanceBlocked(error)) {
       const paywall = getAiAllowancePaywallCopy(
-        planTierFromBudgetError(error) || user?.subscriptionTier,
+        planTierFromBudgetError(error) || featureTier,
       );
       setAllowanceBlocked(true);
       Alert.alert(paywall.title, paywall.message, [
@@ -1763,7 +1764,7 @@ export function useStylistDecision({
     isLoading,
     isSurpriseMe,
     response,
-    showUpgradeModal: shouldShowDecisionUpgradeModal(showUpgradeModal, user?.subscriptionTier, tierReady),
+    showUpgradeModal: shouldShowDecisionUpgradeModal(showUpgradeModal, featureTier, tierReady),
     allowanceBlocked,
     contextChips,
     wardrobeItems,

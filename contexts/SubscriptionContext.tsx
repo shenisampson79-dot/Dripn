@@ -4,9 +4,10 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, SubscriptionTier } from '@/contexts/AuthContext';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { TIER_MATRIX } from '@/utils/tierMatrix';
 
 export interface SubscriptionPlan {
@@ -216,7 +217,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [referralCount, setReferralCount] = useState(0);
 
   const tier = normalizeSubscriptionTier(user?.subscriptionTier);
-  const limits = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+  const featureTier = androidEffectiveFeatureTier(user, Platform.OS);
+  const limits = TIER_LIMITS[featureTier] ?? TIER_LIMITS.free;
   const currentPlan = SUBSCRIPTION_PLANS.find(p => p.tier === tier);
 
   useEffect(() => {

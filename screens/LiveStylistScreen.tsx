@@ -12,6 +12,7 @@ import {
   InteractionManager,
   Linking,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -90,7 +91,7 @@ import {
 } from '@/utils/livePublishedIdentity';
 import type { OnDeviceDetection } from '@/services/onDeviceGarmentDetector';
 import { leaveLiveAndNavigate } from '@/utils/leaveLiveAndNavigate';
-import { isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier, isTopTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { roleOfCategory } from '@/utils/liveDetectionMemory';
 import { beliefBboxIou } from '@/utils/liveGarmentBelief';
 import { detectSuspectLiveRead } from '@/utils/liveSuspectRead';
@@ -332,7 +333,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const liveStartedAtRef = useRef(0);
 
   const occasionType = route.params?.occasionType || 'casual_day';
-  const tier = normalizeSubscriptionTier(user?.subscriptionTier);
+  const tier = androidEffectiveFeatureTier(user, Platform.OS);
 
   const [liveState, setLiveState] = useState<LiveSessionState>('idle');
   const [cameraError, setCameraError] = useState<string | null>(null);

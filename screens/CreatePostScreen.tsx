@@ -17,6 +17,7 @@ import { usePosts, PostType, PostMedia, POLL_TIME_FRAMES } from "@/contexts/Post
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getNavigationRef } from "@/components/ErrorFallback";
+import { androidEffectiveFeatureTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 interface CreatePostScreenProps {
@@ -256,7 +257,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         userId: user.id,
         userName: user.name,
         userAvatar: user.avatar,
-        userSubscriptionTier: user.subscriptionTier === 'free' ? 'free' : 'premium',
+        userSubscriptionTier: androidEffectiveFeatureTier(user, Platform.OS) === 'free' ? 'free' : 'premium',
         type: postType,
         media: media.map((m) => ({
           ...m,

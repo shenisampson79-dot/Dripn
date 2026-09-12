@@ -12,7 +12,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { isPaidTier } from "@/utils/subscriptionTier";
+import { androidEffectiveFeatureTier, isPaidTier } from "@/utils/subscriptionTier";
 import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { useEventsPreferences, EVENT_INTEREST_OPTIONS, EventInterest } from "@/contexts/EventsPreferencesContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
@@ -65,7 +65,7 @@ export default function EventsScreen() {
   const [surpriseEvent, setSurpriseEvent] = useState<Event | null>(null);
   const [showSurpriseModal, setShowSurpriseModal] = useState(false);
 
-  const isPremium = isPaidTier(user?.subscriptionTier);
+  const isPremium = isPaidTier(androidEffectiveFeatureTier(user, Platform.OS));
 
   const forYouEvents = useMemo(() => {
     if (!hasSetPreferences || preferences.interests.length === 0) return [];

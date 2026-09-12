@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator, Modal, Alert } from "react-native";
+import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator, Modal, Alert, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
@@ -13,7 +13,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/contexts/AuthContext";
-import { isPaidTier } from "@/utils/subscriptionTier";
+import { androidEffectiveFeatureTier, isPaidTier } from "@/utils/subscriptionTier";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useSustainability, getEcoRatingColor } from "@/contexts/SustainabilityContext";
 import { 
@@ -46,7 +46,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedDealForShare, setSelectedDealForShare] = useState<BargainDeal | null>(null);
 
-  const isPremium = isPaidTier(user?.subscriptionTier);
+  const isPremium = isPaidTier(androidEffectiveFeatureTier(user, Platform.OS));
 
   const isItemInWishlist = (dealId: string) => {
     return wishlistItems.some(item => item.dealId === dealId || item.productUrl === dealId);

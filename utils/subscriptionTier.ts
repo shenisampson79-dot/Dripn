@@ -112,6 +112,26 @@ export function featureAccessTier(user?: {
   });
 }
 
+/**
+ * Android feature/paywall/limit decisions only.
+ * iOS always returns billing `subscriptionTier` so existing iOS runtime is unchanged.
+ * Does not replace `featureAccessTier` (iOS Chat review still uses that).
+ */
+export function androidEffectiveFeatureTier(
+  user?: {
+    subscriptionTier?: string | null;
+    featureTier?: string | null;
+    isTester?: boolean | null;
+    tierOverride?: string | null;
+  } | null,
+  os: string | null | undefined = 'ios',
+): SubscriptionTier {
+  if (os !== 'android') {
+    return normalizeSubscriptionTier(user?.subscriptionTier);
+  }
+  return featureAccessTier(user);
+}
+
 /** /api/auth/me + login hydrate: billing stays billing; featureTier is derived. */
 export function applyServerReviewFeatureEntitlement<T extends {
   subscriptionTier?: string | null;

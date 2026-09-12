@@ -32,7 +32,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { DecisionType } from '@/services/DecisionService';
 import { getDecisionPaywallModalCopy } from '@/utils/decisionAccessGate';
 import { decisionService } from '@/services/DecisionService';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
 import { useStylistDecision } from '@/hooks/useStylistDecision';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
@@ -230,6 +230,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
+  const featureTier = androidEffectiveFeatureTier(flow.user, Platform.OS);
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
 
   const stylistId = flow.user?.stylistPreferences?.selectedStylistId || 'ruby';
@@ -284,7 +285,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
   const stickyCta = (() => {
     if (flow.isReadOnly) return null;
     if (flow.allowanceBlocked && flow.step !== 'response') {
-      const paywall = getAiAllowancePaywallCopy(flow.user?.subscriptionTier);
+      const paywall = getAiAllowancePaywallCopy(featureTier);
       return {
         label: paywall.primaryLabel,
         onPress: () => flow.openAllowanceDestination(),
@@ -1410,7 +1411,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
 
         {flow.allowanceBlocked && flow.step !== 'response' ? (
           <AiAllowanceBlockedBanner
-            tier={flow.user?.subscriptionTier}
+            tier={featureTier}
             onPrimary={() => flow.openAllowanceDestination()}
             onSecondary={() => flow.resetFlow()}
             secondaryLabel={t('stylistFlow.startOver') || 'Start over'}
@@ -1441,7 +1442,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {flow.step === 'input' && decisionType === 'event-outfit' ? renderEventInput() : null}
         {flow.step === 'response' ? renderResponse() : null}
 
-        {flow.accessStatus && normalizeSubscriptionTier(flow.user?.subscriptionTier) === 'free' ? (
+        {flow.accessStatus && normalizeSubscriptionTier(featureTier) === 'free' ? (
           <View style={[styles.limitBanner, { backgroundColor: theme.backgroundSecondary }]}>
             <Feather name="info" size={14} color={theme.tabIconDefault} />
             <ThemedText type="caption" style={{ color: theme.tabIconDefault, flex: 1 }}>
@@ -1496,7 +1497,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               <Feather name="unlock" size={28} color={LuxuryColors.obsidian} />
               {(() => {
                 const paywall = getDecisionPaywallModalCopy(
-                  flow.user?.subscriptionTier,
+                  featureTier,
                   flow.accessStatus,
                 );
                 return (

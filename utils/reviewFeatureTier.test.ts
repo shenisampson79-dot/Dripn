@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  androidEffectiveFeatureTier,
   applyServerReviewFeatureEntitlement,
   authoritativeBillingTierFromHydrate,
   effectiveFeatureTierFromTesterOverride,
@@ -139,10 +140,92 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
     'Subscription screen continues to display billing subscriptionTier',
   );
   assert.equal(
-    /featureAccessTier|user\?\.featureTier/.test(subscriptionSrc),
+    /featureAccessTier|user\?\.featureTier|androidEffectiveFeatureTier/.test(subscriptionSrc),
     false,
     'Subscription screen must not fabricate paid ownership from featureTier',
   );
+}
+
+{
+  const reviewer = {
+    subscriptionTier: 'free' as const,
+    isTester: true,
+    featureTier: 'stylist_unlimited' as const,
+    tierOverride: 'stylist_unlimited',
+  };
+  assert.equal(
+    androidEffectiveFeatureTier(reviewer, 'android'),
+    'stylist_unlimited',
+    'Android reviewer with tester override receives paid feature access',
+  );
+  assert.equal(reviewer.subscriptionTier, 'free', 'Android reviewer billing remains Free');
+  assert.equal(
+    androidEffectiveFeatureTier({ subscriptionTier: 'free', isTester: false }, 'android'),
+    'free',
+    'Android normal Free user remains Free',
+  );
+  assert.equal(
+    androidEffectiveFeatureTier({
+      subscriptionTier: 'stylist_unlimited',
+      isTester: false,
+    }, 'android'),
+    'stylist_unlimited',
+    'Android paid user follows real billing',
+  );
+  assert.equal(
+    androidEffectiveFeatureTier(reviewer, 'ios'),
+    'free',
+    'iOS runtime still uses billing even when tester override is present',
+  );
+  assert.equal(
+    featureAccessTier(reviewer),
+    'stylist_unlimited',
+    'featureAccessTier remains platform-agnostic for iOS Chat review access',
+  );
+}
+
+{
+  const aiStylist = fs.readFileSync(path.join(ROOT, 'screens/AIStylistScreen.tsx'), 'utf8');
+  assert.match(
+    aiStylist,
+    /featureAccessTier\(user\)/,
+    'iOS Chat continues to use featureAccessTier, not an Android-only global',
+  );
+  const helperSrc = fs.readFileSync(path.join(ROOT, 'utils/subscriptionTier.ts'), 'utf8');
+  assert.match(helperSrc, /export function androidEffectiveFeatureTier/);
+  const featureAccessStart = helperSrc.indexOf('export function featureAccessTier');
+  const featureAccessEnd = helperSrc.indexOf('export function androidEffectiveFeatureTier');
+  assert.doesNotMatch(
+    helperSrc.slice(featureAccessStart, featureAccessEnd),
+    /os !== 'android'|Platform\.OS !== 'android'/,
+    'featureAccessTier must not be made Android-only',
+  );
+}
+
+{
+  const files = [
+    'contexts/SubscriptionContext.tsx',
+    'contexts/WardrobeContext.tsx',
+    'screens/EventsScreen.tsx',
+    'screens/BargainsScreen.tsx',
+    'screens/LiveStylistScreen.tsx',
+    'screens/AskStylistScreen.tsx',
+    'hooks/useStylistDecision.ts',
+    'components/stylist/StylistDecisionFlow.tsx',
+    'components/TodaysOutfitCard.tsx',
+    'components/SecondOpinionButton.tsx',
+    'screens/ScanWardrobeScreen.tsx',
+    'screens/DecideForMeScreen.tsx',
+    'screens/CreatePostScreen.tsx',
+  ];
+  for (const rel of files) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.match(
+      src,
+      /androidEffectiveFeatureTier\(/,
+      `${rel} must use androidEffectiveFeatureTier for Android feature/paywall/limit decisions`,
+    );
+  }
 }
 
 console.log('reviewFeatureTier: all passed');

@@ -30,6 +30,7 @@ import {
   isAiBudgetError,
 } from "@/utils/aiBudgetError";
 import { planTierFromBudgetError } from "@/components/live/LiveAiBudgetModal";
+import { androidEffectiveFeatureTier } from "@/utils/subscriptionTier";
 import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 type DecideForMeScreenProps = {
@@ -261,6 +262,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
   const { user } = useAuth();
+  const featureTier = androidEffectiveFeatureTier(user, Platform.OS);
   
   const [step, setStep] = useState<"occasion" | "loading" | "result">("occasion");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -293,12 +295,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const openAllowanceDestination = useCallback(() => {
     navigateToSubscription(
       navigation,
-      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'decide_for_me'),
+      aiAllowanceSubscriptionParams(featureTier, 'decide_for_me'),
     );
-  }, [navigation, user?.subscriptionTier]);
+  }, [navigation, featureTier]);
 
   const presentAllowancePaywall = useCallback((error?: unknown) => {
-    const planTier = planTierFromBudgetError(error) || user?.subscriptionTier;
+    const planTier = planTierFromBudgetError(error) || featureTier;
     const paywall = getAiAllowancePaywallCopy(planTier);
     setAllowanceBlocked(true);
     Alert.alert(paywall.title, paywall.message, [
@@ -309,7 +311,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           navigateToSubscription(navigation, aiAllowanceSubscriptionParams(planTier, 'decide_for_me')),
       },
     ]);
-  }, [navigation, user?.subscriptionTier]);
+  }, [navigation, featureTier]);
 
   const handleExpressionInputFocus = useCallback(() => {
     // KeyboardAwareScrollView handles scroll-to-input automatically via scrollOnFocus
@@ -980,7 +982,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       <Animated.View entering={FadeIn} style={styles.stepContainer} pointerEvents="box-none">
         {allowanceBlocked ? (
           <AiAllowanceBlockedBanner
-            tier={user?.subscriptionTier}
+            tier={featureTier}
             onPrimary={() => openAllowanceDestination()}
             onSecondary={() => {
               setAllowanceBlocked(false);
@@ -1095,7 +1097,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               style={[styles.decideCtaButton, { backgroundColor: '#4A3428' }]}
             >
               {allowanceBlocked
-                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                ? getAiAllowancePaywallCopy(featureTier).primaryLabel
                 : (t("decideForMe.decideCta") || "Decide my outfit")}
             </Button>
           </Animated.View>
@@ -1178,7 +1180,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     <Animated.View entering={FadeIn} style={styles.resultContainer} pointerEvents="box-none">
       {allowanceBlocked ? (
         <AiAllowanceBlockedBanner
-          tier={user?.subscriptionTier}
+          tier={featureTier}
           onPrimary={() => openAllowanceDestination()}
           onSecondary={() => {
             setAllowanceBlocked(false);
@@ -1317,7 +1319,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             {isLoadingAnotherOption
               ? t("decideForMe.loading") || t("common.loading") || "Loading..."
               : allowanceBlocked
-                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                ? getAiAllowancePaywallCopy(featureTier).primaryLabel
                 : t("decideForMe.anotherOption") || "Another option"}
           </ThemedText>
         </Pressable>

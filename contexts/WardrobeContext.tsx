@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
@@ -27,7 +28,7 @@ import {
 } from '@/utils/wardrobeLocalPhotos';
 import { persistWardrobePhotoToAppStorage, downloadWardrobePhotoToPermanentStorage } from '@/utils/persistWardrobePhoto';
 import { getTierFeatures } from '@/utils/tierMatrix';
-import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { androidEffectiveFeatureTier } from '@/utils/subscriptionTier';
 import {
   completeOutfitItemIds,
   isCompleteOutfit,
@@ -1100,7 +1101,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     }
   ): Promise<WardrobeItem> => {
     if (!user) throw new Error('Not authenticated');
-    const tierFeatures = getTierFeatures(user.subscriptionTier);
+    const tierFeatures = getTierFeatures(androidEffectiveFeatureTier(user, Platform.OS));
     const wardrobeLimit = tierFeatures.wardrobeItemsLimit;
     if (Number.isFinite(wardrobeLimit) && itemsRef.current.length >= wardrobeLimit) {
       throw new Error(`Wardrobe limit reached (${wardrobeLimit} items). Upgrade to add more.`);
@@ -1288,7 +1289,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     },
   ): Promise<WardrobeItem[]> => {
     if (!user) throw new Error('Not authenticated');
-    const tierFeatures = getTierFeatures(user.subscriptionTier);
+    const tierFeatures = getTierFeatures(androidEffectiveFeatureTier(user, Platform.OS));
     const wardrobeLimit = tierFeatures.wardrobeItemsLimit;
     const batchLimit = tierFeatures.maxBulkUploadBatch;
     if (itemsData.length > batchLimit) {

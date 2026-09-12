@@ -46,6 +46,7 @@ import {
   isAiBudgetError,
 } from '@/utils/aiBudgetError';
 import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
+import { androidEffectiveFeatureTier } from '@/utils/subscriptionTier';
 import { getTodaysOutfitPopupPrefs } from '@/utils/todaysOutfitPrefs';
 import { normalizeWorkDressCode, resolveStoredWorkDressCode } from '@/services/OnboardingProfileService';
 import { resolveBrandInspiration } from '@/utils/yoloToPipelineCandidates';
@@ -135,6 +136,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       ? tabBarHeightContext
       : TAB_BAR_HEIGHT + insets.bottom;
   const { user } = useAuth();
+  const featureTier = androidEffectiveFeatureTier(user, Platform.OS);
   const { items: savedWardrobe, addItemsBatch } = useWardrobe();
 
   const persistLookContinuity = useCallback(async (
@@ -292,13 +294,13 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
   const openAllowanceDestination = useCallback(() => {
     navigateToSubscription(
       navigation,
-      aiAllowanceSubscriptionParams(user?.subscriptionTier, 'get_outfits'),
+      aiAllowanceSubscriptionParams(featureTier, 'get_outfits'),
     );
-  }, [navigation, user?.subscriptionTier]);
+  }, [navigation, featureTier]);
 
   const openAllowancePaywall = useCallback(
     (error?: unknown) => {
-      const planTier = planTierFromBudgetError(error) || user?.subscriptionTier;
+      const planTier = planTierFromBudgetError(error) || featureTier;
       const paywall = getAiAllowancePaywallCopy(planTier);
       setAllowanceBlocked(true);
       requestAnimationFrame(() => {
@@ -313,7 +315,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         },
       ]);
     },
-    [navigation, user?.subscriptionTier],
+    [navigation, featureTier],
   );
 
   const runScan = async (uri: string) => {
@@ -757,7 +759,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       </ThemedText>
       {allowanceBlocked ? (
         <AiAllowanceBlockedBanner
-          tier={user?.subscriptionTier}
+          tier={featureTier}
           message="Looks and scans need AI credit. Start over anytime, or buy more credit / see plans when you’re ready."
           onPrimary={() => openAllowanceDestination()}
           onSecondary={confirmStartOver}
@@ -802,7 +804,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           >
             <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
               {allowanceBlocked
-                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                ? getAiAllowancePaywallCopy(featureTier).primaryLabel
                 : 'Continue with this photo'}
             </ThemedText>
           </Pressable>
@@ -934,7 +936,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
       </View>
       {allowanceBlocked ? (
         <AiAllowanceBlockedBanner
-          tier={user?.subscriptionTier}
+          tier={featureTier}
           message="Looks can’t run until you buy more credit or your allowance resets. You can still edit items or start over."
           onPrimary={() => openAllowanceDestination()}
           onSecondary={confirmStartOver}
@@ -993,7 +995,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
           ) : (
             <ThemedText type="body" style={{ color: LuxuryColors.midnight, fontWeight: '600' }}>
               {allowanceBlocked
-                ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+                ? getAiAllowancePaywallCopy(featureTier).primaryLabel
                 : 'Show me 3 outfits'}
             </ThemedText>
           )}
@@ -1066,7 +1068,7 @@ export default function ScanWardrobeScreen({ navigation }: Props) {
         >
           <ThemedText type="body" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
             {allowanceBlocked
-              ? getAiAllowancePaywallCopy(user?.subscriptionTier).primaryLabel
+              ? getAiAllowancePaywallCopy(featureTier).primaryLabel
               : 'Refresh looks'}
           </ThemedText>
         </Pressable>
