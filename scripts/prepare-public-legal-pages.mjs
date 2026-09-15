@@ -284,6 +284,17 @@ fs.writeFileSync(
   'utf8',
 );
 
+const deleteAccountBody = extractLegalBody(path.join(marketingDir, 'delete-account.html'));
+fs.writeFileSync(
+  path.join(publicDir, 'delete-account.html'),
+  pageShell({
+    title: 'Delete your Dripn account | Dripn',
+    description: 'How to request deletion of your Dripn account and associated data.',
+    bodyHtml: deleteAccountBody,
+  }),
+  'utf8',
+);
+
 writeSupportPage();
 
 function writeResetPasswordPage() {
@@ -448,4 +459,4 @@ function writeMarketingAboutPage() {
 
 writeMarketingAboutPage();
 
-console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, reset-password.html, styles.css');
+console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, delete-account.html, reset-password.html, styles.css');
