@@ -1064,7 +1064,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         ) : null}
 
         {decisionType === 'shopping' && !rejected && uploaded.length > 1 ? (
-          <View style={styles.responseOptionsRow}>
+          <View style={styles.shoppingResultOptionsRow}>
             {uploaded.map((uri, index) => {
               const labelMeta = (res.optionLabels || res.purchaseDecision?.optionLabels || [])
                 .find((l) => l.optionIndex === index);
@@ -1088,13 +1088,13 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               return (
                 <View
                   key={`${uri}-${index}`}
-                  style={[styles.responseOptionCol, isReject ? { opacity: 0.55 } : null]}
+                  style={[styles.shoppingResultOptionCol, isReject ? { opacity: 0.55 } : null]}
                 >
                   <Image
                     source={{ uri }}
+                    resizeMode="contain"
                     style={[
-                      styles.responseOptionThumb,
-                      isWinner ? styles.responseOptionThumbWinner : null,
+                      styles.shoppingResultThumb,
                       isWinner
                         ? { borderWidth: 2, borderColor: LuxuryColors.gold }
                         : null,
@@ -1115,7 +1115,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             })}
           </View>
         ) : winnerUri ? (
-          <Image source={{ uri: winnerUri }} style={styles.responseHero} />
+          <Image
+            source={{ uri: winnerUri }}
+            resizeMode={decisionType === 'shopping' ? 'contain' : undefined}
+            style={decisionType === 'shopping' ? styles.shoppingResultHero : styles.responseHero}
+          />
         ) : !rejected && uploaded.length > 1 ? (
           <View style={styles.responseOptionsRow}>
             {uploaded.map((uri, index) => (
@@ -1807,6 +1811,30 @@ const styles = StyleSheet.create({
   responseHero: {
     width: '100%',
     height: 280,
+    borderRadius: BorderRadius.lg,
+  },
+  shoppingResultOptionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  shoppingResultOptionCol: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    maxWidth: 280,
+  },
+  shoppingResultThumb: {
+    width: '100%',
+    aspectRatio: 3 / 4,
+    borderRadius: BorderRadius.md,
+  },
+  shoppingResultHero: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    aspectRatio: 3 / 4,
     borderRadius: BorderRadius.lg,
   },
   responseOptionsRow: {
