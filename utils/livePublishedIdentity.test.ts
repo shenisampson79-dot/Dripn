@@ -159,6 +159,18 @@ function yolo(
     sanitizeLiveUserHudText('Could not read camera frame — retrying…'),
     'Could not read camera frame — retrying…',
   );
+  assert.equal(sanitizeLiveUserHudText('Cloud vision · 2 pieces · 78'), '');
+  assert.equal(sanitizeLiveUserHudText('2 pieces · ~80'), '');
+  assert.equal(sanitizeLiveUserHudText('Still · 2 pieces · 78'), '');
+  assert.equal(sanitizeLiveUserHudText('1 piece · 64'), '');
+  assert.equal(
+    sanitizeLiveUserHudText('Live — reading your look…'),
+    'Live — reading your look…',
+  );
+  assert.equal(
+    sanitizeLiveUserHudText('No garments yet — hold steadier'),
+    'No garments yet — hold steadier',
+  );
 }
 
 {

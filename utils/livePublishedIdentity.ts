@@ -27,6 +27,9 @@ const ENGINE_LABEL_JUNK_RE =
 /** Hermes / JS engine exceptions must never land on the customer status line. */
 const JS_ENGINE_ERROR_RE =
   /Property ['"`]?\w+['"`]? doesn't exist|\bis not a function\b|\bis not defined\b|\bCannot read propert/i;
+/** Piece-count · score / Cloud vision engineering readout — not customer status. */
+const PIECE_SCORE_DIAGNOSTIC_RE =
+  /^(?:cloud\s+(?:vision|fill)\s*·\s*)?(?:still\s*·\s*)?\d+\s+pieces?\s*·\s*.+$/i;
 
 export function liveCloudPathBlockedByYoloProof(opts: {
   requireYoloProof: boolean;
@@ -49,6 +52,7 @@ export function sanitizeLiveUserHudText(text: string | null | undefined): string
   let t = String(text || '');
   if (!t) return '';
   if (JS_ENGINE_ERROR_RE.test(t)) return '';
+  if (PIECE_SCORE_DIAGNOSTIC_RE.test(t.trim())) return '';
   t = t.replace(ENGINE_LABEL_JUNK_RE, ' ');
   t = t.replace(/\d\.\d+\s*>\s*\d\.\d+(?:\s*\([^)]*\))?/g, ' ');
   t = t.replace(/\(\s*[\d.]+\s*\)/g, ' ');

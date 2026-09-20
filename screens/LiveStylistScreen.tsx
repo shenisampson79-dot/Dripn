@@ -106,7 +106,6 @@ import {
   liveOutfitReadyToScore,
   livePieceSetKey,
   liveScoreSignature,
-  presentLiveScore,
   pushLiveIdentitySample,
   smoothLiveCertainty,
   createCertaintySmoothState,
@@ -377,12 +376,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [labelsReady, setLabelsReady] = useState(false);
   const labelsReadyRef = useRef(false);
   const [sourceLabel, setSourceLabel] = useState('Cloud vision');
+  void sourceLabel;
   const [selected, setSelected] = useState<LiveTrackedItem | null>(null);
   const [shopHints, setShopHints] = useState<FallbackMissingItem[]>([]);
   const [statusNote, setStatusNote] = useState('Tap Start for live styling');
-  // Belief debug is staff/__DEV__ only — App Store subscribers never see the overlay or DBG chip.
+  // Staff overlay stays behind long-press; it is not auto-shown and has no DBG chip.
   const beliefDebugAllowed = isBeliefDebugAllowed(__DEV__, user);
-  const [showBeliefDebug, setShowBeliefDebug] = useState(() => __DEV__);
+  const [showBeliefDebug, setShowBeliefDebug] = useState(false);
   const [debugCollapsed, setDebugCollapsed] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState<LiveBeliefDebugSnapshot>(() => emptyDebugSnapshot());
   const [showBudgetModal, setShowBudgetModal] = useState(false);
@@ -395,18 +395,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const [yoloStatusNote, setYoloStatusNote] = useState(
     'Camera starts when you tap Start live',
   );
+  void yoloStatusNote;
 
-  // Staff status resolves after the first render, so the overlay cannot be
-  // seeded from initial state — open it once, then leave the toggle to the user.
-  const staffDebugPrimed = useRef(false);
   useEffect(() => {
-    if (!beliefDebugAllowed) {
-      if (showBeliefDebug) setShowBeliefDebug(false);
-      return;
+    if (!beliefDebugAllowed && showBeliefDebug) {
+      setShowBeliefDebug(false);
     }
-    if (staffDebugPrimed.current) return;
-    staffDebugPrimed.current = true;
-    setShowBeliefDebug(true);
   }, [beliefDebugAllowed, showBeliefDebug]);
 
   const lastHashRef = useRef<string | null>(null);
@@ -1520,18 +1514,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (!payload.imageBase64 && hasPublishedLiveCore(outfitTruthRef.current)) {
         lastHashRef.current = frameHash;
         analysisSucceededRef.current = true;
-        const shownScore = scoreGateRef.current.shown;
-        const scoreLabel = presentLiveScore(
-          shownScore,
-          previousFeedbackRef.current?.confidenceLevel || 'high',
-          { approximate: previousFeedbackRef.current?.scoreApproximate },
-        ).display;
         const n = previousItemsRef.current.length;
-        setStatusNote(
-          n
-            ? `${n} piece${n === 1 ? '' : 's'} · ${scoreLabel}`
-            : 'No garments yet — hold steadier',
-        );
+        if (!n) {
+          setStatusNote('No garments yet — hold steadier');
+        }
         return;
       }
       if (!payload.imageBase64) {
@@ -1565,23 +1551,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
       }
-      // Footer must match the score badge — never leak the ungated Vision number.
-      const shownScore = painted?.score ?? scoreGateRef.current.shown ?? null;
-      const scoreLabel = presentLiveScore(
-        shownScore,
-        painted?.confidenceLevel
-          || previousFeedbackRef.current?.confidenceLevel
-          || 'high',
-        {
-          approximate: painted?.scoreApproximate
-            ?? previousFeedbackRef.current?.scoreApproximate,
-        },
-      ).display;
-      setStatusNote(
-        res.itemCount
-          ? `${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${scoreLabel}`
-          : 'No garments yet — hold steadier',
-      );
+      if (!res.itemCount) {
+        setStatusNote('No garments yet — hold steadier');
+      }
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
       if (!analysisSucceededRef.current) firstCloudSentRef.current = false;
@@ -2125,18 +2097,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
       }
-      const stillScore = scoreGateRef.current.shown
-        ?? previousFeedbackRef.current?.score
-        ?? null;
-      setStatusNote(
-        res.itemCount
-          ? `Still · ${res.itemCount} piece${res.itemCount === 1 ? '' : 's'} · ${presentLiveScore(
-            stillScore,
-            previousFeedbackRef.current?.confidenceLevel || 'high',
-            { approximate: scoreGateRef.current.approximate },
-          ).display}`
-          : 'Still scan done',
-      );
+      setStatusNote('Still scan done');
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
@@ -2373,39 +2334,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
               ellipsizeMode="tail"
               style={{ color: 'rgba(255,255,255,0.75)' }}
             >
-              {beliefDebugAllowed
-                ? `${sourceLabel} · ${sanitizeLiveUserHudText(statusNote) || 'Live'}`
-                : (sanitizeLiveUserHudText(statusNote) || 'Live')}
+              {sanitizeLiveUserHudText(statusNote) || 'Live'}
             </ThemedText>
           </Pressable>
-          {beliefDebugAllowed ? (
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                setShowBeliefDebug((v) => !v);
-              }}
-              style={[styles.debugChip, showBeliefDebug ? styles.debugChipOn : null]}
-              hitSlop={8}
-            >
-              <ThemedText type="caption" style={{ color: showBeliefDebug ? '#0B0B0F' : 'rgba(255,255,255,0.8)', fontWeight: '700' }}>
-                DBG
-              </ThemedText>
-            </Pressable>
-          ) : null}
           {isBusy ? <ActivityIndicator size="small" color={LuxuryColors.gold} /> : null}
         </View>
-        {beliefDebugAllowed && showBeliefDebug ? (
-        <View style={styles.dbgLine}>
-          <ThemedText
-            type="caption"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={{ color: 'rgba(255,255,255,0.45)' }}
-          >
-            {yoloStatusNote}
-          </ThemedText>
-        </View>
-        ) : null}
 
         <View style={styles.actions}>
           <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn} hitSlop={8}>
