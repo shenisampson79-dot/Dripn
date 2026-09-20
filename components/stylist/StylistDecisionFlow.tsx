@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  useWindowDimensions,
   Platform,
   Linking,
 } from 'react-native';
@@ -48,6 +49,16 @@ import { resolveStylistResultDisplayState } from '@/utils/stylistResultDisplaySt
 import { formatDecisionResultPresentation, filterEventMissingUpgrades } from '@/utils/decisionResultPresentation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const TABLET_MIN_WIDTH = 600;
+const EVENT_UPLOAD_SLOT_MAX = 120;
+
+function eventUploadSlotWidth(screenWidth: number): number {
+  const threeCol = (screenWidth - Spacing.xl * 2 - Spacing.sm * 2) / 3;
+  if (screenWidth >= TABLET_MIN_WIDTH) {
+    return Math.min(threeCol, EVENT_UPLOAD_SLOT_MAX);
+  }
+  return threeCol;
+}
 
 const EVENT_TYPES = [
   { id: 'wedding', labelKey: 'stylistFlow.event.wedding' },
@@ -227,6 +238,8 @@ function renderDecisionResultHierarchy(
 export default function StylistDecisionFlow({ decisionType, navigation }: StylistDecisionFlowProps) {
   const { theme } = useTheme();
   const { t } = useTranslations();
+  const { width: windowWidth } = useWindowDimensions();
+  const eventSlotWidth = eventUploadSlotWidth(windowWidth);
   const { paddingBottom: tabAwarePaddingBottom, hasTabBar } = useScreenInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const flow = useStylistDecision({ decisionType, navigation });
@@ -628,7 +641,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
         {Array.from({ length: flow.getUploadLimit() }).map((_, index) => {
           const uri = flow.images[index];
           return uri ? (
-            <View key={index} style={styles.pieceSlotFilled}>
+            <View key={index} style={[styles.pieceSlotFilled, { width: eventSlotWidth }]}>
               <Image source={{ uri }} style={styles.pieceImage} />
               <Pressable onPress={() => flow.handleRemoveImage(index)} style={styles.removeBadge}>
                 <Feather name="x" size={14} color="#FFFFFF" />
@@ -638,7 +651,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             <Pressable
               key={index}
               onPress={flow.handlePickImage}
-              style={[styles.pieceSlotEmpty, { borderColor: theme.border }]}
+              style={[styles.pieceSlotEmpty, { width: eventSlotWidth, borderColor: theme.border }]}
             >
               <Feather name="plus" size={22} color={theme.tabIconDefault} />
             </Pressable>
@@ -1731,7 +1744,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   pieceSlotEmpty: {
-    width: (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.sm * 2) / 3,
     aspectRatio: 1,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -1740,7 +1752,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pieceSlotFilled: {
-    width: (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.sm * 2) / 3,
     aspectRatio: 1,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',

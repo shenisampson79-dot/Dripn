@@ -6,6 +6,7 @@ import {
   Alert,
   Platform,
   Dimensions,
+  useWindowDimensions,
   Modal,
   FlatList,
   ActivityIndicator,
@@ -91,8 +92,6 @@ const ALL_OCCASIONS = Object.keys(OCCASION_LABELS) as ClothingOccasion[];
 const ALL_COLORS = Object.keys(COLOR_LABELS) as ClothingColor[];
 
 const GRID_GAP = Spacing.md;
-const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
-const ITEM_HEIGHT = Math.round(ITEM_WIDTH * 1.34);
 const TAB_BAR_HEIGHT = 56;
 
 const getMinimalistCategoryColors = (): Record<string, { gradient: readonly [string, string]; icon: string }> => ({
@@ -144,6 +143,9 @@ export default function WardrobeScreen(props: WardrobeScreenProps) {
 function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const itemWidth = (windowWidth - Spacing.lg * 2 - GRID_GAP) / 2;
+  const itemHeight = Math.round(itemWidth * 1.34);
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
@@ -870,6 +872,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         style={({ pressed }) => [
           styles.itemCard,
           {
+            width: itemWidth,
             opacity: pressed ? 0.9 : 1,
             transform: [{ scale: pressed ? 0.98 : 1 }],
             borderWidth: selectionMode && isSelected ? 3 : 0,
@@ -877,7 +880,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
           },
         ]}
       >
-        <View style={[styles.itemImageWrapper, { backgroundColor: tileBackground }]}>
+        <View style={[styles.itemImageWrapper, { height: itemHeight, backgroundColor: tileBackground }]}>
           {(() => {
             try {
               return (
@@ -944,7 +947,7 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         </View>
       </Pressable>
     );
-  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, navigation, CATEGORY_COLORS, LUXURY_COLORS.gold, t]);
+  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, navigation, CATEGORY_COLORS, LUXURY_COLORS.gold, t, itemWidth, itemHeight]);
 
   const renderEmptyCategoryState = () => {
     const categoryLabel = CATEGORY_OPTIONS.find(c => c.key === selectedCategory)?.label || selectedCategory;
@@ -2179,7 +2182,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   itemCard: {
-    width: ITEM_WIDTH,
     borderRadius: BorderRadius.lg,
   },
   selectionBadge: {
@@ -2291,7 +2293,6 @@ const styles = StyleSheet.create({
   },
   itemImageWrapper: {
     width: '100%',
-    height: ITEM_HEIGHT,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
