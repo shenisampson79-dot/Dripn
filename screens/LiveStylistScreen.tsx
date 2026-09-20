@@ -169,6 +169,8 @@ function sleep(ms: number) {
 }
 
 const FRAME_WIDTH = 640;
+/** Launch presentation: hide customer Still scan. Handler stays wired for later ungating. */
+const LIVE_STILL_SCAN_CUSTOMER_CONTROL = false;
 /**
  * Launch path (frozen):
  *   camera frame proven → Cloud Vision → published identity → score → copy
@@ -2383,11 +2385,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
                   Retry
                 </ThemedText>
               </Pressable>
+              {LIVE_STILL_SCAN_CUSTOMER_CONTROL ? (
               <Pressable onPress={openStillScan} style={[styles.secondaryBtn, { borderColor: 'rgba(255,255,255,0.35)' }]}>
                 <ThemedText type="caption" style={{ color: '#FFF' }}>
                   Still scan
                 </ThemedText>
               </Pressable>
+              ) : null}
             </>
           ) : (
             <>
@@ -2418,11 +2422,13 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
                         : 'Start live'}
                 </ThemedText>
               </Pressable>
+              {LIVE_STILL_SCAN_CUSTOMER_CONTROL ? (
               <Pressable onPress={openStillScan} style={[styles.secondaryBtn, { borderColor: 'rgba(255,255,255,0.35)' }]}>
                 <ThemedText type="caption" style={{ color: '#FFF' }}>
                   Still scan
                 </ThemedText>
               </Pressable>
+              ) : null}
             </>
           )}
         </View>

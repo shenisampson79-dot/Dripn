@@ -15,7 +15,6 @@ import {
   type PreviewFitMode,
 } from '@/utils/livePreviewBbox';
 import {
-  isProvisionalLiveHeadline,
   sanitizeLiveBoxLabel,
 } from '@/utils/livePublishedIdentity';
 import { presentLiveScore } from '@/utils/liveScoreStability';
@@ -23,6 +22,7 @@ import {
   LIVE_FIRST_START_HEADLINE,
   LIVE_FIRST_START_SCORE,
   liveHudChrome,
+  shouldShowCompletedLiveHeadline,
 } from '@/utils/liveHudChrome';
 
 type Props = {
@@ -220,12 +220,13 @@ export function LiveArOverlay({
                 {scorePresentation.soft ? 'approx' : 'score'}
               </ThemedText>
             </View>
-            {Number.isFinite(feedback.score)
-              && coaching?.headline
-              && !isProvisionalLiveHeadline(coaching.headline) ? (
+            {shouldShowCompletedLiveHeadline({
+              score: feedback.score,
+              headline: coaching?.headline,
+            }) ? (
               <View style={styles.headlinePill}>
                 <ThemedText type="body" style={styles.headlineText} numberOfLines={1}>
-                  {coaching.headline}
+                  {coaching?.headline}
                 </ThemedText>
               </View>
             ) : !Number.isFinite(feedback.score) ? (

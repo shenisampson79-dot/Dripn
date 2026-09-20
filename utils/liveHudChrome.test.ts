@@ -9,6 +9,7 @@ import {
   deriveLiveFirstPublishDashVisible,
   liveHudAwaitingFirstPublish,
   liveHudChrome,
+  shouldShowCompletedLiveHeadline,
   shouldShowLoadingAfterPreview,
 } from '@/utils/liveHudChrome';
 
@@ -31,14 +32,14 @@ import {
 }
 
 {
-  const provisional = liveHudChrome({
+  const completedPlaceholder = liveHudChrome({
     score: 41,
     headline: 'Settling in',
     styleLane: 'casual',
   });
-  assert.equal(provisional.showScore, true);
-  assert.equal(provisional.showHeadline, true);
-  assert.doesNotMatch(provisional.headline, /settling in/i);
+  assert.equal(completedPlaceholder.showScore, true);
+  assert.equal(completedPlaceholder.showHeadline, true);
+  assert.equal(completedPlaceholder.headline, 'Settling in');
 }
 
 {
@@ -323,6 +324,67 @@ import {
     }),
     false,
   );
+}
+
+{
+  // Launch presentation: loading shell unchanged; completed 68 keeps "Almost there".
+  const loading = liveHudChrome({ score: null, awaitingFirstPublish: true });
+  assert.equal(loading.loadingShell, true);
+  assert.equal(loading.numericScore, null);
+  assert.equal(LIVE_FIRST_START_SCORE, '—');
+  assert.equal(loading.headline, LIVE_FIRST_START_HEADLINE);
+  assert.equal(
+    shouldShowCompletedLiveHeadline({ score: null, headline: 'Almost there' }),
+    false,
+    'loading/settling must not paint Almost there as a completed pill',
+  );
+
+  const scored68 = liveHudChrome({
+    score: 68,
+    headline: 'Almost there',
+    awaitingFirstPublish: false,
+  });
+  assert.equal(scored68.loadingShell, false);
+  assert.equal(scored68.numericScore, 68);
+  assert.equal(scored68.showHeadline, true);
+  assert.equal(scored68.headline, 'Almost there');
+  assert.equal(
+    shouldShowCompletedLiveHeadline({ score: 68, headline: 'Almost there' }),
+    true,
+  );
+
+  const lookingGood = liveHudChrome({
+    score: 84,
+    headline: 'Looking good',
+    awaitingFirstPublish: false,
+  });
+  assert.equal(lookingGood.numericScore, 84);
+  assert.equal(lookingGood.headline, 'Looking good');
+  assert.equal(
+    shouldShowCompletedLiveHeadline({ score: 84, headline: 'Looking good' }),
+    true,
+  );
+}
+
+{
+  // Overlay coaching card: summary + 0/1/2 bullets unchanged.
+  const overlayPath = path.join(process.cwd(), 'components', 'live', 'LiveArOverlay.tsx');
+  const overlay = fs.readFileSync(overlayPath, 'utf8');
+  assert.match(overlay, /Number\.isFinite\(feedback\.score\) && coaching\?\.summary/);
+  assert.match(overlay, /coaching\.bullets\?\.\[0\]/);
+  assert.match(overlay, /coaching\.bullets\?\.\[1\]/);
+  assert.match(overlay, /shouldShowCompletedLiveHeadline/);
+  assert.doesNotMatch(overlay, /isProvisionalLiveHeadline\(coaching\.headline\)/);
+}
+
+{
+  // Still scan: customer control gated off; handler remains.
+  const screenPath = path.join(process.cwd(), 'screens', 'LiveStylistScreen.tsx');
+  const src = fs.readFileSync(screenPath, 'utf8');
+  assert.match(src, /const LIVE_STILL_SCAN_CUSTOMER_CONTROL = false/);
+  assert.match(src, /const openStillScan = useCallback/);
+  assert.match(src, /LIVE_STILL_SCAN_CUSTOMER_CONTROL \? \(/);
+  assert.equal(src.includes('onPress={openStillScan}'), true);
 }
 
 console.log('liveHudChrome.test.ts: all passed');

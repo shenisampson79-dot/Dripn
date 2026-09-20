@@ -7,7 +7,6 @@
  * showing "—" and "Analysing…". Recalibration must not use this shell.
  */
 
-import { isProvisionalLiveHeadline } from '@/utils/livePublishedIdentity';
 import { headlineFromScore, isRemovedCustomerHeadline } from '@/utils/liveOutcomeContract';
 
 export const LIVE_FIRST_START_HEADLINE = 'Analysing…';
@@ -51,6 +50,19 @@ export function shouldShowLoadingAfterPreview(args: {
   return args.previewElapsedMs >= (args.delayMs ?? LIVE_ANALYSING_AFTER_PREVIEW_MS);
 }
 
+/**
+ * Completed Live HUD: a numeric score owns the headline pill.
+ * Loading/settling still uses — + Analysing… (no feedback / no numeric score).
+ * "Almost there" is a valid completed band headline and must paint once scored.
+ */
+export function shouldShowCompletedLiveHeadline(args: {
+  score: number | null | undefined;
+  headline?: string | null;
+}): boolean {
+  if (args.score == null || !Number.isFinite(Number(args.score))) return false;
+  return Boolean(String(args.headline || '').trim());
+}
+
 export function liveHudChrome(args: {
   score: number | null | undefined;
   headline?: string | null;
@@ -68,7 +80,10 @@ export function liveHudChrome(args: {
   const showNumeric = args.score != null && Number.isFinite(n);
   if (showNumeric) {
     let headline = String(args.headline || '').trim();
-    if (isProvisionalLiveHeadline(headline) || isRemovedCustomerHeadline(headline)) {
+    // Completed numeric HUD: keep band copy such as "Almost there".
+    // Only rewrite retired occasion headlines, not loading/settling placeholders
+    // that are also legal completed text.
+    if (isRemovedCustomerHeadline(headline)) {
       headline = '';
     }
     if (!headline) {
