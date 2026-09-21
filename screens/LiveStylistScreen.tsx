@@ -1055,14 +1055,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       || !samplingActiveRef.current
     ) {
       try { image.dispose(); } catch { /* ignore */ }
-      // Don't leave "camera warming…" forever when the preview never becomes ready.
-      if (
-        samplingActiveRef.current
-        && liveStartedAtRef.current > 0
-        && Date.now() - liveStartedAtRef.current > 12000
-      ) {
-        setStatusNote('Camera not ready — tap Stop, then Start live again');
-      }
+      // Frame just arrived. inFlight is analysis backpressure, not camera unreadiness.
       return;
     }
     if (Date.now() < captureAllowedAtRef.current) {

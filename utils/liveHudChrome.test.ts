@@ -387,4 +387,33 @@ import {
   assert.equal(src.includes('onPress={openStillScan}'), true);
 }
 
+{
+  // In-flight frame drop must not overwrite customer status as camera-not-ready.
+  const screenPath = path.join(process.cwd(), 'screens', 'LiveStylistScreen.tsx');
+  const src = fs.readFileSync(screenPath, 'utf8');
+  const start = src.indexOf('const processFrameSample = useCallback');
+  assert.ok(start > 0, 'processFrameSample must exist');
+  const drop = src.indexOf('inFlightRef.current', start);
+  const dropEnd = src.indexOf('if (Date.now() < captureAllowedAtRef.current)', drop);
+  assert.ok(drop > start && dropEnd > drop, 'early-drop path must precede warmup skip');
+  const earlyDrop = src.slice(drop, dropEnd);
+  assert.match(earlyDrop, /inFlightRef\.current/);
+  assert.match(earlyDrop, /!mountedRef\.current/);
+  assert.match(earlyDrop, /!samplingActiveRef\.current/);
+  assert.match(earlyDrop, /image\.dispose\(\)/);
+  assert.doesNotMatch(
+    earlyDrop,
+    /Camera not ready — tap Stop, then Start live again/,
+    'in-flight / drop path must not emit false camera-not-ready copy',
+  );
+  assert.equal(
+    src.includes("setStatusNote('Camera not ready — tap Stop, then Start live again')"),
+    false,
+  );
+  assert.match(src, /enterCameraError\(/);
+  assert.match(src, /Camera failed to start — try again/);
+  assert.match(src, /Camera not ready — try again/);
+  assert.match(src, /onError=\{\(message\) => \{/);
+}
+
 console.log('liveHudChrome.test.ts: all passed');
