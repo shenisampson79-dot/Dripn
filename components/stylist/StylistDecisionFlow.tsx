@@ -1101,7 +1101,11 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               return (
                 <View
                   key={`${uri}-${index}`}
-                  style={[styles.shoppingResultOptionCol, isReject ? { opacity: 0.55 } : null]}
+                  style={[
+                    styles.shoppingResultOptionCol,
+                    isWinner ? styles.shoppingResultOptionColWinner : null,
+                    isReject ? { opacity: 0.55 } : null,
+                  ]}
                 >
                   <Image
                     source={{ uri }}
@@ -1835,6 +1839,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexBasis: 0,
     maxWidth: 280,
+  },
+  shoppingResultOptionColWinner: {
+    flexGrow: 1.2,
   },
   shoppingResultThumb: {
     width: '100%',
