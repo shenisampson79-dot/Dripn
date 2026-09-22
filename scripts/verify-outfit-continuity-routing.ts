@@ -26,7 +26,11 @@ import {
   resolveOutfitRoute,
 } from '../utils/outfitClarifyContinuity';
 import { assertCanonicalOutfitVisual } from '../utils/canonicalOutfitVisualAuthority';
-import { inferOutfitOccasionFromAsk } from '../utils/inferOutfitOccasionFromAsk';
+import {
+  inferOutfitOccasionFromAsk,
+  isDateNightLookTitleAsk,
+  isNegatedDateNightAsk,
+} from '../utils/inferOutfitOccasionFromAsk';
 
 function item(
   partial: Partial<WardrobeItem> & Pick<WardrobeItem, 'id' | 'category' | 'name'>,
@@ -497,6 +501,51 @@ matrix['P1-B cinema/date wear ask routes outfit-from-wardrobe'] =
   dateCinemaRoute.route === 'outfit-from-wardrobe' ? 'PASS' : 'FAIL';
 matrix['P1-B cinema/date infer date_night'] =
   inferOutfitOccasionFromAsk(DATE_CINEMA_ASK) === 'date_night' ? 'PASS' : 'FAIL';
+
+assert.equal(isNegatedDateNightAsk("definitely not date night dressed up"), true);
+assert.equal(isNegatedDateNightAsk('not date-night'), true);
+assert.notEqual(
+  inferOutfitOccasionFromAsk("definitely not date night dressed up"),
+  'date_night',
+  'negated date night must not infer date_night',
+);
+assert.notEqual(inferOutfitOccasionFromAsk('not date-night'), 'date_night');
+assert.equal(isDateNightLookTitleAsk("definitely not date night dressed up"), false);
+assert.equal(isDateNightLookTitleAsk('not date-night'), false);
+assert.equal(isDateNightLookTitleAsk('Help me put together a date night outfit'), true);
+assert.equal(
+  inferOutfitOccasionFromAsk('Help me put together a date night outfit'),
+  'date_night',
+);
+assert.notEqual(
+  inferOutfitOccasionFromAsk("Actually, it's not a date anymore, just drinks with friends."),
+  'date_night',
+);
+assert.notEqual(inferOutfitOccasionFromAsk("It's not a date."), 'date_night');
+assert.notEqual(
+  inferOutfitOccasionFromAsk('This is not a date, just dinner with colleagues.'),
+  'date_night',
+);
+assert.equal(inferOutfitOccasionFromAsk('I have a date tonight.'), 'date_night');
+assert.equal(inferOutfitOccasionFromAsk('What should I wear for a date?'), 'date_night');
+assert.equal(inferOutfitOccasionFromAsk('Help me with a date night outfit.'), 'date_night');
+assert.equal(isDateNightLookTitleAsk("Actually, it's not a date anymore, just drinks with friends."), false);
+matrix['not a date anymore does not infer date_night'] =
+  inferOutfitOccasionFromAsk("Actually, it's not a date anymore, just drinks with friends.") !== 'date_night'
+    ? 'PASS'
+    : 'FAIL';
+matrix['positive date tonight still infers date_night'] =
+  inferOutfitOccasionFromAsk('I have a date tonight.') === 'date_night' ? 'PASS' : 'FAIL';
+matrix['negated date night does not infer date_night'] =
+  inferOutfitOccasionFromAsk("definitely not date night dressed up") !== 'date_night'
+    ? 'PASS'
+    : 'FAIL';
+matrix['positive date night still infers date_night'] =
+  inferOutfitOccasionFromAsk('Help me put together a date night outfit') === 'date_night'
+    ? 'PASS'
+    : 'FAIL';
+matrix['negated date night is not Date night look title'] =
+  isDateNightLookTitleAsk("definitely not date night dressed up") === false ? 'PASS' : 'FAIL';
 
 const negativeControl = resolveOutfitRoute({
   userText: 'I went to the cinema yesterday, it was a great film.',

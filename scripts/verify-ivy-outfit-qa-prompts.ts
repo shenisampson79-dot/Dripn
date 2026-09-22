@@ -59,6 +59,14 @@ assert.equal(
   inferOutfitOccasionFromAsk('What should I wear to work tomorrow?'),
   'work_outfit',
 );
+assert.notEqual(
+  inferOutfitOccasionFromAsk("definitely not date night dressed up"),
+  'date_night',
+);
+assert.equal(
+  inferOutfitOccasionFromAsk('Help me put together a date night outfit'),
+  'date_night',
+);
 
 assert.equal(
   raiseOccasionForRefine('casual_day', "I don't like this outfit as I don't think wearing cargo shorts and chunky boots to a nice dinner is appropriate. Give me another option"),

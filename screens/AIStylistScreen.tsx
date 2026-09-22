@@ -118,6 +118,7 @@ import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccas
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import {
   inferOutfitOccasionFromAsk,
+  isDateNightLookTitleAsk,
   raiseOccasionForRefine,
 } from '@/utils/inferOutfitOccasionFromAsk';
 import {
@@ -1849,7 +1850,7 @@ function inferWardrobeVisualLabel(priorUserContent = ''): string {
   if (/\b(dinner|restaurant|somewhere nice|evening)\b/.test(lower)) return 'Dinner look';
   if (/\btoday\b/.test(lower) || /what should i wear/.test(lower)) return "Today's outfit";
   if (/\bwork\b|professional|office/.test(lower)) return 'Work outfit';
-  if (/date night|date-night/.test(lower)) return 'Date night look';
+  if (isDateNightLookTitleAsk(lower)) return 'Date night look';
   if (/\b(travel|trip|airport)\b/.test(lower)) return 'Travel look';
   if (/\bweekend\b/.test(lower)) return 'Weekend look';
   if (/\bcasual\b/.test(lower) && !/\b(dinner|nice|elevated)\b/.test(lower)) return 'Casual look';
