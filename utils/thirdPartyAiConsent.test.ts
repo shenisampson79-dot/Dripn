@@ -51,7 +51,11 @@ function assertMethodGated(source: string, method: string, promptFalse = false) 
   assert.ok(body.includes(needle), `${method} calls ${needle} before transmitting`);
   const requireAt = body.indexOf(needle);
   const requestAt = body.search(/this\.request<|\.request\(/);
+  const wakeAt = body.search(/this\.wakeBackend/);
   assert.ok(requireAt >= 0, `${method} includes consent require`);
+  if (wakeAt >= 0) {
+    assert.ok(requireAt < wakeAt, `${method} requires consent before wakeBackend`);
+  }
   if (requestAt >= 0) {
     assert.ok(requireAt < requestAt, `${method} requires consent before this.request`);
   }
@@ -149,6 +153,8 @@ async function main() {
     'extractClothing',
     'scanWardrobe',
     'sendStylistMessage',
+    'sendWardrobeOutfitFromChat',
+    'sendMultiDayOutfitsFromChat',
     'enrichShopSuggestions',
     'submitDecisionCheck',
     'sendVoiceChatMessage',
@@ -185,15 +191,6 @@ async function main() {
   assert.ok(privacyEn.includes('ElevenLabs'));
   assert.ok(privacyEn.includes('Replicate'));
   assert.ok(!privacyEn.includes('You can disable AI suggestions in your Settings at any time.'));
-
-  const ungatedAllocator = apiSource.slice(
-    apiSource.indexOf('async sendWardrobeOutfitFromChat'),
-    apiSource.indexOf('async enrichShopSuggestions'),
-  );
-  assert.ok(
-    !ungatedAllocator.includes('requireThirdPartyAiConsent'),
-    'allocator outfit-from-wardrobe stays ungated',
-  );
 
   console.log('thirdPartyAiConsent tests passed');
 }

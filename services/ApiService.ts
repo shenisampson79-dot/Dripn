@@ -2389,6 +2389,7 @@ class ApiService {
     elapsedMs?: number;
     timingSpans?: Record<string, number>;
   }> {
+    await this.requireThirdPartyAiConsent();
     const timingStart = Date.now();
     const spans: Record<string, number> = {};
     // Optional cold mitigation — outfit POST must not depend on a long wake race (Render Starter always-on).
@@ -2483,6 +2484,7 @@ class ApiService {
     elapsedMs?: number;
     wardrobeVisual?: unknown;
   }> {
+    await this.requireThirdPartyAiConsent();
     void this.wakeBackend({ quick: true }).catch(() => {});
     const result = await this.request<{
       response?: string;
