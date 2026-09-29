@@ -65,6 +65,7 @@ import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { VoiceCreditsProvider } from "@/hooks/useVoiceCredits";
 import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
+import { ThirdPartyAiConsentHost } from "@/components/ThirdPartyAiConsentHost";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
 import * as Linking from "expo-linking";
@@ -438,6 +439,7 @@ export default function App() {
                                                       <BodyProfileProvider>
                                                         <ColorSchemeProvider>
                                                           <NavigationContainerWithRef />
+                                                          <ThirdPartyAiConsentHost />
                                                         </ColorSchemeProvider>
                                                       </BodyProfileProvider>
                                                     </VoiceCreditsProvider>

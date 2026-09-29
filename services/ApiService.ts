@@ -29,6 +29,20 @@ class ApiService {
     this.sessionBackup = await getSecureToken(SESSION_BACKUP_KEY).catch(() => null);
   }
 
+  private async requireThirdPartyAiConsent(options?: { prompt?: boolean }): Promise<void> {
+    const {
+      ensureThirdPartyAiConsent,
+      hasGrantedThirdPartyAiConsent,
+      ThirdPartyAiConsentDeniedError,
+    } = await import('@/utils/thirdPartyAiConsent');
+    const allowed = options?.prompt === false
+      ? await hasGrantedThirdPartyAiConsent()
+      : await ensureThirdPartyAiConsent();
+    if (!allowed) {
+      throw new ThirdPartyAiConsentDeniedError();
+    }
+  }
+
   private async persistSessionBackup(sessionId: string | null) {
     this.sessionBackup = sessionId;
     try {
@@ -950,6 +964,7 @@ class ApiService {
     occasion?: string;
     bodyType?: string;
   }) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{ advice: string; source: string }>('/api/ai/advice', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -974,6 +989,7 @@ class ApiService {
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
+    await this.requireThirdPartyAiConsent();
     const headers: Record<string, string> = {};
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
@@ -1051,6 +1067,7 @@ class ApiService {
   async analyzeGarmentBatchResilient(
     images: Array<{ imageBase64: string; id?: string }>,
   ) {
+    await this.requireThirdPartyAiConsent();
     try {
       await this.wakeBackend();
     } catch {
@@ -1073,6 +1090,7 @@ class ApiService {
   }
 
   async analyzeOutfitPhoto(imageBase64: string, options?: { detailed?: boolean; wardrobeItems?: any[] }) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       analysis: any;
@@ -1113,6 +1131,7 @@ class ApiService {
   }
 
   async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
+    await this.requireThirdPartyAiConsent();
     // Always use real backend - no mock mode.
     // Note: resilient extract returns analysis only (processedImageUrl is null by design).
     type ExtractAnalysis = {
@@ -1180,6 +1199,7 @@ class ApiService {
     imageBase64: string,
     options?: { includeCrops?: boolean; imageUrl?: string },
   ) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       sessionId: string;
@@ -1314,6 +1334,7 @@ class ApiService {
     month?: number | null;
     season?: 'ss' | 'aw' | 'spring' | 'summer' | 'autumn' | 'fall' | 'winter' | string | null;
   }) {
+    await this.requireThirdPartyAiConsent({ prompt: false });
     return this.request<{
       success: boolean;
       frameHash?: string | null;
@@ -2128,6 +2149,7 @@ class ApiService {
       itemIds?: Array<string | number>;
     }>;
   }> {
+    await this.requireThirdPartyAiConsent();
     const { stylistId, ...rest } = data;
     
     // Log request details
@@ -2545,6 +2567,7 @@ class ApiService {
     deviceCountry?: string;
     stylistId?: string;
   }) {
+    await this.requireThirdPartyAiConsent();
     let storeCountry = data.storeCountry || data.appStoreCountry || undefined;
     let deviceCountry = data.deviceCountry || undefined;
     if (!storeCountry) {
@@ -2651,6 +2674,7 @@ class ApiService {
     /** Event diversity — recent outfit id lists, newest first. */
     recentOutfits?: Array<Array<string | number>>;
   }) {
+    await this.requireThirdPartyAiConsent();
     const images = (data.images || []).filter(
       (img) => typeof img === 'string' && img.length > 100,
     );
@@ -2923,6 +2947,7 @@ class ApiService {
       origin?: string | null;
     }>;
   }) {
+    await this.requireThirdPartyAiConsent();
     const { stylistId, voiceSettings, ...rest } = data;
     const raw = await this.request<{
       success?: boolean;
@@ -3289,6 +3314,7 @@ class ApiService {
   }
 
   async removeBackground(imageBase64: string) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       imageUrl: string | null;
       imageBase64?: string | null;
@@ -3729,6 +3755,7 @@ class ApiService {
     mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4' = 'audio/m4a',
     language: string = 'en'
   ) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       text: string;
@@ -3750,6 +3777,7 @@ class ApiService {
     language?: string;
     voiceRequestId?: string;
   }) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       userMessage: string;
@@ -3774,6 +3802,7 @@ class ApiService {
   }
 
   async synthesizeSpeech(text: string, options?: { voice?: string; stylistId?: string; speed?: number }) {
+    await this.requireThirdPartyAiConsent();
     const { stylistId, ...otherOptions } = options || {};
     return this.request<{
       success: boolean;
@@ -3806,6 +3835,7 @@ class ApiService {
     userGender?: string;
     conversationHistory?: Array<{ role: string; content: string }>;
   }) {
+    await this.requireThirdPartyAiConsent();
     const { stylistId, ...rest } = data;
     return this.request<{
       success: boolean;
@@ -3826,6 +3856,7 @@ class ApiService {
     voice?: string;
     language?: string;
   }) {
+    await this.requireThirdPartyAiConsent();
     const { stylistId, ...rest } = data;
     return this.request<{
       success: boolean;
@@ -5591,6 +5622,7 @@ class ApiService {
 
   // URL Extraction for Wardrobe
   async extractFromUrl(url: string) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       item: {
@@ -5611,6 +5643,7 @@ class ApiService {
 
   // Screenshot Extraction for Wardrobe
   async extractFromScreenshot(base64Image: string) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       item: {
@@ -5658,6 +5691,7 @@ class ApiService {
       style?: string;
     },
   ) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success?: boolean;
       imageUrl: string | null;
@@ -5983,6 +6017,7 @@ class ApiService {
     generatePreview?: boolean;
     recommendedOutfit?: Record<string, string>;
   } = {}) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       displayState?: string;
@@ -6275,6 +6310,7 @@ class ApiService {
     conversationHistory?: Array<{ role: string; content: string }>,
     options?: { language?: string; gender?: string | null },
   ) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       response: string;
       messagesRemaining: number;
@@ -6302,6 +6338,7 @@ class ApiService {
   }
 
   async guestOutfitSuggestion(sessionToken: string, occasion: string) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       suggestion: string;
       suggestionsRemaining: number;
@@ -6325,6 +6362,7 @@ class ApiService {
       occasion?: string | null;
     },
   ) {
+    await this.requireThirdPartyAiConsent();
     return this.request<{
       success: boolean;
       imageUrl: string | null;

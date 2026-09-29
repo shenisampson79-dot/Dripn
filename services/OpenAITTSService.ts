@@ -6,6 +6,7 @@ import { getVoicePreviewScript } from './CulturalLocalizationService';
 import { API_URL } from '@/config/api';
 import { LANGUAGE_ACCENT_MAP } from './PersonalStylistService';
 import { USER_TOKEN_KEY, getSecureToken } from '@/utils/secureTokenStore';
+import { ensureThirdPartyAiConsent } from '@/utils/thirdPartyAiConsent';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
@@ -760,6 +761,10 @@ export const playVoicePreview = async (
   }
 
   try {
+    const aiAllowed = await ensureThirdPartyAiConsent();
+    if (!aiAllowed) {
+      return playWithFallbackSpeech(stylistId, language, voiceRange, accent, userName);
+    }
     if (Platform.OS === 'ios') {
       await setAudioModeAsync({
         playsInSilentMode: true,

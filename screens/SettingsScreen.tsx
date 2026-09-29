@@ -55,6 +55,12 @@ import {
   getAnalyticsConsent,
   setAnalyticsConsent,
 } from "@/utils/analyticsConsent";
+import {
+  ensureThirdPartyAiConsent,
+  hasGrantedThirdPartyAiConsent,
+  subscribeThirdPartyAiConsent,
+  withdrawThirdPartyAiConsent,
+} from "@/utils/thirdPartyAiConsent";
 import { LAUNDRY_HABIT_OPTIONS, normalizeLaundryHabit, type LaundryHabit } from '@/utils/wearRules';
 import { getDfyBenefitForSubscription } from '@/utils/dfyEntitlements';
 import type { TravelPlan } from '@/utils/travelCapsule';
@@ -174,6 +180,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [analyticsConsentEnabled, setAnalyticsConsentEnabled] = useState(false);
+  const [aiDataSharingEnabled, setAiDataSharingEnabled] = useState(false);
   const [exportingData, setExportingData] = useState(false);
   const [pickerModal, setPickerModal] = useState<{ type: 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
@@ -439,12 +446,21 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   useEffect(() => {
     let cancelled = false;
+    const syncAiConsent = async () => {
+      const granted = await hasGrantedThirdPartyAiConsent();
+      if (!cancelled) setAiDataSharingEnabled(granted);
+    };
     (async () => {
       const consent = await getAnalyticsConsent();
       if (!cancelled) setAnalyticsConsentEnabled(consent === 'accepted');
     })();
+    void syncAiConsent();
+    const unsub = subscribeThirdPartyAiConsent(() => {
+      void syncAiConsent();
+    });
     return () => {
       cancelled = true;
+      unsub();
     };
   }, []);
 
@@ -491,6 +507,30 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const handleAnalyticsConsentToggle = async (enabled: boolean) => {
     setAnalyticsConsentEnabled(enabled);
     await setAnalyticsConsent(enabled ? 'accepted' : 'rejected');
+  };
+
+  const handleAiDataSharingToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const allowed = await ensureThirdPartyAiConsent();
+      setAiDataSharingEnabled(allowed);
+      return;
+    }
+    Alert.alert(
+      t('settings.aiDataSharingWithdrawTitle') || 'Turn off AI data sharing?',
+      t('settings.aiDataSharingWithdrawBody') ||
+        'Future AI features will not send your data to third-party AI providers until you allow processing again. This does not recall data already processed.',
+      [
+        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+        {
+          text: t('settings.aiDataSharingWithdrawConfirm') || 'Turn Off',
+          style: 'destructive',
+          onPress: async () => {
+            await withdrawThirdPartyAiConsent();
+            setAiDataSharingEnabled(false);
+          },
+        },
+      ],
+    );
   };
 
   const handleDeleteAccount = () => {
@@ -1161,6 +1201,25 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               onValueChange={handleAnalyticsConsentToggle}
               trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
               thumbColor={analyticsConsentEnabled ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <View style={[styles.settingIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+              <Feather name="share-2" size={16} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                {t('settings.aiDataSharing') || 'AI Data Sharing'}
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {t('settings.aiDataSharingSubtitle') || 'Allow Dripn to send the information you choose to share to OpenAI, ElevenLabs, and Replicate when you use AI features.'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={aiDataSharingEnabled}
+              onValueChange={handleAiDataSharingToggle}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
+              thumbColor={aiDataSharingEnabled ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
         </View>

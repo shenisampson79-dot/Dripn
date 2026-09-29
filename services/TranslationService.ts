@@ -1430,7 +1430,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     footerVersion: 'Version 1.0.0',
     intro1: 'Welcome to Dripn. Your privacy is important to us. This Privacy Policy explains how Dripn ("we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our mobile application and related services (collectively, the "Service").',
     intro2: 'By using Dripn, you agree to the collection and use of information in accordance with this policy. If you do not agree with this policy, please do not use our Service.',
-    lastUpdated: 'Last Updated: July 16, 2026',
+    lastUpdated: 'Last Updated: September 29, 2026',
     screenTitle: 'Privacy Policy',
     section01: {
       sub01: {
@@ -1469,7 +1469,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       title: '2. How We Use Your Information',
     },
     section03: {
-      body: 'You can disable AI suggestions in your Settings at any time.',
+      body: 'You can allow or withdraw third-party AI data sharing in Settings at any time. Withdrawing stops future AI processing; it does not recall data already processed.',
       bullet1: 'Your outfit photos may be analysed to provide styling suggestions.',
       bullet2: 'Your style preferences and history inform personalised recommendations.',
       bullet3: 'We do not use your photos to train AI models without explicit consent.',
@@ -1478,7 +1478,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     },
     section04: {
       bullet1: 'With service providers: Payment processors (Stripe), email services (SendGrid), analytics, and cloud hosting providers who assist in operating our Service.',
-      bullet2: 'With AI services: Your styling data is processed by our AI systems to provide personalised recommendations.',
+      bullet2: 'With AI services: When you use AI styling features, applicable data may be processed by OpenAI (styling responses, image analysis and speech transcription), ElevenLabs (spoken stylist responses), and Replicate (image processing used by applicable styling and wardrobe features).',
       bullet3: 'For legal reasons: When required by law, court order, or to protect rights and safety.',
       bullet4: 'Business transfers: In connection with a merger, acquisition, or sale of assets.',
       bullet5: 'With your consent: When you authorise us to share information.',
@@ -1498,7 +1498,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
       bullet2: 'Correction: Update or correct inaccurate information.',
       bullet3: 'Deletion: Request deletion of your account and data.',
       bullet4: 'Portability: Receive your data in a portable format.',
-      bullet5: 'Opt-out: Disable marketing communications and AI suggestions.',
+      bullet5: 'Opt-out: Disable marketing communications, optional analytics, and third-party AI data sharing in Settings.',
       bullet6: 'Restriction: Limit how we process your data.',
       intro: 'Depending on your location, you may have the right to:',
       title: '6. Your Rights and Choices',

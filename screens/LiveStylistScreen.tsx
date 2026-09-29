@@ -38,6 +38,11 @@ import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
+import {
+  ensureThirdPartyAiConsent,
+  hasGrantedThirdPartyAiConsentSync,
+  isThirdPartyAiConsentDeniedError,
+} from '@/utils/thirdPartyAiConsent';
 import { getAiAllowancePaywallCopy } from '@/utils/aiBudgetError';
 import { isBeliefDebugAllowed } from '@/utils/staffAccess';
 import {
@@ -1518,6 +1523,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       if (!payload.imageBase64) {
         return;
       }
+      if (!hasGrantedThirdPartyAiConsentSync()) {
+        return;
+      }
 
       void liveStartCrumb('cloud.request');
       liveTimingRef.current.cloudReqAt = Date.now();
@@ -1550,6 +1558,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         setStatusNote('No garments yet — hold steadier');
       }
     } catch (error) {
+      if (isThirdPartyAiConsentDeniedError(error)) {
+        return;
+      }
       console.warn('[LiveStylist] frame error:', error);
       if (!analysisSucceededRef.current) firstCloudSentRef.current = false;
       const msg = error instanceof Error ? error.message : 'Frame failed';
@@ -1823,6 +1834,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         await liveStartCrumb('start ignored — already starting');
         return;
       }
+      const aiAllowed = await ensureThirdPartyAiConsent();
+      if (!aiAllowed) {
+        await liveStartCrumb('start blocked — AI consent declined');
+        setStatusNote('Allow AI processing to use Live styling.');
+        return;
+      }
       if (!visionLinked) {
         enterCameraError(
           'Live needs a newer app build (VisionCamera frame processors). OTA is not enough.',
@@ -1954,6 +1971,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setShowBudgetModal(true);
       return;
     }
+    const aiAllowed = await ensureThirdPartyAiConsent();
+    if (!aiAllowed) {
+      setStatusNote('Allow AI processing to use Live styling.');
+      return;
+    }
     if (inFlightRef.current || !mountedRef.current) return;
     if (!visionLinked && !lastFrameRgbaRef.current) {
       setStatusNote(
@@ -2076,6 +2098,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         }
       }
 
+      if (!hasGrantedThirdPartyAiConsentSync()) {
+        setStatusNote('Allow AI processing to use Live styling.');
+        return;
+      }
       void liveStartCrumb('cloud.request');
       const res = await apiService.liveScanFrame(payload);
       void liveStartCrumb('cloud.response');
@@ -2099,7 +2125,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         /* optional */
       }
     } catch (err: unknown) {
-      if (isAiBudgetError(err)) {
+      if (isThirdPartyAiConsentDeniedError(err)) {
+        setStatusNote('Allow AI processing to use Live styling.');
+      } else if (isAiBudgetError(err)) {
         handleAiBudgetHit(err);
       } else {
         const msg = err instanceof Error ? err.message : 'Still scan failed';
