@@ -86,6 +86,7 @@ import {
   isAiBudgetError,
   stylistMonthlyAllowanceMessage,
 } from '@/utils/aiBudgetError';
+import { isThirdPartyAiConsentDeniedError } from '@/utils/thirdPartyAiConsent';
 import { planTierFromBudgetError } from '@/components/live/LiveAiBudgetModal';
 import { useNavigation, CommonActions, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -3504,6 +3505,12 @@ export default function AIStylistScreen() {
           setTimeout(() => scrollChatToEnd(true), 100);
           return;
         } catch (multiErr) {
+          if (isThirdPartyAiConsentDeniedError(multiErr)) {
+            setIsTyping(false);
+            await saveChatHistory(updatedMessages);
+            setTimeout(() => scrollChatToEnd(true), 100);
+            return;
+          }
           console.warn('[StylistChat] multi-day generate failed:', multiErr);
           const ui = resolveMultiDayGenerateUi({
             priorMessages: updatedMessages,
@@ -3757,6 +3764,12 @@ export default function AIStylistScreen() {
             };
           }
         } catch (chatOutfitErr) {
+          if (isThirdPartyAiConsentDeniedError(chatOutfitErr)) {
+            setIsTyping(false);
+            await saveChatHistory(updatedMessages);
+            setTimeout(() => scrollChatToEnd(true), 100);
+            return;
+          }
           console.warn('[StylistChat] server createWardrobeOutfit failed:', chatOutfitErr);
           const isTimeout = chatOutfitErr instanceof Error
             && /\b(timeout|timed out|aborted|network)\b/i.test(chatOutfitErr.message);
