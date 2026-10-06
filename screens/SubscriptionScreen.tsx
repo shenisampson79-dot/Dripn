@@ -30,11 +30,11 @@ import { resolveSubscriptionBackLabel } from "@/utils/subscriptionBackLabel";
 import {
   appleIAPService,
   IAP_UNAVAILABLE_MESSAGE,
-  APPLE_SUBSCRIPTION_PRODUCT_IDS,
   resolveTierFromCustomerInfo,
   serializeCustomerInfoForSyncWithStorefront,
   serializeDfyCustomerInfoForSync,
   serializeAiTopUpCustomerInfoForSync,
+  subscriptionProductIdFor,
   type IAPSubscriptionTier,
   type AiTopUpPackId,
 } from "@/services/AppleIAPService";
@@ -42,6 +42,7 @@ import {
   openAppleManageSubscriptions,
   shouldManageSubscriptionViaApple,
   shouldUseAppleIAP,
+  shouldUseNativeStoreIAP,
 } from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import { shouldApplyTestingUnlock } from "@/utils/devTesting";
@@ -288,6 +289,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [aiTopUpPrices, setAiTopUpPrices] = useState<Partial<Record<AiTopUpPackId, string>>>({});
   const [aiTopUpPricesResolved, setAiTopUpPricesResolved] = useState(false);
   const useAppleIAP = shouldUseAppleIAP();
+  const useNativeStoreIAP = shouldUseNativeStoreIAP();
 
   const applyCatalogPrices = useCallback(() => {
     const catalog = currencyService.resetPricesToCatalog();
@@ -338,12 +340,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       if (cancelled) return;
 
       // If Apple IAP is up, reinforce GBP from GB storefront before snapshotting catalog.
-      if (useAppleIAP && user?.id) {
+      if (useNativeStoreIAP && user?.id) {
         try {
           await appleIAPService.configure(user.id);
-          // Warm StoreKit + note storefront (reinforces UK) — discard price overlays.
           await appleIAPService.getSubscriptionPrices();
-          await appleIAPService.getDFYPrices();
+          if (useAppleIAP) {
+            await appleIAPService.getDFYPrices();
+          }
           const topUp = await appleIAPService.getAiTopUpPrices();
           if (!cancelled) {
             const next: Partial<Record<AiTopUpPackId, string>> = {};
@@ -369,13 +372,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     return () => {
       cancelled = true;
     };
-  }, [useAppleIAP, user?.id, applyCatalogPrices]);
+  }, [useAppleIAP, useNativeStoreIAP, user?.id, applyCatalogPrices]);
 
   // Recover sandbox / failed-sync purchases: if RevenueCat has a paid entitlement, push it
   // to the server even when local UI already shows a paid badge (local unlock can succeed
   // while /api/subscription/apple/sync fails — leaving voice credits stuck on free).
   useEffect(() => {
-    if (!useAppleIAP || !user?.id) return;
+    if (!useNativeStoreIAP || !user?.id) return;
 
     let cancelled = false;
     const recoverFromRevenueCat = async () => {
@@ -428,7 +431,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     return () => {
       cancelled = true;
     };
-  }, [useAppleIAP, user?.id, user?.subscriptionTier, applyLocalSubscriptionTier, refreshSubscriptionFromBackend]);
+  }, [useNativeStoreIAP, user?.id, user?.subscriptionTier, applyLocalSubscriptionTier, refreshSubscriptionFromBackend]);
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
   const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
   const [highlightPlans, setHighlightPlans] = useState(false);
@@ -700,7 +703,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const aiTopUpHasStorePrices = Boolean(aiTopUpPrices.standard || aiTopUpPrices.plus);
   const showAiTopUpSection =
     aiTopUpPricesResolved
-    && (!useAppleIAP || aiTopUpHasStorePrices)
+    && (!useNativeStoreIAP || aiTopUpHasStorePrices)
     && (
       landOnAiTopUp
       || normalizedTier === 'personal_stylist'
@@ -781,7 +784,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   ) : null;
 
   const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
-    const productId = APPLE_SUBSCRIPTION_PRODUCT_IDS[tier][interval];
+    const productId = subscriptionProductIdFor(tier, interval);
+    if (!productId) {
+      throw new Error(
+        t('subscription.checkoutStartFailed')
+          || `Google Play product is not configured for ${tier} ${interval}`,
+      );
+    }
     const intent = await apiService.createApplePurchaseIntent(productId);
     const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
     // Apple / StoreKit already charged — unlock immediately even if backend sync fails.
@@ -853,14 +862,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     if (isProcessing) return;
     Haptics.selectionAsync();
 
-    if (!useAppleIAP) {
+    if (!useNativeStoreIAP) {
       showAiTopUpComingSoon(pack.name);
       return;
     }
     if (!user?.id) {
       Alert.alert(
         t('subscription.signInToSubscribe') || 'Sign in required',
-        t('subscription.signInToBuyCredit') || 'Please sign in to buy AI credit with the App Store.',
+        t('subscription.signInToBuyCredit') || (useAppleIAP
+          ? 'Please sign in to buy AI credit with the App Store.'
+          : 'Please sign in to buy AI credit with Google Play.'),
       );
       return;
     }
@@ -900,7 +911,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   };
 
   const handleRestorePurchases = async () => {
-    if (!useAppleIAP) return;
+    if (!useNativeStoreIAP) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
@@ -1003,7 +1014,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             stripeSubscriptionId: status?.stripeSubscriptionId,
           });
 
-          if (viaApple || (useAppleIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId)) {
+          if (viaApple || (useNativeStoreIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId)) {
             Alert.alert(
               t('subscription.cancel.appleCancelTitle') || 'Manage in the App Store',
               t('subscription.cancel.appleCancelMessage') ||
@@ -1029,7 +1040,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         const billingCycle = isYearly ? 'yearly' : 'monthly';
         const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
 
-        if (useAppleIAP && (planId === 'personal_stylist' || planId === 'stylist_unlimited')) {
+        if (useNativeStoreIAP && (planId === 'personal_stylist' || planId === 'stylist_unlimited')) {
           if (!user?.id) {
             throw new Error(t('subscription.signInToSubscribe'));
           }
@@ -1109,7 +1120,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Apple's manage sheet owns the UI and only resolves when dismissed — don't lock
     // our buttons / swap labels to "Processing" for the whole visit (felt like shaking + lag).
-    if (useAppleIAP && normalizedTier !== 'free') {
+    if (useNativeStoreIAP && normalizedTier !== 'free') {
       try {
         await openAppleManageSubscriptions();
       } catch (error: unknown) {
@@ -1580,14 +1591,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             <Feather name="settings" size={16} color={currentTierAccent} />
             <ThemedText type="body" style={{ color: currentTierAccent, fontWeight: '600' }}>
               {normalizedTier === 'free'
-                ? (useAppleIAP ? t('subscription.upgradeManage') : t('subscription.upgradeManageBilling'))
-                : (useAppleIAP ? t('subscription.manageSubscription') : t('subscription.manageBilling'))}
+                ? (useNativeStoreIAP ? t('subscription.upgradeManage') : t('subscription.upgradeManageBilling'))
+                : (useNativeStoreIAP ? t('subscription.manageSubscription') : t('subscription.manageBilling'))}
             </ThemedText>
             {isProcessing ? (
               <ActivityIndicator size="small" color={currentTierAccent} style={{ marginLeft: Spacing.sm }} />
             ) : null}
           </Pressable>
-          {useAppleIAP ? (
+          {useNativeStoreIAP ? (
             <Pressable
               onPress={handleRestorePurchases}
               disabled={isProcessing}
@@ -1609,7 +1620,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           ) : null}
           {normalizedTier !== 'free' ? (
             <ThemedText type="caption" style={[styles.billingHint, { color: theme.tabIconDefault }]}>
-              {useAppleIAP
+              {useNativeStoreIAP
                 ? t('subscription.billingHintApple')
                 : devTestingMode
                   ? t('subscription.billingHintTesting')
@@ -1902,7 +1913,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               billingPlatform: status?.billingPlatform,
               hasStripeBilling: status?.hasStripeBilling,
               stripeSubscriptionId: status?.stripeSubscriptionId,
-            }) || (useAppleIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId);
+            }) || (useNativeStoreIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId);
 
             if (viaApple) {
               Alert.alert(
@@ -1931,7 +1942,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
-          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
+          {useNativeStoreIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
           <ThemedText
             type="small"
             style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}

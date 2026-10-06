@@ -28,7 +28,7 @@ import {
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier, preferHigherSubscriptionTier, reconcileSubscriptionTier, featureAccessTier } from '@/utils/subscriptionTier';
 import { shouldApplyTestingUnlock } from '@/utils/devTesting';
-import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import { shouldUseNativeStoreIAP } from '@/utils/platformPayments';
 import {
   shouldAutoPromoteLocalTierFromCustomerInfo,
   shouldSyncCustomerInfoOnPassiveRefresh,
@@ -1061,7 +1061,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (await shouldApplyTestingUnlock(user)) return;
     try {
       // Apple IAP: push RevenueCat entitlements to server (Stripe verify alone stays free)
-      if (shouldUseAppleIAP()) {
+      if (shouldUseNativeStoreIAP()) {
         try {
           const ready = await appleIAPService.configure(user.id);
           if (ready) {

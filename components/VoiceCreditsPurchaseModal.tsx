@@ -1,5 +1,5 @@
 /**
- * Reusable voice credit purchase modal — Stripe (web/Android) or Apple IAP (iOS).
+ * Reusable voice credit purchase modal — Stripe (web) or native store IAP (iOS / Android).
  */
 
 import React, { useCallback, useState } from 'react';
@@ -48,6 +48,7 @@ export function VoiceCreditsPurchaseModal({
     purchaseVoiceCredits,
     getPackagePriceLabel,
     useAppleIAP,
+    useNativeStoreIAP,
     isLoading,
     remainingCredits,
     usageLabel,
@@ -64,6 +65,7 @@ export function VoiceCreditsPurchaseModal({
     ['Need More'],
   );
   const topUpApple = labelOrFallback(t('voiceCredits.topUpApple'), 'Top up with Apple', ['Top Up Apple']);
+  const topUpPlay = labelOrFallback(t('voiceCredits.topUpPlay'), 'Top up with Google Play', ['Top Up Play']);
   const topUpStripe = labelOrFallback(t('voiceCredits.topUpStripe'), 'Top up with Stripe', ['Top Up Stripe']);
   const unlimited48h = labelOrFallback(
     t('voiceCredits.unlimited48h'),
@@ -172,8 +174,8 @@ export function VoiceCreditsPurchaseModal({
           <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
             {shouldShowBuyPacks && !weekendUnlimitedActive
               ? needMore
-              : useAppleIAP
-                ? topUpApple
+              : useNativeStoreIAP
+                ? (useAppleIAP ? topUpApple : topUpPlay)
                 : topUpStripe}
           </ThemedText>
 

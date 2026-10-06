@@ -11,7 +11,7 @@ import {
   type VoiceCreditPackId,
   type VoiceCreditPriceInfo,
 } from '@/services/AppleIAPService';
-import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import { shouldUseAppleIAP, shouldUseNativeStoreIAP } from '@/utils/platformPayments';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
@@ -237,6 +237,7 @@ function useVoiceCreditsState() {
   const [packages, setPackages] = useState<VoiceCreditPackage[]>([]);
   const [applePrices, setApplePrices] = useState<VoiceCreditPriceInfo[]>([]);
   const useAppleIAP = shouldUseAppleIAP();
+  const useNativeStoreIAP = shouldUseNativeStoreIAP();
   const getTierDisplayName = (rawTier: string): string => {
     return getBillingPlanDisplayName(rawTier);
   };
@@ -337,7 +338,7 @@ function useVoiceCreditsState() {
     }
   }, []);
   const fetchApplePrices = useCallback(async () => {
-    if (!useAppleIAP || !appleIAPService.isAvailable()) {
+    if (!useNativeStoreIAP || !appleIAPService.isAvailable()) {
       setApplePrices([]);
       return;
     }
@@ -354,7 +355,7 @@ function useVoiceCreditsState() {
       console.log('[useVoiceCredits] Apple price fetch error:', error);
       setApplePrices([]);
     }
-  }, [useAppleIAP, user?.id]);
+  }, [useNativeStoreIAP, user?.id]);
   const resetVoicePricesToCatalog = useCallback(() => {
     setApplePrices([]);
   }, []);
@@ -419,9 +420,14 @@ function useVoiceCreditsState() {
     return fetchBalance();
   }, [fetchBalance]);
   const purchaseVoiceCredits = useCallback(async (packageId: string) => {
-    if (useAppleIAP) {
+    if (useNativeStoreIAP) {
       if (!user?.id) {
-        Alert.alert('Sign in required', 'Please sign in to purchase voice credits with the App Store.');
+        Alert.alert(
+          'Sign in required',
+          useAppleIAP
+            ? 'Please sign in to purchase voice credits with the App Store.'
+            : 'Please sign in to purchase voice credits with Google Play.',
+        );
         throw new Error('Sign in required');
       }
       setIsPurchasing(true);
@@ -435,7 +441,10 @@ function useVoiceCreditsState() {
         if (!syncPayload.originalTransactionId) {
           throw new Error('Voice purchase could not be verified. Please contact support if credits are missing.');
         }
-        const result = await apiService.syncAppleVoicePurchase(syncPayload);
+        const result = await apiService.syncAppleVoicePurchase({
+          ...syncPayload,
+          customerInfo: syncPayload,
+        });
         if (result.newBalance) {
           updateBalance({
             remaining: result.newBalance.remaining,
@@ -519,7 +528,7 @@ function useVoiceCreditsState() {
     } finally {
       setIsPurchasing(false);
     }
-  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage, resetVoicePricesToCatalog]);
+  }, [refreshBalance, updateBalance, useAppleIAP, useNativeStoreIAP, user?.id, currentLanguage, resetVoicePricesToCatalog]);
   const upgradeToPersonalStylist = useCallback(async () => {
     try {
       setIsPurchasing(true);
@@ -587,6 +596,7 @@ function useVoiceCreditsState() {
     packages: displayPackages,
     applePrices,
     useAppleIAP,
+    useNativeStoreIAP,
     isLoading,
     balanceError,
     balanceReady,

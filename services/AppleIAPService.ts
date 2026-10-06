@@ -17,7 +17,7 @@ import Purchases, {
 import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
 import { currencyService } from '@/services/CurrencyService';
-import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import { shouldUseAppleIAP, shouldUseNativeStoreIAP, shouldUsePlayBilling } from '@/utils/platformPayments';
 import { nextRevenueCatIdentityAction } from '@/utils/appleEntitlementIsolation';
 import {
   originalSubscriptionPurchaseEvidence,
@@ -52,6 +52,20 @@ export const APPLE_SUBSCRIPTION_PRODUCT_IDS = {
   stylist_unlimited: {
     monthly: 'com.dripn.stylist_unlimited.monthly',
     yearly: 'com.dripn.stylist_unlimited.annual',
+  },
+} as const;
+
+/**
+ * Google Play Billing product IDs (RevenueCat `productId:basePlanId`).
+ */
+export const PLAY_SUBSCRIPTION_PRODUCT_IDS = {
+  personal_stylist: {
+    monthly: 'com.dripn.personal_stylist:monthly',
+    yearly: 'com.dripn.personal_stylist:yearly',
+  },
+  stylist_unlimited: {
+    monthly: 'com.dripn.stylist_unlimited:monthly',
+    yearly: 'com.dripn.stylist_unlimited:annual',
   },
 } as const;
 
@@ -145,18 +159,48 @@ export interface AppleIAPService {
 }
 
 function getRevenueCatApiKey(): string | null {
-  const key = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim();
-  return key || null;
+  if (Platform.OS === 'android') {
+    return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim() || null;
+  }
+  if (Platform.OS === 'ios') {
+    return process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim() || null;
+  }
+  return null;
+}
+
+function revenueCatKeyEnvName(): string {
+  return Platform.OS === 'android'
+    ? 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY'
+    : 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY';
 }
 
 function isExpoGo(): boolean {
   return Constants.appOwnership === 'expo';
 }
 
-function productIdFor(tier: IAPSubscriptionTier, interval: SubscriptionInterval): string {
+export function subscriptionProductIdFor(
+  tier: IAPSubscriptionTier,
+  interval: SubscriptionInterval,
+): string | null {
+  if (Platform.OS === 'android') {
+    const play = (PLAY_SUBSCRIPTION_PRODUCT_IDS as Record<
+      string,
+      { monthly: string; yearly: string } | undefined
+    >)[tier];
+    if (!play) return null;
+    return interval === 'yearly' ? play.yearly : play.monthly;
+  }
   return interval === 'yearly'
     ? APPLE_SUBSCRIPTION_PRODUCT_IDS[tier].yearly
     : APPLE_SUBSCRIPTION_PRODUCT_IDS[tier].monthly;
+}
+
+function productIdFor(tier: IAPSubscriptionTier, interval: SubscriptionInterval): string {
+  const productId = subscriptionProductIdFor(tier, interval);
+  if (!productId) {
+    throw new Error(`Google Play product is not configured for ${tier} ${interval}`);
+  }
+  return productId;
 }
 
 function dfyProductIdFor(tier: IAPDFYTier): string {
@@ -205,7 +249,28 @@ function findPackageByProductId(
   productId: string,
 ): PurchasesPackage | null {
   const packages = offerings.current?.availablePackages ?? [];
-  return packages.find((pkg) => pkg.product.identifier === productId) ?? null;
+  const exact = packages.find((pkg) => pkg.product.identifier === productId);
+  if (exact) return exact;
+
+  const colon = productId.indexOf(':');
+  if (colon <= 0) return null;
+
+  const baseProduct = productId.slice(0, colon);
+  const basePlan = productId.slice(colon + 1);
+  return (
+    packages.find((pkg) => {
+      const id = pkg.product.identifier;
+      if (id === `${baseProduct}:${basePlan}`) return true;
+      if (id !== baseProduct) return false;
+      if (basePlan === 'yearly' || basePlan === 'annual') {
+        return pkg.packageType === 'ANNUAL';
+      }
+      if (basePlan === 'monthly') {
+        return pkg.packageType === 'MONTHLY';
+      }
+      return false;
+    }) ?? null
+  );
 }
 
 function isUserCancelledPurchase(error: unknown): boolean {
@@ -222,7 +287,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
   private lastConfigureFailure: string | null = null;
 
   isAvailable(): boolean {
-    return shouldUseAppleIAP() && Platform.OS === 'ios';
+    return shouldUseNativeStoreIAP();
   }
 
   isConfigured(): boolean {
@@ -240,7 +305,10 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     }
 
     if (!this.isAvailable()) {
-      this.lastConfigureFailure = 'Apple IAP is not available on this platform';
+      this.lastConfigureFailure =
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this build'
+          : 'Apple IAP is not available on this platform';
       return false;
     }
 
@@ -254,7 +322,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     const apiKey = getRevenueCatApiKey();
     if (!apiKey) {
       this.lastConfigureFailure = IAP_UNAVAILABLE_MESSAGE;
-      console.warn('[AppleIAP] EXPO_PUBLIC_REVENUECAT_IOS_API_KEY not set — IAP disabled');
+      console.warn(`[AppleIAP] ${revenueCatKeyEnvName()} not set — IAP disabled`);
       return false;
     }
 
@@ -358,7 +426,8 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
     for (const tier of Object.keys(APPLE_SUBSCRIPTION_PRODUCT_IDS) as IAPSubscriptionTier[]) {
       for (const interval of ['monthly', 'yearly'] as SubscriptionInterval[]) {
-        const productId = productIdFor(tier, interval);
+        const productId = subscriptionProductIdFor(tier, interval);
+        if (!productId) continue;
         const pkg = findPackageByProductId(offerings, productId);
         if (!pkg?.product.priceString) continue;
 
@@ -387,6 +456,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
   }
 
   async getDFYPrices(): Promise<DFYPriceInfo[]> {
+    if (!shouldUseAppleIAP()) return [];
     if (!this.isAvailable()) return [];
     if (this.configurePromise) await this.configurePromise;
     if (!this.isConfigured()) return [];
@@ -518,7 +588,11 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     interval: SubscriptionInterval,
   ): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
-      throw new Error('Apple IAP is not available on this platform');
+      throw new Error(
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this platform'
+          : 'Apple IAP is not available on this platform',
+      );
     }
     await this.ensureReady();
 
@@ -544,7 +618,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
   }
 
   async purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo> {
-    if (!this.isAvailable()) {
+    if (!shouldUseAppleIAP() || !this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
     }
     return this.purchaseProductById(dfyProductIdFor(tier));
@@ -552,21 +626,33 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
   async purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
-      throw new Error('Apple IAP is not available on this platform');
+      throw new Error(
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this platform'
+          : 'Apple IAP is not available on this platform',
+      );
     }
     return this.purchaseProductById(voiceProductIdFor(packId));
   }
 
   async purchaseAiTopUp(packId: AiTopUpPackId): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
-      throw new Error('Apple IAP is not available on this platform');
+      throw new Error(
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this platform'
+          : 'Apple IAP is not available on this platform',
+      );
     }
     return this.purchaseProductById(aiTopUpProductIdFor(packId));
   }
 
   async restorePurchases(): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
-      throw new Error('Apple IAP is not available on this platform');
+      throw new Error(
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this platform'
+          : 'Apple IAP is not available on this platform',
+      );
     }
     await this.ensureReady();
     return Purchases.restorePurchases();
@@ -574,7 +660,11 @@ class RevenueCatAppleIAPService implements AppleIAPService {
 
   async getCustomerInfo(): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
-      throw new Error('Apple IAP is not available on this platform');
+      throw new Error(
+        Platform.OS === 'android'
+          ? 'Google Play Billing is not available on this platform'
+          : 'Apple IAP is not available on this platform',
+      );
     }
     await this.ensureReady();
     return Purchases.getCustomerInfo();
@@ -751,6 +841,22 @@ export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
   };
 }
 
+/** RC store enum the existing voice/AI sync helpers already read. */
+function nativeIapRevenueCatStore(): 'PLAY_STORE' | 'APP_STORE' | null {
+  if (shouldUsePlayBilling()) return 'PLAY_STORE';
+  if (shouldUseAppleIAP()) return 'APP_STORE';
+  return null;
+}
+
+function nativeIapStoreSyncFields() {
+  const store = nativeIapRevenueCatStore();
+  if (!store) return {};
+  return {
+    store,
+    activeEntitlements: [{ store }],
+  };
+}
+
 /**
  * Serialize CustomerInfo for voice credit consumable server sync.
  * Consumables are not restored via Apple — credits live on the server account.
@@ -775,6 +881,7 @@ export function serializeVoiceCustomerInfoForSync(
     packId: packId ?? null,
     weekendUnlimited,
     originalTransactionId: latestTxn?.transactionIdentifier ?? null,
+    ...nativeIapStoreSyncFields(),
   };
 }
 
@@ -807,6 +914,7 @@ export function serializeAiTopUpCustomerInfoForSync(
     packId: packId ?? null,
     displayName,
     originalTransactionId: latestTxn?.transactionIdentifier ?? null,
+    ...nativeIapStoreSyncFields(),
   };
 }
 
