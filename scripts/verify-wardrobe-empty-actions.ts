@@ -54,7 +54,7 @@ assert.match(quickAddHandler, /navigate\("QuickAdd"\)/, 'Quick Add must keep the
 assert.match(bulkAddHandler, /navigate\("BulkWardrobeUpload"\)/, 'Bulk Add must keep the existing Bulk Add flow');
 assert.match(scanHandler, /navigate\("DigitizeWardrobe"\)/, 'Scan implementation must be retained');
 
-assert.match(emptyCategory, /handleQuickAdd/, 'filtered empty category may still offer Quick Add');
+assert.equal(emptyCategory.includes('handleQuickAdd'), false, 'empty category must not duplicate Quick Add');
 assert.match(wardrobeSrc, /renderWardrobeItem/, 'item grid renderer retained');
 assert.match(wardrobeSrc, /selectionMode/, 'existing select/delete retained');
 

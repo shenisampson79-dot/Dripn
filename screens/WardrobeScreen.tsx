@@ -970,19 +970,6 @@ function WardrobeScreenInner({ navigation }: WardrobeScreenProps) {
         <ThemedText type="body" style={styles.emptyText}>
           Add some {categoryLabel.toLowerCase()} to your wardrobe to see them here
         </ThemedText>
-        <LinearGradient
-          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.emptyButtonGradient}
-        >
-          <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
-            <Feather name="camera" size={18} color={LUXURY_COLORS.midnight} />
-            <ThemedText type="body" style={styles.emptyButtonText}>
-              Quick Add {categoryLabel}
-            </ThemedText>
-          </Pressable>
-        </LinearGradient>
       </View>
     );
   };
