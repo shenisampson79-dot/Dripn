@@ -8,9 +8,11 @@ import { resolve } from 'node:path';
 
 import { resolveStylistResultDisplayState } from '../utils/stylistResultDisplayState';
 import {
+  QSC_PASSING_SCORE,
   VERDICT_BAND_RETHINK_MAX,
   VERDICT_BAND_TWEAK_MAX,
   formatDecisionResultPresentation,
+  resolveQscVerdictLabel,
   isBottomLineCandidate,
   ratingLabelAsVerdictChip,
   resolveScoreDisplay,
@@ -37,6 +39,36 @@ function base(overrides: Partial<TestResponse> = {}): TestResponse {
 }
 
 console.log('=== verify-decision-result-presentation ===\n');
+
+assert.equal(QSC_PASSING_SCORE, 8.0);
+
+// QSC: backend verdict + 8.0/10 passing threshold (Event/Shopping bands unchanged)
+{
+  assert.equal(resolveQscVerdictLabel({ verdict: 'doesnt_work', outfitScore: 8.2, ratingLabel: 'Works' }), 'RETHINK IT');
+  assert.equal(resolveQscVerdictLabel({ verdict: 'works', outfitScore: 7.5 }), 'WORKS');
+  assert.equal(resolveQscVerdictLabel({ outfitScore: 8.0 }), 'WORKS');
+  assert.equal(resolveQscVerdictLabel({ outfitScore: 7.9 }), 'NEEDS A TWEAK');
+  assert.equal(
+    formatDecisionResultPresentation(
+      base({ outfitScore: 7.9, ratingLabel: 'Works', message: 'Looks polished for work.' }),
+      'sanity-check',
+    ).verdictLabel,
+    'NEEDS A TWEAK',
+  );
+  assert.equal(
+    formatDecisionResultPresentation(
+      base({ outfitScore: 8.2, verdict: 'doesnt_work', ratingLabel: 'Works', message: 'Looks polished for work.' }),
+      'sanity-check',
+    ).verdictLabel,
+    'RETHINK IT',
+  );
+  const eventChip = formatDecisionResultPresentation(
+    base({ outfitScore: 7.9, styleRating: 7.9, ratingLabel: 'Works', message: 'Smart casual for dinner.' }),
+    'event-outfit',
+  );
+  assert.equal(eventChip.verdictLabel, 'WORKS');
+  assert.equal(eventChip.scoreDisplay, null);
+}
 
 // QSC: outfitScore renders X.X/10; ratingLabel independent
 {

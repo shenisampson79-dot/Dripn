@@ -158,6 +158,8 @@ export type DecisionResultDisplay = {
 /** Customer-facing styleRating bands for normalized verdict chips (0–10 scale). */
 export const VERDICT_BAND_RETHINK_MAX = STYLE_RATING_DISPLAY_FLOOR;
 export const VERDICT_BAND_TWEAK_MAX = STYLE_RATING_RECOMMEND_FLOOR;
+/** QSC passing threshold — matches backend percentScore >= 80 → works. */
+export const QSC_PASSING_SCORE = 8.0;
 
 const NORMALIZED_VERDICT_LABELS = ['WORKS', 'NEEDS A TWEAK', 'RETHINK IT'] as const;
 
@@ -204,6 +206,13 @@ export function verdictFromStyleRating(styleRating: number): (typeof NORMALIZED_
   return 'RETHINK IT';
 }
 
+function chipFromAuthoritativeVerdict(verdict?: string | null): string | null {
+  const v = String(verdict || '').toLowerCase().replace(/\s+/g, '_');
+  if (v === 'works' || v === 'work' || v === 'yes' || v === 'ok') return 'WORKS';
+  if (v === 'doesnt_work' || v === "doesn't_work" || v === 'no' || v === 'reject') return 'RETHINK IT';
+  return null;
+}
+
 export function resolveVerdictLabel(input: {
   styleRating?: number | null;
   ratingLabel?: string | null;
@@ -217,10 +226,27 @@ export function resolveVerdictLabel(input: {
     return verdictFromStyleRating(Number(rating));
   }
 
-  const v = String(input.verdict || '').toLowerCase().replace(/\s+/g, '_');
-  if (v === 'works' || v === 'work' || v === 'yes' || v === 'ok') return 'WORKS';
-  if (v === 'doesnt_work' || v === "doesn't_work" || v === 'no' || v === 'reject') return 'RETHINK IT';
-  return null;
+  return chipFromAuthoritativeVerdict(input.verdict);
+}
+
+/** QSC chips: backend verdict first, then 8.0/10 score — not Event/Shopping rating bands. */
+export function resolveQscVerdictLabel(input: {
+  outfitScore?: number | null;
+  ratingLabel?: string | null;
+  verdict?: string | null;
+}): string | null {
+  const fromVerdict = chipFromAuthoritativeVerdict(input.verdict);
+  if (fromVerdict) return fromVerdict;
+
+  const score = input.outfitScore;
+  if (score != null && Number.isFinite(Number(score))) {
+    const n = Number(score);
+    if (n >= QSC_PASSING_SCORE) return 'WORKS';
+    if (n > VERDICT_BAND_RETHINK_MAX) return 'NEEDS A TWEAK';
+    return 'RETHINK IT';
+  }
+
+  return ratingLabelAsVerdictChip(input.ratingLabel);
 }
 
 export function resolveScoreDisplay(
@@ -456,11 +482,17 @@ export function formatDecisionResultPresentation(
   } = {},
 ): DecisionResultDisplay {
   const qscOutfitScore = decisionType === 'sanity-check' ? (res.outfitScore ?? null) : null;
-  const verdictLabel = resolveVerdictLabel({
-    styleRating: qscOutfitScore,
-    ratingLabel: res.ratingLabel,
-    verdict: res.verdict,
-  });
+  const verdictLabel = decisionType === 'sanity-check'
+    ? resolveQscVerdictLabel({
+        outfitScore: qscOutfitScore,
+        ratingLabel: res.ratingLabel,
+        verdict: res.verdict,
+      })
+    : resolveVerdictLabel({
+        styleRating: null,
+        ratingLabel: res.ratingLabel,
+        verdict: res.verdict,
+      });
   const scoreDisplay = resolveScoreDisplay(decisionType, qscOutfitScore);
 
   const presentationBullets = (Array.isArray(res.presentation?.bullets) ? res.presentation!.bullets : [])
