@@ -87,7 +87,36 @@ export function filterSuggestionStringsForUi(
   return filterShopItemsForUi(asItems, opts).map((i) => i.label || i.name || '');
 }
 
-export function rewriteStylistCtaJargon(text?: string | null): string {
+export type StylistSanitizeWhitespaceOptions = {
+  preserveParagraphBreaks?: boolean;
+};
+
+function collapseSanitizerWhitespace(
+  text: string,
+  options?: StylistSanitizeWhitespaceOptions,
+): string {
+  if (options?.preserveParagraphBreaks) {
+    return text
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n(?:[ \t]*\n)+/g, '\n\n');
+  }
+  return text.replace(/\s{2,}/g, ' ');
+}
+
+function tidySanitizerPunctuation(
+  text: string,
+  options?: StylistSanitizeWhitespaceOptions,
+): string {
+  if (options?.preserveParagraphBreaks) {
+    return text.replace(/[ \t]+([.,!?])/g, '$1');
+  }
+  return text.replace(/\s+([.,!?])/g, '$1');
+}
+
+export function rewriteStylistCtaJargon(
+  text?: string | null,
+  options?: StylistSanitizeWhitespaceOptions,
+): string {
   if (typeof text !== 'string' || !text.trim()) return '';
   let out = text;
   // Log-outfit CTAs are internal jargon — strip (save affordance lives on outfit cards).
@@ -104,11 +133,14 @@ export function rewriteStylistCtaJargon(text?: string | null): string {
   out = out.replace(/\bclash-safe\b/gi, 'cohesive');
   out = out.replace(/\bClosest issue:\s*[^.!?\n]*[.!?]?/gi, '');
   out = out.replace(/\bwardrobe allocator\b/gi, 'wardrobe');
-  return out.replace(/\s{2,}/g, ' ').trim();
+  return collapseSanitizerWhitespace(out, options).trim();
 }
 
 /** Strip imperative save-a-look prose — real save CTAs live on outfit cards/buttons only. */
-export function stripNonActionableSaveLookProse(text?: string | null): string {
+export function stripNonActionableSaveLookProse(
+  text?: string | null,
+  options?: StylistSanitizeWhitespaceOptions,
+): string {
   if (typeof text !== 'string' || !text.trim()) return '';
   let out = text;
   out = out.replace(/\bWant to save this look(?:,\s*or shop the missing pieces)?\??/gi, '');
@@ -127,5 +159,7 @@ export function stripNonActionableSaveLookProse(text?: string | null): string {
   out = out.replace(/\s+(?:Save this look|Save the look)\??\.?\s*$/gi, '');
   out = out.replace(/^(?:Save this look|Save the look)\??\.?\s*/gim, '');
   out = out.replace(/\b(?:Save this look|Save the look)\??\s*(?=[.!?]|$)/gi, '');
-  return out.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').replace(/\.\s*\./g, '.').trim();
+  return tidySanitizerPunctuation(collapseSanitizerWhitespace(out, options), options)
+    .replace(/\.\s*\./g, '.')
+    .trim();
 }

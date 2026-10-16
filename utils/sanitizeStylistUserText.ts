@@ -3,7 +3,11 @@
  * Keep scoring/refinement/style-rule ids for the engine — never show them to users.
  */
 
-import { rewriteStylistCtaJargon, stripNonActionableSaveLookProse } from '@/utils/shopDressCodeFilters';
+import {
+  rewriteStylistCtaJargon,
+  stripNonActionableSaveLookProse,
+  type StylistSanitizeWhitespaceOptions,
+} from '@/utils/shopDressCodeFilters';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { cannedFallback, containsEngineLeak, isFatalEngineLeak, presentText } from '@/utils/stylistPresentationBoundary';
 
@@ -71,7 +75,34 @@ const VISION_IF_CHOSEN_RE = /\s*\(\s*if chosen[^)]*\)/gi;
 const VISION_POTENTIAL_GARMENT_RE =
   /\bpotential\s+((?:[a-z]+\s+){0,2}(?:undershirt|undershirts|top|tops|layer|layers|shirt|shirts|jacket|jackets|tee|t-shirt|t-shirts))\b/gi;
 
-function stripInternalPromptLeaks(input: string): string {
+export type SanitizeStylistUserTextOptions = StylistSanitizeWhitespaceOptions;
+
+function collapseSanitizerWhitespace(
+  text: string,
+  options?: SanitizeStylistUserTextOptions,
+): string {
+  if (options?.preserveParagraphBreaks) {
+    return text
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n(?:[ \t]*\n)+/g, '\n\n');
+  }
+  return text.replace(/\s{2,}/g, ' ');
+}
+
+function tidySanitizerPunctuation(
+  text: string,
+  options?: SanitizeStylistUserTextOptions,
+): string {
+  if (options?.preserveParagraphBreaks) {
+    return text.replace(/[ \t]+([.,!?])/g, '$1');
+  }
+  return text.replace(/\s+([.,!?])/g, '$1');
+}
+
+export function stripInternalPromptLeaks(
+  input: string,
+  options?: SanitizeStylistUserTextOptions,
+): string {
   let text = input.replace(/\\"/g, '"').replace(/\\'/g, "'");
   text = text.replace(WORKPLACE_SETTINGS_RE, ' ');
   text = text.replace(JUDGE_AGAINST_RE, ' ');
@@ -82,13 +113,16 @@ function stripInternalPromptLeaks(input: string): string {
       ? "I've got your look"
       : m
   ));
-  return text.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+  return tidySanitizerPunctuation(collapseSanitizerWhitespace(text, options), options).trim();
 }
 
-export function sanitizeStylistUserText(input?: string | null): string {
+export function sanitizeStylistUserText(
+  input?: string | null,
+  options?: SanitizeStylistUserTextOptions,
+): string {
   if (typeof input !== 'string' || !input.trim()) return '';
   if (isFatalEngineLeak(input)) return cannedFallback('qsc');
-  let text = stripInternalPromptLeaks(input);
+  let text = stripInternalPromptLeaks(input, options);
   if (!text) {
     return cannedFallback('qsc');
   }
@@ -112,10 +146,14 @@ export function sanitizeStylistUserText(input?: string | null): string {
   text = text.replace(DIMENSION_SCORE_TAIL_RE, '$1');
   text = text.replace(VISION_IF_CHOSEN_RE, ' ');
   text = text.replace(VISION_POTENTIAL_GARMENT_RE, '$1');
-  text = rewriteStylistCtaJargon(text);
-  text = stripNonActionableSaveLookProse(text);
+  text = rewriteStylistCtaJargon(text, options);
+  text = stripNonActionableSaveLookProse(text, options);
   text = text.replace(OPEN_QUESTION_OFFER_RE, ' ');
-  text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  if (options?.preserveParagraphBreaks) {
+    text = collapseSanitizerWhitespace(text, options).trim();
+  } else {
+    text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  }
   // Soften Title Case garment dumps in chat (Wear the / Opt for / …)
   text = text.replace(
     /((?:Wear this(?:\s+instead)?|You could go with|Opt for(?:\s+the)?|Instead,\s*wear(?:\s+the)?|Wear the|Try the|Keeping)\s*[:—–-]?\s*)([^.!?\n]+)/gi,

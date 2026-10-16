@@ -800,7 +800,9 @@ function attachWardrobeVisualToMessage(
     || response.displayState === 'REDIRECT_TO_DECIDE'
     || response.type === 'redirect_to_decide',
   );
-  const strippedContent = sanitizeStylistUserText(stripStructuredOutfitMarkers(message.content));
+  const strippedContent = sanitizeStylistUserText(stripStructuredOutfitMarkers(message.content), {
+    preserveParagraphBreaks: true,
+  });
   const styleSession = buildStyleSession({
     userMessage,
     assistantContent: strippedContent,
