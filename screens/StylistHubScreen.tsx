@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
@@ -388,11 +388,8 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
+                <ThemedText type="h3" style={{ color: '#3D3426' }}>
                   {t('stylistHub.styleToolsTitle') || 'Style Tools'}
-                </ThemedText>
-                <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]} numberOfLines={1}>
-                  {t('stylistHub.styleToolsSubtitle') || 'Your personal fashion assistant'}
                 </ThemedText>
               </View>
             </View>
@@ -447,13 +444,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-  },
-  title: {
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: Typography.small.fontSize,
-    lineHeight: 20,
   },
   featuresGrid: {
     flex: 1,
