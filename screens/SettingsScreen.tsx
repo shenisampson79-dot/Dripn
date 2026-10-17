@@ -37,21 +37,6 @@ import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 import { resolveStylistSpeakLanguage, stylistLanguageCodeToName } from "@/utils/stylistLanguage";
 import { selectableAppUiLanguages } from "@/utils/appUiLanguage";
 import {
-  DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
-  formatHourLabel,
-  getOccasionPrefLabel,
-  getTodaysOutfitPopupPrefs,
-  OCCASION_PREF_OPTIONS,
-  saveTodaysOutfitPopupPrefs,
-  type TodaysOutfitOccasionPref,
-  type TodaysOutfitPopupPrefs,
-} from "@/utils/todaysOutfitPrefs";
-import {
-  getWorkDressCodeLabel,
-  WORK_DRESS_CODE_OPTIONS,
-  type WorkDressCode,
-} from "@/services/OnboardingProfileService";
-import {
   getAnalyticsConsent,
   setAnalyticsConsent,
 } from "@/utils/analyticsConsent";
@@ -201,10 +186,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     remainingCents: number;
   } | null>(null);
   const [aiUsageLoading, setAiUsageLoading] = useState(false);
-  const [outfitPopupPrefs, setOutfitPopupPrefs] = useState<TodaysOutfitPopupPrefs>(
-    DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
-  );
-  const [outfitPopupPicker, setOutfitPopupPicker] = useState<'appearAt' | 'occasion' | 'workDress' | null>(null);
   const {
     remainingCredits,
     hasMonthlyAllowance,
@@ -289,36 +270,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       };
     }, [user?.id, user?.subscriptionTier, loadTravelPlan, loadAiUsage]),
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const prefs = await getTodaysOutfitPopupPrefs();
-      if (!cancelled) setOutfitPopupPrefs(prefs);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const updateOutfitPopupPrefs = async (partial: Partial<TodaysOutfitPopupPrefs>) => {
-    try {
-      const next = await saveTodaysOutfitPopupPrefs(partial);
-      setOutfitPopupPrefs(next);
-      // Force next Stylist open to rebuild for the new occasion / window
-      await AsyncStorage.removeItem('@dripn_todays_wardrobe_outfit');
-      // Changing appear time / re-enabling should allow today's popup again
-      if (partial.enabled === true || typeof partial.appearAtHour === 'number') {
-        const y = new Date().getFullYear();
-        const m = String(new Date().getMonth() + 1).padStart(2, '0');
-        const d = String(new Date().getDate()).padStart(2, '0');
-        await AsyncStorage.removeItem(`@dripn_todays_outfit_dismissed_${y}-${m}-${d}`);
-      }
-    } catch (err) {
-      console.warn('[Settings] Failed to save outfit popup prefs:', err);
-      Alert.alert(t('common.error') || 'Error', t('settings.couldNotSaveOutfitPopup') || 'Could not save outfit popup settings.');
-    }
-  };
 
   useEffect(() => {
     if (!showTestingTools) return;
@@ -955,72 +906,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            style={styles.sectionIcon}
-          >
-            <Feather name="sun" size={12} color="#FFFFFF" />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('settings.todaysOutfitPopup') || "Today's outfit popup"}
-          </ThemedText>
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="bell" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                {t('settings.showOutfitPopup') || 'Show daily outfit popup'}
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {t('settings.showOutfitPopupDesc') || "Auto-open today's look on Stylist once your wardrobe can make 7 different outfits, from your chosen time until you act on it"}
-              </ThemedText>
-            </View>
-            <Switch
-              value={outfitPopupPrefs.enabled}
-              onValueChange={(value) => void updateOutfitPopupPrefs({ enabled: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.gold }}
-              thumbColor={outfitPopupPrefs.enabled ? '#FFFFFF' : '#F4F4F4'}
-            />
-          </View>
-          <SettingItem
-            icon="clock"
-            title={t('settings.outfitPopupAppearAt') || 'Appear at'}
-            subtitle={formatHourLabel(outfitPopupPrefs.appearAtHour)}
-            onPress={() => setOutfitPopupPicker('appearAt')}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-          />
-          <SettingItem
-            icon="briefcase"
-            title={t('settings.outfitPopupOccasion') || 'Occasion'}
-            subtitle={getOccasionPrefLabel(outfitPopupPrefs.preferredOccasion)}
-            onPress={() => setOutfitPopupPicker('occasion')}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          />
-          <SettingItem
-            icon="briefcase"
-            title={t('settings.workDressCode') || 'Work dress code'}
-            subtitle={getWorkDressCodeLabel(outfitPopupPrefs.workDressCode)}
-            onPress={() => setOutfitPopupPicker('workDress')}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-          />
-        </View>
-      </View>
-
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
             colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
             style={styles.sectionIcon}
           >
@@ -1491,106 +1376,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </ThemedText>
         </LinearGradient>
       </View>
-
-      <Modal
-        visible={outfitPopupPicker !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOutfitPopupPicker(null)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setOutfitPopupPicker(null)}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}>
-            <View style={styles.modalHeader}>
-              <ThemedText type="h3" style={styles.modalTitle}>
-                {outfitPopupPicker === 'occasion'
-                  ? (t('settings.outfitPopupOccasion') || 'Occasion')
-                  : outfitPopupPicker === 'workDress'
-                    ? (t('settings.workDressCode') || 'Work dress code')
-                  : (t('settings.outfitPopupAppearAt') || 'Appear at')}
-              </ThemedText>
-              <Pressable
-                onPress={() => setOutfitPopupPicker(null)}
-                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-              >
-                <Feather name="x" size={20} color={theme.text} />
-              </Pressable>
-            </View>
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              {outfitPopupPicker === 'occasion'
-                ? OCCASION_PREF_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.id}
-                      onPress={() => {
-                        void updateOutfitPopupPrefs({
-                          preferredOccasion: option.id as TodaysOutfitOccasionPref,
-                        });
-                        setOutfitPopupPicker(null);
-                      }}
-                      style={[
-                        styles.modalOption,
-                        outfitPopupPrefs.preferredOccasion === option.id && {
-                          backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
-                        },
-                      ]}
-                    >
-                      <ThemedText type="body">{option.label}</ThemedText>
-                      {outfitPopupPrefs.preferredOccasion === option.id ? (
-                        <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
-                      ) : null}
-                    </Pressable>
-                  ))
-                : outfitPopupPicker === 'workDress'
-                  ? WORK_DRESS_CODE_OPTIONS.map((option) => (
-                      <Pressable
-                        key={option.id}
-                        onPress={() => {
-                          void updateOutfitPopupPrefs({
-                            workDressCode: option.id as WorkDressCode,
-                          });
-                          setOutfitPopupPicker(null);
-                        }}
-                        style={[
-                          styles.modalOption,
-                          outfitPopupPrefs.workDressCode === option.id && {
-                            backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
-                          },
-                        ]}
-                      >
-                        <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                          <ThemedText type="body">{option.label}</ThemedText>
-                          <ThemedText type="small" style={{ opacity: 0.65, marginTop: 2 }}>
-                            {option.description}
-                          </ThemedText>
-                        </View>
-                        {outfitPopupPrefs.workDressCode === option.id ? (
-                          <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
-                        ) : null}
-                      </Pressable>
-                    ))
-                : Array.from({ length: 24 }, (_, hour) => (
-                    <Pressable
-                      key={hour}
-                      onPress={() => {
-                        void updateOutfitPopupPrefs({ appearAtHour: hour });
-                        setOutfitPopupPicker(null);
-                      }}
-                      style={[
-                        styles.modalOption,
-                        outfitPopupPrefs.appearAtHour === hour && {
-                          backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
-                        },
-                      ]}
-                    >
-                      <ThemedText type="body">{formatHourLabel(hour)}</ThemedText>
-                      {outfitPopupPrefs.appearAtHour === hour ? (
-                        <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
-                      ) : null}
-                    </Pressable>
-                  ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
 
       <Modal
         visible={pickerModal.visible}
