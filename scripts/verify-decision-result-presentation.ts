@@ -4,7 +4,10 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import { resolveStylistResultDisplayState } from '../utils/stylistResultDisplayState';
 import {
@@ -326,7 +329,14 @@ assert.equal(
   assert.ok(!display.bullets.some((b) => /I've got your look/i.test(b)), 'no QSC canned in WHY');
   assert.ok(!display.bullets.some((b) => /swap that piece only/i.test(b)), 'no swap boilerplate in WHY');
   assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'no generic house-style in WHY');
-  assert.equal(display.bullets.length, 0, 'A: no flat piece fallback when only canned/generic sources');
+  assert.ok(!display.bullets.some((b) => /fills the top role/i.test(b)), 'A: no allocator-role language');
+  assert.equal(display.bullets.length, 1, 'A: named pieces produce identity WHY after canned filter');
+  assert.match(display.bullets[0] || '', /charles tyrwhitt pink dress shirt/i);
+  assert.match(display.bullets[0] || '', /Next black coated slim trousers/i);
+  assert.match(display.bullets[0] || '', /black leather loafers/i);
+  assert.match(display.bullets[0] || '', /Cavani gray windowpane check blazer/i);
+  assert.match(display.bullets[0] || '', /^This look uses /);
+  assert.doesNotMatch(display.bullets[0] || '', /polished|forced|layer|role/i);
 }
 
 // Event B: reasoning contains headline + useful sentence — headline deduped, useful survives
@@ -359,7 +369,10 @@ assert.equal(
     { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
   );
   assert.ok(!display.bullets.some((b) => /reads dressed-up without feeling forced/i.test(b)), 'C: generic removed');
-  assert.equal(display.bullets.length, 0, 'C: no flat piece fallback when only generic secondary');
+  assert.equal(display.bullets.length, 1, 'C: named pieces produce identity WHY after generic filter');
+  assert.match(display.bullets[0] || '', /charles tyrwhitt pink dress shirt/i);
+  assert.match(display.bullets[0] || '', /black leather loafers/i);
+  assert.doesNotMatch(display.bullets[0] || '', /dressed-up|forced|fills the top role/i);
 }
 
 // Event D: genuinely piece-specific reasoning preserved
@@ -391,7 +404,9 @@ assert.equal(
     { eventPieces, eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' } },
   );
   assert.match(display.summary || '', /formal setting/i);
-  assert.equal(display.bullets.length, 0, 'E: no flat piece fallback without reasoning');
+  assert.equal(display.bullets.length, 1, 'E: named pieces produce identity WHY when reasoning is missing');
+  assert.match(display.bullets[0] || '', /charles tyrwhitt pink dress shirt/i);
+  assert.doesNotMatch(display.bullets[0] || '', /fills the top role|meets the formal/i);
 }
 
 // Event H: allocator relaxation metadata must not render — no flat piece fallback
@@ -415,8 +430,11 @@ assert.equal(
   );
   assert.ok(!display.bullets.some((b) => /built after relaxing/i.test(b)), 'H: no relaxation metadata');
   assert.ok(!display.bullets.some((b) => /occasion lock kept hard/i.test(b)), 'H: no lock metadata');
-  assert.ok(!display.bullets.some((b) => /fills the top role/i.test(b)), 'H: no flat piece fallback');
-  assert.equal(display.bullets.length, 0, 'H: empty WHY when only internal metadata');
+  assert.ok(!display.bullets.some((b) => /fills the top role/i.test(b)), 'H: no allocator-role language');
+  assert.equal(display.bullets.length, 1, 'H: named pieces produce identity WHY after metadata filter');
+  assert.match(display.bullets[0] || '', /Primark cream crew neck t-shirt/i);
+  assert.match(display.bullets[0] || '', /u\.s\. chinos beige straight-leg pants/i);
+  assert.match(display.bullets[0] || '', /black leather loafers/i);
 }
 
 // deriveEventWhyFromPieces unit contract
@@ -430,9 +448,38 @@ assert.equal(
     ],
     { eventType: 'dinner', dressCode: 'formal' },
   );
-  assert.ok(bullets.length >= 2);
-  assert.ok(bullets.some((b) => /Pink dress shirt/i.test(b)));
-  assert.ok(bullets.some((b) => /Cavani blazer/i.test(b)));
+  assert.equal(bullets.length, 1);
+  assert.match(bullets[0] || '', /Pink dress shirt/);
+  assert.match(bullets[0] || '', /Cavani blazer/);
+  assert.match(bullets[0] || '', /Black trousers/);
+  assert.match(bullets[0] || '', /Black loafers/);
+  assert.doesNotMatch(bullets[0] || '', /fills the top role|outerwear layer|occasion/i);
+
+  assert.deepEqual(deriveEventWhyFromPieces([]), []);
+  assert.deepEqual(deriveEventWhyFromPieces([{ role: 'top', name: '' }, { role: 'bottom', name: '   ' }]), []);
+  assert.deepEqual(deriveEventWhyFromPieces([{ role: 'top', name: 'Item' }]), []);
+  const blankPieces = [{ role: 'top', name: 'Pink dress shirt' }, { role: 'bottom' }];
+  const namedOnly = deriveEventWhyFromPieces(blankPieces);
+  assert.equal(namedOnly.length, 1);
+  assert.match(namedOnly[0] || '', /Pink dress shirt/);
+  assert.doesNotMatch(namedOnly[0] || '', /undefined|bottom|Item/i);
+}
+
+// Event: blank names do not fabricate identity WHY
+{
+  const display = formatDecisionResultPresentation(
+    base({
+      message: 'Sharp, composed, and completely in step with a formal setting.',
+      reasoning: 'It reads dressed-up without feeling forced.',
+    }),
+    'event-outfit',
+    {
+      eventPieces: [{ role: 'top', name: '' }, { role: 'shoes', name: '  ' }, { role: 'bottom' }],
+      eventOccasionContext: { eventType: 'dinner', dressCode: 'formal' },
+    },
+  );
+  assert.equal(display.bullets.length, 0, 'blank names keep empty WHY');
+  assert.ok(!display.bullets.some((b) => /item|piece|garment/i.test(b)));
 }
 
 // Event F: hide optional upgrades when selected pieces already fill the role

@@ -370,42 +370,44 @@ function buildEventOccasionPhrase(ctx?: EventOccasionContext | null): string {
   return 'this occasion';
 }
 
-/** Deterministic Event WHY from structured outfit pieces — no invented attributes. */
+function isReliableEventGarmentName(name: string): boolean {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  if (/^(item|piece|garment|unnamed)$/i.test(n)) return false;
+  return n.length >= 2;
+}
+
+function formatEventGarmentIdentityLine(names: string[]): string | null {
+  if (!names.length) return null;
+  if (names.length === 1) return `This look uses ${names[0]}.`;
+  if (names.length === 2) return `This look uses ${names[0]} and ${names[1]}.`;
+  return `This look uses ${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}.`;
+}
+
+/**
+ * Deterministic Event WHY from structured outfit pieces.
+ * Factual garment names only — no invented attributes, roles, or styling claims.
+ * `occasionCtx` is unused; kept so existing call sites stay typed.
+ */
 export function deriveEventWhyFromPieces(
   pieces: EventPieceRef[],
-  occasionCtx?: EventOccasionContext | null,
+  _occasionCtx?: EventOccasionContext | null,
 ): string[] {
   if (!Array.isArray(pieces) || !pieces.length) return [];
 
-  const occ = buildEventOccasionPhrase(occasionCtx);
-  const byRole: Record<string, string> = {};
+  const seen = new Set<string>();
+  const names: string[] = [];
   for (const piece of pieces) {
-    const role = normalizeOutfitRole(piece.role);
     const name = String(piece.name || '').trim();
-    if (!role || !name) continue;
-    if (!byRole[role]) byRole[role] = name;
+    if (!isReliableEventGarmentName(name)) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
   }
 
-  const bullets: string[] = [];
-  const top = byRole.top;
-  const bottom = byRole.bottom;
-  const outerwear = byRole.outerwear;
-  const shoes = byRole.shoes;
-
-  if (top) {
-    bullets.push(`${top} fills the top role for ${occ}.`);
-  }
-  if (outerwear) {
-    bullets.push(`${outerwear} provides the selected outerwear layer.`);
-  }
-  if (bottom && shoes) {
-    bullets.push(`${bottom} and ${shoes} complete the selected outfit for ${occ}.`);
-  } else {
-    if (bottom) bullets.push(`${bottom} is your selected bottom for ${occ}.`);
-    if (shoes) bullets.push(`${shoes} completes the footwear for this outfit.`);
-  }
-
-  return bullets.slice(0, 4);
+  const line = formatEventGarmentIdentityLine(names);
+  return line ? [line] : [];
 }
 
 function mergeEventReasoningBullets(
@@ -551,6 +553,9 @@ export function formatDecisionResultPresentation(
 
   if (decisionType === 'event-outfit') {
     bullets = filterEventWhyBullets(bullets);
+    if (!bullets.length) {
+      bullets = deriveEventWhyFromPieces(opts.eventPieces || [], opts.eventOccasionContext);
+    }
   }
 
   if (summary && bottomLine && isDuplicate(summary, bottomLine)) bottomLine = null;
