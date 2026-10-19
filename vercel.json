@@ -92,6 +92,14 @@
       "destination": "/terms.html"
     },
     {
+      "source": "/delete-account",
+      "destination": "/delete-account.html"
+    },
+    {
+      "source": "/delete-account/",
+      "destination": "/delete-account.html"
+    },
+    {
       "source": "/reset-password",
       "destination": "/reset-password.html"
     },
