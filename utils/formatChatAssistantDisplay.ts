@@ -6,6 +6,8 @@
  * - Keep existing `\n\n` paragraphs and line-starting bullets.
  * - Only unstick a first inline `·`/`•` when later line-starting bullets
  *   already show a list, matching `…accidental. · Give the eye…\n· …`.
+ * - Separate the first list item from preceding prose with `\n\n`; keep
+ *   later bullets on single `\n`. Do not invent prose paragraph breaks.
  * Ambiguous text is left unchanged.
  */
 
@@ -23,11 +25,30 @@ export function formatChatAssistantDisplayText(raw: string): string {
       if (/(?:^|\n)[ \t]*$/.test(before)) return full;
       const rest = String(whole).slice(offset + full.length);
       if (!LINE_START_BULLET_RE.test(rest)) return full;
-      return `${punct}\n${bullet} `;
+      return `${punct}\n\n${bullet} `;
     });
   }
 
+  text = separateFirstListFromProse(text);
   return text.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** Upgrade prose + `\n` + first bullet to `\n\n`; leave bullet-to-bullet on `\n`. */
+function separateFirstListFromProse(text: string): string {
+  const lines = text.split('\n');
+  const out: string[] = [];
+  for (const line of lines) {
+    if (isBulletLine(line.trim()) && out.length) {
+      let prevIdx = out.length - 1;
+      while (prevIdx >= 0 && out[prevIdx].trim() === '') prevIdx--;
+      const prev = prevIdx >= 0 ? out[prevIdx] : '';
+      if (prev && !isBulletLine(prev.trim()) && out[out.length - 1].trim() !== '') {
+        out.push('');
+      }
+    }
+    out.push(line);
+  }
+  return out.join('\n');
 }
 
 function isBulletLine(line: string): boolean {

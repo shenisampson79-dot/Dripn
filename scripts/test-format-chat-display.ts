@@ -28,9 +28,14 @@ const gluedBullets =
 
 const formattedGlued = formatChatAssistantDisplayText(gluedBullets);
 assert.equal(
-  formattedGlued.includes('accidental.\n· Give the eye'),
+  formattedGlued.includes('accidental.\n\n· Give the eye'),
   true,
-  'genuine first inline bullet starts on its own line',
+  'genuine first inline bullet is separated from prose by a blank line',
+);
+assert.equal(
+  formattedGlued.includes('accidental.\n· Give the eye'),
+  false,
+  'first list boundary is not a single newline',
 );
 assertSameWords(gluedBullets, formattedGlued, 'glued list');
 assert.equal(
@@ -61,6 +66,64 @@ assert.equal(
   formatChatAssistantDisplayText(loneInline),
   loneInline,
   'sentence plus one inline middle dot is not treated as a list',
+);
+
+const screenshotShaped =
+  'The waistcoat adds a layer of interest without competing with the formality of the rest. Proportion matters more than novelty here, so keep the rest of the look quiet rather than accidental. · Give the eye one place to land\n· Keep metals to one finish\n· Let the navy stay the loudest colour';
+const formattedScreenshot = formatChatAssistantDisplayText(screenshotShaped);
+assert.equal(
+  formattedScreenshot.includes('the rest. Proportion matters more than novelty'),
+  true,
+  'screenshot prose sentences are not split',
+);
+assert.equal(
+  formattedScreenshot.includes('accidental.\n\n· Give the eye one place to land\n· Keep metals to one finish\n· Let the navy stay the loudest colour'),
+  true,
+  'screenshot-shaped reply opens the list with a blank line and keeps later bullets compact',
+);
+assertSameWords(screenshotShaped, formattedScreenshot, 'screenshot-shaped');
+
+const proseThenDotBullet =
+  'Keep the rest of the look quiet rather than accidental.\n· Give the eye one place to land\n· Keep metals to one finish';
+assert.equal(
+  formatChatAssistantDisplayText(proseThenDotBullet),
+  'Keep the rest of the look quiet rather than accidental.\n\n· Give the eye one place to land\n· Keep metals to one finish',
+  'prose followed by \\n· upgrades only the first list boundary',
+);
+
+const proseThenDotBulletSpaced =
+  'Keep the rest of the look quiet rather than accidental.\n\n· Give the eye one place to land\n· Keep metals to one finish';
+assert.equal(
+  formatChatAssistantDisplayText(proseThenDotBulletSpaced),
+  proseThenDotBulletSpaced,
+  'existing blank line before a · list is unchanged',
+);
+
+const proseThenHeavyBullet =
+  'Keep the rest of the look quiet rather than accidental.\n• Give the eye one place to land\n• Keep metals to one finish';
+assert.equal(
+  formatChatAssistantDisplayText(proseThenHeavyBullet),
+  'Keep the rest of the look quiet rather than accidental.\n\n• Give the eye one place to land\n• Keep metals to one finish',
+  'prose followed by \\n• upgrades only the first list boundary',
+);
+
+const alreadyFormatted = formatChatAssistantDisplayText(screenshotShaped);
+assert.equal(
+  formatChatAssistantDisplayText(alreadyFormatted),
+  alreadyFormatted,
+  'reformatting already formatted text does not accumulate extra blank lines',
+);
+assert.equal(
+  (alreadyFormatted.match(/\n\n/g) || []).length,
+  1,
+  'screenshot-shaped reply has exactly one paragraph break, at the list',
+);
+
+const twoSentence = 'The navy is doing the heavy lifting here, so keep everything else quiet. Proportion matters more than novelty.';
+assert.equal(
+  formatChatAssistantDisplayText(twoSentence),
+  twoSentence,
+  'ordinary multi-sentence prose stays unchanged',
 );
 
 const hubSrc = readFileSync(resolve(__dirname, '../screens/StylistHubScreen.tsx'), 'utf8');
