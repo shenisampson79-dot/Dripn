@@ -17,6 +17,12 @@
         "EXPO_PUBLIC_API_URL": "https://dripn-server.onrender.com"
       }
     },
+    "p2-device-test": {
+      "extends": "preview",
+      "distribution": "internal",
+      "channel": "p2-device-test",
+      "autoIncrement": true
+    },
     "production": {
       "channel": "production",
       "distribution": "store",
