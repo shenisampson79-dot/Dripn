@@ -935,7 +935,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           ) : null}
           <SettingItem
             icon="globe"
-            title={t('settings.appLanguage') || t('settings.language') || 'App language'}
+            title={t('settings.appLanguage') || t('settings.language') || 'App Language'}
             subtitle={currentLanguageLabel}
             onPress={handleLanguageSelect}
             theme={theme}
@@ -944,7 +944,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="message-circle"
-            title={t('settings.stylistLanguage') || 'Stylist language'}
+            title={t('settings.stylistLanguage') || 'Stylist Language'}
             subtitle={stylistLanguageLabel}
             onPress={handleStylistLanguageSelect}
             theme={theme}

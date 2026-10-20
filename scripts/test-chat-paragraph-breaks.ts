@@ -15,6 +15,10 @@ import {
   stripInternalPromptLeaks,
 } from '../utils/sanitizeStylistUserText';
 import {
+  formatChatAssistantDisplayText,
+  splitChatDisplayBlocks,
+} from '../utils/formatChatAssistantDisplay';
+import {
   rewriteStylistCtaJargon,
   stripNonActionableSaveLookProse,
 } from '../utils/shopDressCodeFilters';
@@ -170,5 +174,48 @@ for (const [label, file] of [
     `9. ${label} does not enable Chat paragraph preservation`,
   );
 }
+
+const gluedBullets =
+  "The navy is doing the heavy lifting here, so keep everything else quiet. Don't add another loud accessory or it will look accidental. · Give the eye one place to land\n· Keep metals to one finish\n· Let the navy stay the loudest colour";
+
+assert.equal(
+  formatChatAssistantDisplayText(gluedBullets).includes('accidental.\n· Give the eye'),
+  true,
+  '10. First inline middle-dot bullet starts on its own line',
+);
+
+const blocks = splitChatDisplayBlocks(gluedBullets);
+assert.equal(blocks[0]?.endsWith('accidental.'), true, '10b. Prose stays in its own block');
+assert.equal(blocks[1], '· Give the eye one place to land', '10c. First bullet is its own block');
+assert.equal(blocks[2], '· Keep metals to one finish', '10d. Second bullet remains separate');
+assert.equal(blocks[3], '· Let the navy stay the loudest colour', '10e. Third bullet remains separate');
+
+assert.deepEqual(
+  splitChatDisplayBlocks('Paragraph one.\n\nParagraph two.'),
+  ['Paragraph one.', 'Paragraph two.'],
+  '11. Existing paragraph breaks become spaced display blocks',
+);
+
+assert.deepEqual(
+  splitChatDisplayBlocks('Single paragraph with no recoverable structure.'),
+  ['Single paragraph with no recoverable structure.'],
+  '12. Unstructured prose is not split into invented paragraphs',
+);
+
+const hubSrc = readFileSync(resolve(__dirname, '../screens/StylistHubScreen.tsx'), 'utf8');
+assert.doesNotMatch(hubSrc, /stylistHub\.styleToolsTitle|\|\| 'Style Tools'/, '13. Stylist Hub no longer renders Style Tools heading');
+assert.match(hubSrc, /title: "Live Stylist"/, '14. Live Stylist card uses requested capitalisation');
+
+const selectableSrc = readFileSync(resolve(__dirname, '../components/chat/ChatSelectableText.tsx'), 'utf8');
+assert.match(selectableSrc, /splitChatDisplayBlocks/, '15. Chat renderer uses display blocks');
+
+const settingsSrc = readFileSync(resolve(__dirname, '../screens/SettingsScreen.tsx'), 'utf8');
+assert.match(settingsSrc, /App Language/, '16. Settings fallback is App Language');
+assert.match(settingsSrc, /Stylist Language/, '17. Settings fallback is Stylist Language');
+
+const en = JSON.parse(readFileSync(resolve(__dirname, '../locales/en.json'), 'utf8')) as Record<string, string>;
+assert.equal(en['voiceCredits.voiceReplies'], 'Voice Replies', '18. Voice Replies label');
+assert.equal(en['settings.appLanguage'], 'App Language', '19. App Language label');
+assert.equal(en['settings.stylistLanguage'], 'Stylist Language', '20. Stylist Language label');
 
 console.log('test-chat-paragraph-breaks: all passed');

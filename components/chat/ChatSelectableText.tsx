@@ -4,6 +4,9 @@
  * RN `Text selectable` on iOS is UILabel-backed: long-press only offers
  * "Copy" for the entire block with no illumination. A non-editable multiline
  * TextInput uses UITextView and restores native word selection.
+ *
+ * Assistant copy is formatted in one native field so selection still spans
+ * the full reply. Stored message text is not rewritten.
  */
 import React, { useMemo } from 'react';
 import {
@@ -13,6 +16,8 @@ import {
   type StyleProp,
   type TextStyle,
 } from 'react-native';
+
+import { formatChatAssistantDisplayText } from '@/utils/formatChatAssistantDisplay';
 
 const SELECTION_COLOR = 'rgba(201, 168, 124, 0.45)';
 
@@ -43,12 +48,15 @@ type Props = {
 };
 
 export function ChatSelectableText({ text, style, inverted }: Props) {
-  const plain = useMemo(() => stripMarkdownBold(text), [text]);
+  const display = useMemo(() => {
+    const plain = stripMarkdownBold(text);
+    return inverted ? plain : formatChatAssistantDisplayText(plain);
+  }, [inverted, text]);
 
   if (Platform.OS === 'ios') {
     return (
       <TextInput
-        value={plain}
+        value={display}
         editable={false}
         multiline
         scrollEnabled={false}
@@ -77,7 +85,7 @@ export function ChatSelectableText({ text, style, inverted }: Props) {
       selectionColor={SELECTION_COLOR}
       style={[style, inverted ? { color: '#FFFFFF' } : null]}
     >
-      {renderBoldSegments(text)}
+      {renderBoldSegments(display)}
     </Text>
   );
 }

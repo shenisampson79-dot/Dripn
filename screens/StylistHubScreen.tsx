@@ -33,13 +33,7 @@ type StylistHubScreenProps = {
 
 const GRID_GAP = Spacing.md;
 const GRID_ROWS = 4;
-/** Gap under Today's outfit / Style Tools header before the first tile row */
-const GRID_TOP_GAP = Spacing.md;
-/**
- * Space below the last tile row, above the tab bar.
- * Slightly larger than GRID_TOP_GAP so it reads like the visual gap under
- * the Today's outfit chip (chip sits in the header row above the grid gap).
- */
+/** Space below the last tile row, above the tab bar. */
 const BOTTOM_BREATHING = Spacing.xl;
 
 type GradientKey =
@@ -53,7 +47,7 @@ type GradientKey =
   | 'ocean';
 
 /**
- * One unique colour per Style Tools tile (stable association).
+ * One unique colour per stylist tile (stable association).
  * Launch and full grids never show colliding ids together.
  */
 const TILE_GRADIENT_BY_ID: Record<string, GradientKey> = {
@@ -99,7 +93,7 @@ const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   },
   {
     id: "live-stylist",
-    title: "Live stylist",
+    title: "Live Stylist",
     description: "Camera tips on your outfit",
     icon: "aperture",
     screen: "LiveStylist",
@@ -385,18 +379,7 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
         </View>
 
         <View style={styles.contentSection}>
-          <View style={styles.headerSection}>
-            <View style={styles.headerRow}>
-              <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                <ThemedText type="h3" style={{ color: '#3D3426' }}>
-                  {t('stylistHub.styleToolsTitle') || 'Style Tools'}
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-
-          {/* Same top gap as under Today's outfit in attachment 1; tiles flex-fill the rest */}
-          <View style={[styles.featuresGrid, { marginTop: GRID_TOP_GAP }]}>
+          <View style={styles.featuresGrid}>
             {featureRows.map((row, rowIndex) => (
               <View key={`row-${rowIndex}`} style={styles.featureRow}>
                 {row.map(({ feature, index }) => renderFeatureTile(feature, index))}
@@ -436,14 +419,6 @@ const styles = StyleSheet.create({
   contentSection: {
     paddingHorizontal: Spacing.xl,
     flex: 1,
-  },
-  headerSection: {
-    marginBottom: 0,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
   },
   featuresGrid: {
     flex: 1,

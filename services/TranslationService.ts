@@ -2158,7 +2158,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     topUpVoiceReplies: 'Top up voice replies',
     unlimited48h: 'Unlimited for 48 hours',
     unlimited48hBadge: '48h Unlimited',
-    voiceReplies: 'voice replies',
+    voiceReplies: 'Voice Replies',
     weekendAddedMessage: '2-day unlimited is now active on your account.',
     weekendVoiceActive: '2-day unlimited active',
     languageUpdatedLocally: 'Language updated on this device. Will sync when online.',
