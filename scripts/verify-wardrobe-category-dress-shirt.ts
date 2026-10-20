@@ -3,7 +3,7 @@
  * Run: npx tsx scripts/verify-wardrobe-category-dress-shirt.ts
  */
 import assert from 'assert';
-import { normalizeWardrobeCategory } from '../utils/wardrobeCategories';
+import { normalizeWardrobeCategory } from '../utils/wardrobeCategories.ts';
 
 assert.equal(
   normalizeWardrobeCategory('dresses', {
@@ -45,6 +45,14 @@ assert.equal(
     subcategory: 'gown',
   }),
   'dresses',
+);
+
+assert.equal(
+  normalizeWardrobeCategory('dresses', {
+    name: 'charles tyrwhitt light pink dress shirt',
+  }),
+  'tops',
+  'screenshot dress shirt name + dresses → tops',
 );
 
 console.log(

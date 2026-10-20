@@ -2135,7 +2135,10 @@ export default function AskStylistScreen({ navigation, route: routeProp }: AskSt
             {allPieces.map((piece, index) => (
               <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={styles.outfitPieceRow}>
                 <ThemedText type="small" style={styles.outfitPieceRole}>
-                  {formatOutfitPieceRoleLabel(piece.role)}
+                  {formatOutfitPieceRoleLabel(piece.role, {
+                    name: piece.name,
+                    category: piece.category,
+                  })}
                   {piece.type === 'recommended' ? ' · rec' : ''}
                 </ThemedText>
                 <ThemedText type="body" style={styles.outfitPieceName}>

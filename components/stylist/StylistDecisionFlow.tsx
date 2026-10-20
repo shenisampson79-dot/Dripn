@@ -195,7 +195,10 @@ function renderDecisionResultHierarchy(
           {displayPieces.map((piece, index) => (
             <View key={`piece-${piece.wardrobeItemId || piece.name || index}`} style={{ marginBottom: Spacing.xs }}>
               <ThemedText type="body">
-                {formatOutfitPieceRoleLabel(piece.role)}
+                {formatOutfitPieceRoleLabel(piece.role, {
+                  name: piece.name,
+                  category: piece.category,
+                })}
                 {': '}
                 {editorialGarmentName(piece.name || '', { brand: (piece as { brand?: string }).brand })}
                 {piece.type === 'recommended' ? ' · recommended' : ''}

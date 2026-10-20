@@ -10,6 +10,12 @@ import {
 } from '@/utils/shopDressCodeFilters';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 import { cannedFallback, containsEngineLeak, isFatalEngineLeak, presentText } from '@/utils/stylistPresentationBoundary';
+import {
+  formatOutfitPieceRoleLabel,
+  type OutfitPieceRoleLabelHints,
+} from './outfitPieceRoleLabel';
+
+export { formatOutfitPieceRoleLabel, type OutfitPieceRoleLabelHints };
 
 const SCORED_FOR_RE = /\bScored for\b[^.!?\n]*[.!?]?/gi;
 const REFINEMENT_RE = /\bRefinement\s*:\s*[^.!?\n]*[.!?]?/gi;
@@ -189,30 +195,3 @@ export function sanitizeStylistUserText(
   return text;
 }
 
-/** Singular role labels for outfit piece lists (Top, not Tops). */
-export function formatOutfitPieceRoleLabel(role?: string | null): string {
-  const raw = String(role || 'piece').toLowerCase().trim();
-  const map: Record<string, string> = {
-    top: 'Top',
-    tops: 'Top',
-    shirt: 'Top',
-    bottom: 'Bottom',
-    bottoms: 'Bottom',
-    pants: 'Bottom',
-    trousers: 'Bottom',
-    shoes: 'Shoes',
-    shoe: 'Shoes',
-    footwear: 'Shoes',
-    outerwear: 'Outerwear',
-    outer: 'Outerwear',
-    jacket: 'Outerwear',
-    bag: 'Bag',
-    bags: 'Bag',
-    accessory: 'Accessory',
-    accessories: 'Accessory',
-    dress: 'Dress',
-    piece: 'Piece',
-  };
-  if (map[raw]) return map[raw];
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
