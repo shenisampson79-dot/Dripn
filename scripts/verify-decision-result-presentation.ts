@@ -535,6 +535,72 @@ assert.equal(
   );
 }
 
+// QSC: suppress summaries that only echo the verdict chip (exact normalised match)
+{
+  const worksEcho = formatDecisionResultPresentation(
+    base({
+      verdict: 'works',
+      outfitScore: 8.2,
+      message: 'This outfit works. The jacket balances the jeans.',
+    }),
+    'sanity-check',
+  );
+  assert.equal(worksEcho.verdictLabel, 'WORKS');
+  assert.equal(worksEcho.summary, null);
+  assert.ok(worksEcho.bullets.some((b) => /jacket balances/i.test(b)), 'WHY bullet retained');
+
+  assert.equal(
+    formatDecisionResultPresentation(base({ verdict: 'works', message: 'It works.' }), 'sanity-check').summary,
+    null,
+  );
+  assert.equal(
+    formatDecisionResultPresentation(base({ verdict: 'works', message: 'The look works!' }), 'sanity-check').summary,
+    null,
+  );
+  assert.equal(
+    formatDecisionResultPresentation(
+      base({ outfitScore: 7.5, message: 'This outfit needs a tweak.' }),
+      'sanity-check',
+    ).summary,
+    null,
+  );
+  assert.equal(
+    formatDecisionResultPresentation(
+      base({ verdict: 'doesnt_work', message: "This outfit doesn't work." }),
+      'sanity-check',
+    ).summary,
+    null,
+  );
+}
+
+{
+  const polished = formatDecisionResultPresentation(
+    base({ verdict: 'works', outfitScore: 8.2, message: 'Looks polished for work.' }),
+    'sanity-check',
+  );
+  assert.equal(polished.summary, 'Looks polished for work.');
+
+  const office = formatDecisionResultPresentation(
+    base({ verdict: 'works', message: 'This works for a smart-casual office day.' }),
+    'sanity-check',
+  );
+  assert.match(office.summary || '', /smart-casual office day/i);
+
+  const because = formatDecisionResultPresentation(
+    base({ verdict: 'works', message: 'This outfit works because the jacket balances the jeans.' }),
+    'sanity-check',
+  );
+  assert.match(because.summary || '', /jacket balances the jeans/i);
+}
+
+{
+  const eventEcho = formatDecisionResultPresentation(
+    base({ ratingLabel: 'Works', message: 'This outfit works.' }),
+    'event-outfit',
+  );
+  assert.match(eventEcho.summary || '', /this outfit works/i, 'Event does not use QSC echo suppression');
+}
+
 // Render contract in StylistDecisionFlow
 {
   const flowSrc = readFileSync(resolve(__dirname, '../components/stylist/StylistDecisionFlow.tsx'), 'utf8');

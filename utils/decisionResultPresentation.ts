@@ -171,6 +171,57 @@ function normalizeForDedupe(s: string): string {
   return s.trim().replace(/\s+/g, ' ').toLowerCase().replace(/[.!?…]+$/, '');
 }
 
+/** Exact QSC chip echoes only — not a substring match on "works" / "tweak" / "rethink". */
+const QSC_VERDICT_ECHO: Record<string, readonly string[]> = {
+  WORKS: [
+    'this outfit works',
+    'the outfit works',
+    'this look works',
+    'the look works',
+    'it works',
+    'this works',
+  ],
+  'NEEDS A TWEAK': [
+    'this outfit needs a tweak',
+    'the outfit needs a tweak',
+    'this look needs a tweak',
+    'the look needs a tweak',
+    'it needs a tweak',
+    'this needs a tweak',
+    'needs a tweak',
+  ],
+  'RETHINK IT': [
+    "this outfit doesn't work",
+    'this outfit does not work',
+    "the outfit doesn't work",
+    'the outfit does not work',
+    "this look doesn't work",
+    "the look doesn't work",
+    "it doesn't work",
+    'it does not work',
+    "this doesn't work",
+    'this does not work',
+    'rethink it',
+  ],
+};
+
+function isQscVerdictEcho(summary: string, verdictLabel: string | null): boolean {
+  if (!verdictLabel) return false;
+  const allowed = QSC_VERDICT_ECHO[verdictLabel];
+  if (!allowed) return false;
+  return allowed.includes(normalizeForDedupe(summary));
+}
+
+function suppressQscVerdictEchoSummary(
+  decisionType: DecisionFlowType,
+  verdictLabel: string | null,
+  summary: string | null,
+): string | null {
+  if (decisionType !== 'sanity-check' || !summary) return summary;
+  if (!isQscVerdictEcho(summary, verdictLabel)) return summary;
+  return null;
+}
+
 function isDuplicate(a: string, b: string): boolean {
   const na = normalizeForDedupe(a);
   const nb = normalizeForDedupe(b);
@@ -508,10 +559,11 @@ export function formatDecisionResultPresentation(
 
   if (presentationBullets.length >= 2) {
     const summary = noteSummary || safeText(res.presentation?.headline || res.presentation?.summary || '') || null;
+    const kept = summary && !isDuplicate(summary, presentationBullets[0] || '') ? summary : null;
     return {
       verdictLabel,
       scoreDisplay,
-      summary: summary && !isDuplicate(summary, presentationBullets[0] || '') ? summary : null,
+      summary: suppressQscVerdictEchoSummary(decisionType, verdictLabel, kept),
       bullets: presentationBullets,
       bottomLine: null,
     };
@@ -567,7 +619,7 @@ export function formatDecisionResultPresentation(
   return {
     verdictLabel,
     scoreDisplay,
-    summary,
+    summary: suppressQscVerdictEchoSummary(decisionType, verdictLabel, summary),
     bullets,
     bottomLine,
   };
