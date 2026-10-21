@@ -633,7 +633,18 @@ assert.equal(
   const flowSrc = readFileSync(resolve(__dirname, '../components/stylist/StylistDecisionFlow.tsx'), 'utf8');
   assert.match(flowSrc, /formatDecisionResultPresentation/);
   assert.match(flowSrc, /renderDecisionResultHierarchy/);
-  assert.match(flowSrc, /WHY/);
+  assert.match(
+    flowSrc,
+    /whyLabel: decisionType === 'sanity-check' \|\| decisionType === 'event-outfit'\s*\n\s*\? 'WHY\?'\s*\n\s*: 'WHY'/,
+    'QSC and Event use WHY?; Shopping keeps WHY',
+  );
+  assert.match(flowSrc, /whyLabel = 'WHY'/, 'default heading remains WHY');
+  assert.match(
+    flowSrc,
+    /<ThemedText type="small" style=\{\[styles\.whyHeading, \{ color: theme\.tabIconDefault \}\]\}>\s*\n\s*\{whyLabel\}/,
+    'heading placement and whyHeading style unchanged',
+  );
+  assert.match(flowSrc, /styles\.whyBlock/, 'whyBlock placement unchanged');
   assert.doesNotMatch(flowSrc, /qscPercent/);
   assert.match(flowSrc, /responseOptionThumbWinner/);
   assert.match(flowSrc, /flow\.resetFlow\(\)/);

@@ -154,9 +154,10 @@ function renderDecisionResultHierarchy(
     showPieceRows?: boolean;
     displayPieces?: Array<{ role?: string; name?: string; wardrobeItemId?: number | string; type?: string; brand?: string }>;
     plainProse?: boolean;
+    whyLabel?: string;
   } = {},
 ) {
-  const { showPieceRows = false, displayPieces = [], plainProse = false } = opts;
+  const { showPieceRows = false, displayPieces = [], plainProse = false, whyLabel = 'WHY' } = opts;
   const hasHierarchy = Boolean(
     display.verdictLabel
     || display.scoreDisplay
@@ -211,7 +212,7 @@ function renderDecisionResultHierarchy(
       {display.bullets.length > 0 ? (
         <View style={styles.whyBlock}>
           <ThemedText type="small" style={[styles.whyHeading, { color: theme.tabIconDefault }]}>
-            WHY
+            {whyLabel}
           </ThemedText>
           {display.bullets.map((bullet, index) => (
             <View key={`why-${index}`} style={styles.whyBulletRow}>
@@ -1297,6 +1298,9 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
               showPieceRows,
               displayPieces,
               plainProse: decisionType === 'sanity-check',
+              whyLabel: decisionType === 'sanity-check' || decisionType === 'event-outfit'
+                ? 'WHY?'
+                : 'WHY',
             })
           )}
         </View>
