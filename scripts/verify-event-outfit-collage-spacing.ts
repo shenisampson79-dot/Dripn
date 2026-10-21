@@ -58,8 +58,10 @@ assert.match(
 );
 assert.match(safeSrc, /layoutVariant=\{layoutVariant\}/, 'SafeOutfitPieces forwards layoutVariant');
 
+assert.doesNotMatch(chatSrc, /layoutVariant="event"/, 'chat does not opt into Event collage spacing');
+assert.doesNotMatch(chatSrc, /layoutVariant=\{?'event'/, 'chat does not pass Event variant');
+
 for (const [name, src] of [
-  ['chat', chatSrc],
   ['ask', askSrc],
   ['ranked', rankedSrc],
   ['profile', profileSrc],

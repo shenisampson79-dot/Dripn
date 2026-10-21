@@ -111,6 +111,9 @@ export const EVENT_OUTFIT_LAYER_HEIGHT: Partial<Record<LayerSlot, number>> = {
   shoes: 108,
 };
 
+/** Chat collage only — keep LARGE box sizes; overlap neighbours by STACK_OVERLAP. */
+export const CHAT_OUTFIT_SLOT_OVERLAP = 14;
+
 const LAYER_WIDTH: Record<LayerSlot, number> = {
   outerwear: 0.92,
   top: 0.8,
@@ -285,8 +288,8 @@ type Props = {
   visualScale?: number;
   /** Pull stacked pieces closer together (higher overlap). */
   tight?: boolean;
-  /** Event result collage: slightly shorter slots and a 2px positive gap. */
-  layoutVariant?: 'event';
+  /** Event result collage: slightly shorter slots and a 2px positive gap. Chat: LARGE boxes with overlapped pitch. */
+  layoutVariant?: 'event' | 'chat';
 };
 
 export function OutfitPiecesVisual({
@@ -360,6 +363,7 @@ export function OutfitPiecesVisual({
   }
 
   const eventLayout = Boolean(large && !tight && !compact && layoutVariant === 'event');
+  const chatLayout = Boolean(large && !tight && !compact && layoutVariant === 'chat');
   const layerHeight = (slot: LayerSlot) => {
     const table = large ? LAYER_HEIGHT_LARGE : LAYER_HEIGHT;
     const eventHeight = eventLayout ? EVENT_OUTFIT_LAYER_HEIGHT[slot] : undefined;
@@ -373,7 +377,8 @@ export function OutfitPiecesVisual({
   const baseOverlap = compact ? 22 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
   const useStackGap = large && !tight && !compact;
   const eventStackPitch = Math.max(0, EVENT_OUTFIT_STACK_GAP) - EVENT_OUTFIT_SLOT_OVERLAP;
-  const activeGap = eventLayout ? eventStackPitch : STACK_GAP_LARGE;
+  const chatStackPitch = STACK_GAP_LARGE - CHAT_OUTFIT_SLOT_OVERLAP;
+  const activeGap = eventLayout ? eventStackPitch : chatLayout ? chatStackPitch : STACK_GAP_LARGE;
   const stackSpacing = useStackGap
     ? Math.round(activeGap * sizeScale)
     : Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));

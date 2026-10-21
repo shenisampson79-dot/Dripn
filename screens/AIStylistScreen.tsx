@@ -4542,6 +4542,7 @@ export default function AIStylistScreen() {
             wardrobeItems={wardrobeItems}
             label=""
             large
+            layoutVariant="chat"
             canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
           />
           {renderOutfitSaveActions(message, wardrobeIdsFromPieces(safePieces))}
@@ -4632,6 +4633,7 @@ export default function AIStylistScreen() {
               wardrobeItems={wardrobeItems}
               label={outfitLabel}
               large
+              layoutVariant="chat"
               canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
             />
             {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(safePieces), outfitLabel)}

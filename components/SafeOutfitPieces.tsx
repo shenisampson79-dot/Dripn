@@ -18,8 +18,8 @@ type Props = {
   canvasWidth?: number;
   visualScale?: number;
   tight?: boolean;
-  /** Event result collage spacing only. */
-  layoutVariant?: 'event';
+  /** Event or Chat collage spacing only. */
+  layoutVariant?: 'event' | 'chat';
   /** When true, show soft fallback instead of null when pieces are empty/invalid. */
   showEmptyFallback?: boolean;
   emptyMessage?: string;
