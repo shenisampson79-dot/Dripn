@@ -535,7 +535,7 @@ assert.equal(
   );
 }
 
-// QSC: suppress summaries that only echo the verdict chip (exact normalised match)
+// QSC: generic AI verdict-first sentences stay visible as the summary
 {
   const worksEcho = formatDecisionResultPresentation(
     base({
@@ -546,31 +546,40 @@ assert.equal(
     'sanity-check',
   );
   assert.equal(worksEcho.verdictLabel, 'WORKS');
-  assert.equal(worksEcho.summary, null);
+  assert.equal(worksEcho.scoreDisplay, '8.2/10');
+  assert.equal(worksEcho.summary, 'This outfit works.');
   assert.ok(worksEcho.bullets.some((b) => /jacket balances/i.test(b)), 'WHY bullet retained');
 
-  assert.equal(
-    formatDecisionResultPresentation(base({ verdict: 'works', message: 'It works.' }), 'sanity-check').summary,
-    null,
+  const itWorks = formatDecisionResultPresentation(
+    base({ verdict: 'works', outfitScore: 8.2, message: 'It works.' }),
+    'sanity-check',
   );
-  assert.equal(
-    formatDecisionResultPresentation(base({ verdict: 'works', message: 'The look works!' }), 'sanity-check').summary,
-    null,
+  assert.equal(itWorks.verdictLabel, 'WORKS');
+  assert.equal(itWorks.scoreDisplay, '8.2/10');
+  assert.equal(itWorks.summary, 'It works.');
+  assert.equal(itWorks.bullets.length, 0, 'sole explanatory sentence stays in summary');
+
+  const lookWorks = formatDecisionResultPresentation(
+    base({ verdict: 'works', outfitScore: 8.0, message: 'The look works!' }),
+    'sanity-check',
   );
-  assert.equal(
-    formatDecisionResultPresentation(
-      base({ outfitScore: 7.5, message: 'This outfit needs a tweak.' }),
-      'sanity-check',
-    ).summary,
-    null,
+  assert.equal(lookWorks.verdictLabel, 'WORKS');
+  assert.equal(lookWorks.summary, 'The look works!');
+
+  const tweak = formatDecisionResultPresentation(
+    base({ outfitScore: 7.5, message: 'This outfit needs a tweak.' }),
+    'sanity-check',
   );
-  assert.equal(
-    formatDecisionResultPresentation(
-      base({ verdict: 'doesnt_work', message: "This outfit doesn't work." }),
-      'sanity-check',
-    ).summary,
-    null,
+  assert.equal(tweak.verdictLabel, 'NEEDS A TWEAK');
+  assert.equal(tweak.scoreDisplay, '7.5/10');
+  assert.equal(tweak.summary, 'This outfit needs a tweak.');
+
+  const rethink = formatDecisionResultPresentation(
+    base({ verdict: 'doesnt_work', message: "This outfit doesn't work." }),
+    'sanity-check',
   );
+  assert.equal(rethink.verdictLabel, 'RETHINK IT');
+  assert.equal(rethink.summary, "This outfit doesn't work.");
 }
 
 {
@@ -598,7 +607,25 @@ assert.equal(
     base({ ratingLabel: 'Works', message: 'This outfit works.' }),
     'event-outfit',
   );
-  assert.match(eventEcho.summary || '', /this outfit works/i, 'Event does not use QSC echo suppression');
+  assert.match(eventEcho.summary || '', /this outfit works/i, 'Event summary unchanged');
+  assert.equal(eventEcho.scoreDisplay, null);
+
+  const shop = formatDecisionResultPresentation(
+    base({ outfitScore: 8.0, message: 'Option 2 wins.' }),
+    'shopping',
+  );
+  assert.equal(shop.summary, 'Option 2 wins.');
+  assert.equal(shop.scoreDisplay, null);
+}
+
+{
+  const presentationSrc = readFileSync(
+    resolve(__dirname, '../utils/decisionResultPresentation.ts'),
+    'utf8',
+  );
+  assert.doesNotMatch(presentationSrc, /suppressQscVerdictEchoSummary/);
+  assert.doesNotMatch(presentationSrc, /QSC_VERDICT_ECHO/);
+  assert.doesNotMatch(presentationSrc, /isQscVerdictEcho/);
 }
 
 // Render contract in StylistDecisionFlow
