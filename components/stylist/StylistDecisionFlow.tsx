@@ -1155,6 +1155,7 @@ export default function StylistDecisionFlow({ decisionType, navigation }: Stylis
             pieces={visualPieces}
             wardrobeItems={flow.wardrobeItems}
             large
+            layoutVariant={decisionType === 'event-outfit' ? 'event' : undefined}
             label={rejected ? '' : 'Your outfit'}
           />
         ) : null}

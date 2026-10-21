@@ -18,6 +18,8 @@ type Props = {
   canvasWidth?: number;
   visualScale?: number;
   tight?: boolean;
+  /** Event result collage spacing only. */
+  layoutVariant?: 'event';
   /** When true, show soft fallback instead of null when pieces are empty/invalid. */
   showEmptyFallback?: boolean;
   emptyMessage?: string;
@@ -36,6 +38,7 @@ export function SafeOutfitPieces({
   canvasWidth,
   visualScale,
   tight = false,
+  layoutVariant,
   showEmptyFallback = false,
   emptyMessage = 'Outfit preview unavailable',
 }: Props) {
@@ -63,6 +66,7 @@ export function SafeOutfitPieces({
         canvasWidth={canvasWidth}
         visualScale={visualScale}
         tight={tight}
+        layoutVariant={layoutVariant}
       />
     </RenderErrorBoundary>
   );

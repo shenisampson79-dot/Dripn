@@ -97,6 +97,15 @@ const LAYER_HEIGHT_LARGE: Record<LayerSlot, number> = {
   accessory: 140,
 };
 
+/** Event result collage only — modest tighter boxes, still a non-negative gap. */
+export const EVENT_OUTFIT_STACK_GAP = 2;
+export const EVENT_OUTFIT_LAYER_HEIGHT: Partial<Record<LayerSlot, number>> = {
+  outerwear: 178,
+  top: 150,
+  bottom: 170,
+  shoes: 108,
+};
+
 const LAYER_WIDTH: Record<LayerSlot, number> = {
   outerwear: 0.92,
   top: 0.8,
@@ -271,6 +280,8 @@ type Props = {
   visualScale?: number;
   /** Pull stacked pieces closer together (higher overlap). */
   tight?: boolean;
+  /** Event result collage: slightly shorter slots and a 2px positive gap. */
+  layoutVariant?: 'event';
 };
 
 export function OutfitPiecesVisual({
@@ -282,6 +293,7 @@ export function OutfitPiecesVisual({
   canvasWidth,
   visualScale,
   tight = false,
+  layoutVariant,
 }: Props) {
   const { isDark } = useTheme();
   const sizeScale = compact ? 0.72 : (visualScale ?? 1);
@@ -342,8 +354,11 @@ export function OutfitPiecesVisual({
     );
   }
 
+  const eventLayout = Boolean(large && !tight && !compact && layoutVariant === 'event');
   const layerHeight = (slot: LayerSlot) => {
-    const base = large ? LAYER_HEIGHT_LARGE[slot] : LAYER_HEIGHT[slot];
+    const table = large ? LAYER_HEIGHT_LARGE : LAYER_HEIGHT;
+    const eventHeight = eventLayout ? EVENT_OUTFIT_LAYER_HEIGHT[slot] : undefined;
+    const base = eventHeight ?? table[slot];
     return Math.round(base * sizeScale);
   };
   const layerWidth = (slot: LayerSlot) => {
@@ -352,8 +367,9 @@ export function OutfitPiecesVisual({
   };
   const baseOverlap = compact ? 22 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
   const useStackGap = large && !tight && !compact;
+  const activeGap = eventLayout ? Math.max(0, EVENT_OUTFIT_STACK_GAP) : STACK_GAP_LARGE;
   const stackSpacing = useStackGap
-    ? Math.round(STACK_GAP_LARGE * sizeScale)
+    ? Math.round(activeGap * sizeScale)
     : Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));
 
   // Adaptive canvas: taller stacks get more vertical room (tall shirts / dresses).
