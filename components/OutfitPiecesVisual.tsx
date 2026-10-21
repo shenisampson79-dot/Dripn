@@ -377,12 +377,14 @@ export function OutfitPiecesVisual({
     : stack.filter((l) => l.slot === 'top' || l.slot === 'outerwear').length >= 2 ? 1.02
       : 1;
 
+  // Event collage: no extra minHeight slack under the stack (scaled cutouts already overflow:visible).
+  const canvasSlack = eventLayout ? 0 : (compact ? Spacing.sm : Spacing.md) * 2;
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
       const layerH = Math.round(layerHeight(layer.slot) * adaptiveBoost);
       if (index === 0) return sum + layerH;
       return sum + layerH + (useStackGap ? stackSpacing : -stackSpacing);
-    }, (compact ? Spacing.sm : Spacing.md) * 2);
+    }, canvasSlack);
 
   const seamlessWhite = large;
   const canvasBg = seamlessWhite ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark);
@@ -418,6 +420,7 @@ export function OutfitPiecesVisual({
         styles.container,
         compact && styles.containerCompact,
         large && styles.containerLarge,
+        eventLayout && styles.containerEvent,
         { width: '100%', maxWidth: effectiveCanvasWidth, alignSelf: 'stretch' },
       ]}
     >
@@ -548,6 +551,9 @@ const styles = StyleSheet.create({
   },
   containerLarge: {
     overflow: 'visible',
+  },
+  containerEvent: {
+    marginBottom: 0,
   },
   containerCompact: {
     marginBottom: Spacing.md,

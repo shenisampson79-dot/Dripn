@@ -29,6 +29,12 @@ assert.match(visualSrc, /EVENT_OUTFIT_STACK_GAP = 2/, 'Event gap is 2');
 assert.match(visualSrc, /outerwear: 178,\s*\n\s*top: 150,\s*\n\s*bottom: 170,\s*\n\s*shoes: 108/, 'Event slot heights');
 assert.match(visualSrc, /layoutVariant === 'event'/, 'Event variant is opt-in');
 assert.match(visualSrc, /Math\.max\(0, EVENT_OUTFIT_STACK_GAP\)/, 'Event gap cannot go negative');
+assert.match(visualSrc, /const canvasSlack = eventLayout \? 0 :/, 'Event canvas has no minHeight slack');
+assert.match(visualSrc, /containerEvent: \{\s*\n\s*marginBottom: 0,/, 'Event collage bottom margin is 0');
+assert.match(visualSrc, /marginBottom: Spacing\.lg,/, 'shared collage container still uses Spacing.lg');
+assert.match(visualSrc, /containerLarge: \{\s*\n\s*overflow: 'visible'/, 'large collage overflow remains visible');
+assert.match(visualSrc, /eventLayout && styles\.containerEvent/, 'Event-only zero bottom margin opt-in');
+assert.match(eventSrc, /section: \{\s*\n\s*gap: Spacing\.md,/, 'Event parent section gap remains Spacing.md');
 assert.match(
   visualSrc,
   /displayScale=\{large && !tight && !compact \? LARGE_CUTOUT_DISPLAY_SCALE : 1\}/,
@@ -84,7 +90,17 @@ const eventFour = stackHeight(four, EVENT_HEIGHTS, EVENT_GAP);
 assert.equal(defaultThree, 574, 'shared 3-piece stack');
 assert.equal(defaultFour, 702, 'shared 4-piece stack');
 assert.equal(eventThree, 502, 'Event 3-piece stack');
-assert.equal(eventFour, 612, 'Event 4-piece stack');
+assert.equal(eventFour, 612, 'Event 4-piece raw stack (no boost)');
+function boosted(h: number): number {
+  return Math.round(h * 1.02);
+}
+const eventFourBoosted =
+  boosted(EVENT_HEIGHTS.outerwear)
+  + EVENT_GAP + boosted(EVENT_HEIGHTS.top)
+  + EVENT_GAP + boosted(EVENT_HEIGHTS.bottom)
+  + EVENT_GAP + boosted(EVENT_HEIGHTS.shoes);
+assert.equal(eventFourBoosted, 624, 'Event 4-piece stack with 1.02 boost');
+assert.equal(eventFourBoosted + 0, 624, 'Event canvas minHeight equals stack (no 24px slack)');
 assert.ok(eventThree < defaultThree && eventFour < defaultFour, 'Event stacks are shorter');
 assert.ok(EVENT_GAP >= 0 && EVENT_GAP < DEFAULT_GAP, 'Event gap is smaller but not negative');
 
