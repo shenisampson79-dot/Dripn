@@ -97,8 +97,13 @@ const LAYER_HEIGHT_LARGE: Record<LayerSlot, number> = {
   accessory: 140,
 };
 
-/** Event result collage only — modest tighter boxes, still a non-negative gap. */
+/**
+ * Event result collage only.
+ * Keep published image-box sizes; pull neighbouring boxes closer by a modest
+ * overlap bounded by STACK_OVERLAP (hem / waist still visible on the default path).
+ */
 export const EVENT_OUTFIT_STACK_GAP = 2;
+export const EVENT_OUTFIT_SLOT_OVERLAP = 14;
 export const EVENT_OUTFIT_LAYER_HEIGHT: Partial<Record<LayerSlot, number>> = {
   outerwear: 178,
   top: 150,
@@ -367,7 +372,8 @@ export function OutfitPiecesVisual({
   };
   const baseOverlap = compact ? 22 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
   const useStackGap = large && !tight && !compact;
-  const activeGap = eventLayout ? Math.max(0, EVENT_OUTFIT_STACK_GAP) : STACK_GAP_LARGE;
+  const eventStackPitch = Math.max(0, EVENT_OUTFIT_STACK_GAP) - EVENT_OUTFIT_SLOT_OVERLAP;
+  const activeGap = eventLayout ? eventStackPitch : STACK_GAP_LARGE;
   const stackSpacing = useStackGap
     ? Math.round(activeGap * sizeScale)
     : Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));

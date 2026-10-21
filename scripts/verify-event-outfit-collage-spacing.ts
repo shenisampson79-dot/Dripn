@@ -26,9 +26,17 @@ assert.match(visualSrc, /LARGE_CUTOUT_DISPLAY_SCALE = 1\.18/, 'cutout scale rema
 assert.match(visualSrc, /outerwear: 200,\s*\n\s*top: 168,\s*\n\s*bottom: 190,\s*\n\s*shoes: 120/, 'shared LAYER_HEIGHT_LARGE unchanged');
 assert.match(visualSrc, /contentFit="contain"/, 'contain-fit unchanged');
 assert.match(visualSrc, /EVENT_OUTFIT_STACK_GAP = 2/, 'Event gap is 2');
-assert.match(visualSrc, /outerwear: 178,\s*\n\s*top: 150,\s*\n\s*bottom: 170,\s*\n\s*shoes: 108/, 'Event slot heights');
+assert.match(visualSrc, /EVENT_OUTFIT_SLOT_OVERLAP = 14/, 'Event stack overlap is 14');
+assert.match(visualSrc, /STACK_OVERLAP = 14/, 'overlap bound matches default STACK_OVERLAP');
+assert.match(visualSrc, /outerwear: 178,\s*\n\s*top: 150,\s*\n\s*bottom: 170,\s*\n\s*shoes: 108/, 'Event slot heights restored');
 assert.match(visualSrc, /layoutVariant === 'event'/, 'Event variant is opt-in');
-assert.match(visualSrc, /Math\.max\(0, EVENT_OUTFIT_STACK_GAP\)/, 'Event gap cannot go negative');
+assert.match(visualSrc, /Math\.max\(0, EVENT_OUTFIT_STACK_GAP\) - EVENT_OUTFIT_SLOT_OVERLAP/, 'Event pitch is gap minus overlap');
+assert.match(
+  visualSrc,
+  /const safePad = \(large \? SLOT_SAFE_PAD_LARGE : SLOT_SAFE_PAD\)\[layer\.slot\]/,
+  'Event keeps shared LARGE inner padding',
+);
+assert.doesNotMatch(visualSrc, /outerwear: 142,/, 'rejected shorter Event heights are gone');
 assert.match(visualSrc, /const canvasSlack = eventLayout \? 0 :/, 'Event canvas has no minHeight slack');
 assert.match(visualSrc, /containerEvent: \{\s*\n\s*marginBottom: 0,/, 'Event collage bottom margin is 0');
 assert.match(visualSrc, /marginBottom: Spacing\.lg,/, 'shared collage container still uses Spacing.lg');
@@ -66,6 +74,9 @@ const DEFAULT_HEIGHTS = { outerwear: 200, top: 168, bottom: 190, shoes: 120 };
 const EVENT_HEIGHTS = { outerwear: 178, top: 150, bottom: 170, shoes: 108 };
 const DEFAULT_GAP = 8;
 const EVENT_GAP = 2;
+const EVENT_OVERLAP = 14;
+const EVENT_PITCH = EVENT_GAP - EVENT_OVERLAP;
+const PREVIOUS_EVENT_CANVAS = 624;
 
 function stackHeight(
   slots: Array<keyof typeof DEFAULT_HEIGHTS>,
@@ -84,30 +95,38 @@ const four: Array<keyof typeof DEFAULT_HEIGHTS> = ['outerwear', 'top', 'bottom',
 
 const defaultThree = stackHeight(three, DEFAULT_HEIGHTS, DEFAULT_GAP);
 const defaultFour = stackHeight(four, DEFAULT_HEIGHTS, DEFAULT_GAP);
-const eventThree = stackHeight(three, EVENT_HEIGHTS, EVENT_GAP);
-const eventFour = stackHeight(four, EVENT_HEIGHTS, EVENT_GAP);
+const eventThree = stackHeight(three, EVENT_HEIGHTS, EVENT_PITCH);
+const eventFour = stackHeight(four, EVENT_HEIGHTS, EVENT_PITCH);
 
 assert.equal(defaultThree, 574, 'shared 3-piece stack');
 assert.equal(defaultFour, 702, 'shared 4-piece stack');
-assert.equal(eventThree, 502, 'Event 3-piece stack');
-assert.equal(eventFour, 612, 'Event 4-piece raw stack (no boost)');
+assert.equal(EVENT_PITCH, -12, 'Event neighbour pitch is -12');
+assert.equal(eventThree, 474, 'Event 3-piece canvas from restored boxes + pitch');
+assert.equal(eventFour, 570, 'Event 4-piece raw canvas (no boost)');
 function boosted(h: number): number {
   return Math.round(h * 1.02);
 }
 const eventFourBoosted =
   boosted(EVENT_HEIGHTS.outerwear)
-  + EVENT_GAP + boosted(EVENT_HEIGHTS.top)
-  + EVENT_GAP + boosted(EVENT_HEIGHTS.bottom)
-  + EVENT_GAP + boosted(EVENT_HEIGHTS.shoes);
-assert.equal(eventFourBoosted, 624, 'Event 4-piece stack with 1.02 boost');
-assert.equal(eventFourBoosted + 0, 624, 'Event canvas minHeight equals stack (no 24px slack)');
+  + EVENT_PITCH + boosted(EVENT_HEIGHTS.top)
+  + EVENT_PITCH + boosted(EVENT_HEIGHTS.bottom)
+  + EVENT_PITCH + boosted(EVENT_HEIGHTS.shoes);
+assert.equal(eventFourBoosted, 582, 'Event 4-piece canvas with 1.02 boost and pitch');
+assert.equal(eventFourBoosted + 0, 582, 'Event canvas minHeight equals overlapped stack (no 24px slack)');
+assert.ok(eventFourBoosted < PREVIOUS_EVENT_CANVAS, 'overlapped canvas is shorter than +2 gap stack');
 assert.ok(eventThree < defaultThree && eventFour < defaultFour, 'Event stacks are shorter');
-assert.ok(EVENT_GAP >= 0 && EVENT_GAP < DEFAULT_GAP, 'Event gap is smaller but not negative');
+assert.ok(EVENT_GAP >= 0 && EVENT_GAP < DEFAULT_GAP, 'Event gap constant stays non-negative');
+assert.ok(EVENT_OVERLAP <= 14, 'Event overlap does not exceed STACK_OVERLAP');
 
 assert.equal(getOutfitPieceSlot({ role: 'shoes', name: 'white sneakers' }), 'shoes');
 assert.equal(getOutfitPieceSlot({ role: 'shoes', name: 'black ankle boots' }), 'shoes');
 assert.equal(getOutfitPieceSlot({ role: 'shoes', name: 'tall leather boots' }), 'shoes');
 assert.equal(EVENT_HEIGHTS.shoes, 108, 'sneakers and boots share Event shoes height 108');
+assert.equal(
+  getOutfitPieceSlot({ name: 'Charles Tyrwhitt light pink dress shirt', category: 'tops' }),
+  'top',
+  'dress shirt remains a top slot',
+);
 
 assert.equal(getOutfitPieceSlot({ role: 'outerwear', name: 'navy coat' }), 'outerwear');
 assert.equal(getOutfitPieceSlot({ role: 'top', name: 'white shirt' }), 'top');
@@ -116,8 +135,7 @@ assert.equal(getOutfitPieceSlot({ role: 'bottom', name: 'chinos' }), 'bottom');
 console.log(JSON.stringify({
   ok: true,
   shared: { gap: DEFAULT_GAP, three: defaultThree, four: defaultFour, heights: DEFAULT_HEIGHTS },
-  event: { gap: EVENT_GAP, three: eventThree, four: eventFour, heights: EVENT_HEIGHTS },
+  event: { gap: EVENT_GAP, pitch: EVENT_PITCH, overlap: EVENT_OVERLAP, three: eventThree, four: eventFour, heights: EVENT_HEIGHTS },
   scale: 1.18,
-  overlap: 'none (positive gap)',
 }, null, 2));
 console.log('verify-event-outfit-collage-spacing: PASS');
