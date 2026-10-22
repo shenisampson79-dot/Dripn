@@ -28,6 +28,11 @@ export function inferOutfitOccasionFromAsk(
 
   if (/\b(gym|workout|training|run|exercise)\b/.test(t)) return 'gym';
 
+  // Cinema / movies / film: evening outing only when night/evening is stated.
+  if (/\b(movies?|cinema|film)\b/.test(t) && /\b(tonight|evening|night)\b/.test(t)) {
+    return 'evening_out';
+  }
+
   // Solemn ceremony — allocator uses work_outfit lane (server activityConstraints parity).
   if (/\b(funeral|memorial|wake|bereavement)\b/.test(t)) return 'work_outfit';
 

@@ -115,6 +115,11 @@ import { FallbackShopSection, type FallbackMissingItem } from '@/components/styl
 import { RankedMultiLookCards } from '@/components/stylist/RankedMultiLookCards';
 import { buildRankedLookCards } from '@/utils/rankedMultiLook';
 import { buildStyleSession, type StyleSession } from '@/utils/chatWearTargetDate';
+import {
+  fetchChatOutfitForecast,
+  parseChatOutfitWhen,
+  type ChatOutfitWeatherPayload,
+} from '@/utils/chatOutfitWhen';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import {
@@ -408,10 +413,16 @@ function findPendingTravelClarify(messages: ChatMessage[]): MultiDayTravelSlots 
   return null;
 }
 
-async function fetchWeatherForOutfitCreate(timeoutMs = 3000): Promise<{
-  weather: { temperature: number; condition: string } | null;
+async function fetchWeatherForOutfitCreate(
+  timeoutMs = 3000,
+  userMessage = '',
+): Promise<{
+  weather: ChatOutfitWeatherPayload | null;
   lat: number | null;
+  lon: number | null;
+  dateKey: string | null;
 }> {
+  const when = parseChatOutfitWhen(userMessage);
   try {
     const permission = await weatherService.checkPermissionStatus();
     if (!permission.granted) {
@@ -421,28 +432,88 @@ async function fetchWeatherForOutfitCreate(timeoutMs = 3000): Promise<{
         /* optional */
       }
     }
+
+    let coords: { lat: number; lon: number } | null = null;
+    try {
+      const raw = await Promise.race([
+        weatherService.getLocationCoords(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      ]);
+      if (raw && Number.isFinite(raw.lat) && Number.isFinite(raw.lon)) {
+        coords = { lat: raw.lat, lon: raw.lon };
+      }
+    } catch {
+      coords = null;
+    }
+
+    if (!when.usesCurrentWeather && when.dateKey) {
+      if (!coords) {
+        return {
+          weather: {
+            applicableToRequest: false,
+            periodKind: 'forecast_slot',
+            dateKey: when.dateKey,
+            timePeriod: when.timePeriod,
+            forecastUnavailable: true,
+          },
+          lat: null,
+          lon: null,
+          dateKey: when.dateKey,
+        };
+      }
+      const forecast = await fetchChatOutfitForecast({
+        lat: coords.lat,
+        lon: coords.lon,
+        when,
+        timeoutMs,
+      });
+      return {
+        weather: forecast,
+        lat: coords.lat,
+        lon: coords.lon,
+        dateKey: when.dateKey,
+      };
+    }
+
     const current = await Promise.race([
       weatherService.getWeatherForOutfits(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
     ]);
     if (current && typeof (current as { temperature?: number }).temperature === 'number') {
-      const w = current as { temperature: number; condition: string; location?: string };
-      let lat: number | null = null;
-      try {
-        const coords = await weatherService.getLocationCoords();
-        lat = coords?.lat ?? null;
-      } catch {
-        lat = null;
-      }
+      const w = current as { temperature: number; condition: string };
       return {
-        weather: { temperature: w.temperature, condition: String(w.condition || 'clear') },
-        lat,
+        weather: {
+          temperature: w.temperature,
+          condition: String(w.condition || 'clear'),
+          source: 'open_meteo_current',
+          applicableToRequest: true,
+          periodKind: 'current',
+          dateKey: when.dateKey,
+          timePeriod: when.timePeriod,
+        },
+        lat: coords?.lat ?? null,
+        lon: coords?.lon ?? null,
+        dateKey: when.dateKey,
       };
     }
   } catch {
     /* non-blocking */
   }
-  return { weather: null, lat: null };
+  if (!when.usesCurrentWeather && when.dateKey) {
+    return {
+      weather: {
+        applicableToRequest: false,
+        periodKind: 'forecast_slot',
+        dateKey: when.dateKey,
+        timePeriod: when.timePeriod,
+        forecastUnavailable: true,
+      },
+      lat: null,
+      lon: null,
+      dateKey: when.dateKey,
+    };
+  }
+  return { weather: null, lat: null, lon: null, dateKey: when.dateKey };
 }
 
 function extractPriorWardrobeItemIds(
@@ -3459,7 +3530,7 @@ export default function AIStylistScreen() {
 
         // Slots ready → generate day looks via multi-day outfit tool (destination weather).
         try {
-          const weatherSnap = await fetchWeatherForOutfitCreate(3000);
+          const weatherSnap = await fetchWeatherForOutfitCreate(3000, trimmedAsk);
           const clientRows = (wardrobeItems || []).slice(0, 120).map((item) => ({
             id: item.id,
             name: item.name,
@@ -3551,8 +3622,13 @@ export default function AIStylistScreen() {
           outfitRoute.route === 'outfit-from-wardrobe'
           && (outfitRoute.reason === 'pending_ready' || outfitRoute.reason === 'tier_b_ready')
           && outfitRoute.weather
-            ? { weather: outfitRoute.weather, lat: outfitRoute.lat ?? null }
-            : await fetchWeatherForOutfitCreate(3000);
+            ? {
+              weather: outfitRoute.weather,
+              lat: outfitRoute.lat ?? null,
+              lon: null,
+              dateKey: parseChatOutfitWhen(serverUserMessage).dateKey,
+            }
+            : await fetchWeatherForOutfitCreate(3000, serverUserMessage);
         const occasionForServer = isRefineOutfitAsk
           ? raiseOccasionForRefine(extractPriorOutfitOccasion(updatedMessages), trimmedAsk)
           : (outfitRoute.route === 'outfit-from-wardrobe'
@@ -3610,6 +3686,8 @@ export default function AIStylistScreen() {
             occasion: occasionForServer,
             weather: weatherSnap.weather,
             lat: weatherSnap.lat,
+            lon: weatherSnap.lon,
+            dateKey: weatherSnap.dateKey,
             priorItemIds: (isRefineOutfitAsk || pendingRefineContinuation) ? priorItemIds : undefined,
             lockedItems: isRefineOutfitAsk ? undefined : lockedItems,
             excludedItems: isRefineOutfitAsk ? undefined : excludeItemIds,

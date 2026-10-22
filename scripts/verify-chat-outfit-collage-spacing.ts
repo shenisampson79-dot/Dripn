@@ -34,8 +34,8 @@ assert.match(visualSrc, /layoutVariant\?: 'event' \| 'chat'/, 'OutfitPiecesVisua
 assert.match(visualSrc, /layoutVariant === 'chat'/, 'Chat variant is opt-in');
 
 assert.match(visualSrc, /STACK_GAP_LARGE = 8/, 'shared large gap remains 8');
-assert.match(visualSrc, /CHAT_OUTFIT_SLOT_OVERLAP = 14/, 'Chat overlap is 14');
-assert.match(visualSrc, /STACK_OVERLAP = 14/, 'overlap bound matches STACK_OVERLAP');
+assert.match(visualSrc, /CHAT_OUTFIT_SLOT_OVERLAP = 20/, 'Chat overlap is 20');
+assert.match(visualSrc, /STACK_OVERLAP = 14/, 'shared overlap bound remains 14');
 assert.match(
   visualSrc,
   /const chatStackPitch = STACK_GAP_LARGE - CHAT_OUTFIT_SLOT_OVERLAP/,
@@ -59,8 +59,8 @@ assert.match(visualSrc, /STACK_ORDER: LayerSlot\[\] = \['outerwear', 'top', 'dre
 assert.match(visualSrc, /zIndex: large \? 10 \+ index : index \+ 1/, 'z-index unchanged');
 assert.match(
   visualSrc,
-  /const canvasSlack = eventLayout \? 0 :/,
-  'Chat keeps shared canvas slack; Event still 0',
+  /const canvasSlack = eventLayout \? 0 : chatLayout \? 0 :/,
+  'Chat and Event canvases have no minHeight slack',
 );
 assert.match(visualSrc, /containerEvent: \{\s*\n\s*marginBottom: 0,/, 'Event bottom margin remains 0');
 assert.match(visualSrc, /container: \{\s*\n\s*marginBottom: Spacing\.lg,/, 'Chat/shared bottom margin remains Spacing.lg');
@@ -89,7 +89,7 @@ assert.match(chatSrc, /accessibilityActions=\{\[\{ name: 'copy', label: 'Copy' \
 const DEFAULT_HEIGHTS = { outerwear: 200, top: 168, bottom: 190, shoes: 120 };
 const EVENT_HEIGHTS = { outerwear: 178, top: 150, bottom: 170, shoes: 108 };
 const DEFAULT_GAP = 8;
-const CHAT_OVERLAP = 14;
+const CHAT_OVERLAP = 20;
 const CHAT_PITCH = DEFAULT_GAP - CHAT_OVERLAP;
 const EVENT_GAP = 2;
 const EVENT_OVERLAP = 14;
@@ -122,13 +122,13 @@ const chatThree = stackHeight(three, DEFAULT_HEIGHTS, CHAT_PITCH);
 const chatFour = stackHeight(four, DEFAULT_HEIGHTS, CHAT_PITCH);
 const eventFour = stackHeight(four, EVENT_HEIGHTS, EVENT_PITCH);
 
-assert.equal(CHAT_PITCH, -6, 'Chat neighbour pitch is -6');
+assert.equal(CHAT_PITCH, -12, 'Chat neighbour pitch matches Event at -12');
 assert.equal(defaultThree, 574, 'shared 3-piece stack');
 assert.equal(defaultFour, 702, 'shared 4-piece stack');
-assert.equal(chatThree, 546, 'Chat 3-piece stack uses two pitch transitions');
-assert.equal(chatFour, 660, 'Chat 4-piece stack uses three pitch transitions');
-assert.equal(defaultFour - chatFour, 42, 'four-piece Chat stack is 42px shorter than +8 gap');
-assert.equal(CANVAS_SLACK, 24, 'Chat canvas slack remains 24');
+assert.equal(chatThree, 534, 'Chat 3-piece stack uses two pitch transitions');
+assert.equal(chatFour, 642, 'Chat 4-piece stack uses three pitch transitions');
+assert.equal(defaultFour - chatFour, 60, 'four-piece Chat stack is 60px shorter than +8 gap');
+assert.equal(CANVAS_SLACK, 24, 'shared non-Chat slack constant remains 24');
 assert.equal(CHAT_BOTTOM_MARGIN, 16, 'Chat bottom margin remains 16');
 
 const chatFourBoosted =
@@ -141,9 +141,9 @@ const defaultFourBoosted =
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.top)
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.bottom)
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.shoes);
-assert.equal(chatFourBoosted, 673, 'Chat 4-piece boosted canvas from LARGE boxes + pitch');
-assert.equal(defaultFourBoosted - chatFourBoosted, 42, 'boosted four-piece Chat canvas also 42px shorter');
-assert.equal(chatFourBoosted + CANVAS_SLACK, 697, 'Chat minHeight includes 24px slack');
+assert.equal(chatFourBoosted, 655, 'Chat 4-piece boosted canvas from LARGE boxes + Event-like pitch');
+assert.equal(defaultFourBoosted - chatFourBoosted, 60, 'boosted four-piece Chat canvas is 60px shorter than +8 gap');
+assert.equal(chatFourBoosted + 0, 655, 'Chat minHeight has no extra slack');
 
 const eventFourBoosted =
   boosted(EVENT_HEIGHTS.outerwear)

@@ -74,7 +74,7 @@ function weekdayLabel(dateKey: string): string {
 }
 
 function detectTimeContext(text: string): StyleSession['timeContext'] {
-  if (/\b(tonight|this evening|evening)\b/i.test(text)) return 'evening';
+  if (/\b(tonight|this evening|evening|night)\b/i.test(text)) return 'evening';
   if (/\b(this afternoon|afternoon)\b/i.test(text)) return 'afternoon';
   if (/\b(this morning|morning)\b/i.test(text)) return 'morning';
   return null;

@@ -111,8 +111,8 @@ export const EVENT_OUTFIT_LAYER_HEIGHT: Partial<Record<LayerSlot, number>> = {
   shoes: 108,
 };
 
-/** Chat collage only — keep LARGE box sizes; overlap neighbours by STACK_OVERLAP. */
-export const CHAT_OUTFIT_SLOT_OVERLAP = 14;
+/** Chat collage only — keep LARGE box sizes; overlap neighbours to Event-like pitch. */
+export const CHAT_OUTFIT_SLOT_OVERLAP = 20;
 
 const LAYER_WIDTH: Record<LayerSlot, number> = {
   outerwear: 0.92,
@@ -388,8 +388,8 @@ export function OutfitPiecesVisual({
     : stack.filter((l) => l.slot === 'top' || l.slot === 'outerwear').length >= 2 ? 1.02
       : 1;
 
-  // Event collage: no extra minHeight slack under the stack (scaled cutouts already overflow:visible).
-  const canvasSlack = eventLayout ? 0 : (compact ? Spacing.sm : Spacing.md) * 2;
+  // Event and Chat: no extra minHeight slack under the stack (scaled cutouts already overflow:visible).
+  const canvasSlack = eventLayout ? 0 : chatLayout ? 0 : (compact ? Spacing.sm : Spacing.md) * 2;
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
       const layerH = Math.round(layerHeight(layer.slot) * adaptiveBoost);
