@@ -33,6 +33,19 @@ export function formatChatAssistantDisplayText(raw: string): string {
   return text.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+/** Non-empty blank-line stand-in so iOS UITextView keeps paragraph height. */
+export const CHAT_IOS_PARAGRAPH_SPACER = '\u00a0';
+
+/**
+ * Presentation-only iOS Chat value. Does not rewrite stored message text.
+ * Copy must use the original `item.content`, not this string.
+ */
+export function formatChatAssistantIosSelectableValue(raw: string): string {
+  const formatted = formatChatAssistantDisplayText(raw);
+  if (!formatted.includes('\n\n')) return formatted;
+  return formatted.replace(/\n\n+/g, `\n${CHAT_IOS_PARAGRAPH_SPACER}\n`);
+}
+
 /** Upgrade prose + `\n` + first bullet to `\n\n`; leave bullet-to-bullet on `\n`. */
 function separateFirstListFromProse(text: string): string {
   const lines = text.split('\n');

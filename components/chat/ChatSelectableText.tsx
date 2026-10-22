@@ -17,7 +17,10 @@ import {
   type TextStyle,
 } from 'react-native';
 
-import { formatChatAssistantDisplayText } from '@/utils/formatChatAssistantDisplay';
+import {
+  formatChatAssistantDisplayText,
+  formatChatAssistantIosSelectableValue,
+} from '@/utils/formatChatAssistantDisplay';
 
 const SELECTION_COLOR = 'rgba(201, 168, 124, 0.45)';
 
@@ -50,7 +53,10 @@ type Props = {
 export function ChatSelectableText({ text, style, inverted }: Props) {
   const display = useMemo(() => {
     const plain = stripMarkdownBold(text);
-    return inverted ? plain : formatChatAssistantDisplayText(plain);
+    if (inverted) return plain;
+    return Platform.OS === 'ios'
+      ? formatChatAssistantIosSelectableValue(plain)
+      : formatChatAssistantDisplayText(plain);
   }, [inverted, text]);
 
   if (Platform.OS === 'ios') {

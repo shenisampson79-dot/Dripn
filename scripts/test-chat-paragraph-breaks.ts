@@ -15,7 +15,9 @@ import {
   stripInternalPromptLeaks,
 } from '../utils/sanitizeStylistUserText';
 import {
+  CHAT_IOS_PARAGRAPH_SPACER,
   formatChatAssistantDisplayText,
+  formatChatAssistantIosSelectableValue,
   splitChatDisplayBlocks,
 } from '../utils/formatChatAssistantDisplay';
 import {
@@ -179,9 +181,14 @@ const gluedBullets =
   "The navy is doing the heavy lifting here, so keep everything else quiet. Don't add another loud accessory or it will look accidental. · Give the eye one place to land\n· Keep metals to one finish\n· Let the navy stay the loudest colour";
 
 assert.equal(
-  formatChatAssistantDisplayText(gluedBullets).includes('accidental.\n· Give the eye'),
+  formatChatAssistantDisplayText(gluedBullets).includes('accidental.\n\n· Give the eye'),
   true,
-  '10. First inline middle-dot bullet starts on its own line',
+  '10. First inline middle-dot bullet is separated from prose by a blank line',
+);
+assert.equal(
+  formatChatAssistantDisplayText(gluedBullets).includes('accidental.\n· Give the eye'),
+  false,
+  '10a. First list boundary is not a single newline',
 );
 
 const blocks = splitChatDisplayBlocks(gluedBullets);
@@ -207,7 +214,55 @@ assert.doesNotMatch(hubSrc, /stylistHub\.styleToolsTitle|\|\| 'Style Tools'/, '1
 assert.match(hubSrc, /title: "Live Stylist"/, '14. Live Stylist card uses requested capitalisation');
 
 const selectableSrc = readFileSync(resolve(__dirname, '../components/chat/ChatSelectableText.tsx'), 'utf8');
-assert.match(selectableSrc, /splitChatDisplayBlocks/, '15. Chat renderer uses display blocks');
+assert.match(
+  selectableSrc,
+  /formatChatAssistantIosSelectableValue/,
+  '15. iOS Chat renderer uses visible paragraph spacing in one selectable field',
+);
+assert.doesNotMatch(
+  selectableSrc,
+  /splitChatDisplayBlocks/,
+  '15b. Live Chat renderer does not split into multiple native fields',
+);
+
+const dailyTip = [
+  'One clear rule beats five trends.',
+  'The most useful styling tip for daily wear is restraint: one focus piece, supporting neutrals, and shoes that match the formality of the rest.',
+  'Proportion matters more than novelty — cropped with volume, slim with structure, or balanced lengths keep outfits intentional.',
+  'When in doubt, repeat a colour or material once so the look feels designed rather than accidental.',
+  '• Give the eye one place to land\n• Match shoe formality to the outfit\n• Repeat one colour or texture for cohesion',
+].join('\n\n');
+const sanitizedTip = sanitizeStylistUserText(dailyTip, PRESERVE);
+assert.ok(
+  sanitizedTip.includes('\n\n'),
+  '15c. Chat sanitiser keeps daily-tip paragraph separators',
+);
+assert.ok(
+  sanitizedTip.split(/\n\n+/).filter((block) => !/^[•·]/.test(block.trim())).length >= 3,
+  '15c2. Sanitised tip still has multiple prose paragraphs before bullets',
+);
+const iosTip = formatChatAssistantIosSelectableValue(dailyTip);
+assert.equal(iosTip.includes('\n\n'), false, '15d. iOS display replaces empty \\n\\n with a visible spacer line');
+assert.ok(
+  iosTip.includes(`\n${CHAT_IOS_PARAGRAPH_SPACER}\n`),
+  '15e. iOS display inserts a non-empty spacer between prose ideas',
+);
+const iosProse = iosTip.split(`\n${CHAT_IOS_PARAGRAPH_SPACER}\n`).filter((block) => !/^[•·]/.test(block.trim()));
+assert.ok(iosProse.length >= 3, '15f. At least two advice prose blocks stay separated before bullets');
+assert.match(iosTip, /\n• Give the eye one place to land\n• Match shoe formality/);
+const outfitWhy = 'Navy Gap button-up shirt and navy bottoms give you a clean cinema read. Keep the shirt untucked.';
+assert.equal(formatChatAssistantIosSelectableValue(outfitWhy), outfitWhy, '15g. Single-paragraph outfit explanations stay unchanged');
+assert.equal(
+  formatChatAssistantIosSelectableValue('Single paragraph with no recoverable structure.'),
+  'Single paragraph with no recoverable structure.',
+  '15h. Ordinary one-paragraph Chat messages stay unchanged',
+);
+assert.doesNotMatch(dailyTip, /\u00a0/, '15i. Stored/copy source has no iOS spacer artefacts');
+assert.match(
+  chatSrc,
+  /void copyChatMessage\(item\.content\)/,
+  '15j. Chat Copy uses stored message content, not the iOS display value',
+);
 
 const settingsSrc = readFileSync(resolve(__dirname, '../screens/SettingsScreen.tsx'), 'utf8');
 assert.match(settingsSrc, /App Language/, '16. Settings fallback is App Language');
