@@ -51,7 +51,9 @@ export function resolveTierBStructuredOccasion(raw: string): TierBStructuredOcca
   if (/\b(lunch|drinks?|pub|pint|brewery|wine\s*bar|smart\s*casual)\b/i.test(text)) {
     return 'smart_casual';
   }
-  if (/\b(dinner|restaurant|somewhere\s+nice(?:r)?|evening\s+out|cocktail)\b/i.test(text)) {
+  if (
+    /\b(dinner|restaurant|somewhere\s+nice(?:r)?|evening\s+out|cocktail|a little smarter|a bit smarter|dressier)\b/i.test(text)
+  ) {
     return 'evening_out';
   }
   if (/\b(work(?:day|place|wear)?|office|meeting|interview|business)\b/i.test(text)) {

@@ -72,6 +72,19 @@ export function inferOutfitOccasionFromAsk(
 }
 
 /**
+ * Chat wardrobe create: only send a structured occasion the user (or an explicit
+ * cue) actually selected. Inferred casual_day / weekend is a default — the server
+ * binds richer context from the original ask.
+ */
+export function chatCreateOccasionOverrideFromAsk(
+  text: string,
+): OutfitOccasionId | undefined {
+  const inferred = inferOutfitOccasionFromAsk(text, 'casual_day');
+  if (inferred === 'casual_day' || inferred === 'weekend') return undefined;
+  return inferred;
+}
+
+/**
  * Contract 1: inherit prior occasion unless the refine ask has an explicit cue
  * or a formality-raise. Never treat the fallback default as an "inferred" occasion.
  */

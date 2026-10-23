@@ -124,6 +124,7 @@ import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccas
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import {
   inferOutfitOccasionFromAsk,
+  chatCreateOccasionOverrideFromAsk,
   isDateNightLookTitleAsk,
   raiseOccasionForRefine,
 } from '@/utils/inferOutfitOccasionFromAsk';
@@ -3637,7 +3638,7 @@ export default function AIStylistScreen() {
             ? outfitRoute.occasion
             : (outfitRoute.route === 'outfit-from-wardrobe' && outfitRoute.occasion
               ? outfitRoute.occasion
-              : inferOutfitOccasionFromAsk(serverUserMessage, 'casual_day')));
+              : chatCreateOccasionOverrideFromAsk(serverUserMessage)));
         const outfitRecency = await resolveChatOutfitRecencyForRequest({
           userId: user?.id,
           messages: updatedMessages,
