@@ -35,11 +35,22 @@ assert.match(visualSrc, /layoutVariant === 'chat'/, 'Chat variant is opt-in');
 
 assert.match(visualSrc, /STACK_GAP_LARGE = 8/, 'shared large gap remains 8');
 assert.match(visualSrc, /CHAT_OUTFIT_SLOT_OVERLAP = 20/, 'Chat overlap is 20');
+assert.match(visualSrc, /CHAT_OUTERWEAR_TOP_EXTRA_OVERLAP = 16/, 'Chat outerwear→top extra overlap is 16');
 assert.match(visualSrc, /STACK_OVERLAP = 14/, 'shared overlap bound remains 14');
 assert.match(
   visualSrc,
   /const chatStackPitch = STACK_GAP_LARGE - CHAT_OUTFIT_SLOT_OVERLAP/,
-  'Chat pitch is large gap minus overlap',
+  'Chat default pitch is large gap minus overlap',
+);
+assert.match(
+  visualSrc,
+  /const chatOuterwearTopPitch = chatStackPitch - CHAT_OUTERWEAR_TOP_EXTRA_OVERLAP/,
+  'Chat outerwear→top pitch is default pitch minus extra overlap',
+);
+assert.match(
+  visualSrc,
+  /chatLayout && prevSlot === 'outerwear' && nextSlot === 'top'/,
+  'extra overlap only applies to Chat outerwear→top',
 );
 assert.match(visualSrc, /outerwear: 200,\s*\n\s*top: 168,\s*\n\s*bottom: 190,\s*\n\s*shoes: 120/, 'Chat keeps LARGE heights');
 assert.match(visualSrc, /outerwear: 1,\s*\n\s*top: 0\.94/, 'LAYER_WIDTH_LARGE unchanged');
@@ -91,21 +102,31 @@ const EVENT_HEIGHTS = { outerwear: 178, top: 150, bottom: 170, shoes: 108 };
 const DEFAULT_GAP = 8;
 const CHAT_OVERLAP = 20;
 const CHAT_PITCH = DEFAULT_GAP - CHAT_OVERLAP;
+const PREVIOUS_CHAT_OUTERWEAR_TOP_PITCH = CHAT_PITCH;
+const CHAT_OUTERWEAR_TOP_EXTRA = 16;
+const CHAT_OUTERWEAR_TOP_PITCH = CHAT_PITCH - CHAT_OUTERWEAR_TOP_EXTRA;
 const EVENT_GAP = 2;
 const EVENT_OVERLAP = 14;
 const EVENT_PITCH = EVENT_GAP - EVENT_OVERLAP;
 const CANVAS_SLACK = 12 * 2;
 const CHAT_BOTTOM_MARGIN = 16;
 
+type Slot = keyof typeof DEFAULT_HEIGHTS;
+
+function joinPitch(prev: Slot, next: Slot, extraOuterwearTop: boolean): number {
+  if (extraOuterwearTop && prev === 'outerwear' && next === 'top') return CHAT_OUTERWEAR_TOP_PITCH;
+  return CHAT_PITCH;
+}
+
 function stackHeight(
-  slots: Array<keyof typeof DEFAULT_HEIGHTS>,
+  slots: Slot[],
   heights: Record<string, number>,
-  spacing: number,
+  spacingForJoin: (prev: Slot, next: Slot) => number,
 ): number {
   return slots.reduce((sum, slot, index) => {
     const h = heights[slot];
     if (index === 0) return h;
-    return sum + h + spacing;
+    return sum + h + spacingForJoin(slots[index - 1], slot);
   }, 0);
 }
 
@@ -113,37 +134,88 @@ function boosted(h: number): number {
   return Math.round(h * 1.02);
 }
 
-const three: Array<keyof typeof DEFAULT_HEIGHTS> = ['outerwear', 'top', 'bottom'];
-const four: Array<keyof typeof DEFAULT_HEIGHTS> = ['outerwear', 'top', 'bottom', 'shoes'];
+function boostedStack(slots: Slot[], extraOuterwearTop: boolean): number {
+  return slots.reduce((sum, slot, index) => {
+    const h = boosted(DEFAULT_HEIGHTS[slot]);
+    if (index === 0) return h;
+    return sum + h + joinPitch(slots[index - 1], slot, extraOuterwearTop);
+  }, 0);
+}
 
-const defaultThree = stackHeight(three, DEFAULT_HEIGHTS, DEFAULT_GAP);
-const defaultFour = stackHeight(four, DEFAULT_HEIGHTS, DEFAULT_GAP);
-const chatThree = stackHeight(three, DEFAULT_HEIGHTS, CHAT_PITCH);
-const chatFour = stackHeight(four, DEFAULT_HEIGHTS, CHAT_PITCH);
-const eventFour = stackHeight(four, EVENT_HEIGHTS, EVENT_PITCH);
+const uniformChat = (prev: Slot, next: Slot) => joinPitch(prev, next, false);
+const pairChat = (prev: Slot, next: Slot) => joinPitch(prev, next, true);
 
-assert.equal(CHAT_PITCH, -12, 'Chat neighbour pitch matches Event at -12');
+const three: Slot[] = ['outerwear', 'top', 'bottom'];
+const four: Slot[] = ['outerwear', 'top', 'bottom', 'shoes'];
+const threeNoOuterwear: Slot[] = ['top', 'bottom', 'shoes'];
+const threeNoTop: Slot[] = ['outerwear', 'bottom', 'shoes'];
+
+const defaultThree = stackHeight(three, DEFAULT_HEIGHTS, () => DEFAULT_GAP);
+const defaultFour = stackHeight(four, DEFAULT_HEIGHTS, () => DEFAULT_GAP);
+const previousChatThree = stackHeight(three, DEFAULT_HEIGHTS, uniformChat);
+const previousChatFour = stackHeight(four, DEFAULT_HEIGHTS, uniformChat);
+const chatThree = stackHeight(three, DEFAULT_HEIGHTS, pairChat);
+const chatFour = stackHeight(four, DEFAULT_HEIGHTS, pairChat);
+const chatThreeNoOuterwear = stackHeight(threeNoOuterwear, DEFAULT_HEIGHTS, pairChat);
+const previousThreeNoOuterwear = stackHeight(threeNoOuterwear, DEFAULT_HEIGHTS, uniformChat);
+const chatThreeNoTop = stackHeight(threeNoTop, DEFAULT_HEIGHTS, pairChat);
+const previousThreeNoTop = stackHeight(threeNoTop, DEFAULT_HEIGHTS, uniformChat);
+const eventFour = stackHeight(four, EVENT_HEIGHTS, () => EVENT_PITCH);
+
+assert.equal(CHAT_PITCH, -12, 'Chat default neighbour pitch remains -12');
+assert.equal(CHAT_OUTERWEAR_TOP_PITCH, -28, 'Chat outerwear→top pitch is -28');
+assert.ok(
+  CHAT_OUTERWEAR_TOP_PITCH < PREVIOUS_CHAT_OUTERWEAR_TOP_PITCH,
+  'outerwear→top spacing is reduced versus previous uniform -12',
+);
+assert.equal(
+  PREVIOUS_CHAT_OUTERWEAR_TOP_PITCH - CHAT_OUTERWEAR_TOP_PITCH,
+  16,
+  'outerwear→top gap closes by 16px versus committed uniform pitch',
+);
+assert.equal(joinPitch('top', 'bottom', true), CHAT_PITCH, 'shirt→trousers pitch remains -12');
+assert.equal(joinPitch('bottom', 'shoes', true), CHAT_PITCH, 'trousers→boots pitch remains -12');
+assert.equal(joinPitch('outerwear', 'bottom', true), CHAT_PITCH, 'outerwear→bottom without top stays -12');
+assert.equal(joinPitch('outerwear', 'top', false), CHAT_PITCH, 'non-Chat / uniform path does not extra-overlap');
+
 assert.equal(defaultThree, 574, 'shared 3-piece stack');
 assert.equal(defaultFour, 702, 'shared 4-piece stack');
-assert.equal(chatThree, 534, 'Chat 3-piece stack uses two pitch transitions');
-assert.equal(chatFour, 642, 'Chat 4-piece stack uses three pitch transitions');
-assert.equal(defaultFour - chatFour, 60, 'four-piece Chat stack is 60px shorter than +8 gap');
+assert.equal(previousChatThree, 534, 'previous Chat 3-piece used two uniform -12 joins');
+assert.equal(previousChatFour, 642, 'previous Chat 4-piece used three uniform -12 joins');
+assert.equal(chatThree, 518, 'Chat 3-piece with outerwear+top uses extra overlap on first join only');
+assert.equal(chatFour, 626, 'Chat 4-piece uses extra overlap on outerwear→top only');
+assert.equal(chatThree, previousChatThree - 16, '3-piece canvas shrinks only by the outerwear→top extra');
+assert.equal(chatFour, previousChatFour - 16, '4-piece canvas shrinks only by the outerwear→top extra');
+assert.equal(chatThreeNoOuterwear, previousThreeNoOuterwear, 'top+bottom+shoes three-piece is unchanged');
+assert.equal(chatThreeNoTop, previousThreeNoTop, 'outerwear+bottom+shoes without a top is unchanged');
 assert.equal(CANVAS_SLACK, 24, 'shared non-Chat slack constant remains 24');
 assert.equal(CHAT_BOTTOM_MARGIN, 16, 'Chat bottom margin remains 16');
 
-const chatFourBoosted =
+const previousChatFourBoosted =
   boosted(DEFAULT_HEIGHTS.outerwear)
   + CHAT_PITCH + boosted(DEFAULT_HEIGHTS.top)
   + CHAT_PITCH + boosted(DEFAULT_HEIGHTS.bottom)
   + CHAT_PITCH + boosted(DEFAULT_HEIGHTS.shoes);
+const chatFourBoosted = boostedStack(four, true);
+const chatThreeBoosted = boostedStack(three, true);
+const previousChatThreeBoosted = boostedStack(three, false);
+const chatThreeNoOuterwearBoosted = boostedStack(threeNoOuterwear, true);
+const previousThreeNoOuterwearBoosted = boostedStack(threeNoOuterwear, false);
 const defaultFourBoosted =
   boosted(DEFAULT_HEIGHTS.outerwear)
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.top)
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.bottom)
   + DEFAULT_GAP + boosted(DEFAULT_HEIGHTS.shoes);
-assert.equal(chatFourBoosted, 655, 'Chat 4-piece boosted canvas from LARGE boxes + Event-like pitch');
-assert.equal(defaultFourBoosted - chatFourBoosted, 60, 'boosted four-piece Chat canvas is 60px shorter than +8 gap');
-assert.equal(chatFourBoosted + 0, 655, 'Chat minHeight has no extra slack');
+assert.equal(previousChatFourBoosted, 655, 'previous Chat 4-piece boosted canvas remains the baseline');
+assert.equal(chatFourBoosted, 639, 'Chat 4-piece boosted canvas after outerwear→top extra overlap');
+assert.equal(previousChatFourBoosted - chatFourBoosted, 16, 'boosted four-piece shrinks only on the first join');
+assert.equal(chatThreeBoosted, previousChatThreeBoosted - 16, 'boosted 3-piece with outerwear+top shrinks only on first join');
+assert.equal(chatThreeNoOuterwearBoosted, previousThreeNoOuterwearBoosted, 'boosted top+bottom+shoes unchanged');
+assert.equal(defaultFourBoosted - chatFourBoosted, 76, 'boosted four-piece Chat canvas vs +8 gap');
+assert.equal(chatFourBoosted + 0, 639, 'Chat minHeight has no extra slack');
+assert.match(visualSrc, /overflow: 'visible' as const/, 'layer frames stay overflow visible (no box clip)');
+assert.match(visualSrc, /contentPosition=\{SLOT_CONTENT_POSITION\[layer\.slot\]\}/, 'slot content positions unchanged');
+assert.doesNotMatch(visualSrc, /EVENT_OUTFIT_LAYER_HEIGHT\[slot\] :.*CHAT/, 'Chat does not copy Event slot heights');
 
 const eventFourBoosted =
   boosted(EVENT_HEIGHTS.outerwear)
@@ -161,6 +233,8 @@ console.log(JSON.stringify({
     gap: DEFAULT_GAP,
     overlap: CHAT_OVERLAP,
     pitch: CHAT_PITCH,
+    outerwearTopPitch: CHAT_OUTERWEAR_TOP_PITCH,
+    outerwearTopExtra: CHAT_OUTERWEAR_TOP_EXTRA,
     three: chatThree,
     four: chatFour,
     fourBoosted: chatFourBoosted,

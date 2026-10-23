@@ -113,6 +113,13 @@ export const EVENT_OUTFIT_LAYER_HEIGHT: Partial<Record<LayerSlot, number>> = {
 
 /** Chat collage only — keep LARGE box sizes; overlap neighbours to Event-like pitch. */
 export const CHAT_OUTFIT_SLOT_OVERLAP = 20;
+/**
+ * Chat-only extra overlap on the outerwear→top join.
+ * Short jackets leave unused footer in the 200px LARGE outerwear slot; pull the
+ * shirt up into that empty region. Do not apply to other Chat pairs, and do not
+ * shrink the outerwear box (longer coats keep the full slot).
+ */
+export const CHAT_OUTERWEAR_TOP_EXTRA_OVERLAP = 16;
 
 const LAYER_WIDTH: Record<LayerSlot, number> = {
   outerwear: 0.92,
@@ -378,10 +385,19 @@ export function OutfitPiecesVisual({
   const useStackGap = large && !tight && !compact;
   const eventStackPitch = Math.max(0, EVENT_OUTFIT_STACK_GAP) - EVENT_OUTFIT_SLOT_OVERLAP;
   const chatStackPitch = STACK_GAP_LARGE - CHAT_OUTFIT_SLOT_OVERLAP;
-  const activeGap = eventLayout ? eventStackPitch : chatLayout ? chatStackPitch : STACK_GAP_LARGE;
-  const stackSpacing = useStackGap
-    ? Math.round(activeGap * sizeScale)
-    : Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1));
+  const chatOuterwearTopPitch = chatStackPitch - CHAT_OUTERWEAR_TOP_EXTRA_OVERLAP;
+  const defaultNeighbourPitch = eventLayout ? eventStackPitch : chatLayout ? chatStackPitch : STACK_GAP_LARGE;
+  const neighbourPitch = (prevSlot: LayerSlot | undefined, nextSlot: LayerSlot) => {
+    if (chatLayout && prevSlot === 'outerwear' && nextSlot === 'top') {
+      return chatOuterwearTopPitch;
+    }
+    return defaultNeighbourPitch;
+  };
+  const neighbourSpacing = (prevSlot: LayerSlot | undefined, nextSlot: LayerSlot) => (
+    useStackGap
+      ? Math.round(neighbourPitch(prevSlot, nextSlot) * sizeScale)
+      : -Math.round(baseOverlap * sizeScale * (tight ? 1.1 : 1))
+  );
 
   // Adaptive canvas: taller stacks get more vertical room (tall shirts / dresses).
   const adaptiveBoost = stack.some((l) => l.slot === 'dress') ? 1.04
@@ -394,7 +410,7 @@ export function OutfitPiecesVisual({
     stack.reduce((sum, layer, index) => {
       const layerH = Math.round(layerHeight(layer.slot) * adaptiveBoost);
       if (index === 0) return sum + layerH;
-      return sum + layerH + (useStackGap ? stackSpacing : -stackSpacing);
+      return sum + layerH + neighbourSpacing(stack[index - 1]?.slot, layer.slot);
     }, canvasSlack);
 
   const seamlessWhite = large;
@@ -477,7 +493,7 @@ export function OutfitPiecesVisual({
                     width: widthPct,
                     maxWidth: '100%',
                     height: Math.round(layerHeight(layer.slot) * adaptiveBoost),
-                    marginTop: index === 0 ? 0 : (useStackGap ? stackSpacing : -stackSpacing),
+                    marginTop: index === 0 ? 0 : neighbourSpacing(stack[index - 1]?.slot, layer.slot),
                     zIndex: large ? 10 + index : index + 1,
                     paddingTop: Math.round(safePad.paddingTop * sizeScale),
                     paddingBottom: Math.round(safePad.paddingBottom * sizeScale),
