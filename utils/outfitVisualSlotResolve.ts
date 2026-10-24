@@ -5,6 +5,11 @@ import { normalizeWardrobeCategory } from './wardrobeCategories';
 
 export type OutfitVisualSlot = 'outerwear' | 'top' | 'bottom' | 'shoes' | 'dress' | 'accessory';
 
+/** Visible accessory-strip title. Chat collage only; Event and default stay "Also wearing". */
+export function accessoryStripHeading(layoutVariant?: string | null): 'Accessories' | 'Also wearing' {
+  return layoutVariant === 'chat' ? 'Accessories' : 'Also wearing';
+}
+
 function isDressShirtName(text: string): boolean {
   return /dress[\s_-]*shirt|oxford[\s_-]*shirt/.test(text);
 }

@@ -9,6 +9,7 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import { sanitizeOutfitPieces } from '@/utils/safeRender';
 import {
+  accessoryStripHeading,
   getOutfitPieceSlot,
   resolveOutfitVisualSlots,
   type OutfitVisualSlot,
@@ -528,7 +529,7 @@ export function OutfitPiecesVisual({
             darkColor="rgba(255,255,255,0.75)"
             style={styles.accessoryStripLabel}
           >
-            Also wearing
+            {accessoryStripHeading(layoutVariant)}
           </ThemedText>
           <View style={styles.accessoryStripRow}>
             {accessories.map((layer) => {

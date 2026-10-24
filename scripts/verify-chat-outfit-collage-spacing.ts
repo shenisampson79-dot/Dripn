@@ -6,6 +6,10 @@ import assert from 'assert';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  accessoryStripHeading,
+  getOutfitPieceSlot,
+} from '../utils/outfitVisualSlotResolve';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const visualSrc = readFileSync(resolve(root, 'components/OutfitPiecesVisual.tsx'), 'utf8');
@@ -32,6 +36,21 @@ assert.match(safeSrc, /layoutVariant\?: 'event' \| 'chat'/, 'SafeOutfitPieces ac
 assert.match(safeSrc, /layoutVariant=\{layoutVariant\}/, 'SafeOutfitPieces forwards layoutVariant');
 assert.match(visualSrc, /layoutVariant\?: 'event' \| 'chat'/, 'OutfitPiecesVisual accepts chat variant');
 assert.match(visualSrc, /layoutVariant === 'chat'/, 'Chat variant is opt-in');
+assert.equal(accessoryStripHeading('chat'), 'Accessories');
+assert.equal(accessoryStripHeading('event'), 'Also wearing');
+assert.equal(accessoryStripHeading(undefined), 'Also wearing');
+assert.equal(accessoryStripHeading(null), 'Also wearing');
+assert.match(visualSrc, /accessoryStripHeading\(layoutVariant\)/, 'Chat/Event heading uses accessoryStripHeading');
+assert.doesNotMatch(
+  visualSrc,
+  />\s*Accessories\s*</,
+  'Accessories is not hardcoded without the Chat gate',
+);
+assert.equal(
+  getOutfitPieceSlot({ name: 'Navy polka-dot necktie', category: 'accessories' }),
+  'accessory',
+  'necktie classification unchanged',
+);
 
 assert.match(visualSrc, /STACK_GAP_LARGE = 8/, 'shared large gap remains 8');
 assert.match(visualSrc, /CHAT_OUTFIT_SLOT_OVERLAP = 20/, 'Chat overlap is 20');

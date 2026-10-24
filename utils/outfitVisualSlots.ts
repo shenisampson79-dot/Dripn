@@ -3,10 +3,14 @@
  * Mirrors OutfitPiecesVisual slot rules without React Native.
  */
 import { sanitizeOutfitPieces, type SanitizedOutfitPiece } from '@/utils/safeRender';
-import { getOutfitPieceSlot, type OutfitVisualSlot } from './outfitVisualSlotResolve';
+import {
+  accessoryStripHeading,
+  getOutfitPieceSlot,
+  type OutfitVisualSlot,
+} from './outfitVisualSlotResolve';
 
 export type { OutfitVisualSlot };
-export { getOutfitPieceSlot };
+export { accessoryStripHeading, getOutfitPieceSlot };
 
 const STACK_ORDER: OutfitVisualSlot[] = ['outerwear', 'top', 'dress', 'bottom', 'shoes'];
 
