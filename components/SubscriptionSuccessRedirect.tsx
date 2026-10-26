@@ -44,7 +44,7 @@ export function SubscriptionSuccessRedirect() {
       );
 
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.history.replaceState({}, "", "/");
+        window.history.replaceState({}, "", "/app");
       }
     };
 
@@ -78,7 +78,7 @@ export function SubscriptionSuccessRedirect() {
             },
           })
         );
-        window.history.replaceState({}, "", "/");
+        window.history.replaceState({}, "", "/app");
         return;
       }
     }

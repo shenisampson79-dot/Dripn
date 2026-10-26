@@ -108,12 +108,16 @@
       "destination": "/reset-password.html"
     },
     {
-      "source": "/",
-      "destination": "/about.html"
+      "source": "/app",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/app/",
+      "destination": "/app.html"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ]
 }
