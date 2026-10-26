@@ -180,6 +180,82 @@ nav {
   flex-wrap: wrap;
 }
 
+.store-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.store-badge {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 8px;
+}
+
+.store-badge:focus-visible,
+.web-app-link:focus-visible,
+.store-button:focus-visible {
+  outline: 2px solid var(--gold, #c9a87c);
+  outline-offset: 3px;
+}
+
+.store-badge img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+.store-badge-play img {
+  height: 58px;
+}
+
+.web-app-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--black);
+  color: var(--black);
+  background: transparent;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.web-app-link:hover {
+  background: var(--black);
+  color: var(--cream);
+}
+
+.cta-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-availability {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .cta-stack,
+  .store-badges,
+  .cta-buttons {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-availability {
+    text-align: center;
+  }
+}
+
 .store-button {
   display: flex;
   align-items: center;

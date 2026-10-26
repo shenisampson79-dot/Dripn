@@ -89,6 +89,23 @@ assert('vercel /support rewrite', rewriteDestinations.includes('/support.html'))
 assert('vercel /privacy rewrite', rewriteDestinations.includes('/privacy.html'));
 assert('vercel /terms rewrite', rewriteDestinations.includes('/terms.html'));
 assert('vercel /reset-password rewrite', rewriteDestinations.includes('/reset-password.html'));
+const rootRewrite = (vercel.rewrites || []).find((r) => r.source === '/');
+assert('vercel exact / rewrite to marketing', rootRewrite && rootRewrite.destination === '/about.html');
+const catchAll = (vercel.rewrites || []).find((r) => r.source === '/(.*)');
+assert('vercel SPA catch-all preserved', catchAll && catchAll.destination === '/index.html');
+const rootIdx = (vercel.rewrites || []).findIndex((r) => r.source === '/');
+const catchIdx = (vercel.rewrites || []).findIndex((r) => r.source === '/(.*)');
+assert('vercel / rewrite precedes SPA catch-all', rootIdx >= 0 && catchIdx > rootIdx);
+const rewriteSources = (vercel.rewrites || []).map((r) => r.source);
+assert('vercel does not pin /app to marketing', !rewriteSources.includes('/app') && !rewriteSources.includes('/app/'));
+assert('about App Store URL', /https:\/\/apps\.apple\.com\/gb\/app\/dripn-ai-outfit-style\/id6762082932/.test(about));
+assert('about Google Play URL', /https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.dripn\.app/.test(about));
+assert('about Open Web App', /href="\/app"/.test(about));
+assert('about download anchor', /id="download"/.test(about));
+assert('about checkout success bridge', /subscription-success/.test(about));
+assert('about no waitlist copy', !/coming soon|waitlist/i.test(about));
+assert('about store badges copied', fs.existsSync(path.join(publicDir, 'images', 'badge-app-store.svg')));
+assert('about play badge copied', fs.existsSync(path.join(publicDir, 'images', 'badge-google-play.png')));
 
 const resetPassword = fs.readFileSync(path.join(publicDir, 'reset-password.html'), 'utf8');
 assert('reset-password.html exists', fs.existsSync(path.join(publicDir, 'reset-password.html')));

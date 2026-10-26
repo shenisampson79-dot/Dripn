@@ -27,14 +27,28 @@
   <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var sessionId = params.get('session_id');
+      var checkout = params.get('checkout');
+      if (!sessionId && checkout !== 'success') return;
+      var next = '/subscription-success';
+      var query = [];
+      if (sessionId) query.push('session_id=' + encodeURIComponent(sessionId));
+      if (checkout) query.push('checkout=' + encodeURIComponent(checkout));
+      if (query.length) next += '?' + query.join('&');
+      window.location.replace(next);
+    })();
+  </script>
   <nav>
     <div class="nav-content">
-      <a href="/about" class="logo">
+      <a href="/" class="logo">
         <img src="images/dripn-logo-gold.png" alt="Dripn Logo">
       </a>
       <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="#get-started">Get Started</a>
+        <a href="#download">Download</a>
         <a href="/support">Support</a>
       </div>
     </div>
@@ -47,25 +61,40 @@
         <h1 class="hero-title">Your personal stylist. <span>For every decision you wear.</span></h1>
         <p class="hero-description"><strong>Know what to wear. Know it works.</strong></p>
         <p class="hero-description">Dripn uses AI and your own wardrobe to help you decide what to wear, build outfits and get styling advice in seconds.</p>
-        <div class="cta-buttons">
-          <a href="https://dripnapp.com/" class="store-button primary-cta">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
-            </svg>
-            <div class="store-button-text">
-              <small>Start styling</small>
-              <span>Open Dripn</span>
-            </div>
-          </a>
-          <a href="#features" class="store-button">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            <div class="store-button-text">
-              <small>Explore</small>
-              <span>See what Dripn does</span>
-            </div>
-          </a>
+        <p class="hero-availability">Now available on the App Store and Google Play.</p>
+        <div class="cta-stack">
+          <div class="store-badges">
+            <a
+              class="store-badge"
+              href="https://apps.apple.com/gb/app/dripn-ai-outfit-style/id6762082932"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download Dripn on the App Store"
+            >
+              <img src="images/badge-app-store.svg" alt="Download on the App Store" height="40" width="120">
+            </a>
+            <a
+              class="store-badge store-badge-play"
+              href="https://play.google.com/store/apps/details?id=com.dripn.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get Dripn on Google Play"
+            >
+              <img src="images/badge-google-play.png" alt="Get it on Google Play" height="58" width="155">
+            </a>
+          </div>
+          <div class="cta-buttons">
+            <a href="#features" class="store-button">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              <div class="store-button-text">
+                <small>Explore</small>
+                <span>See what Dripn does</span>
+              </div>
+            </a>
+            <a href="/app" class="web-app-link">Open Web App</a>
+          </div>
         </div>
       </div>
       <div class="hero-image">
@@ -171,22 +200,34 @@
   </section>
 
   <section class="mobile-access-section" id="get-started">
-    <div class="container">
+    <div class="container" id="download">
       <div class="section-header">
-        <p class="section-label">Get Started</p>
-        <h2 class="section-title">Open Dripn and start styling</h2>
-        <p class="section-description">Sign in at dripnapp.com to build your wardrobe, chat with Ruby, Max, Ace, or Ivy, and get outfit help on web or mobile.</p>
+        <p class="section-label">Download</p>
+        <h2 class="section-title">Get Dripn on iPhone, Android, or the web</h2>
+        <p class="section-description">Dripn is publicly available on the Apple App Store and Google Play. Download the app, or open the web app to start styling with Ruby, Max, Ace, or Ivy.</p>
       </div>
-      <div class="investor-cta">
-        <a href="https://dripnapp.com/" class="store-button primary-cta">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
-          </svg>
-          <div class="store-button-text">
-            <small>Get started</small>
-            <span>Open Dripn</span>
-          </div>
-        </a>
+      <div class="investor-cta cta-stack">
+        <div class="store-badges">
+          <a
+            class="store-badge"
+            href="https://apps.apple.com/gb/app/dripn-ai-outfit-style/id6762082932"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download Dripn on the App Store"
+          >
+            <img src="images/badge-app-store.svg" alt="Download on the App Store" height="40" width="120">
+          </a>
+          <a
+            class="store-badge store-badge-play"
+            href="https://play.google.com/store/apps/details?id=com.dripn.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get Dripn on Google Play"
+          >
+            <img src="images/badge-google-play.png" alt="Get it on Google Play" height="58" width="155">
+          </a>
+        </div>
+        <a href="/app" class="web-app-link">Open Web App</a>
       </div>
     </div>
   </section>
@@ -203,8 +244,10 @@
           <h4>Product</h4>
           <ul>
             <li><a href="#features">Features</a></li>
-            <li><a href="#get-started">Get Started</a></li>
-            <li><a href="https://dripnapp.com/">Open Dripn</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="/app">Open Web App</a></li>
+            <li><a href="https://apps.apple.com/gb/app/dripn-ai-outfit-style/id6762082932" target="_blank" rel="noopener noreferrer">App Store</a></li>
+            <li><a href="https://play.google.com/store/apps/details?id=com.dripn.app" target="_blank" rel="noopener noreferrer">Google Play</a></li>
           </ul>
         </div>
         <div class="footer-column">

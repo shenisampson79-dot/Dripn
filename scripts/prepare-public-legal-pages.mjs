@@ -256,6 +256,8 @@ copyIfExists(path.join(assetsDir, 'dripn-logo-gold.png'), path.join(imagesDir, '
 copyIfExists(path.join(assetsDir, 'dripn-logo-icon.png'), path.join(imagesDir, 'favicon.png'));
 
 copyIfExists(path.join(assetsDir, 'dripn-logo-gold-cream.png'), path.join(imagesDir, 'dripn-logo-gold-cream.png'));
+copyIfExists(path.join(marketingDir, 'images', 'badge-app-store.svg'), path.join(imagesDir, 'badge-app-store.svg'));
+copyIfExists(path.join(marketingDir, 'images', 'badge-google-play.png'), path.join(imagesDir, 'badge-google-play.png'));
 
 let css = fs.readFileSync(path.join(publicDir, 'styles.css'), 'utf8');
 css = appendPublicFooterStyles(css);
