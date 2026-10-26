@@ -290,13 +290,29 @@
       var KEY = 'dripn_cookie_consent';
       var banner = document.getElementById('cookie-banner');
       if (!banner) return;
+      var nav = document.querySelector('nav');
+      function syncCookieSpace() {
+        var navHeight = nav ? nav.offsetHeight : 0;
+        var bannerHeight = banner.hidden ? 0 : banner.offsetHeight;
+        document.documentElement.style.setProperty('--nav-height', navHeight + 'px');
+        document.documentElement.style.setProperty('--cookie-banner-space', bannerHeight + 'px');
+      }
       try {
         if (localStorage.getItem(KEY)) return;
       } catch (e) { /* private mode */ }
       banner.hidden = false;
+      syncCookieSpace();
+      if (typeof ResizeObserver === 'function') {
+        var observer = new ResizeObserver(syncCookieSpace);
+        observer.observe(banner);
+        if (nav) observer.observe(nav);
+      } else {
+        window.addEventListener('resize', syncCookieSpace);
+      }
       function save(value) {
         try { localStorage.setItem(KEY, value); } catch (e) {}
         banner.hidden = true;
+        syncCookieSpace();
       }
       document.getElementById('cookie-accept').addEventListener('click', function () { save('accepted'); });
       document.getElementById('cookie-reject').addEventListener('click', function () { save('rejected'); });

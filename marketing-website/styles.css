@@ -1991,17 +1991,23 @@ footer {
   }
 }
 
-/* Cookie preference banner */
+/* Cookie preference banner — sits below the fixed nav so it never covers download CTAs */
+html {
+  --nav-height: 4.5rem;
+  --cookie-banner-space: 0px;
+}
+
 .cookie-banner {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
-  z-index: 1000;
+  top: var(--nav-height);
+  bottom: auto;
+  z-index: 999;
   padding: 16px;
   background: rgba(13, 11, 9, 0.96);
   color: #FFF9F0;
-  border-top: 1px solid rgba(201, 168, 124, 0.35);
+  border-bottom: 1px solid rgba(201, 168, 124, 0.35);
 }
 .cookie-banner[hidden] {
   display: none !important;
@@ -2045,5 +2051,39 @@ footer {
   background: transparent;
   color: #FFF9F0;
   border: 1px solid rgba(255, 249, 240, 0.35);
+}
+
+html:has(#cookie-banner:not([hidden])) {
+  scroll-padding-top: calc(var(--nav-height) + var(--cookie-banner-space));
+}
+
+body:has(#cookie-banner:not([hidden])) .hero {
+  padding-top: calc(var(--nav-height) + var(--cookie-banner-space) + 16px);
+}
+
+@media (max-width: 768px) {
+  .cookie-banner {
+    padding: 10px 12px;
+  }
+
+  .cookie-banner-inner {
+    gap: 10px;
+  }
+
+  .cookie-banner p {
+    flex: 1 1 12rem;
+    min-width: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .cookie-banner-actions {
+    flex-shrink: 0;
+  }
+
+  .cookie-btn {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
 }
 
