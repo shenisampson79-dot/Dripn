@@ -89,6 +89,7 @@ assert('vercel /support rewrite', rewriteDestinations.includes('/support.html'))
 assert('vercel /privacy rewrite', rewriteDestinations.includes('/privacy.html'));
 assert('vercel /terms rewrite', rewriteDestinations.includes('/terms.html'));
 assert('vercel /reset-password rewrite', rewriteDestinations.includes('/reset-password.html'));
+assert('vercel /verify-email rewrite', rewriteDestinations.includes('/verify-email.html'));
 const rootRewrite = (vercel.rewrites || []).find((r) => r.source === '/');
 assert('vercel does not rewrite / over static marketing index', !rootRewrite);
 const appRewrite = (vercel.rewrites || []).find((r) => r.source === '/app');
@@ -99,7 +100,9 @@ const catchAll = (vercel.rewrites || []).find((r) => r.source === '/(.*)');
 assert('vercel SPA catch-all uses app.html', catchAll && catchAll.destination === '/app.html');
 const appIdx = (vercel.rewrites || []).findIndex((r) => r.source === '/app');
 const catchIdx = (vercel.rewrites || []).findIndex((r) => r.source === '/(.*)');
+const verifyIdx = (vercel.rewrites || []).findIndex((r) => r.source === '/verify-email');
 assert('vercel /app rewrite precedes SPA catch-all', appIdx >= 0 && catchIdx > appIdx);
+assert('vercel /verify-email rewrite precedes SPA catch-all', verifyIdx >= 0 && catchIdx > verifyIdx);
 assert('vercel /api rewrite preserved', rewriteDestinations.includes('https://dripn-server.onrender.com/api/:path*'));
 assert('vercel /invite rewrite preserved', rewriteDestinations.includes('https://dripn-server.onrender.com/invite'));
 const redirect = fs.readFileSync(path.join(root, 'components', 'SubscriptionSuccessRedirect.tsx'), 'utf8');
@@ -120,6 +123,23 @@ assert('reset page title', /Reset your password \| Dripn/.test(resetPassword));
 assert('reset page reads token', /params\.get\('token'\)/.test(resetPassword));
 assert('reset page posts to API', /\/api\/auth\/reset-password/.test(resetPassword));
 assert('reset page no deep link', !/dripn:\/\//.test(resetPassword));
+
+const verifyEmail = fs.readFileSync(path.join(publicDir, 'verify-email.html'), 'utf8');
+assert('verify-email.html exists', fs.existsSync(path.join(publicDir, 'verify-email.html')));
+assert('verify page title', /Verify your email \| Dripn/.test(verifyEmail));
+assert('verify page reads token', /params\.get\('token'\)/.test(verifyEmail));
+assert('verify page calls API', /\/api\/auth\/verify-email\?token=/.test(verifyEmail));
+assert('verify page GET only', /method: 'GET'/.test(verifyEmail));
+assert('verify page no console', !/console\.(log|info|debug|warn|error)/.test(verifyEmail));
+assert('verify page no storage', !/localStorage|sessionStorage/.test(verifyEmail));
+assert('verify page strips query', /history\.replaceState/.test(verifyEmail));
+assert('verify page noindex', /noindex/.test(verifyEmail));
+assert('verify page no-referrer', /no-referrer/.test(verifyEmail));
+assert('verify page no analytics', !/gtag|googletagmanager|analytics\.js|mixpanel|segment/i.test(verifyEmail));
+assert('verify page no deep link', !/dripn:\/\//.test(verifyEmail));
+assert('verify missing token copy', /missing or incomplete/.test(verifyEmail));
+assert('verify expired copy', /invalid or has expired/.test(verifyEmail));
+assert('verify retry', /Try again/.test(verifyEmail));
 
 if (failures.length) {
   console.error('verify-public-legal-pages FAILED:\n' + failures.map((f) => `  - ${f}`).join('\n'));

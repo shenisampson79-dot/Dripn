@@ -15,6 +15,7 @@
     "build:web": "node scripts/prepare-public-legal-pages.mjs && npx expo export --platform web --output-dir web-build && node scripts/fix-web-index.js && node scripts/verify-web-build-marketing-root.mjs",
     "verify:public-legal-pages": "node scripts/prepare-public-legal-pages.mjs && node scripts/verify-public-legal-pages.mjs",
     "verify:forgot-password-journey": "node scripts/prepare-public-legal-pages.mjs && node scripts/verify-forgot-password-journey.mjs",
+    "verify:email-verification-page": "node scripts/prepare-public-legal-pages.mjs && node scripts/verify-email-verification-page.mjs",
     "lint": "npx expo lint",
     "check:format": "prettier --check \"**/*.{js,ts,tsx,css,json}\"",
     "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\"",

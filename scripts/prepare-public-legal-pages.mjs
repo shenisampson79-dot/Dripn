@@ -27,7 +27,7 @@ function copyIfExists(from, to) {
   fs.copyFileSync(from, to);
 }
 
-function pageShell({ title, description, bodyHtml }) {
+function pageShell({ title, description, extraHead = '', bodyHtml }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,6 +35,7 @@ function pageShell({ title, description, bodyHtml }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <meta name="description" content="${description}">
+  ${extraHead}
   <link rel="stylesheet" href="/styles.css">
   <link rel="icon" type="image/png" href="/images/favicon.png">
 </head>
@@ -435,6 +436,154 @@ function writeResetPasswordPage() {
 
 writeResetPasswordPage();
 
+function writeVerifyEmailPage() {
+  const bodyHtml = `
+        <h1>Verify your email</h1>
+        <p class="reset-intro">Confirm your Dripn account email so you can use all features.</p>
+
+        <div id="verify-status" class="reset-panel">
+          <p>Checking your verification link&hellip;</p>
+        </div>
+
+        <div id="verify-missing" class="reset-panel reset-error" hidden>
+          <p>This verification link is missing or incomplete. Open the latest verification email, or request a new one from the Dripn app.</p>
+        </div>
+
+        <div id="verify-expired" class="reset-panel reset-error" hidden>
+          <p>This verification link is invalid or has expired. Request a new verification email from the Dripn app, then open the new link.</p>
+        </div>
+
+        <div id="verify-error" class="reset-panel reset-error" hidden>
+          <p id="verify-error-text">We could not verify your email right now. Check your connection and try again.</p>
+          <button id="verify-retry" class="reset-button" type="button">Try again</button>
+        </div>
+
+        <div id="verify-success" class="reset-panel reset-success" hidden>
+          <h2>Email verified</h2>
+          <p id="verify-success-text">Your email is verified. Open the Dripn app and continue.</p>
+        </div>
+
+        <script>
+          (function () {
+            var params = new URLSearchParams(window.location.search);
+            var token = (params.get('token') || '').trim();
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, '', window.location.pathname);
+            }
+
+            var statusEl = document.getElementById('verify-status');
+            var missingEl = document.getElementById('verify-missing');
+            var expiredEl = document.getElementById('verify-expired');
+            var errorEl = document.getElementById('verify-error');
+            var errorTextEl = document.getElementById('verify-error-text');
+            var retryEl = document.getElementById('verify-retry');
+            var successEl = document.getElementById('verify-success');
+            var successTextEl = document.getElementById('verify-success-text');
+
+            function hideAll() {
+              statusEl.hidden = true;
+              missingEl.hidden = true;
+              expiredEl.hidden = true;
+              errorEl.hidden = true;
+              successEl.hidden = true;
+            }
+
+            function showMissing() {
+              hideAll();
+              missingEl.hidden = false;
+            }
+
+            function showExpired() {
+              hideAll();
+              expiredEl.hidden = false;
+            }
+
+            function showError(message) {
+              hideAll();
+              errorTextEl.textContent = message;
+              errorEl.hidden = false;
+            }
+
+            function showSuccess(alreadyVerified) {
+              hideAll();
+              successTextEl.textContent = alreadyVerified
+                ? 'This email is already verified. Open the Dripn app and continue.'
+                : 'Your email is verified. Open the Dripn app and continue.';
+              successEl.hidden = false;
+            }
+
+            function verify() {
+              if (!token) {
+                showMissing();
+                return;
+              }
+
+              hideAll();
+              statusEl.hidden = false;
+              retryEl.disabled = true;
+
+              fetch('/api/auth/verify-email?token=' + encodeURIComponent(token), {
+                method: 'GET',
+                credentials: 'omit',
+                cache: 'no-store',
+                referrerPolicy: 'no-referrer',
+              })
+                .then(function (response) {
+                  return response.json().then(function (body) {
+                    return { ok: response.ok, status: response.status, body: body || {} };
+                  }).catch(function () {
+                    return { ok: false, status: response.status, body: {} };
+                  });
+                })
+                .then(function (result) {
+                  if (result.ok && result.body && result.body.success) {
+                    showSuccess(!!result.body.alreadyVerified);
+                    return;
+                  }
+
+                  var message = (result.body && result.body.message) || '';
+                  var lower = String(message).toLowerCase();
+                  if (result.body && result.body.expired) {
+                    showExpired();
+                    return;
+                  }
+                  if (lower.indexOf('invalid') >= 0 || lower.indexOf('expired') >= 0) {
+                    showExpired();
+                    return;
+                  }
+                  if (lower.indexOf('required') >= 0) {
+                    showMissing();
+                    return;
+                  }
+                  showError('We could not verify your email right now. Check your connection and try again.');
+                })
+                .catch(function () {
+                  showError('We could not verify your email right now. Check your connection and try again.');
+                })
+                .finally(function () {
+                  retryEl.disabled = false;
+                });
+            }
+
+            retryEl.addEventListener('click', verify);
+            verify();
+          })();
+        </script>`;
+
+  fs.writeFileSync(
+    path.join(publicDir, 'verify-email.html'),
+    pageShell({
+      title: 'Verify your email | Dripn',
+      description: 'Verify your Dripn account email.',
+      extraHead: '<meta name="referrer" content="no-referrer">\n  <meta name="robots" content="noindex, nofollow">',
+      bodyHtml,
+    }),
+    'utf8',
+  );
+}
+
+writeVerifyEmailPage();
+
 function transformMarketingPage(html) {
   return html
     .replace(/href="index\.html"/g, 'href="/about"')
@@ -461,4 +610,4 @@ function writeMarketingAboutPage() {
 
 writeMarketingAboutPage();
 
-console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, delete-account.html, reset-password.html, styles.css');
+console.log('[prepare-public-legal-pages] wrote about.html, support.html, privacy.html, terms.html, delete-account.html, reset-password.html, verify-email.html, styles.css');

@@ -108,6 +108,14 @@
       "destination": "/reset-password.html"
     },
     {
+      "source": "/verify-email",
+      "destination": "/verify-email.html"
+    },
+    {
+      "source": "/verify-email/",
+      "destination": "/verify-email.html"
+    },
+    {
       "source": "/app",
       "destination": "/app.html"
     },

@@ -43,6 +43,15 @@ if (fs.existsSync(indexPath) && fs.existsSync(appPath)) {
   assert('app.html stripped location.replace root', !/window\.location\.replace\(['"]\/['"]\)/.test(appHtml));
 }
 
+const verifyEmailPath = path.join(webBuild, 'verify-email.html');
+assert('web-build/verify-email.html exists', fs.existsSync(verifyEmailPath));
+if (fs.existsSync(verifyEmailPath)) {
+  const verifyHtml = fs.readFileSync(verifyEmailPath, 'utf8');
+  assert('verify-email is dedicated page', /Verify your email \| Dripn/.test(verifyHtml));
+  assert('verify-email is not Expo SPA', !/id="root"/.test(verifyHtml) && !/_expo\//.test(verifyHtml));
+  assert('verify-email calls backend', /\/api\/auth\/verify-email\?token=/.test(verifyHtml));
+}
+
 if (failures.length) {
   console.error('verify-web-build-marketing-root FAILED:\n' + failures.map((f) => `  - ${f}`).join('\n'));
   process.exit(1);
