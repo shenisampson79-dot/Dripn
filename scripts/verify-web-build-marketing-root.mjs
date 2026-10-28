@@ -50,6 +50,8 @@ if (fs.existsSync(verifyEmailPath)) {
   assert('verify-email is dedicated page', /Verify your email \| Dripn/.test(verifyHtml));
   assert('verify-email is not Expo SPA', !/id="root"/.test(verifyHtml) && !/_expo\//.test(verifyHtml));
   assert('verify-email calls backend', /\/api\/auth\/verify-email\?token=/.test(verifyHtml));
+  assert('verify-email success heading', /<h2>Email verified!<\/h2>/.test(verifyHtml));
+  assert('verify-email hides preamble on success', /preambleEl\.hidden = true/.test(verifyHtml));
 }
 
 if (failures.length) {

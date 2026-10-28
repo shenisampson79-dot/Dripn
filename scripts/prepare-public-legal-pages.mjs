@@ -438,8 +438,10 @@ writeResetPasswordPage();
 
 function writeVerifyEmailPage() {
   const bodyHtml = `
+        <div id="verify-preamble">
         <h1>Verify your email</h1>
         <p class="reset-intro">Confirm your Dripn account email so you can use all features.</p>
+        </div>
 
         <div id="verify-status" class="reset-panel">
           <p>Checking your verification link&hellip;</p>
@@ -459,8 +461,9 @@ function writeVerifyEmailPage() {
         </div>
 
         <div id="verify-success" class="reset-panel reset-success" hidden>
-          <h2>Email verified</h2>
-          <p id="verify-success-text">Your email is verified. Open the Dripn app and continue.</p>
+          <h2>Email verified!</h2>
+          <p>Your Dripn account email has been successfully verified.</p>
+          <p>You're all set. Open the Dripn app to continue your style journey.</p>
         </div>
 
         <script>
@@ -478,7 +481,7 @@ function writeVerifyEmailPage() {
             var errorTextEl = document.getElementById('verify-error-text');
             var retryEl = document.getElementById('verify-retry');
             var successEl = document.getElementById('verify-success');
-            var successTextEl = document.getElementById('verify-success-text');
+            var preambleEl = document.getElementById('verify-preamble');
 
             function hideAll() {
               statusEl.hidden = true;
@@ -488,28 +491,34 @@ function writeVerifyEmailPage() {
               successEl.hidden = true;
             }
 
+            function showPreamble() {
+              preambleEl.hidden = false;
+            }
+
             function showMissing() {
               hideAll();
+              showPreamble();
               missingEl.hidden = false;
             }
 
             function showExpired() {
               hideAll();
+              showPreamble();
               expiredEl.hidden = false;
             }
 
             function showError(message) {
               hideAll();
+              showPreamble();
               errorTextEl.textContent = message;
               errorEl.hidden = false;
             }
 
             function showSuccess(alreadyVerified) {
               hideAll();
-              successTextEl.textContent = alreadyVerified
-                ? 'This email is already verified. Open the Dripn app and continue.'
-                : 'Your email is verified. Open the Dripn app and continue.';
+              preambleEl.hidden = true;
               successEl.hidden = false;
+              void alreadyVerified;
             }
 
             function verify() {
@@ -519,6 +528,7 @@ function writeVerifyEmailPage() {
               }
 
               hideAll();
+              showPreamble();
               statusEl.hidden = false;
               retryEl.disabled = true;
 
