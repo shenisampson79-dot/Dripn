@@ -3,12 +3,15 @@ import { describe, it } from 'node:test';
 import {
   CLOUD_CANONICAL_STABLE_MS,
   CLOUD_CANONICAL_SUSPECT_MS,
+  LIVE_ESTABLISHING_FAST_MAX,
   applyCanonicalLiveResponse,
   attachLiveContractPayload,
   isLiveContractV2,
   liveCanonicalWaitMs,
+  nextCanonicalRequestPolicy,
   shouldApplyCanonicalObs,
   shouldBypassHashSkip,
+  shouldResetCanonicalSessionAfterBackground,
 } from './liveCanonicalHud.ts';
 import { createLiveScoreGate, gateLiveScore } from './liveScoreStability.ts';
 
@@ -18,7 +21,7 @@ const published = {
   schedulerHint: 'stable',
   publication: { revision: 1, status: 'published' as const },
   liveSession: { epoch: 1, lastAppliedObsSeq: 2, sessionId: 's1' },
-  items: [{ name: 'charcoal overcoat', category: 'outerwear' }],
+  items: [{ name: 'charcoal overcoat', category: 'outerwear', bbox: [0.12, 0.04, 0.52, 0.72], trackId: 'g_1' }],
   feedback: {
     score: 96,
     coaching: {
@@ -42,6 +45,8 @@ describe('canonical v2 HUD contract', () => {
     assert.equal(applied.score, 96);
     assert.equal(applied.coaching?.summary, published.feedback.coaching.summary);
     assert.equal(applied.coaching?.headline, published.feedback.coaching.headline);
+    assert.equal(applied.items.length, 1);
+    assert.deepEqual((applied.items[0] as { bbox: number[] }).bbox, [0.12, 0.04, 0.52, 0.72]);
     const gated = gateLiveScore(
       { ...createLiveScoreGate(), shown: 64, signature: 'old', scoredIdentityKey: 'jeans|loafer' },
       96,
@@ -93,6 +98,23 @@ describe('canonical v2 HUD contract', () => {
     if (applied.kind !== 'canonical') return;
     assert.equal(applied.score, null);
     assert.equal(applied.publicationStatus, 'establishing');
+    assert.deepEqual(applied.items, []);
+  });
+
+  it('clears boxes on scene-reset even if stale items are present', () => {
+    const applied = applyCanonicalLiveResponse({
+      res: {
+        ...published,
+        publication: { revision: 3, status: 'scene_reset' },
+        items: published.items,
+      },
+      lastAppliedObsSeq: 1,
+      requestGeneration: 1,
+      currentGeneration: 1,
+    });
+    assert.equal(applied.kind, 'canonical');
+    if (applied.kind !== 'canonical') return;
+    assert.deepEqual(applied.items, []);
   });
 
   it('drops out-of-order obsSeq and stale generations', () => {
@@ -141,14 +163,65 @@ describe('canonical v2 HUD contract', () => {
 });
 
 describe('canonical scheduler', () => {
-  it('keeps 12s stable monitoring and 2s suspect verify', () => {
+  it('keeps 12s stable monitoring and one 2s suspect verify with hash bypass', () => {
     assert.equal(liveCanonicalWaitMs({ firstCloudSent: true, publishedCore: true }).waitMs, CLOUD_CANONICAL_STABLE_MS);
-    assert.equal(liveCanonicalWaitMs({
+    const suspect = nextCanonicalRequestPolicy({
       firstCloudSent: true,
       publishedCore: true,
       schedulerHint: 'suspect_change',
-    }).waitMs, CLOUD_CANONICAL_SUSPECT_MS);
-    assert.equal(shouldBypassHashSkip('suspect_change'), true);
-    assert.equal(shouldBypassHashSkip('stable'), false);
+    });
+    assert.equal(suspect.waitMs, CLOUD_CANONICAL_SUSPECT_MS);
+    assert.equal(suspect.bypassHash, true);
+    assert.equal(suspect.markSuspectVerify, true);
+    const afterOne = nextCanonicalRequestPolicy({
+      firstCloudSent: true,
+      publishedCore: true,
+      schedulerHint: 'suspect_change',
+      suspectVerifySent: true,
+    });
+    assert.equal(afterOne.waitMs, CLOUD_CANONICAL_STABLE_MS);
+    assert.equal(afterOne.bypassHash, false);
+    assert.equal(shouldBypassHashSkip(null, afterOne), false);
+  });
+
+  it('caps establishing fast retries and does not loop paid Vision', () => {
+    const first = nextCanonicalRequestPolicy({
+      firstCloudSent: true,
+      publishedCore: false,
+      schedulerHint: 'scene_transition',
+      establishingFastCount: 0,
+    });
+    assert.equal(first.waitMs, 400);
+    assert.equal(first.bypassHash, true);
+    const capped = nextCanonicalRequestPolicy({
+      firstCloudSent: true,
+      publishedCore: false,
+      schedulerHint: 'scene_transition',
+      establishingFastCount: LIVE_ESTABLISHING_FAST_MAX,
+    });
+    assert.equal(capped.waitMs, CLOUD_CANONICAL_STABLE_MS);
+    assert.equal(capped.bypassHash, false);
+  });
+
+  it('backs off failed or empty responses and keeps one in-flight', () => {
+    const inflight = nextCanonicalRequestPolicy({
+      firstCloudSent: true,
+      publishedCore: true,
+      inFlight: true,
+    });
+    assert.equal(inflight.send, false);
+    const fail = nextCanonicalRequestPolicy({
+      firstCloudSent: true,
+      publishedCore: true,
+      lastOutcome: 'fail',
+      emptyFailStreak: 1,
+    });
+    assert.equal(fail.waitMs, 4000);
+    assert.equal(fail.bypassHash, false);
+  });
+
+  it('resets canonical session after 90s background', () => {
+    assert.equal(shouldResetCanonicalSessionAfterBackground(1, 91_001), true);
+    assert.equal(shouldResetCanonicalSessionAfterBackground(50_000, 80_000), false);
   });
 });

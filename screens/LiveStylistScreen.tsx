@@ -128,8 +128,9 @@ import { enforceLiveOutcomeContract, headlineFromScore } from '@/utils/liveOutco
 import {
   applyCanonicalLiveResponse,
   attachLiveContractPayload,
-  liveCanonicalWaitMs,
+  nextCanonicalRequestPolicy,
   shouldBypassHashSkip,
+  shouldResetCanonicalSessionAfterBackground,
 } from '@/utils/liveCanonicalHud';
 
 /** Hard ceiling for camera mount/ready — never leave "warming" forever. */
@@ -423,6 +424,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const obsSeqRef = useRef(0);
   const lastAppliedObsSeqRef = useRef(0);
   const lastSchedulerHintRef = useRef<string | null>(null);
+  const canonicalEstablishingFastRef = useRef(0);
+  const canonicalSuspectVerifySentRef = useRef(false);
+  const canonicalLastOutcomeRef = useRef<'ok' | 'empty' | 'fail' | null>(null);
+  const canonicalFailStreakRef = useRef(0);
+  const canonicalPausedAtRef = useRef(0);
   /** Newest-first seasonal layer tip ids — soft anti-repeat across the session. */
   const recentLayerTipIdsRef = useRef<string[]>([]);
   const detectionMemoryRef = useRef<DetectionMemory>(createLiveBeliefMemory());
@@ -651,6 +657,17 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       lastAppliedObsSeqRef.current = canonical.appliedObsSeq;
       liveSessionRef.current = canonical.liveSession;
       lastSchedulerHintRef.current = canonical.schedulerHint;
+      if (canonical.schedulerHint === 'stable' || canonical.publicationStatus === 'published') {
+        canonicalEstablishingFastRef.current = 0;
+        canonicalSuspectVerifySentRef.current = false;
+        canonicalFailStreakRef.current = 0;
+        canonicalLastOutcomeRef.current = 'ok';
+      } else if (!canonical.items.length) {
+        canonicalLastOutcomeRef.current = 'empty';
+        canonicalFailStreakRef.current += 1;
+      } else {
+        canonicalLastOutcomeRef.current = 'ok';
+      }
       const next = canonical.feedback as LiveFeedback;
       previousItemsRef.current = (canonical.items as LiveTrackedItem[]) || [];
       previousFeedbackRef.current = next;
@@ -1373,12 +1390,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setYoloStatusNote(`DBG: ANALYSIS_START ${width}x${height}`);
 
       const frameHash = lastFrameRgbaRef.current?.hash || hashRgbaFrame(rgba, width, height);
+      const canonicalPolicy = nextCanonicalRequestPolicy({
+        firstCloudSent: firstCloudSentRef.current,
+        publishedCore: lastSchedulerHintRef.current === 'stable'
+          || lastSchedulerHintRef.current === 'occlusion'
+          || hasPublishedLiveCore(outfitTruthRef.current),
+        schedulerHint: lastSchedulerHintRef.current,
+        establishingFastCount: canonicalEstablishingFastRef.current,
+        suspectVerifySent: canonicalSuspectVerifySentRef.current,
+        lastOutcome: canonicalLastOutcomeRef.current,
+        emptyFailStreak: canonicalFailStreakRef.current,
+      });
       // Don't "hold" until we've analysed at least once — otherwise a failed
       // first frame locks Live on an identical hash forever.
       if (
         analysisSucceededRef.current
         && framesLikelySame(lastHashRef.current, frameHash)
-        && !shouldBypassHashSkip(lastSchedulerHintRef.current)
+        && !shouldBypassHashSkip(lastSchedulerHintRef.current, canonicalPolicy)
       ) {
         setStatusNote('Holding — frame unchanged');
         return;
@@ -1536,14 +1564,9 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           Date.now() - lastCloudFillAtRef.current >= CLOUD_SCENE_EVENT_COOLDOWN_MS;
         const sceneEventDue =
           sceneChangeStreakRef.current >= CLOUD_SCENE_EVENT_FRAMES && sceneEventReady;
-        const canonicalWait = liveCanonicalWaitMs({
-          firstCloudSent: firstCloudSentRef.current,
-          publishedCore: hasPublishedLiveCore(outfitTruthRef.current),
-          schedulerHint: lastSchedulerHintRef.current,
-        });
         const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= Math.min(
           CLOUD_LAYER_VERIFY_MS,
-          canonicalWait.waitMs,
+          canonicalPolicy.waitMs,
         );
         const suspect = detectSuspectLiveRead(lockedIdentity ? mapped : corrected);
         const suspectDue = Boolean(
@@ -1573,18 +1596,12 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           };
         }
       } else if (!firstCloudDue) {
-        const published = hasPublishedLiveCore(outfitTruthRef.current)
-          || lastSchedulerHintRef.current === 'stable'
-          || lastSchedulerHintRef.current === 'occlusion';
-        const wait = liveCanonicalWaitMs({
-          firstCloudSent: true,
-          publishedCore: published,
-          schedulerHint: lastSchedulerHintRef.current,
-        });
-        if (Date.now() - lastCloudFillAtRef.current >= wait.waitMs) {
+        if (Date.now() - lastCloudFillAtRef.current >= canonicalPolicy.waitMs) {
           payload.imageBase64 = ensureJpeg();
           payload.cloudFill = true;
-          payload.cloudFillReason = wait.reason;
+          payload.cloudFillReason = canonicalPolicy.reason;
+          if (canonicalPolicy.markSuspectVerify) canonicalSuspectVerifySentRef.current = true;
+          if (canonicalPolicy.incrementEstablishingFast) canonicalEstablishingFastRef.current += 1;
           lastCloudFillAtRef.current = Date.now();
         }
       }
@@ -1620,6 +1637,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       );
       if (!res.success) {
         if (payload.cloudFillReason === 'first_publish') firstCloudSentRef.current = false;
+        canonicalLastOutcomeRef.current = 'fail';
+        canonicalFailStreakRef.current += 1;
         void liveStartCrumb(`ANALYSIS_FAILURE cloud:${res.message || 'scan_failed'}`);
         setYoloStatusNote(`Pipeline: ANALYSIS_FAILURE cloud`);
         if (isAiBudgetError({ message: res.message, error: (res as { error?: string }).error })) {
@@ -1658,6 +1677,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     } catch (error) {
       console.warn('[LiveStylist] frame error:', error);
       if (!analysisSucceededRef.current) firstCloudSentRef.current = false;
+      canonicalLastOutcomeRef.current = 'fail';
+      canonicalFailStreakRef.current += 1;
       const msg = error instanceof Error ? error.message : 'Frame failed';
       void liveStartCrumb(`ANALYSIS_FAILURE ${msg}`);
       void liveStartCrumb(`frame.error ${msg}`);
@@ -1748,6 +1769,19 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   /** Reset session refs + minimal UI. Prefer calling BEFORE VisionCamera mounts. */
   const resetLiveSessionState = useCallback(() => {
+    if (shouldResetCanonicalSessionAfterBackground(canonicalPausedAtRef.current)) {
+      warmTruthRef.current = null;
+      sessionEpochRef.current += 1;
+      liveSessionRef.current = null;
+      lastAppliedObsSeqRef.current = 0;
+      obsSeqRef.current = 0;
+      lastSchedulerHintRef.current = null;
+      canonicalSuspectVerifySentRef.current = false;
+      canonicalEstablishingFastRef.current = 0;
+      canonicalFailStreakRef.current = 0;
+      canonicalLastOutcomeRef.current = null;
+    }
+    canonicalPausedAtRef.current = 0;
     const warm = warmTruthRef.current;
     const now = Date.now();
     if (canWarmStartTruth(warm, now) && warm) {
@@ -1840,6 +1874,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       lastAppliedObsSeqRef.current = 0;
       obsSeqRef.current = 0;
       lastSchedulerHintRef.current = null;
+      canonicalSuspectVerifySentRef.current = false;
+      canonicalEstablishingFastRef.current = 0;
+      canonicalFailStreakRef.current = 0;
+      canonicalLastOutcomeRef.current = null;
       detectionMemoryRef.current = createLiveBeliefMemory();
       decisionLogRef.current = [];
       inspectRef.current = null;
@@ -1892,6 +1930,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     startingLiveRef.current = false;
     liveBootGenRef.current += 1;
     liveStartedAtRef.current = 0;
+    canonicalPausedAtRef.current = Date.now();
     try {
       warmTruthRef.current = stashWarmTruth(outfitTruthRef.current);
     } catch {
