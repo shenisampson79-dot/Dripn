@@ -125,6 +125,12 @@ import {
   type WarmTruthStash,
 } from '@/utils/liveOutfitTruth';
 import { enforceLiveOutcomeContract, headlineFromScore } from '@/utils/liveOutcomeContract';
+import {
+  applyCanonicalLiveResponse,
+  attachLiveContractPayload,
+  liveCanonicalWaitMs,
+  shouldBypassHashSkip,
+} from '@/utils/liveCanonicalHud';
 
 /** Hard ceiling for camera mount/ready — never leave "warming" forever. */
 const CAMERA_READY_TIMEOUT_MS = 8000;
@@ -412,6 +418,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const lastHashRef = useRef<string | null>(null);
   const previousItemsRef = useRef<LiveTrackedItem[]>([]);
   const previousFeedbackRef = useRef<LiveFeedback | null>(null);
+  const liveSessionRef = useRef<Record<string, unknown> | null>(null);
+  const sessionEpochRef = useRef(1);
+  const obsSeqRef = useRef(0);
+  const lastAppliedObsSeqRef = useRef(0);
+  const lastSchedulerHintRef = useRef<string | null>(null);
   /** Newest-first seasonal layer tip ids — soft anti-repeat across the session. */
   const recentLayerTipIdsRef = useRef<string[]>([]);
   const detectionMemoryRef = useRef<DetectionMemory>(createLiveBeliefMemory());
@@ -628,7 +639,45 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     leaveLiveAndNavigate(navigation, { kind: 'sanity' });
   }, [navigation, stopSamplingLoop, unmountCamera]);
 
-  const applyResponse = useCallback((res: LiveFrameResponse) => {
+  const applyResponse = useCallback((res: LiveFrameResponse, requestGen?: number) => {
+    const canonical = applyCanonicalLiveResponse({
+      res,
+      lastAppliedObsSeq: lastAppliedObsSeqRef.current,
+      requestGeneration: requestGen ?? liveBootGenRef.current,
+      currentGeneration: liveBootGenRef.current,
+    });
+    if (canonical.kind === 'ignore') return null;
+    if (canonical.kind === 'canonical') {
+      lastAppliedObsSeqRef.current = canonical.appliedObsSeq;
+      liveSessionRef.current = canonical.liveSession;
+      lastSchedulerHintRef.current = canonical.schedulerHint;
+      const next = canonical.feedback as LiveFeedback;
+      previousItemsRef.current = (canonical.items as LiveTrackedItem[]) || [];
+      previousFeedbackRef.current = next;
+      scoreGateRef.current = {
+        shown: canonical.score,
+        pending: null,
+        signature: 'canonical_v2',
+        heldSince: null,
+        scoredIdentityKey: 'canonical_v2',
+        approximate: false,
+      };
+      if (canonical.publicationStatus === 'published' || canonical.publicationStatus === 'incomplete') {
+        labelsReadyRef.current = true;
+        if (mountedRef.current) setLabelsReady(true);
+      }
+      if (mountedRef.current) {
+        setItems(previousItemsRef.current);
+        setFeedback(next);
+      }
+      lastCoachShownAtRef.current = Date.now();
+      return {
+        score: canonical.score,
+        itemCount: res.itemCount,
+        confidenceLevel: next.confidenceLevel,
+        scoreApproximate: false,
+      };
+    }
     if (!mountedRef.current) return null;
 
     const footZone = getLastOnDeviceFootZone();
@@ -1326,7 +1375,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       const frameHash = lastFrameRgbaRef.current?.hash || hashRgbaFrame(rgba, width, height);
       // Don't "hold" until we've analysed at least once — otherwise a failed
       // first frame locks Live on an identical hash forever.
-      if (analysisSucceededRef.current && framesLikelySame(lastHashRef.current, frameHash)) {
+      if (
+        analysisSucceededRef.current
+        && framesLikelySame(lastHashRef.current, frameHash)
+        && !shouldBypassHashSkip(lastSchedulerHintRef.current)
+      ) {
         setStatusNote('Holding — frame unchanged');
         return;
       }
@@ -1358,6 +1411,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         recentLayerTipIds: recentLayerTipIdsRef.current.slice(0, 8),
         month: new Date().getMonth() + 1,
       };
+      attachLiveContractPayload(payload, {
+        liveSession: liveSessionRef.current,
+        sessionEpoch: sessionEpochRef.current,
+        obsSeq: ++obsSeqRef.current,
+      });
 
       let jpegBase64: string | null = null;
       const ensureJpeg = () => {
@@ -1478,7 +1536,15 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           Date.now() - lastCloudFillAtRef.current >= CLOUD_SCENE_EVENT_COOLDOWN_MS;
         const sceneEventDue =
           sceneChangeStreakRef.current >= CLOUD_SCENE_EVENT_FRAMES && sceneEventReady;
-        const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= CLOUD_LAYER_VERIFY_MS;
+        const canonicalWait = liveCanonicalWaitMs({
+          firstCloudSent: firstCloudSentRef.current,
+          publishedCore: hasPublishedLiveCore(outfitTruthRef.current),
+          schedulerHint: lastSchedulerHintRef.current,
+        });
+        const layerVerifyDue = Date.now() - lastCloudFillAtRef.current >= Math.min(
+          CLOUD_LAYER_VERIFY_MS,
+          canonicalWait.waitMs,
+        );
         const suspect = detectSuspectLiveRead(lockedIdentity ? mapped : corrected);
         const suspectDue = Boolean(
           suspect
@@ -1507,12 +1573,18 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
           };
         }
       } else if (!firstCloudDue) {
-        const published = hasPublishedLiveCore(outfitTruthRef.current);
-        const waitMs = published ? CLOUD_LAYER_VERIFY_MS : CLOUD_FIRST_PUBLISH_RETRY_MS;
-        if (Date.now() - lastCloudFillAtRef.current >= waitMs) {
+        const published = hasPublishedLiveCore(outfitTruthRef.current)
+          || lastSchedulerHintRef.current === 'stable'
+          || lastSchedulerHintRef.current === 'occlusion';
+        const wait = liveCanonicalWaitMs({
+          firstCloudSent: true,
+          publishedCore: published,
+          schedulerHint: lastSchedulerHintRef.current,
+        });
+        if (Date.now() - lastCloudFillAtRef.current >= wait.waitMs) {
           payload.imageBase64 = ensureJpeg();
           payload.cloudFill = true;
-          payload.cloudFillReason = published ? 'layer_verify' : 'first_publish';
+          payload.cloudFillReason = wait.reason;
           lastCloudFillAtRef.current = Date.now();
         }
       }
@@ -1540,6 +1612,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
       void liveStartCrumb('cloud.request');
       liveTimingRef.current.cloudReqAt = Date.now();
+      const requestGen = liveBootGenRef.current;
       const res = await apiService.liveScanFrame(payload);
       liveTimingRef.current.cloudResAt = Date.now();
       void liveStartCrumb(
@@ -1560,7 +1633,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       analysisSucceededRef.current = true;
       void liveStartCrumb(`ANALYSIS_SUCCESS items=${res.itemCount ?? 0}`);
       setYoloStatusNote(`Pipeline: ANALYSIS_SUCCESS items=${res.itemCount ?? 0}`);
-      const painted = applyResponse(res);
+      const painted = applyResponse(res, requestGen);
       const tipId = res.feedback?.coaching?.layerTipId;
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);
@@ -1762,6 +1835,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       setItems(customerBoxesFromPublishedTruth(warm.truth, {}));
       setDebugSnapshot(emptyDebugSnapshot('live_warm'));
     } else {
+      sessionEpochRef.current += 1;
+      liveSessionRef.current = null;
+      lastAppliedObsSeqRef.current = 0;
+      obsSeqRef.current = 0;
+      lastSchedulerHintRef.current = null;
       detectionMemoryRef.current = createLiveBeliefMemory();
       decisionLogRef.current = [];
       inspectRef.current = null;
@@ -2078,6 +2156,11 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         sceneType: 'worn',
         imageBase64: encodeRgbaToJpegBase64(rgba, width, height, 70),
       };
+      attachLiveContractPayload(payload, {
+        liveSession: liveSessionRef.current,
+        sessionEpoch: sessionEpochRef.current,
+        obsSeq: ++obsSeqRef.current,
+      });
 
       if (onDevice?.length) {
         const { correctOnDeviceDetections } = await import('@/utils/yoloToPipelineCandidates');
@@ -2110,6 +2193,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       }
 
       void liveStartCrumb('cloud.request');
+      const stillGen = liveBootGenRef.current;
       const res = await apiService.liveScanFrame(payload);
       void liveStartCrumb('cloud.response');
       if (!res.success) {
@@ -2120,7 +2204,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         setStatusNote(res.message || 'Still scan failed');
         return;
       }
-      applyResponse(res);
+      applyResponse(res, stillGen);
       const tipId = res.feedback?.coaching?.layerTipId;
       if (tipId && recentLayerTipIdsRef.current[0] !== tipId) {
         recentLayerTipIdsRef.current = [tipId, ...recentLayerTipIdsRef.current].slice(0, 8);

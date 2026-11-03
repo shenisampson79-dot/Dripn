@@ -1313,6 +1313,10 @@ class ApiService {
     weatherTempC?: number | null;
     month?: number | null;
     season?: 'ss' | 'aw' | 'spring' | 'summer' | 'autumn' | 'fall' | 'winter' | string | null;
+    liveContractVersion?: number;
+    liveSession?: Record<string, unknown> | null;
+    sessionEpoch?: number;
+    obsSeq?: number;
   }) {
     return this.request<{
       success: boolean;
@@ -1371,6 +1375,16 @@ class ApiService {
       yoloAvailable?: boolean;
       yoloNote?: string;
       message?: string;
+      liveContractVersion?: number;
+      liveSession?: Record<string, unknown> | null;
+      publication?: {
+        revision?: number;
+        status?: string;
+        reason?: string;
+        scoredGarmentIds?: string[];
+      } | null;
+      schedulerHint?: string | null;
+      obsSeq?: number;
     }>('/api/wardrobe/scan-wardrobe/live-frame', {
       method: 'POST',
       body: JSON.stringify(data),

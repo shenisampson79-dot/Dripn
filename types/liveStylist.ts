@@ -119,4 +119,14 @@ export type LiveFrameResponse = {
   yoloAvailable?: boolean;
   yoloNote?: string;
   message?: string;
+  liveContractVersion?: number;
+  liveSession?: Record<string, unknown> | null;
+  publication?: {
+    revision?: number;
+    status?: string;
+    reason?: string;
+    scoredGarmentIds?: string[];
+  } | null;
+  schedulerHint?: string | null;
+  obsSeq?: number;
 };
