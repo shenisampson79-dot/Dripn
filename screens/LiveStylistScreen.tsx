@@ -132,6 +132,8 @@ import {
   shouldBypassHashSkip,
   shouldResetCanonicalSessionAfterBackground,
 } from '@/utils/liveCanonicalHud';
+import { polishLiveFeedback, polishLiveHudItems, resolveLiveDisplayLocale } from '@/utils/liveLocaleLabels';
+import * as Localization from 'expo-localization';
 
 /** Hard ceiling for camera mount/ready — never leave "warming" forever. */
 const CAMERA_READY_TIMEOUT_MS = 8000;
@@ -243,6 +245,24 @@ function liveItemsToDetections(items: LiveTrackedItem[]): OnDeviceDetection[] {
   }));
 }
 
+function attachServerDisplayNames(
+  painted: LiveTrackedItem[],
+  serverItems?: Array<{ trackId?: string; displayName?: string | null }>,
+): LiveTrackedItem[] {
+  if (!serverItems?.length) return painted;
+  const byId = new Map(
+    serverItems
+      .filter((item) => item?.trackId && item.displayName)
+      .map((item) => [String(item.trackId), String(item.displayName)]),
+  );
+  if (!byId.size) return painted;
+  return painted.map((item) => {
+    const displayName = item.trackId ? byId.get(item.trackId) : null;
+    if (!displayName || item.displayName === displayName) return item;
+    return { ...item, displayName };
+  });
+}
+
 function detectionsToLiveItems(
   detections: OnDeviceDetection[],
   seed?: LiveTrackedItem[],
@@ -330,6 +350,23 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
+  const liveDisplayLocale = useMemo(() => resolveLiveDisplayLocale({
+    country: (user as { country?: string } | null)?.country
+      || (user as { profileData?: { country?: string } } | null)?.profileData?.country
+      || null,
+    countryCode: (user as { countryCode?: string } | null)?.countryCode
+      || (user as { profileData?: { countryCode?: string } } | null)?.profileData?.countryCode
+      || null,
+    actualCountry: (user as { actualCountry?: string } | null)?.actualCountry
+      || (user as { profileData?: { actualCountry?: string } } | null)?.profileData?.actualCountry
+      || null,
+    locale: (user as { locale?: string } | null)?.locale
+      || (user as { profileData?: { locale?: string } } | null)?.profileData?.locale
+      || null,
+    deviceLanguageTags: (Localization.getLocales?.() || []).map((entry) => (
+      entry?.languageTag || [entry?.languageCode, entry?.regionCode].filter(Boolean).join('-')
+    )).filter(Boolean),
+  }), [user]);
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   /** VisionCamera frame processors must be linked in the native binary (OTA insufficient). */
@@ -505,10 +542,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
 
   const paintBeliefItems = useCallback((detections: OnDeviceDetection[]) => {
     if (!mountedRef.current || !detections.length) return;
-    const painted = detectionsToLiveItems(detections, previousItemsRef.current);
-    previousItemsRef.current = painted;
-    setItems(painted);
-  }, []);
+    const identity = detectionsToLiveItems(detections, previousItemsRef.current);
+    previousItemsRef.current = identity;
+    setItems(polishLiveHudItems(identity, liveDisplayLocale));
+  }, [liveDisplayLocale]);
 
   const beliefSignature = useCallback((detections: OnDeviceDetection[]) => (
     detections
@@ -651,6 +688,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       lastAppliedObsSeq: lastAppliedObsSeqRef.current,
       requestGeneration: requestGen ?? liveBootGenRef.current,
       currentGeneration: liveBootGenRef.current,
+      locale: liveDisplayLocale,
     });
     if (canonical.kind === 'ignore') return null;
     if (canonical.kind === 'canonical') {
@@ -668,8 +706,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       } else {
         canonicalLastOutcomeRef.current = 'ok';
       }
-      const next = canonical.feedback as LiveFeedback;
-      previousItemsRef.current = (canonical.items as LiveTrackedItem[]) || [];
+      const next = canonical.identityFeedback as LiveFeedback;
+      previousItemsRef.current = (canonical.identityItems as LiveTrackedItem[]) || [];
       previousFeedbackRef.current = next;
       scoreGateRef.current = {
         shown: canonical.score,
@@ -684,8 +722,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         if (mountedRef.current) setLabelsReady(true);
       }
       if (mountedRef.current) {
-        setItems(previousItemsRef.current);
-        setFeedback(next);
+        setItems(canonical.items as LiveTrackedItem[]);
+        setFeedback((canonical.feedback as LiveFeedback) || next);
       }
       lastCoachShownAtRef.current = Date.now();
       return {
@@ -735,7 +773,10 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         };
       }
       const adoptedBelief = detectionMemoryRef.current.belief;
-      let painted = detectionsToLiveItems(stabilized.detections, res.items);
+      let painted = attachServerDisplayNames(
+        detectionsToLiveItems(stabilized.detections, res.items),
+        res.items,
+      );
       if (cloudish && adoptedBelief) {
         painted = painted.map((it) => {
           const blob = `${it.category} ${it.subcategory || ''} ${it.name || ''}`.toLowerCase();
@@ -978,10 +1019,16 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       && !barefootIdentity
     );
     if (mountedRef.current) {
-      setItems(customerBoxesFromPublishedTruth(truth, {
-        cropped: Boolean(footZone?.cropped || footZoneMem?.cropped),
-        searchingFootwear,
-      }));
+      setItems(polishLiveHudItems(
+        attachServerDisplayNames(
+          customerBoxesFromPublishedTruth(truth, {
+            cropped: Boolean(footZone?.cropped || footZoneMem?.cropped),
+            searchingFootwear,
+          }) as LiveTrackedItem[],
+          res.items,
+        ),
+        liveDisplayLocale,
+      ) as LiveTrackedItem[]);
     }
 
     // After first publish, hold score/headline. Do not blank on athletic↔sweat
@@ -999,7 +1046,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       next.coaching = renderCopyFromPublishedTruth(next.coaching, {
         ...truth,
         score: next.score,
-      }) || next.coaching;
+      }, liveDisplayLocale) || next.coaching;
     }
     if (next.coaching && next.score != null && Number.isFinite(Number(next.score))) {
       next.coaching = enforceLiveOutcomeContract(next.coaching, next.score, {
@@ -1083,6 +1130,8 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
     const scoreChanged = previousFeedbackRef.current?.score !== next.score;
     const approxChanged = previousFeedbackRef.current?.scoreApproximate !== next.scoreApproximate;
 
+    const displayedFeedback = polishLiveFeedback(next, liveDisplayLocale) || next;
+
     if (
       res.feedbackChanged || !hadFeedback || coachChanged || piecesChanged
       || beliefChanged || scoreRevealed || scoreChanged || approxChanged
@@ -1094,7 +1143,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         || scoreChanged || approxChanged
         || Boolean(res.feedbackChanged);
       if (shouldPaint) {
-        setFeedback(next);
+        setFeedback(displayedFeedback);
         lastCoachShownAtRef.current = Date.now();
       }
     }
@@ -1112,7 +1161,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       confidenceLevel: next.confidenceLevel,
       scoreApproximate: next.scoreApproximate,
     };
-  }, [beliefSignature, occasionType, publishDebug]);
+  }, [beliefSignature, occasionType, publishDebug, liveDisplayLocale]);
 
   const processFrameSample = useCallback(async (image: Image) => {
     if (liveStateRef.current !== 'live') {
@@ -1434,7 +1483,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         occasionType,
         hybridMatch: LIVE_YOLO_ENABLED,
         frameHash,
-        previousItems: previousItemsRef.current,
+        previousItems: previousItemsRef.current.map(({ displayName: _displayName, ...item }) => item),
         previousFeedback: previousFeedbackRef.current,
         recentLayerTipIds: recentLayerTipIdsRef.current.slice(0, 8),
         month: new Date().getMonth() + 1,
@@ -1866,7 +1915,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
       warmTruthRef.current = null;
       setLabelsReady(Boolean(sample));
       setFeedback(previousFeedbackRef.current);
-      setItems(customerBoxesFromPublishedTruth(warm.truth, {}));
+      setItems(polishLiveHudItems(customerBoxesFromPublishedTruth(warm.truth, {}), liveDisplayLocale) as LiveTrackedItem[]);
       setDebugSnapshot(emptyDebugSnapshot('live_warm'));
     } else {
       sessionEpochRef.current += 1;
@@ -2186,7 +2235,7 @@ export default function LiveStylistScreen({ navigation, route }: Props) {
         occasionType,
         hybridMatch: LIVE_YOLO_ENABLED,
         frameHash,
-        previousItems: previousItemsRef.current,
+        previousItems: previousItemsRef.current.map(({ displayName: _displayName, ...item }) => item),
         previousFeedback: previousFeedbackRef.current,
         recentLayerTipIds: recentLayerTipIdsRef.current.slice(0, 8),
         month: new Date().getMonth() + 1,

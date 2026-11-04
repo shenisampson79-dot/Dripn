@@ -4,7 +4,12 @@
  */
 
 import { CONFUSABLE_SHOE_FLIPS, type ShoeSubtype } from '@/utils/liveFootwearGate';
-import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
+import {
+  LIVE_LOCALE,
+  polishUkCoaching,
+  polishUkLiveLabel,
+  type LiveLocale,
+} from '@/utils/liveLocaleLabels';
 import { LIVE_SUMMARY_MAX, packSummary } from '@/utils/packSummary';
 import { editorialGarmentName } from '@/utils/wardrobeItemName';
 
@@ -244,8 +249,9 @@ export function syncCoachingToBelief<T extends {
 }>(
   coaching: T | null | undefined,
   pieces: BeliefPieceForCoach[],
-  _opts: { score?: number | null } = {},
+  _opts: { score?: number | null; locale?: LiveLocale } = {},
 ): T | null | undefined {
+  const locale = _opts.locale || LIVE_LOCALE;
   if (!coaching?.summary) return coaching;
   const dress = pieces.find(isDressPiece);
   const outer = pieces.find((p) =>
@@ -311,12 +317,12 @@ export function syncCoachingToBelief<T extends {
 
   return polishUkCoaching({
     ...coaching,
-    summary: polishUkLiveLabel(summary),
+    summary: polishUkLiveLabel(summary, locale),
     bullets,
     ...(coaching.outfitSignature
-      ? { outfitSignature: polishUkLiveLabel(String(coaching.outfitSignature).replace(/_/g, ' ')) }
+      ? { outfitSignature: polishUkLiveLabel(String(coaching.outfitSignature).replace(/_/g, ' '), locale) }
       : {}),
-  }) as T;
+  }, locale) as T;
 }
 
 /**

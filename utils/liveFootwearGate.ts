@@ -15,7 +15,6 @@ import {
 } from '@/utils/bodyGeometryGuardrails';
 import { appendDecision, type BeliefDecision } from '@/utils/liveBeliefDecisions';
 import { buildFootwearDisplayLabel, toCanonicalFootwearFamily } from '@/utils/footwearLayers';
-import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 
 export type ShoeSubtype = 'sneakers' | 'boots' | 'sandals' | 'flip_flops' | 'slides' | 'boat_shoes' | 'loafers';
 
@@ -472,7 +471,7 @@ export function gateFootwearDetections(
     color: seedDet.color || best.d.color,
     // Display from vision when specific; else from fine subtype — never invent trainers over boots
     name: keepVisionLabel
-      ? polishUkLiveLabel(visionName)
+      ? visionName
       : buildFootwearDisplayLabel({
       type: subtype,
       color: seedDet.color || best.d.color,

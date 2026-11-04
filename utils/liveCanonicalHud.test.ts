@@ -150,6 +150,74 @@ describe('canonical v2 HUD contract', () => {
     assert.equal(applied.kind, 'legacy');
   });
 
+  it('polishes UK HUD names and coaching without touching liveSession identity', () => {
+    const res = {
+      ...published,
+      items: [{
+        name: 'White Sneakers',
+        category: 'shoes',
+        subcategory: 'sneakers',
+        bbox: [0.2, 0.7, 0.3, 0.2],
+        trackId: 'g_shoe',
+      }],
+      feedback: {
+        score: 84,
+        issues: ['Navy Pants clash'],
+        suggestions: ['A yellow sweater would add warmth'],
+        coaching: {
+          headline: 'Looking good',
+          summary: 'Yellow sweater, black pants and white sneakers work well together.',
+          bullets: ['White Sneakers keep the look easy'],
+        },
+      },
+      liveSession: {
+        epoch: 1,
+        lastAppliedObsSeq: 2,
+        sessionId: 's1',
+        garments: [{ garmentId: 'g_shoe', displayName: { value: 'White Sneakers' } }],
+      },
+    };
+    const applied = applyCanonicalLiveResponse({
+      res,
+      lastAppliedObsSeq: 1,
+      requestGeneration: 1,
+      currentGeneration: 1,
+    });
+    assert.equal(applied.kind, 'canonical');
+    if (applied.kind !== 'canonical') return;
+    assert.equal((applied.items[0] as { name: string }).name, 'White Trainers');
+    assert.equal((applied.items[0] as { subcategory: string }).subcategory, 'sneakers');
+    assert.match(String(applied.coaching?.summary), /jumper/i);
+    assert.match(String(applied.coaching?.summary), /trousers/i);
+    assert.match(String(applied.coaching?.summary), /trainers/i);
+    assert.match(String(applied.feedback.suggestions?.[0]), /jumper/i);
+    assert.deepEqual(applied.liveSession, res.liveSession);
+    assert.equal((applied.identityItems[0] as { name: string }).name, 'White Sneakers');
+    assert.equal((res.items[0] as { name: string }).name, 'White Sneakers');
+  });
+
+  it('keeps US terminology when locale is US', () => {
+    const applied = applyCanonicalLiveResponse({
+      res: {
+        ...published,
+        items: [{ name: 'White Sneakers', category: 'shoes', bbox: [0.2, 0.7, 0.3, 0.2] }],
+        feedback: {
+          score: 80,
+          coaching: { headline: 'Nice', summary: 'White sneakers and black pants.', bullets: [] },
+        },
+      },
+      lastAppliedObsSeq: 1,
+      requestGeneration: 1,
+      currentGeneration: 1,
+      locale: 'US',
+    });
+    assert.equal(applied.kind, 'canonical');
+    if (applied.kind !== 'canonical') return;
+    assert.equal((applied.items[0] as { name: string }).name, 'White Sneakers');
+    assert.match(String(applied.coaching?.summary), /sneakers/);
+    assert.match(String(applied.coaching?.summary), /pants/);
+  });
+
   it('echoes only last accepted session on the outbound payload', () => {
     const payload = attachLiveContractPayload({}, {
       liveSession: published.liveSession,

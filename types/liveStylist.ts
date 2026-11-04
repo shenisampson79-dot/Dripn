@@ -25,6 +25,8 @@ export type LiveLegwear = {
 
 export type LiveTrackedItem = ScanSessionItem & {
   trackId: string;
+  /** Display-only overlay (e.g. justified trousers). Never an identity field. */
+  displayName?: string | null;
   suggestion?: string | null;
   source?: LiveDetectorSource | string;
   wardrobeMatch?: {

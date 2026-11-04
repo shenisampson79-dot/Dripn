@@ -12,6 +12,13 @@
  * Hash-identical frames still send Vision when hint is suspect_change / scene_transition.
  */
 
+import {
+  LIVE_LOCALE,
+  polishLiveFeedback,
+  polishLiveHudItems,
+  type LiveLocale,
+} from './liveLocaleLabels';
+
 export const LIVE_CONTRACT_VERSION = 2;
 export const CLOUD_CANONICAL_STABLE_MS = 12000;
 export const CLOUD_CANONICAL_SUSPECT_MS = 2000;
@@ -65,6 +72,8 @@ export type CanonicalHudApply =
     liveSession: Record<string, unknown> | null;
     appliedObsSeq: number;
     items: unknown[];
+    identityItems: unknown[];
+    identityFeedback: NonNullable<LiveCanonicalResponse['feedback']>;
     feedback: NonNullable<LiveCanonicalResponse['feedback']>;
   };
 
@@ -238,6 +247,7 @@ export function applyCanonicalLiveResponse(args: {
   lastAppliedObsSeq?: number | null;
   requestGeneration: number;
   currentGeneration: number;
+  locale?: LiveLocale;
 }): CanonicalHudApply {
   if (!isLiveContractV2(args.res)) return { kind: 'legacy' };
   const session = args.res.liveSession || null;
@@ -263,15 +273,19 @@ export function applyCanonicalLiveResponse(args: {
     publicationStatus: status,
     items: Array.isArray(args.res.items) ? args.res.items : [],
   });
+  const locale = args.locale || LIVE_LOCALE;
+  const displayFeedback = polishLiveFeedback(feedback, locale) || feedback;
   return {
     kind: 'canonical',
     score,
-    coaching: feedback.coaching || null,
+    coaching: displayFeedback.coaching || null,
     publicationStatus: status,
     schedulerHint: String(args.res.schedulerHint || 'stable'),
     liveSession: session,
     appliedObsSeq: Number.isFinite(seq) ? seq : (args.lastAppliedObsSeq || 0) + 1,
-    items,
-    feedback,
+    identityItems: items,
+    identityFeedback: feedback,
+    items: polishLiveHudItems(items, locale),
+    feedback: displayFeedback,
   };
 }

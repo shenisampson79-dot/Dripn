@@ -24,7 +24,6 @@ import {
   type BeliefDecision,
 } from '@/utils/liveBeliefDecisions';
 import { buildFootwearDisplayLabel } from '@/utils/footwearLayers';
-import { polishUkLiveLabel } from '@/utils/liveLocaleLabels';
 import {
   stabilizeShoeSubtype,
   applyGatedShoeFusion,
@@ -1488,7 +1487,7 @@ export function beliefToDetection(belief: GarmentBelief): OnDeviceDetection {
         subcategory: belief.subcategory,
         fallbackName: belief.name,
       }));
-  const name = polishUkLiveLabel(rawName);
+  const name = rawName;
   return {
     name,
     category: belief.category,

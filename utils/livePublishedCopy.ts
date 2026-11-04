@@ -11,7 +11,12 @@ import {
   mergeLegwearBullet,
 } from '@/utils/legwearAdvisory';
 import { sentenceCaseGarmentName } from '@/utils/liveLayeringIntelligence';
-import { polishUkCoaching, polishUkLiveLabel } from '@/utils/liveLocaleLabels';
+import {
+  LIVE_LOCALE,
+  polishUkCoaching,
+  polishUkLiveLabel,
+  type LiveLocale,
+} from '@/utils/liveLocaleLabels';
 import { scoreToBand } from '@/utils/liveOutcomeContract';
 import type { LiveOutfitTruth, LiveTruthItem } from '@/utils/liveOutfitTruth';
 
@@ -205,6 +210,7 @@ function footwearFormalitySummary(names: PublishedTruthNames): string {
 export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
   coaching: T | null | undefined,
   truth: LiveOutfitTruth,
+  locale: LiveLocale = LIVE_LOCALE,
 ): T | null | undefined {
   if (!coaching) return coaching;
   if (truth.score == null || !Number.isFinite(Number(truth.score))) {
@@ -263,7 +269,7 @@ export function renderCopyFromPublishedTruth<T extends LiveCoaching>(
 
   return polishUkCoaching({
     ...coaching,
-    summary: polishUkLiveLabel(summary),
-    bullets: merged.map((b) => polishUkLiveLabel(b)),
-  }) as T;
+    summary: polishUkLiveLabel(summary, locale),
+    bullets: merged.map((b) => polishUkLiveLabel(b, locale)),
+  }, locale) as T;
 }
