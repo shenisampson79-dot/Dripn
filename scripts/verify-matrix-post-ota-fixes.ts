@@ -79,13 +79,87 @@ console.log('=== verify-matrix-post-ota-fixes ===\n');
   assert.match(productSrc, /shopping-bag/);
 }
 
-// D. Chat composer spacing — symmetric md pad above/below when keyboard closed
+// D. Chat composer — Android skips Reanimated keyboard hook; iOS keeps animated pad
 {
+  function extractNamedFunction(src: string, name: string): string {
+    const start = src.indexOf(`function ${name}(`);
+    assert.ok(start >= 0, `${name} is present`);
+    const paramOpen = start + `function ${name}`.length;
+    assert.equal(src[paramOpen], '(', `${name} has a parameter list`);
+    let parenDepth = 0;
+    let i = paramOpen;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '(') parenDepth += 1;
+      else if (ch === ')') {
+        parenDepth -= 1;
+        if (parenDepth === 0) {
+          i += 1;
+          break;
+        }
+      }
+    }
+    assert.ok(parenDepth === 0, `${name} parameter list is closed`);
+    while (i < src.length && /\s/.test(src[i])) i += 1;
+    const brace = i;
+    assert.equal(src[brace], '{', `${name} has a body after its parameter list`);
+    let depth = 0;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '{') depth += 1;
+      else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) return src.slice(start, i + 1);
+      }
+    }
+    assert.fail(`${name} is closed`);
+  }
+
+  const parentScreen = extractNamedFunction(chatSrc, 'AIStylistScreen');
+  const animatedPad = extractNamedFunction(chatSrc, 'StylistComposerAnimatedPad');
+  const composerPad = extractNamedFunction(chatSrc, 'StylistComposerPad');
+
   assert.match(chatSrc, /KeyboardStickyView offset=\{\{ closed: -tabBarHeight/);
+  assert.match(parentScreen, /useKeyboardState/);
+  assert.doesNotMatch(
+    parentScreen,
+    /useReanimatedKeyboardAnimation\s*\(/,
+    'AIStylistScreen does not invoke useReanimatedKeyboardAnimation directly',
+  );
   assert.match(
-    chatSrc,
-    /paddingBottom: keyboardHeight\.value === 0 \? Spacing\.md : 0/,
-    'closed-keyboard bottom pad matches top (Spacing.md)',
+    animatedPad,
+    /useReanimatedKeyboardAnimation\s*\(/,
+    'Reanimated keyboard hook is confined to StylistComposerAnimatedPad',
+  );
+  assert.doesNotMatch(
+    composerPad,
+    /useReanimatedKeyboardAnimation\s*\(/,
+    'StylistComposerPad does not call the Reanimated keyboard hook',
+  );
+  assert.match(
+    composerPad,
+    /if \(Platform\.OS === 'android'\)/,
+    'static pad is selected on all Android versions',
+  );
+  assert.doesNotMatch(
+    composerPad,
+    /Platform\.Version|API_LEVEL|<= 28/,
+    'Android pad is not gated by API level',
+  );
+  assert.match(
+    composerPad,
+    /<View style=\{\{ backgroundColor, paddingBottom: Spacing\.md \}\}>/,
+    'static Android pad retains paddingBottom Spacing.md',
+  );
+  assert.match(
+    composerPad,
+    /<StylistComposerAnimatedPad backgroundColor=\{backgroundColor\}>/,
+    'non-Android path retains the animated pad',
+  );
+  assert.match(
+    animatedPad,
+    /paddingBottom: keyboardHeight\.value === 0 \? Spacing\.md : Spacing\.sm/,
+    'iOS animated pad keeps md closed / sm open inset',
   );
   assert.doesNotMatch(
     chatSrc,

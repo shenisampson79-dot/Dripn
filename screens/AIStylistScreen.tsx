@@ -235,6 +235,40 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
   );
 };
 
+type StylistComposerPadProps = {
+  backgroundColor: string;
+  children: React.ReactNode;
+};
+
+/** UI-thread keyboard pad. Mounted only on iOS (and non-Android platforms). */
+function StylistComposerAnimatedPad({ backgroundColor, children }: StylistComposerPadProps) {
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const inputBottomPadStyle = useAnimatedStyle(() => ({
+    // Symmetric with inputContainerWrapper paddingTop when keyboard is closed.
+    paddingBottom: keyboardHeight.value === 0 ? Spacing.md : Spacing.sm,
+  }));
+  return (
+    <Animated.View style={[inputBottomPadStyle, { backgroundColor }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function StylistComposerPad({ backgroundColor, children }: StylistComposerPadProps) {
+  if (Platform.OS === 'android') {
+    return (
+      <View style={{ backgroundColor, paddingBottom: Spacing.md }}>
+        {children}
+      </View>
+    );
+  }
+  return (
+    <StylistComposerAnimatedPad backgroundColor={backgroundColor}>
+      {children}
+    </StylistComposerAnimatedPad>
+  );
+}
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Chat row geometry — keep outfit bubbles inside the screen with readable text inset. */
 const CHAT_ROW_PADDING = Spacing.xl;
@@ -1939,13 +1973,8 @@ export default function AIStylistScreen() {
       : TAB_BAR_HEIGHT + insets.bottom;
   // Opaque stack header already offsets the scene — only pad a small gap under the bar.
   const contentTopPad = Spacing.md;
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const keyboardHeightPx = useKeyboardState((state) => state.height);
-  const inputBottomPadStyle = useAnimatedStyle(() => ({
-    // Symmetric with inputContainerWrapper paddingTop when keyboard is closed.
-    paddingBottom: keyboardHeight.value === 0 ? Spacing.md : Spacing.sm,
-  }));
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   const isNearBottomRef = useRef(true);
@@ -5804,9 +5833,9 @@ export default function AIStylistScreen() {
           style={styles.flatList}
         />
         <KeyboardStickyView offset={{ closed: -tabBarHeight, opened: 0 }} style={styles.inputSticky}>
-          <Animated.View style={[inputBottomPadStyle, { backgroundColor: theme.backgroundDefault }]}>
+          <StylistComposerPad backgroundColor={theme.backgroundDefault}>
             {renderInputBar()}
-          </Animated.View>
+          </StylistComposerPad>
         </KeyboardStickyView>
       </View>
       )}
