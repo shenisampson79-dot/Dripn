@@ -3,6 +3,8 @@
  * Run: npx tsx scripts/verify-stylist-chat-scroll.ts
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   acquireStickOwnership,
   beginProgrammaticScroll,
@@ -150,4 +152,116 @@ assert.ok(CHAT_SCROLL_END_OFFSET > 1e6, 'end offset must overshoot content');
   assert.equal(mustScrollToBottom(s), false);
 }
 
+// --- 7. Android measured stick offset (production helper from AIStylistScreen) ---
+{
+  const chatSrc = readFileSync(resolve(__dirname, '../screens/AIStylistScreen.tsx'), 'utf8');
+
+  function extractNamedFunction(src: string, name: string): string {
+    const start = src.indexOf(`function ${name}(`);
+    assert.ok(start >= 0, `${name} is present in AIStylistScreen`);
+    const paramOpen = start + `function ${name}`.length;
+    assert.equal(src[paramOpen], '(', `${name} has a parameter list`);
+    let parenDepth = 0;
+    let i = paramOpen;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '(') parenDepth += 1;
+      else if (ch === ')') {
+        parenDepth -= 1;
+        if (parenDepth === 0) {
+          i += 1;
+          break;
+        }
+      }
+    }
+    assert.equal(parenDepth, 0, `${name} parameter list is closed`);
+    while (i < src.length && src[i] !== '{') i += 1;
+    const brace = i;
+    assert.equal(src[brace], '{', `${name} has a body`);
+    let depth = 0;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '{') depth += 1;
+      else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) return src.slice(start, i + 1);
+      }
+    }
+    assert.fail(`${name} is closed`);
+  }
+
+  function extractUseCallback(src: string, name: string): string {
+    const needle = `const ${name} = useCallback(`;
+    const start = src.indexOf(needle);
+    assert.ok(start >= 0, `${name} is present in AIStylistScreen`);
+    const arrow = src.indexOf('=>', start);
+    assert.ok(arrow > start, `${name} is an arrow callback`);
+    let i = src.indexOf('{', arrow);
+    assert.ok(i >= 0, `${name} has a body`);
+    let depth = 0;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '{') depth += 1;
+      else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) return src.slice(start, i + 1);
+      }
+    }
+    assert.fail(`${name} is closed`);
+  }
+
+  const helperSrc = extractNamedFunction(chatSrc, 'androidMeasuredStickOffset');
+  const bodyOpen = helperSrc.indexOf('{');
+  const helperBody = helperSrc.slice(bodyOpen + 1, helperSrc.lastIndexOf('}'));
+  const androidMeasuredStickOffset = new Function(
+    'contentHeight',
+    'viewportHeight',
+    helperBody,
+  ) as (contentHeight: number, viewportHeight: number) => number | null;
+
+  assert.equal(androidMeasuredStickOffset(1600, 700), 900);
+  assert.equal(androidMeasuredStickOffset(500, 700), 0);
+  assert.equal(androidMeasuredStickOffset(Number.NaN, 700), null);
+  assert.equal(androidMeasuredStickOffset(1600, Number.NaN), null);
+  assert.equal(androidMeasuredStickOffset(Number.POSITIVE_INFINITY, 700), null);
+  assert.equal(androidMeasuredStickOffset(1600, Number.POSITIVE_INFINITY), null);
+  assert.equal(androidMeasuredStickOffset(1600, 0), null);
+  assert.equal(androidMeasuredStickOffset(1600, -1), null);
+  assert.equal(androidMeasuredStickOffset(-10, 700), null);
+
+  const stickSrc = extractUseCallback(chatSrc, 'scrollListToLatestOffset');
+  const androidIf = stickSrc.indexOf("if (Platform.OS === 'android')");
+  assert.ok(androidIf >= 0, 'scrollListToLatestOffset has an Android branch');
+  let i = stickSrc.indexOf('{', androidIf);
+  let depth = 0;
+  let androidEnd = -1;
+  for (; i < stickSrc.length; i++) {
+    if (stickSrc[i] === '{') depth += 1;
+    else if (stickSrc[i] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        androidEnd = i + 1;
+        break;
+      }
+    }
+  }
+  assert.ok(androidEnd > androidIf, 'Android branch is closed');
+  const androidBranch = stickSrc.slice(androidIf, androidEnd);
+  const nonAndroidBranch = stickSrc.slice(androidEnd);
+  assert.match(androidBranch, /androidMeasuredStickOffset\s*\(/);
+  assert.match(androidBranch, /if \(offset == null\) return false/);
+  assert.match(androidBranch, /scrollToOffset\(\{ offset, animated \}\)/);
+  assert.doesNotMatch(
+    androidBranch,
+    /CHAT_SCROLL_END_OFFSET/,
+    'Android scrollListToLatestOffset must not pass CHAT_SCROLL_END_OFFSET',
+  );
+  assert.match(
+    nonAndroidBranch,
+    /scrollToOffset\(\{ offset: CHAT_SCROLL_END_OFFSET, animated \}\)/,
+    'non-Android branch retains iOS overshoot offset',
+  );
+}
+
 console.log('verify-stylist-chat-scroll: CSM stick-yield + re-entry invariants passed');
+console.log('verify-stylist-chat-scroll: Android measured-stick offset contract passed');

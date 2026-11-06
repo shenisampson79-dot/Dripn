@@ -296,6 +296,15 @@ const WARDROBE_CHAT_BUBBLE_MAX_WIDTH =
 const INPUT_CONTAINER_HEIGHT = 116;
 /** Allowance / daily-limit banner sits above the input — reserve space so the last bubble isn't covered. */
 const LIMIT_HIT_BANNER_HEIGHT = 108;
+
+/** Android stick offset from measured list metrics. Null until both dimensions are usable. */
+function androidMeasuredStickOffset(contentHeight: number, viewportHeight: number): number | null {
+  if (!Number.isFinite(contentHeight) || contentHeight < 0) return null;
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) return null;
+  const offset = contentHeight - viewportHeight;
+  if (!Number.isFinite(offset)) return null;
+  return Math.max(0, offset);
+}
 const TAB_BAR_HEIGHT = 56;
 
 function readComposerDraft(stylistId: string): string {
@@ -1977,6 +1986,8 @@ export default function AIStylistScreen() {
   const keyboardHeightPx = useKeyboardState((state) => state.height);
   const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const listContentHeightRef = useRef(Number.NaN);
+  const listViewportHeightRef = useRef(Number.NaN);
   const isNearBottomRef = useRef(true);
   /** Prefer sticking to latest while screen is focused (WhatsApp-style). */
   const stickToLatestRef = useRef(true);
@@ -2146,6 +2157,29 @@ export default function AIStylistScreen() {
   const isRecordingActiveRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  const recordChatListMetrics = useCallback((contentHeight?: number, viewportHeight?: number) => {
+    if (typeof contentHeight === 'number' && Number.isFinite(contentHeight) && contentHeight >= 0) {
+      listContentHeightRef.current = contentHeight;
+    }
+    if (typeof viewportHeight === 'number' && Number.isFinite(viewportHeight) && viewportHeight > 0) {
+      listViewportHeightRef.current = viewportHeight;
+    }
+  }, []);
+
+  const scrollListToLatestOffset = useCallback((list: FlatList<ChatMessage>, animated: boolean): boolean => {
+    if (Platform.OS === 'android') {
+      const offset = androidMeasuredStickOffset(
+        listContentHeightRef.current,
+        listViewportHeightRef.current,
+      );
+      if (offset == null) return false;
+      list.scrollToOffset({ offset, animated });
+      return true;
+    }
+    list.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated });
+    return true;
+  }, []);
+
   const scrollChatToEnd = useCallback((force = false, animated = true) => {
     if (holdAllowanceBannerInViewRef.current) return;
     if (!force) {
@@ -2172,13 +2206,14 @@ export default function AIStylistScreen() {
       if (chatMachineRef.current.scroll === 'USER_SCROLLING') return;
       const list = flatListRef.current;
       if (!list) return;
-      // Offset jump is reliable with variable-height image bubbles (scrollToIndex often fails).
+      // iOS keeps the 1e9 overshoot; Android uses measured contentHeight - viewportHeight.
       try {
-        list.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: anim });
+        if (scrollListToLatestOffset(list, anim)) return;
         return;
       } catch {
         /* fall through */
       }
+      if (Platform.OS === 'android') return;
       try {
         list.scrollToEnd({ animated: anim });
       } catch {
@@ -2199,7 +2234,7 @@ export default function AIStylistScreen() {
         chatMachineRef.current = transitionPhase(chatMachineRef.current, 'SETTLED');
       }
     }, 1700);
-  }, []);
+  }, [scrollListToLatestOffset]);
 
   const clearFocusReentryScrollTimers = useCallback(() => {
     focusReentryScrollTimersRef.current = clearScheduledTimeouts(
@@ -2224,6 +2259,7 @@ export default function AIStylistScreen() {
     };
   }) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    recordChatListMetrics(contentSize.height, layoutMeasurement.height);
     const nearBottom = computeNearBottom({
       contentOffsetY: contentOffset.y,
       layoutHeight: layoutMeasurement.height,
@@ -2238,7 +2274,7 @@ export default function AIStylistScreen() {
     } else if (!locked) {
       stickToLatestRef.current = false;
     }
-  }, []);
+  }, [recordChatListMetrics]);
 
   // Restore unsent composer draft from disk (memory already applied in useState).
   useEffect(() => {
@@ -5815,16 +5851,24 @@ export default function AIStylistScreen() {
           scrollEventThrottle={16}
           onScrollToIndexFailed={() => {
             if (holdAllowanceBannerInViewRef.current) return;
-            flatListRef.current?.scrollToOffset({ offset: CHAT_SCROLL_END_OFFSET, animated: false });
+            const list = flatListRef.current;
+            if (!list) return;
+            try {
+              scrollListToLatestOffset(list, false);
+            } catch {
+              /* list not ready */
+            }
           }}
-          onContentSizeChange={() => {
+          onContentSizeChange={(_contentWidth, contentHeight) => {
+            recordChatListMetrics(contentHeight, undefined);
             // Keep WhatsApp-style stickiness while following the live reply; don't yank
             // someone who scrolled up into history.
             if (shouldAutoStickOnContentChange(chatMachineRef.current) || stickToLatestRef.current) {
               scrollChatToEnd(false, false);
             }
           }}
-          onLayout={() => {
+          onLayout={(event) => {
+            recordChatListMetrics(undefined, event.nativeEvent.layout.height);
             if (shouldAutoStickOnContentChange(chatMachineRef.current) || stickToLatestRef.current) {
               scrollChatToEnd(false, false);
             }
