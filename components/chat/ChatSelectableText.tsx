@@ -13,6 +13,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from 'react-native';
+import { resolveChatSelectableDisplayText } from '@/utils/formatChatAssistantDisplay';
 
 const SELECTION_COLOR = 'rgba(201, 168, 124, 0.45)';
 
@@ -71,13 +72,18 @@ export function ChatSelectableText({ text, style, inverted }: Props) {
   }
 
   // Android Text selectable already supports highlight + handles.
+  // Assistant-only display formatting; user bubbles (`inverted`) stay raw.
+  const androidText = resolveChatSelectableDisplayText(text, {
+    platform: 'android',
+    inverted,
+  });
   return (
     <Text
       selectable
       selectionColor={SELECTION_COLOR}
       style={[style, inverted ? { color: '#FFFFFF' } : null]}
     >
-      {renderBoldSegments(text)}
+      {renderBoldSegments(androidText)}
     </Text>
   );
 }

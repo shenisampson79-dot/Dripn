@@ -33,7 +33,7 @@ type StylistHubScreenProps = {
 
 const GRID_GAP = Spacing.md;
 const GRID_ROWS = 4;
-/** Gap under Today's outfit / Style Tools header before the first tile row */
+/** Gap under the hub subtitle before the first tile row */
 const GRID_TOP_GAP = Spacing.md;
 /**
  * Space below the last tile row, above the tab bar.
@@ -388,9 +388,6 @@ export default function StylistHubScreen({ navigation, route }: StylistHubScreen
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
-                  {t('stylistHub.styleToolsTitle') || 'Style Tools'}
-                </ThemedText>
                 <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]} numberOfLines={1}>
                   {t('stylistHub.styleToolsSubtitle') || 'Your personal fashion assistant'}
                 </ThemedText>
@@ -447,9 +444,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-  },
-  title: {
-    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: Typography.small.fontSize,
